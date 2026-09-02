@@ -55,21 +55,21 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
         return Ok(deployments);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Deployments)]
-    [OpenApiOperation("Get deployment details.", "")]
+    [OpenApiOperation("Get deployment details.", "Accepts the deployment's id or its short key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<DeploymentDto>> GetDeployment(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<DeploymentDto>> GetDeployment(string idOrKey, CancellationToken cancellationToken)
     {
-        var deployment = await _dispatcher.Send(new GetDeploymentQuery(id), cancellationToken);
+        var deployment = await _dispatcher.Send(new GetDeploymentQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return deployment is not null
             ? Ok(deployment)
             : NotFound();
     }
 
-    [HttpGet("{id}/status-history")]
+    [HttpGet("{idOrKey}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Deployments)]
     [OpenApiOperation(
         "Get a deployment's status change history.",
@@ -78,9 +78,10 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(
-        Guid id, CancellationToken cancellationToken)
+        string idOrKey, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new GetDeploymentStatusHistoryQuery(id), cancellationToken);
+        var result = await _dispatcher.Send(
+            new GetDeploymentStatusHistoryQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return result.IsFailure
             ? BadRequest(result.ToBadRequestObject(HttpContext))
@@ -99,7 +100,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToStartDeploymentCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetDeployment), new { id = result.Value.Id }, result.Value)
+            ? CreatedAtAction(nameof(GetDeployment), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

@@ -47,6 +47,10 @@ export const buildManifestColumns = (): ColumnDef<
     meta: { filterType: 'set' },
     cell: ({ row }) => renderProductLink(row.original.product),
   },
+  // Two columns, because a manifest line holds two different things. The string is what the package
+  // recorded shipping; the record is the version in Wayd it points at, where it points at one. They
+  // are usually equal and deliberately not the same field — a carried-forward line often names a
+  // version that was never cut here, which is why the link is nullable and the string is not.
   {
     id: 'version',
     accessorKey: 'version',
@@ -55,10 +59,11 @@ export const buildManifestColumns = (): ColumnDef<
     meta: { filterEnableSet: true },
   },
   {
-    id: 'version',
+    id: 'versionRecord',
     accessorFn: (row) => row.versionRecord?.name ?? '',
-    header: 'Version',
+    header: 'Version Record',
     size: 160,
+    meta: { filterEnableSet: true },
     cell: ({ row }) => renderVersionLink(row.original.versionRecord),
   },
   {

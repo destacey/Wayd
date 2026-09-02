@@ -13,7 +13,8 @@ import {
   useGetProductQuery,
   useGetProductsQuery,
 } from '@/src/store/features/product-management/products-api'
-import { useGetVersionsQuery } from '@/src/store/features/delivery/versions-api'
+import { useGetVersionsQuery } from '@/src/store/features/product-management/versions-api'
+import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Button, Flex, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
@@ -30,10 +31,12 @@ import LinkProductExternallyForm from '../_components/link-product-externally-fo
 import ManageProductTagsForm from '../_components/manage-product-tags-form'
 import ReparentProductForm from '../_components/reparent-product-form'
 import RetypeProductForm from '../_components/retype-product-form'
-import PlanVersionForm from '@/src/app/delivery/versions/_components/plan-version-form'
+import PlanReleaseForm from '@/src/app/product-management/releases/_components/plan-release-form'
+import PlanVersionForm from '@/src/app/product-management/versions/_components/plan-version-form'
 import ProductsGrid from '../_components/products-grid'
 import ProductFacts from './_components/product-facts'
 import ProductOverview from './_components/product-overview'
+import ProductReleases from './_components/product-releases'
 import ProductVersions from './_components/product-versions'
 import ProductStatusHistory from './_components/product-status-history'
 import ProductDetailsLoading from './loading'
@@ -44,6 +47,7 @@ enum ProductSections {
   // type decides what kind — an Application can sit under an Application. Naming
   // the section after one type would mislabel the rest.
   Products = 'products',
+  Releases = 'releases',
   Versions = 'versions',
   StatusHistory = 'status-history',
 }
@@ -60,6 +64,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isManageTagsOpen, setIsManageTagsOpen] = useState<boolean>(false)
   const [isLinkExternallyOpen, setIsLinkExternallyOpen] = useState<boolean>(false)
   const [isPlanVersionOpen, setIsPlanVersionOpen] = useState<boolean>(false)
+  const [isPlanReleaseOpen, setIsPlanReleaseOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -73,6 +78,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const canDeleteProduct = hasPermissionClaim('Permissions.Products.Delete')
   const canCreateProduct = hasPermissionClaim('Permissions.Products.Create')
   const canCreateVersion = hasPermissionClaim('Permissions.Delivery.Create')
+  // Releases carry their own claim rather than riding Delivery's: the audience differs, so someone
+  // who can see the engineering records need not be able to see the announcements.
+  const canViewReleases = hasPermissionClaim('Permissions.Releases.View')
+  const canCreateRelease = hasPermissionClaim('Permissions.Releases.Create')
 
   const messageApi = useMessage()
 
@@ -104,6 +113,20 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   } = useGetVersionsQuery(
     { productId: product?.id },
     { skip: !product?.id || !product?.isReleasable },
+  )
+
+  // Not gated on isReleasable, unlike versions. That gate asks whether an artifact can be cut against
+  // a node, which is a version's question — a release is announced under any node, and typically
+  // under a product line, which is usually not releasable.
+  //
+  // Skipped without the claim: the section is not offered, so the request would only ever 403.
+  const {
+    data: releases,
+    isLoading: releasesLoading,
+    refetch: refetchReleases,
+  } = useGetReleasesQuery(
+    { productId: product?.id },
+    { skip: !product?.id || !canViewReleases },
   )
 
   const isNotFound = (error as { status?: number })?.status === 404
@@ -219,6 +242,17 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       // thing a reader wants, and opening an empty section to find out is worse.
       count: components?.length || undefined,
     },
+    // Announcements before artifacts, as in the nav: what customers were told about this product is
+    // the product-side question, and versions are the engineering record beneath it.
+    ...(canViewReleases
+      ? [
+          {
+            id: ProductSections.Releases,
+            label: 'Releases',
+            count: releases?.length || undefined,
+          },
+        ]
+      : []),
     // Only where the type allows a version. On a node that cannot carry one the section could only
     // ever be empty, which reads as "none yet" rather than "not possible here".
     ...(product.isReleasable
@@ -230,6 +264,16 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const renderSection = (section: string) => {
     if (section === ProductSections.StatusHistory) {
       return <ProductStatusHistory productId={product.id} />
+    }
+
+    if (section === ProductSections.Releases) {
+      return (
+        <ProductReleases
+          releases={releases ?? []}
+          isLoading={releasesLoading}
+          refetch={refetchReleases}
+        />
+      )
     }
 
     if (section === ProductSections.Versions) {
@@ -348,6 +392,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Button onClick={() => setIsPlanVersionOpen(true)}>
               Add Version
             </Button>
+          ) : canCreateRelease && activeSection === ProductSections.Releases ? (
+            <Button onClick={() => setIsPlanReleaseOpen(true)}>
+              Add Release
+            </Button>
           ) : undefined
         }
         facts={<ProductFacts product={product} />}
@@ -439,6 +487,19 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           defaultProductId={product.id}
           onFormComplete={() => setIsPlanVersionOpen(false)}
           onFormCancel={() => setIsPlanVersionOpen(false)}
+        />
+      )}
+
+      {isPlanReleaseOpen && (
+        <PlanReleaseForm
+          defaultProductId={product.id}
+          onFormComplete={() => {
+            setIsPlanReleaseOpen(false)
+            // The count sits on the section tab, so it would otherwise disagree with the list until
+            // the next navigation.
+            refetchReleases()
+          }}
+          onFormCancel={() => setIsPlanReleaseOpen(false)}
         />
       )}
 

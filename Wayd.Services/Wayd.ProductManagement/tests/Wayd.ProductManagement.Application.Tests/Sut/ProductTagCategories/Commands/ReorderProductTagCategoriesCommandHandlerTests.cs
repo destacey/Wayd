@@ -91,6 +91,26 @@ public sealed class ReorderProductTagCategoriesCommandHandlerTests : ProductComm
     }
 
     [Fact]
+    public async Task Reorder_ShouldRefuseARepeatedAxis()
+    {
+        // Arrange — right count, and every id is real, but one axis is named twice and another not at
+        // all: it would end up never positioned, sharing a place with whatever kept its old order.
+        var platform = SeedCategory("Platform", 1);
+        SeedCategory("Tech Stack", 2);
+        var sut = ReorderSut();
+
+        // Act
+        var result = await sut.Handle(
+            new ReorderProductTagCategoriesCommand([platform.Id, platform.Id]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The order must list every tag category exactly once.");
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Reorder_ShouldRefuseAnUnknownAxis()
     {
         // Arrange — right count, wrong membership: the check has to be on the set, not its size

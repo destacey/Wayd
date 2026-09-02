@@ -39,25 +39,32 @@ public sealed class ReorderProductTagCategoriesCommandHandler(
     {
         try
         {
-            var categories = await _productManagementDbContext.ProductTagCategories
-                .ToListAsync(cancellationToken);
+            var categoriesById = await _productManagementDbContext.ProductTagCategories
+                .ToDictionaryAsync(c => c.Id, cancellationToken);
 
-            // The request must account for every axis. A caller working from a filtered or stale list
-            // would otherwise silently renumber part of the set and leave the rest overlapping it.
-            if (request.OrderedCategoryIds.Count != categories.Count
-                || !categories.All(c => request.OrderedCategoryIds.Contains(c.Id)))
+            var orderedIds = request.OrderedCategoryIds;
+
+            // The request must account for every axis exactly once. A caller working from a filtered or
+            // stale list would otherwise silently renumber part of the set and leave the rest
+            // overlapping it, and a repeated id would leave one axis never positioned at all.
+            // Counted, contained and de-duplicated together, these prove the two sets are the same.
+            if (orderedIds.Count != categoriesById.Count
+                || !orderedIds.All(categoriesById.ContainsKey)
+                || orderedIds.Distinct().Count() != orderedIds.Count)
             {
                 return Result.Failure("The order must list every tag category exactly once.");
             }
 
-            for (var position = 0; position < request.OrderedCategoryIds.Count; position++)
+            // Validated in full before anything moves, so a rejected request leaves no half-renumbered
+            // axes on the tracked entities.
+            for (var position = 0; position < orderedIds.Count; position++)
             {
-                categories.First(c => c.Id == request.OrderedCategoryIds[position]).SetOrder(position + 1);
+                categoriesById[orderedIds[position]].SetOrder(position + 1);
             }
 
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Reordered {CategoryCount} product tag categories.", categories.Count);
+            _logger.LogInformation("Reordered {CategoryCount} product tag categories.", categoriesById.Count);
 
             return Result.Success();
         }

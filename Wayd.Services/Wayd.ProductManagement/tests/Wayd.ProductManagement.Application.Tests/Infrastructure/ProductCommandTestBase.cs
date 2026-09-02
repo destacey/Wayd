@@ -116,22 +116,35 @@ public abstract class ProductCommandTestBase
     /// seeded here always has its components in memory, so a handler that omits
     /// <c>.Include(p =&gt; p.Components)</c> still passes — <c>ReleasePackageIncludeTests</c> covers that.
     /// </remarks>
+    /// <param name="releaseId">
+    /// The release the manifest line came from, where the test needs one. Null by default because a
+    /// manifest line legitimately names a version that was never cut as a release here.
+    /// </param>
     protected ReleasePackage SeedReleasePackage(
         Guid productId,
         string version = "2026.14",
-        StatusRef? status = null)
+        StatusRef? status = null,
+        Guid? releaseId = null)
     {
         var package = ReleasePackage.Create(
             version,
             null,
             null,
-            [(productId, null, "1.0", ManifestEntryKind.Changed)],
+            [(productId, releaseId, "1.0", ManifestEntryKind.Changed)],
             status ?? Status("Planned", StatusCategory.Proposed, ProductStatusAlias.None),
             EventActor.System,
             Now).Value;
 
         package.ClearDomainEvents();
         DbContext.AddReleasePackage(package);
+
+        // The manifest lines are their own set, and a real provider populates it through the
+        // navigation. Nothing does that here, so a query filtering on components — "which packages
+        // name this release?" — would find none unless they are added explicitly.
+        foreach (var component in package.Components)
+        {
+            DbContext.AddReleasePackageComponent(component);
+        }
 
         return package;
     }

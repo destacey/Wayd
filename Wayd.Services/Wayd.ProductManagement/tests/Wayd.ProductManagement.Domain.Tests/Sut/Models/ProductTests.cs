@@ -379,7 +379,7 @@ public sealed class ProductTests
         var toTypeId = Guid.CreateVersion7();
 
         // Act
-        var result = sut.Retype(toTypeId, isTargetReleasable: true, hasReleases: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Retype(toTypeId, isTargetReleasable: true, hasVersions: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -394,11 +394,11 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Retype(Guid.CreateVersion7(), isTargetReleasable: false, hasReleases: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Retype(Guid.CreateVersion7(), isTargetReleasable: false, hasVersions: true, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This product has releases and cannot be changed to a type that is not releasable.");
+        result.Error.Should().Be("This product has versions and cannot be changed to a type that is not releasable.");
         sut.DomainEvents.Should().BeEmpty();
     }
 
@@ -409,7 +409,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Retype(Guid.CreateVersion7(), isTargetReleasable: false, hasReleases: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Retype(Guid.CreateVersion7(), isTargetReleasable: false, hasVersions: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -497,7 +497,7 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(parentId).Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasReleases: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -512,7 +512,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: true, hasReleases: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: true, hasVersions: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -529,7 +529,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasReleases: false, isInAManifest: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: true, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -543,11 +543,11 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasReleases: true, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: true, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This product has releases and cannot be removed.");
+        result.Error.Should().Be("This product has versions and cannot be removed.");
     }
 
     #endregion Remove

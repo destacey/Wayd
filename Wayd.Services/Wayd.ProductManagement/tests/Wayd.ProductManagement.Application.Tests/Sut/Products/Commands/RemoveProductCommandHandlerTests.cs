@@ -68,7 +68,7 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
     {
         // Arrange
         var product = SeedProduct();
-        SeedRelease(product.Id);
+        SeedVersion(product.Id);
         var sut = CreateSut();
 
         // Act
@@ -76,7 +76,7 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This product has releases and cannot be removed.");
+        result.Error.Should().Be("This product has versions and cannot be removed.");
         DbContext.Products.Should().ContainSingle();
     }
 

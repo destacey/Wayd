@@ -13,7 +13,7 @@ import {
   useGetProductQuery,
   useGetProductsQuery,
 } from '@/src/store/features/product-management/products-api'
-import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
+import { useGetVersionsQuery } from '@/src/store/features/delivery/versions-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Button, Flex, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
@@ -30,11 +30,11 @@ import LinkProductExternallyForm from '../_components/link-product-externally-fo
 import ManageProductTagsForm from '../_components/manage-product-tags-form'
 import ReparentProductForm from '../_components/reparent-product-form'
 import RetypeProductForm from '../_components/retype-product-form'
-import PlanReleaseForm from '@/src/app/delivery/releases/_components/plan-release-form'
+import PlanVersionForm from '@/src/app/delivery/versions/_components/plan-version-form'
 import ProductsGrid from '../_components/products-grid'
 import ProductFacts from './_components/product-facts'
 import ProductOverview from './_components/product-overview'
-import ProductReleases from './_components/product-releases'
+import ProductVersions from './_components/product-versions'
 import ProductStatusHistory from './_components/product-status-history'
 import ProductDetailsLoading from './loading'
 
@@ -44,7 +44,7 @@ enum ProductSections {
   // type decides what kind — an Application can sit under an Application. Naming
   // the section after one type would mislabel the rest.
   Products = 'products',
-  Releases = 'releases',
+  Versions = 'versions',
   StatusHistory = 'status-history',
 }
 
@@ -59,7 +59,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isReparentOpen, setIsReparentOpen] = useState<boolean>(false)
   const [isManageTagsOpen, setIsManageTagsOpen] = useState<boolean>(false)
   const [isLinkExternallyOpen, setIsLinkExternallyOpen] = useState<boolean>(false)
-  const [isPlanReleaseOpen, setIsPlanReleaseOpen] = useState<boolean>(false)
+  const [isPlanVersionOpen, setIsPlanVersionOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -72,7 +72,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const canUpdateProduct = hasPermissionClaim('Permissions.Products.Update')
   const canDeleteProduct = hasPermissionClaim('Permissions.Products.Delete')
   const canCreateProduct = hasPermissionClaim('Permissions.Products.Create')
-  const canCreateRelease = hasPermissionClaim('Permissions.Releases.Create')
+  const canCreateVersion = hasPermissionClaim('Permissions.Delivery.Create')
 
   const messageApi = useMessage()
 
@@ -95,13 +95,13 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   } = useGetProductsQuery({ parentId: product?.id }, { skip: !product?.id })
 
   // Loaded here rather than inside the section, so the overview tile and the section it links to
-  // cannot disagree about the count. Skipped for a node whose type cannot carry releases: the
+  // cannot disagree about the count. Skipped for a node whose type cannot carry versions: the
   // section is hidden for those, and the request would only ever return nothing.
   const {
-    data: releases,
-    isLoading: releasesLoading,
-    refetch: refetchReleases,
-  } = useGetReleasesQuery(
+    data: versions,
+    isLoading: versionsLoading,
+    refetch: refetchVersions,
+  } = useGetVersionsQuery(
     { productId: product?.id },
     { skip: !product?.id || !product?.isReleasable },
   )
@@ -219,10 +219,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       // thing a reader wants, and opening an empty section to find out is worse.
       count: components?.length || undefined,
     },
-    // Only where the type allows a release. On a node that cannot carry one the section could only
+    // Only where the type allows a version. On a node that cannot carry one the section could only
     // ever be empty, which reads as "none yet" rather than "not possible here".
     ...(product.isReleasable
-      ? [{ id: ProductSections.Releases, label: 'Releases' }]
+      ? [{ id: ProductSections.Versions, label: 'Versions' }]
       : []),
     { id: ProductSections.StatusHistory, label: 'Status History' },
   ]
@@ -232,12 +232,12 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       return <ProductStatusHistory productId={product.id} />
     }
 
-    if (section === ProductSections.Releases) {
+    if (section === ProductSections.Versions) {
       return (
-        <ProductReleases
-          releases={releases ?? []}
-          isLoading={releasesLoading}
-          refetch={refetchReleases}
+        <ProductVersions
+          versions={versions ?? []}
+          isLoading={versionsLoading}
+          refetch={refetchVersions}
         />
       )
     }
@@ -265,9 +265,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           router.replace(`?section=${sectionId}`, { scroll: false })
         }
         productsSectionId={ProductSections.Products}
-        releases={releases}
-        releasesLoading={releasesLoading}
-        releasesSectionId={ProductSections.Releases}
+        versions={versions}
+        versionsLoading={versionsLoading}
+        versionsSectionId={ProductSections.Versions}
       />
     )
   }
@@ -344,9 +344,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Button onClick={() => setIsCreateChildOpen(true)}>
               Add Product
             </Button>
-          ) : canCreateRelease && activeSection === ProductSections.Releases ? (
-            <Button onClick={() => setIsPlanReleaseOpen(true)}>
-              Add Release
+          ) : canCreateVersion && activeSection === ProductSections.Versions ? (
+            <Button onClick={() => setIsPlanVersionOpen(true)}>
+              Add Version
             </Button>
           ) : undefined
         }
@@ -434,11 +434,11 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         />
       )}
 
-      {isPlanReleaseOpen && (
-        <PlanReleaseForm
+      {isPlanVersionOpen && (
+        <PlanVersionForm
           defaultProductId={product.id}
-          onFormComplete={() => setIsPlanReleaseOpen(false)}
-          onFormCancel={() => setIsPlanReleaseOpen(false)}
+          onFormComplete={() => setIsPlanVersionOpen(false)}
+          onFormCancel={() => setIsPlanVersionOpen(false)}
         />
       )}
 

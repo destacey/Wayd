@@ -36,7 +36,7 @@ public sealed class GetDeliveryMetricsQueryHandlerTests : ProductCommandTestBase
         var product = productId is null
             ? SeedProduct($"product-{Guid.CreateVersion7()}"[..16])
             : DbContext.Products.First(p => p.Id == productId);
-        var release = SeedRelease(product.Id);
+        var release = SeedVersion(product.Id);
 
         var deployment = Deployment.Create(
             release.Id,

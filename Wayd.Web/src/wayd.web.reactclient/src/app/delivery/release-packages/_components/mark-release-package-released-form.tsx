@@ -73,7 +73,7 @@ const MarkReleasePackageReleasedForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while releasing the package. Please try again.',
-      permission: 'Permissions.ReleasePackages.Update',
+      permission: 'Permissions.Delivery.Update',
     })
 
   return (

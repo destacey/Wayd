@@ -48,9 +48,9 @@ const ReleasePackageDetailsPage = (props: {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdatePackage = hasPermissionClaim(
-    'Permissions.ReleasePackages.Update',
+    'Permissions.Delivery.Update',
   )
-  const canViewDeployments = hasPermissionClaim('Permissions.Deployments.View')
+  const canViewDeployments = hasPermissionClaim('Permissions.Delivery.View')
 
   const messageApi = useMessage()
 
@@ -261,7 +261,7 @@ const ReleasePackageDetailsPageWithAuthorization = requireFeatureFlag(
   authorizePage(
     ReleasePackageDetailsPage,
     'Permission',
-    'Permissions.ReleasePackages.View',
+    'Permissions.Delivery.View',
   ),
   'product-management',
 )

@@ -1,33 +1,41 @@
 ---
 title: Delivery
-description: Releases, release packages, deployments, environments, and delivery metrics in Wayd.
+description: Releases, versions, release packages, deployments, environments, and delivery metrics in Wayd.
 sidebar_position: 2
 audience: [user, agent]
 ---
 
 # Delivery
 
-Where the [catalog](./products.mdx) records what exists, delivery records what shipped. Four record types carry it, and the separation between them is what makes the delivery metrics meaningful.
+Where the [catalog](./products.mdx) records what exists, delivery records what shipped. Five record types carry it, and the separation between them is what makes the delivery metrics meaningful.
 
-## How the Four Fit Together
+## How the Five Fit Together
 
-A **product** is the thing that exists. A **release** is a version of it. A **package** bundles
-releases that ship together. A **deployment** is one of those reaching one environment.
+The word "release" means three different things in most organizations, and Wayd keeps them apart:
 
-The part that takes a moment to settle is the last step: a deployment attaches to **either** a release
-or a package, never both.
+- What did we **announce to customers**? That is a **release** — `Wayd 2026.07`.
+- What **moved through environments together**? That is a **release package** — `WAYD-2026.07`.
+- What **version of this one artifact**? That is a **version** — `Wayd API 4.12.0`.
+
+Plus a **deployment**, which records one of those reaching one environment.
+
+It reads as one sentence with no word doing double duty: *Release 2026.07 shipped package
+WAYD-2026.07, containing Wayd API version 4.12.0, deployed to Production.*
 
 ```mermaid
 graph LR
     Product["<b>Product</b><br/><i>Wayd API</i>"]
-    Release["<b>Release</b><br/><i>4.10.0</i>"]
-    Package["<b>Package</b><br/><i>2026.09.1</i>"]
+    Release["<b>Release</b><br/><i>2026.07</i>"]
+    Version["<b>Version</b><br/><i>4.12.0</i>"]
+    Package["<b>Package</b><br/><i>WAYD-2026.07</i>"]
     Deployment["<b>Deployment</b><br/><i>Succeeded</i>"]
     Environment["<b>Environment</b><br/><i>prod-eu</i>"]
 
-    Product -->|"1 : N"| Release
-    Release -.->|"may be a component of"| Package
-    Release ==>|"XOR"| Deployment
+    Product -->|"1 : N"| Version
+    Release -->|"0 : N"| Package
+    Release -.->|"0 : N, single artifact"| Version
+    Version -.->|"may be a component of"| Package
+    Version ==>|"XOR"| Deployment
     Package ==>|"XOR"| Deployment
     Deployment -->|"reached"| Environment
 ```
@@ -37,19 +45,30 @@ deployment.
 
 | Record | Holds | Does not hold |
 | --- | --- | --- |
-| Product | Name, type, place in the catalog tree | Any knowledge of releases |
-| Release | Product, version, target / cut / released dates | Where it went; which package carried it |
-| Release package | Its own version, a manifest of component versions | A product of its own |
-| Deployment | Release *xor* package, environment, frozen category, artifact, outcome | Anything about what changed inside |
+| Product | Name, type, place in the catalog tree | Any knowledge of versions |
+| Release | Its own label, target / released dates, product notes, the versions and packages it announced | A cut date — it is never cut |
+| Version | Product, version number, target / cut / released dates, engineering notes | Where it went; which package carried it |
+| Release package | Its own version, a manifest of component versions | A product of its own; an owning release |
+| Deployment | Version *xor* package, environment, frozen category, artifact, outcome | Anything about what changed inside |
+
+:::tip Which one am I looking at?
+If a customer would recognise the name, it is a **release**. If it names one artifact and a version
+number, it is a **version**. If it is what the pipeline pushed, it is a **package**.
+:::
 
 :::tip A worked example
-Wayd ships two assemblies together and a tool on its own cadence:
+Wayd ships two assemblies together and a tool on its own cadence, and announces the lot as one
+release:
 
 ```text
 Wayd                                Product
-├── Wayd API      release 4.10.0    Service
-├── Wayd Client   release 2026.05   Application
-└── @wayd/mcp     release 1.2.0     Tool
+├── Wayd API      version 4.10.0    Service
+├── Wayd Client   version 2026.05   Application
+└── @wayd/mcp     version 1.2.0     Tool
+
+Release 2026.09                     announced 12 Apr
+├── Package 2026.09.1               released 05 Apr
+└── @wayd/mcp 1.2.0                 carried directly
 
 Package 2026.09.1                   released 05 Apr
 ├── Wayd API      4.10.0            Changed
@@ -58,23 +77,27 @@ Package 2026.09.1                   released 05 Apr
 
 Deployments
 ├── Package 2026.09.1  → prod-eu    one deployment, not two
-└── Release 1.2.0      → registry   shipped on its own a week later
+└── Version 1.2.0      → registry   shipped on its own a week later
 ```
 
 **Two deployments, not four.** The API and Client shipped inside the package, so the package is the
-unit. `@wayd/mcp` shipped separately, so its release is the unit. Note that `1.1.0` appears in the
-manifest as carried forward — it did not change, but it was in the box.
+unit. `@wayd/mcp 1.2.0` shipped separately, so its version is the unit. Note that `1.1.0` appears in
+the manifest as carried forward — it did not change, but it was in the box.
+
+**One release, announced later.** `2026.09` gathers both, and is announced on the 12th even though
+the package went out on the 5th: shipping and announcing are separate acts. `@wayd/mcp 1.2.0` is
+carried **directly** rather than through a package of its own, because nobody assembled one.
 :::
 
-## Releases
+## Versions
 
-A **release** is a versioned cut of one releasable product node.
+A **version** is a versioned cut of one releasable product node — `Wayd API 4.12.0`. It is what was *built*, as distinct from a [release](#releases), which is what was *announced*.
 
-A release describes **what was cut, never where it went**. That separation is deliberate: a release with no deployment is a complete record, which is what makes it possible to start recording releases by hand before any pipeline is wired up.
+A version describes **what was cut, never where it went**. That separation is deliberate: a version with no deployment is a complete record, which is what makes it possible to start recording versions by hand before any pipeline is wired up.
 
-Versions are free text, because version schemes vary and imposing one would make hand-entry wrong for somebody. Wayd never parses or compares them — `4.8.2` and `2026.04` are both just labels, so releases are never sorted by version.
+Version numbers are free text, because version schemes vary and imposing one would make hand-entry wrong for somebody. Wayd never parses or compares them — `4.8.2` and `2026.04` are both just labels, so versions are never sorted by number.
 
-Releases are listed with everything not yet shipped first, then those that have shipped, newest first. What is still coming is what you are usually looking for.
+Versions are listed with everything not yet shipped first, then those that have shipped, newest first. What is still coming is what you are usually looking for.
 
 | Status | Meaning |
 | --- | --- |
@@ -83,12 +106,12 @@ Releases are listed with everything not yet shipped first, then those that have 
 | Released | Shipped |
 | Withdrawn | Pulled after being cut |
 
-A release can only be cut against a node whose [type is releasable](./products.mdx#product-types).
+A version can only be cut against a node whose [type is releasable](./products.mdx#product-types). That gate is about the artifact: a [release](#releases) may be announced under any node, including a product line, which is usually not releasable.
 
-### Recording a Release
+### Recording a Version
 
-**Add Release** creates the record. Cut Date and Released Date are optional on that form, and what
-you supply decides where the release starts:
+**Add Version** creates the record. Cut Date and Released Date are optional on that form, and what
+you supply decides where the version starts:
 
 - Leave both empty for something still being planned. It starts at Planned, and you cut and release
   it later as it happens.
@@ -96,36 +119,36 @@ you supply decides where the release starts:
 - Give both, for something that already shipped. It starts at Released.
 
 Whichever you supply, Wayd applies the same steps in the same order it would have if you had recorded
-each one as it happened, so the release ends at the right status with the history to match.
+each one as it happened, so the version ends at the right status with the history to match.
 
-This matters because releases are frequently entered after the fact — during an initial backfill, or
-whenever somebody records last month's shipments in one sitting. Those releases are not a different
+This matters because versions are frequently entered after the fact — during an initial backfill, or
+whenever somebody records last month's shipments in one sitting. Those versions are not a different
 kind of record, only ones whose steps were entered at once.
 
-A release can be marked released without ever having been cut. Cutting is not a prerequisite, and
-demanding one would make importing historical releases impossible.
+A version can be marked released without ever having been cut. Cutting is not a prerequisite, and
+demanding one would make importing historical versions impossible.
 
 ### Cutting, Releasing and Withdrawing
 
 Each action records something that happened, and each is one-way:
 
-- **Cut** freezes scope and moves the release to Ready. A release cannot be cut twice.
+- **Cut** freezes scope and moves the version to Ready. A version cannot be cut twice.
 - **Mark Released** records the ship date and moves it to Released. The released date cannot be
   earlier than the cut date.
-- **Withdraw** pulls a release. A released release can still be withdrawn — pulling something after
+- **Withdraw** pulls a version. A released version can still be withdrawn — pulling something after
   it shipped is exactly the case this exists for — but a withdrawn one cannot be released.
 
-Actions that a release would refuse are not offered, so the menu shows only what that release will
+Actions that a version would refuse are not offered, so the menu shows only what that version will
 actually accept.
 
-### Release Status History
+### Version Status History
 
-Every status change is recorded, so a release's route stays visible after the fact — when it was
+Every status change is recorded, so a version's route stays visible after the fact — when it was
 cut, how long it sat in Ready before shipping, who moved it.
 
-Open it from the release detail page, either by clicking the **status tag** in the header or by
+Open it from the version detail page, either by clicking the **status tag** in the header or by
 choosing the **Status History** section. Each entry shows the statuses moved **from** and **to** (the
-first entry has no "from" — it records the release entering its initial state), **when** the change
+first entry has no "from" — it records the version entering its initial state), **when** the change
 happened, **who** made it, and a **reason** where one was given, as on a withdrawal.
 
 Each entry reports the status names **as they were at the time**, so renaming a status does not
@@ -137,56 +160,129 @@ which is the point of having a separate action for it.
 Changes made by an importer or a background process show as **System**. A change whose author is no
 longer linked to an employee record shows as **Unknown**.
 
-Viewing history needs only view access to the release.
+Viewing history needs only view access to the version.
 
 ### Correcting Dates
 
 **Correct Dates** fixes a target, cut or released date that was recorded wrongly. It changes only the
-dates: the release keeps its current status, and its status history is left as it is.
+dates: the version keeps its current status, and its status history is left as it is.
 
-This is deliberately separate from Cut and Mark Released. Those assert that the release moved, and
+This is deliberately separate from Cut and Mark Released. Those assert that the version moved, and
 refuse to run twice — so without a correction action the only way to fix a released date would be to
-withdraw the release and release it again, recording two status changes that never happened.
+withdraw the version and release it again, recording two status changes that never happened.
 
-All three dates are offered whether or not the release has one, because a **missing** date is as
-likely to be the error as a wrong one. A release can be marked released without ever being cut, so
+All three dates are offered whether or not the version has one, because a **missing** date is as
+likely to be the error as a wrong one. A version can be marked released without ever being cut, so
 the cut date is commonly filled in afterwards. The target and cut dates can equally be cleared: each
 only records something that was written down.
 
 Two rules survive, and both are real:
 
-- **The released date cannot be before the cut date.** A release cannot ship before it was cut.
+- **The released date cannot be before the cut date.** A version cannot ship before it was cut.
 - **The released date cannot be cleared.** Emptying it would leave a released record contradicting its
-  own status. If the release did not in fact ship, [revert it](#reverting-a-release) instead — that
+  own status. If the version did not in fact ship, [revert it](#reverting-a-version) instead — that
   moves the status to match.
 
-A withdrawn release cannot have its dates corrected.
+A withdrawn version cannot have its dates corrected.
 
-### Reverting a Release
+### Reverting a Version
 
-**Revert Release** is for a release marked as shipped **by mistake** — the wrong record was updated,
-and it never actually went out. It returns the release to Ready, or to the workflow's initial status
+**Revert Version** is for a version marked as shipped **by mistake** — the wrong record was updated,
+and it never actually went out. It returns the version to Ready, or to the workflow's initial status
 where it was never cut, and clears the released date. A reason is required.
 
 This is not the same act as withdrawing, and the distinction matters:
 
 | | Withdraw | Revert |
 | --- | --- | --- |
-| What happened | The release shipped and was then pulled | The release never shipped; the record was wrong |
+| What happened | The version shipped and was then pulled | The version never shipped; the record was wrong |
 | Resulting status | Withdrawn — terminal | Ready, or the initial status — still live |
 | Released date | Kept: it did ship | Cleared: it did not |
 | Reason | Optional | Required |
 
-Recording a mistake as a withdrawal would leave the history asserting that somebody pulled a release
+Recording a mistake as a withdrawal would leave the history asserting that somebody pulled a version
 nobody ever shipped — and the history is append-only, so a later reader has no way to tell.
 
-A reverted release can be released again properly once the facts are right.
+A reverted version can be released again properly once the facts are right.
+
+## Releases
+
+A **release** is what was **announced to customers** — `Wayd 2026.07`. It gathers whatever versions
+and packages carried it, and it is the record a product manager works with rather than an engineer.
+
+A release has its **own version label**, separate from the version numbers of the artifacts inside
+it. `2026.07` belongs to the announcement; `4.12.0` belongs to the API. Both are free text and
+neither is ever parsed.
+
+| Status | Meaning |
+| --- | --- |
+| Planned | Drafted but not yet announced |
+| Ready | Ready to announce |
+| Released | Announced to customers |
+| Withdrawn | Retracted after being announced |
+
+A release is **never cut**. Cutting freezes an artifact's scope and belongs to a version; a release's
+scope is simply whichever versions and packages it carries.
+
+### Scoping a Release to a Product
+
+A release **may** name a product, and usually names a product line rather than a leaf. `Wayd 2026.07`
+announces work across the API, the client and the MCP server, so pinning it to one of them would be
+misleading.
+
+Leave it empty for a release that spans product lines. Note that a release with no product is
+deliberately **excluded** when you filter releases by product — it belongs to no single product, so
+listing it under one would misstate what that product announced.
+
+Unlike a version, a release is **not** restricted to releasable product types. That gate asks whether
+an artifact can be cut against a node, which is a different question.
+
+### Setting What a Release Contains
+
+Contents are attached after the release is created, because an announcement is commonly drafted
+before anyone knows which versions will make it. An **empty release is legitimate** and is not a
+draft — a repackaging or a pricing change is announced with nothing deployed.
+
+There are two routes in, and a release may use both:
+
+- **Packages** — the usual route. The package is the deployment unit, so most contents arrive this way.
+- **Versions carried directly** — for a single artifact that shipped on its own, where nobody
+  assembled a package. Rather than invent a package of one, the release names the version.
+
+Both are **whole-set replacements**: the form submits everything the release should end up with, so
+a version or package left out is removed from it.
+
+:::warning A version is announced once, by one route
+A version already shipping inside one of the release's packages **cannot also be carried directly**,
+and Wayd refuses it either way round — adding the version, or adding a package that already contains
+it. Otherwise `2026.07` would announce the same shipment twice and "what did it contain" would have
+two different answers.
+:::
+
+Contents are frozen once the release is announced or withdrawn, for the same reason a package's
+manifest is: what was announced is then a matter of record.
+
+### Announcing, Retracting and Reverting
+
+- **Mark Released** records the announcement date. It is **refused while anything the release carries
+  has not shipped** — telling customers `2026.07` is out while a version inside it has not gone
+  anywhere is the one claim a release can make that its own contents contradict.
+- **Withdraw** retracts a release after it was announced. It says **nothing about the versions it
+  carried**: an artifact that shipped has shipped whatever the market was later told, so each version
+  is withdrawn separately where it too was pulled.
+- **Revert** is for a release marked as announced **by mistake**, exactly as
+  [for a version](#reverting-a-version). It clears the released date and requires a reason.
+
+**Correct Dates** fixes a target or released date recorded wrongly, without moving the status. There
+is no cut date to correct.
+
+Status history works exactly as it does [for a version](#version-status-history).
 
 ## Release Packages
 
-A **release package** is several component releases shipped as one coordinated unit — the weekly pipeline run that deploys fifteen services together. The package is versioned in its own right and carries a manifest of every component version it shipped.
+A **release package** is several component versions shipped as one coordinated unit — the weekly pipeline run that deploys fifteen services together. The package is versioned in its own right and carries a manifest of every component version it shipped.
 
-**Where a package exists, it is the unit of deployment** and its component releases are not. One pipeline run shipping fifteen services must count as one deployment, not fifteen — otherwise deployment frequency measures how finely you have subdivided your services rather than how often you ship.
+**Where a package exists, it is the unit of deployment** and its component versions are not. One pipeline run shipping fifteen services must count as one deployment, not fifteen — otherwise deployment frequency measures how finely you have subdivided your services rather than how often you ship.
 
 :::warning A package is not a Release Train
 A release package is not a Release Train. A Release Train is SAFe's organizational construct — a long-lived group of teams — and Wayd models that as a [Team of Teams](../organizations/index.mdx#teams). A package is one shipment.
@@ -201,8 +297,8 @@ Each manifest line records a component, the version that shipped, and whether th
 **Changed** in this package or was **Carried Forward** unchanged. Recording the carried-forward
 lines is what lets a reader reconstruct exactly what was in the box, rather than only what moved.
 
-A line may name the release the version came from, but does not have to. A carried-forward component
-often names a version that was never cut as a release in Wayd at all, so the version is held as text
+A line may name the version record it came from, but does not have to. A carried-forward component
+often names a version that was never cut in Wayd at all, so the version string is held as text
 in its own right.
 
 **A component may appear only once in a manifest.** Products already named by another line are not
@@ -225,17 +321,17 @@ The manifest closes once the package is released or withdrawn, and the action st
 - **Mark Released** records the ship date and closes the manifest. A package with an empty manifest
   cannot be released.
 - **Withdraw** pulls the package, with an optional reason recorded on the status transition. As with
-  releases, a released package can still be withdrawn, and a withdrawn one cannot be released.
+  versions, a released package can still be withdrawn, and a withdrawn one cannot be released.
 
 The package itself is never deleted. Deployments point at it, and erasing it would take the record of
 what reached an environment along with it.
 
 Every status change is recorded, and the **Status History** section reads the same way as a
-[release's](#release-status-history).
+[version's](#version-status-history).
 
-### Finding the Packages a Release Shipped In
+### Finding the Packages a Version Shipped In
 
-A release carries no pointer back to the package it shipped inside. Membership is recorded by the
+A version carries no pointer back to the package it shipped inside. Membership is recorded by the
 package's manifest and read from there, so filtering packages by component answers "what did this
 ship in?" without a second copy of the relationship that could disagree with the first.
 
@@ -271,7 +367,7 @@ retired one — so a retired row offers Reinstate and nothing else.
 
 ## Deployments
 
-A **deployment** is one release or package reaching one environment, with a start, an end, an outcome, and its own artifact identifier. It is the substrate every delivery metric is computed from.
+A **deployment** is one version or package reaching one environment, with a start, an end, an outcome, and its own artifact identifier. It is the substrate every delivery metric is computed from.
 
 | Status | Meaning |
 | --- | --- |
@@ -282,15 +378,15 @@ A **deployment** is one release or package reaching one environment, with a star
 
 ### Starting a Deployment
 
-**Start Deployment** records a deployment beginning. A deployment carries **either a release or a
+**Start Deployment** records a deployment beginning. A deployment carries **either a version or a
 package, never both and never neither**, so the form offers one toggle and one picker rather than two
 optional pickers — the invalid combinations cannot be expressed. Where a package exists it is the
 unit of deployment, for the reason given [above](#release-packages).
 
 Only **active** environments are offered, because an inactive one is refused.
 
-The **artifact** is the build that actually shipped — `4.8.2.008` where the release version is
-`4.8.2`. It is free text and never parsed. Two builds of one release are two deployments.
+The **artifact** is the build that actually shipped — `4.8.2.008` where the version number is
+`4.8.2`. It is free text and never parsed. Two builds of one version are two deployments.
 
 Leaving **Started At** empty records the deployment as starting now, which is what a pipeline
 reporting in real time would do.
@@ -353,35 +449,54 @@ Every metric carries its counts and totals alongside the average, so you can com
 
 ## Questions This Usually Raises
 
-### If a release shipped inside a package, does it have its own deployment?
+### What is the difference between a release and a version?
 
-No. The package was deployed; the release rode along. A release's **Deployments** section shows only
-deployments recorded against it directly, so for a release that shipped inside a package it is empty —
+A **version** is what was built — one artifact, one version number, `Wayd API 4.12.0`. A **release**
+is what was announced — `Wayd 2026.07` — and it gathers whatever versions and packages carried it.
+
+Most organizations use the word "release" for both, which is exactly the confusion the split exists
+to remove. If a customer would recognise the name, it is a release.
+
+### If a version shipped inside a package, does it have its own deployment?
+
+No. The package was deployed; the version rode along. A version's **Deployments** section shows only
+deployments recorded against it directly, so for a version that shipped inside a package it is empty —
 and its **Packages** section is where the trail continues.
 
 This is the most common source of "why is this empty?", and it follows directly from
 [the package owning the deployment](#release-packages).
 
-### How does the release page know which packages carried it?
+### How does the version page know which packages carried it?
 
-By asking the packages, not by storing a pointer. A release holds **no field** naming the package it
+By asking the packages, not by storing a pointer. A version holds **no field** naming the package it
 shipped in — membership lives in the manifest and is read from that side, because a second copy of the
 relationship could disagree with the first.
 
-The **Packages** section on a release runs that query for you, matching packages whose manifest names
-that exact release. A manifest line that names a version never cut as a release here carries no
-release id, so it correctly does not match.
+The **Packages** section on a version runs that query for you, matching packages whose manifest names
+that exact version record. A manifest line that names a version string never cut here carries no
+version id, so it correctly does not match.
 
-### Can a release be in more than one package?
+### Can a version be in more than one package?
 
 Yes. A hotfix bundle and a monthly roll-up can both contain the same component version. What is
 constrained is the other direction: a component may appear **only once** within a single manifest.
 
+The same is true of packages and releases: one package may be announced by more than one release.
+
 ### Do I have to create a package?
 
-No. Packages are for coordinated shipments. A product that ships on its own cadence just has releases
-and deployments, and that is a complete record. Reach for a package when several things genuinely go
-out as one unit and you would otherwise record that one ship several times.
+No, and this is true at both levels. Packages are for coordinated shipments: a product that ships on
+its own cadence just has versions and deployments, and that is a complete record.
+
+A **release** likewise does not need one. A single artifact announced on its own is carried
+[directly by the release](#setting-what-a-release-contains), rather than wrapping it in a package of
+one that nobody actually assembled.
+
+### Do I have to create a release?
+
+No. Versions, packages and deployments are a complete engineering record on their own. Add releases
+when you want to record what was announced to customers as distinct from what was built — which is
+usually when the two stop lining up one-to-one.
 
 ### Where do capabilities like PPM or Planning fit?
 
@@ -391,30 +506,33 @@ and the client, so it cannot be a child of either. That axis is designed but not
 
 ### Why can I not delete any of this?
 
-Nothing in delivery is deletable. A release or package is **withdrawn**, an environment is
+Nothing in delivery is deletable. A version, release or package is **withdrawn**, an environment is
 **retired**, and a deployment is never removed at all — it is a historical fact, and the measures read
 that history. Removing an environment would take the record of everything that ever reached it with
 it.
 
 ## Permissions
 
-Each record type is granted separately, so someone can be allowed to record deployments without also
-being able to cut releases.
+The engineering records — versions, release packages and deployments — share a single **Delivery**
+permission. They are one causal story rather than three features: a version is cut, it goes into a
+package, the package deploys. Someone who could see deployments but not packages would see that
+something reached production with no way to learn what was in it.
+
+Releases are granted separately, because the audience is genuinely different: a product manager
+drafting an announcement is not the person recording that the pipeline ran.
 
 | Record | Permission | Actions |
 | --- | --- | --- |
+| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update |
 | Releases | `Permissions.Releases.*` | View, Create, Update |
-| Release packages | `Permissions.ReleasePackages.*` | View, Create, Update |
-| Deployments | `Permissions.Deployments.*` | View, Create, Update |
 | Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update |
 | Delivery metrics | `Permissions.DeliveryMetrics.*` | View |
 
-**No record in delivery carries a Delete permission**, because nothing here is deletable. A release
-and a package are withdrawn, an environment is retired, and a deployment is a historical fact that is
-never removed at all — each keeps the record and its status history rather than erasing it. The
-terminal actions are all `Update`.
-| Delivery metrics | `Permissions.DeliveryMetrics.View` | View |
+**No record in delivery carries a Delete permission**, because nothing here is deletable. A version,
+a release and a package are withdrawn, an environment is retired, and a deployment is a historical
+fact that is never removed at all — each keeps the record and its status history rather than erasing
+it. The terminal actions are all `Update`.
 
-Recording a release or deployment outcome — cutting, releasing, withdrawing, correcting dates, or
-marking a deployment succeeded, failed or rolled back — additionally requires your account to be
-linked to an employee record, because the change is attributed to the person who made it.
+Recording a shipment or deployment outcome — cutting, releasing, announcing, withdrawing, correcting
+dates, or marking a deployment succeeded, failed or rolled back — additionally requires your account
+to be linked to an employee record, because the change is attributed to the person who made it.

@@ -125,22 +125,26 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
             // Delivery is schema-separated from the catalog so a later module split stays a code
             // move, but it is one module today and belongs in one section.
             //
-            // Ordered as delivery runs: what is cut, what it is bundled into, where it went, and how
-            // that went.
+            // Ordered as delivery runs: what was cut, what it was bundled into, where it went, and
+            // how that went.
+            //
+            // No Releases entry yet: the announcement record and its permission exist, but its
+            // screens land in the follow-up. A nav item pointing at a route with no page is worse
+            // than a missing one.
             restrictedPermissionMenuItem(
-              'Permissions.Releases.View',
-              'Releases',
-              'delivery.releases',
-              '/delivery/releases',
+              'Permissions.Delivery.View',
+              'Versions',
+              'delivery.versions',
+              '/delivery/versions',
             ),
             restrictedPermissionMenuItem(
-              'Permissions.ReleasePackages.View',
+              'Permissions.Delivery.View',
               'Release Packages',
               'delivery.release-packages',
               '/delivery/release-packages',
             ),
             restrictedPermissionMenuItem(
-              'Permissions.Deployments.View',
+              'Permissions.Delivery.View',
               'Deployments',
               'delivery.deployments',
               '/delivery/deployments',

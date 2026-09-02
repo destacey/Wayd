@@ -7,7 +7,7 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useStartDeploymentMutation } from '@/src/store/features/delivery/deployments-api'
 import { useGetDeploymentEnvironmentsQuery } from '@/src/store/features/delivery/deployment-environments-api'
 import { useGetReleasePackagesQuery } from '@/src/store/features/delivery/release-packages-api'
-import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
+import { useGetVersionsQuery } from '@/src/store/features/delivery/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Segmented, Select } from 'antd'
 import { Dayjs } from 'dayjs'
@@ -21,10 +21,10 @@ export interface StartDeploymentFormProps {
 }
 
 /** What a deployment carries. Exactly one, never both. */
-type DeploymentSubject = 'Release' | 'Package'
+type DeploymentSubject = 'Version' | 'Package'
 
 interface StartDeploymentFormValues {
-  releaseId?: string
+  versionId?: string
   packageId?: string
   environmentId: string
   artifactId?: string
@@ -34,7 +34,7 @@ interface StartDeploymentFormValues {
 /**
  * Records a deployment starting.
  *
- * A deployment carries a release or a package, never both and never neither — the API validates that
+ * A deployment carries a version or a package, never both and never neither — the API validates that
  * in three places and answers a violation with a 422. The toggle makes it one choice with one picker
  * rather than two optional pickers, so the invalid combinations cannot be expressed at all.
  *
@@ -50,11 +50,11 @@ const StartDeploymentForm = ({
   // Which side is being deployed is UI state rather than a submitted field: the request carries a
   // release id or a package id, never a discriminator, so the toggle's only job is to decide which
   // picker is on screen.
-  const [subject, setSubject] = useState<DeploymentSubject>('Release')
+  const [subject, setSubject] = useState<DeploymentSubject>('Version')
 
   const [startDeployment] = useStartDeploymentMutation()
-  const { data: releases, isLoading: releasesLoading } =
-    useGetReleasesQuery(undefined)
+  const { data: versions, isLoading: versionsLoading } =
+    useGetVersionsQuery(undefined)
   const { data: packages, isLoading: packagesLoading } =
     useGetReleasePackagesQuery(undefined)
   const { data: environments, isLoading: environmentsLoading } =
@@ -67,7 +67,7 @@ const StartDeploymentForm = ({
           const request = {
             // Only the side the toggle names is sent. Carrying the other would be the exact
             // both-set case the API refuses.
-            releaseId: subject === 'Release' ? values.releaseId : undefined,
+            versionId: subject === 'Version' ? values.versionId : undefined,
             packageId: subject === 'Package' ? values.packageId : undefined,
             environmentId: values.environmentId,
             artifactId: values.artifactId,
@@ -99,13 +99,13 @@ const StartDeploymentForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while starting the deployment. Please try again.',
-      permission: 'Permissions.Deployments.Create',
+      permission: 'Permissions.Delivery.Create',
     })
 
-  const releaseOptions = (releases ?? [])
-    .map((release) => ({
-      value: release.id,
-      label: `${release.product.name} ${release.version}`,
+  const versionOptions = (versions ?? [])
+    .map((version) => ({
+      value: version.id,
+      label: `${version.product.name} ${version.number}`,
     }))
     .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
 
@@ -146,31 +146,31 @@ const StartDeploymentForm = ({
         <Item label="Deploying">
           <Segmented<DeploymentSubject>
             block
-            options={['Release', 'Package']}
+            options={['Version', 'Package']}
             value={subject}
             onChange={(value) => {
               setSubject(value)
               // Clearing the other side keeps a value picked before the toggle moved from being
               // submitted under the wrong field — the both-set case the API refuses.
               form.setFieldsValue(
-                value === 'Release'
+                value === 'Version'
                   ? { packageId: undefined }
-                  : { releaseId: undefined },
+                  : { versionId: undefined },
               )
             }}
           />
         </Item>
 
-        {subject === 'Release' ? (
+        {subject === 'Version' ? (
           <Item
-            label="Release"
-            name="releaseId"
-            rules={[{ required: true, message: 'Release is required' }]}
+            label="Version"
+            name="versionId"
+            rules={[{ required: true, message: 'Version is required' }]}
           >
             <Select
-              options={releaseOptions}
-              loading={releasesLoading}
-              placeholder="Select a release"
+              options={versionOptions}
+              loading={versionsLoading}
+              placeholder="Select a version"
               showSearch
               optionFilterProp="label"
             />

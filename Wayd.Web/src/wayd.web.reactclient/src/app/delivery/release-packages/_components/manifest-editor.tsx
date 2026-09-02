@@ -4,7 +4,7 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import {
   ManifestEntryKind,
   ProductDto,
-  ReleaseDto,
+  VersionDto,
 } from '@/src/services/wayd-api'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Empty, Flex, Input, Select, Space, Typography } from 'antd'
@@ -19,7 +19,7 @@ const { Text } = Typography
  */
 export interface ManifestEntryDraft {
   productId: string
-  releaseId?: string
+  versionId?: string
   version: string
   kind: ManifestEntryKind
 }
@@ -33,7 +33,7 @@ export interface ManifestEditorProps {
   onChange?: (entries: ManifestEntryDraft[]) => void
   products: ProductDto[]
   /** Releases across every product, used to offer versions for the product a row names. */
-  releases: ReleaseDto[]
+  versions: VersionDto[]
   isLoading?: boolean
   disabled?: boolean
 }
@@ -51,14 +51,14 @@ export const emptyManifestEntry = (): ManifestEntryDraft => ({
  * the API rejects a duplicate, and a picker that lets one be chosen turns that into a failed submit
  * rather than an unavailable choice.
  *
- * Picking a release fills the version from it, since that is the version in all but the hand-authored
- * case. The field stays editable: a manifest can record a version that was never cut as a release.
+ * Picking a version record fills the version string from it, since that is the version in all but the hand-authored
+ * case. The field stays editable: a manifest can record a version that was never cut here.
  */
 const ManifestEditor = ({
   value = [],
   onChange = () => {},
   products,
-  releases,
+  versions,
   isLoading,
   disabled,
 }: ManifestEditorProps) => {
@@ -98,9 +98,9 @@ const ManifestEditor = ({
           (option) => !takenProductIds.has(option.value),
         )
 
-        const releaseOptions = releases
-          .filter((release) => release.product.id === entry.productId)
-          .map((release) => ({ value: release.id, label: release.version }))
+        const versionOptions = versions
+          .filter((version) => version.product.id === entry.productId)
+          .map((version) => ({ value: version.id, label: version.number }))
 
         return (
           <Space.Compact key={index} style={{ width: '100%' }}>
@@ -113,27 +113,27 @@ const ManifestEditor = ({
               disabled={disabled}
               showSearch
               optionFilterProp="label"
-              // Changing the component invalidates a release chosen under the old one.
+              // Changing the component invalidates a version record chosen under the old one.
               onChange={(productId) =>
-                updateEntry(index, { productId, releaseId: undefined })
+                updateEntry(index, { productId, versionId: undefined })
               }
             />
             <Select
               style={{ width: '22%' }}
-              placeholder="Release"
-              options={releaseOptions}
-              value={entry.releaseId}
+              placeholder="Version"
+              options={versionOptions}
+              value={entry.versionId}
               disabled={disabled || !entry.productId}
               allowClear
               showSearch
               optionFilterProp="label"
-              onChange={(releaseId) => {
-                const release = releases.find((r) => r.id === releaseId)
+              onChange={(versionId) => {
+                const version = versions.find((v) => v.id === versionId)
                 updateEntry(index, {
-                  releaseId,
-                  // Only overwrite from a release, never clear on deselect — a version typed by
-                  // hand should survive clearing the release that is not its source.
-                  ...(release ? { version: release.version } : {}),
+                  versionId,
+                  // Only overwrite from a version record, never clear on deselect — a version typed by
+                  // hand should survive clearing the version record that is not its source.
+                  ...(version ? { version: version.number } : {}),
                 })
               }}
             />

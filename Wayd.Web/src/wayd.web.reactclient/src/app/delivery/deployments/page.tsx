@@ -41,7 +41,7 @@ const DeploymentsPage: FC = () => {
   const messageApi = useMessage()
 
   const { hasPermissionClaim } = useAuth()
-  const canCreateDeployment = hasPermissionClaim('Permissions.Deployments.Create')
+  const canCreateDeployment = hasPermissionClaim('Permissions.Delivery.Create')
 
   // Filtered server-side rather than in the grid: the deployment record grows without bound, and the
   // date filter in particular is what keeps a long-lived environment's history from being fetched
@@ -142,7 +142,7 @@ const DeploymentsPage: FC = () => {
 }
 
 const DeploymentsPageWithAuthorization = requireFeatureFlag(
-  authorizePage(DeploymentsPage, 'Permission', 'Permissions.Deployments.View'),
+  authorizePage(DeploymentsPage, 'Permission', 'Permissions.Delivery.View'),
   'product-management',
 )
 

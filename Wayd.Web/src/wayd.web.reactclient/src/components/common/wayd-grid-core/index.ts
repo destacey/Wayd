@@ -124,6 +124,7 @@ export {
   renderProgramLink,
   renderWorkspaceLink,
   renderProductLink,
+  renderVersionLink,
   renderReleaseLink,
   renderPackageLink,
   renderDeploymentLink,

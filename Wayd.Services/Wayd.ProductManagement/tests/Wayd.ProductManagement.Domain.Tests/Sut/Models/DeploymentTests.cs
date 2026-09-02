@@ -31,15 +31,15 @@ public sealed class DeploymentTests
     public void Create_ForARelease_Success()
     {
         // Arrange
-        var releaseId = Guid.CreateVersion7();
+        var versionId = Guid.CreateVersion7();
         var environmentId = Guid.CreateVersion7();
 
         // Act
-        var result = Deployment.Create(releaseId, null, environmentId, EnvironmentCategory.Production, "4.8.2.008", _dateTimeProvider.Now, StatusRefFactory.InProgress(), EnvironmentName, EventActor.System, _dateTimeProvider.Now);
+        var result = Deployment.Create(versionId, null, environmentId, EnvironmentCategory.Production, "4.8.2.008", _dateTimeProvider.Now, StatusRefFactory.InProgress(), EnvironmentName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.ReleaseId.Should().Be(releaseId);
+        result.Value.VersionId.Should().Be(versionId);
         result.Value.PackageId.Should().BeNull();
         result.Value.ArtifactId.Should().Be("4.8.2.008");
         result.Value.Outcome.Should().Be(ProductStatusAlias.InProgress);
@@ -47,18 +47,18 @@ public sealed class DeploymentTests
     }
 
     [Fact]
-    public void Create_ShouldFail_WhenNeitherReleaseNorPackageIsSupplied()
+    public void Create_ShouldFail_WhenNeitherVersionNorPackageIsSupplied()
     {
         // Act
         var result = Deployment.Create(null, null, Guid.CreateVersion7(), EnvironmentCategory.Production, null, _dateTimeProvider.Now, StatusRefFactory.InProgress(), EnvironmentName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A deployment must be for either a release or a package.");
+        result.Error.Should().Be("A deployment must be for either a version or a package.");
     }
 
     [Fact]
-    public void Create_ShouldFail_WhenBothAReleaseAndAPackageAreSupplied()
+    public void Create_ShouldFail_WhenBothAVersionAndAPackageAreSupplied()
     {
         // Act
         var result = Deployment.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), EnvironmentCategory.Production, null, _dateTimeProvider.Now, StatusRefFactory.InProgress(), EnvironmentName, EventActor.System, _dateTimeProvider.Now);
@@ -66,7 +66,7 @@ public sealed class DeploymentTests
         // Assert
         // One pipeline run shipping fifteen services must count once, not fifteen times.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A deployment is for either a release or a package, not both. Where a package exists it is the unit, so that one pipeline run counts once.");
+        result.Error.Should().Be("A deployment is for either a version or a package, not both. Where a package exists it is the unit, so that one pipeline run counts once.");
     }
 
     [Fact]

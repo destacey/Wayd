@@ -1,18 +1,15 @@
 ﻿namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Edits a release's version, name, notes and ordering sequence.
+/// Updates a release's version label, name, notes, owning product or ordering sequence.
 /// </summary>
-/// <remarks>
-/// Dates move through their own commands, because cutting and shipping are status transitions with
-/// rules, not fields.
-/// </remarks>
 public sealed record UpdateReleaseDetailsCommand(
     Guid Id,
     string Version,
     string? Name,
     string? Notes,
-    long? Sequence) : ICommand;
+    Guid? ProductId,
+    long? Sequence) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateReleaseDetailsCommandValidator : AbstractValidator<UpdateReleaseDetailsCommand>
 {
@@ -36,6 +33,7 @@ public sealed class UpdateReleaseDetailsCommandValidator : AbstractValidator<Upd
 public sealed class UpdateReleaseDetailsCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<UpdateReleaseDetailsCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateReleaseDetailsCommand>
@@ -44,6 +42,7 @@ public sealed class UpdateReleaseDetailsCommandHandler(
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateReleaseDetailsCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -60,12 +59,23 @@ public sealed class UpdateReleaseDetailsCommandHandler(
                 return Result.Failure("Release not found.");
             }
 
+            if (request.ProductId is not null
+                && !await _productManagementDbContext.Products
+                    .AnyAsync(p => p.Id == request.ProductId, cancellationToken))
+            {
+                _logger.LogInformation("Product {ProductId} not found.", request.ProductId);
+                return Result.Failure("Product not found.");
+            }
+
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = release.UpdateDetails(
                 request.Version,
                 request.Name,
                 request.Notes,
+                request.ProductId,
                 request.Sequence,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

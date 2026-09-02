@@ -12,7 +12,7 @@ public sealed class DeploymentFaker : PrivateConstructorFaker<Deployment>
     {
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));
-        RuleFor(x => x.ReleaseId, f => f.Random.Guid());
+        RuleFor(x => x.VersionId, f => f.Random.Guid());
         RuleFor(x => x.PackageId, f => null);
         RuleFor(x => x.EnvironmentId, f => f.Random.Guid());
         RuleFor(x => x.EnvironmentCategory, f => EnvironmentCategory.Production);
@@ -46,9 +46,9 @@ public static class DeploymentFakerExtensions
         return faker;
     }
 
-    public static DeploymentFaker WithReleaseId(this DeploymentFaker faker, Guid? releaseId)
+    public static DeploymentFaker WithVersionId(this DeploymentFaker faker, Guid? versionId)
     {
-        faker.RuleFor(x => x.ReleaseId, releaseId);
+        faker.RuleFor(x => x.VersionId, versionId);
 
         return faker;
     }

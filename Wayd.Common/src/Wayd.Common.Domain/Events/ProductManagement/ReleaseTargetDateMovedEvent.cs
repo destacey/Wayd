@@ -14,8 +14,7 @@ public sealed record ReleaseTargetDateMovedEvent : DomainEvent, IProductManageme
     public ReleaseTargetDateMovedEvent(
         Guid id,
         int key,
-        Guid productId,
-        string productName,
+        Guid? productId,
         string version,
         LocalDate? fromTargetDate,
         LocalDate? toTargetDate,
@@ -26,7 +25,6 @@ public sealed record ReleaseTargetDateMovedEvent : DomainEvent, IProductManageme
         Id = id;
         Key = key;
         ProductId = productId;
-        ProductName = productName;
         Version = version;
         FromTargetDate = fromTargetDate;
         ToTargetDate = toTargetDate;
@@ -36,8 +34,7 @@ public sealed record ReleaseTargetDateMovedEvent : DomainEvent, IProductManageme
 
     public Guid Id { get; }
     public int Key { get; }
-    public Guid ProductId { get; }
-    public string ProductName { get; }
+    public Guid? ProductId { get; }
     public string Version { get; }
     public LocalDate? FromTargetDate { get; }
     public LocalDate? ToTargetDate { get; }

@@ -22,6 +22,9 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.ProductManagement.Domain.Models;
+
+// The delivery artifact record, not System.Version.
+using Version = Wayd.ProductManagement.Domain.Models.Version;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -132,7 +135,10 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<ProductTagCategory> ProductTagCategories => Set<ProductTagCategory>();
     public DbSet<ProductTag> ProductTags => Set<ProductTag>();
     public DbSet<ProductTagAssignment> ProductTagAssignments => Set<ProductTagAssignment>();
+    public DbSet<Version> Versions => Set<Version>();
     public DbSet<Release> Releases => Set<Release>();
+    public DbSet<ReleaseVersion> ReleaseVersions => Set<ReleaseVersion>();
+    public DbSet<ReleasePackageInclusion> ReleasePackageInclusions => Set<ReleasePackageInclusion>();
     public DbSet<ReleasePackage> ReleasePackages => Set<ReleasePackage>();
     public DbSet<ReleasePackageComponent> ReleasePackageComponents => Set<ReleasePackageComponent>();
     public DbSet<DeploymentEnvironment> DeploymentEnvironments => Set<DeploymentEnvironment>();

@@ -29,16 +29,16 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.ReleasePackages)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Get a list of release packages.",
-        "containingProductId matches any manifest line for that product; containingReleaseId matches only the packages naming that exact release, which is what a release's own page needs.")]
+        "containingProductId matches any manifest line for that product; containingVersionId matches only the packages naming that exact release, which is what a release's own page needs.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ReleasePackageDto>>> GetReleasePackages(
         [FromQuery] int[]? statusCategory,
         [FromQuery] Guid? containingProductId,
-        [FromQuery] Guid? containingReleaseId,
+        [FromQuery] Guid? containingVersionId,
         CancellationToken cancellationToken)
     {
         StatusCategory[]? categories = statusCategory is { Length: > 0 }
@@ -46,14 +46,14 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
             : null;
 
         var packages = await _dispatcher.Send(
-            new GetReleasePackagesQuery(categories, containingProductId, containingReleaseId),
+            new GetReleasePackagesQuery(categories, containingProductId, containingVersionId),
             cancellationToken);
 
         return Ok(packages);
     }
 
     [HttpGet("{idOrKey}")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.ReleasePackages)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation("Get release package details.", "Accepts the package's id or its short key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -67,7 +67,7 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}/status-history")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.ReleasePackages)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Get a release package's status change history.",
         "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
@@ -88,7 +88,7 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost]
-    [MustHavePermission(ApplicationAction.Create, ApplicationResource.ReleasePackages)]
+    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
     [OpenApiOperation("Assemble a release package.", "")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Assemble(
@@ -102,7 +102,7 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{id}/manifest")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ReleasePackages)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation("Replace a package's manifest.", "Whole-manifest replacement, never incremental.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -118,7 +118,7 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{id}/release")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ReleasePackages)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation("Record that a package shipped.", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -134,7 +134,7 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{id}/withdraw")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ReleasePackages)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation("Withdraw a package.", "The package is kept: deployments may reference it.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

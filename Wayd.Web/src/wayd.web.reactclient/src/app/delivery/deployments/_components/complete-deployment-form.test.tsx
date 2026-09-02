@@ -61,7 +61,7 @@ const deployment = (): DeploymentDto =>
   ({
     id: '11111111-1111-1111-1111-111111111111',
     key: 1,
-    release: { id: 'r', key: 2, name: '4.10.0' },
+    version: { id: 'v', key: 2, name: '4.10.0' },
     environment: { id: 'e', key: 3, name: 'prod-eu' },
     startedAt: new Date('2026-04-01T10:00:00Z'),
     status: {

@@ -50,7 +50,7 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateDeployment = hasPermissionClaim(
-    'Permissions.Deployments.Update',
+    'Permissions.Delivery.Update',
   )
 
   const messageApi = useMessage()
@@ -162,7 +162,7 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     )
   }
 
-  const deployed = deployment.release ?? deployment.package
+  const deployed = deployment.version ?? deployment.package
 
   return (
     <>
@@ -225,7 +225,7 @@ const DeploymentDetailsPageWithAuthorization = requireFeatureFlag(
   authorizePage(
     DeploymentDetailsPage,
     'Permission',
-    'Permissions.Deployments.View',
+    'Permissions.Delivery.View',
   ),
   'product-management',
 )

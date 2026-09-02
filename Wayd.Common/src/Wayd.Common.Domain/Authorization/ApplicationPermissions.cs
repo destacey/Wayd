@@ -78,9 +78,17 @@ public static class ApplicationResource
     public const string ProductTypes = nameof(ProductTypes);
     public const string ProductTagCategories = nameof(ProductTagCategories);
 
+    // One resource for the whole engineering chain — versions, packages, deployments. They are not
+    // three features but one causal story: a version is cut, it goes into a package, the package
+    // deploys. Someone who could see deployments but not packages would see that something reached
+    // production with no way to learn what was in it, which is a broken page rather than a narrower
+    // permission.
+    public const string Delivery = nameof(Delivery);
+
+    // The product announcement, kept apart because the audience is: a product manager drafting
+    // "Wayd 2026.07" is a different person from whoever records that the pipeline ran.
     public const string Releases = nameof(Releases);
-    public const string ReleasePackages = nameof(ReleasePackages);
-    public const string Deployments = nameof(Deployments);
+
     public const string DeploymentEnvironments = nameof(DeploymentEnvironments);
     public const string DeliveryMetrics = nameof(DeliveryMetrics);
 
@@ -391,17 +399,13 @@ public static class ApplicationPermissions
         // Nothing in delivery is deletable, so none of these carry a Delete. A release is withdrawn, a
         // package is withdrawn, an environment is retired, and a deployment is a historical fact that is
         // never removed at all — each keeps the record and its status history rather than erasing it.
+        new ("View Delivery", ApplicationAction.View, ApplicationResource.Delivery, DeliveryCategory),
+        new ("Create Delivery", ApplicationAction.Create, ApplicationResource.Delivery, DeliveryCategory),
+        new ("Update Delivery", ApplicationAction.Update, ApplicationResource.Delivery, DeliveryCategory),
+
         new ("View Releases", ApplicationAction.View, ApplicationResource.Releases, DeliveryCategory),
         new ("Create Releases", ApplicationAction.Create, ApplicationResource.Releases, DeliveryCategory),
         new ("Update Releases", ApplicationAction.Update, ApplicationResource.Releases, DeliveryCategory),
-
-        new ("View Release Packages", ApplicationAction.View, ApplicationResource.ReleasePackages, DeliveryCategory),
-        new ("Create Release Packages", ApplicationAction.Create, ApplicationResource.ReleasePackages, DeliveryCategory),
-        new ("Update Release Packages", ApplicationAction.Update, ApplicationResource.ReleasePackages, DeliveryCategory),
-
-        new ("View Deployments", ApplicationAction.View, ApplicationResource.Deployments, DeliveryCategory),
-        new ("Create Deployments", ApplicationAction.Create, ApplicationResource.Deployments, DeliveryCategory),
-        new ("Update Deployments", ApplicationAction.Update, ApplicationResource.Deployments, DeliveryCategory),
 
         new ("View Deployment Environments", ApplicationAction.View, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Create Deployment Environments", ApplicationAction.Create, ApplicationResource.DeploymentEnvironments, DeliveryCategory),

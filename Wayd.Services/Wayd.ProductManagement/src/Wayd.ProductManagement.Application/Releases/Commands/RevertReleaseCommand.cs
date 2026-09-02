@@ -1,20 +1,15 @@
-using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Domain;
 
 namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Records that a release marked as shipped did not in fact ship.
+/// Records that a release marked as announced was not in fact announced.
 /// </summary>
 /// <remarks>
-/// Not a withdrawal. Withdrawing says a real release was pulled and is a terminal state; this says the
-/// release never happened and the record was wrong, so it moves backward and the release stays live.
-/// Using withdrawal for this would leave the history asserting a withdrawal nobody performed.
-/// <para>
-/// The release returns to Ready where it was cut, and to its workflow's initial status otherwise —
-/// a release can be marked released without ever being cut, so there is not always a Ready to go back
-/// to.
-/// </para>
+/// Not a withdrawal. Withdrawing says a real announcement was retracted; this says the announcement
+/// never happened and the record was wrong. A reason is required, because this contradicts what the
+/// append-only history already asserts.
 /// </remarks>
 public sealed record RevertReleaseCommand(Guid Id, string Reason) : ICommand, IRequireLinkedEmployee;
 
@@ -25,8 +20,6 @@ public sealed class RevertReleaseCommandValidator : AbstractValidator<RevertRele
         RuleFor(r => r.Id)
             .NotEmpty();
 
-        // Required, unlike a withdrawal's optional reason: this contradicts something the status
-        // history already asserts, so the record has to say why.
         RuleFor(r => r.Reason)
             .NotEmpty()
             .MaximumLength(1024);
@@ -64,42 +57,26 @@ public sealed class RevertReleaseCommandHandler(
                 return Result.Failure("Release not found.");
             }
 
-            // Where the release was cut, Ready is the state it was in before shipping. Where it was
-            // not — a release entered after the fact, which the domain permits — there is no Ready to
-            // return to, so it goes back to the start of its workflow.
-            var status = release.CutDate is not null
-                ? await _statusResolver.ForAlias(
-                    ProductWorkflowOwners.Release.Key,
-                    scopeId: null,
-                    (int)ProductStatusAlias.Ready,
-                    cancellationToken)
-                : await _statusResolver.Initial(
-                    ProductWorkflowOwners.Release.Key,
-                    scopeId: null,
-                    cancellationToken);
+            // Back to Ready, the workflow's non-terminal resting state, rather than to the initial
+            // status: a release that was announced had been ready to announce, and reverting says only
+            // that the announcement did not happen.
+            var status = await _statusResolver.ForAlias(
+                ProductWorkflowOwners.Release.Key,
+                scopeId: null,
+                (int)ProductStatusAlias.Ready,
+                cancellationToken);
 
             if (status.IsFailure)
             {
-                _logger.LogError(
-                    "Unable to resolve the status to revert Release {ReleaseId} to. Error message: {Error}",
-                    request.Id, status.Error);
+                _logger.LogError("Unable to resolve the ready release status. Error message: {Error}", status.Error);
                 return Result.Failure(status.Error);
             }
 
-            var productName = await _productManagementDbContext.Products
-                .Where(p => p.Id == release.ProductId)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
-            // one would misattribute the change permanently.
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = release.RevertRelease(
                 status.Value,
                 request.Reason,
-                productName,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 

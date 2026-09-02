@@ -1,13 +1,13 @@
 ﻿namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Moves or clears a release's target date.
+/// Moves a release's target date.
 /// </summary>
 /// <remarks>
-/// Separate from the details update because a slipping date is what stakeholders watch: the aggregate
-/// raises an event carrying both the old and new dates, which a blanket field update would bury.
+/// Its own command rather than part of an edit, because a slipped date is a fact worth recording on
+/// its own — the event carries both ends so "slipped two weeks" stays answerable.
 /// </remarks>
-public sealed record MoveReleaseTargetDateCommand(Guid Id, LocalDate? TargetDate) : ICommand;
+public sealed record MoveReleaseTargetDateCommand(Guid Id, LocalDate? TargetDate) : ICommand, IRequireLinkedEmployee;
 
 public sealed class MoveReleaseTargetDateCommandValidator : AbstractValidator<MoveReleaseTargetDateCommand>
 {
@@ -21,6 +21,7 @@ public sealed class MoveReleaseTargetDateCommandValidator : AbstractValidator<Mo
 public sealed class MoveReleaseTargetDateCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<MoveReleaseTargetDateCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<MoveReleaseTargetDateCommand>
@@ -29,6 +30,7 @@ public sealed class MoveReleaseTargetDateCommandHandler(
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<MoveReleaseTargetDateCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -45,13 +47,12 @@ public sealed class MoveReleaseTargetDateCommandHandler(
                 return Result.Failure("Release not found.");
             }
 
-            var productName = await _productManagementDbContext.Products
-                .Where(p => p.Id == release.ProductId)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = release.MoveTargetDate(
-                request.TargetDate, productName, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+                request.TargetDate,
+                EventActor.User(_currentUser.GetUserId(), employeeId),
+                _dateTimeProvider.Now);
 
             if (result.IsFailure)
             {

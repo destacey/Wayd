@@ -4,7 +4,7 @@ import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import {
   renderProductLink,
-  renderReleaseLink,
+  renderVersionLink,
 } from '@/src/components/common/wayd-grid-core'
 import {
   ManifestEntryKind,
@@ -55,11 +55,11 @@ export const buildManifestColumns = (): ColumnDef<
     meta: { filterEnableSet: true },
   },
   {
-    id: 'release',
-    accessorFn: (row) => row.release?.name ?? '',
-    header: 'Release',
+    id: 'version',
+    accessorFn: (row) => row.versionRecord?.name ?? '',
+    header: 'Version',
     size: 160,
-    cell: ({ row }) => renderReleaseLink(row.original.release),
+    cell: ({ row }) => renderVersionLink(row.original.versionRecord),
   },
   {
     id: 'kind',

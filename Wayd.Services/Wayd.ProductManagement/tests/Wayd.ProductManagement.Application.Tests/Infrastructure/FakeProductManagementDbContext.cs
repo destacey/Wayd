@@ -10,6 +10,9 @@ using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.Tests.Shared.Infrastructure;
 
+// The delivery artifact record, not System.Version.
+using Version = Wayd.ProductManagement.Domain.Models.Version;
+
 namespace Wayd.ProductManagement.Application.Tests.Infrastructure;
 
 /// <summary>
@@ -22,7 +25,10 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     private readonly List<ProductTagCategory> _productTagCategories = [];
     private readonly List<ProductTag> _productTags = [];
     private readonly List<ProductTagAssignment> _productTagAssignments = [];
+    private readonly List<Version> _versions = [];
     private readonly List<Release> _releases = [];
+    private readonly List<ReleaseVersion> _releaseVersions = [];
+    private readonly List<ReleasePackageInclusion> _releasePackageInclusions = [];
     private readonly List<ReleasePackage> _releasePackages = [];
     private readonly List<ReleasePackageComponent> _releasePackageComponents = [];
     private readonly List<DeploymentEnvironment> _deploymentEnvironments = [];
@@ -46,7 +52,10 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public DbSet<ProductTagCategory> ProductTagCategories => _productTagCategories.AsDbSet();
     public DbSet<ProductTag> ProductTags => _productTags.AsDbSet();
     public DbSet<ProductTagAssignment> ProductTagAssignments => _productTagAssignments.AsDbSet();
+    public DbSet<Version> Versions => _versions.AsDbSet();
     public DbSet<Release> Releases => _releases.AsDbSet();
+    public DbSet<ReleaseVersion> ReleaseVersions => _releaseVersions.AsDbSet();
+    public DbSet<ReleasePackageInclusion> ReleasePackageInclusions => _releasePackageInclusions.AsDbSet();
     public DbSet<ReleasePackage> ReleasePackages => _releasePackages.AsDbSet();
     public DbSet<ReleasePackageComponent> ReleasePackageComponents => _releasePackageComponents.AsDbSet();
     public DbSet<DeploymentEnvironment> DeploymentEnvironments => _deploymentEnvironments.AsDbSet();
@@ -79,7 +88,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     {
         SaveChangesCallCount++;
 
-        return Task.FromResult(_products.Count + _productTypes.Count + _releases.Count);
+        return Task.FromResult(_products.Count + _productTypes.Count + _versions.Count + _releases.Count);
     }
 
     // Reload is how handlers discard a failed mutation; nothing here tracks state to reload, so the
@@ -103,6 +112,8 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddProductTagAssignment(ProductTagAssignment assignment) => _productTagAssignments.Add(assignment);
     public void AddProductTags(IEnumerable<ProductTag> tags) => _productTags.AddRange(tags);
 
+    public void AddVersion(Version version) => _versions.Add(version);
+    public void AddVersions(IEnumerable<Version> versions) => _versions.AddRange(versions);
     public void AddRelease(Release release) => _releases.Add(release);
     public void AddReleases(IEnumerable<Release> releases) => _releases.AddRange(releases);
 
@@ -131,7 +142,10 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
         _productTagCategories.Clear();
         _productTags.Clear();
         _productTagAssignments.Clear();
+        _versions.Clear();
         _releases.Clear();
+        _releaseVersions.Clear();
+        _releasePackageInclusions.Clear();
         _releasePackages.Clear();
         _releasePackageComponents.Clear();
         _deploymentEnvironments.Clear();

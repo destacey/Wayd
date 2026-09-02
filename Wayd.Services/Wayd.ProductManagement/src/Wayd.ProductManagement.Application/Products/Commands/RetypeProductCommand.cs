@@ -55,15 +55,18 @@ public sealed class RetypeProductCommandHandler(
                 return Result.Failure($"'{productType.Name}' is inactive and cannot be assigned.");
             }
 
-            // Retype refuses to move a node onto a non-releasable type once releases exist; the query
+            // Retype refuses to move a node onto a non-releasable type once versions exist; the query
             // is the handler's because the aggregate cannot run it.
-            var hasReleases = await _productManagementDbContext.Releases
-                .AnyAsync(r => r.ProductId == request.Id, cancellationToken);
+            //
+            // Versions, not Releases: releasability gates the artifact, and a release is an
+            // announcement that may sit under any node.
+            var hasVersions = await _productManagementDbContext.Versions
+                .AnyAsync(v => v.ProductId == request.Id, cancellationToken);
 
             var retypeResult = product.Retype(
                 request.ProductTypeId,
                 productType.IsReleasable,
-                hasReleases,
+                hasVersions,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 

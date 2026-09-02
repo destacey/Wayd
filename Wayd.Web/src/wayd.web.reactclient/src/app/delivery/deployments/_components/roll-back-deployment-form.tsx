@@ -79,7 +79,7 @@ const RollBackDeploymentForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while rolling back the deployment. Please try again.',
-      permission: 'Permissions.Deployments.Update',
+      permission: 'Permissions.Delivery.Update',
     })
 
   // A rollback follows the completion, which a succeeded deployment always has.

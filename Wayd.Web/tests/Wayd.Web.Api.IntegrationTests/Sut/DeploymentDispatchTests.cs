@@ -9,7 +9,7 @@ using Wayd.ProductManagement.Application.Deployments.Commands;
 using Wayd.ProductManagement.Application.Deployments.Queries;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.ReleasePackages.Commands;
-using Wayd.ProductManagement.Application.Releases.Commands;
+using Wayd.ProductManagement.Application.Versions.Commands;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 
 namespace Wayd.Web.Api.IntegrationTests.Sut;
@@ -29,7 +29,7 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
 
     private static string Unique(string prefix) => $"{prefix} {Guid.NewGuid():N}"[..24];
 
-    private sealed record Fixture(Guid ReleaseId, Guid EnvironmentId);
+    private sealed record Fixture(Guid VersionId, Guid EnvironmentId);
 
     private static async Task<Fixture> Arrange(
         IDispatcher dispatcher, IProductManagementDbContext dbContext, EnvironmentCategory category)
@@ -44,17 +44,17 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
             TestContext.Current.CancellationToken);
         Assert.True(product.IsSuccess, product.IsFailure ? product.Error : null);
 
-        var release = await dispatcher.Send(
-            new PlanReleaseCommand(product.Value.Id, "4.8.2", null, null, null),
+        var version = await dispatcher.Send(
+            new PlanVersionCommand(product.Value.Id, "4.8.2", null, null, null),
             TestContext.Current.CancellationToken);
-        Assert.True(release.IsSuccess, release.IsFailure ? release.Error : null);
+        Assert.True(version.IsSuccess, version.IsFailure ? version.Error : null);
 
         var environment = await dispatcher.Send(
             new CreateDeploymentEnvironmentCommand(Unique("Env"), category, 3),
             TestContext.Current.CancellationToken);
         Assert.True(environment.IsSuccess, environment.IsFailure ? environment.Error : null);
 
-        return new Fixture(release.Value.Id, environment.Value.Id);
+        return new Fixture(version.Value.Id, environment.Value.Id);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
 
         // Act
         var started = await dispatcher.Send(
-            new StartDeploymentCommand(fixture.ReleaseId, null, fixture.EnvironmentId, "4.8.2.008", null),
+            new StartDeploymentCommand(fixture.VersionId, null, fixture.EnvironmentId, "4.8.2.008", null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -99,12 +99,12 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
         var staging = await Arrange(dispatcher, dbContext, EnvironmentCategory.Staging);
 
         var inProduction = await dispatcher.Send(
-            new StartDeploymentCommand(production.ReleaseId, null, production.EnvironmentId, null, null),
+            new StartDeploymentCommand(production.VersionId, null, production.EnvironmentId, null, null),
             TestContext.Current.CancellationToken);
         Assert.True(inProduction.IsSuccess, inProduction.IsFailure ? inProduction.Error : null);
 
         var inStaging = await dispatcher.Send(
-            new StartDeploymentCommand(staging.ReleaseId, null, staging.EnvironmentId, null, null),
+            new StartDeploymentCommand(staging.VersionId, null, staging.EnvironmentId, null, null),
             TestContext.Current.CancellationToken);
         Assert.True(inStaging.IsSuccess, inStaging.IsFailure ? inStaging.Error : null);
 
@@ -142,7 +142,7 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
         var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
 
         var started = await dispatcher.Send(
-            new StartDeploymentCommand(fixture.ReleaseId, null, fixture.EnvironmentId, null, null),
+            new StartDeploymentCommand(fixture.VersionId, null, fixture.EnvironmentId, null, null),
             TestContext.Current.CancellationToken);
         Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
 
@@ -172,7 +172,7 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
         var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
 
         var started = await dispatcher.Send(
-            new StartDeploymentCommand(fixture.ReleaseId, null, fixture.EnvironmentId, null, null),
+            new StartDeploymentCommand(fixture.VersionId, null, fixture.EnvironmentId, null, null),
             TestContext.Current.CancellationToken);
         Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
 
@@ -199,7 +199,7 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task Dispatch_StartDeploymentCommand_RefusesBothAReleaseAndAPackage()
+    public async Task Dispatch_StartDeploymentCommand_RefusesBothAVersionAndAPackage()
     {
         // Arrange
         _ = _factory.CreateClient();
@@ -230,7 +230,7 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
         // Act
         var send = async () => await dispatcher.Send(
             new StartDeploymentCommand(
-                fixture.ReleaseId, package.Value.Id, fixture.EnvironmentId, null, null),
+                fixture.VersionId, package.Value.Id, fixture.EnvironmentId, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert

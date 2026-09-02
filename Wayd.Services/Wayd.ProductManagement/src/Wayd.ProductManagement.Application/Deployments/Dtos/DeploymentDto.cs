@@ -20,14 +20,14 @@ public sealed record DeploymentDto
     public int Key { get; init; }
 
     /// <summary>
-    /// The release deployed, when this deployment carries a single release. Its <c>Name</c> is the
-    /// release version, which is what a reader identifies it by.
+    /// The version deployed, when this deployment carries a single version. Its <c>Name</c> is the
+    /// version number, which is what a reader identifies it by.
     /// </summary>
-    public NavigationDto? Release { get; init; }
+    public NavigationDto? Version { get; init; }
 
     /// <summary>
     /// The package deployed, when several components shipped as one unit. Exactly one of this and
-    /// <see cref="Release"/> is set.
+    /// <see cref="Version"/> is set.
     /// </summary>
     public NavigationDto? Package { get; init; }
 
@@ -84,8 +84,8 @@ public sealed record DeploymentDto
         var config = new TypeAdapterConfig();
 
         config.NewConfig<Deployment, DeploymentDto>()
-            .Map(dto => dto.Release, d => d.Release != null
-                ? NavigationDto.Create(d.Release.Id, d.Release.Key, d.Release.Version)
+            .Map(dto => dto.Version, d => d.Version != null
+                ? NavigationDto.Create(d.Version.Id, d.Version.Key, d.Version.Number)
                 : null)
             .Map(dto => dto.Package, d => d.Package != null
                 ? NavigationDto.Create(d.Package.Id, d.Package.Key, d.Package.Version)

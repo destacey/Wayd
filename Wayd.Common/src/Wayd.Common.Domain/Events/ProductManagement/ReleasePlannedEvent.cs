@@ -4,15 +4,19 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A release was created against a product node.
+/// A release was planned — an announcement drafted, before it carries anything.
 /// </summary>
+/// <remarks>
+/// Contents arrive later, so this says nothing about them. Unlike a package, which is assembled from
+/// its manifest in one act, a release is commonly drafted before anyone knows which versions will
+/// make it.
+/// </remarks>
 public sealed record ReleasePlannedEvent : DomainEvent, IProductManagementEvent
 {
     public ReleasePlannedEvent(
         Guid id,
         int key,
-        Guid productId,
-        string productName,
+        Guid? productId,
         string version,
         string? name,
         LocalDate? targetDate,
@@ -25,7 +29,6 @@ public sealed record ReleasePlannedEvent : DomainEvent, IProductManagementEvent
         Id = id;
         Key = key;
         ProductId = productId;
-        ProductName = productName;
         Version = version;
         Name = name;
         TargetDate = targetDate;
@@ -37,15 +40,17 @@ public sealed record ReleasePlannedEvent : DomainEvent, IProductManagementEvent
 
     public Guid Id { get; }
     public int Key { get; }
-    public Guid ProductId { get; }
 
     /// <summary>
-    /// The product's name at the time, so a notification renders without a query and stays accurate
-    /// after a rename.
+    /// The product node the release is announced under, where it is scoped to one.
     /// </summary>
-    public string ProductName { get; }
+    /// <remarks>
+    /// Nullable, and carries no product name for that reason: a release spanning product lines has no
+    /// single owner to name, so a consumer that wants one resolves it rather than reading it here.
+    /// </remarks>
+    public Guid? ProductId { get; }
 
-    /// <summary>The version as entered. Free text, never parsed.</summary>
+    /// <summary>The release's own version label as entered. Free text, never parsed.</summary>
     public string Version { get; }
 
     public string? Name { get; }

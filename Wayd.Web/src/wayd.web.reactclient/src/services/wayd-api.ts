@@ -6219,16 +6219,16 @@ export class DeploymentsClient {
 
     /**
      * Get a list of deployments.
-     * @param releaseId (optional) 
+     * @param versionId (optional) 
      * @param packageId (optional) 
      * @param environmentId (optional) 
      * @param environmentCategory (optional) 
      * @param startedOnOrAfter (optional) 
      */
-    getDeployments(releaseId?: string | null | undefined, packageId?: string | null | undefined, environmentId?: string | null | undefined, environmentCategory?: number | null | undefined, startedOnOrAfter?: Date | null | undefined, cancelToken?: CancelToken): Promise<DeploymentDto[]> {
+    getDeployments(versionId?: string | null | undefined, packageId?: string | null | undefined, environmentId?: string | null | undefined, environmentCategory?: number | null | undefined, startedOnOrAfter?: Date | null | undefined, cancelToken?: CancelToken): Promise<DeploymentDto[]> {
         let url_ = this.baseUrl + "/api/product-management/deployments?";
-        if (releaseId !== undefined && releaseId !== null)
-            url_ += "releaseId=" + encodeURIComponent("" + releaseId) + "&";
+        if (versionId !== undefined && versionId !== null)
+            url_ += "versionId=" + encodeURIComponent("" + versionId) + "&";
         if (packageId !== undefined && packageId !== null)
             url_ += "packageId=" + encodeURIComponent("" + packageId) + "&";
         if (environmentId !== undefined && environmentId !== null)
@@ -8457,16 +8457,16 @@ export class ReleasePackagesClient {
      * Get a list of release packages.
      * @param statusCategory (optional) 
      * @param containingProductId (optional) 
-     * @param containingReleaseId (optional) 
+     * @param containingVersionId (optional) 
      */
-    getReleasePackages(statusCategory?: number[] | null | undefined, containingProductId?: string | null | undefined, containingReleaseId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleasePackageDto[]> {
+    getReleasePackages(statusCategory?: number[] | null | undefined, containingProductId?: string | null | undefined, containingVersionId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleasePackageDto[]> {
         let url_ = this.baseUrl + "/api/product-management/release-packages?";
         if (statusCategory !== undefined && statusCategory !== null)
             statusCategory && statusCategory.forEach(item => { url_ += "statusCategory=" + encodeURIComponent("" + item) + "&"; });
         if (containingProductId !== undefined && containingProductId !== null)
             url_ += "containingProductId=" + encodeURIComponent("" + containingProductId) + "&";
-        if (containingReleaseId !== undefined && containingReleaseId !== null)
-            url_ += "containingReleaseId=" + encodeURIComponent("" + containingReleaseId) + "&";
+        if (containingVersionId !== undefined && containingVersionId !== null)
+            url_ += "containingVersionId=" + encodeURIComponent("" + containingVersionId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -8919,13 +8919,16 @@ export class ReleasesClient {
      * Get a list of releases.
      * @param productId (optional) 
      * @param statusCategory (optional) 
+     * @param containingVersionId (optional) 
      */
-    getReleases(productId?: string | null | undefined, statusCategory?: number[] | null | undefined, cancelToken?: CancelToken): Promise<ReleaseDto[]> {
+    getReleases(productId?: string | null | undefined, statusCategory?: number[] | null | undefined, containingVersionId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleaseDto[]> {
         let url_ = this.baseUrl + "/api/product-management/releases?";
         if (productId !== undefined && productId !== null)
             url_ += "productId=" + encodeURIComponent("" + productId) + "&";
         if (statusCategory !== undefined && statusCategory !== null)
             statusCategory && statusCategory.forEach(item => { url_ += "statusCategory=" + encodeURIComponent("" + item) + "&"; });
+        if (containingVersionId !== undefined && containingVersionId !== null)
+            url_ += "containingVersionId=" + encodeURIComponent("" + containingVersionId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -9239,6 +9242,128 @@ export class ReleasesClient {
     }
 
     /**
+     * Set the versions a release carries directly.
+     */
+    setVersions(id: string, request: SetReleaseVersionsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{id}/versions";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVersions(_response);
+        });
+    }
+
+    protected processSetVersions(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set the packages a release shipped.
+     */
+    setPackages(id: string, request: SetReleasePackagesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{id}/packages";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetPackages(_response);
+        });
+    }
+
+    protected processSetPackages(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Move or clear a release's target date.
      */
     moveTargetDate(id: string, request: MoveReleaseTargetDateRequest, cancelToken?: CancelToken): Promise<void> {
@@ -9300,7 +9425,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Correct a release's recorded target, cut and released dates.
+     * Correct a release's recorded target and released dates.
      */
     correctDates(id: string, request: CorrectReleaseDatesRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/dates";
@@ -9361,68 +9486,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Cut a release.
-     */
-    cut(id: string, request: CutReleaseRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/product-management/releases/{id}/cut";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCut(_response);
-        });
-    }
-
-    protected processCut(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Record that a release shipped.
+     * Record that a release was announced.
      */
     markReleased(id: string, request: MarkReleaseReleasedRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/release";
@@ -9483,7 +9547,7 @@ export class ReleasesClient {
     }
 
     /**
-     * Withdraw a release.
+     * Retract a release.
      */
     withdraw(id: string, request: WithdrawReleaseRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/withdraw";
@@ -9544,10 +9608,720 @@ export class ReleasesClient {
     }
 
     /**
-     * Revert a release recorded as shipped.
+     * Revert a release announced in error.
      */
     revert(id: string, request: RevertReleaseRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/releases/{id}/revert";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRevert(_response);
+        });
+    }
+
+    protected processRevert(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class VersionsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of versions.
+     * @param productId (optional) 
+     * @param statusCategory (optional) 
+     */
+    getVersions(productId?: string | null | undefined, statusCategory?: number[] | null | undefined, cancelToken?: CancelToken): Promise<VersionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/versions?";
+        if (productId !== undefined && productId !== null)
+            url_ += "productId=" + encodeURIComponent("" + productId) + "&";
+        if (statusCategory !== undefined && statusCategory !== null)
+            statusCategory && statusCategory.forEach(item => { url_ += "statusCategory=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetVersions(_response);
+        });
+    }
+
+    protected processGetVersions(response: AxiosResponse): Promise<VersionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<VersionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<VersionDto[]>(null as any);
+    }
+
+    /**
+     * Plan a version.
+     */
+    plan(request: PlanVersionRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/product-management/versions";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPlan(_response);
+        });
+    }
+
+    protected processPlan(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<ObjectIdAndKey>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get version details.
+     */
+    getVersion(idOrKey: string, cancelToken?: CancelToken): Promise<VersionDto> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetVersion(_response);
+        });
+    }
+
+    protected processGetVersion(response: AxiosResponse): Promise<VersionDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<VersionDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<VersionDto>(null as any);
+    }
+
+    /**
+     * Get a version's status change history.
+     */
+    getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{idOrKey}/status-history";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusHistory(_response);
+        });
+    }
+
+    protected processGetStatusHistory(response: AxiosResponse): Promise<StatusTransitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusTransitionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Update a version.
+     */
+    update(id: string, request: UpdateVersionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Move or clear a version's target date.
+     */
+    moveTargetDate(id: string, request: MoveVersionTargetDateRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}/target-date";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMoveTargetDate(_response);
+        });
+    }
+
+    protected processMoveTargetDate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Correct a version's recorded target, cut and released dates.
+     */
+    correctDates(id: string, request: CorrectVersionDatesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}/dates";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCorrectDates(_response);
+        });
+    }
+
+    protected processCorrectDates(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Cut a version.
+     */
+    cut(id: string, request: CutVersionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}/cut";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCut(_response);
+        });
+    }
+
+    protected processCut(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Record that a version shipped.
+     */
+    markReleased(id: string, request: MarkVersionReleasedRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}/version";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkReleased(_response);
+        });
+    }
+
+    protected processMarkReleased(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Withdraw a version.
+     */
+    withdraw(id: string, request: WithdrawVersionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}/withdraw";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processWithdraw(_response);
+        });
+    }
+
+    protected processWithdraw(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Revert a version recorded as shipped.
+     */
+    revert(id: string, request: RevertVersionReleaseRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}/revert";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -39325,7 +40099,7 @@ export interface SetDeploymentEnvironmentActiveRequest {
 export interface DeploymentDto {
     id: string;
     key: number;
-    release?: NavigationDto | undefined;
+    version?: NavigationDto | undefined;
     package?: NavigationDto | undefined;
     environment: NavigationDto;
     environmentCategory: EnvironmentCategory;
@@ -39640,7 +40414,7 @@ export interface ReleasePackageDto {
 
 export interface ReleasePackageComponentDto {
     product: NavigationDto;
-    release?: NavigationDto | undefined;
+    versionRecord?: NavigationDto | undefined;
     version: string;
     kind: ManifestEntryKind;
 }
@@ -39697,26 +40471,40 @@ export interface WithdrawReleasePackageRequest {
 export interface ReleaseDto {
     id: string;
     key: number;
-    product: NavigationDto;
+    product?: NavigationDto | undefined;
     version: string;
     name?: string | undefined;
     notes?: string | undefined;
     sequence?: number | undefined;
     targetDate?: Date | undefined;
-    cutDate?: Date | undefined;
     releasedDate?: Date | undefined;
     status: StatusNavigationDto;
+    versions: ReleaseVersionDto[];
+    packages: ReleasePackageSummaryDto[];
 }
 
+export interface ReleaseVersionDto {
+    version: NavigationDto;
+    product?: NavigationDto | undefined;
+    releasedDate?: Date | undefined;
+}
+
+export interface ReleasePackageSummaryDto {
+    package: NavigationDto;
+    releasedDate?: Date | undefined;
+}
+
+/** Plans a release — drafts an announcement, before it carries anything. */
 export interface PlanReleaseRequest {
-    /** The product this release is for. Its type must permit releases. */
-    productId: string;
-    /** The version as your organization writes it — 4.8.2, 2026.08, v3-beta, a build number, a git tag.
-Free text, never parsed: nothing sorts or compares it, so any convention works. */
+    /** The product to announce under. Optional, and typically a product line rather than a leaf: a
+release spanning product lines leaves this empty. */
+    productId?: string | undefined;
+    /** The release as your organization announces it — 2026.07, Spring Release, R4.
+Free text, never parsed: nothing sorts or compares it. */
     version: string;
     /** An optional human name, where a team gives one. */
     name?: string | undefined;
-    /** When the release is expected to ship. */
+    /** When the release is expected to be announced. */
     targetDate?: Date | undefined;
     /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
@@ -39726,60 +40514,143 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
 export interface UpdateReleaseRequest {
     /** The unique identifier of the release. */
     id: string;
+    /** The release's own version label. Free text, never parsed. */
+    version: string;
+    /** An optional human name. Cleared when omitted. */
+    name?: string | undefined;
+    /** Product notes, written for customers. Cleared when omitted. */
+    notes?: string | undefined;
+    /** The product to announce under. Cleared when omitted, which makes the release span product lines. */
+    productId?: string | undefined;
+    /** A manual ordering override. Cleared when omitted. */
+    sequence?: number | undefined;
+}
+
+/** Replaces the versions a release carries directly, outside any package. */
+export interface SetReleaseVersionsRequest {
+    versionIds: string[];
+}
+
+/** Replaces the packages a release shipped. */
+export interface SetReleasePackagesRequest {
+    packageIds: string[];
+}
+
+/** Moves or clears a release's target date. */
+export interface MoveReleaseTargetDateRequest {
+    targetDate?: Date | undefined;
+}
+
+/** Corrects a release's recorded target and released dates. */
+export interface CorrectReleaseDatesRequest {
+    targetDate?: Date | undefined;
+    releasedDate?: Date | undefined;
+}
+
+/** Records that a release was announced to customers. */
+export interface MarkReleaseReleasedRequest {
+    releasedDate: Date;
+}
+
+/** Retracts a release after it was announced. */
+export interface WithdrawReleaseRequest {
+    /** Why it was retracted. Optional — recorded on the status transition where given. */
+    reason?: string | undefined;
+}
+
+/** Records that a release marked as announced was not in fact announced. */
+export interface RevertReleaseRequest {
+    /** Why the release was reverted. Required, unlike a withdrawal's reason: this
+contradicts what the append-only history already asserts, so the record has to say why. */
+    reason: string;
+}
+
+export interface VersionDto {
+    id: string;
+    key: number;
+    product: NavigationDto;
+    number: string;
+    name?: string | undefined;
+    notes?: string | undefined;
+    sequence?: number | undefined;
+    targetDate?: Date | undefined;
+    cutDate?: Date | undefined;
+    releasedDate?: Date | undefined;
+    status: StatusNavigationDto;
+}
+
+export interface PlanVersionRequest {
+    /** The product this version is for. Its type must permit versions. */
+    productId: string;
+    /** The version as your organization writes it — 4.8.2, 2026.08, v3-beta, a build number, a git tag.
+Free text, never parsed: nothing sorts or compares it, so any convention works. */
+    version: string;
+    /** An optional human name, where a team gives one. */
+    name?: string | undefined;
+    /** When the version is expected to ship. */
+    targetDate?: Date | undefined;
+    /** A manual ordering override, for the rare case where chronology misleads. */
+    sequence?: number | undefined;
+}
+
+/** A whole-record update of a version's descriptive fields. */
+export interface UpdateVersionRequest {
+    /** The unique identifier of the version. */
+    id: string;
     /** The version as your organization writes it. Free text, never parsed. */
     version: string;
     /** An optional human name. Cleared when omitted. */
     name?: string | undefined;
-    /** Release notes, authored by hand or generated. Cleared when omitted. */
+    /** Engineering notes, authored by hand or generated. Cleared when omitted. */
     notes?: string | undefined;
     /** A manual ordering override. Cleared when omitted. */
     sequence?: number | undefined;
 }
 
-/** Moves or clears a release's target date. */
-export interface MoveReleaseTargetDateRequest {
+/** Moves or clears a version's target date. */
+export interface MoveVersionTargetDateRequest {
     /** The new target date, or null to clear it. */
     targetDate?: Date | undefined;
 }
 
-/** Corrects a release's recorded target, cut and released dates. */
-export interface CorrectReleaseDatesRequest {
+/** Corrects a version's recorded target, cut and released dates. */
+export interface CorrectVersionDatesRequest {
     /** The corrected target date, or null to clear it. A target date is a statement of intent that was
 written down; correcting or removing it changes no lifecycle state. */
     targetDate?: Date | undefined;
-    /** The corrected cut date, or null to clear it. May be added to a release that was never cut: a
-release can be marked released without being cut, so a cut date discovered later is a
+    /** The corrected cut date, or null to clear it. May be added to a version that was never cut: a
+version can be marked released without being cut, so a cut date discovered later is a
 correction rather than a lifecycle step. */
     cutDate?: Date | undefined;
-    /** The corrected released date. May be added or changed, but not cleared on a release that has
+    /** The corrected released date. May be added or changed, but not cleared on a version that has
 one — emptying it would leave the status contradicting the dates. Use the revert action to
-record that a release did not ship. */
+record that a version did not ship. */
     releasedDate?: Date | undefined;
 }
 
-/** Freezes scope and marks a release ready to ship. */
-export interface CutReleaseRequest {
+/** Freezes scope and marks a version ready to ship. */
+export interface CutVersionRequest {
     /** The date scope was frozen. Supplied rather than taken from the clock, because cutting is often
 recorded after the fact. */
     cutDate: Date;
 }
 
-/** Records that a release shipped. */
-export interface MarkReleaseReleasedRequest {
-    /** The date it shipped. This is what orders a release history, so it is supplied rather than taken
+/** Records that a version shipped. */
+export interface MarkVersionReleasedRequest {
+    /** The date it shipped. This is what orders a version history, so it is supplied rather than taken
 from the clock. */
     releasedDate: Date;
 }
 
-/** Pulls a release after it was cut. The release is kept — deployments may reference it. */
-export interface WithdrawReleaseRequest {
+/** Pulls a version after it was cut. The version is kept — deployments may reference it. */
+export interface WithdrawVersionRequest {
     /** Why it was pulled. */
     reason?: string | undefined;
 }
 
-/** Records that a release marked as shipped did not in fact ship. */
-export interface RevertReleaseRequest {
-    /** Why the release is being reverted. Required — this contradicts what the status history already
+/** Records that a version marked as shipped did not in fact ship. */
+export interface RevertVersionReleaseRequest {
+    /** Why the version is being reverted. Required — this contradicts what the status history already
 asserts, so the record has to say why. */
     reason: string;
 }

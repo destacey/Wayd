@@ -84,6 +84,7 @@ export {
   renderProgramLink,
   renderWorkspaceLink,
   renderProductLink,
+  renderVersionLink,
   renderReleaseLink,
   renderSprintLink,
   renderUserLink,

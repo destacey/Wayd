@@ -32,6 +32,7 @@ import {
   ProductTypesClient,
   ReleasePackagesClient,
   ReleasesClient,
+  VersionsClient,
   ProgramsClient,
   ExpenditureCategoriesClient,
   ProjectsClient,
@@ -440,6 +441,7 @@ export const getProductTagCategoriesClient = () =>
 
 // DELIVERY
 export const getReleasesClient = () => new ReleasesClient('', axiosClient)
+export const getVersionsClient = () => new VersionsClient('', axiosClient)
 export const getReleasePackagesClient = () =>
   new ReleasePackagesClient('', axiosClient)
 export const getDeploymentsClient = () => new DeploymentsClient('', axiosClient)

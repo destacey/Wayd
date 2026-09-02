@@ -3,16 +3,14 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A release's version, name, notes or ordering sequence changed.
+/// A release's version label, name, notes, owning product or ordering sequence changed.
 /// </summary>
 /// <remarks>
-/// Shared across those fields because handling is identical everywhere. The version is included here
-/// rather than in an event of its own: Wayd observes releases rather than owning them, so editing a
-/// version is an ordinary change, not a lifecycle event.
+/// Shared across those fields because handling is identical everywhere.
 /// </remarks>
 public sealed record ReleaseDetailsUpdatedEvent : DomainEvent, IProductManagementEvent
 {
-    public ReleaseDetailsUpdatedEvent(Guid id, int key, Guid productId, string version, string? name, long? sequence, EventActor actor, Instant timestamp)
+    public ReleaseDetailsUpdatedEvent(Guid id, int key, Guid? productId, string version, string? name, long? sequence, EventActor actor, Instant timestamp)
         : base(actor)
     {
         Id = id;
@@ -27,7 +25,10 @@ public sealed record ReleaseDetailsUpdatedEvent : DomainEvent, IProductManagemen
 
     public Guid Id { get; }
     public int Key { get; }
-    public Guid ProductId { get; }
+
+    /// <summary>The product node the release is announced under, where it is scoped to one.</summary>
+    public Guid? ProductId { get; }
+
     public string Version { get; }
     public string? Name { get; }
 

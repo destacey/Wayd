@@ -80,7 +80,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
     /// Whole-manifest replacement, not incremental: a partially-updated manifest would claim a set of
     /// versions that never shipped together.
     /// </remarks>
-    public Result SetManifest(IReadOnlyCollection<(Guid ProductId, Guid? ReleaseId, string Version, ManifestEntryKind Kind)> components, EventActor actor, Instant timestamp)
+    public Result SetManifest(IReadOnlyCollection<(Guid ProductId, Guid? VersionId, string Version, ManifestEntryKind Kind)> components, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(components, nameof(components));
 
@@ -117,7 +117,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
         _components.Clear();
         foreach (var component in components)
         {
-            _components.Add(new ReleasePackageComponent(Id, component.ProductId, component.ReleaseId, component.Version, component.Kind));
+            _components.Add(new ReleasePackageComponent(Id, component.ProductId, component.VersionId, component.Version, component.Kind));
         }
 
         AddDomainEvent(new PackageManifestAmendedEvent(Id, Key, Version, _components.Count, ChangedComponents.Count, actor, timestamp));
@@ -128,7 +128,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
     /// <summary>
     /// Whether the supplied components are exactly the manifest this package already holds.
     /// </summary>
-    private bool MatchesManifest(IReadOnlyCollection<(Guid ProductId, Guid? ReleaseId, string Version, ManifestEntryKind Kind)> components)
+    private bool MatchesManifest(IReadOnlyCollection<(Guid ProductId, Guid? VersionId, string Version, ManifestEntryKind Kind)> components)
     {
         if (components.Count != _components.Count)
         {
@@ -139,7 +139,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
 
         return components.All(c =>
             existing.TryGetValue(c.ProductId, out var match)
-            && match.ReleaseId == c.ReleaseId
+            && match.VersionId == c.VersionId
             && string.Equals(match.Version, c.Version?.Trim(), StringComparison.Ordinal)
             && match.Kind == c.Kind);
     }
@@ -200,7 +200,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
         string version,
         string? name,
         LocalDate? targetDate,
-        IReadOnlyCollection<(Guid ProductId, Guid? ReleaseId, string Version, ManifestEntryKind Kind)> components,
+        IReadOnlyCollection<(Guid ProductId, Guid? VersionId, string Version, ManifestEntryKind Kind)> components,
         StatusRef initialStatus,
         EventActor actor,
         Instant timestamp)
@@ -224,7 +224,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
 
         foreach (var component in components)
         {
-            package._components.Add(new ReleasePackageComponent(package.Id, component.ProductId, component.ReleaseId, component.Version, component.Kind));
+            package._components.Add(new ReleasePackageComponent(package.Id, component.ProductId, component.VersionId, component.Version, component.Kind));
         }
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.

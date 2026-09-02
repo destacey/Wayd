@@ -4,7 +4,7 @@ import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import {
   renderPackageLink,
-  renderReleaseLink,
+  renderVersionLink,
 } from '@/src/components/common/wayd-grid-core'
 import {
   statusCategoryDescription,
@@ -51,18 +51,18 @@ export const buildDeploymentColumns = (): ColumnDef<DeploymentDto, any>[] => [
   },
   {
     id: 'deployed',
-    accessorFn: (row) => row.release?.name ?? row.package?.name ?? '',
+    accessorFn: (row) => row.version?.name ?? row.package?.name ?? '',
     header: 'Deployed',
     size: 180,
     meta: { filterEnableSet: true },
     cell: ({ row }) =>
-      row.original.release
-        ? renderReleaseLink(row.original.release)
+      row.original.version
+        ? renderVersionLink(row.original.version)
         : renderPackageLink(row.original.package),
   },
   {
     id: 'deployedKind',
-    accessorFn: (row) => (row.release ? 'Release' : 'Package'),
+    accessorFn: (row) => (row.version ? 'Version' : 'Package'),
     header: 'Kind',
     size: 110,
     meta: { filterType: 'set' },

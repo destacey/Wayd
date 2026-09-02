@@ -8,6 +8,9 @@ using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
 
+// The delivery artifact record, not System.Version.
+using Version = Wayd.ProductManagement.Domain.Models.Version;
+
 namespace Wayd.ProductManagement.Application.Tests.Infrastructure;
 
 /// <summary>
@@ -86,9 +89,36 @@ public abstract class ProductCommandTestBase
     }
 
     /// <summary>
-    /// A release against a product, for the handlers that refuse a change once one exists.
+    /// A version against a product, for the handlers that refuse a change once one exists.
     /// </summary>
-    protected Release SeedRelease(Guid productId, string version = "1.0", StatusRef? status = null)
+    protected Version SeedVersion(Guid productId, string number = "1.0", StatusRef? status = null)
+    {
+        var version = Version.Create(
+            productId,
+            number,
+            null,
+            null,
+            null,
+            isProductReleasable: true,
+            status ?? Status("Planned", StatusCategory.Proposed, ProductStatusAlias.None),
+            "Checkout",
+            EventActor.System,
+            Now).Value;
+
+        version.ClearDomainEvents();
+        DbContext.AddVersion(version);
+
+        return version;
+    }
+
+    /// <summary>
+    /// A release, for the handlers that amend an announcement's contents or announce it.
+    /// </summary>
+    /// <remarks>
+    /// Seeded with no contents. The handlers under test attach them, and a release legitimately starts
+    /// empty — unlike a package, whose manifest is authored up front.
+    /// </remarks>
+    protected Release SeedRelease(Guid? productId = null, string version = "2026.07", StatusRef? status = null)
     {
         var release = Release.Create(
             productId,
@@ -96,9 +126,7 @@ public abstract class ProductCommandTestBase
             null,
             null,
             null,
-            isProductReleasable: true,
             status ?? Status("Planned", StatusCategory.Proposed, ProductStatusAlias.None),
-            "Checkout",
             EventActor.System,
             Now).Value;
 
@@ -116,7 +144,7 @@ public abstract class ProductCommandTestBase
     /// seeded here always has its components in memory, so a handler that omits
     /// <c>.Include(p =&gt; p.Components)</c> still passes — <c>ReleasePackageIncludeTests</c> covers that.
     /// </remarks>
-    /// <param name="releaseId">
+    /// <param name="versionId">
     /// The release the manifest line came from, where the test needs one. Null by default because a
     /// manifest line legitimately names a version that was never cut as a release here.
     /// </param>
@@ -124,13 +152,13 @@ public abstract class ProductCommandTestBase
         Guid productId,
         string version = "2026.14",
         StatusRef? status = null,
-        Guid? releaseId = null)
+        Guid? versionId = null)
     {
         var package = ReleasePackage.Create(
             version,
             null,
             null,
-            [(productId, releaseId, "1.0", ManifestEntryKind.Changed)],
+            [(productId, versionId, "1.0", ManifestEntryKind.Changed)],
             status ?? Status("Planned", StatusCategory.Proposed, ProductStatusAlias.None),
             EventActor.System,
             Now).Value;
@@ -172,10 +200,10 @@ public abstract class ProductCommandTestBase
     {
         var environment = SeedEnvironment($"env-{Guid.CreateVersion7()}"[..12], category, 1);
         var product = SeedProduct($"product-{Guid.CreateVersion7()}"[..16]);
-        var release = SeedRelease(product.Id);
+        var version = SeedVersion(product.Id);
 
         var deployment = Deployment.Create(
-            release.Id,
+            version.Id,
             null,
             environment.Id,
             category,

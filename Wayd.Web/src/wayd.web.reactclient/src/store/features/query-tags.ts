@@ -99,6 +99,7 @@ export enum QueryTags {
   ProductTagCategory = 'ProductManagement.ProductTagCategory',
 
   // DELIVERY
+  Version = 'Delivery.Version',
   Release = 'Delivery.Release',
   ReleasePackage = 'Delivery.ReleasePackage',
   Deployment = 'Delivery.Deployment',

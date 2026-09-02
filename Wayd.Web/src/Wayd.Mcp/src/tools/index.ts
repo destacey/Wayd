@@ -7,6 +7,9 @@ import { definitions as releases } from './releases.js';
 import { definitions as versions } from './versions.js';
 import { definitions as releasePackages } from './release-packages.js';
 import { definitions as deployments } from './deployments.js';
+import { definitions as deliveryEnvironments } from './delivery-environments.js';
+import { definitions as products } from './products.js';
+import { definitions as productCatalogConfig } from './product-catalog-config.js';
 import { definitions as projectHealthChecks } from './project-health-checks.js';
 import { definitions as projectScores } from './project-scores.js';
 import { definitions as strategicInitiatives } from './strategic-initiatives.js';
@@ -29,6 +32,9 @@ export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...versions,
   ...releasePackages,
   ...deployments,
+  ...deliveryEnvironments,
+  ...products,
+  ...productCatalogConfig,
   ...projectHealthChecks,
   ...projectScores,
   ...strategicInitiatives,

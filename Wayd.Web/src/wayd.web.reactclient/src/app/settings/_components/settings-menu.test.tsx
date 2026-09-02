@@ -46,7 +46,6 @@ const allGroups = [
   'Planning',
   'Product Management',
   'PPM',
-  'Delivery',
   'Work Management',
   'System',
 ]
@@ -68,16 +67,21 @@ describe('SettingsMenu', () => {
       expect(groups()).toEqual(allGroups)
     })
 
-    it('hides Delivery when Product Management is off', () => {
+    it('hides Product Management, and the environments in it, when the flag is off', () => {
       // Arrange — the whole area is unreachable behind the flag, so a heading over an unopenable
       // page would be worse than no heading.
+      //
+      // Environments live in this group rather than a "Delivery" one of their own: delivery names
+      // the schema and the concept, not an area of the app, and the API puts every one of these
+      // endpoints under product-management too.
       mockFlags['product-management'] = false
 
       // Act
       renderMenu()
 
       // Assert
-      expect(groups()).not.toContain('Delivery')
+      expect(groups()).not.toContain('Product Management')
+      expect(screen.queryByText('Environments')).not.toBeInTheDocument()
     })
 
     it('puts scoring models under PPM', () => {

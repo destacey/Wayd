@@ -42,11 +42,14 @@ graph TD
     P -->|contains| S
     P -->|contains| A
     S -->|releasable node| R
-    R -->|component of| Pkg
-    Pkg -->|deployed to| Env
-    R -->|deployed to| Env
-    D -->|records| Env
+    R -.->|component of| Pkg
+    R ==>|XOR| D
+    Pkg ==>|XOR| D
+    D -->|reached| Env
 ```
+
+A deployment carries **either** a release or a package, never both — see
+[how the four fit together](./delivery.mdx#how-the-four-fit-together).
 
 ## How Product Management Connects Across Wayd
 
@@ -57,19 +60,17 @@ graph TD
 
 ## What Is Available Today
 
-Product Management is being built in phases. The catalog and releases have screens; the rest of delivery is API-only for now.
+Every area of Product Management now has both a screen and an API.
 
 | Area | Interface | API |
 | --- | --- | --- |
 | Products, types, tags | Yes | Yes |
 | Releases | Yes | Yes |
-| Release packages | Not yet | Yes |
-| Deployments and environments | Not yet | Yes |
-| Delivery metrics | Not yet | Yes |
+| Release packages | Yes | Yes |
+| Deployments and environments | Yes | Yes |
+| Delivery metrics | Yes | Yes |
 
-Everything without a screen is fully available through the API, so it can be recorded and queried today.
-
-When delivery metrics does get a screen it will report the two measures this module can compute from what it records. The other two are unavailable, with the reason, rather than approximated — see [Delivery Metrics](./delivery.mdx#delivery-metrics).
+Delivery metrics reports the two measures this module can compute from what it records. The other two are shown as unavailable, each with the reason, rather than approximated — see [Delivery Metrics](./delivery.mdx#delivery-metrics).
 
 ## Sections
 

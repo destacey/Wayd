@@ -19,22 +19,32 @@ const { Text } = Typography
  * contain? — so they are flattened into one list and the route becomes a column. A reader asking that
  * question is not asking which of the two lists an item was written in.
  */
-interface ContentsEntry {
+export interface ContentsEntry {
   id: string
   route: 'Package' | 'Direct'
   /** The link cell, prebuilt: the two routes link to different pages. */
   item: React.ReactNode
   name: string
+  /**
+   * The product's name, or empty where the row has none.
+   *
+   * Held as text beside the rendered cell below, because the column's value is what sorting and the
+   * CSV export read — a cell renders, an accessor answers. A package has no product of its own, so
+   * this is empty rather than borrowed from anything.
+   */
+  product: string
   detail: React.ReactNode
   releasedDate?: Date
 }
 
-const toEntries = (release: ReleaseDto): ContentsEntry[] => [
+export const toEntries = (release: ReleaseDto): ContentsEntry[] => [
   ...(release.packages ?? []).map((entry) => ({
     id: entry.package.id,
     route: 'Package' as const,
     item: renderPackageLink(entry.package),
     name: entry.package.name,
+    // A package has no product of its own — it is the shipment, not the thing shipped.
+    product: '',
     // A package's own contents live on its page; naming them here would duplicate a manifest that can
     // disagree with this copy.
     detail: <Text type="secondary">Package</Text>,
@@ -45,6 +55,7 @@ const toEntries = (release: ReleaseDto): ContentsEntry[] => [
     route: 'Direct' as const,
     item: renderVersionLink(entry.version),
     name: entry.version.name,
+    product: entry.product?.name ?? '',
     detail: entry.product ? (
       renderProductLink(entry.product)
     ) : (
@@ -59,7 +70,7 @@ export interface ReleaseContentsProps {
   isLoading?: boolean
 }
 
-const buildContentsColumns = (): ColumnDef<ContentsEntry, any>[] => [
+export const buildContentsColumns = (): ColumnDef<ContentsEntry, any>[] => [
   {
     id: 'route',
     accessorKey: 'route',
@@ -88,10 +99,11 @@ const buildContentsColumns = (): ColumnDef<ContentsEntry, any>[] => [
     cell: ({ row }) => row.original.item,
   },
   {
-    id: 'detail',
-    accessorFn: (row) => row.route,
+    id: 'product',
+    accessorFn: (row) => row.product,
     header: 'Product',
     size: 200,
+    meta: { filterType: 'set' },
     cell: ({ row }) => row.original.detail,
   },
   {

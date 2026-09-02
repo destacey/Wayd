@@ -85,6 +85,7 @@ const PlanReleaseForm = ({
           if (values.cutDate) {
             const cut = await cutRelease({
               id,
+              cacheKey: key,
               request: { id, cutDate: values.cutDate.format('YYYY-MM-DD') } as unknown as CutReleaseRequest,
             })
             if (cut.error) {
@@ -98,6 +99,7 @@ const PlanReleaseForm = ({
           if (values.releasedDate) {
             const released = await markReleased({
               id,
+              cacheKey: key,
               request: {
                 id,
                 releasedDate: values.releasedDate.format('YYYY-MM-DD'),

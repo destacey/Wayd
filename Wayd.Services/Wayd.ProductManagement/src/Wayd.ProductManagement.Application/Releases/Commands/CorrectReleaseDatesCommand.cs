@@ -1,15 +1,25 @@
 namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Corrects a release's recorded cut and released dates.
+/// Corrects a release's recorded target, cut and released dates.
 /// </summary>
 /// <remarks>
 /// Separate from cutting and releasing, which assert that the release moved and so refuse to run
 /// twice. This asserts only that a date was written down wrongly, and leaves the status alone — the
 /// alternative was to withdraw a release and release it again, which writes two status transitions
 /// that never happened.
+/// <para>
+/// Every date is sent, so an omitted one clears it. The target and cut dates may be added, changed or
+/// cleared freely; the released date may be added or changed but not cleared, because emptying it
+/// would leave a released record contradicting its own status —
+/// <c>RevertReleaseCommand</c> is the action for that.
+/// </para>
 /// </remarks>
-public sealed record CorrectReleaseDatesCommand(Guid Id, LocalDate? CutDate, LocalDate? ReleasedDate)
+public sealed record CorrectReleaseDatesCommand(
+    Guid Id,
+    LocalDate? TargetDate,
+    LocalDate? CutDate,
+    LocalDate? ReleasedDate)
     : ICommand, IRequireLinkedEmployee;
 
 public sealed class CorrectReleaseDatesCommandValidator : AbstractValidator<CorrectReleaseDatesCommand>
@@ -60,6 +70,7 @@ public sealed class CorrectReleaseDatesCommandHandler(
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = release.CorrectDates(
+                request.TargetDate,
                 request.CutDate,
                 request.ReleasedDate,
                 productName,

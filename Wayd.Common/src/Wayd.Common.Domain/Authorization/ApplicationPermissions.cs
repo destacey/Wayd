@@ -388,15 +388,16 @@ public static class ApplicationPermissions
         new ("Update Product Types", ApplicationAction.Update, ApplicationResource.ProductTypes, ProductManagementCategory),
         new ("Delete Product Types", ApplicationAction.Delete, ApplicationResource.ProductTypes, ProductManagementCategory),
 
+        // Nothing in delivery is deletable, so none of these carry a Delete. A release is withdrawn, a
+        // package is withdrawn, an environment is retired, and a deployment is a historical fact that is
+        // never removed at all — each keeps the record and its status history rather than erasing it.
         new ("View Releases", ApplicationAction.View, ApplicationResource.Releases, DeliveryCategory),
         new ("Create Releases", ApplicationAction.Create, ApplicationResource.Releases, DeliveryCategory),
         new ("Update Releases", ApplicationAction.Update, ApplicationResource.Releases, DeliveryCategory),
-        new ("Delete Releases", ApplicationAction.Delete, ApplicationResource.Releases, DeliveryCategory),
 
         new ("View Release Packages", ApplicationAction.View, ApplicationResource.ReleasePackages, DeliveryCategory),
         new ("Create Release Packages", ApplicationAction.Create, ApplicationResource.ReleasePackages, DeliveryCategory),
         new ("Update Release Packages", ApplicationAction.Update, ApplicationResource.ReleasePackages, DeliveryCategory),
-        new ("Delete Release Packages", ApplicationAction.Delete, ApplicationResource.ReleasePackages, DeliveryCategory),
 
         new ("View Deployments", ApplicationAction.View, ApplicationResource.Deployments, DeliveryCategory),
         new ("Create Deployments", ApplicationAction.Create, ApplicationResource.Deployments, DeliveryCategory),
@@ -405,7 +406,6 @@ public static class ApplicationPermissions
         new ("View Deployment Environments", ApplicationAction.View, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Create Deployment Environments", ApplicationAction.Create, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Update Deployment Environments", ApplicationAction.Update, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
-        new ("Delete Deployment Environments", ApplicationAction.Delete, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
 
         new ("View Delivery Metrics", ApplicationAction.View, ApplicationResource.DeliveryMetrics, DeliveryCategory),
 

@@ -181,7 +181,6 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
 
         builder.HasIndex(r => new { r.ProductId, r.ReleasedDate })
             .IncludeProperties(r => new { r.Id, r.Key, r.Version, r.Name, r.Sequence, r.StatusCategory });
-        builder.HasIndex(r => r.PackageId);
 
         // Deliberately NOT unique: duplicate versions within a product warn rather than block, since an
         // importer with a mis-set truncation rule is the case this diagnoses.
@@ -201,7 +200,6 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.Property(r => r.CutDate);
         builder.Property(r => r.ReleasedDate);
         builder.Property(r => r.Notes).HasMaxLength(4000);
-        builder.Property(r => r.PackageId);
 
         builder.Property(r => r.StatusId).IsRequired();
         builder.Property(r => r.StatusWorkflowId).IsRequired();
@@ -219,15 +217,12 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.ConfigureStatusHistory();
 
         // Relationships
+        // A release has no foreign key to the package it shipped in. Membership is the manifest's to
+        // record, and a second column saying the same thing could disagree with it.
         builder.HasOne(r => r.Product)
             .WithMany()
             .HasForeignKey(r => r.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(r => r.Package)
-            .WithMany()
-            .HasForeignKey(r => r.PackageId)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

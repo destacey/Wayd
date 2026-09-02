@@ -238,7 +238,7 @@ public class TeamsOfTeamsController : ControllerBase
         var result = await _dispatcher.Send(request.ToCreateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetRiskById), new { id, riskId = result.Value }, result.Value)
+            ? CreatedAtAction(nameof(GetRiskById), new { id, riskIdOrKey = result.Value.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

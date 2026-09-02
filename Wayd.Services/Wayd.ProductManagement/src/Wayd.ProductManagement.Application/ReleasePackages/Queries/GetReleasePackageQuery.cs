@@ -1,11 +1,26 @@
-﻿using Wayd.ProductManagement.Application.ReleasePackages.Dtos;
+﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Models;
+using Wayd.ProductManagement.Application.ReleasePackages.Dtos;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.ReleasePackages.Queries;
 
 /// <summary>
-/// A single package by id, or <c>null</c> when it does not exist.
+/// A single package by id or key, or <c>null</c> when it does not exist.
 /// </summary>
-public sealed record GetReleasePackageQuery(Guid Id) : IQuery<ReleasePackageDto?>;
+/// <remarks>
+/// Accepts either so a URL can carry the short integer key a reader can recognise, rather than a
+/// GUID, matching how the other modules address a record.
+/// </remarks>
+public sealed record GetReleasePackageQuery : IQuery<ReleasePackageDto?>
+{
+    public GetReleasePackageQuery(IdOrKey idOrKey)
+    {
+        IdOrKeyFilter = idOrKey.CreateFilter<ReleasePackage>();
+    }
+
+    public Expression<Func<ReleasePackage, bool>> IdOrKeyFilter { get; }
+}
 
 public sealed class GetReleasePackageQueryHandler(IProductManagementDbContext productManagementDbContext)
     : IQueryHandler<GetReleasePackageQuery, ReleasePackageDto?>
@@ -15,7 +30,7 @@ public sealed class GetReleasePackageQueryHandler(IProductManagementDbContext pr
     public async Task<ReleasePackageDto?> Handle(GetReleasePackageQuery query, CancellationToken cancellationToken)
     {
         return await _productManagementDbContext.ReleasePackages
-            .Where(p => p.Id == query.Id)
+            .Where(query.IdOrKeyFilter)
             .ProjectToType<ReleasePackageDto>(
                 ReleasePackageDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .FirstOrDefaultAsync(cancellationToken);

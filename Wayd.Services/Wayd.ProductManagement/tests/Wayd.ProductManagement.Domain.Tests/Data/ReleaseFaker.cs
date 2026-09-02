@@ -19,7 +19,6 @@ public sealed class ReleaseFaker : PrivateConstructorFaker<Release>
         RuleFor(x => x.CutDate, f => null);
         RuleFor(x => x.ReleasedDate, f => null);
         RuleFor(x => x.Notes, f => null);
-        RuleFor(x => x.PackageId, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
         // A real record always has one: ApplyStatus sets it from the StatusRef it is given,
         // and building the outgoing side of a transition needs it.
@@ -101,13 +100,6 @@ public static class ReleaseFakerExtensions
         return faker;
     }
 
-    public static ReleaseFaker WithPackageId(this ReleaseFaker faker, Guid? packageId)
-    {
-        faker.RuleFor(x => x.PackageId, packageId);
-
-        return faker;
-    }
-
     public static ReleaseFaker WithStatusId(this ReleaseFaker faker, Guid statusId)
     {
         faker.RuleFor(x => x.StatusId, statusId);
@@ -143,7 +135,11 @@ public static class ReleaseFakerExtensions
     /// <summary>
     /// A release that has shipped.
     /// </summary>
-    public static ReleaseFaker AsReleased(this ReleaseFaker faker, LocalDate cutDate, LocalDate releasedDate)
+    /// <param name="cutDate">
+    /// Nullable because cutting is not a prerequisite for releasing — a release entered after the fact
+    /// legitimately ships with no cut date, and historical import depends on it.
+    /// </param>
+    public static ReleaseFaker AsReleased(this ReleaseFaker faker, LocalDate? cutDate, LocalDate releasedDate)
     {
         faker.RuleFor(x => x.CutDate, cutDate);
         faker.RuleFor(x => x.ReleasedDate, releasedDate);

@@ -30,12 +30,15 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ReleasePackages)]
-    [OpenApiOperation("Get a list of release packages.", "")]
+    [OpenApiOperation(
+        "Get a list of release packages.",
+        "containingProductId matches any manifest line for that product; containingReleaseId matches only the packages naming that exact release, which is what a release's own page needs.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ReleasePackageDto>>> GetReleasePackages(
         [FromQuery] int[]? statusCategory,
         [FromQuery] Guid? containingProductId,
+        [FromQuery] Guid? containingReleaseId,
         CancellationToken cancellationToken)
     {
         StatusCategory[]? categories = statusCategory is { Length: > 0 }
@@ -43,26 +46,27 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
             : null;
 
         var packages = await _dispatcher.Send(
-            new GetReleasePackagesQuery(categories, containingProductId), cancellationToken);
+            new GetReleasePackagesQuery(categories, containingProductId, containingReleaseId),
+            cancellationToken);
 
         return Ok(packages);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ReleasePackages)]
-    [OpenApiOperation("Get release package details.", "")]
+    [OpenApiOperation("Get release package details.", "Accepts the package's id or its short key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReleasePackageDto>> GetReleasePackage(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ReleasePackageDto>> GetReleasePackage(string idOrKey, CancellationToken cancellationToken)
     {
-        var package = await _dispatcher.Send(new GetReleasePackageQuery(id), cancellationToken);
+        var package = await _dispatcher.Send(new GetReleasePackageQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return package is not null
             ? Ok(package)
             : NotFound();
     }
 
-    [HttpGet("{id}/status-history")]
+    [HttpGet("{idOrKey}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ReleasePackages)]
     [OpenApiOperation(
         "Get a release package's status change history.",
@@ -71,9 +75,10 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(
-        Guid id, CancellationToken cancellationToken)
+        string idOrKey, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new GetReleasePackageStatusHistoryQuery(id), cancellationToken);
+        var result = await _dispatcher.Send(
+            new GetReleasePackageStatusHistoryQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return result.IsFailure
             ? BadRequest(result.ToBadRequestObject(HttpContext))
@@ -92,7 +97,7 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToAssembleReleasePackageCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetReleasePackage), new { id = result.Value.Id }, result.Value)
+            ? CreatedAtAction(nameof(GetReleasePackage), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

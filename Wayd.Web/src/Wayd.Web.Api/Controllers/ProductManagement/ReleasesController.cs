@@ -35,7 +35,6 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ReleaseDto>>> GetReleases(
         [FromQuery] Guid? productId,
-        [FromQuery] Guid? packageId,
         [FromQuery] int[]? statusCategory,
         CancellationToken cancellationToken)
     {
@@ -44,7 +43,7 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
             : null;
 
         var releases = await _dispatcher.Send(
-            new GetReleasesQuery(productId, packageId, categories), cancellationToken);
+            new GetReleasesQuery(productId, categories), cancellationToken);
 
         return Ok(releases);
     }
@@ -136,15 +135,16 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Correct a release's recorded cut and released dates.",
-        "Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.")]
+        "Correct a release's recorded target, cut and released dates.",
+        "Fixes dates entered wrongly without changing the release's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the release instead.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
         Guid id, [FromBody] CorrectReleaseDatesRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(
-            new CorrectReleaseDatesCommand(id, request.CutDate, request.ReleasedDate), cancellationToken);
+            new CorrectReleaseDatesCommand(id, request.TargetDate, request.CutDate, request.ReleasedDate),
+            cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -191,6 +191,24 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
         Guid id, [FromBody] WithdrawReleaseRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new WithdrawReleaseCommand(id, request.Reason), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/revert")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
+    [OpenApiOperation(
+        "Revert a release recorded as shipped.",
+        "For a release marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a release which really shipped.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Revert(
+        Guid id, [FromBody] RevertReleaseRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new RevertReleaseCommand(id, request.Reason), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

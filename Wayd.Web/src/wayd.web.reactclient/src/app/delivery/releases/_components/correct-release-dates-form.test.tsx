@@ -80,19 +80,22 @@ describe('CorrectReleaseDatesForm', () => {
     expect(screen.getByLabelText('Released Date')).toHaveValue('2026-04-02')
   })
 
-  it('offers only the dates the release has', () => {
-    // Arrange — adding a date is a lifecycle step and belongs to Cut or Mark Released, which move
-    // the status too. Offering the field here would invite a change the API refuses.
+  it('offers every date, including ones the release does not have', () => {
+    // Arrange — a missing date is as likely to be the error as a wrong one. A release can be marked
+    // released without ever being cut, so the cut date is commonly filled in afterwards; hiding the
+    // field left no route to it at all.
     // Act
     renderForm(release({ cutDate: '2026-04-01' as unknown as Date }))
 
     // Assert
+    expect(screen.getByLabelText('Target Date')).toBeInTheDocument()
     expect(screen.getByLabelText('Cut Date')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Released Date')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Released Date')).toBeInTheDocument()
   })
 
-  it('sends both dates when one is corrected', () => {
-    // Arrange — the API takes the pair, since the ordering rule spans them.
+  it('sends all three dates when one is corrected', () => {
+    // Arrange — the API takes them together, since the ordering rule spans the pair and an omitted
+    // date is a cleared one rather than an unchanged one.
     renderForm(released())
 
     // Act

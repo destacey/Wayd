@@ -247,7 +247,7 @@ public sealed class ReleaseTests
         var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 2), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 2), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -264,7 +264,7 @@ public sealed class ReleaseTests
         var statusId = sut.StatusId;
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // The point of the method: correcting a typo must not manufacture a status transition, which
@@ -282,7 +282,7 @@ public sealed class ReleaseTests
         var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 2), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 2), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // The replaced value is the whole reason to record a correction; it is gone from the release.
@@ -301,7 +301,7 @@ public sealed class ReleaseTests
         var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 3), null, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 3), null, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -316,7 +316,7 @@ public sealed class ReleaseTests
         var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -330,7 +330,7 @@ public sealed class ReleaseTests
         var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 6), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 6), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -339,49 +339,89 @@ public sealed class ReleaseTests
     }
 
     [Fact]
-    public void CorrectDates_ShouldFail_WhenAddingADateTheReleaseDoesNotHave()
+    public void CorrectDates_ShouldAddACutDate_WhenTheReleaseWasNeverCut()
     {
-        // Arrange
-        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+        // Arrange — a release can be marked released without ever being cut, which historical import
+        // depends on. A cut date discovered afterwards is a correction, not a lifecycle step.
+        var sut = _faker.AsReleased(null, new LocalDate(2026, 9, 5)).Generate();
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        // Shipping is a lifecycle step that moves the status, so it belongs to MarkReleased. Allowing
-        // it here would release a product without recording that it was released.
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This release has not been released, so a released date cannot be corrected onto it.");
-        sut.ReleasedDate.Should().BeNull();
+        result.IsSuccess.Should().BeTrue();
+        sut.CutDate.Should().Be(new LocalDate(2026, 9, 1));
     }
 
     [Fact]
-    public void CorrectDates_ShouldFail_WhenClearingADateTheReleaseHas()
+    public void CorrectDates_ShouldClearTheCutDate()
+    {
+        // Arrange — the cut date only records something written down, so removing a wrong one is a
+        // correction like any other. The status is untouched either way.
+        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+
+        // Act
+        var result = sut.CorrectDates(null, null, new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.CutDate.Should().BeNull();
+        sut.StatusCategory.Should().Be(StatusCategory.Done);
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldCorrectAndClearTheTargetDate()
+    {
+        // Arrange
+        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5))
+            .WithTargetDate(new LocalDate(2026, 8, 1))
+            .Generate();
+
+        // Act
+        var corrected = sut.CorrectDates(new LocalDate(2026, 8, 15), new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — a released release can still have a mis-typed target date fixed. MoveTargetDate
+        // refuses once the release is Done, so without this there is no route to it at all.
+        corrected.IsSuccess.Should().BeTrue();
+        sut.TargetDate.Should().Be(new LocalDate(2026, 8, 15));
+
+        // Act — and cleared, since a target date is only a statement of intent.
+        var cleared = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        cleared.IsSuccess.Should().BeTrue();
+        sut.TargetDate.Should().BeNull();
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldFail_WhenClearingTheReleasedDate()
     {
         // Arrange
         var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), null, ProductName, EventActor.System, _dateTimeProvider.Now);
 
-        // Assert
+        // Assert — the one date a correction cannot empty: the status would then contradict the
+        // dates. Saying a release did not ship is RevertRelease's job, which moves the status too.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A release that has been cut cannot have its cut date removed.");
-        sut.CutDate.Should().Be(new LocalDate(2026, 9, 1));
+        result.Error.Should().Be("A released release cannot have its released date removed. Revert the release instead.");
+        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 5));
     }
 
     [Fact]
-    public void CorrectDates_ShouldFail_WhenTheReleaseHasNoDates()
+    public void CorrectDates_ShouldSucceed_WhenTheReleaseHasNoDatesYet()
     {
-        // Arrange
+        // Arrange — a planned release with nothing recorded. Setting a target date on it is a
+        // correction, not a lifecycle move, so there is nothing to refuse.
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.CorrectDates(null, null, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(new LocalDate(2026, 9, 20), null, null, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This release has no recorded dates to correct.");
+        result.IsSuccess.Should().BeTrue();
+        sut.TargetDate.Should().Be(new LocalDate(2026, 9, 20));
     }
 
     [Fact]
@@ -391,7 +431,7 @@ public sealed class ReleaseTests
         var sut = _faker.AsWithdrawn().Generate();
 
         // Act
-        var result = sut.CorrectDates(new LocalDate(2026, 9, 2), null, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 2), null, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -401,6 +441,95 @@ public sealed class ReleaseTests
     #endregion CorrectDates
 
     #region Withdraw
+
+    #region RevertRelease
+
+    [Fact]
+    public void RevertRelease_ShouldClearTheReleasedDateAndMoveBackToReady()
+    {
+        // Arrange
+        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+
+        // Act
+        var result = sut.RevertRelease(StatusRefFactory.Ready(), "Marked released against the wrong version.", ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — the released date and the status are one fact, so they move together.
+        result.IsSuccess.Should().BeTrue();
+        sut.ReleasedDate.Should().BeNull();
+        sut.StatusCategory.Should().Be(StatusCategory.Active);
+        sut.CutDate.Should().Be(new LocalDate(2026, 9, 1));
+    }
+
+    [Fact]
+    public void RevertRelease_ShouldRaiseItsOwnEventRatherThanAWithdrawal()
+    {
+        // Arrange
+        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+
+        // Act
+        var result = sut.RevertRelease(StatusRefFactory.Ready(), "Recorded in error.", ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — a withdrawal asserts a real release was pulled. Reverting says it never shipped, so
+        // a consumer counting releases must be able to tell the two apart.
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().NotContain(e => e is ReleaseWithdrawnEvent);
+
+        var reverted = sut.DomainEvents.OfType<ReleaseRevertedEvent>().Single();
+        reverted.Reason.Should().Be("Recorded in error.");
+        reverted.FromReleasedDate.Should().Be(new LocalDate(2026, 9, 5));
+    }
+
+    [Fact]
+    public void RevertRelease_ShouldFail_WhenTheReleaseWasNeverReleased()
+    {
+        // Arrange
+        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+
+        // Act
+        var result = sut.RevertRelease(StatusRefFactory.Ready(), "Recorded in error.", ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This release has not been released, so there is nothing to revert.");
+    }
+
+    [Fact]
+    public void RevertRelease_ShouldFail_WhenWithdrawn()
+    {
+        // Arrange — a release that shipped and was then pulled. The released date has to be present,
+        // or the "nothing to revert" guard answers first and this asserts the wrong rule.
+        var sut = _faker
+            .AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5))
+            .AsWithdrawn()
+            .Generate();
+
+        // Act
+        var result = sut.RevertRelease(StatusRefFactory.Ready(), "Recorded in error.", ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A withdrawn release cannot be reverted. Its status is already terminal.");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RevertRelease_ShouldFail_WithoutAReason(string reason)
+    {
+        // Arrange
+        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+
+        // Act
+        var result = sut.RevertRelease(StatusRefFactory.Ready(), reason, ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — unlike a withdrawal's optional reason, this contradicts something the history
+        // already asserts, so the record has to say why.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A reason is required to revert a release.");
+        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 5));
+    }
+
+    #endregion RevertRelease
 
     [Fact]
     public void Withdraw_ShouldMoveToRemovedAndRaiseEventWithReason()

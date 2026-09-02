@@ -52,8 +52,10 @@ describe('releaseActionAvailability', () => {
       canRelease: true,
       canWithdraw: true,
       canMoveTargetDate: true,
-      // Nothing recorded yet, so there is no date to correct.
-      canCorrectDates: false,
+      // Offered even with nothing recorded: setting a target date is a correction, not a move.
+      canCorrectDates: true,
+      // Nothing has shipped, so there is no release to take back.
+      canRevert: false,
     })
   })
 
@@ -88,6 +90,7 @@ describe('releaseActionAvailability', () => {
       canWithdraw: false,
       canMoveTargetDate: false,
       canCorrectDates: false,
+      canRevert: false,
     })
   })
 
@@ -142,5 +145,52 @@ describe('releaseActionAvailability', () => {
 
     // Assert
     expect(available.canCorrectDates).toBe(false)
+  })
+
+  it('offers correcting dates on a planned release with nothing recorded', () => {
+    // Arrange / Act — setting a target date is a correction rather than a lifecycle move, so there
+    // is nothing to refuse. Requiring an existing date left no way to record one at all.
+    const available = releaseActionAvailability(planned())
+
+    // Assert
+    expect(available.canCorrectDates).toBe(true)
+  })
+
+  it('offers reverting only once a release has shipped', () => {
+    // Arrange / Act / Assert — reverting takes back a released date, so there must be one.
+    expect(releaseActionAvailability(released()).canRevert).toBe(true)
+    expect(releaseActionAvailability(cut()).canRevert).toBe(false)
+    expect(releaseActionAvailability(planned()).canRevert).toBe(false)
+  })
+
+  it('refuses reverting a withdrawn release', () => {
+    // Arrange — withdrawing is terminal. A release pulled after shipping is not the mistaken-record
+    // case reverting exists for, and the aggregate refuses it.
+    const withdrawnAfterRelease = release({
+      cutDate: '2026-04-01' as unknown as Date,
+      releasedDate: '2026-04-02' as unknown as Date,
+      status: {
+        id: 's',
+        name: 'Withdrawn',
+        category: StatusCategory.Removed,
+        alias: 12,
+      },
+    })
+
+    // Act
+    const available = releaseActionAvailability(withdrawnAfterRelease)
+
+    // Assert
+    expect(available.canRevert).toBe(false)
+  })
+
+  it('offers both withdrawing and reverting on a released release', () => {
+    // Arrange / Act — they answer different questions, so a reader has to be able to choose:
+    // withdrawing says a real release was pulled, reverting says it never shipped.
+    const available = releaseActionAvailability(released())
+
+    // Assert
+    expect(available.canWithdraw).toBe(true)
+    expect(available.canRevert).toBe(true)
   })
 })

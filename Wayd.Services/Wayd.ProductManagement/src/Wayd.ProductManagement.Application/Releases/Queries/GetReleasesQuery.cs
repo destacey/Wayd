@@ -15,7 +15,6 @@ namespace Wayd.ProductManagement.Application.Releases.Queries;
 /// </remarks>
 public sealed record GetReleasesQuery(
     Guid? ProductId = null,
-    Guid? PackageId = null,
     IReadOnlyCollection<StatusCategory>? StatusCategories = null) : IQuery<IReadOnlyCollection<ReleaseDto>>;
 
 public sealed class GetReleasesQueryHandler(IProductManagementDbContext productManagementDbContext)
@@ -31,11 +30,6 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
         if (query.ProductId is not null)
         {
             releases = releases.Where(r => r.ProductId == query.ProductId);
-        }
-
-        if (query.PackageId is not null)
-        {
-            releases = releases.Where(r => r.PackageId == query.PackageId);
         }
 
         if (query.StatusCategories is { Count: > 0 })

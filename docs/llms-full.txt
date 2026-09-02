@@ -492,7 +492,9 @@ Versions are never parsed or compared — releases are not sorted by version. Li
 
 Each lifecycle move is one-way and sets a date and a status together: Cut refuses a release already cut, MarkReleased refuses one already released, and a withdrawn release refuses being released (though a released one can be withdrawn). Cutting is NOT a prerequisite for releasing — a release may be marked released with no cut date, which is what makes historical import possible. Where both dates exist, the released date cannot precede the cut date.
 
-Because those moves refuse to run twice, a separate correction action exists: CorrectDates fixes a cut or released date recorded wrongly and leaves the status alone, writing no StatusTransition and raising ReleaseDatesCorrectedEvent (carrying both ends of each change) to the audit trail instead. Without it, fixing a released date would mean withdrawing and re-releasing, appending two status transitions that never happened to an append-only history. A correction can only fix a date the release already has — introducing or clearing one is a lifecycle step — and is refused on a withdrawn release.
+Because those moves refuse to run twice, a separate correction action exists: CorrectDates fixes a target, cut or released date recorded wrongly and leaves the status alone, writing no StatusTransition and raising ReleaseDatesCorrectedEvent (carrying both ends of each change) to the audit trail instead. Without it, fixing a released date would mean withdrawing and re-releasing, appending two status transitions that never happened to an append-only history. All three dates are sent together, so an omitted one is CLEARED rather than left unchanged. A date may be ADDED as well as changed — cutting is not a prerequisite for releasing, so a cut date discovered later is a correction, not a lifecycle step. Target and cut may be cleared; the released date may not (the status would contradict the dates), and the whole action is refused on a withdrawn release. The one ordering rule that remains: the released date cannot precede the cut date.
+
+RevertRelease is the separate action for a release marked released IN ERROR — it never shipped and the record was wrong. It moves the release back to Ready (or to the workflow's initial status where it was never cut), clears the released date, requires a reason, and raises ReleaseRevertedEvent. It is NOT a withdrawal: withdrawing asserts a real release was pulled and is terminal, so recording a mistake that way leaves an append-only history claiming a withdrawal nobody performed. Refused when the release has no released date, and on a withdrawn release. Mirrors the RevertStatus pattern on PPM's Project.
 
 ### Release Packages
 
@@ -501,6 +503,12 @@ Several component releases shipped as one coordinated unit. Properties:
 
 Rules: Where a package exists it owns the deployment and its component releases do not — one pipeline run shipping fifteen services counts once, not fifteen. NOT a SAFe Release Train (that is TeamOfTeams in Organization).
 
+Each manifest entry carries a Kind: Changed (the component changed in this package) or CarriedForward (it shipped unchanged). Recording the carried-forward lines is what makes the manifest a full statement of what was in the box. A component may appear only once per manifest. An entry's ReleaseId is optional and there is deliberately no foreign key behind it — a carried-forward line often names a version that was never cut as a release in Wayd — so the version is stored as text in its own right.
+
+SetManifest is a WHOLE-MANIFEST REPLACE, not a delta: components carry no id and are not individually addressable, so the call must send every line the package should end up with, and an omitted line is removed. It is refused once ReleasedDate is set or the status category is Removed, and refuses an empty manifest.
+
+A Release has NO PackageId. Membership is recorded only by the package's manifest, and is queried the other way with GetReleasePackages(containingReleaseId) for one release, or containingProductId for every package carrying any release of a product — there is no ?packageId= filter on releases, and no ReleaseDto.Package.
+
 ### Deployments
 
 One release or package reaching one environment. Properties:
@@ -508,12 +516,22 @@ One release or package reaching one environment. Properties:
 
 Rules: The substrate every delivery metric is computed from. States: In Progress → Succeeded, Failed, or Rolled Back.
 
+ReleaseId XOR PackageId is validated in three places and answered with a 422 — supplying both or neither is refused. StartDeployment also refuses an inactive environment.
+
+EnvironmentCategory is FROZEN on the deployment as it stood when the deployment ran; it is never resolved through the environment on read. A deployment's category can therefore legitimately differ from its environment's category today. Reclassifying an environment changes what FUTURE deployments count as and rewrites nothing.
+
+A deployment is never edited and never deleted — no such endpoint exists. Once started it is only ever completed: Succeed/Fail while IsComplete is false, and RollBack only from Succeeded (a failed deployment never reached its environment, so there is nothing to revert). A completion cannot predate the start; a rollback cannot predate the completion.
+
 ### Deployment Environments
 
 Named deploy targets, globally scoped and ordered into rings for progressive rollout. Properties:
 - Name, Category (Development/Testing/Staging/Production), Ring Order
 
-Rules: Named DeploymentEnvironment because Environment would shadow System.Environment. Category is a fixed enum, not a workflow — a classification rather than a state. Every production-scoped measure counts on the category, not the free-text name. Reclassifying raises its own event because it retroactively rewrites every production-scoped measure.
+Rules: Named DeploymentEnvironment because Environment would shadow System.Environment. Category is a fixed enum, not a workflow — a classification rather than a state. Every production-scoped measure counts on the category, not the free-text name. Reclassifying raises its own event because it changes what is counted from then on; past deployments keep the category they froze.
+
+Environments are RETIRED (PUT /{id}/active), never deleted — historical deployments point at them. There is no delete endpoint. DeploymentCount exists so a caller can show what retiring would affect. Update and reclassify are both refused on an inactive environment.
+
+NOTHING IN DELIVERY IS DELETABLE, and no delivery resource carries a Delete permission: releases and packages are withdrawn, environments retired, deployments never removed. The terminal actions are all Update.
 
 ### Delivery Metrics
 

@@ -125,6 +125,8 @@ export {
   renderWorkspaceLink,
   renderProductLink,
   renderReleaseLink,
+  renderPackageLink,
+  renderDeploymentLink,
   renderSprintLink,
   renderUserLink,
   renderDependencyHealthTag,

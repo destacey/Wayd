@@ -4,6 +4,7 @@ import {
   CorrectReleaseDatesRequest,
   CutReleaseRequest,
   MarkReleaseReleasedRequest,
+  RevertReleaseRequest,
   MoveReleaseTargetDateRequest,
   ObjectIdAndKey,
   PlanReleaseRequest,
@@ -24,11 +25,18 @@ export interface GetReleasesRequest {
  *
  * A status change moves the record, its place in the list, and its history all at once, so they
  * invalidate together rather than each mutation remembering the full set.
+ *
+ * `cacheKey` is the record's short key, following the convention the app's other slices use. It is
+ * required rather than optional because the two sides of the cache address a record differently: a
+ * detail page queries its history by the key in its URL, while a mutation holds only the id.
+ * Invalidating one alone leaves the other's entry untouched and the history silently stale — and an
+ * optional parameter would let a new call site reintroduce exactly that.
  */
-const releaseTags = (id: string) => [
+export const releaseTags = (id: string, cacheKey: number) => [
   { type: QueryTags.Release, id: 'LIST' },
   { type: QueryTags.Release, id },
   { type: QueryTags.StatusHistory, id },
+  { type: QueryTags.StatusHistory, id: String(cacheKey) },
 ]
 
 export const releasesApi = apiSlice.injectEndpoints({
@@ -36,15 +44,16 @@ export const releasesApi = apiSlice.injectEndpoints({
     /**
      * Releases, newest first.
      *
-     * No packageId filter: `Release.PackageId` is never written, so the server would answer every
-     * such query with nothing. A package's members come from its manifest instead.
+     * There is no package filter here. A release carries no foreign key to the package it shipped
+     * in — membership is the manifest's to record, so the question is asked from the packages side
+     * with `containingReleaseId`, which matches on manifest entries. (`containingProductId` is the
+     * broader filter: every package carrying *any* release of a product.)
      */
     getReleases: builder.query<ReleaseDto[], GetReleasesRequest | undefined>({
       queryFn: async (request = {}) => {
         try {
           const data = await getReleasesClient().getReleases(
             request.productId,
-            undefined,
             request.statusCategory,
           )
           return { data }
@@ -95,7 +104,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     }),
     updateRelease: builder.mutation<
       void,
-      { id: string; request: UpdateReleaseRequest }
+      { id: string; cacheKey: number; request: UpdateReleaseRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -106,11 +115,11 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id),
+      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
     }),
     moveReleaseTargetDate: builder.mutation<
       void,
-      { id: string; request: MoveReleaseTargetDateRequest }
+      { id: string; cacheKey: number; request: MoveReleaseTargetDateRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -121,7 +130,7 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id),
+      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
     }),
     /**
      * Corrects recorded dates without moving the release's status.
@@ -146,7 +155,10 @@ export const releasesApi = apiSlice.injectEndpoints({
         { type: QueryTags.Release, id: arg.id },
       ],
     }),
-    cutRelease: builder.mutation<void, { id: string; request: CutReleaseRequest }>({
+    cutRelease: builder.mutation<
+      void,
+      { id: string; cacheKey: number; request: CutReleaseRequest }
+    >({
       queryFn: async ({ id, request }) => {
         try {
           const data = await getReleasesClient().cut(id, request)
@@ -156,11 +168,11 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id),
+      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
     }),
     markReleaseReleased: builder.mutation<
       void,
-      { id: string; request: MarkReleaseReleasedRequest }
+      { id: string; cacheKey: number; request: MarkReleaseReleasedRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -171,11 +183,11 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id),
+      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
     }),
     withdrawRelease: builder.mutation<
       void,
-      { id: string; request: WithdrawReleaseRequest }
+      { id: string; cacheKey: number; request: WithdrawReleaseRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -186,7 +198,28 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id),
+      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
+    }),
+    /**
+     * Records that a release marked as shipped did not in fact ship.
+     *
+     * Distinct from withdrawing: that pulls a release which really shipped and is terminal, while this
+     * says the record was wrong and moves the release back to a live status.
+     */
+    revertRelease: builder.mutation<
+      void,
+      { id: string; cacheKey: number; request: RevertReleaseRequest }
+    >({
+      queryFn: async ({ id, request }) => {
+        try {
+          const data = await getReleasesClient().revert(id, request)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
     }),
   }),
 })
@@ -202,4 +235,5 @@ export const {
   useCutReleaseMutation,
   useMarkReleaseReleasedMutation,
   useWithdrawReleaseMutation,
+  useRevertReleaseMutation,
 } = releasesApi

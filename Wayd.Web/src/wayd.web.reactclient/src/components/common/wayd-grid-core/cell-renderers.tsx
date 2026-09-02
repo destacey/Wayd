@@ -95,6 +95,21 @@ export const renderReleaseLink = (
   release: NavLinkTarget | null | undefined,
 ): ReactNode => renderNavLink(release, '/delivery/releases')
 
+/**
+ * Renders a release package as a link to its page.
+ *
+ * Labeled by whatever the reference carries in `name`, which for a package is its own version —
+ * distinct from any component version inside it.
+ */
+export const renderPackageLink = (
+  releasePackage: NavLinkTarget | null | undefined,
+): ReactNode => renderNavLink(releasePackage, '/delivery/release-packages')
+
+/** Renders a deployment as a link to its page. */
+export const renderDeploymentLink = (
+  deployment: NavLinkTarget | null | undefined,
+): ReactNode => renderNavLink(deployment, '/delivery/deployments')
+
 /** A sprint reference, optionally carrying its team's code for the label. */
 export interface SprintLinkTarget extends NavLinkTarget {
   team?: { code?: string | null } | null

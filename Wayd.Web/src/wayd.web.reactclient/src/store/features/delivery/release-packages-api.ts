@@ -13,13 +13,27 @@ import { QueryTags } from '../query-tags'
 
 export interface GetReleasePackagesRequest {
   statusCategory?: number[]
+  /** Packages naming this product in any version — what a component has ever shipped in. */
   containingProductId?: string
+  /**
+   * Packages naming this exact release. Narrower than `containingProductId`, and what a release's own
+   * page needs: the product-wide filter would list packages that release was never part of.
+   */
+  containingReleaseId?: string
 }
 
-const packageTags = (id: string) => [
+/**
+ * Tags every query and mutation touches for one package.
+ *
+ * `cacheKey` is the package's short key, following the convention the app's other slices use, and is
+ * required: a detail page queries its history by that key while a mutation holds only the id, so
+ * invalidating one alone leaves the history stale.
+ */
+export const packageTags = (id: string, cacheKey: number) => [
   { type: QueryTags.ReleasePackage, id: 'LIST' },
   { type: QueryTags.ReleasePackage, id },
   { type: QueryTags.StatusHistory, id },
+  { type: QueryTags.StatusHistory, id: String(cacheKey) },
 ]
 
 export const releasePackagesApi = apiSlice.injectEndpoints({
@@ -27,9 +41,9 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     /**
      * Packages, newest first.
      *
-     * `containingProductId` matches any manifest line for that product, changed or carried forward —
-     * which is how a release finds the packages that shipped it, since the release itself records no
-     * package.
+     * Both containing-* filters read the manifest, since a release records no package of its own:
+     * `containingReleaseId` matches the one release (what a release's page asks), while
+     * `containingProductId` matches any manifest line for that product, changed or carried forward.
      */
     getReleasePackages: builder.query<
       ReleasePackageDto[],
@@ -40,6 +54,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           const data = await getReleasePackagesClient().getReleasePackages(
             request.statusCategory,
             request.containingProductId,
+            request.containingReleaseId,
           )
           return { data }
         } catch (error) {
@@ -100,7 +115,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
      */
     setReleasePackageManifest: builder.mutation<
       void,
-      { id: string; request: SetReleasePackageManifestRequest }
+      { id: string; cacheKey: number; request: SetReleasePackageManifestRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -111,11 +126,11 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => packageTags(arg.id),
+      invalidatesTags: (result, error, arg) => packageTags(arg.id, arg.cacheKey),
     }),
     markReleasePackageReleased: builder.mutation<
       void,
-      { id: string; request: MarkReleasePackageReleasedRequest }
+      { id: string; cacheKey: number; request: MarkReleasePackageReleasedRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -126,11 +141,11 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => packageTags(arg.id),
+      invalidatesTags: (result, error, arg) => packageTags(arg.id, arg.cacheKey),
     }),
     withdrawReleasePackage: builder.mutation<
       void,
-      { id: string; request: WithdrawReleasePackageRequest }
+      { id: string; cacheKey: number; request: WithdrawReleasePackageRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -141,7 +156,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => packageTags(arg.id),
+      invalidatesTags: (result, error, arg) => packageTags(arg.id, arg.cacheKey),
     }),
   }),
 })

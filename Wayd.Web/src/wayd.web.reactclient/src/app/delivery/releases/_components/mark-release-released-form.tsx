@@ -44,7 +44,7 @@ const MarkReleaseReleasedForm = ({
             releasedDate: values.releasedDate.format('YYYY-MM-DD'),
           } as unknown as MarkReleaseReleasedRequest
 
-          const response = await markReleased({ id: release.id, request })
+          const response = await markReleased({ id: release.id, cacheKey: release.key, request })
           if (response.error) throw response.error
 
           messageApi.success('Release marked as released.')

@@ -11,6 +11,8 @@ jest.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasClaim: mockHasClaim }),
 }))
 
+// Keyed by flag: the rail gates two groups on two different flags, so a single shared return value
+// would tie them together and let one group's test silently decide the other's.
 jest.mock('@/src/hooks', () => {
   const actual = jest.requireActual('@/src/hooks')
   return {
@@ -37,6 +39,18 @@ const allowOnly = (...granted: string[]) =>
     granted.includes(value),
   )
 
+/** The rail's groups when nothing is filtered or gated. */
+const allGroups = [
+  'Access',
+  'Organization',
+  'Planning',
+  'Product Management',
+  'PPM',
+  'Delivery',
+  'Work Management',
+  'System',
+]
+
 describe('SettingsMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -46,20 +60,24 @@ describe('SettingsMenu', () => {
   })
 
   describe('grouping', () => {
-    it('renders the seven groups in order', () => {
+    it('renders the groups in order', () => {
       // Arrange / Act — most-visited first, System last
       renderMenu()
 
       // Assert
-      expect(groups()).toEqual([
-        'Access',
-        'Organization',
-        'Planning',
-        'Product Management',
-        'PPM',
-        'Work Management',
-        'System',
-      ])
+      expect(groups()).toEqual(allGroups)
+    })
+
+    it('hides Delivery when Product Management is off', () => {
+      // Arrange — the whole area is unreachable behind the flag, so a heading over an unopenable
+      // page would be worse than no heading.
+      mockFlags['product-management'] = false
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(groups()).not.toContain('Delivery')
     })
 
     it('puts scoring models under PPM', () => {
@@ -209,7 +227,9 @@ describe('SettingsMenu', () => {
       fireEvent.change(input, { target: { value: '' } })
 
       // Assert
-      expect(groups()).toHaveLength(7)
+      // Every group is back, so compare against the unfiltered rail rather
+      // than a literal count that goes stale each time a group is added.
+      expect(groups()).toEqual(allGroups)
     })
   })
 

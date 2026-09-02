@@ -51,7 +51,7 @@ const EditReleaseForm = ({
             sequence: release.sequence,
           } as UpdateReleaseRequest
 
-          const response = await updateRelease({ id: release.id, request })
+          const response = await updateRelease({ id: release.id, cacheKey: release.key, request })
           if (response.error) throw response.error
 
           messageApi.success('Release updated successfully.')

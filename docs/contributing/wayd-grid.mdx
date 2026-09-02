@@ -89,7 +89,7 @@ Where a variant sets a flag, that is the starting point — the defaults below d
 | Initial sort on mount | Off | `initialSorting={[{ id: 'name', desc: false }]}` |
 | Toolbar refresh button | Off | Provide `onRefresh={() => refetch()}` |
 | Tree mode | Off | Provide `getSubRows` |
-| Row-reorder drag-and-drop (flat) | Off | Provide `onRowReorder` |
+| Row-reorder drag-and-drop (flat) | Off | Provide `onRowReorder` + `getRowId`, and render a `DragHandleCell` |
 | Reparenting drag-and-drop (tree) | Off | Provide `enableDragAndDrop` + `onNodeMove` |
 | Inline editing | Off | Provide `editingConfig` |
 
@@ -180,6 +180,11 @@ createActionsColumn<Widget>({
 })
 ```
 
+`leading` renders a node immediately before the `⋯` in the same cell — a row's grab handle, in
+practice. Sharing the cell keeps a whole column's width from going to one icon and keeps everything
+that acts on a row in one place. Widen the column with `size` when you pass one; see
+[Tree mode & editing](#tree-mode--editing) for the handle itself.
+
 ## Filtering, sorting & the column menu
 
 These come for free — no wiring beyond the column defs:
@@ -248,7 +253,9 @@ Providing `getSubRows` turns on **tree mode**: rows expand/collapse, and a filte
 />
 ```
 
-- **Flat row reorder**: instead of `getSubRows`, provide `onRowReorder` (and `getRowId`) for a draggable flat list. Dragging auto-disables while the grid is sorted, filtered, searched, loading, or editing.
+- **Flat row reorder**: instead of `getSubRows`, provide `onRowReorder` (and `getRowId`) for a draggable flat list. Dragging auto-disables while the grid is sorted, filtered, searched, loading, or editing — the displayed order isn't the data order then, and a drop would write a sequence the reader never saw.
+  - The grid supplies the mechanics but not the grip: render the shared **`DragHandleCell`** to give a row one, passing `context.isDragEnabled` (so it greys out when dragging is off) and a `disabledTooltip` naming the records in your own words. It goes in the actions column's `leading` slot. This needs the `columns` **function** form, since that is what receives the `GridColumnContext`.
+  - `onRowReorder` hands you `orderedData` — every displayed row in post-drop order — so send the whole list to a reorder endpoint rather than one row and a position. Positions are relative, so a partial update leaves the rows it omits overlapping the ones it moved.
 - **Reparenting DnD** (tree): `enableDragAndDrop` + `onNodeMove`; supply a `moveValidator` for domain rules and `onMoveRejected` to surface a reason.
 - **Inline editing**: pass an `editingConfig` (`GridInlineEditingConfig`). The `columns` function receives a `GridColumnContext` with the editing/DnD/draft state so cells can render editors and drag handles reactively.
 

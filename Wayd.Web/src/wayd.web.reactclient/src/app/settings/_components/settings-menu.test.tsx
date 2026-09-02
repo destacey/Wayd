@@ -2,7 +2,9 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import SettingsMenu from './settings-menu'
 
 const mockHasClaim = jest.fn()
-const mockPlanningPoker = jest.fn()
+/** Flag name → enabled. The rail reads more than one flag, so the mock keys on
+ *  the name rather than answering the same for all of them. */
+const mockFlags: Record<string, boolean> = {}
 
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
@@ -13,7 +15,7 @@ jest.mock('@/src/hooks', () => {
   const actual = jest.requireActual('@/src/hooks')
   return {
     ...actual,
-    useFeatureFlag: () => ({ isEnabled: mockPlanningPoker() }),
+    useFeatureFlag: (name: string) => ({ isEnabled: mockFlags[name] ?? false }),
   }
 })
 
@@ -39,11 +41,12 @@ describe('SettingsMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     allowAll()
-    mockPlanningPoker.mockReturnValue(true)
+    mockFlags['planning-poker'] = true
+    mockFlags['product-management'] = true
   })
 
   describe('grouping', () => {
-    it('renders the six groups in order', () => {
+    it('renders the seven groups in order', () => {
       // Arrange / Act — most-visited first, System last
       renderMenu()
 
@@ -52,6 +55,7 @@ describe('SettingsMenu', () => {
         'Access',
         'Organization',
         'Planning',
+        'Product Management',
         'PPM',
         'Work Management',
         'System',
@@ -79,13 +83,25 @@ describe('SettingsMenu', () => {
     it('hides Planning when the planning poker flag is off', () => {
       // Arrange — the group holds only estimation scales, so the flag takes
       // the whole group with it.
-      mockPlanningPoker.mockReturnValue(false)
+      mockFlags['planning-poker'] = false
 
       // Act
       renderMenu()
 
       // Assert
       expect(groups()).not.toContain('Planning')
+    })
+
+    it('hides Product Management when its flag is off', () => {
+      // Arrange — the group holds only product tags, so the flag takes the
+      // whole group with it.
+      mockFlags['product-management'] = false
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(groups()).not.toContain('Product Management')
     })
 
     it('drops a group the viewer can see nothing in', () => {
@@ -193,7 +209,7 @@ describe('SettingsMenu', () => {
       fireEvent.change(input, { target: { value: '' } })
 
       // Assert
-      expect(groups()).toHaveLength(6)
+      expect(groups()).toHaveLength(7)
     })
   })
 

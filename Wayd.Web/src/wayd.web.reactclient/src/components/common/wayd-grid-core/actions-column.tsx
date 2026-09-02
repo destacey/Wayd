@@ -1,10 +1,11 @@
 'use client'
 
-import { Button, Dropdown } from 'antd'
+import { Button, Dropdown, Flex } from 'antd'
 import { MoreOutlined } from '@ant-design/icons'
 import type { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef, Row } from './index'
 import type { RowData } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
 /** Default width of the actions column — just wide enough for the ⋯ button. */
 export const ACTIONS_COLUMN_SIZE = 50
 
@@ -28,6 +29,13 @@ export interface ActionsColumnOptions<T extends RowData> {
   size?: number
   /** Accessible label for the trigger button. Defaults to `'Row actions'`. */
   ariaLabel?: string
+  /**
+   * Rendered immediately before the ⋯ in the same cell — a row's grab handle,
+   * typically. Sharing the cell rather than taking a column of its own keeps a
+   * whole column's width from going to one icon, and keeps everything that acts
+   * on a row in one place. Widen the column with `size` when passing this.
+   */
+  leading?: ReactNode
 }
 
 /** True when a menu has at least one real (non-divider) item worth showing. */
@@ -84,6 +92,7 @@ export const createActionsColumn = <T extends RowData,>({
   id = 'actions',
   size = ACTIONS_COLUMN_SIZE,
   ariaLabel = 'Row actions',
+  leading,
 }: ActionsColumnOptions<T>): ColumnDef<T, unknown> => ({
   id,
   header: '',
@@ -94,7 +103,13 @@ export const createActionsColumn = <T extends RowData,>({
   enableGlobalFilter: false,
   // The actions column always holds its position — no drag grip, rejects drops.
   meta: { enableReordering: false, ...(hide === undefined ? {} : { hide }) },
-  cell: ({ row }: { row: Row<T> }) => (
-    <ActionsCell row={row.original} getItems={getItems} ariaLabel={ariaLabel} />
-  ),
+  cell: ({ row }: { row: Row<T> }) =>
+    leading === undefined ? (
+      <ActionsCell row={row.original} getItems={getItems} ariaLabel={ariaLabel} />
+    ) : (
+      <Flex align="center" gap={2}>
+        {leading}
+        <ActionsCell row={row.original} getItems={getItems} ariaLabel={ariaLabel} />
+      </Flex>
+    ),
 })

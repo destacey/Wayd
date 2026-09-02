@@ -3,7 +3,9 @@
 import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { createContext, useContext, useMemo, CSSProperties, ReactNode } from 'react'
+import { createContext, useContext, useMemo, CSSProperties, FC, ReactNode } from 'react'
+import { HolderOutlined } from '@ant-design/icons'
+import { theme, Tooltip } from 'antd'
 
 // Shared drag MECHANICS for grid drag-and-drop: sensor setup and the sortable
 // row wrapper + drag-handle context. Grid-agnostic — the tree-only reparenting
@@ -41,6 +43,46 @@ export function useGridDragHandle() {
     throw new Error('useGridDragHandle must be used within GridSortableRow')
   }
   return context
+}
+
+/**
+ * The grab handle for a reorderable row.
+ *
+ * Disabled — greyed, not-allowed, and explained by a tooltip — while the grid is
+ * sorted, filtered or searched, because the displayed order is not the data
+ * order then and a drop would write a sequence the reader never saw. The grid
+ * decides that and passes it down as `context.isDragEnabled`.
+ *
+ * `disabledTooltip` names the records in the caller's own words, so the reader
+ * is told what to clear and what it would let them reorder.
+ */
+export const DragHandleCell: FC<{
+  isDragEnabled: boolean
+  disabledTooltip: string
+}> = ({ isDragEnabled, disabledTooltip }) => {
+  const { token } = theme.useToken()
+  const { listeners, attributes } = useGridDragHandle()
+
+  return (
+    <Tooltip title={isDragEnabled ? undefined : disabledTooltip}>
+      <span
+        {...(isDragEnabled ? { ...listeners, ...attributes } : {})}
+        style={{
+          cursor: isDragEnabled ? 'grab' : 'not-allowed',
+          color: isDragEnabled
+            ? token.colorTextTertiary
+            : token.colorTextDisabled,
+          display: 'inline-flex',
+          padding: '0 4px',
+          touchAction: 'none',
+        }}
+        aria-label="Drag to reorder"
+        aria-disabled={!isDragEnabled}
+      >
+        <HolderOutlined />
+      </span>
+    </Tooltip>
+  )
 }
 
 /**

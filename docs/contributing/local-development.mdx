@@ -21,6 +21,14 @@ dotnet run
 - Automatic OpenTelemetry instrumentation
 - Dynamic port assignment with service discovery
 
+The dashboard opens in your browser once the host is up, already signed in. Aspire itself only prints
+the link — Visual Studio is what opens it on Windows, so `dotnet run` and `aspire run` on Linux and
+macOS would otherwise leave you to click it. The AppHost now opens it on every platform, and stands
+down when Visual Studio is launching one so Windows doesn't get two tabs.
+
+Set `WAYD_NO_LAUNCH_BROWSER=true` to keep it from opening. On Linux it honours `$BROWSER` when your
+desktop sets one, falling back to `xdg-open`.
+
 ## Common Tasks
 
 ### Adding a Database Migration

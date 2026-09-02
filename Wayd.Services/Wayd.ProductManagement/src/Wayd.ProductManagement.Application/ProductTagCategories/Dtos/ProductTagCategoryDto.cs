@@ -33,9 +33,8 @@ public sealed record ProductTagCategoryDto
     /// Built per call rather than registered globally, because both members below read a second set
     /// and the global config has no request-scoped DbContext to close over.
     /// <para>
-    /// <see cref="ProductTagCategory.Tags"/> is a real navigation but cannot serve this: its getter
-    /// applies the <c>Order</c> sort in the property body, which EF projects around rather than
-    /// translates, so taking it would return the tags unordered.
+    /// The tags arrive in no particular order, which is deliberate — a tag holds no position on its
+    /// axis, so whoever presents them sorts them (every caller so far, alphabetically).
     /// </para>
     /// </remarks>
     public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
@@ -46,9 +45,7 @@ public sealed record ProductTagCategoryDto
             .Map(dto => dto.ProductCount, t => dbContext.ProductTagAssignments.Count(a => a.TagId == t.Id));
 
         config.NewConfig<ProductTagCategory, ProductTagCategoryDto>()
-            .Map(dto => dto.Tags, c => dbContext.ProductTags
-                .Where(t => t.CategoryId == c.Id)
-                .OrderBy(t => t.Order));
+            .Map(dto => dto.Tags, c => dbContext.ProductTags.Where(t => t.CategoryId == c.Id));
 
         return config;
     }
@@ -59,7 +56,6 @@ public sealed record ProductTagOptionDto
     public Guid Id { get; init; }
     public string Name { get; init; } = default!;
     public string? Description { get; init; }
-    public int Order { get; init; }
     public bool IsActive { get; init; }
 
     /// <summary>

@@ -25,7 +25,7 @@ export {
   findNodeById,
   flattenTree,
 } from '../wayd-grid-core/tree-utils'
-export { useGridDragHandle } from '../wayd-grid-core/dnd/grid-dnd'
+export { DragHandleCell, useGridDragHandle } from '../wayd-grid-core/dnd/grid-dnd'
 
 // Filter functions (re-exported from the shared grid core so wayd-grid
 // consumers have a single import surface)

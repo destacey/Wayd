@@ -1,7 +1,10 @@
-﻿using JasperFx.Aspire;
+﻿using System.Diagnostics;
+using JasperFx.Aspire;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -121,6 +124,11 @@ waydApi.WithCommand(
         ConfirmationMessage = "This permanently deletes ALL data in the database and restarts the API. Continue?",
     });
 
+// The dashboard is token-protected and Aspire generates a fresh token per run, so the only way to
+// open a browser straight onto it is to choose the token ourselves before the host is built.
+// Null when the browser should not be opened at all — see ResolveDashboardLoginUrl.
+var dashboardLoginUrl = ResolveDashboardLoginUrl(builder);
+
 #pragma warning disable ASPIREJAVASCRIPT001
 builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runScriptName: "dev")
     .WithReference(waydApi)
@@ -133,7 +141,11 @@ builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runS
     .WithExternalHttpEndpoints();
 #pragma warning restore ASPIREJAVASCRIPT001
 
-builder.Build().Run();
+var app = builder.Build();
+
+OpenDashboardWhenStarted(app, dashboardLoginUrl);
+
+app.Run();
 
 // Removes a JasperFx startup gate's inherited HTTP/HTTPS endpoint annotations (see the WithJasperFxStartup
 // comment above for why). Shared by every gate so the endpoint-stripping logic lives in one place.
@@ -178,4 +190,93 @@ static async Task DropAndRecreateDatabase(string appConnectionString)
         """;
     command.Parameters.AddWithValue("@dbName", databaseName);
     await command.ExecuteNonQueryAsync();
+}
+
+/// <summary>
+/// The dashboard URL to open on startup, token and all, or null to open nothing.
+/// </summary>
+/// <remarks>
+/// Aspire logs the dashboard link but never opens it. On Windows Visual Studio does that itself, from
+/// launchSettings' <c>launchBrowser</c> — which is why this only bites on Linux and macOS, where
+/// `dotnet run` and `aspire run` both just print the link.
+/// <para>
+/// Fixing the token here rather than letting Aspire generate one is what makes the link land on the
+/// dashboard instead of its login page. It is a per-run random value that never leaves this machine,
+/// so it is no weaker than the one it replaces.
+/// </para>
+/// </remarks>
+static string? ResolveDashboardLoginUrl(IDistributedApplicationBuilder builder)
+{
+    // Development only: a deployed AppHost has no desktop to open a browser on.
+    if (!builder.Environment.IsDevelopment())
+    {
+        return null;
+    }
+
+    // Visual Studio already opens the dashboard from the launch profile. Opening it again here would
+    // give a Windows developer two tabs on every F5.
+    if (Environment.GetEnvironmentVariable("VSAPPIDNAME") is not null)
+    {
+        return null;
+    }
+
+    // The escape hatch for anyone who would rather keep their browser out of it.
+    if (Environment.GetEnvironmentVariable("WAYD_NO_LAUNCH_BROWSER") is "true" or "1")
+    {
+        return null;
+    }
+
+    // The launch profile's applicationUrl reaches the host as ASPNETCORE_URLS. Several can be listed
+    // (the https profile carries both); the first is what Aspire reports as the dashboard.
+    var dashboardUrl = builder.Configuration["ASPNETCORE_URLS"]?.Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(dashboardUrl))
+    {
+        return null;
+    }
+
+    var browserToken = Guid.NewGuid().ToString("N");
+    builder.Configuration["AppHost:BrowserToken"] = browserToken;
+
+    return $"{dashboardUrl.TrimEnd('/')}/login?t={browserToken}";
+}
+
+/// <summary>
+/// Opens <paramref name="loginUrl"/> once the host is up, if there is one to open.
+/// </summary>
+/// <remarks>
+/// On ApplicationStarted rather than before <c>Run()</c>, so the browser does not race the dashboard
+/// to the port and land on a connection error. A failure to open is logged and swallowed: not getting
+/// a browser window is a poor reason to fail a developer's run.
+/// </remarks>
+static void OpenDashboardWhenStarted(DistributedApplication app, string? loginUrl)
+{
+    if (loginUrl is null)
+    {
+        return;
+    }
+
+    app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStarted.Register(() =>
+    {
+        try
+        {
+            // $BROWSER first on Linux: a desktop that sets it (Omarchy, and most tiling setups) means
+            // it, and xdg-open would ignore it in favour of the desktop-wide default.
+            var browser = Environment.GetEnvironmentVariable("BROWSER");
+
+            var startInfo = OperatingSystem.IsWindows()
+                ? new ProcessStartInfo(loginUrl) { UseShellExecute = true }
+                : OperatingSystem.IsMacOS()
+                    ? new ProcessStartInfo("open", loginUrl)
+                    : new ProcessStartInfo(
+                        string.IsNullOrWhiteSpace(browser) ? "xdg-open" : browser, loginUrl);
+
+            using var process = Process.Start(startInfo);
+        }
+        catch (Exception ex)
+        {
+            app.Services.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("Wayd.AppHost")
+                .LogWarning(ex, "Could not open the dashboard in a browser. Open it from the link above.");
+        }
+    });
 }

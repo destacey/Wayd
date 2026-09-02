@@ -73,7 +73,6 @@ public class ProductTagConfiguration : IEntityTypeConfiguration<ProductTag>
         builder.Property(t => t.CategoryId).IsRequired();
         builder.Property(t => t.Name).IsRequired().HasMaxLength(64);
         builder.Property(t => t.Description).HasMaxLength(512);
-        builder.Property(t => t.Order).IsRequired();
         builder.Property(t => t.IsActive).IsRequired();
     }
 }

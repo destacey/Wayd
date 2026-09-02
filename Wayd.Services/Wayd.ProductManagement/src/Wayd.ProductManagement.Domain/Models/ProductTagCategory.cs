@@ -75,8 +75,15 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>The tags on this axis, in display order.</summary>
-    public IReadOnlyCollection<ProductTag> Tags => _tags.OrderBy(t => t.Order).ToList().AsReadOnly();
+    /// <summary>
+    /// The tags on this axis, in no particular order.
+    /// </summary>
+    /// <remarks>
+    /// A set, not a sequence: a tag's position carries no meaning, so presenting them is the caller's
+    /// business — and every caller so far wants them alphabetically, which the order they were added
+    /// in would not give.
+    /// </remarks>
+    public IReadOnlyCollection<ProductTag> Tags => _tags.AsReadOnly();
 
     /// <summary>
     /// Adds a tag to this axis.
@@ -100,8 +107,7 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<ProductTag>($"A tag named '{trimmed}' already exists on this axis.");
         }
 
-        var order = _tags.Count == 0 ? 1 : _tags.Max(t => t.Order) + 1;
-        var tag = new ProductTag(Id, trimmed, description, order);
+        var tag = new ProductTag(Id, trimmed, description);
         _tags.Add(tag);
 
         return Result.Success(tag);
@@ -171,7 +177,11 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>Renames the axis.</summary>
-    public Result Update(string name, string? description, int order)
+    /// <remarks>
+    /// Position is not editable here — see <see cref="SetOrder"/>. Ordering an axis is a statement about
+    /// the whole list, so it arrives as one, rather than as a number each edit has to guess right.
+    /// </remarks>
+    public Result Update(string name, string? description)
     {
         if (IsSystem)
         {
@@ -180,10 +190,18 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
 
         Name = name;
         Description = description;
-        Order = order;
 
         return Result.Success();
     }
+
+    /// <summary>Moves the axis to a position in the list.</summary>
+    /// <remarks>
+    /// Deliberately not guarded by <see cref="IsSystem"/>, unlike everything else that writes to a
+    /// category. The guard protects what a seeded axis <em>means</em> — its name, its tags, whether it
+    /// takes many — none of which this touches. Where it sits among the others is the organization's
+    /// call, and refusing it would pin every seeded axis above the organization's own for good.
+    /// </remarks>
+    public void SetOrder(int order) => Order = order;
 
     /// <summary>
     /// Takes the axis out of use, so nothing new can be tagged along it.
@@ -230,8 +248,7 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public ProductTag AddSystemTag(string name, string? description = null)
     {
-        var order = _tags.Count == 0 ? 1 : _tags.Max(t => t.Order) + 1;
-        var tag = new ProductTag(Id, name, description, order);
+        var tag = new ProductTag(Id, name, description);
         _tags.Add(tag);
 
         return tag;

@@ -90,6 +90,11 @@ cd Wayd.AppHost && dotnet run
 - Client: <http://localhost:3000>
 - API: Dynamic HTTPS port (shown in Aspire dashboard)
 
+The AppHost opens the dashboard in a browser on startup, signed in — it fixes the dashboard's browser
+token before building the host so it can. Aspire never opens it itself (Visual Studio does that on
+Windows, from `launchBrowser` in launchSettings). `WAYD_NO_LAUNCH_BROWSER=true` disables it, and it
+stands down under Visual Studio to avoid a second tab.
+
 ### Docker
 
 ```bash

@@ -89,6 +89,22 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("reorder")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
+    [OpenApiOperation("Put the tag categories in a given order.", "Takes the whole set, not a subset.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Reorder(
+        [FromBody] ReorderProductTagCategoriesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToReorderProductTagCategoriesCommand(), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTagCategories)]
     [OpenApiOperation("Delete an unused tag category.", "An axis products are tagged along must be deactivated instead.")]

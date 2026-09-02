@@ -11,8 +11,7 @@
 public sealed record UpdateProductTagCategoryCommand(
     Guid Id,
     string Name,
-    string? Description,
-    int Order) : ICommand;
+    string? Description) : ICommand;
 
 public sealed class UpdateProductTagCategoryCommandValidator : AbstractValidator<UpdateProductTagCategoryCommand>
 {
@@ -28,8 +27,6 @@ public sealed class UpdateProductTagCategoryCommandValidator : AbstractValidator
         RuleFor(c => c.Description)
             .MaximumLength(512);
 
-        RuleFor(c => c.Order)
-            .GreaterThanOrEqualTo(0);
     }
 }
 
@@ -64,7 +61,7 @@ public sealed class UpdateProductTagCategoryCommandHandler(
                 return Result.Failure($"A tag category named '{name}' already exists.");
             }
 
-            var result = category.Update(name, request.Description, request.Order);
+            var result = category.Update(name, request.Description);
             if (result.IsFailure)
             {
                 _logger.LogInformation(

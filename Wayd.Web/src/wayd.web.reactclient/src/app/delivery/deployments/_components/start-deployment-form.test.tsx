@@ -106,7 +106,7 @@ const save = async () => {
 /**
  * Finds a Select by its form field rather than its label.
  *
- * The Segmented toggle renders radios labeled "Release" and "Package" as well, so a label lookup is
+ * The Segmented toggle renders radios labeled "Version" and "Package" as well, so a label lookup is
  * ambiguous; antd's Selects carry no accessible name of their own. The id antd derives from the form
  * name and the field name identifies each one exactly.
  */
@@ -130,7 +130,7 @@ const pickOption = async (field: string, optionText: string) => {
  * Its radio input sits behind the visible label with `pointer-events: none`, which user-event
  * refuses to click, so the click goes to the label the way a person's would.
  */
-const toggleTo = async (value: 'Release' | 'Package') => {
+const toggleTo = async (value: 'Version' | 'Package') => {
   const input = screen.getByRole('radio', { name: value })
   await userEvent.click(input.closest('label') as HTMLElement)
 }

@@ -62,7 +62,7 @@ export const buildDeploymentColumns = (): ColumnDef<DeploymentDto, any>[] => [
   },
   {
     id: 'deployedKind',
-    accessorFn: (row) => (row.version ? 'Release' : 'Package'),
+    accessorFn: (row) => (row.version ? 'Version' : 'Package'),
     header: 'Kind',
     size: 110,
     meta: { filterType: 'set' },

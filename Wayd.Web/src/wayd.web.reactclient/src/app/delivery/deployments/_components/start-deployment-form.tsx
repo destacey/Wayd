@@ -21,7 +21,7 @@ export interface StartDeploymentFormProps {
 }
 
 /** What a deployment carries. Exactly one, never both. */
-type DeploymentSubject = 'Release' | 'Package'
+type DeploymentSubject = 'Version' | 'Package'
 
 interface StartDeploymentFormValues {
   versionId?: string
@@ -34,7 +34,7 @@ interface StartDeploymentFormValues {
 /**
  * Records a deployment starting.
  *
- * A deployment carries a release or a package, never both and never neither — the API validates that
+ * A deployment carries a version or a package, never both and never neither — the API validates that
  * in three places and answers a violation with a 422. The toggle makes it one choice with one picker
  * rather than two optional pickers, so the invalid combinations cannot be expressed at all.
  *
@@ -50,7 +50,7 @@ const StartDeploymentForm = ({
   // Which side is being deployed is UI state rather than a submitted field: the request carries a
   // release id or a package id, never a discriminator, so the toggle's only job is to decide which
   // picker is on screen.
-  const [subject, setSubject] = useState<DeploymentSubject>('Release')
+  const [subject, setSubject] = useState<DeploymentSubject>('Version')
 
   const [startDeployment] = useStartDeploymentMutation()
   const { data: versions, isLoading: versionsLoading } =
@@ -67,7 +67,7 @@ const StartDeploymentForm = ({
           const request = {
             // Only the side the toggle names is sent. Carrying the other would be the exact
             // both-set case the API refuses.
-            versionId: subject === 'Release' ? values.versionId : undefined,
+            versionId: subject === 'Version' ? values.versionId : undefined,
             packageId: subject === 'Package' ? values.packageId : undefined,
             environmentId: values.environmentId,
             artifactId: values.artifactId,
@@ -146,14 +146,14 @@ const StartDeploymentForm = ({
         <Item label="Deploying">
           <Segmented<DeploymentSubject>
             block
-            options={['Release', 'Package']}
+            options={['Version', 'Package']}
             value={subject}
             onChange={(value) => {
               setSubject(value)
               // Clearing the other side keeps a value picked before the toggle moved from being
               // submitted under the wrong field — the both-set case the API refuses.
               form.setFieldsValue(
-                value === 'Release'
+                value === 'Version'
                   ? { packageId: undefined }
                   : { versionId: undefined },
               )
@@ -161,16 +161,16 @@ const StartDeploymentForm = ({
           />
         </Item>
 
-        {subject === 'Release' ? (
+        {subject === 'Version' ? (
           <Item
-            label="Release"
+            label="Version"
             name="versionId"
-            rules={[{ required: true, message: 'Release is required' }]}
+            rules={[{ required: true, message: 'Version is required' }]}
           >
             <Select
               options={versionOptions}
               loading={versionsLoading}
-              placeholder="Select a release"
+              placeholder="Select a version"
               showSearch
               optionFilterProp="label"
             />

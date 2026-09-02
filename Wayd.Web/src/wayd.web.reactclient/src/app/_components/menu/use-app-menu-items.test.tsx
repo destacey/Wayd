@@ -100,15 +100,15 @@ describe('useAppMenuItems', () => {
     expect(keys).toContain('product.products')
   })
 
-  it('omits Releases while the Product Management flag is off', () => {
-    // Releases rides the same module flag as the catalog: delivery is schema-separated to keep a
+  it('omits Versions while the Product Management flag is off', () => {
+    // Versions ride the same module flag as the catalog: delivery is schema-separated to keep a
     // later module split cheap, but one module answers for both and its endpoints 404 together.
     const { result } = renderHook(() => useAppMenuItems())
 
-    expect(keysOf(result.current.menuItems)).not.toContain('delivery.releases')
+    expect(keysOf(result.current.menuItems)).not.toContain('delivery.versions')
   })
 
-  it('includes Releases alongside Products when the flag is on', () => {
+  it('includes Versions alongside Products when the flag is on', () => {
     mockFlags['product-management'] = true
 
     const { result } = renderHook(() => useAppMenuItems())
@@ -116,12 +116,23 @@ describe('useAppMenuItems', () => {
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('product')
     expect(keys).toContain('product.products')
-    expect(keys).toContain('delivery.releases')
+    expect(keys).toContain('delivery.versions')
   })
 
-  it('guards Releases on its own permission, not the catalog one', () => {
+  it('offers no Releases entry while the announcement screens are unbuilt', () => {
+    // The Release record and Permissions.Releases.* both exist, but /delivery/releases has no page
+    // until the announcement UI lands. A nav item that 404s is worse than a missing one.
+    mockFlags['product-management'] = true
+    mockClaims.held = new Set(['Permissions.Releases.View'])
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    expect(keysOf(result.current.menuItems)).not.toContain('delivery.releases')
+  })
+
+  it('guards Versions on its own permission, not the catalog one', () => {
     // One section, but not one permission: someone who can see products need not be able to see
-    // releases, and offering the entry anyway leads to a page that refuses them.
+    // delivery records, and offering the entry anyway leads to a page that refuses them.
     mockFlags['product-management'] = true
     mockClaims.held = new Set(['Permissions.Products.View'])
 
@@ -129,7 +140,7 @@ describe('useAppMenuItems', () => {
 
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('product.products')
-    expect(keys).not.toContain('delivery.releases')
+    expect(keys).not.toContain('delivery.versions')
     // The section survives, because Products still passes.
     expect(keys).toContain('product')
   })

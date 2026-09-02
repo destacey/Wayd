@@ -23,7 +23,7 @@ const DeploymentFacts = ({ deployment }: DeploymentFactsProps) => (
     <Flex vertical gap={10}>
       <LabeledContent label="Deployed">
         {deployment.version ? (
-          <Link href={`/delivery/releases/${deployment.version.key}`}>
+          <Link href={`/delivery/versions/${deployment.version.key}`}>
             {deployment.version.name}
           </Link>
         ) : deployment.package ? (
@@ -33,7 +33,7 @@ const DeploymentFacts = ({ deployment }: DeploymentFactsProps) => (
         ) : null}
       </LabeledContent>
       <LabeledContent label="Kind">
-        {deployment.version ? 'Release' : 'Package'}
+        {deployment.version ? 'Version' : 'Package'}
       </LabeledContent>
       <LabeledContent label="Environment">
         {deployment.environment.name}

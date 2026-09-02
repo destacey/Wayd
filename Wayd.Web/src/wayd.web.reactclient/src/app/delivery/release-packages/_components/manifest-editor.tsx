@@ -120,7 +120,7 @@ const ManifestEditor = ({
             />
             <Select
               style={{ width: '22%' }}
-              placeholder="Release"
+              placeholder="Version"
               options={versionOptions}
               value={entry.versionId}
               disabled={disabled || !entry.productId}

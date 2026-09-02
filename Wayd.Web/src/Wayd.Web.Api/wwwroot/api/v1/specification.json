@@ -4597,6 +4597,7 @@
           "Deployments"
         ],
         "summary": "Start a deployment.",
+        "description": "Carries either a version or a package, never both and never neither. Where a package exists it is the unit that shipped, so one pipeline run counts once rather than once per component. Only an active environment is accepted, and leaving the start time empty records it as starting now.",
         "operationId": "Deployments_Start",
         "requestBody": {
           "x-name": "request",
@@ -6560,6 +6561,7 @@
           "ReleasePackages"
         ],
         "summary": "Assemble a release package.",
+        "description": "A package is what moved through environments together, and it ships at least one component, so the manifest is authored here rather than added afterwards. A component may appear only once. Each line may name the version record it came from, which is what lets a release know that version is already inside a package; a carried-forward line naming a version never cut here holds its version as text instead.",
         "operationId": "ReleasePackages_Assemble",
         "requestBody": {
           "x-name": "request",
@@ -6783,6 +6785,7 @@
           "ReleasePackages"
         ],
         "summary": "Record that a package shipped.",
+        "description": "Closes the manifest: what was in the box cannot be rewritten after the box shipped. A package with an empty manifest cannot be released.",
         "operationId": "ReleasePackages_MarkReleased",
         "parameters": [
           {
@@ -7605,6 +7608,7 @@
           "Versions"
         ],
         "summary": "Plan a version.",
+        "description": "A version is a cut of one artifact — Wayd API 4.12.0 — and is what was built. To record what was announced to customers, plan a release instead. Only a product whose type is releasable can carry a version.",
         "operationId": "Versions_Plan",
         "requestBody": {
           "x-name": "request",
@@ -7762,6 +7766,7 @@
           "Versions"
         ],
         "summary": "Update a version.",
+        "description": "A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates are not here — each carries a rule of its own, so they move through their own actions.",
         "operationId": "Versions_Update",
         "parameters": [
           {
@@ -7988,12 +7993,13 @@
         ]
       }
     },
-    "/api/product-management/versions/{id}/version": {
+    "/api/product-management/versions/{id}/release": {
       "post": {
         "tags": [
           "Versions"
         ],
         "summary": "Record that a version shipped.",
+        "description": "Marking a version released is not the same as announcing it to customers — that is a release. Cutting is not a prerequisite: a version imported after the fact can be marked released without ever having been cut.",
         "operationId": "Versions_MarkReleased",
         "parameters": [
           {

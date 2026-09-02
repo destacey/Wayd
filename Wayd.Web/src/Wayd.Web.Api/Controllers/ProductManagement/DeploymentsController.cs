@@ -92,7 +92,9 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
-    [OpenApiOperation("Start a deployment.", "")]
+    [OpenApiOperation(
+        "Start a deployment.",
+        "Carries either a version or a package, never both and never neither. Where a package exists it is the unit that shipped, so one pipeline run counts once rather than once per component. Only an active environment is accepted, and leaving the start time empty records it as starting now.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Start(
         [FromBody] StartDeploymentRequest request, CancellationToken cancellationToken)

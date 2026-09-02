@@ -10138,7 +10138,7 @@ export class VersionsClient {
      * Record that a version shipped.
      */
     markReleased(id: string, request: MarkVersionReleasedRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/product-management/versions/{id}/version";
+        let url_ = this.baseUrl + "/api/product-management/versions/{id}/release";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));

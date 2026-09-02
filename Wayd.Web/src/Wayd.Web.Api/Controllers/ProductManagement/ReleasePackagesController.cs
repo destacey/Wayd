@@ -89,7 +89,9 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
-    [OpenApiOperation("Assemble a release package.", "")]
+    [OpenApiOperation(
+        "Assemble a release package.",
+        "A package is what moved through environments together, and it ships at least one component, so the manifest is authored here rather than added afterwards. A component may appear only once. Each line may name the version record it came from, which is what lets a release know that version is already inside a package; a carried-forward line naming a version never cut here holds its version as text instead.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Assemble(
         [FromBody] AssembleReleasePackageRequest request, CancellationToken cancellationToken)
@@ -119,7 +121,9 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/release")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
-    [OpenApiOperation("Record that a package shipped.", "")]
+    [OpenApiOperation(
+        "Record that a package shipped.",
+        "Closes the manifest: what was in the box cannot be rewritten after the box shipped. A package with an empty manifest cannot be released.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MarkReleased(

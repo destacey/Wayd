@@ -12091,6 +12091,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Start a deployment.
         /// </summary>
+        /// <remarks>
+        /// Carries either a version or a package, never both and never neither. Where a package exists it is the unit that shipped, so one pipeline run counts once rather than once per component. Only an active environment is accepted, and leaving the start time empty records it as starting now.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> StartAsync(StartDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -12303,6 +12306,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Start a deployment.
         /// </summary>
+        /// <remarks>
+        /// Carries either a version or a package, never both and never neither. Where a package exists it is the unit that shipped, so one pipeline run counts once rather than once per component. Only an active environment is accepted, and leaving the start time empty records it as starting now.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> StartAsync(StartDeploymentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16287,6 +16293,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Assemble a release package.
         /// </summary>
+        /// <remarks>
+        /// A package is what moved through environments together, and it ships at least one component, so the manifest is authored here rather than added afterwards. A component may appear only once. Each line may name the version record it came from, which is what lets a release know that version is already inside a package; a carried-forward line naming a version never cut here holds its version as text instead.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> AssembleAsync(AssembleReleasePackageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -16324,6 +16333,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Record that a package shipped.
         /// </summary>
+        /// <remarks>
+        /// Closes the manifest: what was in the box cannot be rewritten after the box shipped. A package with an empty manifest cannot be released.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkReleasePackageReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -16491,6 +16503,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Assemble a release package.
         /// </summary>
+        /// <remarks>
+        /// A package is what moved through environments together, and it ships at least one component, so the manifest is authored here rather than added afterwards. A component may appear only once. Each line may name the version record it came from, which is what lets a release know that version is already inside a package; a carried-forward line naming a version never cut here holds its version as text instead.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> AssembleAsync(AssembleReleasePackageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -16874,6 +16889,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Record that a package shipped.
         /// </summary>
+        /// <remarks>
+        /// Closes the manifest: what was in the box cannot be rewritten after the box shipped. A package with an empty manifest cannot be released.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkReleasePackageReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -18526,6 +18544,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Plan a version.
         /// </summary>
+        /// <remarks>
+        /// A version is a cut of one artifact — Wayd API 4.12.0 — and is what was built. To record what was announced to customers, plan a release instead. Only a product whose type is releasable can carry a version.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> PlanAsync(PlanVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -18553,6 +18574,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a version.
         /// </summary>
+        /// <remarks>
+        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates are not here — each carries a rule of its own, so they move through their own actions.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -18587,6 +18611,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Record that a version shipped.
         /// </summary>
+        /// <remarks>
+        /// Marking a version released is not the same as announcing it to customers — that is a release. Cutting is not a prerequisite: a version imported after the fact can be marked released without ever having been cut.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkVersionReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -18760,6 +18787,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Plan a version.
         /// </summary>
+        /// <remarks>
+        /// A version is a cut of one artifact — Wayd API 4.12.0 — and is what was built. To record what was announced to customers, plan a release instead. Only a product whose type is releasable can carry a version.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> PlanAsync(PlanVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -19041,6 +19071,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a version.
         /// </summary>
+        /// <remarks>
+        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates are not here — each carries a rule of its own, so they move through their own actions.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -19412,6 +19445,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Record that a version shipped.
         /// </summary>
+        /// <remarks>
+        /// Marking a version released is not the same as announcing it to customers — that is a release. Cutting is not a prerequisite: a version imported after the fact can be marked released without ever having been cut.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task MarkReleasedAsync(System.Guid id, MarkVersionReleasedRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -19435,10 +19471,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/product-management/versions/{id}/version"
+                    // Operation Path: "api/product-management/versions/{id}/release"
                     urlBuilder_.Append("api/product-management/versions/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/version");
+                    urlBuilder_.Append("/release");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 

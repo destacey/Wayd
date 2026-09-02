@@ -249,14 +249,22 @@ There are two routes in, and a release may use both:
 - **Versions carried directly** — for a single artifact that shipped on its own, where nobody
   assembled a package. Rather than invent a package of one, the release names the version.
 
-Both are **whole-set replacements**: the form submits everything the release should end up with, so
-a version or package left out is removed from it.
+**Edit Contents** sets both routes together, as one **whole-set replacement**: the form submits
+everything the release should end up with, so a version or package left out is removed from it, and
+submitting nothing at all clears the release.
+
+Both routes are edited in one form rather than two because the rule below spans them. Set separately,
+each half would have to be judged against a release only half-changed — and moving a version into the
+package that carries it would work in one order and be refused in the other.
 
 :::warning A version is announced once, by one route
-A version already shipping inside one of the release's packages **cannot also be carried directly**,
-and Wayd refuses it either way round — adding the version, or adding a package that already contains
-it. Otherwise `2026.07` would announce the same shipment twice and "what did it contain" would have
-two different answers.
+A version shipping inside one of the release's packages **cannot also be carried directly**.
+Otherwise `2026.07` would announce the same shipment twice and "what did it contain" would have two
+different answers.
+
+The rule is applied to what the release ends up containing, so a version **can** be moved from being
+carried directly into a package that ships it — that is one change of mind, not a double count. A
+package line that names no version record covers nothing, so it never conflicts.
 :::
 
 Contents are frozen once the release is announced or withdrawn, for the same reason a package's

@@ -134,8 +134,19 @@ jest.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
-jest.mock('@/src/store/features/delivery/versions-api', () => ({
+jest.mock('@/src/store/features/product-management/versions-api', () => ({
   useGetVersionsQuery: () => ({
+    data: [],
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
+  usePlanVersionMutation: () => [jest.fn()],
+  useCutVersionMutation: () => [jest.fn()],
+  useMarkVersionReleasedMutation: () => [jest.fn()],
+}))
+
+jest.mock('@/src/store/features/product-management/releases-api', () => ({
+  useGetReleasesQuery: () => ({
     data: [],
     isLoading: false,
     refetch: jest.fn(),
@@ -318,5 +329,34 @@ describe('ProductDetailsPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Add Product' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('offers a Releases section, ahead of the versions beneath it', async () => {
+    // What customers were told about this product is the product-side question; versions are the
+    // engineering record under it, so the announcement reads first.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    const tabs = await screen.findAllByRole('tab')
+    const labels = tabs.map((tab) => tab.textContent ?? '')
+    const releasesAt = labels.findIndex((label) => label.includes('Releases'))
+    const versionsAt = labels.findIndex((label) => label.includes('Versions'))
+
+    expect(releasesAt).toBeGreaterThan(-1)
+    expect(versionsAt).toBeGreaterThan(releasesAt)
+  })
+
+  it('offers adding a release from the releases section', async () => {
+    // Arrange
+    mockSearchParams = new URLSearchParams('section=releases')
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Add Release' }),
+    ).toBeInTheDocument()
   })
 })

@@ -93,7 +93,7 @@ export const renderProductLink = (
  */
 export const renderVersionLink = (
   version: NavLinkTarget | null | undefined,
-): ReactNode => renderNavLink(version, '/delivery/versions')
+): ReactNode => renderNavLink(version, '/product-management/versions')
 
 /**
  * Renders a release as a link to its page.
@@ -103,7 +103,7 @@ export const renderVersionLink = (
  */
 export const renderReleaseLink = (
   release: NavLinkTarget | null | undefined,
-): ReactNode => renderNavLink(release, '/delivery/releases')
+): ReactNode => renderNavLink(release, '/product-management/releases')
 
 /**
  * Renders a release package as a link to its page.
@@ -113,12 +113,12 @@ export const renderReleaseLink = (
  */
 export const renderPackageLink = (
   releasePackage: NavLinkTarget | null | undefined,
-): ReactNode => renderNavLink(releasePackage, '/delivery/release-packages')
+): ReactNode => renderNavLink(releasePackage, '/product-management/release-packages')
 
 /** Renders a deployment as a link to its page. */
 export const renderDeploymentLink = (
   deployment: NavLinkTarget | null | undefined,
-): ReactNode => renderNavLink(deployment, '/delivery/deployments')
+): ReactNode => renderNavLink(deployment, '/product-management/deployments')
 
 /** A sprint reference, optionally carrying its team's code for the label. */
 export interface SprintLinkTarget extends NavLinkTarget {

@@ -14,10 +14,16 @@ public sealed record ManifestEntryRequest
     public Guid ProductId { get; set; }
 
     /// <summary>
-    /// The release this version came from, where one exists. Optional: a package can record a version
-    /// that was never cut as a release of its own.
+    /// The version record this line came from, where one exists. Optional: a package can record a
+    /// component version that was never cut as a version of its own.
     /// </summary>
-    public Guid? ReleaseId { get; set; }
+    /// <remarks>
+    /// Named for the version it points at, matching <see cref="ManifestEntry.VersionId"/> and the
+    /// column behind it. It was <c>ReleaseId</c> before Release and Version were split apart, which
+    /// silently broke the link: JSON binds by name, so a client sending <c>versionId</c> left this
+    /// null and the manifest recorded no version record at all.
+    /// </remarks>
+    public Guid? VersionId { get; set; }
 
     /// <summary>
     /// The component version. Free text, never parsed.
@@ -29,7 +35,7 @@ public sealed record ManifestEntryRequest
     /// </summary>
     public ManifestEntryKind Kind { get; set; }
 
-    public ManifestEntry ToManifestEntry() => new(ProductId, ReleaseId, Version, Kind);
+    public ManifestEntry ToManifestEntry() => new(ProductId, VersionId, Version, Kind);
 }
 
 public sealed class ManifestEntryRequestValidator : CustomValidator<ManifestEntryRequest>

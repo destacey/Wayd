@@ -105,7 +105,7 @@ describe('useAppMenuItems', () => {
     // later module split cheap, but one module answers for both and its endpoints 404 together.
     const { result } = renderHook(() => useAppMenuItems())
 
-    expect(keysOf(result.current.menuItems)).not.toContain('delivery.versions')
+    expect(keysOf(result.current.menuItems)).not.toContain('product.versions')
   })
 
   it('includes Versions alongside Products when the flag is on', () => {
@@ -116,18 +116,35 @@ describe('useAppMenuItems', () => {
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('product')
     expect(keys).toContain('product.products')
-    expect(keys).toContain('delivery.versions')
+    expect(keys).toContain('product.versions')
   })
 
-  it('offers no Releases entry while the announcement screens are unbuilt', () => {
-    // The Release record and Permissions.Releases.* both exist, but /delivery/releases has no page
-    // until the announcement UI lands. A nav item that 404s is worse than a missing one.
+  it('guards Releases on its own permission, not the Delivery one', () => {
+    // Releases carry Permissions.Releases.* rather than riding Delivery's, because the audience
+    // differs: a product manager drafting 2026.07 is a different person from whoever records that
+    // the pipeline ran. Someone holding only the Delivery claim sees the engineering records and
+    // not the announcement.
+    mockFlags['product-management'] = true
+    mockClaims.held = new Set(['Permissions.Delivery.View'])
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('product.versions')
+    expect(keys).not.toContain('product.releases')
+  })
+
+  it('includes Releases for someone holding only the Releases permission', () => {
     mockFlags['product-management'] = true
     mockClaims.held = new Set(['Permissions.Releases.View'])
 
     const { result } = renderHook(() => useAppMenuItems())
 
-    expect(keysOf(result.current.menuItems)).not.toContain('delivery.releases')
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('product.releases')
+    // The section survives on the Releases claim alone, with the engineering records left out.
+    expect(keys).toContain('product')
+    expect(keys).not.toContain('product.versions')
   })
 
   it('guards Versions on its own permission, not the catalog one', () => {
@@ -140,8 +157,44 @@ describe('useAppMenuItems', () => {
 
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('product.products')
-    expect(keys).not.toContain('delivery.versions')
+    expect(keys).not.toContain('product.versions')
     // The section survives, because Products still passes.
     expect(keys).toContain('product')
+  })
+
+  it('keys every child under the section it is rendered in', () => {
+    // `findMenuKeysByPathname` opens the section named by the part of a key before the first dot, so
+    // a child keyed outside its parent asks to open a section that is not in the tree — and antd
+    // renders the item selected with its parent collapsed.
+    //
+    // Two entries shipped that way: the delivery items were keyed `delivery.*` inside the `product`
+    // section, and Strategic Themes was keyed `strategy.*` inside `ppm`. Both looked reasonable in
+    // isolation, which is why this is asserted over the whole tree rather than per entry.
+    mockFlags['product-management'] = true
+    mockFlags['planning-poker'] = true
+    mockFlags['story-maps'] = true
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const mismatches: string[] = []
+    const walk = (items: ItemType<MenuItemType>[], parentKey: string | null) => {
+      for (const item of items) {
+        if (item == null || item.key == null) continue
+        const key = String(item.key)
+        // Dividers carry synthetic keys that name no route and open nothing.
+        const isDivider = 'type' in item && item.type === 'divider'
+
+        if (parentKey && !isDivider && key.split('.')[0] !== parentKey) {
+          mismatches.push(`${key} is inside ${parentKey}`)
+        }
+
+        if ('children' in item && Array.isArray(item.children)) {
+          walk(item.children as ItemType<MenuItemType>[], key)
+        }
+      }
+    }
+    walk(result.current.menuItems, null)
+
+    expect(mismatches).toEqual([])
   })
 })

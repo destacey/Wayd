@@ -93,35 +93,57 @@ public sealed class ReleaseTests
 
     #endregion Create
 
-    #region CarryVersions
+    #region SetContents
 
     [Fact]
-    public void CarryVersions_ShouldReplaceTheSetWholesale()
+    public void SetContents_ShouldReplaceBothSetsWholesale()
     {
         // Arrange
         var sut = _faker.Generate();
         var first = Guid.CreateVersion7();
         var second = Guid.CreateVersion7();
+        var package = Guid.CreateVersion7();
 
         // Act
-        sut.CarryVersions([first], [], EventActor.System, _dateTimeProvider.Now);
-        var result = sut.CarryVersions([second], [], EventActor.System, _dateTimeProvider.Now);
+        sut.SetContents([first], [package], [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetContents([second], [], [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        // Whole-set replacement, not incremental: a version left out of the request is removed.
+        // Whole-set replacement, not incremental: anything left out of the request is removed. Both
+        // routes move together, so dropping the package is part of the same statement.
         result.IsSuccess.Should().BeTrue();
         sut.Versions.Select(v => v.VersionId).Should().Equal(second);
+        sut.Packages.Should().BeEmpty();
     }
 
     [Fact]
-    public void CarryVersions_ShouldFail_WhenTheVersionAlreadyShipsInOneOfThePackages()
+    public void SetContents_ShouldClearTheRelease_WhenBothAreEmpty()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        sut.SetContents(
+            [Guid.CreateVersion7()], [Guid.CreateVersion7()], [], EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.SetContents([], [], [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // An empty release is legitimate rather than a draft: a repackaging or a pricing change is
+        // announced with nothing deployed.
+        result.IsSuccess.Should().BeTrue();
+        sut.IsEmpty.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetContents_ShouldFail_WhenAVersionAlsoShipsInOneOfTheSuppliedPackages()
     {
         // Arrange
         var sut = _faker.Generate();
         var versionId = Guid.CreateVersion7();
 
         // Act
-        var result = sut.CarryVersions([versionId], [versionId], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetContents(
+            [versionId], [Guid.CreateVersion7()], [versionId], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // The double-count rule: a version shipped inside a package and also listed directly would be
@@ -129,17 +151,63 @@ public sealed class ReleaseTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("cannot also be carried directly");
         sut.Versions.Should().BeEmpty();
+        sut.Packages.Should().BeEmpty();
     }
 
     [Fact]
-    public void CarryVersions_ShouldFail_WhenTheSameVersionAppearsTwice()
+    public void SetContents_ShouldAllowMovingAVersionIntoThePackageThatCarriesIt()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var versionId = Guid.CreateVersion7();
+        var packageId = Guid.CreateVersion7();
+        sut.SetContents([versionId], [], [], EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        // The version stops being carried directly and arrives inside the package instead, in one
+        // statement.
+        var result = sut.SetContents(
+            [], [packageId], [versionId], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // Setting both routes at once is what makes this reachable. Judged against the release's
+        // current contents it would look like a double-count, which is why the rule is applied to what
+        // the release ends up containing rather than to what it contained before.
+        result.IsSuccess.Should().BeTrue();
+        sut.Versions.Should().BeEmpty();
+        sut.Packages.Select(p => p.PackageId).Should().Equal(packageId);
+    }
+
+    [Fact]
+    public void SetContents_ShouldIgnoreCoverageFromPackagesBeingRemoved()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var versionId = Guid.CreateVersion7();
+        var packageId = Guid.CreateVersion7();
+        sut.SetContents([], [packageId], [], EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        // The package that covered the version is dropped in the same call that carries it directly, so
+        // nothing supplies coverage any more.
+        var result = sut.SetContents([versionId], [], [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Versions.Select(v => v.VersionId).Should().Equal(versionId);
+        sut.Packages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetContents_ShouldFail_WhenTheSameVersionAppearsTwice()
     {
         // Arrange
         var sut = _faker.Generate();
         var versionId = Guid.CreateVersion7();
 
         // Act
-        var result = sut.CarryVersions([versionId, versionId], [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetContents(
+            [versionId, versionId], [], [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -147,16 +215,33 @@ public sealed class ReleaseTests
     }
 
     [Fact]
-    public void CarryVersions_ShouldRaiseNothing_WhenTheSetIsUnchanged()
+    public void SetContents_ShouldFail_WhenTheSamePackageAppearsTwice()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var packageId = Guid.CreateVersion7();
+
+        // Act
+        var result = sut.SetContents(
+            [], [packageId, packageId], [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A package can appear only once in a release.");
+    }
+
+    [Fact]
+    public void SetContents_ShouldRaiseNothing_WhenNeitherSetChanges()
     {
         // Arrange
         var sut = _faker.Generate();
         var versionId = Guid.CreateVersion7();
-        sut.CarryVersions([versionId], [], EventActor.System, _dateTimeProvider.Now);
+        var packageId = Guid.CreateVersion7();
+        sut.SetContents([versionId], [packageId], [], EventActor.System, _dateTimeProvider.Now);
         sut.ClearDomainEvents();
 
         // Act
-        var result = sut.CarryVersions([versionId], [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetContents([versionId], [packageId], [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -164,13 +249,34 @@ public sealed class ReleaseTests
     }
 
     [Fact]
-    public void CarryVersions_ShouldFail_WhenTheReleaseHasBeenAnnounced()
+    public void SetContents_ShouldRaiseOnce_WhenOnlyOneRouteChanges()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var packageId = Guid.CreateVersion7();
+        sut.SetContents([], [packageId], [], EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.SetContents(
+            [Guid.CreateVersion7()], [packageId], [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // One event for one change of contents, however many routes moved — a reader of the history
+        // cares that the contents changed, not which list it was written in.
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.OfType<ReleaseContentsChangedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void SetContents_ShouldFail_WhenTheReleaseHasBeenAnnounced()
     {
         // Arrange
         var sut = _faker.AsReleased(new LocalDate(2026, 7, 31)).Generate();
 
         // Act
-        var result = sut.CarryVersions([Guid.CreateVersion7()], [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetContents(
+            [Guid.CreateVersion7()], [], [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // Once announced, the contents are the record of what shipped rather than a plan.
@@ -179,73 +285,21 @@ public sealed class ReleaseTests
     }
 
     [Fact]
-    public void CarryVersions_ShouldFail_WhenWithdrawn()
+    public void SetContents_ShouldFail_WhenWithdrawn()
     {
         // Arrange
         var sut = _faker.AsWithdrawn().Generate();
 
         // Act
-        var result = sut.CarryVersions([Guid.CreateVersion7()], [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.SetContents(
+            [Guid.CreateVersion7()], [], [], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A withdrawn release's contents cannot be amended.");
     }
 
-    #endregion CarryVersions
-
-    #region ShipPackages
-
-    [Fact]
-    public void ShipPackages_ShouldReplaceTheSetWholesale()
-    {
-        // Arrange
-        var sut = _faker.Generate();
-        var packageId = Guid.CreateVersion7();
-
-        // Act
-        var result = sut.ShipPackages([packageId], [], EventActor.System, _dateTimeProvider.Now);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        sut.Packages.Select(p => p.PackageId).Should().Equal(packageId);
-    }
-
-    [Fact]
-    public void ShipPackages_ShouldFail_WhenAPackageShipsAVersionAlreadyCarriedDirectly()
-    {
-        // Arrange
-        var sut = _faker.Generate();
-        var versionId = Guid.CreateVersion7();
-        sut.CarryVersions([versionId], [], EventActor.System, _dateTimeProvider.Now);
-
-        // Act
-        var result = sut.ShipPackages([Guid.CreateVersion7()], [versionId], EventActor.System, _dateTimeProvider.Now);
-
-        // Assert
-        // The same rule enforced from the other side: adding a package must not duplicate a version
-        // the release already carries on its own.
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("already carries a version directly");
-        sut.Packages.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void ShipPackages_ShouldFail_WhenTheSamePackageAppearsTwice()
-    {
-        // Arrange
-        var sut = _faker.Generate();
-        var packageId = Guid.CreateVersion7();
-
-        // Act
-        var result = sut.ShipPackages([packageId, packageId], [], EventActor.System, _dateTimeProvider.Now);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A package can appear only once in a release.");
-    }
-
-    #endregion ShipPackages
+    #endregion SetContents
 
     #region MarkReleased
 

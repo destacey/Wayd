@@ -97,6 +97,15 @@ const buildSettingsMenuItems = (
           undefined,
           undefined,
           [
+            // Environments are delivery infrastructure, but they are configured in the same module
+            // as the catalog and sit under the same section here. "Delivery" names the schema and
+            // the concept; it is not a separate area of the app.
+            restrictedPermissionMenuItem(
+              'Permissions.DeploymentEnvironments.View',
+              'Environments',
+              'product-management.environments',
+              '/settings/product-management/environments',
+            ),
             restrictedPermissionMenuItem(
               'Permissions.ProductTagCategories.View',
               'Product Tags',
@@ -128,19 +137,6 @@ const buildSettingsMenuItems = (
       '/settings/scoring/scoring-models',
     ),
   ]),
-
-  ...(options.productManagement
-    ? [
-        restrictedMenuSection('Delivery', 'delivery', undefined, undefined, [
-          restrictedPermissionMenuItem(
-            'Permissions.DeploymentEnvironments.View',
-            'Environments',
-            'delivery.environments',
-            '/settings/delivery/environments',
-          ),
-        ]),
-      ]
-    : []),
 
   // Work types, statuses and processes carry no View permission of their own,
   // so they are plain items — the group is reachable by anyone who can open

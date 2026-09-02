@@ -9,7 +9,7 @@
 /// that phantom package would then appear in the packages list and in deployment-unit reasoning.
 /// <para>
 /// A version reachable through one of the release's packages must not also appear here — that is
-/// <see cref="Release.CarryVersions"/>'s invariant, not this row's. The row itself only records
+/// <see cref="Release.SetContents"/>'s invariant, not this row's. The row itself only records
 /// membership.
 /// </para>
 /// </remarks>

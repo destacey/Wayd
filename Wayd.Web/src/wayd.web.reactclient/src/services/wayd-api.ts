@@ -9242,10 +9242,10 @@ export class ReleasesClient {
     }
 
     /**
-     * Set the versions a release carries directly.
+     * Set what a release announces.
      */
-    setVersions(id: string, request: SetReleaseVersionsRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/product-management/releases/{id}/versions";
+    setContents(id: string, request: SetReleaseContentsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{id}/contents";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -9270,72 +9270,11 @@ export class ReleasesClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processSetVersions(_response);
+            return this.processSetContents(_response);
         });
     }
 
-    protected processSetVersions(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Set the packages a release shipped.
-     */
-    setPackages(id: string, request: SetReleasePackagesRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/product-management/releases/{id}/packages";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSetPackages(_response);
-        });
-    }
-
-    protected processSetPackages(response: AxiosResponse): Promise<void> {
+    protected processSetContents(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -40167,16 +40106,16 @@ export interface UserNavigationDto {
     name?: string | undefined;
 }
 
-/** Records that a release or package started reaching an environment. */
+/** Records that a version or package started reaching an environment. */
 export interface StartDeploymentRequest {
-    /** The release deployed, when this deployment carries a single release. */
-    releaseId?: string | undefined;
+    /** The version deployed, when this deployment carries a single artifact. */
+    versionId?: string | undefined;
     /** The package deployed, when several components shipped as one unit. */
     packageId?: string | undefined;
     /** The environment being reached. Must be active. */
     environmentId: string;
-    /** The build that actually shipped — 4.8.2.008 where the release version is 4.8.2. Two builds of
-one release are two deployments. Free text, never parsed. */
+    /** The build that actually shipped — 4.8.2.008 where the version number is 4.8.2. Two builds of
+one version are two deployments. Free text, never parsed. */
     artifactId?: string | undefined;
     /** When it began. Defaults to now, so a pipeline reporting in real time can omit it. */
     startedAt?: Date | undefined;
@@ -40440,9 +40379,9 @@ export interface AssembleReleasePackageRequest {
 export interface ManifestEntryRequest {
     /** The component this entry is for. */
     productId: string;
-    /** The release this version came from, where one exists. Optional: a package can record a version
-that was never cut as a release of its own. */
-    releaseId?: string | undefined;
+    /** The version record this line came from, where one exists. Optional: a package can record a
+component version that was never cut as a version of its own. */
+    versionId?: string | undefined;
     /** The component version. Free text, never parsed. */
     version: string;
     /** Whether the component changed in this package or was carried forward unchanged. */
@@ -40526,13 +40465,11 @@ export interface UpdateReleaseRequest {
     sequence?: number | undefined;
 }
 
-/** Replaces the versions a release carries directly, outside any package. */
-export interface SetReleaseVersionsRequest {
+/** Replaces everything a release announces — the packages it shipped and the versions it carries directly. */
+export interface SetReleaseContentsRequest {
+    /** The versions this release carries directly, outside any package. */
     versionIds: string[];
-}
-
-/** Replaces the packages a release shipped. */
-export interface SetReleasePackagesRequest {
+    /** The packages this release shipped. */
     packageIds: string[];
 }
 

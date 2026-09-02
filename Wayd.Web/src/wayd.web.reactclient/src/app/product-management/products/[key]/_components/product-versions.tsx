@@ -1,6 +1,6 @@
 'use client'
 
-import { VersionsGrid } from '@/src/app/delivery/versions/_components'
+import { VersionsGrid } from '@/src/app/product-management/versions/_components'
 import { VersionDto } from '@/src/services/wayd-api'
 
 export interface ProductVersionsProps {

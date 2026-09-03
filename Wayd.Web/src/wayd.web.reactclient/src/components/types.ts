@@ -3,6 +3,21 @@ export interface OptionModel<T = string> {
   label: string
 }
 
+/**
+ * An option for a status, optionally shown in its own color rather than a neutral one.
+ *
+ * Carries the lifecycle category rather than a color: the category is what the API returns
+ * and what every other status surface keys its color off, so a filter button and the tag or
+ * timeline bar for the same status cannot drift apart.
+ *
+ * Optional because the same filter bar also lists *states* — roadmaps, strategic themes —
+ * which have no lifecycle category. Those stay a neutral color rather than borrowing a
+ * meaning they do not have.
+ */
+export interface StatusOptionModel extends OptionModel<number> {
+  lifecycleCategory?: string
+}
+
 export interface DateRange {
   start?: Date
   end?: Date

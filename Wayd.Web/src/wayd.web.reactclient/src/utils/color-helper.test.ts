@@ -50,59 +50,63 @@ describe('getLuminanceTheme', () => {
 
 describe('getLifecycleCategoryColor', () => {
   const mockToken = {
-    colorPrimary: '#1677ff',
+    colorInfo: '#1677ff',
     colorSuccess: '#52c41a',
     colorError: '#ff4d4f',
-    colorTextTertiary: '#00000073',
+    colorWarning: '#faad14',
+    colorTextSecondary: '#00000073',
   }
 
-  test('should return colorPrimary for Active category', () => {
-    expect(getLifecycleCategoryColor(LifecycleCategory.Active, mockToken as any)).toBe(
-      mockToken.colorPrimary,
+  test('should return colorInfo for Active category', () => {
+    expect(getLifecycleCategoryColor(LifecycleCategory.Active, mockToken)).toBe(
+      mockToken.colorInfo,
     )
   })
 
   test('should return colorSuccess for Completed category', () => {
-    expect(getLifecycleCategoryColor(LifecycleCategory.Completed, mockToken as any)).toBe(
-      mockToken.colorSuccess,
-    )
+    expect(
+      getLifecycleCategoryColor(LifecycleCategory.Completed, mockToken),
+    ).toBe(mockToken.colorSuccess)
   })
 
   test('should return colorError for Canceled category', () => {
-    expect(getLifecycleCategoryColor(LifecycleCategory.Canceled, mockToken as any)).toBe(
-      mockToken.colorError,
-    )
+    expect(
+      getLifecycleCategoryColor(LifecycleCategory.Canceled, mockToken),
+    ).toBe(mockToken.colorError)
   })
 
-  test('should return undefined for NotStarted category', () => {
-    expect(getLifecycleCategoryColor(LifecycleCategory.NotStarted, mockToken as any)).toBe(
-      undefined,
-    )
+  test('should return a grey for NotStarted category', () => {
+    // A color, not undefined: an absent color leaves a timeline bar on the
+    // default primary blue, which is Active's color.
+    expect(
+      getLifecycleCategoryColor(LifecycleCategory.NotStarted, mockToken),
+    ).toBe(mockToken.colorTextSecondary)
   })
 
-  test('should return undefined for invalid category', () => {
-    expect(getLifecycleCategoryColor(999 as LifecycleCategory, mockToken as any)).toBe(
-      undefined,
+  test('should return a grey for invalid category', () => {
+    expect(getLifecycleCategoryColor(999 as LifecycleCategory, mockToken)).toBe(
+      mockToken.colorTextSecondary,
     )
   })
 })
 
 describe('getLifecycleCategoryColorFromStatus', () => {
   const mockToken = {
-    colorPrimary: '#1677ff',
+    colorInfo: '#1677ff',
     colorSuccess: '#52c41a',
     colorError: '#ff4d4f',
-    colorTextTertiary: '#00000073',
+    colorWarning: '#faad14',
+    colorTextSecondary: '#00000073',
   }
 
-  test('should return colorPrimary for Active lifecycleCategory', () => {
+  test('should return colorInfo for Active lifecycleCategory', () => {
     const status: LifecycleNavigationDto = {
       id: 1,
       name: 'In Progress',
       lifecycleCategory: 'Active',
     }
     expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(
-      mockToken.colorPrimary,
+      mockToken.colorInfo,
     )
   })
 
@@ -128,13 +132,15 @@ describe('getLifecycleCategoryColorFromStatus', () => {
     )
   })
 
-  test('should return undefined for NotStarted lifecycleCategory', () => {
+  test('should return a grey for NotStarted lifecycleCategory', () => {
     const status: LifecycleNavigationDto = {
       id: 3,
       name: 'Proposed',
       lifecycleCategory: 'NotStarted',
     }
-    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(undefined)
+    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(
+      mockToken.colorTextSecondary,
+    )
   })
 
   test('should handle invalid lifecycleCategory string', () => {
@@ -143,7 +149,9 @@ describe('getLifecycleCategoryColorFromStatus', () => {
       name: 'Unknown',
       lifecycleCategory: 'InvalidCategory' as any,
     }
-    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(undefined)
+    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(
+      mockToken.colorTextSecondary,
+    )
   })
 })
 

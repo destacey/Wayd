@@ -115,6 +115,12 @@ const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
         size="small"
         variant="outlined"
         color={selectedPersonaId === null ? 'primary' : 'default'}
+        // Unselected filters are dashed across the app, so selection reads without
+        // relying on color — the persona chips carry a color of their own, and only
+        // the dot should be saying which persona it is.
+        style={
+          selectedPersonaId === null ? undefined : { borderStyle: 'dashed' }
+        }
         onClick={() => onSelectPersona(null)}
       >
         All
@@ -129,6 +135,7 @@ const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
               size="small"
               variant="outlined"
               color={isSelected ? 'primary' : 'default'}
+              style={isSelected ? undefined : { borderStyle: 'dashed' }}
               icon={<ColorDot color={persona.color} />}
               onClick={() => onSelectPersona(isSelected ? null : persona.id)}
             >

@@ -98,6 +98,50 @@ Every entity's list and detail page follows one structure — identity slot, sec
 
 See **[Record Pages](./record-pages.mdx)** before building a page for a new entity.
 
+## Filter Bars
+
+A filter bar is the row of small toggle buttons above a list — statuses, roles, personas. Two rules
+hold across every one of them:
+
+**Unselected buttons are dashed.** Selected ones keep a solid border. The dash is the primary
+selection cue, and it is deliberately not a color: the PPM statuses roll up to four lifecycle
+categories, and the not-started grey is close enough to an unselected button that colour alone
+cannot separate them — measured in the browser, a selected grey chip differed from an unselected one
+by a 10/255 background step. A dash also survives for a colourblind reader, who would otherwise have
+only that step to go on.
+
+**Colour means identity, never state.** Where a button has a status colour, it wears the same
+background, border and text its tag uses in the Status column (`getLifecycleCategoryStatusSurface`),
+so the bar and the grid speak the same vocabulary. Unselected buttons drop that colour entirely.
+Where a filter has no colour of its own — roles, or the states on roadmaps and strategic themes —
+the selected button keeps antd's primary rather than borrowing a meaning it does not carry.
+
+```tsx
+<Button
+  size="small"
+  color={isSelected && !surface ? 'primary' : 'default'}
+  variant="outlined"
+  style={
+    isSelected
+      ? surface
+        ? {
+            backgroundColor: surface.background,
+            borderColor: surface.border,
+            color: surface.text,
+          }
+        : undefined
+      : { borderStyle: 'dashed' }
+  }
+>
+```
+
+Key the dash on **selection**, not on whether a colour was found — a filter with no colour would
+otherwise render its selected button dashed, marking the active one as off.
+
+`PpmFilterBar` (`src/app/ppm/_components/ppm-filter-bar.tsx`) is the shared implementation behind the
+projects, programs, strategic initiatives, roadmaps and strategic themes bars; the My Projects
+dashboard and story-map persona bars have their own markup and follow the same rules.
+
 ## Data Grids
 
 All data grids use the **`WaydGrid`** house component (built on TanStack Table) — never Ant Design's `Table` or raw TanStack Table. It provides a consistent toolbar, Excel-style column filters, sorting, column sizing/visibility/pinning/reordering, row virtualization, CSV export, opt-in column-layout persistence, and (opt-in) tree mode, drag-and-drop, and inline editing.

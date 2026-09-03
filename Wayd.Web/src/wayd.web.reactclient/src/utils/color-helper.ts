@@ -87,31 +87,30 @@ export const getLuminanceTheme = (hexColor: string): string => {
   return getLuminance(hexColor) >= 0.5 ? 'light' : 'dark'
 }
 
+/**
+ * Resolves a lifecycle category to a concrete theme color, for surfaces that fill with the
+ * color itself rather than render a tag — timeline bars.
+ *
+ * Defined in terms of {@link getLifecycleCategoryTagColor} so a category can never pick up
+ * one color as a tag and a different one as a bar. `NotStarted` resolves to grey rather than
+ * nothing: returning `undefined` let a bar fall through to the default primary blue, which
+ * read as Active.
+ */
 export const getLifecycleCategoryColor = (
   category: LifecycleCategory,
-  token: GlobalToken, // GlobalToken from antd theme
-): string | undefined => {
-  switch (category) {
-    case LifecycleCategory.Active:
-      return token.colorPrimary // or token.colorPrimary
-    case LifecycleCategory.Completed:
-      return token.colorSuccess
-    case LifecycleCategory.Canceled:
-      return token.colorError
-    default:
-      return undefined
-  }
-}
+  token: SemanticColorTokens,
+): string => getSemanticChartColor(getLifecycleCategoryTagColor(category), token)
 
 export const getLifecycleCategoryColorFromStatus = (
   status: LifecycleNavigationDto,
-  token: any,
-): string | undefined => {
-  // Map string to enum
-  const category =
-    LifecycleCategory[status.lifecycleCategory as keyof typeof LifecycleCategory]
-  return getLifecycleCategoryColor(category, token)
-}
+  token: SemanticColorTokens,
+): string =>
+  getLifecycleCategoryColor(
+    LifecycleCategory[
+      status.lifecycleCategory as keyof typeof LifecycleCategory
+    ],
+    token,
+  )
 
 const avatarColors = [
   '#1677ff', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16',
@@ -168,7 +167,7 @@ export const nextUnusedPersonaColor = (usedColors: Iterable<string>): string => 
 
 export const getLifecycleCategoryTagColor = (
   category: LifecycleCategory,
-): string | undefined => {
+): string => {
   switch (category) {
     case LifecycleCategory.Active:
       return 'processing'
@@ -181,16 +180,19 @@ export const getLifecycleCategoryTagColor = (
   }
 }
 
+/** The theme tokens a semantic color name can resolve to. */
+export type SemanticColorTokens = Pick<
+  GlobalToken,
+  | 'colorInfo'
+  | 'colorSuccess'
+  | 'colorError'
+  | 'colorWarning'
+  | 'colorTextSecondary'
+>
+
 export const getSemanticChartColor = (
   semanticColor: string,
-  token: Pick<
-    GlobalToken,
-    | 'colorInfo'
-    | 'colorSuccess'
-    | 'colorError'
-    | 'colorWarning'
-    | 'colorTextSecondary'
-  >,
+  token: SemanticColorTokens,
 ): string => {
   switch (semanticColor) {
     case 'processing':
@@ -206,6 +208,94 @@ export const getSemanticChartColor = (
       return token.colorTextSecondary
   }
 }
+
+/** The theme tokens a status tag's soft-tinted treatment is built from. */
+export type StatusSurfaceTokens = Pick<
+  GlobalToken,
+  | 'colorInfoBg'
+  | 'colorInfoBorder'
+  | 'colorInfoText'
+  | 'colorSuccessBg'
+  | 'colorSuccessBorder'
+  | 'colorSuccessText'
+  | 'colorErrorBg'
+  | 'colorErrorBorder'
+  | 'colorErrorText'
+  | 'colorWarningBg'
+  | 'colorWarningBorder'
+  | 'colorWarningText'
+  | 'colorFillTertiary'
+  | 'colorBgContainer'
+  | 'colorBorder'
+  | 'colorText'
+>
+
+export interface StatusSurface {
+  background: string
+  border: string
+  text: string
+}
+
+/**
+ * Resolves a semantic color name to the same tinted background, border and text an antd
+ * Tag uses for it.
+ *
+ * For surfaces that should read like a status tag rather than a solid block of color — the
+ * lit buttons on a filter bar. `getSemanticChartColor` gives the one saturated color a
+ * chart mark needs; this gives the three that make up the tag's softer treatment.
+ */
+export const getSemanticStatusSurface = (
+  semanticColor: string,
+  token: StatusSurfaceTokens,
+): StatusSurface => {
+  switch (semanticColor) {
+    case 'processing':
+      return {
+        background: token.colorInfoBg,
+        border: token.colorInfoBorder,
+        text: token.colorInfoText,
+      }
+    case 'success':
+      return {
+        background: token.colorSuccessBg,
+        border: token.colorSuccessBorder,
+        text: token.colorSuccessText,
+      }
+    case 'error':
+      return {
+        background: token.colorErrorBg,
+        border: token.colorErrorBorder,
+        text: token.colorErrorText,
+      }
+    case 'warning':
+      return {
+        background: token.colorWarningBg,
+        border: token.colorWarningBorder,
+        text: token.colorWarningText,
+      }
+    case 'default':
+    default:
+      // Matches antd's own default Tag, which composites colorFillTertiary onto the
+      // container to get an opaque fill and uses full-strength text. Reaching for the
+      // translucent fill and the muted text instead inverts the treatment in dark mode:
+      // a pale film over a dark ground, carrying dimmer text than the colored statuses.
+      return {
+        background: flattenOnto(token.colorFillTertiary, token.colorBgContainer),
+        border: token.colorBorder,
+        text: token.colorText,
+      }
+  }
+}
+
+/**
+ * The tag treatment for a lifecycle category — the same soft background, border and text
+ * the status column shows for it.
+ */
+export const getLifecycleCategoryStatusSurface = (
+  category: LifecycleCategory,
+  token: StatusSurfaceTokens,
+): StatusSurface =>
+  getSemanticStatusSurface(getLifecycleCategoryTagColor(category), token)
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max)
@@ -284,6 +374,21 @@ const compositeColor = (foreground: ParsedColor, background: ParsedColor) => {
     b: Math.round(foreground.b * a + background.b * (1 - a)),
     a: 1,
   }
+}
+
+/**
+ * Resolves a translucent color against an opaque one, giving the flat color actually seen.
+ *
+ * Declared as a function so it hoists above `getSemanticStatusSurface`, which sits earlier in
+ * the file than the parsing helpers it relies on.
+ */
+function flattenOnto(color: string, background: string): string {
+  const parsed = parseColor(color)
+  const base = parseColor(background)
+  if (!parsed || !base) return color
+
+  const flat = compositeColor(parsed, base)
+  return `rgb(${flat.r}, ${flat.g}, ${flat.b})`
 }
 
 export const softenChartColor = (

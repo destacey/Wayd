@@ -21,7 +21,7 @@ import {
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { BaseOptionType } from 'antd/es/select'
-import { OptionModel } from '@/src/components/types'
+import { StatusOptionModel } from '@/src/components/types'
 
 export interface GetProjectsRequest {
   status?: number[]
@@ -306,16 +306,17 @@ export const projectsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    getProjectStatusOptions: builder.query<OptionModel<number>[], void>({
+    getProjectStatusOptions: builder.query<StatusOptionModel[], void>({
       queryFn: async () => {
         try {
           const statuses = await getProjectsClient().getProjectStatuses()
 
-          const data: OptionModel<number>[] = statuses
+          const data: StatusOptionModel[] = statuses
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
               value: s.id,
               label: s.name,
+              lifecycleCategory: s.lifecycleCategory,
             }))
 
           return { data }

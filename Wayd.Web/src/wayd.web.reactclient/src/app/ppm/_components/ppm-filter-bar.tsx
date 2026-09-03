@@ -1,14 +1,21 @@
 'use client'
 
 import { ClearOutlined } from '@ant-design/icons'
-import { Button, Card, Flex, Select, Skeleton, Space } from 'antd'
+import { Button, Card, Flex, Select, Skeleton, Space, theme } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import { BaseOptionType } from 'antd/es/select'
 import { FC } from 'react'
+import { StatusOptionModel } from '@/src/components/types'
+import {
+  getLifecycleCategoryStatusSurface,
+  type StatusSurface,
+  type StatusSurfaceTokens,
+} from '@/src/utils'
+import { LifecycleCategory } from '@/src/components/types'
 import styles from './ppm-filter-bar.module.css'
 
 export interface PpmFilterBarProps {
-  statusOptions: { value: number; label: string }[] | undefined
+  statusOptions: StatusOptionModel[] | undefined
   selectedStatuses: number[]
   onStatusChange: (statuses: number[]) => void
   portfolioOptions?: BaseOptionType[] | undefined
@@ -29,6 +36,23 @@ const ROLE_OPTIONS: BaseOptionType[] = [
   { label: 'Member', value: '4' },
   { label: 'Task Assignee', value: '5' },
 ]
+
+/**
+ * The tag colors a lit status button wears, or `undefined` for a state (roadmaps, strategic
+ * themes) that has no lifecycle category to take a color from.
+ */
+const getSelectedStatusSurface = (
+  lifecycleCategory: string | undefined,
+  token: StatusSurfaceTokens,
+): StatusSurface | undefined => {
+  if (!lifecycleCategory) return undefined
+
+  const category =
+    LifecycleCategory[lifecycleCategory as keyof typeof LifecycleCategory]
+  return category === undefined
+    ? undefined
+    : getLifecycleCategoryStatusSurface(category, token)
+}
 
 const hasPortfolioFilter = (
   props: PpmFilterBarProps,
@@ -51,6 +75,7 @@ const hasRoleFilter = (
 
 const PpmFilterBar: FC<PpmFilterBarProps> = (props) => {
   const { statusOptions, selectedStatuses, onStatusChange, loading } = props
+  const { token } = theme.useToken()
 
   if (loading) {
     return (
@@ -89,13 +114,44 @@ const PpmFilterBar: FC<PpmFilterBarProps> = (props) => {
               const isSelected =
                 selectedStatuses.length === 0 ||
                 selectedStatuses.includes(status.value)
+              // A lit button takes the background, border and text the status column
+              // shows for that status, so the bar reads as the same vocabulary as the
+              // grid. An unlit one drops the color entirely and goes dashed.
+              //
+              // The dash, not the color, is what carries selection. Color alone could
+              // not: a not-started status is grey, and measured in the browser its lit
+              // chip differed from an unlit button by a 10/255 background step, with
+              // both drawing the same grey edge. A dash also survives where hue does
+              // not — it stays legible for a colorblind reader, who would otherwise be
+              // left with only that background step to go on.
+              //
+              // States (roadmaps, strategic themes) have no lifecycle category, so
+              // they keep antd's primary rather than borrowing a meaning they do
+              // not carry.
+              const surface = isSelected
+                ? getSelectedStatusSurface(status.lifecycleCategory, token)
+                : undefined
               return (
                 <Button
                   key={status.value}
                   size="small"
                   className={styles.statusButton}
-                  color={isSelected ? 'primary' : 'default'}
+                  color={isSelected && !surface ? 'primary' : 'default'}
                   variant="outlined"
+                  style={
+                    isSelected
+                      ? surface
+                        ? {
+                            backgroundColor: surface.background,
+                            borderColor: surface.border,
+                            color: surface.text,
+                          }
+                        : undefined
+                      : // Keyed on selection, not on whether a color was found: a
+                        // state has no color either way, and dashing its lit button
+                        // would mark the selected one as off.
+                        { borderStyle: 'dashed' }
+                  }
                   onClick={() => {
                     // Turning one off while showing all narrows to the rest,
                     // rather than starting again from an empty set that would

@@ -30,12 +30,43 @@ describe('MyProjectsDashboardFilterBar', () => {
     jest.clearAllMocks()
     mockStatusQuery.mockReturnValue({
       data: [
-        { value: 1, label: 'Proposed' },
-        { value: 2, label: 'Active' },
-        { value: 3, label: 'Completed' },
+        { value: 1, label: 'Proposed', lifecycleCategory: 'NotStarted' },
+        { value: 2, label: 'Active', lifecycleCategory: 'Active' },
+        { value: 3, label: 'Completed', lifecycleCategory: 'Completed' },
       ],
       isLoading: false,
     })
+  })
+
+  it('dashes the unlit status buttons and colors only the lit ones', () => {
+    // Arrange / Act — this bar treats an empty selection as none selected, so
+    // naming Active lights that one alone.
+    render(
+      <MyProjectsDashboardFilterBar {...defaultProps} selectedStatuses={[2]} />,
+    )
+
+    // Assert — the dash, not the color, is what carries selection here: a
+    // not-started status is grey, so its lit chip differs from an unlit button by
+    // a background step alone.
+    const active = screen.getByRole('button', { name: 'Active' })
+    const proposed = screen.getByRole('button', { name: 'Proposed' })
+    expect(active.style.borderStyle).toBe('')
+    expect(active.style.backgroundColor).not.toBe('')
+    expect(proposed.style.borderStyle).toBe('dashed')
+    expect(proposed.style.backgroundColor).toBe('')
+  })
+
+  it('dashes the unlit role buttons, which carry no status color of their own', () => {
+    // Arrange / Act
+    render(<MyProjectsDashboardFilterBar {...defaultProps} selectedRoles={[2]} />)
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'Owner' }).style.borderStyle).toBe(
+      '',
+    )
+    expect(
+      screen.getByRole('button', { name: 'Sponsor' }).style.borderStyle,
+    ).toBe('dashed')
   })
 
   it('renders loading skeleton when status options are loading', () => {

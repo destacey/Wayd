@@ -637,6 +637,10 @@ function GridBody<T extends RowData>({
   const barTrack = (
     <div
       ref={rightPaneTrackRef}
+      // Marks the chart viewport so a consumer can measure its live width —
+      // the divider resizes it via direct DOM writes during a drag, so state
+      // alone does not describe what is on screen.
+      data-wayd-grid-chart-pane
       className={styles.rightPaneTrack}
       style={{ width: rightPaneWidth }}
       onScroll={onBarTrackScroll}

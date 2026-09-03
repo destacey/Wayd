@@ -46,6 +46,7 @@ import {
   useBarDrag,
   useGanttVisibility,
   useGanttZoom,
+  useChartPaneWidth,
 } from '@/src/components/common/timeline'
 
 export interface RoadmapItemTreeNode extends TreeNode {
@@ -200,9 +201,6 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   // Show/hide the chart. Persisted across roadmaps (see useGanttVisibility).
   const ganttVisibility = useGanttVisibility('roadmap')
   const showGantt = ganttVisibility.visible
-  // Gantt zoom level (pixels per day). Clamped; adjusted via toolbar +/- and
-  // Ctrl/Cmd+wheel over the chart.
-  const zoom = useGanttZoom()
   const draftsRef = useRef<DraftItem[]>([])
 
   const [createRoadmapItem] = useCreateRoadmapItemMutation()
@@ -276,6 +274,16 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
       ),
     [roadmap?.start, roadmap?.end, treeData],
   )
+  // Gantt zoom level (pixels per day), adjusted via toolbar +/- and
+  // Ctrl/Cmd+wheel over the chart. Floored so the chart always fills the pane —
+  // zooming out past the fit would leave the axis short of the right edge.
+  // Needs the domain and the live pane width, so it follows both.
+  const chartPaneWidth = useChartPaneWidth(showGantt)
+  const zoom = useGanttZoom(undefined, {
+    domain: [domainStart, domainEnd],
+    viewportWidth: chartPaneWidth,
+  })
+
   const barDrag = useBarDrag({
     pxPerMs: pxPerMsFor(zoom.pxPerDay),
     min: domainStart,

@@ -24,7 +24,7 @@ import type {
 } from './types'
 import styles from './gantt.module.css'
 
-const DAY_MS = 86_400_000
+export const DAY_MS = 86_400_000
 // Default pixel width of one day on the axis (zoom level). Long plans scroll
 // horizontally rather than crushing bars; zoom in/out adjusts this.
 export const DEFAULT_PX_PER_DAY = 6

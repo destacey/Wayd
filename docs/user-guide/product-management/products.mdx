@@ -18,7 +18,9 @@ Products nest by containment: a Product Line contains Products, which contain th
 The catalog offers two views of the same list:
 
 - **Tree** (the default) shows the hierarchy, so you can see where a product sits.
-- **Flat** shows every product as one list with a Parent column, which is better for filtering and sorting across the whole catalog.
+- **List** shows every product as one flat list with a Parent column, which is better for filtering and sorting across the whole catalog.
+
+The switch between them is the pair of icons above the catalog — a hierarchy icon and a list icon. They carry no visible label, so hover for a tooltip if it is not obvious which is which.
 
 Filtering in either view searches the whole catalog rather than the current branch.
 
@@ -40,10 +42,12 @@ Wayd seeds a starting set:
 | Module | No | Code with distinct ownership that ships inside another node |
 | Interface | No | A surface a node exposes — OpenAPI, GraphQL, gRPC, MCP |
 
-**Releasable** is the flag that carries real weight: it decides whether releases can be cut against a node. Grouping nodes like Product Line and Platform are not released in their own right — the releases are cut against the services beneath them.
+**Releasable** is the flag that carries real weight: it decides whether versions can be cut against a node. Grouping nodes like Product Line and Platform are not versioned in their own right — the versions are cut against the services beneath them.
 
-:::note Retyping is constrained by releases
-A type cannot be changed to a non-releasable one once releases exist against the product. The releases would otherwise be left describing something that cannot be released.
+:::note Retyping is constrained by versions
+A type cannot be changed to a non-releasable one once versions exist against the product. Those versions would otherwise be left describing something that cannot be versioned.
+
+Releases do not constrain retyping. A release is an announcement and is deliberately not gated on this flag — it usually sits under a product line, which is normally not releasable.
 :::
 
 Types are deactivated rather than deleted, because products already using a type still need to resolve it. Deactivating one stops it being chosen for new products without disturbing existing ones.
@@ -67,7 +71,11 @@ Every status change is recorded, and the **Status History** section on a product
 
 Each entry reports the status names **as they were at the time**. Renaming a status, or moving the product to a different workflow, does not rewrite what past entries read as — so a history stays a truthful account of what happened rather than a re-description in today's vocabulary.
 
-Changes made by an import are attributed to the person the imported record says did the work, which is not necessarily whoever ran the import.
+A change whose author is no longer linked to an employee record shows as **Unknown**.
+
+Changing a product's status requires your account to be linked to an employee record, because the
+change is attributed to the person who made it. This is the one product action that does — editing,
+retyping, moving, tagging and linking externally need only the permission.
 
 ## Tags
 
@@ -110,11 +118,11 @@ Nothing consumes the link yet. It exists so that a later automated feed can be m
 ### Creating a Product
 
 1. Navigate to **Product Management > Products**
-2. Click **Add Product**
+2. Click **Create Product**
 3. Choose a **Parent** (leave empty for a root product), a **Type**, and a **Name**
 4. Optionally add a **Description** and set the initial **Status**
 
-Creating from a product's own page pre-selects that product as the parent.
+To create a child directly beneath an existing product, open that product and use **Add Product** on its own page — it pre-selects that product as the parent.
 
 ### Reorganizing the Catalog
 
@@ -123,6 +131,14 @@ Use **Move** on the product that is in the wrong place, rather than recreating i
 ### Retiring a Product
 
 Set the status to **Retired** rather than deleting it. Deleting removes the record; retiring keeps the history of something that genuinely existed and shipped.
+
+Deletion is also refused outright once anything depends on the product, and each reason is reported separately:
+
+- it has **child products** — move or remove them first
+- it has **versions**
+- it appears in a **release package manifest** — checked separately, because a carried-forward manifest line often names a product with no version row at all
+
+In practice that leaves deletion for a product created by mistake and never used. Anything that has shipped is retired, not deleted.
 
 ### Permissions
 

@@ -61,6 +61,10 @@ import {
 
 import { applySafeAccessor } from '../wayd-grid-core/column-accessors'
 import {
+  rowScaleFor,
+  virtualSpacers,
+} from '../wayd-grid-core/virtual-geometry'
+import {
   getOrderedVisibleLeafColumns,
   reconcileColumnOrder,
   reorderIds,
@@ -428,16 +432,15 @@ function GridBody<T extends RowData>({
     return () => observer.disconnect()
   }, [rightPane, rows.length, bodyViewportRef])
   // Scale factor from the virtualizer's estimate to the real row height.
-  const rowScale =
-    measuredRowHeight && ROW_HEIGHT_ESTIMATE > 0
-      ? measuredRowHeight / ROW_HEIGHT_ESTIMATE
-      : 1
+  const rowScale = rowScaleFor(measuredRowHeight, ROW_HEIGHT_ESTIMATE)
 
-  const spacerTop = virtualRows.length > 0 ? virtualRows[0].start : 0
-  const spacerBottom =
-    virtualRows.length > 0
-      ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end
-      : 0
+  const { top: spacerTop, bottom: spacerBottom } = virtualSpacers({
+    firstRowStart: virtualRows[0]?.start ?? 0,
+    lastRowEnd: virtualRows[virtualRows.length - 1]?.end ?? 0,
+    totalSize: rowVirtualizer.getTotalSize(),
+    rowScale,
+    hasRows: virtualRows.length > 0,
+  })
 
   // Virtualized rows unmount when scrolled out, but the editing machinery
   // (focusCellById, keyboard nav, draft scroll-into-view) targets rendered

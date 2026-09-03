@@ -21,7 +21,9 @@ export type {
   GanttPaneOptions,
   GanttRowKind,
 } from './types'
-export { useGanttZoom } from './use-gantt-zoom'
+export { useGanttZoom, fitPxPerDay } from './use-gantt-zoom'
+export type { GanttZoomFit } from './use-gantt-zoom'
+export { useChartPaneWidth } from './use-chart-pane-width'
 export type { UseGanttZoom } from './use-gantt-zoom'
 export {
   useGanttVisibility,

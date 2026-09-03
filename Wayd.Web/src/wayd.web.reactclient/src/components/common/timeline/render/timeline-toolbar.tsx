@@ -35,7 +35,8 @@ export interface TimelineToolbarProps {
   /** Reset View is only meaningful once zoomed/panned away from the start. */
   canReset?: boolean
   allowSaveAsImage?: boolean
-  onSaveAsImage?: () => void
+  /** Save the timeline. PNG pastes everywhere; SVG stays sharp at any size. */
+  onSaveAsImage?: (format: 'png' | 'svg') => void
   allowFullScreen?: boolean
   isFullScreen?: boolean
   onToggleFullScreen?: () => void
@@ -232,14 +233,29 @@ const TimelineToolbar = ({
           </WaydTooltip>
         )}
         {allowSaveAsImage && (
-          <WaydTooltip title="Save as Image">
-            <Button
-              type="text"
-              shape="circle"
-              icon={<FileImageOutlined />}
-              onClick={onSaveAsImage}
-            />
-          </WaydTooltip>
+          <Dropdown
+            trigger={['click']}
+            menu={{
+              items: [
+                {
+                  key: 'png',
+                  label: 'PNG image',
+                  // Named as the safe default: SVG will not insert into Google
+                  // Slides/Docs, so PNG stays the one that pastes anywhere.
+                  onClick: () => onSaveAsImage?.('png'),
+                },
+                {
+                  key: 'svg',
+                  label: 'SVG (vector)',
+                  onClick: () => onSaveAsImage?.('svg'),
+                },
+              ],
+            }}
+          >
+            <WaydTooltip title="Save as Image">
+              <Button type="text" shape="circle" icon={<FileImageOutlined />} />
+            </WaydTooltip>
+          </Dropdown>
         )}
         {allowFullScreen && (
           <WaydTooltip title={isFullScreen ? 'Exit Fullscreen' : 'Fullscreen'}>

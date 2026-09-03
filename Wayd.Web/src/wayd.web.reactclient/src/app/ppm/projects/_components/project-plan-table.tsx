@@ -42,6 +42,7 @@ import {
   useBarDrag,
   useGanttVisibility,
   useGanttZoom,
+  useChartPaneWidth,
   type GanttDragItem,
 } from '@/src/components/common/timeline'
 import {
@@ -500,7 +501,6 @@ const ProjectPlanTable = ({
   // Show/hide the chart. Persisted across projects (see useGanttVisibility).
   const ganttVisibility = useGanttVisibility('project-plan')
   const showGantt = ganttVisibility.visible
-  const zoom = useGanttZoom()
 
   // Commit a dragged bar's new dates through the SAME handler inline editing
   // uses, so stage-vs-task routing, error handling and refetch stay single-sourced.
@@ -545,6 +545,15 @@ const ProjectPlanTable = ({
     () => computeProjectPlanGanttDomain(tasks ?? []),
     [tasks],
   )
+
+  // Zoom is floored so the chart always fills the pane — zooming out past the
+  // fit would leave the axis short of the right edge. Needs the domain and the
+  // live pane width, so it follows both.
+  const chartPaneWidth = useChartPaneWidth(showGantt)
+  const zoom = useGanttZoom(undefined, {
+    domain: [domainStart, domainEnd],
+    viewportWidth: chartPaneWidth,
+  })
 
   const barDrag = useBarDrag({
     pxPerMs: pxPerMsFor(zoom.pxPerDay),

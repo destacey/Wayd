@@ -27,6 +27,23 @@ export function useChartPaneWidth(enabled = true): number {
     const el = document.querySelector<HTMLElement>(CHART_PANE_SELECTOR)
     if (!el) return
 
+    // Without ResizeObserver (jsdom, older browsers), take a single
+    // measurement rather than throwing — the zoom floor is then fixed at the
+    // pane's initial width instead of being lost entirely. Matches the guard
+    // WaydGrid uses for its own observers.
+    //
+    // Deferred to a microtask so the write lands outside the effect body, the
+    // same reason the observed path reports through its callback.
+    if (typeof ResizeObserver === 'undefined') {
+      let cancelled = false
+      queueMicrotask(() => {
+        if (!cancelled) setWidth(el.getBoundingClientRect().width)
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
     // ResizeObserver fires once on observe, so the initial measurement arrives
     // through the callback rather than a synchronous setState in the effect
     // body (which would cascade a render).

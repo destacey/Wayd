@@ -476,7 +476,7 @@ function renderItem(
     if (label) {
       parts.push(
         `<text x="${visualLeft + BAR_LABEL_PAD}" y="${top + height / 2}" dominant-baseline="central" ` +
-          `font-size="${fontSize}" fill="${contrastText(item.color)}">${escapeXml(label)}</text>`,
+          `font-size="${fontSize}" fill="${contrastText(fill)}">${escapeXml(label)}</text>`,
       )
     }
   }

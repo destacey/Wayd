@@ -351,6 +351,41 @@ describe('renderTimelineSvg', () => {
     expect(svg).toContain('rotate(45')
   })
 
+  test('picks label contrast from the colour the bar is actually filled with', () => {
+    // Arrange — an item with NO colour falls back to the theme primary, so the
+    // label's contrast must be computed from that, not from `undefined`.
+    // A light primary needs dark text; deriving from undefined always gave white.
+    const lightPrimary = { ...THEME, primary: '#ffe58f' }
+    const item: TimelineItem = {
+      id: 'i1',
+      kind: 'range',
+      start: JAN,
+      end: FEB,
+      label: 'Uncoloured',
+      groupId: 'g1',
+    }
+    const input = buildInput({
+      theme: lightPrimary,
+      rows: [
+        {
+          rowKey: 'g1',
+          groupId: 'g1',
+          top: 0,
+          height: 36,
+          laneCount: 1,
+          items: [{ item, lane: 0 }],
+          depth: 0,
+        },
+      ],
+    })
+
+    // Act
+    const svg = renderTimelineSvg(input)
+
+    // Assert — dark text over the light fill, never white-on-light.
+    expect(svg).toContain('fill="#1f1f1f"')
+  })
+
   test('honours an item colour over the theme default', () => {
     // Arrange
     const item: TimelineItem = {

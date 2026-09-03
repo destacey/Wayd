@@ -9,10 +9,24 @@
 // separate "group width" control needed. Each pane is a vertical stack
 // [header | scroll body]; the two bodies' vertical scroll is kept in sync.
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Spin, Splitter } from 'antd'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
+import { App, Spin, Splitter } from 'antd'
 import WaydEmpty from '@/src/components/common/wayd-empty'
-import { captureTimeline } from './render/capture-timeline'
+import { renderTimelineSvg } from './render/svg/render-svg'
+import { createExportScale } from './render/svg/export-scale'
+import { resolveSvgTheme, resolveFontFamily } from './render/svg/theme'
+import {
+  downloadSvg,
+  downloadSvgAsPng,
+  type TimelineExportFormat,
+} from './render/svg/export-svg'
+import type { TimeScale } from './core/scale'
 import { createTimeScale } from './core/scale'
 import {
   clampZoom,
@@ -30,9 +44,23 @@ import { resolveLevel } from './core/depth'
 import { growRowsForLabels, type GeometryConfig } from './core/geometry'
 import { truncateOneDayLabel } from './core/labels'
 import { getVisibleRange } from './core/virtualization'
-import type { TimelineGroup, TimelineItem } from './core/types'
+import type { ResolvedRow, TimelineGroup, TimelineItem } from './core/types'
 import type { WaydTimelineProps } from './types'
 import styles from './render/timeline.module.css'
+
+/** Snapshot of the render-time model the SVG export draws from. */
+interface TimelineExportModel {
+  rows: ResolvedRow[]
+  totalHeight: number
+  scale: TimeScale
+  geometry: GeometryConfig
+  groupsById: Map<string, TimelineGroup>
+  chartBackgrounds: TimelineItem[]
+  laneHeight: number
+  showGridlines: boolean
+  showWeekends: boolean
+  showCurrentTime: boolean
+}
 
 const AXIS_HEIGHT = 48
 const DEFAULT_HEIGHT = 600
@@ -141,6 +169,10 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   // wrapperRef = toolbar + chart (fullscreen target). chartRootRef = just the
   // bordered chart container (save-as-image target, so the toolbar is excluded).
   const wrapperRef = useRef<HTMLDivElement>(null)
+  // antd's App context supplies the toast api. Unlike the useMessage hook it
+  // degrades to a no-op warning outside a provider, so this shared component
+  // stays renderable anywhere (tests included).
+  const { message: messageApi } = App.useApp()
   const chartRootRef = useRef<HTMLDivElement>(null)
   const footerRef = useRef<HTMLDivElement>(null)
   const [isFullScreen, setIsFullScreen] = useState(false)
@@ -219,49 +251,6 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [isFullScreen])
-
-  const saveImage = () => {
-    // Force every row into the DOM first (virtualization is normally on), then
-    // capture once the full-height layout has painted, and turn windowing back on.
-    setIsCapturing(true)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = chartRootRef.current
-        if (!el) {
-          setIsCapturing(false)
-          return
-        }
-        const cs = getComputedStyle(el)
-        const containerBg =
-          cs.getPropertyValue('--ant-color-bg-container').trim() || undefined
-
-        // We capture the CURRENT horizontal viewport (no time scrolled off-screen)
-        // but the FULL vertical extent (all rows). Since we don't expand
-        // horizontally, the Splitter layout stays intact — so we capture `.root`
-        // as a single element (no split/stitch) and only un-clip the vertical
-        // scroll in html2canvas's cloned document. The header underline etc.
-        // render naturally because it's the real layout, just taller.
-        const fullHeight = AXIS_HEIGHT + totalHeight + 2 // +2 for top/bottom border
-
-        // The Splitter sizes its panels via JS; those widths don't survive the
-        // html2canvas clone, so capture the live group-column width and re-pin it.
-        const groupPane = el.querySelector<HTMLElement>(
-          '[data-timeline-group-pane]',
-        )
-        const groupPaneWidth = groupPane
-          ? Math.round(groupPane.getBoundingClientRect().width)
-          : undefined
-
-        captureTimeline(el, {
-          fileName: `${saveImageFileName}.png`,
-          backgroundColor: containerBg,
-          captureHeight: fullHeight,
-          groupPaneWidth,
-          footer: footerRef.current ?? undefined,
-        }).finally(() => setIsCapturing(false))
-      })
-    })
-  }
 
   // Measure the chart viewport width so the time scale maps onto real pixels.
   // Use a CALLBACK ref: it fires exactly when the chart node attaches, which
@@ -374,15 +363,18 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   const zoomMax = maxZoom(baseWidth, viewportWidth, domainMs, ZOOM_MIN_MS)
   const effectiveZoom = clampZoom(zoom, { min: zoomMin, max: zoomMax })
   const chartWidth = baseWidth * effectiveZoom
-  const toScrollLeft = useCallback((ms: number) => {
-    const chart = chartRef.current
-    const contentWidth = chart?.scrollWidth ?? chartWidth
-    if (domainMs <= 0 || contentWidth <= 0) return 0
-    const viewport = chart?.clientWidth ?? viewportWidth
-    const maxScroll = Math.max(0, contentWidth - viewport)
-    const raw = ((ms - domainStart) / domainMs) * contentWidth
-    return Math.min(maxScroll, Math.max(0, raw))
-  }, [chartWidth, domainMs, domainStart, viewportWidth])
+  const toScrollLeft = useCallback(
+    (ms: number) => {
+      const chart = chartRef.current
+      const contentWidth = chart?.scrollWidth ?? chartWidth
+      if (domainMs <= 0 || contentWidth <= 0) return 0
+      const viewport = chart?.clientWidth ?? viewportWidth
+      const maxScroll = Math.max(0, contentWidth - viewport)
+      const raw = ((ms - domainStart) / domainMs) * contentWidth
+      return Math.min(maxScroll, Math.max(0, raw))
+    },
+    [chartWidth, domainMs, domainStart, viewportWidth],
+  )
   const applyHorizontalScrollToDom = useCallback(
     (left: number) => {
       preserveInitialViewForProgrammaticScroll()
@@ -393,7 +385,12 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       visibleStartMsRef.current =
         domainStart + (domainMs * left) / Math.max(contentWidth, 1)
     },
-    [chartWidth, domainMs, domainStart, preserveInitialViewForProgrammaticScroll],
+    [
+      chartWidth,
+      domainMs,
+      domainStart,
+      preserveInitialViewForProgrammaticScroll,
+    ],
   )
   const applyHorizontalScroll = useCallback(
     (left: number) => {
@@ -559,7 +556,8 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       setIsInitialView(false)
     }
     visibleStartMsRef.current =
-      domainStart + (domainMs * chart.scrollLeft) / Math.max(chart.scrollWidth, 1)
+      domainStart +
+      (domainMs * chart.scrollLeft) / Math.max(chart.scrollWidth, 1)
     if (axisViewportRef.current) {
       axisViewportRef.current.scrollLeft = chart.scrollLeft
     }
@@ -588,7 +586,8 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     const chart = chartRef.current
     if (!chart) return
     const visibleStart =
-      domainStart + (domainMs * chart.scrollLeft) / Math.max(chart.scrollWidth, 1)
+      domainStart +
+      (domainMs * chart.scrollLeft) / Math.max(chart.scrollWidth, 1)
     visibleStartRestoreTokenRef.current += 1
     visibleStartMsRef.current = visibleStart
     pendingVisibleStartMsRef.current = visibleStart
@@ -804,6 +803,93 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   const groupsById = new Map<string, TimelineGroup>(
     resolved.groups.map((g) => [g.id, g]),
   )
+
+  // The model the SVG export draws from. `rows` here are the GROWN rows, so
+  // exported row heights match the screen — that growth comes from DOM label
+  // measurement and cannot be recomputed outside a rendered timeline.
+  // The export covers the CURRENTLY VISIBLE time window, not the whole domain —
+  // matching what the user sees. See createExportScale.
+  const exportScale = createExportScale({ scale, scrollLeft, viewportWidth })
+
+  const exportModel: TimelineExportModel = {
+    rows,
+    totalHeight,
+    scale: exportScale,
+    geometry,
+    groupsById,
+    chartBackgrounds,
+    laneHeight: effectiveLaneHeight,
+    showGridlines: showVerticalGridlines,
+    showWeekends,
+    showCurrentTime,
+  }
+
+  const saveImage = (format: TimelineExportFormat = 'png') => {
+    // Force every row into the DOM first (virtualization is normally on) so the
+    // group column measures EVERY label — the export's row heights come from
+    // those measurements. Then render once the full-height layout has painted,
+    // and turn windowing back on.
+    setIsCapturing(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = chartRootRef.current
+        if (!el) {
+          setIsCapturing(false)
+          return
+        }
+
+        // The group pane is sized by the Splitter at runtime, so its width is
+        // only knowable from the live DOM.
+        const groupPane = el.querySelector<HTMLElement>(
+          '[data-timeline-group-pane]',
+        )
+        const groupPaneWidth = groupPane
+          ? Math.round(groupPane.getBoundingClientRect().width)
+          : 0
+
+        const run = async () => {
+          const svg = renderTimelineSvg({
+            rows: exportModel.rows,
+            scale: exportModel.scale,
+            geometry: exportModel.geometry,
+            totalHeight: exportModel.totalHeight,
+            axisHeight: AXIS_HEIGHT,
+            groupPaneWidth,
+            groupsById: exportModel.groupsById,
+            chartBackgrounds: exportModel.chartBackgrounds,
+            theme: resolveSvgTheme(el),
+            fontFamily: resolveFontFamily(el),
+            showGridlines: exportModel.showGridlines,
+            showWeekends: exportModel.showWeekends,
+            showCurrentTime: exportModel.showCurrentTime,
+            nowMs: Date.now(),
+            laneHeight: exportModel.laneHeight,
+          })
+
+          if (format === 'svg') {
+            downloadSvg(svg, `${saveImageFileName}.svg`)
+            return
+          }
+          await downloadSvgAsPng(svg, `${saveImageFileName}.png`, {
+            width: groupPaneWidth + exportModel.scale.width,
+            height: AXIS_HEIGHT + exportModel.totalHeight,
+          })
+        }
+
+        run()
+          .catch((error: unknown) => {
+            // Nothing else surfaces an export failure — without this the user
+            // just never gets a file and is told nothing.
+            messageApi.error(
+              error instanceof Error
+                ? error.message
+                : 'Could not save the timeline as an image.',
+            )
+          })
+          .finally(() => setIsCapturing(false))
+      })
+    })
+  }
 
   // Show the group column + splitter only when the resolved level actually has
   // groups. At drill level 1 there are none → render a flat, full-width chart.

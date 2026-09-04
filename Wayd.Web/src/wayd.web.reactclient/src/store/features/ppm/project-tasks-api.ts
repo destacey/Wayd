@@ -30,8 +30,11 @@ interface GetProjectTasksParams {
  * dates or status changing has to invalidate them explicitly. Miss one and
  * nothing errors: the grid updates and the counts beside it silently disagree.
  *
- * The untyped ProjectPlanTree entry catches the multi-project summary, which
- * publishes a tag per project id rather than for the one being edited.
+ * Every call site passes a project KEY, while the multi-project summary
+ * publishes a tag per project GUID — so that query is unreachable by id from
+ * here, and the untyped ProjectPlanTree entry is the only thing that refreshes
+ * the dashboard's per-project counts. Stage edits carry both ids and can
+ * therefore invalidate precisely; these cannot.
  */
 export const projectTaskMutationTags = (projectIdOrKey: string) => [
   { type: QueryTags.ProjectTask, id: `LIST-${projectIdOrKey}` },

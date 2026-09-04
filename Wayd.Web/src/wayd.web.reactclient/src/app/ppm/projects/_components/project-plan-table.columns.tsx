@@ -29,6 +29,20 @@ import {
   dateSortBy,
   useGridDragHandle,
 } from '@/src/components/common/wayd-grid'
+import {
+  getPlanScheduleLabel,
+  isPlanItemOverdue,
+} from './project-plan-schedule'
+
+const overdueDateStyle: React.CSSProperties = {
+  color: 'var(--ant-color-error)',
+}
+
+const scheduleTagColors: Record<string, string> = {
+  Overdue: 'error',
+  'Due This Week': 'warning',
+  Upcoming: 'default',
+}
 
 const { Item: FormItem } = Form
 
@@ -492,13 +506,9 @@ export const getProjectPlanTableColumns = ({
 
         if (!isSelected || !handleUpdateTask || task.nodeType === 'Stage') {
           if (!priority) return task.nodeType === 'Stage' ? null : '-'
-          const colorMap: Record<string, string> = {
-            Low: 'green',
-            Medium: 'orange',
-            High: 'red',
-            Critical: 'magenta',
-          }
-          return <Tag color={colorMap[priority]}>{priority}</Tag>
+          // Plain text: Status and Schedule already carry tags, and a third
+          // colored column on every row is more color than the grid can spend.
+          return priority
         }
 
         const error = getFieldError('priorityId')
@@ -518,6 +528,31 @@ export const getProjectPlanTableColumns = ({
             />
           </FormItem>
         )
+      },
+    },
+    {
+      id: 'schedule',
+      accessorFn: (row) => getPlanScheduleLabel(row) ?? '',
+      header: 'Schedule',
+      size: 120,
+      enableGlobalFilter: true,
+      enableColumnFilter: true,
+      sortFn: 'text',
+      meta: {
+        filterType: 'select',
+        filterOptions: [
+          { label: 'Overdue', value: 'Overdue' },
+          { label: 'Due This Week', value: 'Due This Week' },
+          { label: 'Upcoming', value: 'Upcoming' },
+        ],
+      } satisfies WaydGridColumnMeta,
+      cell: (info) => {
+        // Derived from the dates, so it stays read-only even on the selected
+        // row — there is nothing here to edit.
+        const label = info.getValue() as string
+        if (!label) return null
+
+        return <Tag color={scheduleTagColors[label]}>{label}</Tag>
       },
     },
     {
@@ -556,7 +591,13 @@ export const getProjectPlanTableColumns = ({
           : task.type?.name === 'Milestone'
 
         if (!isSelected || !handleUpdateTask) {
-          return value
+          // A milestone's due date lives here, so it carries the overdue
+          // treatment that the Planned End column gives every other item.
+          return isMilestone && isPlanItemOverdue(task) ? (
+            <span style={overdueDateStyle}>{value}</span>
+          ) : (
+            value
+          )
         }
 
         const fieldName = isMilestone ? 'plannedDate' : 'plannedStart'
@@ -620,7 +661,11 @@ export const getProjectPlanTableColumns = ({
           : task.type?.name === 'Milestone'
 
         if (!isSelected || !handleUpdateTask || isMilestone) {
-          return value
+          return isPlanItemOverdue(task) ? (
+            <span style={overdueDateStyle}>{value}</span>
+          ) : (
+            value
+          )
         }
 
         const error = getFieldError('plannedEnd')

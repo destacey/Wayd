@@ -18,6 +18,10 @@ import { WaydTooltip } from '@/src/components/common'
 import dayjs from 'dayjs'
 import { FC, useState } from 'react'
 import { getInitials } from './project-card-helpers'
+import {
+  getPlanScheduleLabel,
+  type PlanScheduleLabel,
+} from '@/src/app/ppm/projects/_components/project-plan-schedule'
 import styles from '../my-projects-dashboard.module.css'
 
 const { Text } = Typography
@@ -39,34 +43,29 @@ function getStageTagColor(statusName: string): string {
 
 // --- Task status helpers ---
 
-type TaskStatusLabel = 'Complete' | 'Overdue' | 'Due Today' | 'Upcoming' | null
+type TaskStatusLabel = PlanScheduleLabel | 'Complete'
 
+/**
+ * The badge shown on a task row.
+ *
+ * The schedule buckets come from the shared helper, so these badges agree with
+ * the plan grid's Schedule column and with the summary counts — all three read
+ * the same Saturday week boundary, and a task due today is Due This Week rather
+ * than a bucket of its own. "Complete" is the dashboard's own addition: the
+ * grid leaves finished tasks blank, but a completed row here earns a badge.
+ */
 function getTaskStatusLabel(node: ProjectPlanNodeDto): TaskStatusLabel {
-  const statusName = node.status?.name
-  if (statusName === 'Completed') return 'Complete'
-  if (statusName === 'Canceled') return null
+  if (node.status?.name === 'Completed') return 'Complete'
 
-  const endDate = node.end ?? node.plannedDate
-  if (!endDate) return null
-
-  const today = dayjs().startOf('day')
-  const due = dayjs(endDate).startOf('day')
-
-  if (due.isBefore(today)) return 'Overdue'
-  if (due.isSame(today)) return 'Due Today'
-
-  const nextWeekEnd = today.add(7, 'day')
-  if (due.isBefore(nextWeekEnd)) return 'Upcoming'
-
-  return null
+  return getPlanScheduleLabel(node)
 }
 
 function getTaskStatusClass(label: TaskStatusLabel): string {
   switch (label) {
     case 'Overdue':
       return styles.taskStatusOverdue
-    case 'Due Today':
-      return styles.taskStatusDueToday
+    case 'Due This Week':
+      return styles.taskStatusDueThisWeek
     case 'Upcoming':
       return styles.taskStatusUpcoming
     case 'Complete':
@@ -347,7 +346,7 @@ function countTasksByStatus(nodes: ProjectPlanNodeDto[]): StageTaskCounts {
   for (const node of nodes) {
     const label = getTaskStatusLabel(node)
     if (label === 'Overdue') counts.overdue++
-    else if (label === 'Due Today') counts.dueThisWeek++
+    else if (label === 'Due This Week') counts.dueThisWeek++
     else if (label === 'Upcoming') counts.upcoming++
     if (node.children) {
       const childCounts = countTasksByStatus(node.children)

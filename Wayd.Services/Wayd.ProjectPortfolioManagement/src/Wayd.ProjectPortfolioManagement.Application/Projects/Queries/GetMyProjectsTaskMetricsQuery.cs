@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 /// <summary>
 /// Returns aggregated task metrics across all projects the current user is involved in.
-/// Computes overdue, due this week, and upcoming counts from open leaf tasks.
+/// Computes overdue, due this week, and upcoming counts from open tasks.
 /// </summary>
 public sealed record GetMyProjectsTaskMetricsQuery(ProjectStatus[]? StatusFilter = null, ProjectMemberRole[]? RoleFilter = null) : IQuery<MyProjectsTaskMetricsDto>;
 
@@ -95,10 +95,11 @@ public sealed class GetMyProjectsTaskMetricsQueryHandler(
                 .ToArray()
             : allLeadershipRoles;
 
-        // Open leaf tasks with a planned end date across all matching projects
-        var openLeafTasks = _ppmDbContext.ProjectTasks
+        // Open tasks with a planned end date across all matching projects.
+        // Parents count too: one carries its own end date and can be late on
+        // its own terms, and the plan grid's Schedule column labels it.
+        var openTasks = _ppmDbContext.ProjectTasks
             .Where(t => projectIds.Contains(t.ProjectId))
-            .Where(t => !_ppmDbContext.ProjectTasks.Any(child => child.ParentId == t.Id))
             .Where(t => openStatuses.Contains(t.Status))
             .Where(t => t.PlannedDateRange != null && t.PlannedDateRange.End != null);
 
@@ -107,11 +108,11 @@ public sealed class GetMyProjectsTaskMetricsQueryHandler(
         if (activeLeadershipRoles.Length > 0)
         {
             // Leadership projects: all tasks visible
-            var leadershipTasks = openLeafTasks
+            var leadershipTasks = openTasks
                 .Where(t => t.Project.Roles.Any(r => r.EmployeeId == eid && activeLeadershipRoles.Contains(r.Role)));
 
             // Non-leadership projects: only tasks assigned to the user
-            var assigneeTasks = openLeafTasks
+            var assigneeTasks = openTasks
                 .Where(t => !t.Project.Roles.Any(r => r.EmployeeId == eid && activeLeadershipRoles.Contains(r.Role)))
                 .Where(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee));
 
@@ -121,7 +122,7 @@ public sealed class GetMyProjectsTaskMetricsQueryHandler(
         else
         {
             // No leadership roles in filter — only count tasks assigned to the user
-            relevantTasks = openLeafTasks
+            relevantTasks = openTasks
                 .Where(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee));
         }
 

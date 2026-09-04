@@ -7,7 +7,8 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 /// <summary>
-/// Returns summary metrics for a project's plan, computed from leaf tasks.
+/// Returns summary metrics for a project's plan. Date metrics count every
+/// dated task; the total counts leaf tasks only.
 /// Optionally filters by an employee (assignee).
 /// </summary>
 public sealed record GetProjectPlanSummaryQuery : IQuery<ProjectPlanSummaryDto>
@@ -39,10 +40,8 @@ public sealed class GetProjectPlanSummaryQueryHandler(
         var endOfThisWeek = today.PlusDays(daysUntilSaturday);
         var endOfNextWeek = endOfThisWeek.PlusDays(7);
 
-        // Query leaf tasks: tasks with no children
         var query = _ppmDbContext.ProjectTasks
-            .Where(request.ProjectIdOrKeyFilter)
-            .Where(t => !_ppmDbContext.ProjectTasks.Any(child => child.ParentId == t.Id));
+            .Where(request.ProjectIdOrKeyFilter);
 
         if (request.EmployeeId.HasValue)
         {
@@ -54,8 +53,16 @@ public sealed class GetProjectPlanSummaryQueryHandler(
         // Only count open tasks (Not Started or In Progress) that have an end date
         var openStatuses = new[] { Domain.Enums.TaskStatus.NotStarted, Domain.Enums.TaskStatus.InProgress };
 
-        var totalLeafTasks = await query.CountAsync(cancellationToken);
+        // The total is leaf-only: it gates whether the summary renders at all,
+        // and counting a parent alongside its children would double-count.
+        var totalLeafTasks = await query
+            .Where(t => !_ppmDbContext.ProjectTasks.Any(child => child.ParentId == t.Id))
+            .CountAsync(cancellationToken);
 
+        // The date metrics count every dated task, parents included. A parent
+        // carries its own end date and can be late on its own terms, and the
+        // plan grid's Schedule column labels it — excluding it here would make
+        // the counts disagree with the rows the user is looking at.
         var openTasksWithEndDate = query
             .Where(t => openStatuses.Contains(t.Status))
             .Where(t => t.PlannedDateRange != null && t.PlannedDateRange.End != null);

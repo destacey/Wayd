@@ -3,10 +3,13 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useModalForm } from '@/src/hooks'
-import { useGetProjectStageQuery, useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
+import {
+  useGetProjectStageQuery,
+  useGetProjectPlanTreeQuery,
+  usePatchProjectStageMutation,
+} from '@/src/store/features/ppm/projects-api'
 import { useGetTaskStatusOptionsQuery } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
-import { authenticatedFetch } from '@/src/services/clients'
 import { toFormErrors } from '@/src/utils'
 import { DatePicker, Form, InputNumber, Modal, Radio } from 'antd'
 import dayjs from 'dayjs'
@@ -23,6 +26,7 @@ const { Group: RadioGroup } = Radio
 
 export interface EditProjectStageFormProps {
   projectId: string
+  projectKey: string
   stageId: string
   onFormComplete: () => void
   onFormCancel: () => void
@@ -38,6 +42,7 @@ interface EditStageFormValues {
 
 const EditProjectStageForm = ({
   projectId,
+  projectKey,
   stageId,
   onFormComplete,
   onFormCancel,
@@ -47,6 +52,8 @@ const EditProjectStageForm = ({
     { skip: !projectId || !stageId },
   )
   const { data: planTree } = useGetProjectPlanTreeQuery(projectId, { skip: !projectId })
+
+  const [patchProjectStage] = usePatchProjectStageMutation()
 
   const { data: statusOptions = [] } = useGetTaskStatusOptionsQuery()
   const { data: employeeData } = useGetEmployeeOptionsQuery(true)
@@ -126,22 +133,19 @@ const EditProjectStageForm = ({
 
           if (patchOperations.length === 0) return true
 
-          const response = await authenticatedFetch(
-            `/api/ppm/projects/${projectId}/stages/${stageId}`,
-            {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json-patch+json' },
-              body: JSON.stringify(patchOperations),
-            },
-          )
+          // Through the mutation rather than a bare fetch, so its
+          // invalidatesTags refresh the plan summary counts alongside the
+          // tree. A direct fetch updates the server and leaves the cache
+          // untouched, so the counts stay stale until a reload.
+          const result = await patchProjectStage({
+            projectId,
+            projectKey,
+            stageId,
+            patchOperations,
+          })
 
-          if (!response.ok) {
-            let errorData: any
-            try {
-              errorData = await response.json()
-            } catch {
-              errorData = { detail: await response.text() }
-            }
+          if ('error' in result && result.error) {
+            const errorData = (result.error as { data?: any })?.data
             if (errorData?.errors) {
               const formErrors = toFormErrors(errorData.errors)
               form.setFields(formErrors)

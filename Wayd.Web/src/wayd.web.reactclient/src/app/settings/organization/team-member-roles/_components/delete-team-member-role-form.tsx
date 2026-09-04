@@ -57,7 +57,7 @@ const DeleteTeamMemberRoleForm = ({
       <Alert
         type="warning"
         showIcon
-        message="This action cannot be undone. Roles currently assigned to team members cannot be deleted."
+        title="This action cannot be undone. Roles currently assigned to team members cannot be deleted."
         style={{ marginTop: 12 }}
       />
     </Modal>

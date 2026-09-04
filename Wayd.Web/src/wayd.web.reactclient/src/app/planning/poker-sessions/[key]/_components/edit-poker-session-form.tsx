@@ -205,7 +205,7 @@ const EditPokerSessionForm = ({
           </div>
           {hasRounds && (
             <Alert
-              message="Scale cannot be changed after rounds have started."
+              title="Scale cannot be changed after rounds have started."
               type="info"
               showIcon
               style={{ marginBottom: 8, fontSize: 12 }}

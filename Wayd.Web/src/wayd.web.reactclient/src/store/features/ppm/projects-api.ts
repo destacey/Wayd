@@ -29,6 +29,29 @@ export interface GetProjectsRequest {
   role?: number[]
 }
 
+/**
+ * The cache entries a stage edit has to refresh.
+ *
+ * A stage edit knows both ids, so it invalidates precisely: the plan tree by
+ * whichever id its caller used, the single-project summary by key, and this
+ * project's entry in the multi-project summary by guid. A type-only tag would
+ * work too, but at the cost of refetching every project's summary.
+ */
+export const projectStageMutationTags = (
+  projectId: string,
+  projectKey: string,
+) => [
+  { type: QueryTags.ProjectPlanTree, id: projectKey },
+  { type: QueryTags.ProjectPlanTree, id: projectId },
+  { type: QueryTags.Project, id: 'MY_TASK_METRICS' },
+  { type: QueryTags.Project, id: 'LIST' },
+  { type: QueryTags.Project, id: projectId },
+  { type: QueryTags.Project, id: projectKey },
+  { type: QueryTags.Project, id: 'MY_SUMMARY' },
+  { type: QueryTags.PortfolioProjects, id: 'LIST' },
+  { type: QueryTags.ProgramProjects, id: 'LIST' },
+]
+
 export const projectsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getProjects: builder.query<
@@ -446,17 +469,8 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { projectId, projectKey }) => {
-        return [
-          { type: QueryTags.ProjectPlanTree, id: projectKey },
-          { type: QueryTags.Project, id: 'LIST' },
-          { type: QueryTags.Project, id: projectId },
-          { type: QueryTags.Project, id: projectKey },
-          { type: QueryTags.Project, id: 'MY_SUMMARY' },
-          { type: QueryTags.PortfolioProjects, id: 'LIST' },
-          { type: QueryTags.ProgramProjects, id: 'LIST' },
-        ]
-      },
+      invalidatesTags: (result, error, { projectId, projectKey }) =>
+        projectStageMutationTags(projectId, projectKey),
     }),
 
     changeProjectLifecycle: builder.mutation<

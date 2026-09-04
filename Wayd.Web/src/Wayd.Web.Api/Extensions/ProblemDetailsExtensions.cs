@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Wayd.Infrastructure.Middleware;
 using System.Net;
 using Microsoft.AspNetCore.Http.Features;
 
@@ -6,6 +8,25 @@ namespace Wayd.Web.Api.Extensions;
 
 public static class ProblemDetailsExtensions
 {
+    /// <summary>
+    /// Builds the 422 body for a CSV import's per-row validation failures.
+    /// </summary>
+    /// <remarks>
+    /// The import endpoints validate row by row and collect the failures into <c>ModelState</c>
+    /// themselves, so they never reach the automatic model-state filter that would otherwise shape the
+    /// response. Returning the raw FluentValidation result instead serialises
+    /// <c>{ isValid, errors: [ { propertyName, errorMessage, ... } ] }</c> — an array of objects rather
+    /// than the <c>errors: { field: [message] }</c> dictionary a ProblemDetails client reads, so a
+    /// caller that flattens the dictionary gets <c>[object Object]</c> and the messages naming the
+    /// offending row are lost.
+    /// <para>
+    /// This routes the collected ModelState through the same enrichment the rest of the API uses, so an
+    /// import's 422 matches every other 422 and its declared response type.
+    /// </para>
+    /// </remarks>
+    public static ValidationProblemDetails ForValidationErrors(ModelStateDictionary modelState, HttpContext context) =>
+        ExceptionMiddleware.EnrichValidationProblemDetails(new ValidationProblemDetails(modelState), context);
+
     public static ProblemDetails ForBadRequest(string error, HttpContext context)
     {
         Activity? activity = context.Features.Get<IHttpActivityFeature>()?.Activity;

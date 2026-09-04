@@ -133,7 +133,7 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
                         error.ErrorMessage = $"{error.ErrorMessage} (Release: {release.Version})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 releases.Add(release);
@@ -158,7 +158,7 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
                             error.ErrorMessage = $"{error.ErrorMessage} (Release: {content.ReleaseVersion})";
                             ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                         }
-                        return UnprocessableEntity(validationResults);
+                        return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                     }
 
                     contents.Add(content.ToImportReleaseContentDto());

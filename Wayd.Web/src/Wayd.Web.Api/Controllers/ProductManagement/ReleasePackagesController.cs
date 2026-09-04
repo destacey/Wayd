@@ -134,7 +134,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
                         error.ErrorMessage = $"{error.ErrorMessage} (Package: {package.Version})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 packages.Add(package);
@@ -158,7 +158,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
                             $"{error.ErrorMessage} (Package: {component.PackageVersion}, Component: {component.ProductName})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 components.Add(component.ToImportReleasePackageComponentDto());

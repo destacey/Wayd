@@ -129,7 +129,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
                         error.ErrorMessage = $"{error.ErrorMessage} (Product: {version.ProductName}, Version: {version.Number})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 versions.Add(version.ToImportVersionDto());

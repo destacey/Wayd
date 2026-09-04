@@ -144,7 +144,7 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
                         error.ErrorMessage = $"{error.ErrorMessage} (Number: {product.Number})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 products.Add(product.ToImportProductDto());

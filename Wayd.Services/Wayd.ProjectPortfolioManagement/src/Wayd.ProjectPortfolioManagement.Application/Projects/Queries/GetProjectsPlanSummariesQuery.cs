@@ -58,40 +58,45 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
                 .Select(r => (ProjectRole)(int)r)]
             : allLeadershipRoles;
 
-        // All leaf tasks across requested projects
-        var leafTasks = _ppmDbContext.ProjectTasks
-            .Where(t => request.ProjectIds.Contains(t.ProjectId))
-            .Where(t => !_ppmDbContext.ProjectTasks.Any(child => child.ParentId == t.Id));
+        // All tasks across requested projects
+        var allTasks = _ppmDbContext.ProjectTasks
+            .Where(t => request.ProjectIds.Contains(t.ProjectId));
 
-        // Apply role-based visibility to leaf tasks
-        IQueryable<Domain.Models.ProjectTask> visibleLeafTasks;
+        // Apply role-based visibility
+        IQueryable<Domain.Models.ProjectTask> visibleTasks;
 
         if (activeLeadershipRoles.Length > 0)
         {
-            var leadershipTasks = leafTasks
+            var leadershipTasks = allTasks
                 .Where(t => t.Project.Roles.Any(r => r.EmployeeId == eid && activeLeadershipRoles.Contains(r.Role)));
 
-            var assigneeTasks = leafTasks
+            var assigneeTasks = allTasks
                 .Where(t => !t.Project.Roles.Any(r => r.EmployeeId == eid && activeLeadershipRoles.Contains(r.Role)))
                 .Where(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee));
 
-            visibleLeafTasks = leadershipTasks.Concat(assigneeTasks);
+            visibleTasks = leadershipTasks.Concat(assigneeTasks);
         }
         else
         {
-            visibleLeafTasks = leafTasks
+            visibleTasks = allTasks
                 .Where(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee));
         }
 
-        // Open visible leaf tasks with a planned end date (for date-based metrics)
-        var openVisibleTasks = visibleLeafTasks
+        // The total is leaf-only: it gates whether a summary renders at all,
+        // and counting a parent alongside its children would double-count.
+        var visibleLeafTasks = visibleTasks
+            .Where(t => !_ppmDbContext.ProjectTasks.Any(child => child.ParentId == t.Id));
+
+        // The date metrics count every dated task, parents included, so they
+        // agree with the plan grid's Schedule column.
+        var openVisibleTasks = visibleTasks
             .Where(t => openStatuses.Contains(t.Status))
             .Where(t => t.PlannedDateRange != null && t.PlannedDateRange.End != null);
 
         // EF Core cannot translate GroupBy with conditional counts on owned type
         // properties (PlannedDateRange.End). Materialize the minimal projection
         // (ProjectId + EndDate) and aggregate in memory. The data set is small —
-        // only open leaf tasks with end dates across the user's visible projects.
+        // only open tasks with end dates across the user's visible projects.
         var taskData = await openVisibleTasks
             .Select(t => new { t.ProjectId, EndDate = t.PlannedDateRange!.End })
             .ToListAsync(cancellationToken);

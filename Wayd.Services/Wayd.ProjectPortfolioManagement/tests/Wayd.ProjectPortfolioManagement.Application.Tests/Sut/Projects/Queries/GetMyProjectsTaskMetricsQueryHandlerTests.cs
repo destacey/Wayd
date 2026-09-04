@@ -301,6 +301,47 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         result.Overdue.Should().Be(3);
     }
 
+    [Fact]
+    public async Task Handle_ParentTaskWithOwnDates_ShouldBeCounted()
+    {
+        // Arrange: a parent task that is overdue on its own dates, with a child
+        // that is due this week. Both carry dates, so both are counted — the
+        // plan grid's Schedule column labels each of them.
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
+
+        // The parent's id is fixed up front so the child can point at it —
+        // WithTasks generates in order, but the callback runs before the
+        // generated task is available to read an id from.
+        var parentId = Guid.NewGuid();
+        var tasks = project.WithTasks(2, (faker, i) =>
+        {
+            if (i == 1)
+            {
+                faker.WithId(parentId)
+                    .WithStatus(TaskStatus.InProgress)
+                    .WithPlannedDateRange(OverdueDateRange());
+            }
+            else
+            {
+                faker.WithStatus(TaskStatus.NotStarted)
+                    .WithParentId(parentId)
+                    .WithPlannedDateRange(DueThisWeekDateRange());
+            }
+        });
+
+        _dbContext.AddProject(project);
+        _dbContext.AddProjectTasks(tasks);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetMyProjectsTaskMetricsQuery(),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Overdue.Should().Be(1);
+        result.DueThisWeek.Should().Be(1);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

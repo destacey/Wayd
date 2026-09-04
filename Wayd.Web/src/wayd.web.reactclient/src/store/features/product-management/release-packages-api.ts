@@ -92,6 +92,26 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
+    // Two files: the packages and their manifest lines. Both are required — a package cannot be
+    // assembled without a manifest.
+    importReleasePackages: builder.mutation<
+      void,
+      { file: File; manifestFile: File }
+    >({
+      queryFn: async ({ file, manifestFile }) => {
+        try {
+          const data = await getReleasePackagesClient().import(
+            { data: file, fileName: file.name },
+            { data: manifestFile, fileName: manifestFile.name },
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [{ type: QueryTags.ReleasePackage, id: 'LIST' }],
+    }),
     assembleReleasePackage: builder.mutation<
       ObjectIdAndKey,
       AssembleReleasePackageRequest
@@ -165,6 +185,7 @@ export const {
   useGetReleasePackagesQuery,
   useGetReleasePackageQuery,
   useGetReleasePackageStatusHistoryQuery,
+  useImportReleasePackagesMutation,
   useAssembleReleasePackageMutation,
   useSetReleasePackageManifestMutation,
   useMarkReleasePackageReleasedMutation,

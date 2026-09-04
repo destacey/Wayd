@@ -6,17 +6,24 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetVersionsQuery } from '@/src/store/features/product-management/versions-api'
-import { Button } from 'antd'
+import { Button, Space } from 'antd'
 import { FC, useEffect, useState } from 'react'
-import { PlanVersionForm, VersionsGrid } from './_components'
+import {
+  ImportVersionsForm,
+  PlanVersionForm,
+  VersionsGrid,
+} from './_components'
 
 const VersionsPage: FC = () => {
   useDocumentTitle('Versions')
   const [openPlanVersionForm, setOpenPlanVersionForm] = useState<boolean>(false)
+  const [openImportVersionsForm, setOpenImportVersionsForm] =
+    useState<boolean>(false)
   const messageApi = useMessage()
 
   const { hasPermissionClaim } = useAuth()
   const canCreateVersion = hasPermissionClaim('Permissions.Delivery.Create')
+  const canImportVersions = hasPermissionClaim('Permissions.Delivery.Import')
 
   const {
     data: versionData,
@@ -32,13 +39,30 @@ const VersionsPage: FC = () => {
     }
   }, [error, messageApi])
 
-  const actions = !canCreateVersion ? null : (
-    <Button onClick={() => setOpenPlanVersionForm(true)}>Add Version</Button>
-  )
+  const actions =
+    !canCreateVersion && !canImportVersions ? null : (
+      <Space>
+        {canImportVersions && (
+          <Button onClick={() => setOpenImportVersionsForm(true)}>Import</Button>
+        )}
+        {canCreateVersion && (
+          <Button onClick={() => setOpenPlanVersionForm(true)}>
+            Add Version
+          </Button>
+        )}
+      </Space>
+    )
 
   const onPlanVersionFormClosed = (wasPlanned: boolean) => {
     setOpenPlanVersionForm(false)
     if (wasPlanned) {
+      refetch()
+    }
+  }
+
+  const onImportVersionsFormClosed = (wasImported: boolean) => {
+    setOpenImportVersionsForm(false)
+    if (wasImported) {
       refetch()
     }
   }
@@ -52,6 +76,12 @@ const VersionsPage: FC = () => {
         refetch={refetch}
         persistStateKey="product-management-versions"
       />
+      {openImportVersionsForm && (
+        <ImportVersionsForm
+          onFormComplete={() => onImportVersionsFormClosed(true)}
+          onFormCancel={() => onImportVersionsFormClosed(false)}
+        />
+      )}
       {openPlanVersionForm && (
         <PlanVersionForm
           onFormComplete={() => onPlanVersionFormClosed(true)}

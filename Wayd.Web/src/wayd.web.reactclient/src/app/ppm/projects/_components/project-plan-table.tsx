@@ -1054,6 +1054,7 @@ const ProjectPlanTable = ({
       {openEditStageForm && selectedStageId && (
         <EditProjectStageForm
           projectId={projectId}
+          projectKey={projectKey}
           stageId={selectedStageId}
           onFormComplete={() => {
             setOpenEditStageForm(false)

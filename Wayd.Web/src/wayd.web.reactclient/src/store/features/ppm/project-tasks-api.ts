@@ -22,6 +22,25 @@ interface GetProjectTasksParams {
   parentId?: string
 }
 
+/**
+ * The cache entries a task mutation has to refresh.
+ *
+ * The plan summaries — the Schedule counts on the project page and the metric
+ * cards on the dashboard — are separate queries from the plan tree, so a task's
+ * dates or status changing has to invalidate them explicitly. Miss one and
+ * nothing errors: the grid updates and the counts beside it silently disagree.
+ *
+ * The untyped ProjectPlanTree entry catches the multi-project summary, which
+ * publishes a tag per project id rather than for the one being edited.
+ */
+export const projectTaskMutationTags = (projectIdOrKey: string) => [
+  { type: QueryTags.ProjectTask, id: `LIST-${projectIdOrKey}` },
+  { type: QueryTags.ProjectTaskTree, id: `TREE-${projectIdOrKey}` },
+  { type: QueryTags.ProjectPlanTree, id: projectIdOrKey },
+  { type: QueryTags.ProjectPlanTree },
+  { type: QueryTags.Project, id: 'MY_TASK_METRICS' },
+]
+
 export const projectTasksApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getProjectTasks: builder.query<ProjectTaskListDto[], GetProjectTasksParams>(
@@ -82,10 +101,8 @@ export const projectTasksApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { projectIdOrKey }) => [
-        { type: QueryTags.ProjectTask, id: `LIST-${projectIdOrKey}` },
-        { type: QueryTags.ProjectTaskTree, id: `TREE-${projectIdOrKey}` },
-      ],
+      invalidatesTags: (result, error, { projectIdOrKey }) =>
+        projectTaskMutationTags(projectIdOrKey),
     }),
 
     updateProjectTask: builder.mutation<
@@ -110,9 +127,8 @@ export const projectTasksApi = apiSlice.injectEndpoints({
         }
       },
       invalidatesTags: (result, error, { projectIdOrKey, cacheKey }) => [
-        { type: QueryTags.ProjectTask, id: `LIST-${projectIdOrKey}` },
+        ...projectTaskMutationTags(projectIdOrKey),
         { type: QueryTags.ProjectTask, id: cacheKey },
-        { type: QueryTags.ProjectTaskTree, id: `TREE-${projectIdOrKey}` },
       ],
     }),
 
@@ -176,9 +192,8 @@ export const projectTasksApi = apiSlice.injectEndpoints({
         }
       },
       invalidatesTags: (_result, _error, { projectIdOrKey, cacheKey }) => [
-        { type: QueryTags.ProjectTask, id: `LIST-${projectIdOrKey}` },
+        ...projectTaskMutationTags(projectIdOrKey),
         { type: QueryTags.ProjectTask, id: cacheKey },
-        { type: QueryTags.ProjectTaskTree, id: `TREE-${projectIdOrKey}` },
       ],
     }),
 
@@ -198,10 +213,8 @@ export const projectTasksApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { projectIdOrKey }) => [
-        { type: QueryTags.ProjectTask, id: `LIST-${projectIdOrKey}` },
-        { type: QueryTags.ProjectTaskTree, id: `TREE-${projectIdOrKey}` },
-      ],
+      invalidatesTags: (result, error, { projectIdOrKey }) =>
+        projectTaskMutationTags(projectIdOrKey),
     }),
 
     updateProjectTaskPlacement: builder.mutation<
@@ -225,10 +238,8 @@ export const projectTasksApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { projectIdOrKey }) => [
-        { type: QueryTags.ProjectTask, id: `LIST-${projectIdOrKey}` },
-        { type: QueryTags.ProjectTaskTree, id: `TREE-${projectIdOrKey}` },
-      ],
+      invalidatesTags: (result, error, { projectIdOrKey }) =>
+        projectTaskMutationTags(projectIdOrKey),
     }),
 
     getCriticalPath: builder.query<string[], { projectIdOrKey: string }>({

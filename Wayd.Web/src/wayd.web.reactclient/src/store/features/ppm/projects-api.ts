@@ -449,6 +449,8 @@ export const projectsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { projectId, projectKey }) => {
         return [
           { type: QueryTags.ProjectPlanTree, id: projectKey },
+          { type: QueryTags.ProjectPlanTree },
+          { type: QueryTags.Project, id: 'MY_TASK_METRICS' },
           { type: QueryTags.Project, id: 'LIST' },
           { type: QueryTags.Project, id: projectId },
           { type: QueryTags.Project, id: projectKey },

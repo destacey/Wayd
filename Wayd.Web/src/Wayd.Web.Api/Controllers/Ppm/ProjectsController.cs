@@ -137,7 +137,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                         error.ErrorMessage = $"{error.ErrorMessage} (Key: {project.Key})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 projects.Add(project.ToImportProjectDto());
@@ -186,7 +186,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                         error.ErrorMessage = $"{error.ErrorMessage} (Project: {task.ProjectKey}, Task: {task.Name})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 tasks.Add(task.ToImportProjectTaskDto());
@@ -236,7 +236,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                         error.ErrorMessage = $"{error.ErrorMessage} (Project: {stage.ProjectKey}, Stage: {stage.StageName})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 stages.Add(stage.ToImportProjectStageDto());

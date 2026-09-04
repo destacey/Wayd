@@ -100,7 +100,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
                         error.ErrorMessage = $"{error.ErrorMessage} (Name: {portfolio.Name})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 portfolios.Add(portfolio.ToImportProjectPortfolioDto());
@@ -150,7 +150,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
                         error.ErrorMessage = $"{error.ErrorMessage} (Name: {item.Name})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 items.Add(item.ToFinalizePpmItemDto());

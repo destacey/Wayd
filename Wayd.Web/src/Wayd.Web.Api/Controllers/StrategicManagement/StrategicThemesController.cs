@@ -86,7 +86,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
                         error.ErrorMessage = $"{error.ErrorMessage} (Name: {theme.Name})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 themes.Add(theme.ToImportStrategicThemeDto());

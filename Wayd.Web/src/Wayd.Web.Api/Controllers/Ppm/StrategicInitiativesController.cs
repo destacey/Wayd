@@ -97,7 +97,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
                         error.ErrorMessage = $"{error.ErrorMessage} (Name: {initiative.Name})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 initiatives.Add(initiative.ToImportStrategicInitiativeDto());
@@ -122,7 +122,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
                             error.ErrorMessage = $"{error.ErrorMessage} (Strategic Initiative: {kpi.StrategicInitiativeName}, KPI: {kpi.Name})";
                             ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                         }
-                        return UnprocessableEntity(validationResults);
+                        return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                     }
 
                     kpis.Add(kpi.ToImportStrategicInitiativeKpiDto());

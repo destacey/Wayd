@@ -96,7 +96,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
                         error.ErrorMessage = $"{error.ErrorMessage} (Name: {program.Name})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 programs.Add(program.ToImportProgramDto());

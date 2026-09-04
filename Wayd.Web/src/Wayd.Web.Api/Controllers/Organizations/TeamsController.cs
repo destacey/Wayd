@@ -91,7 +91,7 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
                         error.ErrorMessage = $"{error.ErrorMessage} (Team Code: {team.Code})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 teams.Add(team.ToImportTeamDto());
@@ -136,7 +136,7 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
                         error.ErrorMessage = $"{error.ErrorMessage} (Team Code: {member.TeamCode}, Employee Number: {member.EmployeeNumber})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 members.Add(member.ToImportTeamMemberDto());
@@ -181,7 +181,7 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
                         error.ErrorMessage = $"{error.ErrorMessage} (Child: {membership.ChildCode}, Parent: {membership.ParentCode})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 memberships.Add(membership.ToImportTeamMembershipDto());

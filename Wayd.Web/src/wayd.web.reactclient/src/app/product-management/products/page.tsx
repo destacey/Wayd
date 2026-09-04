@@ -7,10 +7,14 @@ import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { ClusterOutlined, MenuOutlined } from '@ant-design/icons'
-import { Button } from 'antd'
+import { Button, Space } from 'antd'
 import Segmented, { SegmentedLabeledOption } from 'antd/es/segmented'
 import { FC, useEffect, useState } from 'react'
-import { CreateProductForm, ProductsGrid } from './_components'
+import {
+  CreateProductForm,
+  ImportProductsForm,
+  ProductsGrid,
+} from './_components'
 
 type ProductsView = 'Tree' | 'List'
 
@@ -29,12 +33,15 @@ const ProductsPage: FC = () => {
   useDocumentTitle('Products')
   const [openCreateProductForm, setOpenCreateProductForm] =
     useState<boolean>(false)
+  const [openImportProductsForm, setOpenImportProductsForm] =
+    useState<boolean>(false)
   // Tree by default: products are a hierarchy, and a flat list hides what a component is part of.
   const [currentView, setCurrentView] = useState<ProductsView>('Tree')
   const messageApi = useMessage()
 
   const { hasPermissionClaim } = useAuth()
   const canCreateProduct = hasPermissionClaim('Permissions.Products.Create')
+  const canImportProducts = hasPermissionClaim('Permissions.Products.Import')
 
   const {
     data: productData,
@@ -58,15 +65,32 @@ const ProductsPage: FC = () => {
     />
   )
 
-  const actions = !canCreateProduct ? null : (
-    <Button onClick={() => setOpenCreateProductForm(true)}>
-      Create Product
-    </Button>
-  )
+  const actions =
+    !canCreateProduct && !canImportProducts ? null : (
+      <Space>
+        {canImportProducts && (
+          <Button onClick={() => setOpenImportProductsForm(true)}>
+            Import
+          </Button>
+        )}
+        {canCreateProduct && (
+          <Button onClick={() => setOpenCreateProductForm(true)}>
+            Create Product
+          </Button>
+        )}
+      </Space>
+    )
 
   const onCreateProductFormClosed = (wasCreated: boolean) => {
     setOpenCreateProductForm(false)
     if (wasCreated) {
+      refetch()
+    }
+  }
+
+  const onImportProductsFormClosed = (wasImported: boolean) => {
+    setOpenImportProductsForm(false)
+    if (wasImported) {
       refetch()
     }
   }
@@ -87,6 +111,12 @@ const ProductsPage: FC = () => {
             : 'product-management-products-list'
         }
       />
+      {openImportProductsForm && (
+        <ImportProductsForm
+          onFormComplete={() => onImportProductsFormClosed(true)}
+          onFormCancel={() => onImportProductsFormClosed(false)}
+        />
+      )}
       {openCreateProductForm && (
         <CreateProductForm
           onFormComplete={() => onCreateProductFormClosed(true)}

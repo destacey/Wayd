@@ -118,7 +118,7 @@ public class RisksController : ControllerBase
                             ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                         }
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
                 else
                 {

@@ -98,6 +98,24 @@ export const productsApi = apiSlice.injectEndpoints({
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
+    // The generated client takes a FileParameter, so the caller hands over the browser File and
+    // its name travels with it.
+    importProducts: builder.mutation<void, File>({
+      queryFn: async (file) => {
+        try {
+          const data = await getProductsClient().import({
+            data: file,
+            fileName: file.name,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // An import writes the whole tree at once, so the list is refetched rather than patched.
+      invalidatesTags: () => [{ type: QueryTags.Product, id: 'LIST' }],
+    }),
     createProduct: builder.mutation<ObjectIdAndKey, CreateProductRequest>({
       queryFn: async (request) => {
         try {
@@ -254,6 +272,7 @@ export const {
   useGetProductQuery,
   useGetProductStatusOptionsQuery,
   useGetProductStatusHistoryQuery,
+  useImportProductsMutation,
   useCreateProductMutation,
   useUpdateProductMutation,
   useReparentProductMutation,

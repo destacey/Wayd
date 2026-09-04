@@ -390,6 +390,7 @@ public static class ApplicationPermissions
         new ("Create Products", ApplicationAction.Create, ApplicationResource.Products, ProductManagementCategory),
         new ("Update Products", ApplicationAction.Update, ApplicationResource.Products, ProductManagementCategory),
         new ("Delete Products", ApplicationAction.Delete, ApplicationResource.Products, ProductManagementCategory),
+        new ("Import Products", ApplicationAction.Import, ApplicationResource.Products, ProductManagementCategory),
 
         new ("View Product Types", ApplicationAction.View, ApplicationResource.ProductTypes, ProductManagementCategory),
         new ("Create Product Types", ApplicationAction.Create, ApplicationResource.ProductTypes, ProductManagementCategory),
@@ -402,10 +403,12 @@ public static class ApplicationPermissions
         new ("View Delivery", ApplicationAction.View, ApplicationResource.Delivery, DeliveryCategory),
         new ("Create Delivery", ApplicationAction.Create, ApplicationResource.Delivery, DeliveryCategory),
         new ("Update Delivery", ApplicationAction.Update, ApplicationResource.Delivery, DeliveryCategory),
+        new ("Import Delivery", ApplicationAction.Import, ApplicationResource.Delivery, DeliveryCategory),
 
         new ("View Releases", ApplicationAction.View, ApplicationResource.Releases, DeliveryCategory),
         new ("Create Releases", ApplicationAction.Create, ApplicationResource.Releases, DeliveryCategory),
         new ("Update Releases", ApplicationAction.Update, ApplicationResource.Releases, DeliveryCategory),
+        new ("Import Releases", ApplicationAction.Import, ApplicationResource.Releases, DeliveryCategory),
 
         new ("View Deployment Environments", ApplicationAction.View, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Create Deployment Environments", ApplicationAction.Create, ApplicationResource.DeploymentEnvironments, DeliveryCategory),

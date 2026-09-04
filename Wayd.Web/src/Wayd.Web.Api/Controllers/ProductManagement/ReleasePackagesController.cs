@@ -1,4 +1,5 @@
-﻿using Microsoft.FeatureManagement.Mvc;
+﻿using CsvHelper;
+using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
@@ -24,9 +25,10 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
+public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
@@ -101,6 +103,105 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetReleasePackage), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Delivery)]
+    [OpenApiOperation(
+        "Import release packages from a csv file.",
+        "Takes two files: one row per package, and one row per manifest line pointing back at its package by version. Both are required — a package cannot be assembled without a manifest.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import(
+        [FromForm] IFormFile file,
+        [FromForm] IFormFile manifestFile,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedPackages = _csvService.ReadCsv<ImportReleasePackageRequest>(file.OpenReadStream());
+
+            List<ImportReleasePackageRequest> packages = [];
+            var validator = new ImportReleasePackageRequestValidator();
+            foreach (var package in importedPackages)
+            {
+                var validationResults = await validator.ValidateAsync(package, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Package: {package.Version})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                packages.Add(package);
+            }
+
+            if (packages.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No release packages imported.", HttpContext));
+
+            var importedComponents = _csvService.ReadCsv<ImportReleasePackageComponentRequest>(manifestFile.OpenReadStream());
+
+            List<ImportReleasePackageComponentDto> components = [];
+            var componentValidator = new ImportReleasePackageComponentRequestValidator();
+            foreach (var component in importedComponents)
+            {
+                var validationResults = await componentValidator.ValidateAsync(component, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage =
+                            $"{error.ErrorMessage} (Package: {component.PackageVersion}, Component: {component.ProductName})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                components.Add(component.ToImportReleasePackageComponentDto());
+            }
+
+            // Every manifest line must find its package. A line naming one that is not in the package
+            // file is a mistyped version rather than a line to drop, so it fails the batch.
+            var packageVersions = packages
+                .Select(p => p.Version.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var orphaned = components
+                .Select(c => c.PackageVersion.Trim())
+                .Where(v => !packageVersions.Contains(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (orphaned.Count > 0)
+            {
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                    $"The following manifest lines name a package that is not in the import: {string.Join(", ", orphaned.Select(v => $"'{v}'"))}.",
+                    HttpContext));
+            }
+
+            var componentsByPackage = components
+                .GroupBy(c => c.PackageVersion.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => (IReadOnlyList<ImportReleasePackageComponentDto>)[.. g], StringComparer.OrdinalIgnoreCase);
+
+            var dtos = packages
+                .Select(p => p.ToImportReleasePackageDto(
+                    componentsByPackage.GetValueOrDefault(p.Version.Trim(), [])))
+                .ToList();
+
+            var result = await _dispatcher.Send(new ImportReleasePackagesCommand(dtos), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPut("{id}/manifest")]

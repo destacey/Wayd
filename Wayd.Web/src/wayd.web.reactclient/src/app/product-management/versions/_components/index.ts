@@ -1,5 +1,7 @@
 export { default as VersionsGrid } from './versions-grid'
 export type { VersionsGridProps } from './versions-grid'
+export { default as ImportVersionsForm } from './import-versions-form'
+export type { ImportVersionsFormProps } from './import-versions-form'
 export { default as PlanVersionForm } from './plan-version-form'
 export type { PlanVersionFormProps } from './plan-version-form'
 export { default as EditVersionForm } from './edit-version-form'

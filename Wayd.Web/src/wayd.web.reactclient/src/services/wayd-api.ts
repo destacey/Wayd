@@ -4498,32 +4498,17 @@ export class StrategicThemesClient {
 
     /**
      * Import strategic themes from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/strategic-management/strategic-themes/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -6991,6 +6976,75 @@ export class ProductsClient {
     }
 
     /**
+     * Import products from a csv file.
+     * @param file (optional) 
+     */
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/import";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Update a product.
      */
     update(id: string, request: UpdateProductRequest, cancelToken?: CancelToken): Promise<void> {
@@ -8712,6 +8766,80 @@ export class ReleasePackagesClient {
     }
 
     /**
+     * Import release packages from a csv file.
+     * @param file (optional) 
+     * @param manifestFile (optional) 
+     */
+    import(file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/import";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+        if (manifestFile === null || manifestFile === undefined)
+            throw new globalThis.Error("The parameter 'manifestFile' cannot be null.");
+        else
+            content_.append("manifestFile", manifestFile.data, manifestFile.fileName ? manifestFile.fileName : "manifestFile");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Replace a package's manifest.
      */
     setManifest(id: string, request: SetReleasePackageManifestRequest, cancelToken?: CancelToken): Promise<void> {
@@ -9171,6 +9299,78 @@ export class ReleasesClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Import releases from a csv file.
+     * @param file (optional) 
+     * @param contentsFile (optional) 
+     */
+    import(file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/releases/import";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+        if (contentsFile !== null && contentsFile !== undefined)
+            content_.append("contentsFile", contentsFile.data, contentsFile.fileName ? contentsFile.fileName : "contentsFile");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -9881,6 +10081,75 @@ export class VersionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Import versions from a csv file.
+     * @param file (optional) 
+     */
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/versions/import";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -11033,32 +11302,17 @@ export class PortfoliosClient {
 
     /**
      * Import portfolios from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -11117,32 +11371,17 @@ export class PortfoliosClient {
 
     /**
      * Finalize imported programs and portfolios from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    finalizeImport(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    finalizeImport(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/finalize/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -12359,32 +12598,17 @@ export class ProgramsClient {
 
     /**
      * Import programs from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/programs/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -14326,32 +14550,17 @@ export class ProjectsClient {
 
     /**
      * Import projects from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -14410,32 +14619,17 @@ export class ProjectsClient {
 
     /**
      * Import project tasks from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    importTasks(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    importTasks(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/tasks/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -14494,32 +14688,17 @@ export class ProjectsClient {
 
     /**
      * Import project stage statuses from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    importStages(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    importStages(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/stages/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -17269,32 +17448,20 @@ export class StrategicInitiativesClient {
 
     /**
      * Import strategic initiatives from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
+     * @param kpiFile (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+        if (kpiFile !== null && kpiFile !== undefined)
+            content_.append("kpiFile", kpiFile.data, kpiFile.fileName ? kpiFile.fileName : "kpiFile");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -21088,14 +21255,9 @@ export class PlanningIntervalsClient {
 
     /**
      * Import objectives for a planning interval from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    importObjectives(id: string, contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    importObjectives(id: string, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/import";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -21103,20 +21265,10 @@ export class PlanningIntervalsClient {
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -22843,32 +22995,17 @@ export class RisksClient {
 
     /**
      * Import risks from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/risks/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -29679,32 +29816,17 @@ export class EmployeesClient {
 
     /**
      * Import employees from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/organization/employees/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -30816,32 +30938,17 @@ export class TeamsClient {
 
     /**
      * Import teams and teams of teams from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    import(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/organization/teams/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -30900,32 +31007,17 @@ export class TeamsClient {
 
     /**
      * Import team members (staffing) from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    importMembers(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    importMembers(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/organization/teams/members/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -30984,32 +31076,17 @@ export class TeamsClient {
 
     /**
      * Import the team hierarchy (parent/child team memberships) from a csv file.
-     * @param contentType (optional) 
-     * @param contentDisposition (optional) 
-     * @param headers (optional) 
-     * @param length (optional) 
-     * @param name (optional) 
-     * @param fileName (optional) 
+     * @param file (optional) 
      */
-    importTeamMemberships(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    importTeamMemberships(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/organization/teams/team-memberships/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
-        if (contentType !== null && contentType !== undefined)
-            content_.append("ContentType", contentType.toString());
-        if (contentDisposition !== null && contentDisposition !== undefined)
-            content_.append("ContentDisposition", contentDisposition.toString());
-        if (headers !== null && headers !== undefined)
-            headers.forEach(item_ => content_.append("Headers", item_.toString()));
-        if (length === null || length === undefined)
-            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
         else
-            content_.append("Length", length.toString());
-        if (name !== null && name !== undefined)
-            content_.append("Name", name.toString());
-        if (fileName !== null && fileName !== undefined)
-            content_.append("FileName", fileName.toString());
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -44528,6 +44605,11 @@ export interface StatusRemapDecisionRequest {
     fromStatusId: string;
     /** The status of the target workflow those records should land on. */
     toStatusId: string;
+}
+
+export interface FileParameter {
+    data: any;
+    fileName: string;
 }
 
 export class ApiException extends Error {

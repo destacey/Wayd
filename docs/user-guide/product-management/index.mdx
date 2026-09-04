@@ -42,7 +42,9 @@ graph TD
     PL -->|contains| P
     P -->|contains| S
     P -->|contains| A
-    S -->|releasable node| V
+    S -->|"cut against<br/>(any releasable type)"| V
+    A -->|cut against| V
+    Rel -.->|"announced under<br/>(optional, any type)"| PL
     Rel -->|announces| Pkg
     Rel -.->|announces directly| V
     V -.->|component of| Pkg
@@ -79,6 +81,7 @@ Delivery metrics reports the two measures this module can compute from what it r
 
 - **[Products](./products.mdx)** — The catalog: creating products, the tree, types, statuses, tags, moving, and external links
 - **[Delivery](./delivery.mdx)** — Releases, versions, packages, deployments, environments, and the delivery metrics computed from them
+- **[Bulk Import](./bulk-import.mdx)** — Loading the catalog from CSV through the import API
 
 ## Permissions
 
@@ -90,7 +93,10 @@ Every action in this area is granted by permission claim alone; unlike PPM, ther
 | `Permissions.Products.Create` | Add products |
 | `Permissions.Products.Update` | Edit, retype, move, tag, change status, link externally |
 | `Permissions.Products.Delete` | Remove products |
+| `Permissions.Products.Import` | [Bulk import](./bulk-import.mdx) products from CSV |
 | `Permissions.ProductTypes.*` | Manage the type list |
+| `Permissions.ProductTagCategories.*` | Manage the tag axes and the tags on them |
 | `Permissions.Delivery.*` | Manage versions, packages and deployments |
 | `Permissions.Releases.*` | Manage product releases (announcements) |
 | `Permissions.DeploymentEnvironments.*` | Manage deployment environments |
+| `Permissions.DeliveryMetrics.View` | See the delivery measures |

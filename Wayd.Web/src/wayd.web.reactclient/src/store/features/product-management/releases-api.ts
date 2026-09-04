@@ -95,6 +95,28 @@ export const releasesApi = apiSlice.injectEndpoints({
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
+    // Two files, the second optional: an empty release is a legitimate state, so a file with no
+    // contents is a valid import rather than an incomplete one.
+    importReleases: builder.mutation<
+      void,
+      { file: File; contentsFile?: File }
+    >({
+      queryFn: async ({ file, contentsFile }) => {
+        try {
+          const data = await getReleasesClient().import(
+            { data: file, fileName: file.name },
+            contentsFile
+              ? { data: contentsFile, fileName: contentsFile.name }
+              : undefined,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [{ type: QueryTags.Release, id: 'LIST' }],
+    }),
     planRelease: builder.mutation<ObjectIdAndKey, PlanReleaseRequest>({
       queryFn: async (request) => {
         try {
@@ -240,6 +262,7 @@ export const {
   useGetReleasesQuery,
   useGetReleaseQuery,
   useGetReleaseStatusHistoryQuery,
+  useImportReleasesMutation,
   usePlanReleaseMutation,
   useUpdateReleaseMutation,
   useSetReleaseContentsMutation,

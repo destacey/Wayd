@@ -67,6 +67,12 @@ internal static class ConfigureServices
 
                 document.OperationProcessors.Add(new SwaggerHeaderAttributeProcessor());
 
+                // Must run for the file uploads the import endpoints take: without it the generator
+                // describes IFormFile's properties instead of a file, and generated clients post no
+                // bytes at all.
+                document.OperationProcessors.Add(new FormFileOperationProcessor());
+                document.DocumentProcessors.Add(new FormFileDocumentProcessor());
+
                 var fluentValidationSchemaProcessor = serviceProvider.CreateScope().ServiceProvider.GetService<FluentValidationSchemaProcessor>() ?? throw new InvalidOperationException("FluentValidationSchemaProcessor is not registered");
                 document.SchemaSettings.SchemaProcessors.Add(fluentValidationSchemaProcessor);
             });

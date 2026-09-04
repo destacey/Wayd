@@ -90,6 +90,24 @@ export const versionsApi = apiSlice.injectEndpoints({
         { type: QueryTags.StatusHistory, id: arg },
       ],
     }),
+    // The generated client takes a FileParameter, so the caller hands over the browser File and its
+    // name travels with it.
+    importVersions: builder.mutation<void, File>({
+      queryFn: async (file) => {
+        try {
+          const data = await getVersionsClient().import({
+            data: file,
+            fileName: file.name,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // An import writes many versions at once, so the list is refetched rather than patched.
+      invalidatesTags: () => [{ type: QueryTags.Version, id: 'LIST' }],
+    }),
     planVersion: builder.mutation<ObjectIdAndKey, PlanVersionRequest>({
       queryFn: async (request) => {
         try {
@@ -228,6 +246,7 @@ export const {
   useGetVersionsQuery,
   useGetVersionQuery,
   useGetVersionStatusHistoryQuery,
+  useImportVersionsMutation,
   usePlanVersionMutation,
   useUpdateVersionMutation,
   useMoveVersionTargetDateMutation,

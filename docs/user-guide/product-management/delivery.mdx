@@ -31,10 +31,12 @@ graph LR
     Deployment["<b>Deployment</b><br/><i>Succeeded</i>"]
     Environment["<b>Environment</b><br/><i>prod-eu</i>"]
 
-    Product -->|"1 : N"| Version
+    Product -->|"0 : N"| Version
+    Release -.->|"0 : 1"| Product
     Release -->|"0 : N"| Package
     Release -.->|"0 : N, single artifact"| Version
     Version -.->|"may be a component of"| Package
+    Package -.->|"1 : N, manifest"| Product
     Version ==>|"XOR"| Deployment
     Package ==>|"XOR"| Deployment
     Deployment -->|"reached"| Environment
@@ -43,12 +45,17 @@ graph LR
 The two bold edges are the pair that catches people out. Exactly one of them applies to any given
 deployment.
 
+A package points at **products** as well as versions because each manifest line names the component
+product, and the version record only where one exists — a carried-forward component was often never
+cut in Wayd, so the version survives as text alone. That is also why a package can never be empty:
+its manifest is what it is.
+
 | Record | Holds | Does not hold |
 | --- | --- | --- |
 | Product | Name, type, place in the catalog tree | Any knowledge of versions |
 | Release | Its own label, target / released dates, product notes, the versions and packages it announced | A cut date — it is never cut |
 | Version | Product, version number, target / cut / released dates, engineering notes | Where it went; which package carried it |
-| Release package | Its own version, a manifest of component versions | A product of its own; an owning release |
+| Release package | Its own version, and a manifest naming a product and version per component | A product of its own; an owning release |
 | Deployment | Version *xor* package, environment, frozen category, artifact, outcome | Anything about what changed inside |
 
 :::tip Which one am I looking at?
@@ -97,7 +104,7 @@ A version describes **what was cut, never where it went**. That separation is de
 
 Version numbers are free text, because version schemes vary and imposing one would make hand-entry wrong for somebody. Wayd never parses or compares them — `4.8.2` and `2026.04` are both just labels, so versions are never sorted by number.
 
-Versions are listed with everything not yet shipped first, then those that have shipped, newest first. What is still coming is what you are usually looking for.
+Versions are listed with everything not yet shipped first, then those that have shipped, newest first. What is still coming is what you are usually looking for. "Not yet shipped" means no released date, so a withdrawn version that never shipped sorts into that first group alongside planned ones.
 
 | Status | Meaning |
 | --- | --- |
@@ -157,8 +164,8 @@ rewrite what past entries read as.
 The history is append-only, and records only status changes. Correcting a date leaves it untouched,
 which is the point of having a separate action for it.
 
-Changes made by an importer or a background process show as **System**. A change whose author is no
-longer linked to an employee record shows as **Unknown**.
+A change made by a background process shows as **System**. A change whose author is no longer linked
+to an employee record shows as **Unknown**.
 
 Viewing history needs only view access to the version.
 
@@ -352,10 +359,12 @@ Each environment carries a **category**: Development, Testing, Staging, or Produ
 Environments are also ordered into **rings**, so progressive rollout is representable.
 
 :::note Reclassifying does not rewrite history
-Each deployment freezes the category of the environment it went into, so reclassifying an environment changes where *future* deployments count and leaves past ones as they were. A staging environment promoted to production does not retroactively inflate your deployment frequency. Wayd records the reclassification as its own event rather than an ordinary edit, so the change in what gets counted from then on is traceable.
+Each deployment freezes the category of the environment it went into, so reclassifying an environment changes where *future* deployments count and leaves past ones as they were. A staging environment promoted to production does not retroactively inflate your deployment frequency. The category is changed on the ordinary Edit form, but Wayd records the change as an event of its own rather than folding it into the edit, so the change in what gets counted from then on stays traceable.
 :::
 
-Environments are managed under **Settings → Delivery → Environments**.
+Environments are managed under **Settings → Product Management → Environments**. Delivery names the
+schema and the concept rather than a separate area of the app, so environments sit under the same
+section as the catalog.
 
 ### Retiring an Environment
 
@@ -365,8 +374,8 @@ of everything that ever reached it.
 
 **Retire** takes an environment out of use. It is no longer offered as a deployment target, but the
 environment and every deployment recorded against it are kept, and those deployments keep counting
-toward the measures they already count toward. The confirmation shows how many deployments reference
-the environment first, so the consequence is visible before the action is taken.
+toward the measures they already count toward. Where any deployment references the environment, the
+retire confirmation says how many, so the consequence is visible before the action is taken.
 
 A retired environment can be **Reinstated** at any time, which puts it back in the picker.
 
@@ -443,6 +452,16 @@ Only production counts. A failure caught in staging is a failure that was *preve
 DORA's change failure rate counts changes that **degraded service** — which a deployment record cannot know. What Wayd counts is deployments recorded as failed or rolled back, which is the closest signal available without an incident feed. The two diverge in both directions: a rollback made as a precaution counts here and should not, and a bad change nobody rolled back does not count here and should. Read it as a trend in remediated deployments rather than as the DORA number, and the screen labels it that way.
 :::
 
+### Scoping Metrics to a Product
+
+Filtering the measures to one product counts **only its version deployments**. A package spans
+several products, so attributing one package deployment to any single product would count the same
+shipment once under each of them.
+
+That is the right answer for the total, but it means a product that ships exclusively inside packages
+shows no deployments at all when the measures are scoped to it. Read the unscoped figures for an
+organization that delivers mainly through packages.
+
 ### Lead Time for Changes — not yet available
 
 Needs a link from a deployment back to the change it carried, such as a commit or a work item.
@@ -452,7 +471,10 @@ Needs a link from a deployment back to the change it carried, such as a commit o
 Needs an incident record: when service degraded and when it recovered. A rollback is not a substitute, because it says a change was reverted rather than that service was restored.
 
 :::tip Combining windows
-Every metric carries its counts and totals alongside the average, so you can combine windows or scopes without average-of-averages bias.
+Every metric carries its raw counts alongside the derived figure — deployment frequency reports the
+count and the number of days, change failure rate the failed and total counts. Combine windows or
+scopes by summing those rather than by averaging the rates, which would weight a quiet week the same
+as a busy one.
 :::
 
 ## Questions This Usually Raises
@@ -531,8 +553,8 @@ drafting an announcement is not the person recording that the pipeline ran.
 
 | Record | Permission | Actions |
 | --- | --- | --- |
-| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update |
-| Releases | `Permissions.Releases.*` | View, Create, Update |
+| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update, [Import](./bulk-import.mdx#versions-import) (versions and packages) |
+| Releases | `Permissions.Releases.*` | View, Create, Update, [Import](./bulk-import.mdx#releases-import) |
 | Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update |
 | Delivery metrics | `Permissions.DeliveryMetrics.*` | View |
 
@@ -541,6 +563,19 @@ a release and a package are withdrawn, an environment is retired, and a deployme
 fact that is never removed at all — each keeps the record and its status history rather than erasing
 it. The terminal actions are all `Update`.
 
-Recording a shipment or deployment outcome — cutting, releasing, announcing, withdrawing, correcting
-dates, or marking a deployment succeeded, failed or rolled back — additionally requires your account
-to be linked to an employee record, because the change is attributed to the person who made it.
+Some actions **additionally require your account to be linked to an employee record**, because the
+change is attributed to the person who made it. The permission alone is not enough, and the refusal
+is a separate one.
+
+- **Versions** — cut, mark released, revert, withdraw, correct dates. Planning a version, editing its
+  details and moving its target date do not require the link.
+- **Releases** — every action except planning one: editing details, moving the target date and
+  setting contents all require it, as well as announcing, reverting, withdrawing and correcting dates.
+- **Packages** — mark released and withdraw. Assembling a package and editing its manifest do not
+  require the link.
+- **Deployments** — recording an outcome: succeeded, failed or rolled back. **Starting** a deployment
+  does not, so a pipeline reporting in can open a deployment without a linked account.
+- **Environments** — no action requires the link.
+
+Releases are stricter than versions here, and deliberately so: an announcement is a statement to
+customers, so every edit to one names who made it.

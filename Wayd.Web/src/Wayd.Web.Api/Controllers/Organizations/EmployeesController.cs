@@ -86,7 +86,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, IDispatche
                         error.ErrorMessage = $"{error.ErrorMessage} (Employee Number: {employee.EmployeeNumber})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
-                    return UnprocessableEntity(validationResults);
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
                 employees.Add(employee.ToImportEmployeeDto());

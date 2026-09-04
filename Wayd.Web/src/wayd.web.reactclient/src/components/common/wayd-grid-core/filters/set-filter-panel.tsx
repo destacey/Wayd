@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Button, Checkbox, Input } from 'antd'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button, Checkbox, Input, type InputRef } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 
 import styles from './set-filter-panel.module.css'
@@ -23,6 +23,11 @@ export interface SetFilterPanelProps {
   /** Current descriptor, or undefined when unfiltered (= all selected). */
   value: ColumnFilterModel | undefined
   onChange: (next: ColumnFilterModel | undefined) => void
+  /**
+   * Called after Enter commits the search. Hosts use this to close the popup;
+   * omitting it leaves the panel open (the checkbox path never closes it).
+   */
+  onCommit?: () => void
 }
 
 /**
@@ -39,8 +44,18 @@ const SetFilterPanel = ({
   labels,
   value,
   onChange,
+  onCommit,
 }: SetFilterPanelProps) => {
   const [search, setSearch] = useState('')
+
+  // Focus on mount so the user can type straight away. This relies on the host
+  // popup setting `destroyOnHidden`: antd keeps popup content mounted by
+  // default, and a kept-alive panel would focus only on the very first open
+  // (which is also why the mount-only `autoFocus` prop was not enough).
+  const searchRef = useRef<InputRef>(null)
+  useEffect(() => {
+    searchRef.current?.focus({ cursor: 'end' })
+  }, [])
 
   const labelFor = useMemo(() => {
     const map = new Map<string, string>()
@@ -87,16 +102,28 @@ const SetFilterPanel = ({
 
   const reset = () => onChange(undefined)
 
+  // Enter commits the search: the visible matches become the selection, the way
+  // Excel's "filter to what I typed" works. Searching alone only narrows the
+  // displayed list — it deliberately does not touch the descriptor, so without
+  // this the typed query has no way to reach the grid.
+  const commitSearch = () => {
+    if (!search.trim() || visibleValues.length === 0) return
+    emit(new Set(visibleValues))
+    setSearch('')
+    onCommit?.()
+  }
+
   return (
     <div className={styles.panel}>
       <Input
+        ref={searchRef}
         size="small"
         allowClear
-        autoFocus
         placeholder="Search..."
         prefix={<SearchOutlined />}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        onPressEnter={commitSearch}
         className={styles.search}
       />
 

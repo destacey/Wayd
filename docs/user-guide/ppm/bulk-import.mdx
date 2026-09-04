@@ -22,20 +22,26 @@ OpenAPI/Swagger spec served by the API.
 
 A few rules apply to every import:
 
-- **References are by natural key, not ID.** A CSV cannot carry Wayd's generated IDs, so rows reference each
-  other by human-readable keys — a project by its **Key**, everything else (portfolios, programs, themes,
-  categories, lifecycles) by **Name**, and people by **employee number**. This means a file can be authored
-  by hand without knowing any IDs.
+- **References are by natural key, not ID** — with two exceptions. A CSV cannot usually carry Wayd's
+  generated IDs, so rows reference each other by human-readable keys: a project by its **Key**, everything
+  else (portfolios, programs, themes, categories, lifecycles) by **Name**, and people by **employee
+  number**. The two [Planning imports](../planning/bulk-import.mdx) are the exceptions: they take
+  **GUIDs** for teams, people and intervals, so those files cannot be authored without looking the ids
+  up first.
 - **All-or-nothing.** If any reference cannot be resolved — a name that does not exist, a name that is
   ambiguous (matches more than one), or a duplicate within the file — the **entire import fails** with a
   message listing the offending values, and nothing is saved. This keeps a run safe to fix and re-try
   against a fresh environment.
+- **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
+  needs a value; it does not mean the column can be left out. A missing header fails the file with
+  `Header with name 'X' was not found`. Include every column and leave unused cells blank.
 - **Multi-value columns are semicolon-separated.** Columns that hold a list (role assignments, strategic
   themes, project keys) separate their values with semicolons — for example `E-1001;E-1002`. A comma would
   collide with the CSV field delimiter.
 - **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
 - **Status columns are case-insensitive** and use the same status names shown in the app (for example
   `Active`, `Completed`).
+- **A missing file returns 422**, not 400 — the file is a validation failure like any other.
 
 Imports create records **through the normal domain rules**, exactly as if you had used the app — so the same
 constraints apply (a program can only be created inside an active portfolio, a project needs a lifecycle
@@ -275,6 +281,8 @@ one of its programs is still open.
   seeds them for you, in the correct order.
 - **[Organization Bulk Import](../organizations/bulk-import.mdx)** — the equivalent imports for employees,
   teams, and staffing (run before PPM, since PPM references people and teams).
+- **[Planning Bulk Import](../planning/bulk-import.mdx)** — planning interval objectives and risks.
+- **[Product Management Bulk Import](../product-management/bulk-import.mdx)** — the product catalog.
 - **[PPM Lifecycle Rules](./index.mdx#business-rules-summary)** — the status constraints the imports respect.
 - **[Portfolios & Programs](./portfolios-programs.mdx)**, **[Projects](./projects.mdx)**,
   **[Strategic Initiatives](./strategic-initiatives.mdx)** — the features these imports populate.

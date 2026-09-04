@@ -1,0 +1,366 @@
+---
+title: Bulk Import
+description: Loading the product catalog and delivery records into Wayd from CSV via the import API.
+sidebar_position: 3
+audience: [user, agent]
+---
+
+# Bulk Import
+
+Wayd can load Product Management data in bulk from CSV files through a set of **import endpoints**. These
+are useful for standing up a catalog, migrating from another tool, or seeding realistic data. Each import
+is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a
+permission.
+
+:::info Screen or API
+Products, versions, release packages and releases each have an **Import** button on their list page,
+taking the same CSV described here. The endpoints can also be called directly — with `curl`, a script, or anything else — and their
+exact request/response shapes are in the OpenAPI/Swagger spec served by the API.
+:::
+
+## How imports work
+
+A few rules apply to every import:
+
+- **References are by natural key, not ID.** A CSV cannot carry Wayd's generated IDs, so rows reference
+  product types, statuses and tags by their human-readable names. This means a file can be authored by
+  hand without knowing any IDs.
+- **All-or-nothing.** If any reference cannot be resolved — a name that does not exist, one that is
+  inactive, or a duplicate within the file — the **entire import fails** with a message listing the
+  offending values, and nothing is saved. This keeps a run safe to fix and re-try.
+- **Every column must be present, even the optional ones.** *Required* below means the cell needs a
+  value; it does not mean the column can be left out. A missing header fails the file with
+  `Header with name 'X' was not found`. Include every column and leave unused cells blank.
+- **Multi-value columns are semicolon-separated.** A comma would collide with the CSV field delimiter.
+- **Names are matched case-insensitively** and surrounding whitespace is ignored, so `Application` and
+  ` application ` resolve to the same type.
+- **A missing file returns 422**, not 400 — the file is a validation failure like any other.
+
+Imports create records **through the normal domain rules**, exactly as if you had used the app — so the
+same constraints apply.
+
+## Import order
+
+Because records reference each other, imports must be run in dependency order:
+
+```
+Product types and tag categories (created in Settings)
+  → Products
+    → Versions
+      → Release packages
+        → Releases
+```
+
+Reference data comes first and is **not** imported. [Product types](./products.mdx#product-types) are
+seeded and managed under **Settings → Product Management**, and
+[tag categories and tags](./products.mdx#tags) under **Settings → Product Management → Product Tags**.
+Create anything the file references there first — a type or tag that does not exist, or that has been
+deactivated, fails the batch rather than being created on the fly.
+
+Each step then needs the one above it:
+
+| Import | Needs | Why |
+|---|---|---|
+| Products | Types, tags | A product's type must exist and be active. |
+| Versions | Products | A version is cut against a product named by name. |
+| Release packages | Products, versions | A manifest line names a product; where a version record exists it is linked. |
+| Releases | Packages, versions | A release announces them, and cannot announce what does not exist. |
+
+:::warning Releases are last, and their contents must have shipped
+A release marked with a `ReleasedDate` is **refused while anything it carries has not shipped**. This
+is the one cross-record rule in Product Management, and it is why releases come last.
+
+So a released release needs its versions and packages imported first **with their own released
+dates**. Importing them undated and adding the dates later leaves the release unimportable in between.
+See [announcing a release](#announcing-a-release).
+:::
+
+Unlike [PPM](../ppm/bulk-import.mdx#import-order), there is **no finalize pass**. PPM imports historical
+programs active and closes them afterwards, because a program only accepts projects while active.
+Nothing here works that way: a version can be
+[marked released without ever being cut](#the-dates-decide-the-status), and a package or release simply
+carries its released date. Every record reaches its final state in one pass.
+
+## Permissions
+
+| Import | Permission |
+|---|---|
+| Products | Import Products |
+| Versions | Import Delivery |
+| Release packages | Import Delivery |
+| Releases | Import Releases |
+
+---
+
+## Products import
+
+`POST /api/product-management/products/import`
+
+Loads the [product catalog](./products.mdx) — the whole tree in one file, parents and children together.
+
+| Column | Required | Notes |
+|---|---|---|
+| `Number` | Yes | The row's identifier **within this file only**. Never stored. Max 64 chars. |
+| `Name` | Yes | Max 128 chars. Need not be unique — see [names repeat](#names-repeat-numbers-do-not). |
+| `Description` | No | Max 1024 chars. |
+| `ProductTypeName` | Yes | The [type](./products.mdx#product-types) by name. Must exist and be active. |
+| `ParentNumber` | No | The `Number` of another row in this file. Empty makes the product a root. |
+| `ExternalId` | No | The product's identifier in the system that owns it. Max 256 chars. |
+| `Status` | No | A [product status](./products.mdx#product-status) by name. Defaults to the workflow's initial status. |
+| `Tags` | No | Semicolon-separated `Category\|Tag` pairs — see [tags](#tags). |
+
+### Names repeat, numbers do not
+
+`Number` exists because a product tree legitimately holds the same name in more than one place. A catalog
+with `Platform A → API` and `Platform B → API` is perfectly ordinary, so names cannot identify a row.
+
+Each row therefore carries its own number, and children point at their parent's:
+
+```csv
+Number,Name,Description,ProductTypeName,ParentNumber,ExternalId,Status,Tags
+1,Platform A,,Platform,,,,
+2,Platform B,,Platform,,,,
+3,API,,Service,1,,,
+4,API,,Service,2,,,
+```
+
+Every column appears even where it carries nothing, because a missing header fails the file.
+
+The number is a label for this file and nothing else. It is not stored, it does not appear in the app, and
+it has no relationship to the product **Key** Wayd assigns. Any text works — `1`, `PL-1`, `a.2` — as long
+as it is unique within the file.
+
+### Rows can be in any order
+
+A child may appear above its parent. Wayd orders the batch so every parent is created first, so a file
+exported from somewhere else can be imported as-is without sorting it.
+
+A parent reference that points in a circle — two rows naming each other, directly or through a chain —
+fails the batch.
+
+### Parents must be in the same file
+
+`ParentNumber` can only name another row in the file being imported. A product **already in the catalog**
+cannot be named as a parent.
+
+This import is for standing a catalog up, not for grafting single products onto an existing one. To add a
+product beneath one that already exists, use **Add Product** on that product's page, which is quicker than
+authoring a file for it.
+
+### Tags
+
+The `Tags` column holds semicolon-separated pairs, each naming the axis and the tag:
+
+```
+Platform|ios;Platform|android;Compliance|pci-scope
+```
+
+The axis travels with each tag because a tag name is unique only **within** its axis — two axes can each
+hold a `gold`, so `gold` alone identifies nothing. This is also how tags read in the app, where they
+display as `Category | tag`.
+
+Both halves must exist and be active. An unknown category, an unknown tag on that category, or an inactive
+one fails the batch.
+
+:::note An axis that allows one value
+Where a [category allows only one tag](./products.mdx#tags), a row naming two from that axis keeps the
+**last** one. The domain treats a second tag on a single-value axis as a correction rather than an error —
+"this is a mobile app, not a web app" — and the import inherits that behaviour rather than refusing.
+:::
+
+### Status
+
+`Status` names a status from the product workflow, matched case-insensitively. A status belonging to some
+other workflow is refused, so a typo cannot quietly place a product in an unrelated state.
+
+Leave the cell **blank** for the workflow's initial status, which is what a product created in the app
+starts in. The column itself still has to be there.
+
+### Attribution
+
+Every product an import creates is attributed to **Import**, carrying the account that ran it. That is
+distinct from a person creating products one at a time, so a status history reads as *the import did this*
+rather than naming someone who never touched those rows individually. See
+[status history](./products.mdx#status-history).
+
+### Running it twice
+
+The import is **additive** and does not check whether a product of the same name already exists — names
+legitimately repeat in a tree, so it cannot. Running the same file twice creates a second copy of
+everything in it.
+
+## Versions import
+
+`POST /api/product-management/versions/import`
+
+Loads [versions](./delivery.mdx#versions) against products that already exist. Import the
+[catalog](#products-import) first — a version names its product by name, and an unknown one fails the
+batch.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ProductName` | Yes | The product this version was cut against, by name. Its [type must be releasable](./products.mdx#product-types). |
+| `Number` | Yes | The version as you write it — `4.8.2`, `2026.04`. Free text, never parsed. Max 64 chars. |
+| `Name` | No | An optional human name. Max 128 chars. |
+| `TargetDate` | No | `yyyy-MM-dd`. When it is expected to ship. |
+| `CutDate` | No | `yyyy-MM-dd`. Supplying it makes the version **Ready**. |
+| `ReleasedDate` | No | `yyyy-MM-dd`. Supplying it makes the version **Released**. Cannot be before `CutDate`. |
+| `Sequence` | No | A manual ordering override, for backports where chronology misleads. |
+| `Notes` | No | Engineering notes for this version. |
+
+### The dates decide the status
+
+There is no status column. What you supply decides where each version ends up, and Wayd applies the
+same steps in the same order it would have if you had recorded each one as it happened:
+
+| Dates supplied | Resulting status |
+|---|---|
+| Neither | Planned |
+| `CutDate` only | Ready |
+| `CutDate` and `ReleasedDate` | Released |
+| `ReleasedDate` only | Released |
+
+That last row is deliberate. **A version can be marked released without ever having been cut** — a
+shipment recorded after the fact often has no record of when scope froze, and demanding one would make
+historical import impossible.
+
+Because the transitions are replayed rather than a final status assigned, an imported version has the
+same [status history](./delivery.mdx#version-status-history) a hand-entered one would.
+
+### A version is identified by its product and its number
+
+Version strings are only meaningful within one product, so two products may each hold a `1.0.0` and
+both import fine. What is refused is the same number twice **for one product**, whether within the
+file or against a version that already exists — that is a mistake rather than an ordinary repeat, so
+re-running a file is refused instead of silently duplicating shipments.
+
+This is the opposite of [products](#running-it-twice), where names legitimately repeat and no such
+check is possible.
+
+## Release packages import
+
+`POST /api/product-management/release-packages/import`
+
+Loads [release packages](./delivery.mdx#release-packages) and their manifests. This import takes **two
+files**, because a package cannot exist without a manifest — an empty one says nothing about what
+shipped, and the domain refuses it.
+
+Post them together as `file` (the packages) and `manifestFile` (the lines). In the app both dropzones
+appear in the same dialog.
+
+### The packages file
+
+| Column | Required | Notes |
+|---|---|---|
+| `Version` | Yes | The package's own version — `WAYD-2026.09`. Free text, never parsed. Max 64 chars. |
+| `Name` | No | An optional human name. Max 128 chars. |
+| `TargetDate` | No | `yyyy-MM-dd`. When it is expected to ship. |
+| `ReleasedDate` | No | `yyyy-MM-dd`. Supplying it makes the package **Released**. |
+
+A package has no product — it spans them — so its version is its only identifying field, and a version
+repeated within the file or already in Wayd fails the batch.
+
+There is no cut step: a package is assembled and then ships, so a row with no released date is
+assembled and one with a released date has shipped.
+
+### The manifest file
+
+| Column | Required | Notes |
+|---|---|---|
+| `PackageVersion` | Yes | The package this line belongs to, matching a `Version` in the first file. |
+| `ProductName` | Yes | The component product, by name. |
+| `VersionNumber` | Yes | The component's version in this package. Free text. Max 64 chars. |
+| `Kind` | Yes | `Changed` or `CarriedForward` (case-insensitive). |
+
+Every line must find its package. A line naming one that is not in the packages file is a mistyped
+version rather than a line to skip, so it fails the batch. A component may appear only **once** per
+manifest — one component cannot ship at two versions in one box.
+
+### An unmatched version string is not an error
+
+`VersionNumber` is recorded as **text**, and linked to a [version](#versions-import) record only where
+one exists for that product. Where none does, the string stands on its own.
+
+That is deliberate rather than a gap. A carried-forward component was often already running and was
+never cut in Wayd at all, and recording the string regardless is what lets a manifest answer *what was
+running on this date* for every component rather than only the changed ones.
+
+Because a version number is only unique within its product, the match is made on **both** — two
+products may each hold a `4.10.0`, and each line links to its own.
+
+## Releases import
+
+`POST /api/product-management/releases/import`
+
+Loads [releases](./delivery.mdx#releases) — what was announced to customers, as distinct from what was
+built. Takes **two files**: `file` for the releases, and an optional `contentsFile` for what each one
+announces.
+
+### The releases file
+
+| Column | Required | Notes |
+|---|---|---|
+| `Version` | Yes | The release as you announce it — `2026.07`. Free text, never parsed. Max 64 chars. |
+| `Name` | No | An optional human name. Max 128 chars. |
+| `ProductName` | No | The product it is announced under, by name. Usually a product line. |
+| `TargetDate` | No | `yyyy-MM-dd`. When it is expected to be announced. |
+| `ReleasedDate` | No | `yyyy-MM-dd`. Supplying it announces the release — see [below](#announcing-a-release). |
+| `Sequence` | No | A manual ordering override. |
+| `Notes` | No | Product notes, written for customers. |
+
+`ProductName` is **optional by design**. A release spanning product lines has no single owner, so
+requiring one would force a misleading choice — and a release identified partly by product would be
+unresolvable for exactly the releases the model exists to allow. A release is therefore keyed on
+`Version` alone.
+
+### The contents file
+
+Optional. Omit it entirely for releases that announce nothing — **an empty release is a legitimate
+state**, not a draft: a repackaging or a pricing change is announced with nothing deployed.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ReleaseVersion` | Yes | The release this row belongs to, matching a `Version` in the first file. |
+| `Kind` | Yes | `Package` or `Version` (case-insensitive). |
+| `PackageVersion` | Conditional | Required when `Kind` is `Package`. The package's version. |
+| `ProductName` | Conditional | Required when `Kind` is `Version`. |
+| `VersionNumber` | Conditional | Required when `Kind` is `Version`. |
+
+Both routes share one file because the rule below spans them. A version carried directly needs its
+product as well as its number, since a number is only unique within one product.
+
+:::warning A version is announced once, by one route
+A version shipping inside one of the release's packages **cannot also be carried directly**. Otherwise
+one shipment would be announced twice and *what did 2026.07 contain* would have two answers.
+:::
+
+Unlike a [package manifest](#the-manifest-file), where an unmatched version string is the
+carried-forward case and perfectly legitimate, a release's contents **must resolve**. A release
+announcing something Wayd does not hold is a mistyped reference rather than a record of history, so it
+fails the batch.
+
+### Announcing a release
+
+Supplying a `ReleasedDate` announces the release — and is **refused while anything it carries has not
+shipped**. Telling customers that `2026.07` is out while a version inside it has not gone anywhere is
+the one claim a release can make that its own contents contradict.
+
+The import refuses the batch rather than quietly importing the release unannounced, and the error names
+what is holding it back:
+
+```
+Release '2026.07' is marked as released but carries content that has not shipped:
+'Wayd API 4.12.0'. Import those with a released date first, or leave this release's
+ReleasedDate empty.
+```
+
+That is the practical reason releases come [last](#import-order), and why the versions and packages
+they carry need their own released dates in the same run.
+
+## Related
+
+- **[Products](./products.mdx)** — the catalog these imports populate.
+- **[Delivery](./delivery.mdx)** — versions, releases, packages and the metrics computed from them.
+- **[PPM Bulk Import](../ppm/bulk-import.mdx)** — the equivalent imports for portfolios, programs and projects.
+- **[Organization Bulk Import](../organizations/bulk-import.mdx)** — employees, teams and staffing.
+- **[Planning Bulk Import](../planning/bulk-import.mdx)** — planning interval objectives and risks.

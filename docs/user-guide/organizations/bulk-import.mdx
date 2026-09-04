@@ -29,7 +29,11 @@ A few rules apply to every import:
 - **All-or-nothing.** If any reference cannot be resolved — an unknown employee number, team code, or role
   name, or an ambiguous/duplicate value — the **entire import fails** with a message listing the offending
   values, and nothing is saved. This keeps a run safe to fix and re-try.
+- **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
+  needs a value; it does not mean the column can be left out. A missing header fails the file with
+  `Header with name 'X' was not found`. Include every column and leave unused cells blank.
 - **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
+- **A missing file returns 422**, not 400 — the file is a validation failure like any other.
 - **Boolean and status columns are case-insensitive** and, where a column is optional, have a sensible
   default (noted per column below).
 - **Multi-value columns are semicolon-separated.** A cell holding more than one value separates them with
@@ -179,4 +183,6 @@ staffing an inactive person or team). Create any needed roles first, and omit fo
   seeds them for you, in the correct order (and creates any missing roles).
 - **[PPM Bulk Import](../ppm/bulk-import.mdx)** — the equivalent imports for portfolios, programs, projects,
   and more.
+- **[Planning Bulk Import](../planning/bulk-import.mdx)** — planning interval objectives and risks.
+- **[Product Management Bulk Import](../product-management/bulk-import.mdx)** — the product catalog.
 - **[Organizations](./index.mdx)** — the teams, memberships, and staffing these imports populate.

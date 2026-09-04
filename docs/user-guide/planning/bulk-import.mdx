@@ -1,0 +1,124 @@
+---
+title: Bulk Import
+description: Loading planning interval objectives and risks into Wayd from CSV via the import API.
+sidebar_position: 8
+audience: [user, agent]
+---
+
+# Bulk Import
+
+Wayd can load planning data in bulk from CSV files through two **import endpoints** — one for
+[planning interval objectives](./planning-intervals.mdx) and one for [risks](./risks.mdx). Each is a
+single `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a
+permission.
+
+:::info API only
+Bulk import is an **API feature** — there is no import screen in the app. Calls are made directly to the
+endpoints below, for example with `curl` or a script. Exact request/response shapes are also in the
+OpenAPI/Swagger spec served by the API.
+:::
+
+:::warning These two imports take IDs, not names
+Unlike the [PPM](../ppm/bulk-import.mdx) and [Organization](../organizations/bulk-import.mdx) imports,
+which resolve everything by human-readable natural key, **these two reference records by GUID** —
+teams, people and planning intervals — and use **numeric ids** for status, category, impact and
+likelihood.
+
+A file therefore cannot be authored by hand without first looking those values up, typically from the
+API. Treat these as machine-generated formats rather than something to type out.
+:::
+
+## How imports work
+
+A few rules apply to both:
+
+- **Validation is all-or-nothing; saving is not, for objectives.** Every row is validated before any is
+  applied, so a malformed file is rejected whole. Beyond that the two differ, and the difference
+  matters on a partial failure — see [what a failed run leaves behind](#what-a-failed-run-leaves-behind).
+- **Every column must be present, even the optional ones.** *Required* in the tables below means the
+  cell needs a value; it does not mean the column can be left out. A missing header fails the file with
+  `Header with name 'X' was not found`. Include every column and leave unused cells blank.
+- **`ImportId` identifies a row in error messages**, not a record in Wayd. It is never stored — give
+  each row a distinct number so a validation failure can name which one it came from.
+- **Instant columns are UTC** and use ISO 8601 (`2026-01-15T00:00:00Z`). Date-only columns use
+  `yyyy-MM-dd`.
+- **A missing file returns 422**, not 400 — the file is a validation failure like any other.
+
+### What a failed run leaves behind
+
+The two imports differ once rows start being applied, and only one of them is safe to simply re-run.
+
+**Risks** are added to the change tracker and saved **once, at the end**. A failure anywhere rolls the
+whole batch back, so nothing is created and the file can be corrected and posted again.
+
+**Objectives are saved row by row.** If row 5 fails, rows 1–4 are already committed and stay that way —
+the response reports the failure, but the import is **partially applied**. Re-posting the same file
+would then create duplicates of the rows that already succeeded.
+
+:::warning Re-running a failed objectives import
+Check what was created before re-posting. The error message names the `ImportId` of the row that
+failed; everything before it in the file has already been applied.
+:::
+
+## Permissions
+
+| Import | Permission |
+|---|---|
+| Planning interval objectives | Import Planning Interval Objectives |
+| Risks | Import Risks |
+
+---
+
+## Planning interval objectives import
+
+`POST /api/planning/planning-intervals/{id}/objectives/import`
+
+Loads [objectives](./planning-intervals.mdx#objectives) into one planning interval. The interval is
+named in the **route**, and every row must repeat it in `PlanningIntervalId` — a row naming a different
+interval fails the file rather than being redirected.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | Yes | Identifies the row in error messages. Not stored. |
+| `PlanningIntervalId` | Yes | GUID. Must match the `{id}` in the route. |
+| `TeamId` | Yes | GUID of the team the objective belongs to. |
+| `Name` | Yes | Max 256 chars. |
+| `Description` | No | Max 1024 chars. |
+| `StatusId` | Yes | `1` Not Started · `2` In Progress · `3` Completed · `4` Canceled · `5` Missed. |
+| `Progress` | Yes | Percent complete, 0–100. |
+| `StartDate` | No | `yyyy-MM-dd`. Must be before `TargetDate` where both are given. |
+| `TargetDate` | No | `yyyy-MM-dd`. |
+| `IsStretch` | Yes | `true` or `false`. |
+| `ClosedDateUtc` | Conditional | **Required** when the status is Completed or Canceled, and **must be empty** otherwise. |
+| `Order` | No | Display position within the team's objectives. |
+
+## Risks import
+
+`POST /api/planning/risks/import`
+
+Loads [risks](./risks.mdx).
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | Yes | Identifies the row in error messages. Not stored. |
+| `TeamId` | Yes | GUID of the team the risk belongs to. |
+| `Summary` | Yes | Max 256 chars. |
+| `Description` | No | Max 1024 chars. |
+| `ReportedOnUtc` | Yes | UTC instant, and must be in the **past**. |
+| `ReportedById` | Yes | GUID of the employee who reported it. Not nullable — a blank cell fails the file. |
+| `StatusId` | Yes | `1` Open · `2` Closed. |
+| `CategoryId` | Yes | `1` Resolved · `2` Owned · `3` Accepted · `4` Mitigated. |
+| `ImpactId` | Yes | `1` Low · `2` Medium · `3` High. |
+| `LikelihoodId` | Yes | `1` Low · `2` Medium · `3` High. |
+| `AssigneeId` | No | GUID of the employee it is assigned to. |
+| `FollowUpDate` | No | `yyyy-MM-dd`. |
+| `Response` | No | Max 1024 chars. |
+| `ClosedDateUtc` | Conditional | **Required** when `StatusId` is `2` (Closed), and **must be empty** otherwise. Must be after `ReportedOnUtc` and in the past. |
+
+## Related
+
+- **[Planning Intervals](./planning-intervals.mdx)** — the objectives this import populates.
+- **[Risks](./risks.mdx)** — the risk register this import populates.
+- **[PPM Bulk Import](../ppm/bulk-import.mdx)** — portfolios, programs, projects and initiatives.
+- **[Organization Bulk Import](../organizations/bulk-import.mdx)** — employees, teams and staffing.
+- **[Product Management Bulk Import](../product-management/bulk-import.mdx)** — the product catalog.

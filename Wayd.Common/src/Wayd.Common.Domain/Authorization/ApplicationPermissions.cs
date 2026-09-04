@@ -403,10 +403,12 @@ public static class ApplicationPermissions
         new ("View Delivery", ApplicationAction.View, ApplicationResource.Delivery, DeliveryCategory),
         new ("Create Delivery", ApplicationAction.Create, ApplicationResource.Delivery, DeliveryCategory),
         new ("Update Delivery", ApplicationAction.Update, ApplicationResource.Delivery, DeliveryCategory),
+        new ("Import Delivery", ApplicationAction.Import, ApplicationResource.Delivery, DeliveryCategory),
 
         new ("View Releases", ApplicationAction.View, ApplicationResource.Releases, DeliveryCategory),
         new ("Create Releases", ApplicationAction.Create, ApplicationResource.Releases, DeliveryCategory),
         new ("Update Releases", ApplicationAction.Update, ApplicationResource.Releases, DeliveryCategory),
+        new ("Import Releases", ApplicationAction.Import, ApplicationResource.Releases, DeliveryCategory),
 
         new ("View Deployment Environments", ApplicationAction.View, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Create Deployment Environments", ApplicationAction.Create, ApplicationResource.DeploymentEnvironments, DeliveryCategory),

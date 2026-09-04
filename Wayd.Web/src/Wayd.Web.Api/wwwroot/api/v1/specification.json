@@ -3145,36 +3145,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -5196,6 +5181,65 @@
         ]
       }
     },
+    "/api/product-management/products/import": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Import products from a csv file.",
+        "operationId": "Products_Import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/products/{id}": {
       "put": {
         "tags": [
@@ -6713,6 +6757,72 @@
         ]
       }
     },
+    "/api/product-management/release-packages/import": {
+      "post": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Import release packages from a csv file.",
+        "description": "Takes two files: one row per package, and one row per manifest line pointing back at its package by version. Both are required — a package cannot be assembled without a manifest.",
+        "operationId": "ReleasePackages_Import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "manifestFile"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": false
+                  },
+                  "manifestFile": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/{id}/manifest": {
       "put": {
         "tags": [
@@ -7114,6 +7224,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/import": {
+      "post": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Import releases from a csv file.",
+        "description": "Takes two files: one row per release, and one row per thing it announces. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.",
+        "operationId": "Releases_Import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": false
+                  },
+                  "contentsFile": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -7748,6 +7923,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/import": {
+      "post": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Import versions from a csv file.",
+        "description": "Each row is planned against its product by name and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.",
+        "operationId": "Versions_Import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -8717,36 +8952,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -8792,36 +9012,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -9858,36 +10063,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -11585,36 +11775,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -11660,36 +11835,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -11735,36 +11895,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -14214,36 +14359,26 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   },
-                  "ContentDisposition": {
+                  "kpiFile": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
+                    "format": "binary",
                     "nullable": true
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -17661,36 +17796,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -19245,36 +19365,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -25217,36 +25322,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -26136,36 +26226,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -26210,36 +26285,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {
@@ -26284,36 +26344,21 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "ContentType": {
+                  "file": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "ContentDisposition": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "Headers": {
-                    "type": "array",
-                    "nullable": true,
-                    "items": {}
-                  },
-                  "Length": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "Name": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "FileName": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary",
+                    "nullable": false
                   }
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "204": {

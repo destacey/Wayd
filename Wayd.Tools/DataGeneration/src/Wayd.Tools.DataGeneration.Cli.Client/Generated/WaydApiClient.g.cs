@@ -8324,7 +8324,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import strategic themes from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -8689,7 +8689,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import strategic themes from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -8702,39 +8702,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -13038,6 +13013,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Import products from a csv file.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a product.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -13579,6 +13561,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Import products from a csv file.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/import"
+                    urlBuilder_.Append("api/product-management/products/import");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -16321,6 +16405,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Import release packages from a csv file.
+        /// </summary>
+        /// <remarks>
+        /// Takes two files: one row per package, and one row per manifest line pointing back at its package by version. Both are required — a package cannot be assembled without a manifest.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Replace a package's manifest.
         /// </summary>
         /// <remarks>
@@ -16762,6 +16856,121 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Import release packages from a csv file.
+        /// </summary>
+        /// <remarks>
+        /// Takes two files: one row per package, and one row per manifest line pointing back at its package by version. Both are required — a package cannot be assembled without a manifest.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+
+                    if (manifestFile == null)
+                        throw new System.ArgumentNullException("manifestFile");
+                    else
+                    {
+                        var content_manifestFile_ = new System.Net.Http.StreamContent(manifestFile.Data);
+                        if (!string.IsNullOrEmpty(manifestFile.ContentType))
+                            content_manifestFile_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(manifestFile.ContentType);
+                        content_.Add(content_manifestFile_, "manifestFile", manifestFile.FileName ?? "manifestFile");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/release-packages/import"
+                    urlBuilder_.Append("api/product-management/release-packages/import");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -17244,6 +17453,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Import releases from a csv file.
+        /// </summary>
+        /// <remarks>
+        /// Takes two files: one row per release, and one row per thing it announces. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a release.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -17719,6 +17938,119 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Import releases from a csv file.
+        /// </summary>
+        /// <remarks>
+        /// Takes two files: one row per release, and one row per thing it announces. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+
+                    if (contentsFile != null)
+                    {
+                        var content_contentsFile_ = new System.Net.Http.StreamContent(contentsFile.Data);
+                        if (!string.IsNullOrEmpty(contentsFile.ContentType))
+                            content_contentsFile_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(contentsFile.ContentType);
+                        content_.Add(content_contentsFile_, "contentsFile", contentsFile.FileName ?? "contentsFile");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/releases/import"
+                    urlBuilder_.Append("api/product-management/releases/import");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -18572,6 +18904,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Import versions from a csv file.
+        /// </summary>
+        /// <remarks>
+        /// Each row is planned against its product by name and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a version.
         /// </summary>
         /// <remarks>
@@ -19046,6 +19388,111 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Import versions from a csv file.
+        /// </summary>
+        /// <remarks>
+        /// Each row is planned against its product by name and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/versions/import"
+                    urlBuilder_.Append("api/product-management/versions/import");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -20839,7 +21286,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import portfolios from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -20849,7 +21296,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Completes or cancels programs and closes or archives portfolios, after their contents have been imported.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task FinalizeImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task FinalizeImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -21277,7 +21724,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import portfolios from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -21290,39 +21737,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -21407,7 +21829,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Completes or cancels programs and closes or archives portfolios, after their contents have been imported.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task FinalizeImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task FinalizeImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -21420,39 +21842,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -23065,7 +23462,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import programs from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -23451,7 +23848,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import programs from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -23464,39 +23861,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -26370,7 +26742,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import projects from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -26380,7 +26752,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project it belongs to, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportTasksAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportTasksAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -26390,7 +26762,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportStagesAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportStagesAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -27121,7 +27493,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import projects from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -27134,39 +27506,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -27251,7 +27598,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project it belongs to, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportTasksAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportTasksAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -27264,39 +27611,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -27381,7 +27703,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportStagesAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportStagesAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -27394,39 +27716,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -31739,7 +32036,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Optionally accepts a second csv of KPIs, whose rows name the initiative they belong to.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -32216,7 +32513,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Optionally accepts a second csv of KPIs, whose rows name the initiative they belong to.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -32229,39 +32526,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
 
-                    if (name != null)
+                    if (kpiFile != null)
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_kpiFile_ = new System.Net.Http.StreamContent(kpiFile.Data);
+                        if (!string.IsNullOrEmpty(kpiFile.ContentType))
+                            content_kpiFile_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(kpiFile.ContentType);
+                        content_.Add(content_kpiFile_, "kpiFile", kpiFile.FileName ?? "kpiFile");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -35436,7 +35716,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import objectives for a planning interval from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportObjectivesAsync(System.Guid id, string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportObjectivesAsync(System.Guid id, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -38383,7 +38663,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import objectives for a planning interval from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportObjectivesAsync(System.Guid id, string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportObjectivesAsync(System.Guid id, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -38399,39 +38679,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -40894,7 +41149,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import risks from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -41419,7 +41674,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import risks from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -41432,39 +41687,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -53663,7 +53893,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import employees from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -54038,7 +54268,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import employees from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -54051,39 +54281,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -55669,21 +55874,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import teams and teams of teams from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Import team members (staffing) from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportMembersAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportMembersAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Import the team hierarchy (parent/child team memberships) from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportTeamMembershipsAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportTeamMembershipsAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -56293,7 +56498,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import teams and teams of teams from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -56306,39 +56511,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -56420,7 +56600,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import team members (staffing) from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportMembersAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportMembersAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -56433,39 +56613,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -56547,7 +56702,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import the team hierarchy (parent/child team memberships) from a csv file.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportTeamMembershipsAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportTeamMembershipsAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -56560,39 +56715,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.Remove("Content-Type");
                     content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
 
-                    if (contentType != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentType, System.Globalization.CultureInfo.InvariantCulture)), "ContentType");
-                    }
-
-                    if (contentDisposition != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(contentDisposition, System.Globalization.CultureInfo.InvariantCulture)), "ContentDisposition");
-                    }
-
-                    if (headers != null)
-                    {
-                        foreach (var item_ in headers)
-                        {
-                            content_.Add(new System.Net.Http.StringContent(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture)), "Headers");
-                        }
-                    }
-
-                    if (length == null)
-                        throw new System.ArgumentNullException("length");
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
                     else
                     {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(length, System.Globalization.CultureInfo.InvariantCulture)), "Length");
-                    }
-
-                    if (name != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)), "Name");
-                    }
-
-                    if (fileName != null)
-                    {
-                        content_.Add(new System.Net.Http.StringContent(ConvertToString(fileName, System.Globalization.CultureInfo.InvariantCulture)), "FileName");
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
                     }
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
@@ -86942,6 +87072,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         {
             writer.WriteStringValue(value.ToString("yyyy-MM-dd"));
         }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FileParameter
+    {
+        public FileParameter(System.IO.Stream data)
+            : this (data, null, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string? fileName)
+            : this (data, fileName, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string? fileName, string? contentType)
+        {
+            Data = data;
+            FileName = fileName;
+            ContentType = contentType;
+        }
+
+        public System.IO.Stream Data { get; private set; }
+
+        public string? FileName { get; private set; }
+
+        public string? ContentType { get; private set; }
     }
 
 

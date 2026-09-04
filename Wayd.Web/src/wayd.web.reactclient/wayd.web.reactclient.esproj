@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk">
+﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.5581896">
     <PropertyGroup>
         <!-- Folder where production build objects will be placed -->
         <BuildOutputFolder>$(MSBuildProjectDirectory)\build</BuildOutputFolder>

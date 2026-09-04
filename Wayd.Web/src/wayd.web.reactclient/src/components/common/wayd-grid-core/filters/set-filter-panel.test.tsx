@@ -196,6 +196,154 @@ describe('SetFilterPanel', () => {
     })
   })
 
+  describe('focus', () => {
+    it('focuses the search box on mount so typing works immediately', () => {
+      // Arrange / Act
+      render(
+        <SetFilterPanel allValues={ALL} value={undefined} onChange={jest.fn()} />,
+      )
+
+      // Assert — the host remounts this panel per open (destroyOnHidden), so
+      // focusing on mount is what makes every reopen land in the search box.
+      expect(screen.getByPlaceholderText('Search...')).toHaveFocus()
+    })
+  })
+
+  describe('committing the search with Enter', () => {
+    it('emits the visible matches as the selection and clears the search', () => {
+      // Arrange
+      const onChange = jest.fn()
+      render(
+        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+      )
+      const input = screen.getByPlaceholderText('Search...')
+      fireEvent.change(input, { target: { value: 'sys' } })
+
+      // Act
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+      // Assert — the typed query reaches the grid as a set descriptor
+      expect(onChange).toHaveBeenCalledWith({ type: 'set', values: ['System'] })
+      expect((input as HTMLInputElement).value).toBe('')
+    })
+
+    it('signals the host to close the popup after committing', () => {
+      // Arrange
+      const onCommit = jest.fn()
+      render(
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={jest.fn()}
+          onCommit={onCommit}
+        />,
+      )
+      const input = screen.getByPlaceholderText('Search...')
+      fireEvent.change(input, { target: { value: 'sys' } })
+
+      // Act
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+      // Assert
+      expect(onCommit).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not close the popup when Enter is a no-op', () => {
+      // Arrange
+      const onCommit = jest.fn()
+      render(
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={jest.fn()}
+          onCommit={onCommit}
+        />,
+      )
+      const input = screen.getByPlaceholderText('Search...')
+      fireEvent.change(input, { target: { value: 'zzz' } })
+
+      // Act
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+      // Assert — no matches ⇒ nothing committed, so the panel stays open
+      expect(onCommit).not.toHaveBeenCalled()
+    })
+
+    it('commits every match when the search hits more than one value', () => {
+      // Arrange
+      const onChange = jest.fn()
+      render(
+        <SetFilterPanel
+          allValues={['Approved', 'Approving', 'Rejected']}
+          value={undefined}
+          onChange={onChange}
+        />,
+      )
+      const input = screen.getByPlaceholderText('Search...')
+      fireEvent.change(input, { target: { value: 'appro' } })
+
+      // Act
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+      // Assert
+      expect(onChange).toHaveBeenCalledWith({
+        type: 'set',
+        values: ['Approved', 'Approving'],
+      })
+    })
+
+    it('does nothing when the search is empty', () => {
+      // Arrange
+      const onChange = jest.fn()
+      render(
+        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+      )
+      const input = screen.getByPlaceholderText('Search...')
+
+      // Act
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+      // Assert — Enter on an empty box must not wipe the filter
+      expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when the search matches no values', () => {
+      // Arrange
+      const onChange = jest.fn()
+      render(
+        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+      )
+      const input = screen.getByPlaceholderText('Search...')
+      fireEvent.change(input, { target: { value: 'zzz' } })
+
+      // Act
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+      // Assert — committing "no matches" would select nothing and blank the grid
+      expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it('collapses to no filter when the search matches everything', () => {
+      // Arrange
+      const onChange = jest.fn()
+      render(
+        <SetFilterPanel
+          allValues={['Alpha', 'Alpine']}
+          value={undefined}
+          onChange={onChange}
+        />,
+      )
+      const input = screen.getByPlaceholderText('Search...')
+      fireEvent.change(input, { target: { value: 'alp' } })
+
+      // Act
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+      // Assert — all values selected ⇒ unfiltered, same as the checkbox path
+      expect(onChange).toHaveBeenCalledWith(undefined)
+    })
+  })
+
   describe('reset', () => {
     it('clears the filter (undefined) and is disabled when already unfiltered', () => {
       // Arrange

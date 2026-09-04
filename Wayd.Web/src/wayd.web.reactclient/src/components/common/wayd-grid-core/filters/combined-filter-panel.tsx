@@ -19,6 +19,8 @@ export interface CombinedFilterPanelProps {
   onChange: (next: ColumnFilterModel | undefined) => void
   /** Max text conditions in the Text Filter section. */
   maxConditions?: number
+  /** Forwarded to the set section: fired when Enter commits its search. */
+  onCommit?: () => void
 }
 
 /**
@@ -38,6 +40,7 @@ const CombinedFilterPanel = ({
   value,
   onChange,
   maxConditions,
+  onCommit,
 }: CombinedFilterPanelProps) => {
   const isText = value?.type === 'text'
   // Auto-expand the text section when a text filter is already active (e.g. the
@@ -78,6 +81,7 @@ const CombinedFilterPanel = ({
           labels={labels}
           value={setValue}
           onChange={onChange}
+          onCommit={onCommit}
         />
       </div>
     </div>

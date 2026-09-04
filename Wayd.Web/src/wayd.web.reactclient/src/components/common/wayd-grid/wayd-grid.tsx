@@ -1646,6 +1646,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
           setOpenFilterColumnId(open ? header.column.id : null)
         }
         getPopupContainer={() => document.body}
+        // See renderSetFilter: the panels focus on mount, so the popup must not
+        // stay alive between opens.
+        destroyOnHidden
         content={
           // Stop clicks inside the popup from bubbling to the <th> sort handler
           // (React events propagate through the portal to the logical parent).
@@ -1670,6 +1673,7 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
                 value={filterValue}
                 maxConditions={meta?.maxFilterConditions}
                 onChange={(next) => header.column.setFilterValue(next)}
+                onCommit={() => setOpenFilterColumnId(null)}
               />
             ) : (
               <FilterPopup
@@ -1782,6 +1786,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
         open={isFilterOpen}
         onOpenChange={(open) => setOpenFilterColumnId(open ? column.id : null)}
         getPopupContainer={() => document.body}
+        // Remount the panel per open: it focuses its search box on mount, and a
+        // kept-alive popup would only ever focus the first time.
+        destroyOnHidden
         content={
           <div onClick={(e) => e.stopPropagation()}>
             <SetFilterPanel
@@ -1789,6 +1796,7 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
               labels={meta?.filterOptions}
               value={filterValue}
               onChange={(next) => column.setFilterValue(next)}
+              onCommit={() => setOpenFilterColumnId(null)}
             />
           </div>
         }

@@ -1,4 +1,4 @@
-﻿<Solution>
+<Solution>
   <Folder Name="/Wayd.Common/" />
   <Folder Name="/Wayd.Common/src/">
     <Project Path="Wayd.Common/src/Wayd.Common.Application/Wayd.Common.Application.csproj" />
@@ -134,7 +134,6 @@
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
-    <File Path="global.json" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Wayd.Tools/" />

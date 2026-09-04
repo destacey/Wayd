@@ -8,12 +8,22 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const config: Config = {
-  coverageProvider: 'v8',
-  // Jest's 5s default is comfortable for these suites normally, but v8 coverage instrumentation slows
+  // babel, not v8: v8's runtime tracing costs roughly 10x on these suites (the
+  // product-management folder alone went 25s -> 268s), because it traces every
+  // module the tests load — antd, React and Next included. collectCoverageFrom
+  // does not help; it filters the report, not what gets traced. babel
+  // instruments only the transformed source and brings the same folder in at
+  // 38s.
+  coverageProvider: 'babel',
+  // Jest's 5s default is comfortable for these suites normally, but coverage instrumentation slows
   // them enough that userEvent-driven tests (which simulate typing keystroke by keystroke) intermittently
   // blow it -- failing on the coverage run while passing without it. Raise the ceiling rather than
   // letting instrumentation overhead masquerade as a test failure.
-  testTimeout: 30_000,
+  //
+  // 30s was still not enough once the product-management form suites landed: PRs run test:ci while
+  // main runs test:coverage, so they passed every PR and failed every merge. The provider switch
+  // above is the real fix; this stays as headroom.
+  testTimeout: 60_000,
   testEnvironment: 'jsdom',
   // Runs before the test framework and before any module loads, which is the only point where
   // Next's one-shot AsyncLocalStorage capture can still be satisfied. See src/jest.globals.ts.

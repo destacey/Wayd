@@ -1,4 +1,5 @@
-﻿using Microsoft.FeatureManagement.Mvc;
+﻿using CsvHelper;
+using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
@@ -27,9 +28,10 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-public class ProductsController(IDispatcher dispatcher) : ControllerBase
+public class ProductsController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
@@ -114,6 +116,53 @@ public class ProductsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetProduct), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Products)]
+    [OpenApiOperation("Import products from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedProducts = _csvService.ReadCsv<ImportProductRequest>(file.OpenReadStream());
+
+            List<ImportProductDto> products = [];
+            var validator = new ImportProductRequestValidator();
+            foreach (var product in importedProducts)
+            {
+                var validationResults = await validator.ValidateAsync(product, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        // The row number rather than the name: names repeat legitimately across the
+                        // tree, so naming one would not identify which row failed.
+                        error.ErrorMessage = $"{error.ErrorMessage} (Number: {product.Number})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                products.Add(product.ToImportProductDto());
+            }
+
+            if (products.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No products imported.", HttpContext));
+
+            var result = await _dispatcher.Send(new ImportProductsCommand(products), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

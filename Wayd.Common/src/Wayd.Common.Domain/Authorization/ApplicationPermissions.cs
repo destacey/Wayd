@@ -390,6 +390,7 @@ public static class ApplicationPermissions
         new ("Create Products", ApplicationAction.Create, ApplicationResource.Products, ProductManagementCategory),
         new ("Update Products", ApplicationAction.Update, ApplicationResource.Products, ProductManagementCategory),
         new ("Delete Products", ApplicationAction.Delete, ApplicationResource.Products, ProductManagementCategory),
+        new ("Import Products", ApplicationAction.Import, ApplicationResource.Products, ProductManagementCategory),
 
         new ("View Product Types", ApplicationAction.View, ApplicationResource.ProductTypes, ProductManagementCategory),
         new ("Create Product Types", ApplicationAction.Create, ApplicationResource.ProductTypes, ProductManagementCategory),

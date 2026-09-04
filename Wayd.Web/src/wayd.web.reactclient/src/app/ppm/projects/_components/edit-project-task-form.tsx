@@ -345,7 +345,7 @@ const EditProjectTaskForm = ({
           <Alert
             type="info"
             showIcon
-            message={parentExpansionHint}
+            title={parentExpansionHint}
             style={{ marginBottom: 16 }}
           />
         )}

@@ -33,6 +33,7 @@ import ProjectDefinition from './_components/project-definition'
 import ProjectFacts from './_components/project-facts'
 import ProjectOverview from './_components/project-overview'
 import { canActOnPpmRecord } from '../../_components/ppm-authorization'
+import ProjectTaskMetricsInline from '@/src/app/ppm/projects/_components/project-task-metrics-inline'
 
 const ProjectPlan = dynamic(
   () => import('@/src/app/ppm/projects/_components/project-plan'),
@@ -493,6 +494,11 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           ),
         }}
         facts={<ProjectFacts project={projectData} />}
+        sectionActions={
+          activeSection === ProjectSections.Plan ? (
+            <ProjectTaskMetricsInline projectKey={projectKey} />
+          ) : null
+        }
       >
         {(section) => renderSection(section as ProjectSections)}
       </RecordLayout>

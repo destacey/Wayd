@@ -1,0 +1,28 @@
+/*
+ * The plan summary condensed onto the section heading row. Matches the story
+ * map's persona-bar summary, so the two read as one treatment.
+ */
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ant-color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* The number in a "3 overdue" style count. */
+.countValue {
+  color: var(--ant-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overdue and due-this-week earn their status color once they are non-zero. */
+.countValueDanger {
+  color: var(--ant-color-error);
+}
+
+.countValueWarning {
+  color: var(--ant-color-warning);
+}

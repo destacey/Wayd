@@ -10,11 +10,12 @@ namespace Wayd.Common.Application.Imports;
 /// </remarks>
 public sealed class ImportRowItem<TRow>
 {
-    internal ImportRowItem(string importId, int rowNumber, TRow data)
+    internal ImportRowItem(string importId, int rowNumber, TRow data, Guid? createdEntityId)
     {
         ImportId = importId;
         RowNumber = rowNumber;
         Data = data;
+        CreatedEntityId = createdEntityId;
     }
 
     /// <summary>The caller's key for this row. Results are reported against it, and rows reference each other by it.</summary>
@@ -25,10 +26,16 @@ public sealed class ImportRowItem<TRow>
 
     public TRow Data { get; }
 
+    /// <summary>
+    /// The record this row created, once some pass has created it. Carried between passes, so a later pass
+    /// can act on what an earlier one made without holding state of its own — the graph-edge sync reads the
+    /// memberships the previous pass added this way.
+    /// </summary>
+    public Guid? CreatedEntityId { get; private set; }
+
     internal bool IsFailed { get; private set; }
     internal string? Warning { get; private set; }
     internal string? Error { get; private set; }
-    internal Guid? CreatedEntityId { get; private set; }
     internal bool CreatedEntityIdSet { get; private set; }
 
     /// <summary>

@@ -53,7 +53,8 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
                 return Result.Failure<ImportPassResult>(
                     $"Row '{row.ImportId}' has no data left to apply; it has passed its retention window.");
 
-            items.Add(new ImportRowItem<TRow>(row.ImportId, row.RowNumber, _serializer.Deserialize<TRow>(row.Payload)));
+            items.Add(new ImportRowItem<TRow>(
+                row.ImportId, row.RowNumber, _serializer.Deserialize<TRow>(row.Payload), row.CreatedEntityId));
         }
 
         var context = new ImportPassContext<TRow>(importProcessId, steps[passIndex].Name, items, isFinalChunk);

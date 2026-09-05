@@ -3,6 +3,7 @@ using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Queries;
@@ -216,5 +217,42 @@ public class JobManager(
         }
 
         _logger.LogInformation("Completed {BackgroundJob} job ({Count} portfolios)", nameof(RunPortfolioRankRebalance), portfolioIds.Count);
+    }
+
+    // No retry: the sweep is idempotent and runs again on its own schedule, so a failed pass costs
+    // nothing but a log line.
+    [DisableConcurrentExecution(60 * 10)]
+    [AutomaticRetry(Attempts = 0)]
+    public async Task RunImportStallRecovery(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunImportStallRecovery));
+
+        var result = await _dispatcher.Send(new RecoverStalledImportsCommand(), cancellationToken);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Failed to recover stalled imports: {Error}", result.Error);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Completed {BackgroundJob} job ({Republished} requeued, {Failed} failed)",
+            nameof(RunImportStallRecovery), result.Value.Republished, result.Value.Failed);
+    }
+
+    [DisableConcurrentExecution(60 * 60)]
+    [AutomaticRetry(Attempts = 0)]
+    public async Task RunImportRetentionSweep(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunImportRetentionSweep));
+
+        var result = await _dispatcher.Send(new PurgeExpiredImportPayloadsCommand(), cancellationToken);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Failed to sweep expired import payloads: {Error}", result.Error);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Completed {BackgroundJob} job ({Count} row payloads cleared)", nameof(RunImportRetentionSweep), result.Value);
     }
 }

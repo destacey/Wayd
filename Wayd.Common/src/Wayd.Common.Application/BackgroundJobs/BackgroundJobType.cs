@@ -41,4 +41,10 @@ public enum BackgroundJobType
 
     [Display(Name = "Portfolio Rank Rebalance", Description = "Re-space project ranks within each portfolio to clean, gap-free whole numbers, removing fractional drift accumulated from drag-to-rank operations.", Order = 2001, GroupName = "Maintenance Jobs")]
     PortfolioRankRebalance = 2000,
+
+    [Display(Name = "Import Stall Recovery", Description = "Reclaim imports no worker will finish: re-queue runs whose message never arrived, and fail runs that stopped reporting progress so their remaining rows can be resumed.", Order = 2002, GroupName = "Maintenance Jobs")]
+    ImportStallRecovery = 2001,
+
+    [Display(Name = "Import Retention Sweep", Description = "Delete the stored copy of every imported row belonging to a run that finished more than 30 days ago. Run history and per-row outcomes are kept.", Order = 2003, GroupName = "Maintenance Jobs")]
+    ImportRetentionSweep = 2002,
 }

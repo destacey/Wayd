@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using NodaTime;
 using NodaTime.Serialization.SystemTextJson;
@@ -8,17 +8,12 @@ namespace Wayd.Infrastructure.Common.Services;
 
 public sealed class SystemTextJsonService : ISerializerService
 {
-    public T Deserialize<T>(string text)
-    {
-        var options = new JsonSerializerOptions
-        {
-            ReferenceHandler = ReferenceHandler.Preserve
-        };
-        options.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-        return JsonSerializer.Deserialize<T>(text, options)!;
-    }
+    // One instance, built once. System.Text.Json caches its type metadata per options object, so
+    // constructing fresh options per call — as this used to — threw that cache away on a path that runs
+    // for every slow request.
+    private static readonly JsonSerializerOptions _options = CreateOptions();
 
-    public string Serialize<T>(T obj)
+    private static JsonSerializerOptions CreateOptions()
     {
         var options = new JsonSerializerOptions
         {
@@ -28,24 +23,18 @@ public sealed class SystemTextJsonService : ISerializerService
             Converters =
             {
                 new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
-                new TypeConverter(), // Add the custom TypeConverter
+                new TypeConverter(),
                 new OneOfJsonConverter(),
                 new OneOfBaseJsonConverter(),
             }
         };
+
         options.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-        return JsonSerializer.Serialize(obj, options);
+
+        return options;
     }
 
-    public string Serialize<T>(T obj, Type type)
-    {
-        var options = new JsonSerializerOptions
-        {
-            ReferenceHandler = ReferenceHandler.Preserve
-        };
-        options.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-        return JsonSerializer.Serialize(obj, type, options);
-    }
+    public string Serialize<T>(T obj) => JsonSerializer.Serialize(obj, _options);
 }
 
 public class TypeConverter : JsonConverter<Type>

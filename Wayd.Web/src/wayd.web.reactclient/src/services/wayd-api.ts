@@ -31082,7 +31082,7 @@ export class TeamsClient {
      * Import the team hierarchy (parent/child team memberships) from a csv file.
      * @param file (optional) 
      */
-    importTeamMemberships(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    importTeamMemberships(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/organization/teams/team-memberships/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -31097,6 +31097,7 @@ export class TeamsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -31112,7 +31113,7 @@ export class TeamsClient {
         });
     }
 
-    protected processImportTeamMemberships(response: AxiosResponse): Promise<void> {
+    protected processImportTeamMemberships(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -31122,9 +31123,12 @@ export class TeamsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -31144,7 +31148,7 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**

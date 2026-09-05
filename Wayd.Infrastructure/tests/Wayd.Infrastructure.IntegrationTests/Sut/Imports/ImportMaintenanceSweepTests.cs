@@ -95,6 +95,10 @@ public sealed class ImportMaintenanceSweepTests
 
         saved.Single(p => p.Id == expired.Id).Rows.Should().AllSatisfy(r => r.Payload.Should().BeNull());
         saved.Single(p => p.Id == recent.Id).Rows.Single().Payload.Should().NotBeNull();
+
+        // Each batch is detached once saved; left tracked they would accumulate for the whole sweep, and a
+        // neglected table is many batches.
+        context.ChangeTracker.Entries<ImportProcessRow>().Should().BeEmpty();
     }
 
     [Fact]

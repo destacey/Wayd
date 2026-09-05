@@ -16,6 +16,15 @@ namespace Wayd.Common.Domain.Imports;
 /// </remarks>
 public sealed class ImportProcessRow : BaseEntity
 {
+    /// <summary>
+    /// Storage bound for <see cref="ImportId"/>. Declared here so the submission that rejects an overlong
+    /// key and the EF configuration that would otherwise fail on it read the same number.
+    /// </summary>
+    public const int MaxImportIdLength = 128;
+
+    /// <summary>Storage bound for <see cref="Error"/> and <see cref="Warning"/>.</summary>
+    public const int MaxMessageLength = 2048;
+
     private ImportProcessRow() { }
 
     private ImportProcessRow(string importId, int rowNumber, string payload)
@@ -49,14 +58,18 @@ public sealed class ImportProcessRow : BaseEntity
     /// <summary>Identifies the record this row created, so a result can be reported against the caller's key.</summary>
     public Guid? CreatedEntityId { get; private set; }
 
-    public string? Error { get; private set => field = value.NullIfWhiteSpacePlusTrim(); }
+    /// <summary>
+    /// Truncated to what the column holds rather than rejected: a pass can produce a long message, and a
+    /// clipped explanation of why a row failed beats losing the whole save to it.
+    /// </summary>
+    public string? Error { get; private set => field = Clip(value); }
 
     /// <summary>
     /// Set when the row was applied but something about it was not. An employee whose manager number could
     /// not be resolved is imported without a manager rather than rejected, and that is worth telling the
     /// person who ran the import — it would otherwise only reach a log nobody reads.
     /// </summary>
-    public string? Warning { get; private set => field = value.NullIfWhiteSpacePlusTrim(); }
+    public string? Warning { get; private set => field = Clip(value); }
 
     public Instant? AttemptedOn { get; private set; }
 
@@ -126,4 +139,13 @@ public sealed class ImportProcessRow : BaseEntity
 
     /// <summary>Retention sweep: drops the payload of a row the run is finished with.</summary>
     public void PurgePayload() => Payload = null;
+
+    private static string? Clip(string? message)
+    {
+        var trimmed = message.NullIfWhiteSpacePlusTrim();
+
+        return trimmed?.Length > MaxMessageLength
+            ? trimmed[..MaxMessageLength]
+            : trimmed;
+    }
 }

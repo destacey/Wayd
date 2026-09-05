@@ -54,6 +54,14 @@ public sealed class SubmitImportCommandHandler(
                 $"This file has {command.Rows.Count:N0} rows; {definition.DisplayName} accepts at most {definition.MaxRows:N0} at a time.");
 
         var rows = BuildRows(command.Rows);
+
+        // Caught here rather than at SaveChanges, where the storage bound would surface as a 500 naming a
+        // column instead of the row the caller has to fix.
+        var overlong = rows.Find(r => r.ImportId.Length > ImportProcessRow.MaxImportIdLength);
+        if (overlong is not null)
+            return Result.Failure<Guid>(
+                $"Row {overlong.RowNumber} has an import id of {overlong.ImportId.Length} characters; the most allowed is {ImportProcessRow.MaxImportIdLength}.");
+
         var duplicate = rows.GroupBy(r => r.ImportId, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault(g => g.Count() > 1);
 

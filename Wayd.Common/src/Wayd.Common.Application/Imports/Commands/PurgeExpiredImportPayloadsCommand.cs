@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Common.Application.Imports.Commands;
 
@@ -60,11 +61,24 @@ public sealed class PurgeExpiredImportPayloadsCommandHandler(
 
             await _importDbContext.SaveChangesAsync(cancellationToken);
             purged += rows.Count;
+
+            // Each batch is done with once it is saved, and a neglected table can be many batches. Left
+            // tracked they would accumulate for the whole sweep, so the last batch pays for every one
+            // before it.
+            DetachSavedRows();
         }
 
         if (purged > 0)
             _logger.LogInformation("Import retention sweep cleared {RowCount} row payload(s) older than {Retention}.", purged, _retention);
 
         return Result.Success(purged);
+    }
+
+    private void DetachSavedRows()
+    {
+        foreach (var entry in _importDbContext.ChangeTracker.Entries<ImportProcessRow>().ToList())
+        {
+            entry.State = EntityState.Detached;
+        }
     }
 }

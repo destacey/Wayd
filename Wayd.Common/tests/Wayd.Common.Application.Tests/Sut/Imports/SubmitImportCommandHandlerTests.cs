@@ -6,6 +6,7 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Common.Application.Tests.Sut.Imports;
 
@@ -164,5 +165,21 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
 
         // Assert
         _db.ImportProcesses.Single().SubmissionGroupId.Should().Be(groupId);
+    }
+
+    [Fact]
+    public async Task Handle_RejectsAnImportIdLongerThanTheColumnHolds()
+    {
+        // Arrange — otherwise this surfaces at SaveChanges as a 500 naming a column
+        var importId = new string('k', ImportProcessRow.MaxImportIdLength + 1);
+
+        // Act
+        var result = await Submit(
+            [new SubmittedImportRow(importId, _definition.SerializeRow(new TestImportRow("Too long")))]);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(ImportProcessRow.MaxImportIdLength.ToString());
+        _db.SaveChangesCallCount.Should().Be(0);
     }
 }

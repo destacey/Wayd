@@ -145,4 +145,20 @@ public sealed class ImportProcessRowTests
         row.Status.Should().Be(ImportRowStatus.Failed);
         row.Error.Should().Be("Unresolved reference.");
     }
+
+    [Fact]
+    public void MarkFailed_ClipsAMessageTooLongForTheColumn()
+    {
+        // Arrange — a pass can produce a long message, and losing the save to it would lose every row
+        // outcome in the chunk, not just this explanation
+        var row = new ImportProcessRowFaker().Generate();
+        var error = new string('e', ImportProcessRow.MaxMessageLength + 500);
+
+        // Act
+        row.MarkFailed(error, _attempted);
+
+        // Assert
+        row.Error.Should().HaveLength(ImportProcessRow.MaxMessageLength);
+        row.Status.Should().Be(ImportRowStatus.Failed);
+    }
 }

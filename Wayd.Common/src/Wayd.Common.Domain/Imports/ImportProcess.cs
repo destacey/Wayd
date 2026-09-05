@@ -174,6 +174,11 @@ public sealed class ImportProcess : BaseEntity
     /// Returns a terminal run to the queue so its unapplied rows can be attempted again — the recovery path
     /// after a cancellation or a stalled worker. Rows already applied are untouched.
     /// </summary>
+    /// <remarks>
+    /// Reset the rows to be reattempted <em>before</em> calling this. The counts are recomputed from the
+    /// rows here, and the next run adds to them: a row still counted as failed while it is queued again
+    /// would be counted twice, leaving the totals above <see cref="TotalRowCount"/>.
+    /// </remarks>
     public Result Requeue(Instant timestamp)
     {
         if (!IsTerminal)
@@ -183,6 +188,8 @@ public sealed class ImportProcess : BaseEntity
         CompletedOn = null;
         Error = null;
         LastProgressOn = timestamp;
+        SucceededRowCount = _rows.Count(r => r.Status == ImportRowStatus.Succeeded);
+        FailedRowCount = _rows.Count(r => r.Status == ImportRowStatus.Failed);
 
         return Result.Success();
     }

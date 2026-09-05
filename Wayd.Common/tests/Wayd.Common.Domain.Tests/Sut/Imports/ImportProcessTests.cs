@@ -1,5 +1,6 @@
 using NodaTime;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Tests.Data;
 
 namespace Wayd.Common.Domain.Tests.Sut.Imports;
@@ -249,7 +250,7 @@ public sealed class ImportProcessTests
     {
         // Arrange
         var process = new ImportProcessFaker().AsProcessingWith(rowCount: 6, _started);
-        process.RecordProgress(succeeded: 2, failed: 0, _later);
+        Apply(process, succeeded: 2);
         process.Fail("Worker died.", _later);
 
         // Act
@@ -261,6 +262,46 @@ public sealed class ImportProcessTests
         process.CompletedOn.Should().BeNull();
         process.Error.Should().BeNull();
         process.SucceededRowCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void Requeue_StopsCountingARowThatWasReturnedToThePending()
+    {
+        // Arrange — a retry resets the rejected row before requeuing, and the next run adds to these
+        // counts: still counting it as failed would push the totals past TotalRowCount
+        var process = new ImportProcessFaker().AsProcessingWith(rowCount: 3, _started);
+        Apply(process, succeeded: 1, failed: 2);
+        process.Complete(_later);
+
+        foreach (var row in process.Rows.Where(r => r.Status == ImportRowStatus.Failed))
+        {
+            row.Reset();
+        }
+
+        // Act
+        process.Requeue(_later);
+
+        // Assert
+        process.SucceededRowCount.Should().Be(1);
+        process.FailedRowCount.Should().Be(0);
+    }
+
+    /// <summary>Settles rows and records the progress together, the way the runner does.</summary>
+    private static void Apply(ImportProcess process, int succeeded = 0, int failed = 0)
+    {
+        var rows = process.Rows.ToList();
+
+        for (var i = 0; i < succeeded; i++)
+        {
+            rows[i].MarkSucceeded(Guid.CreateVersion7(), _later);
+        }
+
+        for (var i = succeeded; i < succeeded + failed; i++)
+        {
+            rows[i].MarkFailed("Rejected.", _later);
+        }
+
+        process.RecordProgress(succeeded, failed, _later);
     }
 
     [Fact]

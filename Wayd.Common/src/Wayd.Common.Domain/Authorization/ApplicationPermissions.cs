@@ -38,6 +38,8 @@ public static class ApplicationResource
 
     public const string Messaging = nameof(Messaging);
 
+    public const string Imports = nameof(Imports);
+
     public const string Users = nameof(Users);
     public const string UserRoles = nameof(UserRoles);
     public const string Roles = nameof(Roles);
@@ -151,6 +153,14 @@ public static class ApplicationPermissions
         new("View Messaging. This includes the outbox, incoming envelopes, and dead letter queue.", ApplicationAction.View, ApplicationResource.Messaging, MessagingCategory),
         new("Replay Dead Letter Messages", ApplicationAction.Run, ApplicationResource.Messaging, MessagingCategory),
         new("Discard Dead Letter Messages", ApplicationAction.Delete, ApplicationResource.Messaging, MessagingCategory),
+    ];
+
+    private const string ImportsCategory = "Imports";
+    private static readonly ApplicationPermission[] _imports =
+    [
+        // Reaching the Imports area at all. What a holder actually sees there is still limited to the
+        // import types they may submit, which each definition declares for itself.
+        new("View Imports. This shows the history of submitted import files and what became of each row.", ApplicationAction.View, ApplicationResource.Imports, ImportsCategory),
     ];
 
     private const string IdentityCategory = "Identity";
@@ -426,6 +436,7 @@ public static class ApplicationPermissions
         .Union(_application)
         .Union(_backgroundJobs)
         .Union(_messaging)
+        .Union(_imports)
         .Union(_identity)
         .Union(_appIntegration)
         .Union(_healthChecks)

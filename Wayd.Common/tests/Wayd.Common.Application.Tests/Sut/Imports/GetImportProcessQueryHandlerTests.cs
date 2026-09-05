@@ -15,6 +15,7 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
     private static readonly Instant _now = Instant.FromUtc(2026, 9, 5, 10, 0, 0);
 
     private readonly FakeImportDbContext _db = new();
+    private readonly FakeWaydDbContext _waydDb = new();
     private readonly TestImportDefinition _definition = new(new ImportPayloadSerializer());
     private readonly Mock<ICurrentPrincipal> _principal = new();
 
@@ -26,7 +27,7 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     private GetImportProcessQueryHandler CreateHandler() =>
-        new(_db, new ImportDefinitionRegistry([_definition]), _principal.Object);
+        new(_db, _waydDb, new ImportDefinitionRegistry([_definition]), _principal.Object);
 
     private ImportProcess AddRun(int rowCount)
     {

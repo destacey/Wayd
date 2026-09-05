@@ -32,4 +32,32 @@ internal static class ImportAuthorization
 
         return Result.Success(definition.Value);
     }
+
+    /// <summary>
+    /// The definitions this caller may work with. A listing filters on these rather than checking each run
+    /// it finds, so one permission lookup per import type answers a page of any size.
+    /// </summary>
+    /// <remarks>
+    /// A run whose type no longer has a definition matches nothing here and so never appears. There is no
+    /// permission left to check it against, and guessing one would be the wrong way to be helpful.
+    /// </remarks>
+    public static async Task<List<IImportDefinition>> Permitted(
+        IImportDefinitionRegistry registry,
+        ICurrentPrincipal currentPrincipal,
+        CancellationToken cancellationToken)
+    {
+        List<IImportDefinition> permitted = [];
+
+        // Sequentially, not in parallel: the permission lookup reads through the DbContext, which is not
+        // thread-safe.
+        foreach (var definition in registry.All)
+        {
+            var permission = ApplicationPermission.NameFor(definition.PermissionAction, definition.PermissionResource);
+
+            if (await currentPrincipal.HasPermission(permission, cancellationToken))
+                permitted.Add(definition);
+        }
+
+        return permitted;
+    }
 }

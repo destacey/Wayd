@@ -11,10 +11,12 @@ public sealed record GetImportProcessQuery(Guid ImportProcessId) : IQuery<Result
 
 public sealed class GetImportProcessQueryHandler(
     IImportDbContext importDbContext,
+    IWaydDbContext waydDbContext,
     IImportDefinitionRegistry registry,
     ICurrentPrincipal currentPrincipal) : IQueryHandler<GetImportProcessQuery, Result<ImportProcessDto>>
 {
     private readonly IImportDbContext _importDbContext = importDbContext;
+    private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly IImportDefinitionRegistry _registry = registry;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
@@ -33,21 +35,13 @@ public sealed class GetImportProcessQueryHandler(
         if (definition.IsFailure)
             return Result.Failure<ImportProcessDto>(definition.Error);
 
-        return Result.Success(new ImportProcessDto(
-            process.Id,
-            process.ImportType,
-            definition.Value.DisplayName,
-            definition.Value.Atomicity,
-            process.Status,
-            process.SubmissionGroupId,
-            process.SubmittedByUserId,
-            process.SubmittedOn,
-            process.StartedOn,
-            process.CompletedOn,
-            process.LastProgressOn,
-            process.TotalRowCount,
-            process.SucceededRowCount,
-            process.FailedRowCount,
-            process.Error));
+        var submittedByName = await _waydDbContext.WaydUsers
+            .AsNoTracking()
+            .Where(u => u.Id == process.SubmittedByUserId)
+            .Select(u => u.DisplayName ?? u.UserName)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return Result.Success(
+            GetImportProcessesQueryHandler.Map(process, definition.Value, submittedByName));
     }
 }

@@ -18,6 +18,7 @@ public sealed record ImportProcessDto(
     ImportProcessStatus Status,
     Guid? SubmissionGroupId,
     string SubmittedByUserId,
+    string? SubmittedByName,
     Instant SubmittedOn,
     Instant? StartedOn,
     Instant? CompletedOn,
@@ -30,3 +31,10 @@ public sealed record ImportProcessDto(
     /// <summary>Rows neither applied nor rejected — what a resume would pick up.</summary>
     public int UnappliedRowCount => TotalRowCount - SucceededRowCount - FailedRowCount;
 }
+
+/// <summary>A page of runs, with the total so a UI can page without a second call.</summary>
+public sealed record ImportProcessPageDto(
+    IReadOnlyList<ImportProcessDto> Processes,
+    int TotalCount,
+    int PageNumber,
+    int PageSize);

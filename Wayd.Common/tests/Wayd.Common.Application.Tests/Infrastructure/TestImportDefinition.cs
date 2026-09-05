@@ -15,10 +15,18 @@ public sealed record TestImportRow(string Name, bool ShouldFail = false);
 /// </summary>
 public sealed class TestImportDefinition(IImportPayloadSerializer serializer) : ImportDefinition<TestImportRow>(serializer)
 {
-    public override string Key => "test-import";
-    public override string DisplayName => "Test Import";
+    /// <summary>
+    /// Overridable so a test can stand up a second definition and tell the two apart — a listing filtered
+    /// by permission needs one type the caller may see and one it may not.
+    /// </summary>
+    public string KeyOverride { get; init; } = "test-import";
+    public string DisplayNameOverride { get; init; } = "Test Import";
+    public string PermissionResourceOverride { get; init; } = ApplicationResource.Employees;
+
+    public override string Key => KeyOverride;
+    public override string DisplayName => DisplayNameOverride;
     public override string PermissionAction => ApplicationAction.Import;
-    public override string PermissionResource => ApplicationResource.Employees;
+    public override string PermissionResource => PermissionResourceOverride;
     public override int ChunkSize => 2;
 
     /// <summary>Rows each pass was handed, in order, so a test can assert on how the runner fed them.</summary>

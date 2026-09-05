@@ -13,9 +13,9 @@ namespace Wayd.Common.Application.Imports;
 /// on how a row is stored — the payload is written once at submission and read back by a worker that may be
 /// running days later, after a resume.
 /// </remarks>
-public abstract class ImportDefinition<TRow>(ISerializerService serializer) : IImportDefinition
+public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer) : IImportDefinition
 {
-    private readonly ISerializerService _serializer = serializer;
+    private readonly IImportPayloadSerializer _serializer = serializer;
 
     public abstract string Key { get; }
     public abstract string DisplayName { get; }

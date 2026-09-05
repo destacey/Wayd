@@ -12,7 +12,7 @@ public sealed class ImportDefinitionRegistryTests
     public void Find_ResolvesADefinitionByItsKey()
     {
         // Arrange
-        var definition = new TestImportDefinition(new TestSerializerService());
+        var definition = new TestImportDefinition(new ImportPayloadSerializer());
         var registry = CreateRegistry(definition);
 
         // Act
@@ -27,7 +27,7 @@ public sealed class ImportDefinitionRegistryTests
     public void Find_IgnoresCasing()
     {
         // Arrange — the key arrives from a persisted row, not from a code constant
-        var registry = CreateRegistry(new TestImportDefinition(new TestSerializerService()));
+        var registry = CreateRegistry(new TestImportDefinition(new ImportPayloadSerializer()));
 
         // Act
         var result = registry.Find("TEST-IMPORT");
@@ -40,7 +40,7 @@ public sealed class ImportDefinitionRegistryTests
     public void Find_FailsRatherThanThrowsForAKeyNoLongerRegistered()
     {
         // Arrange — a run persisted under a definition that has since been removed
-        var registry = CreateRegistry(new TestImportDefinition(new TestSerializerService()));
+        var registry = CreateRegistry(new TestImportDefinition(new ImportPayloadSerializer()));
 
         // Act
         var result = registry.Find("retired-import");
@@ -54,7 +54,7 @@ public sealed class ImportDefinitionRegistryTests
     public void All_ExposesEveryRegisteredDefinition()
     {
         // Arrange
-        var registry = CreateRegistry(new TestImportDefinition(new TestSerializerService()));
+        var registry = CreateRegistry(new TestImportDefinition(new ImportPayloadSerializer()));
 
         // Act & Assert
         registry.All.Should().ContainSingle().Which.Key.Should().Be("test-import");

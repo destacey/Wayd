@@ -7,7 +7,7 @@ namespace Wayd.Common.Application.Tests.Sut.Imports;
 
 public sealed class ImportDefinitionTests
 {
-    private static readonly TestSerializerService _serializer = new();
+    private static readonly ImportPayloadSerializer _serializer = new();
 
     private static TestImportDefinition CreateDefinition() => new(_serializer);
 

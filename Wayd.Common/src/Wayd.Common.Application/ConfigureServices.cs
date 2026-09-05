@@ -24,6 +24,7 @@ public static class ConfigureServices
         // that scan binds each implementation to its FIRST interface, which is unreliable when several
         // classes share one. Registering them by hand also keeps IEnumerable<IImportDefinition> — what the
         // registry takes instead of a service provider, so Wolverine's codegen can inline it.
+        services.AddScoped<IImportPayloadSerializer, ImportPayloadSerializer>();
         services.AddScoped<IImportDefinition, EmployeeImportDefinition>();
         services.AddScoped<IImportDefinitionRegistry, ImportDefinitionRegistry>();
 

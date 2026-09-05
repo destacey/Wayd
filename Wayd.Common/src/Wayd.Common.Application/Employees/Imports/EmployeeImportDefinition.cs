@@ -27,7 +27,7 @@ namespace Wayd.Common.Application.Employees.Imports;
 public sealed class EmployeeImportDefinition(
     IWaydDbContext waydDbContext,
     IDateTimeProvider dateTimeProvider,
-    ISerializerService serializer) : ImportDefinition<ImportEmployeeDto>(serializer)
+    IImportPayloadSerializer serializer) : ImportDefinition<ImportEmployeeDto>(serializer)
 {
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -55,33 +55,65 @@ public sealed class EmployeeImportDefinition(
         var timestamp = _dateTimeProvider.Now;
 
         var numbers = context.Rows.Select(r => r.Data.EmployeeNumber).ToList();
-        var emails = context.Rows.Select(r => r.Data.Email).ToList();
+
+        // Every address on a row, primary and additional alike: EmployeeEmails carries one unique index
+        // across the whole table, so an additional address collides just as hard as a primary one.
+        var addressesByRow = context.Rows.ToDictionary(
+            r => r.ImportId,
+            r => (IReadOnlyList<string>)[r.Data.Email.Value, .. (r.Data.AdditionalEmails ?? []).Select(e => e.Value)],
+            StringComparer.Ordinal);
+
+        var allAddresses = addressesByRow.Values.SelectMany(a => a).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        // Compare against EmailAddress instances, never e.Email.Value: Email is a HasConversion value
+        // object, so the property translates but a member of it does not — the query throws against real
+        // SQL while passing happily against an in-memory fake.
+        var addressValues = allAddresses.Select(a => new EmailAddress(a)).ToList();
 
         var takenNumbers = await _waydDbContext.Employees
             .Where(e => numbers.Contains(e.EmployeeNumber))
             .Select(e => e.EmployeeNumber)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
 
-        var takenEmails = await _waydDbContext.Employees
-            .Where(e => emails.Contains(e.Email))
+        // Both columns are separately unique-indexed — Employees.Email and EmployeeEmails.Email — so an
+        // address already used as either a primary or an additional one is taken.
+        var takenPrimaries = await _waydDbContext.Employees
+            .Where(e => addressValues.Contains(e.Email))
             .Select(e => e.Email)
             .ToListAsync(cancellationToken);
 
-        var takenEmailValues = takenEmails.Select(e => e.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var takenAdditional = await _waydDbContext.Employees
+            .SelectMany(e => e.Emails)
+            .Where(e => addressValues.Contains(e.Email))
+            .Select(e => e.Email)
+            .ToListAsync(cancellationToken);
+
+        // Keyed on the string only after the query has run.
+        var takenEmailValues = takenPrimaries.Concat(takenAdditional)
+            .Select(e => e.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in context.Rows)
         {
-            if (takenNumbers.Contains(row.Data.EmployeeNumber))
+            // Both sets grow as the chunk is walked, so two rows claiming the same number or address reject
+            // the second one. Checking only the database would let an intra-chunk pair through to
+            // SaveChanges, where the unique index fails the whole chunk instead of the one bad row.
+            if (!takenNumbers.Add(row.Data.EmployeeNumber))
             {
                 row.Failed("An employee with this employee number already exists.");
                 continue;
             }
 
-            if (takenEmailValues.Contains(row.Data.Email.Value))
+            var addresses = addressesByRow[row.ImportId];
+            if (addresses.Any(takenEmailValues.Contains))
             {
-                row.Failed("An employee with this email address already exists.");
+                takenNumbers.Remove(row.Data.EmployeeNumber);
+                row.Failed("An employee already claims one of the email addresses on this row.");
                 continue;
             }
+
+            foreach (var address in addresses)
+                takenEmailValues.Add(address);
 
             var employee = Employee.Create(
                 new PersonName(row.Data.FirstName, row.Data.MiddleName, row.Data.LastName),

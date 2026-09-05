@@ -14,7 +14,7 @@ public sealed class SubmitImportCommandHandlerTests
     private static readonly Instant _now = Instant.FromUtc(2026, 9, 5, 10, 0, 0);
 
     private readonly FakeImportDbContext _db = new();
-    private readonly TestImportDefinition _definition = new(new TestSerializerService());
+    private readonly TestImportDefinition _definition = new(new ImportPayloadSerializer());
     private readonly Mock<IDispatcher> _dispatcher = new();
 
     private SubmitImportCommandHandler CreateHandler()

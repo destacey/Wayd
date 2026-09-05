@@ -27,7 +27,7 @@ public sealed class EmployeeImportDefinitionTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.SetupGet(c => c.Now).Returns(_now);
-        _definition = new EmployeeImportDefinition(_db, clock.Object, new TestSerializerService());
+        _definition = new EmployeeImportDefinition(_db, clock.Object, new ImportPayloadSerializer());
     }
 
     private static ImportEmployeeDto Dto(
@@ -107,6 +107,22 @@ public sealed class EmployeeImportDefinitionTests
         var outcome = result.Value.Rows.Single();
         outcome.Failed.Should().BeTrue();
         outcome.Error.Should().Contain("email");
+    }
+
+    [Fact]
+    public async Task CreateEmployees_RejectsTheSecondOfTwoRowsClaimingTheSameAddress()
+    {
+        // Arrange — neither exists yet, so only an in-chunk check catches this
+        var first = Row(1, Dto("E-1", email: "shared@acme.example"));
+        var second = Row(2, Dto("E-2", email: "shared@acme.example"));
+
+        // Act
+        var result = await RunPass(CreatePass, first, second);
+
+        // Assert — one row rejected rather than the unique index failing the whole chunk
+        result.Value.Rows.Single(r => r.ImportId == "r1").Failed.Should().BeFalse();
+        result.Value.Rows.Single(r => r.ImportId == "r2").Failed.Should().BeTrue();
+        _db.Employees.Should().ContainSingle();
     }
 
     [Fact]

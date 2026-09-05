@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Wayd.Common.Application.Employees.Commands;
+using Wayd.Common.Application.Employees.Imports;
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Domain.Imports;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Employees.Queries;
 using Wayd.Common.Application.Interfaces;
@@ -32,7 +34,7 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
     private const string SeededEmail = "ada.lovelace@acme.example";
 
     /// <summary>
-    /// Seeds through the real import handler so the row is written by the production persistence path,
+    /// Seeds through the real import definition so the row is written by the production persistence path,
     /// converter included, rather than hand-inserted in a shape the app would never produce.
     /// </summary>
     private async Task<Guid> SeedEmployee(string email, CancellationToken cancellationToken)
@@ -41,27 +43,28 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
         dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
 
         await using var context = _fixture.CreateContext();
-        var command = new ImportEmployeesCommand(
-        [
-            new ImportEmployeeDto(
-                "E-4001",
-                "Ada",
-                null,
-                "Lovelace",
-                new EmailAddress(email),
-                HireDate: SqlServerDbContextFixture.FixedNow,
-                JobTitle: "Engineer",
-                Department: "Engineering",
-                OfficeLocation: null,
-                ManagerNumber: null),
-        ]);
+        var definition = new EmployeeImportDefinition(context, dateTimeProvider.Object, new ImportPayloadSerializer());
 
-        var result = await new ImportEmployeesCommandHandler(
-            context,
-            dateTimeProvider.Object,
-            NullLogger<ImportEmployeesCommandHandler>.Instance).Handle(command, cancellationToken);
+        var dto = new ImportEmployeeDto(
+            "E-4001",
+            "Ada",
+            null,
+            "Lovelace",
+            new EmailAddress(email),
+            HireDate: SqlServerDbContextFixture.FixedNow,
+            JobTitle: "Engineer",
+            Department: "Engineering",
+            OfficeLocation: null,
+            ManagerNumber: null);
+
+        var rows = new[] { ImportProcessRow.Create("r1", 1, definition.SerializeRow(dto)) };
+
+        // The create pass mutates; saving is the runner's job, so this stands in for it.
+        var result = await definition.ExecutePass(
+            Guid.CreateVersion7(), passIndex: 0, rows, isFinalChunk: true, cancellationToken);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await context.SaveChangesAsync(cancellationToken);
 
         await using var readContext = _fixture.CreateContext();
         return readContext.Employees.Single(e => e.EmployeeNumber == "E-4001").Id;

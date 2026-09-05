@@ -1,4 +1,3 @@
-using System.Text.Json;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
@@ -14,7 +13,7 @@ public sealed record TestImportRow(string Name, bool ShouldFail = false);
 /// A two-pass definition standing in for a real one, so the base class and the registry can be exercised
 /// without dragging a module's DbContext into these tests.
 /// </summary>
-public sealed class TestImportDefinition(ISerializerService serializer) : ImportDefinition<TestImportRow>(serializer)
+public sealed class TestImportDefinition(IImportPayloadSerializer serializer) : ImportDefinition<TestImportRow>(serializer)
 {
     public override string Key => "test-import";
     public override string DisplayName => "Test Import";
@@ -66,16 +65,4 @@ public sealed class TestImportDefinition(ISerializerService serializer) : Import
         Calls.Add(("Link", [.. context.Rows.Select(r => r.ImportId)], context.IsFinalChunk));
         return Task.FromResult(Result.Success());
     }
-}
-
-/// <summary>The real System.Text.Json behaviour, without taking a dependency on Infrastructure.</summary>
-public sealed class TestSerializerService : ISerializerService
-{
-    private static readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web);
-
-    public string Serialize<T>(T obj) => JsonSerializer.Serialize(obj, _options);
-
-    public string Serialize<T>(T obj, Type type) => JsonSerializer.Serialize(obj, type, _options);
-
-    public T Deserialize<T>(string text) => JsonSerializer.Deserialize<T>(text, _options)!;
 }

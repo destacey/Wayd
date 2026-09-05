@@ -84891,6 +84891,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("error")]
         public string? Error { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("unappliedRowCount")]
         public int UnappliedRowCount { get; set; } = default!;
 
@@ -84957,6 +84960,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("inlineThreshold")]
         public int InlineThreshold { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("canSubmit")]
+        public bool CanSubmit { get; set; } = default!;
 
     }
 

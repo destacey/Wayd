@@ -44072,6 +44072,7 @@ export interface ImportProcessDto {
     succeededRowCount: number;
     failedRowCount: number;
     error?: string | undefined;
+    canManage: boolean;
     unappliedRowCount: number;
 }
 
@@ -44096,6 +44097,7 @@ export interface ImportDefinitionDto {
     atomicity: ImportAtomicity;
     maxRows: number;
     inlineThreshold: number;
+    canSubmit: boolean;
 }
 
 export interface ImportProcessRowPageDto {

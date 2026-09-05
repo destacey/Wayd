@@ -50745,6 +50745,7 @@
           "totalRowCount",
           "succeededRowCount",
           "failedRowCount",
+          "canManage",
           "unappliedRowCount"
         ],
         "properties": {
@@ -50814,6 +50815,9 @@
             "type": "string",
             "nullable": true
           },
+          "canManage": {
+            "type": "boolean"
+          },
           "unappliedRowCount": {
             "type": "integer",
             "format": "int32"
@@ -50862,7 +50866,8 @@
           "displayName",
           "atomicity",
           "maxRows",
-          "inlineThreshold"
+          "inlineThreshold",
+          "canSubmit"
         ],
         "properties": {
           "key": {
@@ -50881,6 +50886,9 @@
           "inlineThreshold": {
             "type": "integer",
             "format": "int32"
+          },
+          "canSubmit": {
+            "type": "boolean"
           }
         }
       },

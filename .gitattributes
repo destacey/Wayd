@@ -3,3 +3,7 @@
 # fails the exec with a "no such file or directory" that names a file which
 # plainly exists — notably for the client image's ENTRYPOINT.
 *.sh text eol=lf
+
+# Git hooks have no extension but are executed the same way, so they need the
+# same LF guarantee.
+.githooks/* text eol=lf

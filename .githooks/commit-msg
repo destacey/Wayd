@@ -1,0 +1,18 @@
+#!/bin/sh
+# Rejects AI attribution trailers. This repo does not credit tooling in commit
+# messages, and an agent that has been told so can still add one by mistake, so
+# the rule is enforced here rather than left to convention.
+
+if grep -qiE '^[[:space:]]*Co-Authored-By:.*(Claude|Anthropic|Copilot|Cursor)' "$1"; then
+    echo "commit-msg: this repo does not use AI Co-Authored-By trailers." >&2
+    echo "  Remove the trailer and commit again." >&2
+    exit 1
+fi
+
+if grep -qiE 'Generated with .*(Claude Code|Copilot|Cursor)|Co-authored with .*Claude' "$1"; then
+    echo "commit-msg: this repo does not use AI attribution lines." >&2
+    echo "  Remove the 'Generated with ...' line and commit again." >&2
+    exit 1
+fi
+
+exit 0

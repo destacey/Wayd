@@ -268,5 +268,7 @@ Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistenc
 ## Important Considerations
 
 - **Main branch**: `main` (not master)
+- **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `commit-msg` rejects AI
+  attribution trailers; `.claude/settings.json` suppresses them at the source for Claude Code.
 - **Docker Compose**: Environment variable changes require full teardown and rebuild (`docker compose down` then `up`)
 - **OpenTelemetry**: Configured in `Wayd.Infrastructure/src/Wayd.Infrastructure/OpenTelemetry/ConfigureServices.cs`. Frontend server-side only via `instrumentation.ts`.

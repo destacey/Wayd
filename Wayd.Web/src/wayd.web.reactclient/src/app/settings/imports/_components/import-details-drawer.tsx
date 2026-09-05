@@ -1,16 +1,14 @@
 'use client'
 
 import { FC, useEffect, useMemo, useState } from 'react'
-import { Alert, Drawer, Flex, Segmented, Spin, Typography } from 'antd'
+import { Alert, Drawer, Flex, Segmented, Skeleton, Typography } from 'antd'
 import { LabeledContent } from '@/src/components/common/content'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { getDrawerWidthPixels } from '@/src/utils'
-import {
-  ImportProcessRowDto,
-  ImportRowStatus,
-} from '@/src/services/wayd-api'
+import { ImportProcessRowDto, ImportRowStatus } from '@/src/services/wayd-api'
 import {
   useGetImportProcessByIdQuery,
   useGetImportProcessRowsQuery,
@@ -135,68 +133,102 @@ const ImportDetailsDrawer: FC<ImportDetailsDrawerProps> = ({
       onClose={onDrawerClose}
       destroyOnHidden
     >
-      {isLoading || !importProcess ? (
-        <Spin />
-      ) : (
-        // A plain block, not a Flex column: WaydGrid takes its height from an inline pixel value that
-        // the flex algorithm discards when the container has no resolved height, and the grid then
-        // renders headers with no rows.
-        <div>
-          <Flex gap={24} wrap style={{ marginBottom: 16 }}>
-            <LabeledContent label="Import">
-              {importProcess.displayName}
-            </LabeledContent>
-            <LabeledContent label="Status">
+      {/* A plain block, not a Flex column: WaydGrid takes its height from an inline pixel value that
+          the flex algorithm discards when the container has no resolved height, and the grid then
+          renders headers with no rows. */}
+      <div>
+        <Flex gap={24} wrap style={{ marginBottom: 16 }}>
+          <LabeledContent label="Import">
+            {importProcess?.displayName ?? (
+              <Skeleton.Input active size="small" />
+            )}
+          </LabeledContent>
+          <LabeledContent label="Status">
+            {importProcess ? (
               <ImportStatusTag status={importProcess.status} />
-            </LabeledContent>
-            <LabeledContent label="Submitted By">
-              {importProcess.submittedByName ?? importProcess.submittedByUserId}
-            </LabeledContent>
-            <LabeledContent label="Rows">
-              {`${importProcess.succeededRowCount} applied · ${importProcess.failedRowCount} rejected · ${importProcess.unappliedRowCount} not applied`}
-            </LabeledContent>
-          </Flex>
+            ) : (
+              <Skeleton.Input active size="small" />
+            )}
+          </LabeledContent>
+          <LabeledContent label="Submitted By">
+            {importProcess ? (
+              (importProcess.submittedByName ?? importProcess.submittedByUserId)
+            ) : (
+              <Skeleton.Input active size="small" />
+            )}
+          </LabeledContent>
+        </Flex>
 
-          {importProcess.error && (
-            <Alert
-              type="error"
-              showIcon
-              message={importProcess.error}
-              style={{ marginBottom: 16 }}
-            />
-          )}
-
-          <Segmented<RowFilter>
-            style={{ marginBottom: 16 }}
-            value={rowFilter}
-            onChange={setChosenFilter}
-            options={[
-              { label: 'All', value: 'all' },
-              { label: 'Rejected', value: ImportRowStatus.Failed },
-              { label: 'Applied', value: ImportRowStatus.Succeeded },
-              { label: 'Not Applied', value: ImportRowStatus.Pending },
-              { label: 'Cancelled', value: ImportRowStatus.Cancelled },
-            ]}
+        {/* The counts are metrics, so they get the metric card's own skeleton while they load rather
+            than a spinner: the card keeps its shape and nothing shifts when the numbers land. */}
+        <Flex gap={12} wrap style={{ marginBottom: 16 }}>
+          <MetricCard
+            title="Applied"
+            value={importProcess?.succeededRowCount ?? 0}
+            loading={isLoading}
+            cardStyle={METRIC_CARD_FLEX}
+            tooltip="Rows this import created a record for. These are never reapplied by a resume or a retry."
           />
-
-          <WaydGrid
-            columns={columns}
-            data={rows?.rows}
-            isLoading={rowsLoading}
-            persistStateKey="settings-imports-rows"
-            csvFileName="import-rows"
-            initialSorting={[{ id: 'rowNumber', desc: false }]}
-            emptyMessage="No rows match this filter."
-            leftSlot={
-              rowOverflow ? (
-                <Typography.Text type="warning">
-                  {`Showing the first ${rows.rows.length} of ${rows.totalCount} rows.`}
-                </Typography.Text>
-              ) : undefined
+          <MetricCard
+            title="Rejected"
+            value={importProcess?.failedRowCount ?? 0}
+            loading={isLoading}
+            cardStyle={METRIC_CARD_FLEX}
+            valueStyle={
+              importProcess?.failedRowCount
+                ? { color: 'var(--ant-color-error)' }
+                : undefined
             }
+            tooltip="Rows that changed nothing. Their reason is listed below, and their data is kept so they can be retried once the file is fixed."
           />
-        </div>
-      )}
+          <MetricCard
+            title="Not Applied"
+            value={importProcess?.unappliedRowCount ?? 0}
+            loading={isLoading}
+            cardStyle={METRIC_CARD_FLEX}
+            tooltip="Rows the run never reached — it was stopped or it failed partway. A resume picks up exactly these."
+          />
+        </Flex>
+
+        {importProcess?.error && (
+          <Alert
+            type="error"
+            showIcon
+            message={importProcess.error}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        <Segmented<RowFilter>
+          style={{ marginBottom: 16 }}
+          value={rowFilter}
+          onChange={setChosenFilter}
+          options={[
+            { label: 'All', value: 'all' },
+            { label: 'Rejected', value: ImportRowStatus.Failed },
+            { label: 'Applied', value: ImportRowStatus.Succeeded },
+            { label: 'Not Applied', value: ImportRowStatus.Pending },
+            { label: 'Cancelled', value: ImportRowStatus.Cancelled },
+          ]}
+        />
+
+        <WaydGrid
+          columns={columns}
+          data={rows?.rows}
+          isLoading={rowsLoading}
+          persistStateKey="settings-imports-rows"
+          csvFileName="import-rows"
+          initialSorting={[{ id: 'rowNumber', desc: false }]}
+          emptyMessage="No rows match this filter."
+          leftSlot={
+            rowOverflow ? (
+              <Typography.Text type="warning">
+                {`Showing the first ${rows.rows.length} of ${rows.totalCount} rows.`}
+              </Typography.Text>
+            ) : undefined
+          }
+        />
+      </div>
     </Drawer>
   )
 }

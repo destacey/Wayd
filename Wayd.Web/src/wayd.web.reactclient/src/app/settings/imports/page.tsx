@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Button, Flex, Typography } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import PageTitle from '@/src/components/common/page-title'
-import MetricCard from '@/src/components/common/metrics/metric-card'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import {
   WaydGrid,
   createActionsColumn,
@@ -191,12 +191,14 @@ const ImportsPage = () => {
           title="In Progress"
           value={activeCount}
           loading={isLoading}
+          cardStyle={METRIC_CARD_FLEX}
           tooltip="Imports queued or being applied right now. A large file is applied by a background worker in chunks, so this can sit above zero for a while."
         />
         <MetricCard
           title="Needs Attention"
           value={failedCount}
           loading={isLoading}
+          cardStyle={METRIC_CARD_FLEX}
           valueStyle={
             failedCount ? { color: 'var(--ant-color-error)' } : undefined
           }
@@ -206,6 +208,7 @@ const ImportsPage = () => {
           title="Rejected Rows"
           value={rejectedRowCount}
           loading={isLoading}
+          cardStyle={METRIC_CARD_FLEX}
           tooltip="Rows rejected across every import shown. A rejected row changed nothing — its data is kept so it can be retried, until the import passes its 30-day retention window."
         />
       </Flex>

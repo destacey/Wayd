@@ -201,6 +201,81 @@ describe('WaydGrid', () => {
     })
   })
 
+  describe('auto-injected Id column', () => {
+    /** Renders and clicks the toolbar export button; returns the CSV. */
+    const exportFlags = (props: GridProps = {}) => {
+      mockDownloadCsv.mockClear()
+      const { container } = renderGrid(props)
+      const exportBtn = container
+        .querySelector('[aria-label="download"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(exportBtn)
+      return mockDownloadCsv.mock.calls[0][0] as string
+    }
+
+    it('is hidden on a grid whose rows carry an id', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert
+      expect(bodyCells('id')).toHaveLength(0)
+    })
+
+    it('stays out of the export while hidden', () => {
+      // Arrange / Act
+      const csv = exportFlags()
+
+      // Assert — the header row names the visible columns only
+      expect(csv).toContain('Name')
+      expect(csv.split('\n')[0]).not.toContain('Id')
+    })
+
+    it('is not added when the consumer opts out', () => {
+      // Arrange / Act
+      renderGrid({ includeIdColumn: false })
+
+      // Assert
+      expect(bodyCells('id')).toHaveLength(0)
+    })
+
+    it('leaves a consumer-defined id column visible', () => {
+      // Arrange — the consumer claims `id` themselves
+      const cols: ColumnDef<Flag, unknown>[] = [
+        { id: 'id', accessorKey: 'id', header: 'Job Id' },
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+      ]
+
+      // Act
+      renderGrid({ columns: cols })
+
+      // Assert — the consumer's column renders, unaffected by injection
+      expect(screen.getByText('Job Id')).toBeInTheDocument()
+      expect(bodyCells('id').map((c) => c.textContent)).toEqual(['1', '2', '3'])
+    })
+
+    it('is not added when the rows have no id', () => {
+      // Arrange
+      interface Keyed {
+        key: number
+        name: string
+      }
+      const cols: ColumnDef<Keyed, unknown>[] = [
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+      ]
+
+      // Act
+      render(
+        <WaydGrid<Keyed>
+          data={[{ key: 1, name: 'Alpha' }]}
+          columns={cols}
+        />,
+      )
+
+      // Assert
+      expect(bodyCells('id')).toHaveLength(0)
+    })
+  })
+
   describe('CSV export', () => {
     interface Obj {
       key: number

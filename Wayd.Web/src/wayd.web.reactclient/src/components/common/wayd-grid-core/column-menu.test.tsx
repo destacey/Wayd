@@ -73,6 +73,31 @@ describe('column-menu', () => {
       ])
     })
 
+    it('keeps a hiddenByDefault column listed, so the user can bring it back', () => {
+      // Arrange — the injected Id column's shape: hidden, but not meta.unavailable
+      const table = buildChooserTable(
+        [
+          { id: 'name', accessorKey: 'name', header: 'Name' },
+          {
+            id: 'id',
+            accessorKey: 'id',
+            header: 'Id',
+            meta: { hiddenByDefault: true },
+          },
+        ],
+        { id: false },
+      )
+
+      // Act
+      const options = getColumnChooserOptions(table)
+
+      // Assert
+      expect(options).toEqual([
+        { id: 'name', label: 'Name', visible: true },
+        { id: 'id', label: 'Id', visible: false },
+      ])
+    })
+
     it('excludes consumer-hidden (meta.unavailable), unhidable, and unlabeled columns', () => {
       // Arrange — meta.unavailable=true is consumer-controlled; enableHiding=false is
       // locked; an empty header with no exportHeader (actions-style) has no

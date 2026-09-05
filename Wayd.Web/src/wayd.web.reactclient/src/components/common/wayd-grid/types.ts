@@ -129,6 +129,13 @@ export interface WaydGridProps<T extends RowData> {
   columns:
     | ColumnDef<T, any>[]
     | ((context: GridColumnContext) => ColumnDef<T, any>[])
+  /**
+   * Appends a hidden `Id` column when the rows carry an `id` and the columns
+   * don't already define one, so a user can unhide it via Choose Columns and
+   * export the ids an import file needs. On by default; pass `false` for grids
+   * whose `id` is a client-side row key rather than a Wayd record id.
+   */
+  includeIdColumn?: boolean
 
   // -- Toolbar --
   onRefresh?: () => Promise<any> | void

@@ -159,12 +159,19 @@ export function useGridState(options?: UseGridStateOptions): GridState {
  * also excluded from the chooser). For every other column the user's choice
  * wins; absent a user choice, the consumer's `meta.unavailable: false` (or no entry
  * at all) leaves the column visible.
+ *
+ * `defaultVisibility` carries `meta.hiddenByDefault` columns, which start
+ * hidden but stay in the chooser. It sits *below* the user layer, so an
+ * explicit choice wins and clearing that choice (Reset Columns, or a persisted
+ * layout saved before the column existed) falls back to hidden rather than
+ * visible.
  */
 export function mergeColumnVisibility(
   consumerVisibility: VisibilityState,
   userVisibility: VisibilityState,
+  defaultVisibility: VisibilityState = {},
 ): VisibilityState {
-  const merged: VisibilityState = { ...userVisibility }
+  const merged: VisibilityState = { ...defaultVisibility, ...userVisibility }
   for (const [id, visible] of Object.entries(consumerVisibility)) {
     if (!visible) merged[id] = false
     else if (!(id in merged)) merged[id] = true

@@ -61,7 +61,7 @@ const WorkTypesPage = () => {
 
     return [
       createActionsColumn<WorkTypeDto>({
-        hide: !canUpdateWorkTypes,
+        unavailable: !canUpdateWorkTypes,
         ariaLabel: 'Work type actions',
         getItems: (workType): ItemType[] =>
           canUpdateWorkTypes

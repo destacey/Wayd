@@ -73,7 +73,7 @@ const StatusWorkflowsPage = () => {
       // Cloning is on the row because it is the only way to change a seeded
       // workflow, and every workflow that ships is seeded.
       createActionsColumn<StatusWorkflowListDto>({
-        hide: !canCreateStatusWorkflow && !canUpdateStatusWorkflow,
+        unavailable: !canCreateStatusWorkflow && !canUpdateStatusWorkflow,
         getItems: (workflow) =>
           [
             canCreateStatusWorkflow && {

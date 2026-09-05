@@ -58,7 +58,7 @@ const resolveChooserLabel = (columnDef: {
 /**
  * The leaf columns the user may show/hide, in on-screen display order (so the
  * checkbox list matches the grid left-to-right, reflecting reorder + pinning).
- * Excludes consumer-controlled columns (`meta.hide === true` — those stay
+ * Excludes consumer-controlled columns (`meta.unavailable === true` — those stay
  * reactive to the consumer's flag), columns with hiding disabled, and
  * structural columns with no displayable label (e.g. the row-actions column).
  */
@@ -67,7 +67,7 @@ export function getColumnChooserOptions<T extends RowData>(
 ): ColumnChooserOption[] {
   const options: ColumnChooserOption[] = []
   for (const column of getOrderedAllLeafColumns(table)) {
-    if (column.columnDef.meta?.hide === true) continue
+    if (column.columnDef.meta?.unavailable === true) continue
     if (!column.getCanHide()) continue
     const label = resolveChooserLabel(column.columnDef)
     if (!label) continue

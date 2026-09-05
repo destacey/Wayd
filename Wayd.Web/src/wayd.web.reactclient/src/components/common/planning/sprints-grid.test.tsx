@@ -217,7 +217,7 @@ describe('SprintsGrid', () => {
     const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
       .calls[0][0]
     const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
-    expect(teamColumn.meta.hide).toBeUndefined()
+    expect(teamColumn.meta.unavailable).toBeUndefined()
   })
 
   it('forwards persistStateKey to the grid', () => {

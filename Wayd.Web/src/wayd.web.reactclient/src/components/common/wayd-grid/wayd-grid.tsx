@@ -1204,8 +1204,8 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     [columns],
   )
 
-  // meta.hide → columnVisibility (AG Grid `hide` style), recursing into
-  // grouped defs (TanStack shrinks a band's colSpan as its leaves hide).
+  // meta.unavailable → columnVisibility, recursing into grouped defs (TanStack
+  // shrinks a band's colSpan as its leaves hide).
   const consumerColumnVisibility = useMemo<VisibilityState>(() => {
     const visibility: VisibilityState = {}
     const collect = (cols: typeof resolvedColumns) => {
@@ -1213,11 +1213,11 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
         const children = (col as { columns?: typeof resolvedColumns }).columns
         if (children) collect(children)
         const meta = col.meta
-        if (meta?.hide === undefined) continue
+        if (meta?.unavailable === undefined) continue
         const id =
           col.id ??
           (col as { accessorKey?: string | number }).accessorKey?.toString()
-        if (id) visibility[id] = !meta.hide
+        if (id) visibility[id] = !meta.unavailable
       }
     }
     collect(resolvedColumns)

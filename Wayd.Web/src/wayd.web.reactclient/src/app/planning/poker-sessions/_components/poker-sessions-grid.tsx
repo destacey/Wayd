@@ -78,7 +78,7 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
   const columns = useMemo<ColumnDef<PokerSessionListDto, any>[]>(
     () => [
       createActionsColumn<PokerSessionListDto>({
-        hide: !showRowMenu,
+        unavailable: !showRowMenu,
         ariaLabel: 'Poker session actions',
         getItems: (session) =>
           getRowMenuItems({

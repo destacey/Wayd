@@ -127,8 +127,8 @@ describe('WaydGrid', () => {
     })
   })
 
-  describe('meta.hide', () => {
-    it('omits a column from the DOM when meta.hide is true', () => {
+  describe('meta.unavailable', () => {
+    it('omits a column from the DOM when meta.unavailable is true', () => {
       // Arrange
       const hiddenCols: ColumnDef<Flag, unknown>[] = [
         { id: 'name', accessorKey: 'name', header: 'Name' },
@@ -136,7 +136,7 @@ describe('WaydGrid', () => {
           id: 'type',
           accessorKey: 'type',
           header: 'Type',
-          meta: { hide: true } satisfies WaydGridColumnMeta,
+          meta: { unavailable: true } satisfies WaydGridColumnMeta,
         },
       ]
 
@@ -149,7 +149,7 @@ describe('WaydGrid', () => {
       expect(screen.getByText('Name')).toBeInTheDocument()
     })
 
-    it('shows the column when meta.hide is false', () => {
+    it('shows the column when meta.unavailable is false', () => {
       // Arrange
       const cols: ColumnDef<Flag, unknown>[] = [
         { id: 'name', accessorKey: 'name', header: 'Name' },
@@ -157,7 +157,7 @@ describe('WaydGrid', () => {
           id: 'type',
           accessorKey: 'type',
           header: 'Type',
-          meta: { hide: false } satisfies WaydGridColumnMeta,
+          meta: { unavailable: false } satisfies WaydGridColumnMeta,
         },
       ]
 
@@ -250,15 +250,15 @@ describe('WaydGrid', () => {
       expect(csv).toContain('Juice')
     })
 
-    it('excludes hidden columns (meta.hide) from the export', () => {
-      // Arrange — Status is hidden via meta.hide
+    it('excludes hidden columns (meta.unavailable) from the export', () => {
+      // Arrange — Status is hidden via meta.unavailable
       const cols: ColumnDef<Obj, unknown>[] = [
         { id: 'name', accessorKey: 'name', header: 'Name' },
         {
           id: 'status',
           accessorKey: 'status.name',
           header: 'Status',
-          meta: { hide: true } satisfies WaydGridColumnMeta,
+          meta: { unavailable: true } satisfies WaydGridColumnMeta,
         },
       ]
 
@@ -851,7 +851,7 @@ describe('WaydGrid', () => {
       expect(enabled).toEqual(['Yes', 'No', 'Yes'])
     })
 
-    it('hides a grouped leaf via meta.hide and shrinks the band colSpan', () => {
+    it('hides a grouped leaf via meta.unavailable and shrinks the band colSpan', () => {
       // Arrange — hide Type inside the Info band
       const cols: ColumnDef<Flag, unknown>[] = [
         {
@@ -863,7 +863,7 @@ describe('WaydGrid', () => {
               id: 'type',
               accessorKey: 'type',
               header: 'Type',
-              meta: { hide: true } satisfies WaydGridColumnMeta,
+              meta: { unavailable: true } satisfies WaydGridColumnMeta,
             },
           ],
         },

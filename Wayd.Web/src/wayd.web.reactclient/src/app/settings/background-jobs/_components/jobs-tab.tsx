@@ -68,7 +68,7 @@ const JobsTab = () => {
 
     return [
       createActionsColumn<JobSummaryResponse>({
-        hide: !showRowActions,
+        unavailable: !showRowActions,
         ariaLabel: 'Job actions',
         getItems: (job) => {
           const items: ItemType[] = []

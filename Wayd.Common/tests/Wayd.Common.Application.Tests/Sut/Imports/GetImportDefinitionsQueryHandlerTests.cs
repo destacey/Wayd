@@ -12,6 +12,9 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     private static readonly string _employeePermission =
         ApplicationPermission.NameFor(ApplicationAction.Import, ApplicationResource.Employees);
 
+    private static readonly string _viewAllPermission =
+        ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports);
+
     private readonly Mock<ICurrentPrincipal> _principal = new();
 
     private readonly TestImportDefinition _employees = new(new ImportPayloadSerializer());
@@ -82,5 +85,36 @@ public sealed class GetImportDefinitionsQueryHandlerTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ForAnOversightHolder_ReturnsEveryTypeMarkedAsNotSubmittable()
+    {
+        // Arrange — the list widens to what they may see; an upload form must not offer these
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        // Act
+        var result = await Get();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().AllSatisfy(d => d.CanSubmit.Should().BeFalse());
+    }
+
+    [Fact]
+    public async Task Handle_ForAnOversightHolderWhoAlsoSubmits_FlagsOnlyWhatTheySubmit()
+    {
+        // Arrange
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HasPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        // Act
+        var result = await Get();
+
+        // Assert
+        result.Single(d => d.Key == _employees.Key).CanSubmit.Should().BeTrue();
+        result.Single(d => d.Key == _teams.Key).CanSubmit.Should().BeFalse();
     }
 }

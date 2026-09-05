@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Imports.Dtos;
 using Wayd.Common.Application.Imports.Queries;
@@ -14,16 +15,20 @@ namespace Wayd.Web.Api.Controllers.Imports;
 /// Deliberately not per domain area: a caller that submitted a file has one id and wants one place to ask
 /// about it.
 /// <para>
-/// Two gates, because they answer different questions. The attribute gates reaching the imports area at
-/// all, the way every other Settings area is gated. Which imports a holder may then see is a separate
-/// question the attribute cannot answer: it depends on the run's own definition, which names whatever
-/// gates submitting that kind of file, and is only known once the handler has read the run.
+/// There is deliberately no import permission of its own. Being allowed to submit a kind of file is what
+/// entitles you to see how it went, so the gate is the one the run's own definition names — which is only
+/// knowable once the handler has read the run, and so cannot be an attribute. A separate "view imports"
+/// claim would be able to withhold from someone the result of an import they just ran themselves.
+/// </para>
+/// <para>
+/// <c>Authorize</c> still has to be here: no fallback policy is registered, so an action without it is
+/// reachable anonymously.
 /// </para>
 /// </remarks>
 [Route("api/imports")]
 [ApiVersionNeutral]
 [ApiController]
-[MustHavePermission(ApplicationAction.View, ApplicationResource.Imports)]
+[Authorize]
 public class ImportsController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;

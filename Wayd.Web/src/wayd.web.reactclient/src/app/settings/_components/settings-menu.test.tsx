@@ -21,6 +21,14 @@ jest.mock('@/src/hooks', () => {
   }
 })
 
+// Imports is not gated on a claim — it appears when the viewer has at least one import type they may
+// see, which is the same condition under which the page has anything on it.
+let mockImportDefinitions: { key: string }[] = []
+
+jest.mock('@/src/store/features/admin/imports-api', () => ({
+  useGetImportDefinitionsQuery: () => ({ data: mockImportDefinitions }),
+}))
+
 jest.mock('next/navigation', () => ({
   usePathname: () => '/settings/user-management/users',
 }))
@@ -34,6 +42,9 @@ const groups = () =>
   )
 
 const allowAll = () => mockHasClaim.mockReturnValue(true)
+const withImportTypes = (...keys: string[]) => {
+  mockImportDefinitions = keys.map((key) => ({ key }))
+}
 const allowOnly = (...granted: string[]) =>
   mockHasClaim.mockImplementation((_type: string, value: string) =>
     granted.includes(value),
@@ -56,6 +67,7 @@ describe('SettingsMenu', () => {
     allowAll()
     mockFlags['planning-poker'] = true
     mockFlags['product-management'] = true
+    withImportTypes('employees')
   })
 
   describe('grouping', () => {
@@ -128,8 +140,10 @@ describe('SettingsMenu', () => {
 
     it('drops a group the viewer can see nothing in', () => {
       // Arrange — a heading over nothing is worse than no heading. Work
-      // Management carries no View permission, so it always survives.
+      // Management carries no View permission, so it always survives. Imports
+      // is not claim-gated either, so it has to be emptied to leave System bare.
       allowOnly('Permissions.Users.View')
+      withImportTypes()
 
       // Act
       renderMenu()
@@ -160,6 +174,43 @@ describe('SettingsMenu', () => {
       // Assert
       expect(screen.getByText('Scoring Models')).toBeInTheDocument()
       expect(screen.queryByText('Expenditure Categories')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('imports', () => {
+    it('shows Imports when the viewer has an import type to see', () => {
+      // Arrange
+      withImportTypes('employees')
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.getByText('Imports')).toBeInTheDocument()
+    })
+
+    it('hides Imports when there is no import type the viewer may see', () => {
+      // Arrange — no claim gates this entry, so an empty list is the only thing that can hide it
+      withImportTypes()
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.queryByText('Imports')).not.toBeInTheDocument()
+    })
+
+    it('shows Imports even to a viewer with no other System permission', () => {
+      // Arrange — being allowed to submit a file is what entitles you to see how it went, and that
+      // is not one of the claims this rail knows about
+      allowOnly()
+      withImportTypes('employees')
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.getByText('Imports')).toBeInTheDocument()
     })
   })
 

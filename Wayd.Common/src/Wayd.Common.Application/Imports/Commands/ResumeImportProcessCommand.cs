@@ -48,7 +48,7 @@ public sealed class ResumeImportProcessCommandHandler(
         if (process is null)
             return Result.Failure<ResumedImport>($"Import process '{command.ImportProcessId}' was not found.");
 
-        var definition = await ImportAuthorization.ResolveFor(
+        var definition = await ImportAuthorization.ResolveForManage(
             _registry, _currentPrincipal, process.ImportType, cancellationToken);
 
         if (definition.IsFailure)

@@ -19,6 +19,9 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
     private static readonly string _employeePermission =
         ApplicationPermission.NameFor(ApplicationAction.Import, ApplicationResource.Employees);
 
+    private static readonly string _viewAllPermission =
+        ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports);
+
     private readonly FakeImportDbContext _db = new();
     private readonly FakeWaydDbContext _waydDb = new();
     private readonly Mock<ICurrentPrincipal> _principal = new();
@@ -205,5 +208,67 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         // Assert
         result.Value.PageNumber.Should().Be(1);
         result.Value.PageSize.Should().Be(500);
+    }
+
+    [Fact]
+    public async Task Handle_ForAnOversightHolder_ListsTypesTheyCannotSubmit()
+    {
+        // Arrange — someone who watches the queue without submitting files
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        AddRun(_employees, _now);
+        AddRun(_teams, _now);
+
+        // Act
+        var result = await Get();
+
+        // Assert
+        result.Value.TotalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_ForAnOversightHolder_MarksRunsTheyCannotActOn()
+    {
+        // Arrange — oversight is read-only: acting on a run changes the records it created
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        AddRun(_teams, _now);
+
+        // Act
+        var result = await Get();
+
+        // Assert — the UI has no other way to know which of its buttons would be refused
+        result.Value.Processes.Single().CanManage.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_MarksARunTheCallerMaySubmitAsManageable()
+    {
+        // Arrange
+        AddRun(_employees, _now);
+
+        // Act
+        var result = await Get();
+
+        // Assert
+        result.Value.Processes.Single().CanManage.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_ForAnOversightHolderWhoAlsoSubmits_SeparatesTheTwo()
+    {
+        // Arrange — both tiers at once, which is the case that would hide a mix-up of the two
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HasPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var mine = AddRun(_employees, _now);
+        var theirs = AddRun(_teams, _now - Duration.FromHours(1));
+
+        // Act
+        var result = await Get();
+
+        // Assert
+        result.Value.Processes.Single(p => p.Id == mine.Id).CanManage.Should().BeTrue();
+        result.Value.Processes.Single(p => p.Id == theirs.Id).CanManage.Should().BeFalse();
     }
 }

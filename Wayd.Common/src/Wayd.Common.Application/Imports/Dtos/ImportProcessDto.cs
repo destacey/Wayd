@@ -9,6 +9,11 @@ namespace Wayd.Common.Application.Imports.Dtos;
 /// <remarks>
 /// Carries the display name and the atomicity alongside the counts because the run alone cannot explain
 /// itself: "0 of 40 applied" reads as a bug until you know the import is all-or-nothing.
+/// <para>
+/// <c>CanManage</c> mirrors the authorization rule onto the read side, as the PPM projections do: a
+/// reader holding oversight of every import type may still not act on this one, and the UI has no other
+/// way to know which of its buttons would be refused.
+/// </para>
 /// </remarks>
 public sealed record ImportProcessDto(
     Guid Id,
@@ -26,7 +31,8 @@ public sealed record ImportProcessDto(
     int TotalRowCount,
     int SucceededRowCount,
     int FailedRowCount,
-    string? Error)
+    string? Error,
+    bool CanManage)
 {
     /// <summary>Rows neither applied nor rejected — what a resume would pick up.</summary>
     public int UnappliedRowCount => TotalRowCount - SucceededRowCount - FailedRowCount;

@@ -5,6 +5,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
 
@@ -226,5 +227,26 @@ public sealed class ResumeImportProcessCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         process.Status.Should().Be(ImportProcessStatus.Cancelled);
+    }
+
+    [Fact]
+    public async Task Handle_RefusesSomeoneWhoOnlyOverseesImports()
+    {
+        // Arrange — reapplying rows creates records, which oversight does not grant
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal
+            .Setup(p => p.HasPermission(
+                ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var process = PartlyAppliedRun();
+
+        // Act
+        var result = await Resume(process.Id);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Cancelled);
+        _dispatcher.VerifyNoOtherCalls();
     }
 }

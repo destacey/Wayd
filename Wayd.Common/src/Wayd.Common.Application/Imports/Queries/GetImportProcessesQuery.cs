@@ -39,19 +39,24 @@ public sealed class GetImportProcessesQueryHandler(
         var pageNumber = Math.Max(query.PageNumber, 1);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
 
-        var permitted = await ImportAuthorization.Permitted(_registry, _currentPrincipal, cancellationToken);
+        var viewable = await ImportAuthorization.Viewable(_registry, _currentPrincipal, cancellationToken);
 
         if (query.ImportType is not null)
         {
-            permitted = [.. permitted.Where(d => string.Equals(d.Key, query.ImportType, StringComparison.OrdinalIgnoreCase))];
+            viewable = [.. viewable.Where(d => string.Equals(d.Key, query.ImportType, StringComparison.OrdinalIgnoreCase))];
 
             // An unknown type and one the caller cannot see are the same answer on purpose: telling them
             // apart would report which import types exist to someone not allowed to know.
-            if (permitted.Count == 0)
+            if (viewable.Count == 0)
                 return Result.Failure<ImportProcessPageDto>($"No import type '{query.ImportType}' is available to you.");
         }
 
-        var byKey = permitted.ToDictionary(d => d.Key, StringComparer.OrdinalIgnoreCase);
+        var byKey = viewable.ToDictionary(d => d.Key, StringComparer.OrdinalIgnoreCase);
+
+        // Read once for the whole page rather than per run: oversight widens what is listed, but acting
+        // on a run still needs that import's own permission, and the UI has to know which is which.
+        var manageable = await ImportAuthorization.Submittable(_registry, _currentPrincipal, cancellationToken);
+        var manageableKeys = manageable.Select(d => d.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (byKey.Count == 0)
             return Result.Success(new ImportProcessPageDto([], 0, pageNumber, pageSize));
@@ -76,7 +81,11 @@ public sealed class GetImportProcessesQueryHandler(
         var names = await ResolveSubmitterNames(page, cancellationToken);
 
         return Result.Success(new ImportProcessPageDto(
-            [.. page.Select(p => Map(p, byKey[p.ImportType], names.GetValueOrDefault(p.SubmittedByUserId)))],
+            [.. page.Select(p => Map(
+                p,
+                byKey[p.ImportType],
+                names.GetValueOrDefault(p.SubmittedByUserId),
+                manageableKeys.Contains(p.ImportType)))],
             totalCount,
             pageNumber,
             pageSize));
@@ -100,7 +109,8 @@ public sealed class GetImportProcessesQueryHandler(
         return users.ToDictionary(u => u.Id, u => u.DisplayName ?? u.UserName, StringComparer.Ordinal);
     }
 
-    internal static ImportProcessDto Map(ImportProcess process, IImportDefinition definition, string? submittedByName) =>
+    internal static ImportProcessDto Map(
+        ImportProcess process, IImportDefinition definition, string? submittedByName, bool canManage) =>
         new(process.Id,
             process.ImportType,
             definition.DisplayName,
@@ -116,5 +126,6 @@ public sealed class GetImportProcessesQueryHandler(
             process.TotalRowCount,
             process.SucceededRowCount,
             process.FailedRowCount,
-            process.Error);
+            process.Error,
+            canManage);
 }

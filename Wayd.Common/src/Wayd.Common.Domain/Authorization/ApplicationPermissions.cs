@@ -158,9 +158,11 @@ public static class ApplicationPermissions
     private const string ImportsCategory = "Imports";
     private static readonly ApplicationPermission[] _imports =
     [
-        // Reaching the Imports area at all. What a holder actually sees there is still limited to the
-        // import types they may submit, which each definition declares for itself.
-        new("View Imports. This shows the history of submitted import files and what became of each row.", ApplicationAction.View, ApplicationResource.Imports, ImportsCategory),
+        // Oversight for someone who watches the import queue without submitting files themselves. It is
+        // not needed to see your own imports — being allowed to submit a kind of file already entitles
+        // you to see how it went — and it is read-only: acting on a run still needs whatever permission
+        // gates submitting that kind of file.
+        new("View every import, including types you cannot submit yourself. Read-only.", ApplicationAction.View, ApplicationResource.Imports, ImportsCategory),
     ];
 
     private const string IdentityCategory = "Identity";

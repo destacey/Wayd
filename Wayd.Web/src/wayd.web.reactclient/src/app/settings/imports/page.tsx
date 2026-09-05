@@ -10,7 +10,6 @@ import {
   createActionsColumn,
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { ImportProcessDto, ImportProcessStatus } from '@/src/services/wayd-api'
 import { useGetImportProcessesQuery } from '@/src/store/features/admin/imports-api'
@@ -69,8 +68,11 @@ const ImportsPage = () => {
         getItems: (importProcess) => {
           const items: ItemType[] = []
 
-          // Every action is a property of the run's own state, so the menu is built from that rather
-          // than from a permission: reaching this row already meant passing the import's own gate.
+          // Seeing a run and acting on it are separate grants: someone overseeing every import type
+          // reads this row but may not change the records it created. The server refuses either way;
+          // this keeps the menu from offering what it would refuse.
+          if (!importProcess.canManage) return items
+
           if (isRunning(importProcess.status)) {
             items.push({
               key: 'cancel',
@@ -235,10 +237,6 @@ const ImportsPage = () => {
   )
 }
 
-const PageWithAuthorization = authorizePage(
-  ImportsPage,
-  'Permission',
-  'Permissions.Imports.View',
-)
-
-export default PageWithAuthorization
+// No authorizePage claim: there is no single import permission to name, and the listing already returns
+// only the import types this viewer may submit — an empty page for someone with none.
+export default ImportsPage

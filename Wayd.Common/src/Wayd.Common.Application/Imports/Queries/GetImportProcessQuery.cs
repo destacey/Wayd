@@ -29,7 +29,7 @@ public sealed class GetImportProcessQueryHandler(
         if (process is null)
             return Result.Failure<ImportProcessDto>($"Import process '{query.ImportProcessId}' was not found.");
 
-        var definition = await ImportAuthorization.ResolveFor(
+        var definition = await ImportAuthorization.ResolveForRead(
             _registry, _currentPrincipal, process.ImportType, cancellationToken);
 
         if (definition.IsFailure)
@@ -41,7 +41,10 @@ public sealed class GetImportProcessQueryHandler(
             .Select(u => u.DisplayName ?? u.UserName)
             .FirstOrDefaultAsync(cancellationToken);
 
+        var canManage = await ImportAuthorization.CanSubmit(
+            definition.Value, _currentPrincipal, cancellationToken);
+
         return Result.Success(
-            GetImportProcessesQueryHandler.Map(process, definition.Value, submittedByName));
+            GetImportProcessesQueryHandler.Map(process, definition.Value, submittedByName, canManage));
     }
 }

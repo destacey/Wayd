@@ -43,7 +43,7 @@ public sealed class GetImportProcessRowsQueryHandler(
         if (importType is null)
             return Result.Failure<ImportProcessRowPageDto>($"Import process '{query.ImportProcessId}' was not found.");
 
-        var definition = await ImportAuthorization.ResolveFor(
+        var definition = await ImportAuthorization.ResolveForRead(
             _registry, _currentPrincipal, importType, cancellationToken);
 
         if (definition.IsFailure)

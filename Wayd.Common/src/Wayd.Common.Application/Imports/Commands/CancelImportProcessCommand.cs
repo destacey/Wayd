@@ -41,7 +41,7 @@ public sealed class CancelImportProcessCommandHandler(
         if (process is null)
             return Result.Failure($"Import process '{command.ImportProcessId}' was not found.");
 
-        var definition = await ImportAuthorization.ResolveFor(
+        var definition = await ImportAuthorization.ResolveForManage(
             _registry, _currentPrincipal, process.ImportType, cancellationToken);
 
         if (definition.IsFailure)

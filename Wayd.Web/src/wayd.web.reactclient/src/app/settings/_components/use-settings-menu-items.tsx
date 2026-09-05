@@ -3,6 +3,7 @@
 import { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'
 import { useFeatureFlag } from '@/src/hooks'
+import { useGetImportDefinitionsQuery } from '@/src/store/features/admin/imports-api'
 import {
   buildRouteKeyMap,
   filterAndTransformMenuItem,
@@ -16,6 +17,7 @@ import {
 interface SettingsMenuOptions {
   planningPoker: boolean
   productManagement: boolean
+  imports: boolean
 }
 
 /**
@@ -184,12 +186,12 @@ const buildSettingsMenuItems = (
       'system.connections',
       '/settings/connections',
     ),
-    restrictedPermissionMenuItem(
-      'Permissions.Imports.View',
-      'Imports',
-      'system.imports',
-      '/settings/imports',
-    ),
+    // Not a permission entry: what gates an import is whatever gates submitting that kind of file, and
+    // there are many of those. The viewer sees this when at least one is theirs to submit, which is the
+    // same condition under which the page has anything on it.
+    ...(options.imports
+      ? [menuItem('Imports', 'system.imports', '/settings/imports')]
+      : []),
     restrictedPermissionMenuItem(
       'Permissions.BackgroundJobs.View',
       'Background Jobs',
@@ -258,7 +260,14 @@ export const useSettingsMenuItems = () => {
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: productManagement } = useFeatureFlag('product-management')
 
-  const items = buildSettingsMenuItems({ planningPoker, productManagement })
+  // Cheap and cached: the same query the Imports page uses, so opening it costs nothing extra.
+  const { data: importDefinitions } = useGetImportDefinitionsQuery()
+
+  const items = buildSettingsMenuItems({
+    planningPoker,
+    productManagement,
+    imports: (importDefinitions?.length ?? 0) > 0,
+  })
 
   const menuItems = asGroups(
     items.reduce(

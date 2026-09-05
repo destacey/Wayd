@@ -5,7 +5,7 @@ import {
   WaydGrid,
   createActionsColumn,
 } from '@/src/components/common/wayd-grid'
-import MetricCard from '@/src/components/common/metrics/metric-card'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { useMemo, useState } from 'react'
 import { Button, Flex, Typography } from 'antd'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
@@ -166,24 +166,28 @@ const MessagingPage = () => {
       <PageTitle title="Messaging" />
       <Flex gap={12} wrap style={{ marginBottom: 16 }}>
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Incoming"
           value={counts?.incoming ?? 0}
           loading={countsLoading}
           tooltip="Durably persisted messages waiting to be processed. Only appears when delivery backs up — a burst of messages, database latency, or messages recovered after an unclean shutdown. Zero is the healthy state; successfully processed messages pass through too quickly to see."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Scheduled"
           value={counts?.scheduled ?? 0}
           loading={countsLoading}
           tooltip="Messages scheduled for a future time — mostly failed messages waiting out a retry cooldown (1s / 5s / 15s between attempts). Visible for the ~20 seconds a message spends retrying before it either succeeds or dead-letters."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Outbox"
           value={counts?.outgoing ?? 0}
           loading={countsLoading}
           tooltip="Outgoing messages committed with a transaction but not yet dispatched. Only appears during a dispatch backlog or after an unclean shutdown. Zero is the healthy state."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Dead Letters"
           value={counts?.deadLetter ?? 0}
           loading={countsLoading}
@@ -193,6 +197,7 @@ const MessagingPage = () => {
           tooltip="Messages that failed every retry attempt. Unlike the other buckets, these persist until you replay or discard them below — this is the tile to watch."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Handled"
           value={counts?.handled ?? 0}
           loading={countsLoading}

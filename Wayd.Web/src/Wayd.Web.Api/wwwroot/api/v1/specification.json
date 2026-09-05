@@ -29401,6 +29401,128 @@
         ]
       }
     },
+    "/api/imports": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Get a page of import runs, newest first.",
+        "operationId": "Imports_GetList",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "nullable": true,
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ImportProcessStatus"
+                    }
+                  ]
+                }
+              ]
+            },
+            "x-position": 1
+          },
+          {
+            "name": "importType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "submittedByUserId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 4
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            },
+            "x-position": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/imports/definitions": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Get the import types the caller may see, each flagged with whether they may submit it.",
+        "operationId": "Imports_GetDefinitions",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportDefinitionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/imports/{id}": {
       "get": {
         "tags": [
@@ -29604,7 +29726,14 @@
         ],
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumedImport"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -29647,7 +29776,14 @@
         ],
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumedImport"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -50565,6 +50701,36 @@
           }
         }
       },
+      "ImportProcessPageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "processes",
+          "totalCount",
+          "pageNumber",
+          "pageSize"
+        ],
+        "properties": {
+          "processes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportProcessDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ImportProcessDto": {
         "type": "object",
         "additionalProperties": false,
@@ -50579,6 +50745,7 @@
           "totalRowCount",
           "succeededRowCount",
           "failedRowCount",
+          "canManage",
           "unappliedRowCount"
         ],
         "properties": {
@@ -50608,6 +50775,10 @@
           },
           "submittedByUserId": {
             "type": "string"
+          },
+          "submittedByName": {
+            "type": "string",
+            "nullable": true
           },
           "submittedOn": {
             "type": "string",
@@ -50643,6 +50814,9 @@
           "error": {
             "type": "string",
             "nullable": true
+          },
+          "canManage": {
+            "type": "boolean"
           },
           "unappliedRowCount": {
             "type": "integer",
@@ -50683,6 +50857,40 @@
           "Failed",
           "Cancelled"
         ]
+      },
+      "ImportDefinitionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "displayName",
+          "atomicity",
+          "maxRows",
+          "inlineThreshold",
+          "canSubmit"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "atomicity": {
+            "$ref": "#/components/schemas/ImportAtomicity"
+          },
+          "maxRows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inlineThreshold": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canSubmit": {
+            "type": "boolean"
+          }
+        }
       },
       "ImportProcessRowPageDto": {
         "type": "object",
@@ -50776,6 +50984,24 @@
           "Failed",
           "Cancelled"
         ]
+      },
+      "ResumedImport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "queuedRowCount",
+          "skippedRowCount"
+        ],
+        "properties": {
+          "queuedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skippedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "HealthStatusDto": {
         "type": "object",

@@ -8,6 +8,9 @@ export enum QueryTags {
   FeatureFlag = 'Admin.FeatureFlag',
   MessagingCounts = 'Admin.MessagingCounts',
   DeadLetterMessage = 'Admin.DeadLetterMessage',
+  ImportProcess = 'Admin.ImportProcess',
+  ImportProcessRow = 'Admin.ImportProcessRow',
+  ImportDefinition = 'Admin.ImportDefinition',
 
   // CLIENT FEATURE FLAGS
   ClientFeatureFlag = 'Client.FeatureFlag',

@@ -5,6 +5,7 @@ using Wayd.Common.Application.Imports.Dtos;
 using Wayd.Common.Application.Imports.Queries;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
 
@@ -15,6 +16,7 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
     private static readonly Instant _now = Instant.FromUtc(2026, 9, 5, 10, 0, 0);
 
     private readonly FakeImportDbContext _db = new();
+    private readonly FakeWaydDbContext _waydDb = new();
     private readonly TestImportDefinition _definition = new(new ImportPayloadSerializer());
     private readonly Mock<ICurrentPrincipal> _principal = new();
 
@@ -26,7 +28,7 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     private GetImportProcessQueryHandler CreateHandler() =>
-        new(_db, new ImportDefinitionRegistry([_definition]), _principal.Object);
+        new(_db, _waydDb, new ImportDefinitionRegistry([_definition]), _principal.Object);
 
     private ImportProcess AddRun(int rowCount)
     {
@@ -96,5 +98,38 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
+    }
+
+    [Fact]
+    public async Task Handle_ForAnOversightHolder_ReturnsTheRunButNotTheAbilityToActOnIt()
+    {
+        // Arrange
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal
+            .Setup(p => p.HasPermission(
+                ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var process = AddRun(1);
+
+        // Act
+        var result = await Get(process.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CanManage.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForACallerWhoMaySubmitThisType_SaysTheyMayActOnIt()
+    {
+        // Arrange
+        var process = AddRun(1);
+
+        // Act
+        var result = await Get(process.Id);
+
+        // Assert
+        result.Value.CanManage.Should().BeTrue();
     }
 }

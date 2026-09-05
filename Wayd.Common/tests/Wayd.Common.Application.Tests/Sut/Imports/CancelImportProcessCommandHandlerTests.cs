@@ -5,6 +5,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
 
@@ -122,5 +123,26 @@ public sealed class CancelImportProcessCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
+    }
+
+    [Fact]
+    public async Task Handle_RefusesSomeoneWhoOnlyOverseesImports()
+    {
+        // Arrange — oversight of every import type is read-only: stopping a run changes the records it
+        // creates, which is what submitting the file gates
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal
+            .Setup(p => p.HasPermission(
+                ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var process = QueueRun();
+
+        // Act
+        var result = await Cancel(process.Id);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Queued);
     }
 }

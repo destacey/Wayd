@@ -13,10 +13,17 @@ namespace Wayd.Web.Api.Controllers.Imports;
 /// </summary>
 /// <remarks>
 /// Deliberately not per domain area: a caller that submitted a file has one id and wants one place to ask
-/// about it. There is no permission attribute because there is no single import permission — the handler
-/// authorizes on whatever gates submitting that kind of file, which it can only know once it has read the
-/// run. <c>Authorize</c> still has to be here: no fallback policy is registered, so an action without it
-/// is reachable anonymously.
+/// about it.
+/// <para>
+/// There is deliberately no import permission of its own. Being allowed to submit a kind of file is what
+/// entitles you to see how it went, so the gate is the one the run's own definition names — which is only
+/// knowable once the handler has read the run, and so cannot be an attribute. A separate "view imports"
+/// claim would be able to withhold from someone the result of an import they just ran themselves.
+/// </para>
+/// <para>
+/// <c>Authorize</c> still has to be here: no fallback policy is registered, so an action without it is
+/// reachable anonymously.
+/// </para>
 /// </remarks>
 [Route("api/imports")]
 [ApiVersionNeutral]
@@ -26,7 +33,36 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
 
-    [HttpGet("{id}")]
+    [HttpGet]
+    [OpenApiOperation("Get a page of import runs, newest first.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ImportProcessPageDto>> GetList(
+        CancellationToken cancellationToken,
+        ImportProcessStatus? status = null,
+        string? importType = null,
+        string? submittedByUserId = null,
+        int pageNumber = 1,
+        int pageSize = 100)
+    {
+        var result = await _dispatcher.Send(
+            new GetImportProcessesQuery(status, importType, submittedByUserId, pageNumber, pageSize),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    // Ahead of the {id:guid} routes for readability only - the constraint is what keeps "definitions" from
+    // binding as an id.
+    [HttpGet("definitions")]
+    [OpenApiOperation("Get the import types the caller may see, each flagged with whether they may submit it.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ImportDefinitionDto>>> GetDefinitions(CancellationToken cancellationToken) =>
+        Ok(await _dispatcher.Send(new GetImportDefinitionsQuery(), cancellationToken));
+
+    [HttpGet("{id:guid}")]
     [OpenApiOperation("Get the status and counts of an import.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -39,7 +75,7 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpGet("{id}/rows")]
+    [HttpGet("{id:guid}/rows")]
     [OpenApiOperation("Get a page of row outcomes for an import.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -58,7 +94,7 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/cancel")]
+    [HttpPost("{id:guid}/cancel")]
     [OpenApiOperation("Stop an import that is still running.", "")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -71,9 +107,9 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/resume")]
+    [HttpPost("{id:guid}/resume")]
     [OpenApiOperation("Queue an import again to apply the rows it never reached.", "")]
-    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ResumedImport), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ResumedImport>> Resume(Guid id, CancellationToken cancellationToken)
     {
@@ -84,9 +120,9 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/retry-failed")]
+    [HttpPost("{id:guid}/retry-failed")]
     [OpenApiOperation("Queue an import again, this time also reattempting the rows it rejected.", "")]
-    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ResumedImport), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ResumedImport>> RetryFailed(Guid id, CancellationToken cancellationToken)
     {

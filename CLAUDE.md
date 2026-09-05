@@ -141,6 +141,23 @@ Architecture tests in `Wayd.ArchitectureTests` enforce these dependency rules.
 
 ## Coding Conventions
 
+### Comments (all languages)
+
+Comment the **constraint**, not the narrative. A comment earns its place when it explains something
+the code cannot: a non-obvious invariant, why a surprising line must stay, a bug it prevents, an
+external quirk it works around.
+
+Do not write:
+
+- Restatements of what the line plainly does (`// loop over the rows`).
+- The path that led to the fix, alternatives rejected, or what the code used to do — git history
+  covers that. Keep only the constraint that survives ("X must run before Y or Z breaks").
+- References to a property, flag, or branch that is **not** in the code.
+- A doc block on every function purely for symmetry. Summarize a function when its name and
+  signature genuinely don't convey it; otherwise skip it.
+
+Match the comment density of the surrounding file rather than importing a different house style.
+
 ### .NET Backend
 
 - **Time handling**: NodaTime (`Instant`, `LocalDate`). Never use `DateTime.UtcNow` — always inject `IDateTimeProvider`. Migrations are the sole exception (no DI); there, format timestamps interpolated into `migrationBuilder.Sql(...)` with `CultureInfo.InvariantCulture` and `"yyyy-MM-ddTHH:mm:ss.fff"` — the current culture's default format is not parseable by SQL Server on non-Windows hosts (ICU 72+ emits `U+202F` before AM/PM, failing with error 241).

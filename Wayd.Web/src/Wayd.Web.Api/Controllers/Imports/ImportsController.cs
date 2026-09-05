@@ -104,7 +104,7 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id:guid}/resume")]
     [OpenApiOperation("Queue an import again to apply the rows it never reached.", "")]
-    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ResumedImport), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ResumedImport>> Resume(Guid id, CancellationToken cancellationToken)
     {
@@ -117,7 +117,7 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id:guid}/retry-failed")]
     [OpenApiOperation("Queue an import again, this time also reattempting the rows it rejected.", "")]
-    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ResumedImport), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ResumedImport>> RetryFailed(Guid id, CancellationToken cancellationToken)
     {

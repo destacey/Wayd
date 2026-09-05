@@ -185,6 +185,12 @@ const buildSettingsMenuItems = (
       '/settings/connections',
     ),
     restrictedPermissionMenuItem(
+      'Permissions.Imports.View',
+      'Imports',
+      'system.imports',
+      '/settings/imports',
+    ),
+    restrictedPermissionMenuItem(
       'Permissions.BackgroundJobs.View',
       'Background Jobs',
       'system.background-jobs',

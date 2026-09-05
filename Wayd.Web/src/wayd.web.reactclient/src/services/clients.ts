@@ -51,6 +51,7 @@ import {
   ConnectionsClient,
   AzureDevOpsConnectionsClient,
   FeatureFlagsClient,
+  ImportsClient,
   MessagingClient,
   PersonalAccessTokensClient,
   SearchClient,
@@ -406,6 +407,8 @@ export const getBackgroundJobsClient = () =>
   new BackgroundJobsClient('', axiosClient)
 
 export const getMessagingClient = () => new MessagingClient('', axiosClient)
+
+export const getImportsClient = () => new ImportsClient('', axiosClient)
 
 export const getHealthChecksClient = () =>
   new HealthChecksClient('', axiosClient)

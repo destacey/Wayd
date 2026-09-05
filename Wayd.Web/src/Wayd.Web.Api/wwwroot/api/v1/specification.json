@@ -29401,6 +29401,272 @@
         ]
       }
     },
+    "/api/imports/{id}": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Get the status and counts of an import.",
+        "operationId": "Imports_GetById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/imports/{id}/rows": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Get a page of row outcomes for an import.",
+        "operationId": "Imports_GetRows",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "nullable": true,
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ImportRowStatus"
+                    }
+                  ]
+                }
+              ]
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 3
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessRowPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/imports/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Stop an import that is still running.",
+        "operationId": "Imports_Cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/imports/{id}/resume": {
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Queue an import again to apply the rows it never reached.",
+        "operationId": "Imports_Resume",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/imports/{id}/retry-failed": {
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Queue an import again, this time also reattempting the rows it rejected.",
+        "operationId": "Imports_RetryFailed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/health-checks/statuses": {
       "get": {
         "tags": [
@@ -50298,6 +50564,218 @@
             "nullable": false
           }
         }
+      },
+      "ImportProcessDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "importType",
+          "displayName",
+          "atomicity",
+          "status",
+          "submittedByUserId",
+          "submittedOn",
+          "totalRowCount",
+          "succeededRowCount",
+          "failedRowCount",
+          "unappliedRowCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "importType": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "atomicity": {
+            "$ref": "#/components/schemas/ImportAtomicity"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportProcessStatus"
+          },
+          "submissionGroupId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "submittedByUserId": {
+            "type": "string"
+          },
+          "submittedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastProgressOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totalRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "succeededRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "unappliedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ImportAtomicity": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "PerRow",
+          "Atomic"
+        ],
+        "enum": [
+          "PerRow",
+          "Atomic"
+        ]
+      },
+      "ImportProcessStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Queued",
+          "Processing",
+          "Cancelling",
+          "Succeeded",
+          "PartiallySucceeded",
+          "Failed",
+          "Cancelled"
+        ],
+        "enum": [
+          "Queued",
+          "Processing",
+          "Cancelling",
+          "Succeeded",
+          "PartiallySucceeded",
+          "Failed",
+          "Cancelled"
+        ]
+      },
+      "ImportProcessRowPageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rows",
+          "totalCount",
+          "pageNumber",
+          "pageSize"
+        ],
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportProcessRowDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ImportProcessRowDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "importId",
+          "rowNumber",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "importId": {
+            "type": "string"
+          },
+          "rowNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportRowStatus"
+          },
+          "createdEntityId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "warning": {
+            "type": "string",
+            "nullable": true
+          },
+          "attemptedOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ImportRowStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Pending",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ],
+        "enum": [
+          "Pending",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ]
       },
       "HealthStatusDto": {
         "type": "object",

@@ -29726,7 +29726,14 @@
         ],
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumedImport"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -29769,7 +29776,14 @@
         ],
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumedImport"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -50962,6 +50976,24 @@
           "Failed",
           "Cancelled"
         ]
+      },
+      "ResumedImport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "queuedRowCount",
+          "skippedRowCount"
+        ],
+        "properties": {
+          "queuedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skippedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "HealthStatusDto": {
         "type": "object",

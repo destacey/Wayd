@@ -34720,7 +34720,7 @@ export class ImportsClient {
     /**
      * Queue an import again to apply the rows it never reached.
      */
-    resume(id: string, cancelToken?: CancelToken): Promise<void> {
+    resume(id: string, cancelToken?: CancelToken): Promise<ResumedImport> {
         let url_ = this.baseUrl + "/api/imports/{id}/resume";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -34731,6 +34731,7 @@ export class ImportsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -34746,7 +34747,7 @@ export class ImportsClient {
         });
     }
 
-    protected processResume(response: AxiosResponse): Promise<void> {
+    protected processResume(response: AxiosResponse): Promise<ResumedImport> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -34758,7 +34759,10 @@ export class ImportsClient {
         }
         if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ResumedImport>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -34771,13 +34775,13 @@ export class ImportsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ResumedImport>(null as any);
     }
 
     /**
      * Queue an import again, this time also reattempting the rows it rejected.
      */
-    retryFailed(id: string, cancelToken?: CancelToken): Promise<void> {
+    retryFailed(id: string, cancelToken?: CancelToken): Promise<ResumedImport> {
         let url_ = this.baseUrl + "/api/imports/{id}/retry-failed";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -34788,6 +34792,7 @@ export class ImportsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -34803,7 +34808,7 @@ export class ImportsClient {
         });
     }
 
-    protected processRetryFailed(response: AxiosResponse): Promise<void> {
+    protected processRetryFailed(response: AxiosResponse): Promise<ResumedImport> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -34815,7 +34820,10 @@ export class ImportsClient {
         }
         if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ResumedImport>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -34828,7 +34836,7 @@ export class ImportsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<ResumedImport>(null as any);
     }
 }
 
@@ -44113,6 +44121,11 @@ export enum ImportRowStatus {
     Succeeded = "Succeeded",
     Failed = "Failed",
     Cancelled = "Cancelled",
+}
+
+export interface ResumedImport {
+    queuedRowCount: number;
+    skippedRowCount: number;
 }
 
 export interface HealthStatusDto {

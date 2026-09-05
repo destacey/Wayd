@@ -127,6 +127,9 @@ public sealed class RunImportProcessCommandHandler(
 
             if (outcome.CreatedEntityId is { } createdEntityId)
                 row.RecordCreatedEntity(createdEntityId);
+
+            if (outcome.Warning is not null)
+                row.RecordWarning(outcome.Warning);
         }
 
         return failed;

@@ -14,6 +14,7 @@ public class ImportProcessConfig : IEntityTypeConfiguration<ImportProcess>
         builder.Property(p => p.Id).ValueGeneratedNever();
 
         builder.Property(p => p.ImportType).HasMaxLength(64).IsRequired();
+        builder.Property(p => p.SubmittedByUserId).HasMaxLength(128).IsRequired();
         builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(p => p.Error).HasMaxLength(2048);
         builder.Property(p => p.LastAttemptCorrelationId).HasMaxLength(128);
@@ -52,6 +53,7 @@ public class ImportProcessRowConfig : IEntityTypeConfiguration<ImportProcessRow>
         builder.Property(r => r.ImportId).HasMaxLength(128).IsRequired();
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(r => r.Error).HasMaxLength(2048);
+        builder.Property(r => r.Warning).HasMaxLength(2048);
 
         // A row's parsed JSON has no useful bound, and it is never queried by value.
         builder.Property(r => r.Payload);

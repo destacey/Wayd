@@ -13,7 +13,7 @@ public sealed class ImportProcessFaker : PrivateConstructorFaker<ImportProcess>
         RuleFor(x => x.Status, ImportProcessStatus.Queued);
         RuleFor(x => x.SubmissionGroupId, (Guid?)null);
         RuleFor(x => x.LastAttemptCorrelationId, (string?)null);
-        RuleFor(x => x.SubmittedByUserId, f => f.Random.Guid());
+        RuleFor(x => x.SubmittedByUserId, f => f.Random.Guid().ToString());
         RuleFor(x => x.SubmittedOn, Instant.FromUtc(2026, 9, 5, 9, 0, 0));
         RuleFor(x => x.StartedOn, (Instant?)null);
         RuleFor(x => x.CompletedOn, (Instant?)null);
@@ -54,7 +54,7 @@ public static class ImportProcessFakerExtensions
         return faker;
     }
 
-    public static ImportProcessFaker WithSubmittedByUserId(this ImportProcessFaker faker, Guid userId)
+    public static ImportProcessFaker WithSubmittedByUserId(this ImportProcessFaker faker, string userId)
     {
         faker.RuleFor(x => x.SubmittedByUserId, userId);
         return faker;

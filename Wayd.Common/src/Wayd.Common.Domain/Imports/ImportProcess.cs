@@ -21,7 +21,7 @@ public sealed class ImportProcess : BaseEntity
 
     private ImportProcess(
         string importType,
-        Guid submittedByUserId,
+        string submittedByUserId,
         Guid? submissionGroupId,
         IEnumerable<ImportProcessRow> rows,
         Instant timestamp)
@@ -50,7 +50,8 @@ public sealed class ImportProcess : BaseEntity
     /// </summary>
     public string? LastAttemptCorrelationId { get; private set => field = value.NullIfWhiteSpacePlusTrim(); }
 
-    public Guid SubmittedByUserId { get; private set; }
+    /// <summary>Matches the string user id the rest of the application uses, including AuditTrail.</summary>
+    public string SubmittedByUserId { get; private set; } = default!;
     public Instant SubmittedOn { get; private set; }
     public Instant? StartedOn { get; private set; }
     public Instant? CompletedOn { get; private set; }
@@ -78,7 +79,7 @@ public sealed class ImportProcess : BaseEntity
 
     public static ImportProcess Create(
         string importType,
-        Guid submittedByUserId,
+        string submittedByUserId,
         Guid? submissionGroupId,
         IEnumerable<ImportProcessRow> rows,
         Instant timestamp) =>

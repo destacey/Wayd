@@ -14,6 +14,18 @@
 /// </remarks>
 public interface IDispatcher
 {
+    /// <summary>
+    /// Queues a command to run later rather than awaiting its handler.
+    /// </summary>
+    /// <remarks>
+    /// Returns once the message is accepted, not once it is handled, so there is no <c>Result</c> to give
+    /// back — the outcome lives wherever the handler records it. Used for work that must outlive the
+    /// request that asked for it, such as applying an import.
+    /// </remarks>
+    /// <param name="command">The command to queue.</param>
+    /// <param name="cancellationToken">A token to cancel accepting the message.</param>
+    Task Publish(ICommand command, CancellationToken cancellationToken = default);
+
     /// <summary>Dispatches a command that yields a plain <see cref="Result"/>.</summary>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>

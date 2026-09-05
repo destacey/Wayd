@@ -26,6 +26,7 @@ public sealed class ImportRowItem<TRow>
     public TRow Data { get; }
 
     internal bool IsFailed { get; private set; }
+    internal string? Warning { get; private set; }
     internal string? Error { get; private set; }
     internal Guid? CreatedEntityId { get; private set; }
     internal bool CreatedEntityIdSet { get; private set; }
@@ -39,6 +40,12 @@ public sealed class ImportRowItem<TRow>
         CreatedEntityId = createdEntityId;
         CreatedEntityIdSet = true;
     }
+
+    /// <summary>
+    /// Accepts the row but notes something about it — the row still counts as applied. Same rule as an
+    /// error: name the field and the row, never the value.
+    /// </summary>
+    public void Warned(string warning) => Warning = warning;
 
     /// <summary>
     /// Rejects the row. Errors name the field and the row, never the value — a payload is personal data and

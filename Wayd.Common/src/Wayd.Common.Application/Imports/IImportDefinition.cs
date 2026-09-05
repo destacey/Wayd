@@ -60,6 +60,12 @@ public interface IImportDefinition
 
     /// <summary>The ordered passes. Index into this is what <c>ExecutePass</c> takes.</summary>
     IReadOnlyList<ImportPassDescriptor> Passes { get; }
+
+    /// <summary>
+    /// Serializes a parsed row for storage at submission. Non-generic so an endpoint can store rows without
+    /// knowing the definition's row type; the runtime type must be the one the definition declares.
+    /// </summary>
+    string SerializeRow(object row);
 }
 
 /// <summary>The runner's view of a pass: what it is called and whether it may be chunked.</summary>
@@ -75,4 +81,4 @@ public sealed record ImportPassDescriptor(string Name, ImportPassScope Scope);
 /// </remarks>
 public sealed record ImportPassResult(IReadOnlyList<ImportRowResult> Rows);
 
-public sealed record ImportRowResult(string ImportId, bool Failed, string? Error, Guid? CreatedEntityId);
+public sealed record ImportRowResult(string ImportId, bool Failed, string? Error, Guid? CreatedEntityId, string? Warning);

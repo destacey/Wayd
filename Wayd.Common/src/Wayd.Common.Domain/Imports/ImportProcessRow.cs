@@ -51,6 +51,13 @@ public sealed class ImportProcessRow : BaseEntity
 
     public string? Error { get; private set => field = value.NullIfWhiteSpacePlusTrim(); }
 
+    /// <summary>
+    /// Set when the row was applied but something about it was not. An employee whose manager number could
+    /// not be resolved is imported without a manager rather than rejected, and that is worth telling the
+    /// person who ran the import — it would otherwise only reach a log nobody reads.
+    /// </summary>
+    public string? Warning { get; private set => field = value.NullIfWhiteSpacePlusTrim(); }
+
     public Instant? AttemptedOn { get; private set; }
 
     public static ImportProcessRow Create(string importId, int rowNumber, string payload) =>
@@ -62,6 +69,9 @@ public sealed class ImportProcessRow : BaseEntity
     /// so the id is held until <see cref="MarkSucceeded"/> carries it forward.
     /// </summary>
     public void RecordCreatedEntity(Guid createdEntityId) => CreatedEntityId = createdEntityId;
+
+    /// <summary>Notes something the person should see about a row that still applied.</summary>
+    public void RecordWarning(string warning) => Warning = warning;
 
     /// <summary>
     /// Drops the payload along with the status, because a succeeded row's payload has no remaining job — the

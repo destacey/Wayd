@@ -24,7 +24,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                     SubmissionGroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     LastAttemptCorrelationId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
-                    SubmittedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SubmittedByUserId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     SubmittedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
                     StartedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CompletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -52,6 +52,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                     CreatedEntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Error = table.Column<string>(type: "nvarchar(2048)", maxLength: 2048, nullable: true),
+                    Warning = table.Column<string>(type: "nvarchar(2048)", maxLength: 2048, nullable: true),
                     AttemptedOn = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>

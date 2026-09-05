@@ -19,6 +19,19 @@ internal sealed class WolverineDispatcher(IMessageBus bus, ICurrentUser currentU
     private readonly IMessageBus _bus = bus;
     private readonly ICurrentUser _currentUser = currentUser;
 
+    /// <remarks>
+    /// PublishAsync rather than InvokeAsync: the message is routed to its endpoint and the call returns.
+    /// For a durable local queue that means the envelope is written inside the caller's transaction and
+    /// picked up by a worker afterwards, so the work survives a crash between accepting and running it.
+    /// </remarks>
+    public Task Publish(ICommand command, CancellationToken cancellationToken = default)
+    {
+        var options = UserDeliveryOptions();
+        return options is null
+            ? _bus.PublishAsync(command).AsTask()
+            : _bus.PublishAsync(command, options).AsTask();
+    }
+
     public Task<Result> Send(ICommand command, CancellationToken cancellationToken = default)
     {
         var options = UserDeliveryOptions();

@@ -39,7 +39,7 @@ public sealed class RunImportProcessCommandHandlerTests
             return ImportProcessRow.Create(importId, i, payload);
         });
 
-        var process = ImportProcess.Create("test-import", Guid.CreateVersion7(), null, rows, _now);
+        var process = ImportProcess.Create("test-import", "user-1", null, rows, _now);
         _db.AddImportProcess(process);
         return process;
     }
@@ -175,7 +175,7 @@ public sealed class RunImportProcessCommandHandlerTests
     {
         // Arrange — a run persisted under a definition that has since been removed
         var rows = new[] { ImportProcessRow.Create("r1", 1, "{}") };
-        var process = ImportProcess.Create("retired-import", Guid.CreateVersion7(), null, rows, _now);
+        var process = ImportProcess.Create("retired-import", "user-1", null, rows, _now);
         _db.AddImportProcess(process);
 
         // Act

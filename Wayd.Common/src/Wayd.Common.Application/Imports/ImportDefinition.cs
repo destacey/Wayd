@@ -63,9 +63,13 @@ public abstract class ImportDefinition<TRow>(ISerializerService serializer) : II
             return Result.Failure<ImportPassResult>(result.Error);
 
         return Result.Success(new ImportPassResult(
-            [.. items.Select(i => new ImportRowResult(i.ImportId, i.IsFailed, i.Error, i.CreatedEntityIdSet ? i.CreatedEntityId : null))]));
+            [.. items.Select(i => new ImportRowResult(i.ImportId, i.IsFailed, i.Error, i.CreatedEntityIdSet ? i.CreatedEntityId : null, i.Warning))]));
     }
 
     /// <summary>Serializes a parsed row for storage at submission time.</summary>
     public string SerializeRow(TRow row) => _serializer.Serialize(row);
+
+    public string SerializeRow(object row) => row is TRow typed
+        ? SerializeRow(typed)
+        : throw new ArgumentException($"'{Key}' imports {typeof(TRow).Name}, not {row.GetType().Name}.", nameof(row));
 }

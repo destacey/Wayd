@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260905170629_AddImportProcess")]
+    [Migration("20260905174238_AddImportProcess")]
     partial class AddImportProcess
     {
         /// <inheritdoc />
@@ -765,8 +765,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid?>("SubmissionGroupId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SubmittedByUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("SubmittedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<DateTime>("SubmittedOn")
                         .HasColumnType("datetime2");
@@ -824,6 +826,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Warning")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.HasKey("Id");
 

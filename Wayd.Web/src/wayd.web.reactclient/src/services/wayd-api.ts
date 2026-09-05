@@ -29818,7 +29818,7 @@ export class EmployeesClient {
      * Import employees from a csv file.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/organization/employees/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -29833,6 +29833,7 @@ export class EmployeesClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -29848,7 +29849,7 @@ export class EmployeesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -29858,9 +29859,12 @@ export class EmployeesClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -29880,7 +29884,7 @@ export class EmployeesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**

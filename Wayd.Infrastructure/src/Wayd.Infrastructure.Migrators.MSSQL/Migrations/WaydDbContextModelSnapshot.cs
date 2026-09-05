@@ -762,8 +762,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid?>("SubmissionGroupId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SubmittedByUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("SubmittedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<DateTime>("SubmittedOn")
                         .HasColumnType("datetime2");
@@ -821,6 +823,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Warning")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.HasKey("Id");
 

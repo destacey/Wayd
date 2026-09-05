@@ -8,8 +8,8 @@ export const ID_COLUMN_ID = 'id'
  * Lets a user unhide record ids and export them, since imports reference
  * existing records by `Id` and nothing else in the UI surfaces one.
  *
- * Uses `hiddenByDefault`, not `hide`: `hide` would keep it out of Choose
- * Columns, leaving no way to reveal it.
+ * Uses `hiddenByDefault`, not `unavailable`: `unavailable` would keep it out of
+ * Choose Columns, leaving no way to reveal it.
  */
 export function createIdColumn<T extends RowData>(): ColumnDef<T, any> {
   return {
@@ -51,16 +51,18 @@ export function rowsHaveId(data: readonly unknown[] | undefined): boolean {
 }
 
 /**
- * Returns `columns` unchanged when nothing is added — callers memoize on the
- * result, so a fresh array every render would rebuild the table's headers.
+ * Takes the already-resolved `enabled` decision rather than the rows, so a
+ * caller can key its memo on that boolean instead of on `data` — deriving it
+ * here would tie the column defs to every data identity change.
+ *
+ * Returns `columns` unchanged when nothing is added, so a grid that gains no
+ * column keeps its exact array identity.
  */
 export function withIdColumn<T extends RowData>(
   columns: ColumnDef<T, any>[],
-  data: readonly unknown[] | undefined,
   enabled: boolean,
 ): ColumnDef<T, any>[] {
   if (!enabled) return columns
-  if (!rowsHaveId(data)) return columns
   if (hasIdColumn(columns)) return columns
   return [...columns, createIdColumn<T>()]
 }

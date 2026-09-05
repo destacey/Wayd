@@ -86,7 +86,7 @@ import {
   type PinnedCellClasses,
 } from '../wayd-grid-core/column-pinning'
 import { applyColumnType } from '../wayd-grid-core/column-types'
-import { withIdColumn } from '../wayd-grid-core/id-column'
+import { rowsHaveId, withIdColumn } from '../wayd-grid-core/id-column'
 import { useGridDndSensors } from '../wayd-grid-core/dnd/grid-dnd'
 import {
   INDENTATION_WIDTH,
@@ -1186,11 +1186,16 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
   ])
 
   // ─── Resolved columns ───────────────────────────────────
+  // Resolved outside the memo below and passed as a boolean: keying the column
+  // defs on `data` would rebuild them on every refetch, which is the header
+  // churn the note on resolvedColumns describes. rowsHaveId reads one row.
+  const injectIdColumn = includeIdColumn && rowsHaveId(data)
+
   const columns = useMemo(() => {
     const resolved =
       typeof columnsProp === 'function' ? columnsProp(columnContext) : columnsProp
-    return withIdColumn(resolved, data, includeIdColumn) as typeof resolved
-  }, [columnsProp, columnContext, data, includeIdColumn])
+    return withIdColumn(resolved, injectIdColumn) as typeof resolved
+  }, [columnsProp, columnContext, injectIdColumn])
 
   // applySafeAccessor must run before applyColumnType (the type's raw-value
   // reader handles accessorFns but not dotted keys). Memoized on `columns`:

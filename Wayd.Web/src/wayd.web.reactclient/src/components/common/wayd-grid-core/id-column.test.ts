@@ -13,7 +13,6 @@ interface Row {
 }
 
 const columns: ColumnDef<Row, any>[] = [{ accessorKey: 'name', header: 'Name' }]
-const rows: Row[] = [{ id: 'a1b2', name: 'Payments Platform' }]
 
 describe('createIdColumn', () => {
   it('starts hidden but stays in the chooser', () => {
@@ -96,7 +95,7 @@ describe('hasIdColumn', () => {
 describe('withIdColumn', () => {
   it('appends the id column last', () => {
     // Arrange / Act
-    const result = withIdColumn(columns, rows, true)
+    const result = withIdColumn(columns, true)
 
     // Assert
     expect(result).toHaveLength(2)
@@ -105,18 +104,7 @@ describe('withIdColumn', () => {
 
   it('returns the same array when disabled, so column identity is stable', () => {
     // Arrange / Act
-    const result = withIdColumn(columns, rows, false)
-
-    // Assert
-    expect(result).toBe(columns)
-  })
-
-  it('returns the same array when the rows carry no id', () => {
-    // Arrange
-    const idless = [{ name: 'Payments Platform' }]
-
-    // Act
-    const result = withIdColumn(columns as ColumnDef<any, any>[], idless, true)
+    const result = withIdColumn(columns, false)
 
     // Assert
     expect(result).toBe(columns)
@@ -130,9 +118,15 @@ describe('withIdColumn', () => {
     ]
 
     // Act
-    const result = withIdColumn(defs, rows, true)
+    const result = withIdColumn(defs, true)
 
     // Assert
     expect(result).toBe(defs)
+  })
+
+  it('takes no row data, so a caller cannot key its memo on data through it', () => {
+    // Arrange / Act — the guard against rebuilding column defs on every refetch
+    // Assert
+    expect(withIdColumn).toHaveLength(2)
   })
 })

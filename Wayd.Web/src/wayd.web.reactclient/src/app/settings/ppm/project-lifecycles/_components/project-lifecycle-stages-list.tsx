@@ -165,7 +165,7 @@ const ProjectLifecycleStagesList = ({
 
     return [
       createActionsColumn<ProjectLifecycleStageDto>({
-        hide: !canManageStages,
+        unavailable: !canManageStages,
         ariaLabel: 'Stage actions',
         getItems: (stage) =>
           getRowMenuItems({

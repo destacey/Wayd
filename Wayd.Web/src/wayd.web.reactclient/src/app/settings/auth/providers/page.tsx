@@ -198,7 +198,7 @@ const OidcProvidersPage = () => {
 
   const columns: ColumnDef<OidcProviderListItemDto, any>[] = [
     createActionsColumn<OidcProviderListItemDto>({
-      hide: !showRowMenu,
+      unavailable: !showRowMenu,
       ariaLabel: 'Identity provider actions',
       getItems: (provider) =>
         getRowMenuItems({

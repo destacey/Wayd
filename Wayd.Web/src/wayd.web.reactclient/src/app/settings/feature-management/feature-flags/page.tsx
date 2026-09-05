@@ -101,7 +101,7 @@ const FeatureFlagsListPage = () => {
 
   const columns: ColumnDef<FeatureFlagListDto, any>[] = [
     createActionsColumn<FeatureFlagListDto>({
-      hide: !showRowActions,
+      unavailable: !showRowActions,
       ariaLabel: 'Feature flag actions',
       getItems: rowActionItems,
     }),
@@ -136,7 +136,7 @@ const FeatureFlagsListPage = () => {
       header: 'Enabled',
       meta: { columnType: 'yesNo' },
     },
-    // Mode-dependent column: excluded from the defs (not meta.hide) so it
+    // Mode-dependent column: excluded from the defs (not meta.unavailable) so it
     // stays out of the column chooser and persisted layouts; the memo
     // rebuilds when the Include Archived switch flips.
     ...(includeArchived

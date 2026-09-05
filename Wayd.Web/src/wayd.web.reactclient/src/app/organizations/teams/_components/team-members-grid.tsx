@@ -83,7 +83,7 @@ const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
   const columns = useMemo<ColumnDef<TeamMemberDto, any>[]>(() => {
     return [
       createActionsColumn<TeamMemberDto>({
-        hide: !canUpdate,
+        unavailable: !canUpdate,
         ariaLabel: 'Team member actions',
         getItems: (member): ItemType[] => {
           if (!canUpdate) return []

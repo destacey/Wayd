@@ -70,7 +70,7 @@ const ProductTagsList = ({
 
     return [
       createActionsColumn<ProductTagOptionDto>({
-        hide: !canManageTags,
+        unavailable: !canManageTags,
         ariaLabel: 'Tag actions',
         getItems,
       }),

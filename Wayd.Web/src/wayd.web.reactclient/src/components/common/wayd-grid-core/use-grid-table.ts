@@ -41,7 +41,7 @@ export interface GridState {
   setColumnSizing: React.Dispatch<React.SetStateAction<ColumnSizingState>>
   /**
    * The USER's show/hide choices (column chooser) — a layer on top of the
-   * consumer's reactive `meta.hide` visibility; see
+   * consumer's reactive `meta.unavailable` visibility; see
    * {@link mergeColumnVisibility} for how the two combine.
    */
   userColumnVisibility: VisibilityState
@@ -151,20 +151,27 @@ export function useGridState(options?: UseGridStateOptions): GridState {
 }
 
 /**
- * Combines the consumer's reactive `meta.hide` visibility with the user's
+ * Combines the consumer's reactive `meta.unavailable` visibility with the user's
  * column-chooser choices into the TanStack columnVisibility map.
  *
- * Rules: a column the consumer hides (`meta.hide === true`) is
+ * Rules: a column the consumer hides (`meta.unavailable === true`) is
  * consumer-controlled — it stays hidden no matter what the user chose (it is
  * also excluded from the chooser). For every other column the user's choice
- * wins; absent a user choice, the consumer's `meta.hide: false` (or no entry
+ * wins; absent a user choice, the consumer's `meta.unavailable: false` (or no entry
  * at all) leaves the column visible.
+ *
+ * `defaultVisibility` carries `meta.hiddenByDefault` columns, which start
+ * hidden but stay in the chooser. It sits *below* the user layer, so an
+ * explicit choice wins and clearing that choice (Reset Columns, or a persisted
+ * layout saved before the column existed) falls back to hidden rather than
+ * visible.
  */
 export function mergeColumnVisibility(
   consumerVisibility: VisibilityState,
   userVisibility: VisibilityState,
+  defaultVisibility: VisibilityState = {},
 ): VisibilityState {
-  const merged: VisibilityState = { ...userVisibility }
+  const merged: VisibilityState = { ...defaultVisibility, ...userVisibility }
   for (const [id, visible] of Object.entries(consumerVisibility)) {
     if (!visible) merged[id] = false
     else if (!(id in merged)) merged[id] = true

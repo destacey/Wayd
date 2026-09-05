@@ -121,7 +121,7 @@ const RisksGrid = ({
 
     return [
       createActionsColumn<RiskListDto>({
-        hide: !canUpdateRisks,
+        unavailable: !canUpdateRisks,
         ariaLabel: 'Risk actions',
         getItems: (risk): ItemType[] =>
           canUpdateRisks
@@ -148,7 +148,7 @@ const RisksGrid = ({
         ),
       },
       // Context/mode-dependent columns are excluded from the defs (not
-      // meta.hide) so they stay out of the column chooser and persisted
+      // meta.unavailable) so they stay out of the column chooser and persisted
       // layouts; the memo rebuilds when the toolbar switches flip.
       ...(hideTeam
         ? []

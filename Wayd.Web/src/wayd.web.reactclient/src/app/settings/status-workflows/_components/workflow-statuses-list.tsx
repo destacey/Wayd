@@ -183,7 +183,7 @@ const WorkflowStatusesList = ({
 
     return [
       createActionsColumn<WorkflowStatusDto>({
-        hide: !canEdit,
+        unavailable: !canEdit,
         ariaLabel: 'Status actions',
         getItems: (status) =>
           getRowMenuItems({

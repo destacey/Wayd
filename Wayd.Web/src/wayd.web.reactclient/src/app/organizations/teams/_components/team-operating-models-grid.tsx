@@ -133,7 +133,7 @@ const TeamOperatingModelsGrid = ({
 
     return [
       createActionsColumn<TeamOperatingModelDetailsDto>({
-        hide: !canUpdate,
+        unavailable: !canUpdate,
         ariaLabel: 'Operating model actions',
         getItems: (operatingModel) =>
           getRowMenuItems({

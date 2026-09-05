@@ -60,7 +60,7 @@ const TeamMembershipsGrid = ({
 
     return [
       createActionsColumn<TeamMembershipDto>({
-        hide: !showRowActions,
+        unavailable: !showRowActions,
         ariaLabel: 'Team membership actions',
         getItems: (membership): ItemType[] => {
           // only allow editing memberships for the current team

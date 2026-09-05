@@ -127,8 +127,8 @@ describe('WaydGrid', () => {
     })
   })
 
-  describe('meta.hide', () => {
-    it('omits a column from the DOM when meta.hide is true', () => {
+  describe('meta.unavailable', () => {
+    it('omits a column from the DOM when meta.unavailable is true', () => {
       // Arrange
       const hiddenCols: ColumnDef<Flag, unknown>[] = [
         { id: 'name', accessorKey: 'name', header: 'Name' },
@@ -136,7 +136,7 @@ describe('WaydGrid', () => {
           id: 'type',
           accessorKey: 'type',
           header: 'Type',
-          meta: { hide: true } satisfies WaydGridColumnMeta,
+          meta: { unavailable: true } satisfies WaydGridColumnMeta,
         },
       ]
 
@@ -149,7 +149,7 @@ describe('WaydGrid', () => {
       expect(screen.getByText('Name')).toBeInTheDocument()
     })
 
-    it('shows the column when meta.hide is false', () => {
+    it('shows the column when meta.unavailable is false', () => {
       // Arrange
       const cols: ColumnDef<Flag, unknown>[] = [
         { id: 'name', accessorKey: 'name', header: 'Name' },
@@ -157,7 +157,7 @@ describe('WaydGrid', () => {
           id: 'type',
           accessorKey: 'type',
           header: 'Type',
-          meta: { hide: false } satisfies WaydGridColumnMeta,
+          meta: { unavailable: false } satisfies WaydGridColumnMeta,
         },
       ]
 
@@ -198,6 +198,81 @@ describe('WaydGrid', () => {
       expect(csv).toContain('No')
       expect(csv).not.toMatch(/\btrue\b/)
       expect(csv).not.toMatch(/\bfalse\b/)
+    })
+  })
+
+  describe('auto-injected Id column', () => {
+    /** Renders and clicks the toolbar export button; returns the CSV. */
+    const exportFlags = (props: GridProps = {}) => {
+      mockDownloadCsv.mockClear()
+      const { container } = renderGrid(props)
+      const exportBtn = container
+        .querySelector('[aria-label="download"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(exportBtn)
+      return mockDownloadCsv.mock.calls[0][0] as string
+    }
+
+    it('is hidden on a grid whose rows carry an id', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert
+      expect(bodyCells('id')).toHaveLength(0)
+    })
+
+    it('stays out of the export while hidden', () => {
+      // Arrange / Act
+      const csv = exportFlags()
+
+      // Assert — the header row names the visible columns only
+      expect(csv).toContain('Name')
+      expect(csv.split('\n')[0]).not.toContain('Id')
+    })
+
+    it('is not added when the consumer opts out', () => {
+      // Arrange / Act
+      renderGrid({ includeIdColumn: false })
+
+      // Assert
+      expect(bodyCells('id')).toHaveLength(0)
+    })
+
+    it('leaves a consumer-defined id column visible', () => {
+      // Arrange — the consumer claims `id` themselves
+      const cols: ColumnDef<Flag, unknown>[] = [
+        { id: 'id', accessorKey: 'id', header: 'Job Id' },
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+      ]
+
+      // Act
+      renderGrid({ columns: cols })
+
+      // Assert — the consumer's column renders, unaffected by injection
+      expect(screen.getByText('Job Id')).toBeInTheDocument()
+      expect(bodyCells('id').map((c) => c.textContent)).toEqual(['1', '2', '3'])
+    })
+
+    it('is not added when the rows have no id', () => {
+      // Arrange
+      interface Keyed {
+        key: number
+        name: string
+      }
+      const cols: ColumnDef<Keyed, unknown>[] = [
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+      ]
+
+      // Act
+      render(
+        <WaydGrid<Keyed>
+          data={[{ key: 1, name: 'Alpha' }]}
+          columns={cols}
+        />,
+      )
+
+      // Assert
+      expect(bodyCells('id')).toHaveLength(0)
     })
   })
 
@@ -250,15 +325,15 @@ describe('WaydGrid', () => {
       expect(csv).toContain('Juice')
     })
 
-    it('excludes hidden columns (meta.hide) from the export', () => {
-      // Arrange — Status is hidden via meta.hide
+    it('excludes hidden columns (meta.unavailable) from the export', () => {
+      // Arrange — Status is hidden via meta.unavailable
       const cols: ColumnDef<Obj, unknown>[] = [
         { id: 'name', accessorKey: 'name', header: 'Name' },
         {
           id: 'status',
           accessorKey: 'status.name',
           header: 'Status',
-          meta: { hide: true } satisfies WaydGridColumnMeta,
+          meta: { unavailable: true } satisfies WaydGridColumnMeta,
         },
       ]
 
@@ -851,7 +926,7 @@ describe('WaydGrid', () => {
       expect(enabled).toEqual(['Yes', 'No', 'Yes'])
     })
 
-    it('hides a grouped leaf via meta.hide and shrinks the band colSpan', () => {
+    it('hides a grouped leaf via meta.unavailable and shrinks the band colSpan', () => {
       // Arrange — hide Type inside the Info band
       const cols: ColumnDef<Flag, unknown>[] = [
         {
@@ -863,7 +938,7 @@ describe('WaydGrid', () => {
               id: 'type',
               accessorKey: 'type',
               header: 'Type',
-              meta: { hide: true } satisfies WaydGridColumnMeta,
+              meta: { unavailable: true } satisfies WaydGridColumnMeta,
             },
           ],
         },

@@ -185,7 +185,7 @@ const ScoringModelOutputsList = ({
 
     return [
       createActionsColumn<ScoringModelOutputDto>({
-        hide: !canManage,
+        unavailable: !canManage,
         ariaLabel: 'Output actions',
         getItems: (output) =>
           getRowMenuItems({

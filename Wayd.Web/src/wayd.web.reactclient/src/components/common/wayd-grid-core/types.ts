@@ -21,7 +21,7 @@ export type WaydColumnType = 'yesNo' | 'dateOnly' | 'dateTime'
  * `columnDef.meta`.
  *
  * Wired into TanStack via the `columnMeta` slot on the grid's feature set
- * (grid-features.ts), so `column.meta.hide`, `.columnType`, `.filterType`,
+ * (grid-features.ts), so `column.meta.unavailable`, `.columnType`, `.filterType`,
  * etc. are strongly typed at every call site with no casts. v9 scopes this to
  * the feature set rather than augmenting a global interface, so these fields
  * no longer leak onto unrelated TanStack tables.
@@ -35,12 +35,27 @@ export interface WaydGridColumnMeta {
    */
   columnType?: WaydColumnType
   /**
-   * Hide the column while keeping it defined (AG Grid `hide` style). Lets a
-   * column stay in one static column literal and be shown/hidden by a flag
-   * rather than conditionally pushed. The grid feeds this into TanStack's
-   * columnVisibility, so toggling preserves the column's size/state.
+   * Withholds the column from this user entirely — typically `!canUpdate` or
+   * `!showRowActions`. It is hidden, absent from Choose Columns, and beats any
+   * choice the user previously made, so a permission can never be worked
+   * around by unhiding. Reactive: flip the expression and the column returns.
+   *
+   * Keeps the column in one static literal rather than conditionally pushed
+   * into the array, which would lose its size, pinning and order each time it
+   * came back.
+   *
+   * For a column the user *may* have but shouldn't see initially, use
+   * {@link hiddenByDefault}.
    */
-  hide?: boolean
+  unavailable?: boolean
+  /**
+   * Starts the column hidden while leaving it in Choose Columns, so the user
+   * owns it from there. Only an initial state, unlike {@link unavailable}.
+   *
+   * A user's explicit choice wins over this, and Reset Columns drops that
+   * choice — so the column returns to hidden rather than to visible.
+   */
+  hiddenByDefault?: boolean
   /**
    * Filter type driving the per-column filter popup. Accepts the descriptor
    * filter types (`text` | `number` | `date` | `dateTime` | `set`) directly.

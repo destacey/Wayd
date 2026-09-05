@@ -18,11 +18,11 @@ export interface ActionsColumnOptions<T extends RowData> {
    */
   getItems: (row: T) => ItemType[]
   /**
-   * Whether the whole column is hidden (AG Grid `hide` style, via `meta.hide`).
-   * Usually `!canManageX` so the column disappears when the user can't act on
-   * any row. Defaults to shown.
+   * Withholds the column entirely (via `meta.unavailable`). Usually
+   * `!canManageX`, so it disappears when the user can't act on any row and
+   * cannot be brought back through Choose Columns. Defaults to shown.
    */
-  hide?: boolean
+  unavailable?: boolean
   /** Column id. Defaults to `'actions'`. */
   id?: string
   /** Column width. Defaults to {@link ACTIONS_COLUMN_SIZE}. */
@@ -80,7 +80,7 @@ const ActionsCell = <T extends RowData,>({
  *
  * @example
  * createActionsColumn<Objective>({
- *   hide: !canManage,
+ *   unavailable: !canManage,
  *   getItems: (o) => [
  *     canManage && { key: 'edit', label: 'Edit', onClick: () => edit(o) },
  *   ].filter(Boolean) as ItemType[],
@@ -88,7 +88,7 @@ const ActionsCell = <T extends RowData,>({
  */
 export const createActionsColumn = <T extends RowData,>({
   getItems,
-  hide,
+  unavailable,
   id = 'actions',
   size = ACTIONS_COLUMN_SIZE,
   ariaLabel = 'Row actions',
@@ -102,7 +102,10 @@ export const createActionsColumn = <T extends RowData,>({
   enableResizing: false,
   enableGlobalFilter: false,
   // The actions column always holds its position — no drag grip, rejects drops.
-  meta: { enableReordering: false, ...(hide === undefined ? {} : { hide }) },
+  meta: {
+    enableReordering: false,
+    ...(unavailable === undefined ? {} : { unavailable }),
+  },
   cell: ({ row }: { row: Row<T> }) =>
     leading === undefined ? (
       <ActionsCell row={row.original} getItems={getItems} ariaLabel={ariaLabel} />

@@ -51,13 +51,13 @@ describe('createActionsColumn', () => {
         getItems: () => [],
         id: 'rowMenu',
         size: 72,
-        hide: true,
+        unavailable: true,
       })
 
       // Assert
       expect(col.id).toBe('rowMenu')
       expect(col.size).toBe(72)
-      expect(col.meta).toEqual({ enableReordering: false, hide: true })
+      expect(col.meta).toEqual({ enableReordering: false, unavailable: true })
     })
   })
 

@@ -53,7 +53,7 @@ const UsersListPage = () => {
   const columns = useMemo<ColumnDef<UserDetailsDto, any>[]>(
     () => [
       createActionsColumn<UserDetailsDto>({
-        hide: !showRowActions,
+        unavailable: !showRowActions,
         ariaLabel: 'User actions',
         getItems: (user) => {
           const menuItems: ItemType[] = []

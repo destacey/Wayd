@@ -70,7 +70,7 @@ const StoryMapsGrid: FC<StoryMapsGridProps> = ({
   const columns = useMemo<ColumnDef<StoryMapListDto, any>[]>(
     () => [
       createActionsColumn<StoryMapListDto>({
-        hide: !showRowMenu,
+        unavailable: !showRowMenu,
         ariaLabel: 'Story map actions',
         getItems: (storyMap) =>
           getRowMenuItems({

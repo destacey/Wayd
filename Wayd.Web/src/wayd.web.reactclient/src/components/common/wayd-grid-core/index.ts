@@ -146,6 +146,15 @@ export { dateSortBy, sortEmptyLast } from './grid-sorting'
 // CSV export
 export { exportGridToCsv } from './grid-export'
 
+// Auto-injected identifier column
+export {
+  ID_COLUMN_ID,
+  createIdColumn,
+  hasIdColumn,
+  rowsHaveId,
+  withIdColumn,
+} from './id-column'
+
 // Table config + shared state hooks
 export {
   mergeColumnVisibility,

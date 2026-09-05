@@ -188,7 +188,7 @@ const ScoringScalesList = ({
 
     return [
       createActionsColumn<ScoringRatingLevelDto>({
-        hide: !canManage,
+        unavailable: !canManage,
         ariaLabel: 'Rating level actions',
         getItems: (level) => getRowMenuItems(level),
       }),

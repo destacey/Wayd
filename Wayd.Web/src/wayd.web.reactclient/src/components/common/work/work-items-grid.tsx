@@ -94,7 +94,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         meta: { filterEnableSet: true },
         cell: ({ row }) => renderSprintLink(row.original.sprint),
       },
-      // Context-redundant columns are excluded from the defs (not meta.hide):
+      // Context-redundant columns are excluded from the defs (not meta.unavailable):
       // they never belong on the hosting page, so they shouldn't appear in
       // the column chooser or the persisted layout either.
       ...(props.hideParentColumn
@@ -150,7 +150,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         size: 200,
         getValues: (row) => row.tags ?? [],
       }),
-      // The stats columns stay on meta.hide (NOT def-exclusion): the grid's
+      // The stats columns stay on meta.unavailable (NOT def-exclusion): the grid's
       // initialSorting sorts by the hidden 'done' column, and TanStack drops
       // sort entries whose column has no def — excluding them would silently
       // change the default row order on non-stats pages.
@@ -158,19 +158,19 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         id: 'activated',
         accessorKey: 'activated',
         header: 'Activated',
-        meta: { hide: !props.showStats, columnType: 'dateTime' },
+        meta: { unavailable: !props.showStats, columnType: 'dateTime' },
       },
       {
         id: 'done',
         accessorKey: 'done',
         header: 'Done',
-        meta: { hide: !props.showStats, columnType: 'dateTime' },
+        meta: { unavailable: !props.showStats, columnType: 'dateTime' },
       },
       {
         id: 'cycleTime',
         accessorKey: 'cycleTime',
         header: 'Cycle Time (Days)',
-        meta: { hide: !props.showStats },
+        meta: { unavailable: !props.showStats },
         cell: ({ getValue }) =>
           getValue<number | undefined>()?.toFixed(2) ?? '',
       },

@@ -93,7 +93,7 @@ const PlanningIntervalObjectivesGrid = ({
 
     return [
       createActionsColumn<PlanningIntervalObjectiveListDto>({
-        hide: !canManageObjectives,
+        unavailable: !canManageObjectives,
         ariaLabel: 'Objective actions',
         getItems: (obj) => [
           {
@@ -141,7 +141,7 @@ const PlanningIntervalObjectivesGrid = ({
         header: 'Stretch',
         meta: { columnType: 'yesNo' },
       },
-      // Context-dependent columns are excluded from the defs (not meta.hide)
+      // Context-dependent columns are excluded from the defs (not meta.unavailable)
       // so they stay out of the column chooser and persisted layouts; the
       // memo rebuilds when the toolbar switches flip.
       ...(hidePlanningInterval

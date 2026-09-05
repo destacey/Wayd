@@ -29499,7 +29499,7 @@
         "tags": [
           "Imports"
         ],
-        "summary": "Get the import types the caller may submit.",
+        "summary": "Get the import types the caller may see, each flagged with whether they may submit it.",
         "operationId": "Imports_GetDefinitions",
         "responses": {
           "200": {

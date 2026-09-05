@@ -57,7 +57,7 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
     // Ahead of the {id:guid} routes for readability only - the constraint is what keeps "definitions" from
     // binding as an id.
     [HttpGet("definitions")]
-    [OpenApiOperation("Get the import types the caller may submit.", "")]
+    [OpenApiOperation("Get the import types the caller may see, each flagged with whether they may submit it.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ImportDefinitionDto>>> GetDefinitions(CancellationToken cancellationToken) =>
         Ok(await _dispatcher.Send(new GetImportDefinitionsQuery(), cancellationToken));

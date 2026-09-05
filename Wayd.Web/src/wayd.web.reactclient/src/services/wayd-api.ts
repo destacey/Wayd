@@ -34475,7 +34475,7 @@ export class ImportsClient {
     }
 
     /**
-     * Get the import types the caller may submit.
+     * Get the import types the caller may see, each flagged with whether they may submit it.
      */
     getDefinitions( cancelToken?: CancelToken): Promise<ImportDefinitionDto[]> {
         let url_ = this.baseUrl + "/api/imports/definitions";

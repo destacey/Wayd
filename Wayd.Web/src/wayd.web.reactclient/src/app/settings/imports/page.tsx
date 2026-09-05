@@ -25,7 +25,9 @@ import useImportActions from './_components/use-import-actions'
 // client-side; the overflow note carries the true total if history ever runs deeper than that.
 const IMPORT_PAGE_SIZE = 500
 
-// A run reports progress at every chunk boundary, so a page watching one wants to see it move.
+// A run reports progress at every chunk boundary, so a page watching one wants to see it move. Only
+// while one is going, though: with nothing running there is nothing to animate, and the toolbar's
+// refresh covers the case of someone else submitting while this page sits open.
 const POLLING_INTERVAL_MS = 5000
 
 const ImportsPage = () => {
@@ -33,15 +35,31 @@ const ImportsPage = () => {
   const [viewingImportId, setViewingImportId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
+  // Whether to keep polling is decided by the query's own result, which cannot be expressed in the
+  // same call. Held as state and adjusted during render — React's pattern for deriving state from a
+  // changed value, and why this is not an effect: setting state from one renders a second time, which
+  // is what the lint rule against it is for.
+  const [isPolling, setIsPolling] = useState(false)
+
   const { data, isLoading, refetch } = useGetImportProcessesQuery(
     { pageSize: IMPORT_PAGE_SIZE },
-    { pollingInterval: POLLING_INTERVAL_MS },
+    {
+      pollingInterval: isPolling ? POLLING_INTERVAL_MS : 0,
+      // Nothing worth watching while the tab is in the background.
+      skipPollingIfUnfocused: true,
+    },
   )
 
   const { handleCancel, handleResume, handleRetryFailed } = useImportActions()
 
   const imports = data?.processes
   const activeCount = imports?.filter((i) => isRunning(i.status)).length ?? 0
+
+  // The tick that sees the last run finish is also the one that turns polling off.
+  if (isPolling !== activeCount > 0) {
+    setIsPolling(activeCount > 0)
+  }
+
   const failedCount =
     imports?.filter(
       (i) =>

@@ -1,7 +1,7 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import MetricCard from '@/src/components/common/metrics/metric-card'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { useState } from 'react'
 import { Flex, MenuProps, Tabs, Typography } from 'antd'
 import Link from 'next/link'
@@ -137,18 +137,21 @@ const BackgroundJobsListPage = () => {
       </Typography.Text>
       <Flex gap={12} wrap style={{ marginTop: 8, marginBottom: 16 }}>
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Processing"
           value={current?.processing ?? 0}
           loading={statisticsLoading}
           tooltip="Jobs a worker is executing right now."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Enqueued"
           value={current?.enqueued ?? 0}
           loading={statisticsLoading}
           tooltip="Jobs waiting for a free worker."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Scheduled"
           value={current?.scheduled ?? 0}
           loading={statisticsLoading}
@@ -156,6 +159,7 @@ const BackgroundJobsListPage = () => {
         />
         {current?.retries != null && (
           <MetricCard
+            cardStyle={METRIC_CARD_FLEX}
             title="Retries"
             value={current.retries}
             loading={statisticsLoading}
@@ -164,6 +168,7 @@ const BackgroundJobsListPage = () => {
         )}
         {current?.awaiting != null && (
           <MetricCard
+            cardStyle={METRIC_CARD_FLEX}
             title="Awaiting"
             value={current.awaiting}
             loading={statisticsLoading}
@@ -171,6 +176,7 @@ const BackgroundJobsListPage = () => {
           />
         )}
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Failed"
           value={current?.failed ?? 0}
           loading={statisticsLoading}
@@ -180,18 +186,21 @@ const BackgroundJobsListPage = () => {
           tooltip="Jobs that exhausted every retry. These persist until requeued or deleted."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Succeeded"
           value={current?.succeeded ?? 0}
           loading={statisticsLoading}
           tooltip="Succeeded jobs still retained. They are purged after a short window, so this stays low even on a busy system — see All time for the running total."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Recurring"
           value={current?.recurring ?? 0}
           loading={statisticsLoading}
           tooltip="Registered cron schedules. Manage them on the Recurring tab."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Servers"
           value={current?.servers ?? 0}
           loading={statisticsLoading}
@@ -203,12 +212,14 @@ const BackgroundJobsListPage = () => {
       </Typography.Text>
       <Flex gap={12} wrap style={{ marginTop: 8, marginBottom: 16 }}>
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Succeeded"
           value={allTime?.succeeded ?? 0}
           loading={statisticsLoading}
           tooltip="Every job that has ever completed successfully. A running total kept by the scheduler's counters — it keeps climbing after the job records themselves are purged."
         />
         <MetricCard
+          cardStyle={METRIC_CARD_FLEX}
           title="Deleted"
           value={allTime?.deleted ?? 0}
           loading={statisticsLoading}

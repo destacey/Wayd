@@ -13,6 +13,8 @@ public interface IJobManager
     Task RunSyncProjects(CancellationToken cancellationToken);
     Task RunSyncTeams(CancellationToken cancellationToken);
     Task RunPortfolioRankRebalance(CancellationToken cancellationToken);
+    Task RunImportStallRecovery(CancellationToken cancellationToken);
+    Task RunImportRetentionSweep(CancellationToken cancellationToken);
 
     /// <summary>
     /// Repoints work items attributed to one external identity after an admin maps or ignores it.

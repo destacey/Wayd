@@ -11,6 +11,7 @@ internal static class SchemaNames
     public static string Goals = "Goals";
     public static string Health = "Health";
     public static string Identity = "Identity";
+    public static string Imports = "Imports";
     public static string Links = "Links";
     public static string Organization = "Organization";
     public static string Planning = "Planning";

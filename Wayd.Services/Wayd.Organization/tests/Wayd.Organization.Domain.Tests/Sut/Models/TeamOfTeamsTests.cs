@@ -302,6 +302,64 @@ public class TeamOfTeamsTests
         team.InactiveDate.Should().BeNull();
     }
 
+
+    [Fact]
+    public void AddTeamMembership_RecordsTheEdgeOnBothTeams()
+    {
+        // Arrange
+        var child = _teamOfTeamsFaker.Generate();
+        var parent = _teamOfTeamsFaker.Generate();
+        MembershipDateRange dateRange = new(child.ActiveDate.PlusDays(5), null);
+
+        // Act
+        var result = child.AddTeamMembership(parent, dateRange, _dateTimeProvider.Now);
+
+        // Assert — both ends, so the hierarchy is walkable before anything is saved
+        result.IsSuccess.Should().BeTrue();
+        child.ParentMemberships.Should().ContainSingle();
+        parent.ChildMemberships.Should().ContainSingle();
+        result.Value.Source.Should().BeSameAs(child);
+        result.Value.Target.Should().BeSameAs(parent);
+    }
+
+    [Fact]
+    public void AddTeamMembership_RefusesACycleFormedByAnEdgeAddedMomentsEarlier()
+    {
+        // Arrange — the second edge closes a loop with the first, and neither is saved yet
+        var art = _teamOfTeamsFaker.Generate();
+        var valueStream = _teamOfTeamsFaker.Generate();
+        MembershipDateRange dateRange = new(art.ActiveDate.PlusDays(5), null);
+        art.AddTeamMembership(valueStream, dateRange, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = valueStream.AddTeamMembership(art, dateRange, _dateTimeProvider.Now);
+
+        // Assert — the check reads the parent's children, which only holds because the first add recorded
+        // the edge on both teams rather than waiting for EF to fix it up on save
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("circular");
+        valueStream.ParentMemberships.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddTeamMembership_RefusesACycleThroughAnIntermediateTeam()
+    {
+        // Arrange — A under B, B under C, then C under A closes the loop two levels up
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var c = _teamOfTeamsFaker.Generate();
+        MembershipDateRange dateRange = new(a.ActiveDate.PlusDays(5), null);
+        a.AddTeamMembership(b, dateRange, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        b.AddTeamMembership(c, dateRange, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = c.AddTeamMembership(a, dateRange, _dateTimeProvider.Now);
+
+        // Assert — recursing needs the Source navigation, which Create now sets
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("circular");
+    }
+
     [Fact]
     public void Deactivate_WhenActiveAndHasActiveParentMemberships_Failure()
     {

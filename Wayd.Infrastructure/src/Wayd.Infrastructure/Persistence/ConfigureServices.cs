@@ -107,6 +107,7 @@ internal static class ConfigureServices
         services.AddScoped<IAppIntegrationDbContext, WaydDbContext>();
         services.AddScoped<IFeatureManagementDbContext, WaydDbContext>();
         services.AddScoped<IGoalsDbContext, WaydDbContext>();
+        services.AddScoped<IImportDbContext, WaydDbContext>();
         services.AddScoped<ILinksDbContext, WaydDbContext>();
         services.AddScoped<IOrganizationDbContext, WaydDbContext>();
         services.AddScoped<IPlanningDbContext, WaydDbContext>();

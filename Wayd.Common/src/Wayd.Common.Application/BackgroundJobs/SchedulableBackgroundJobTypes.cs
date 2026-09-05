@@ -23,6 +23,8 @@ public static class SchedulableBackgroundJobTypes
         BackgroundJobType.WorkDiffSync,
         BackgroundJobType.TeamGraphSync,
         BackgroundJobType.PortfolioRankRebalance,
+        BackgroundJobType.ImportStallRecovery,
+        BackgroundJobType.ImportRetentionSweep,
     ];
 
     public static bool Contains(BackgroundJobType jobType) => _types.Contains(jobType);

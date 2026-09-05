@@ -724,6 +724,120 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToView("vw_WaydUsers", "Identity");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Imports.ImportProcess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<int>("FailedRowCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ImportType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("LastAttemptCorrelationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime?>("LastProgressOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("StartedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid?>("SubmissionGroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubmittedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("SubmittedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SucceededRowCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalRowCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionGroupId")
+                        .HasFilter("[SubmissionGroupId] IS NOT NULL");
+
+                    b.HasIndex("SubmittedOn");
+
+                    b.HasIndex("Status", "CompletedOn");
+
+                    b.HasIndex("Status", "LastProgressOn");
+
+                    b.ToTable("ImportProcesses", "Imports");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Imports.ImportProcessRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("AttemptedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedEntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("ImportId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("ImportProcessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Warning")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportProcessId", "ImportId")
+                        .IsUnique();
+
+                    b.HasIndex("ImportProcessId", "Status");
+
+                    b.ToTable("ImportProcessRows", "Imports");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Models.Goals.Objective", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7102,6 +7216,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Imports.ImportProcessRow", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Imports.ImportProcess", null)
+                        .WithMany("Rows")
+                        .HasForeignKey("ImportProcessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Models.KeyValueObjectMetadata", b =>
                 {
                     b.HasOne("Wayd.Planning.Domain.Models.Iterations.Iteration", null)
@@ -8747,6 +8870,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("DirectReports");
 
                     b.Navigation("Emails");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Imports.ImportProcess", b =>
+                {
+                    b.Navigation("Rows");
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModel", b =>

@@ -1,4 +1,7 @@
 ﻿using CsvHelper;
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Imports.Commands;
+using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Work;
@@ -23,11 +26,16 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/teams")]
 [ApiVersionNeutral]
 [ApiController]
-public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
+public class TeamsController(
+    ILogger<TeamsController> logger,
+    IDispatcher dispatcher,
+    ICsvService csvService,
+    IImportDefinitionRegistry importDefinitions) : ControllerBase
 {
     private readonly ILogger<TeamsController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
+    private readonly IImportDefinitionRegistry _importDefinitions = importDefinitions;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
@@ -160,7 +168,7 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
     [HttpPost("team-memberships/import")]
     [MustHavePermission(ApplicationAction.ManageTeamMemberships, ApplicationResource.Teams)]
     [OpenApiOperation("Import the team hierarchy (parent/child team memberships) from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -169,7 +177,11 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
         {
             var importedMemberships = _csvService.ReadCsv<ImportTeamMembershipRequest>(file.OpenReadStream());
 
-            List<ImportTeamMembershipDto> memberships = [];
+            var definition = _importDefinitions.Find(TeamMembershipImportDefinition.ImportKey);
+            if (definition.IsFailure)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest(definition.Error, HttpContext));
+
+            List<SubmittedImportRow> submittedRows = [];
             var validator = new ImportTeamMembershipRequestValidator();
             foreach (var membership in importedMemberships)
             {
@@ -184,16 +196,18 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                memberships.Add(membership.ToImportTeamMembershipDto());
+                submittedRows.Add(new SubmittedImportRow(
+                    membership.ImportId, definition.Value.SerializeRow(membership.ToImportTeamMembershipDto())));
             }
 
-            if (memberships.Count == 0)
+            if (submittedRows.Count == 0)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest("No team memberships imported.", HttpContext));
 
-            var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(memberships), cancellationToken);
+            var result = await _dispatcher.Send(
+                new SubmitImportCommand(TeamMembershipImportDefinition.ImportKey, submittedRows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

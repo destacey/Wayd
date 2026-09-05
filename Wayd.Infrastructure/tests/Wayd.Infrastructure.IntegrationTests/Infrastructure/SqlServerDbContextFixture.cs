@@ -101,6 +101,15 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Identity].[UserIdentities];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Identity].[Users];", cancellationToken);
     }
+
+    /// <summary>Clears import runs and their rows. Ordered to respect foreign keys.</summary>
+    public async Task ResetImportData(CancellationToken cancellationToken)
+    {
+        await using var context = CreateContext();
+
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Imports].[ImportProcessRows];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Imports].[ImportProcesses];", cancellationToken);
+    }
 }
 
 [CollectionDefinition(nameof(SqlServerTestCollection))]

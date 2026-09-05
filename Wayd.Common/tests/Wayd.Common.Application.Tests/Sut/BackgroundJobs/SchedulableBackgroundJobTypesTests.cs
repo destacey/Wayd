@@ -17,6 +17,8 @@ public sealed class SchedulableBackgroundJobTypesTests
         BackgroundJobType.WorkDiffSync,
         BackgroundJobType.TeamGraphSync,
         BackgroundJobType.PortfolioRankRebalance,
+        BackgroundJobType.ImportStallRecovery,
+        BackgroundJobType.ImportRetentionSweep,
     ];
 
     [Fact]

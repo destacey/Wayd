@@ -4,15 +4,17 @@ public sealed class TeamMembership : BaseMembership
 {
     private TeamMembership() { }
 
-    private TeamMembership(Guid sourceId, Guid targetId, MembershipDateRange dateRange)
+    private TeamMembership(BaseTeam source, TeamOfTeams target, MembershipDateRange dateRange)
     {
-        if (sourceId == targetId)
+        if (source.Id == target.Id)
         {
             throw new ArgumentException("A team or team of teams cannot have a membership with its self.");
         }
 
-        SourceId = sourceId;
-        TargetId = targetId;
+        SourceId = source.Id;
+        TargetId = target.Id;
+        Source = source;
+        Target = target;
         DateRange = dateRange;
     }
 
@@ -24,8 +26,14 @@ public sealed class TeamMembership : BaseMembership
     /// <value>The target.</value>
     public TeamOfTeams Target { get; private set; } = default!;
 
-    internal static TeamMembership Create(Guid childId, Guid parentId, MembershipDateRange dateRange)
+    /// <summary>
+    /// Both navigations are set here rather than left to EF. A membership added in memory is not known to
+    /// the context until it saves, so relationship fixup cannot populate them — and the hierarchy checks
+    /// walk <see cref="Source"/> to recurse, so without this they are blind to any edge added in the same
+    /// batch as the one being validated.
+    /// </summary>
+    internal static TeamMembership Create(BaseTeam child, TeamOfTeams parent, MembershipDateRange dateRange)
     {
-        return new TeamMembership(childId, parentId, dateRange);
+        return new TeamMembership(child, parent, dateRange);
     }
 }

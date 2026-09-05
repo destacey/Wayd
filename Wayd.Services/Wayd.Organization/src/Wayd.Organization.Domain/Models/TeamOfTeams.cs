@@ -121,6 +121,19 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
     /// <param name="date">The date.</param>
     /// <param name="includeFuture">if set to <c>true</c> [include future].</param>
     /// <returns></returns>
+    /// <summary>
+    /// Records an edge this team of teams is the parent of. Called by
+    /// <see cref="BaseTeam.AddTeamMembership"/> so both ends of a new membership are consistent without
+    /// waiting for EF to fix them up on save.
+    /// </summary>
+    internal void RecordChildMembership(TeamMembership membership)
+    {
+        if (!_childMemberships.Contains(membership))
+        {
+            _childMemberships.Add(membership);
+        }
+    }
+
     public List<Guid> GetDescendantTeamIdsAsOf(LocalDate date, bool includeFuture = false)
     {
         var query = _childMemberships.Where(x => x.StateOn(date) == MembershipState.Active).AsQueryable();

@@ -219,8 +219,13 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
                     return Result.Failure<TeamMembership>($"The parent team {parentTeam.Name} is a descendant of this team.  This would create a circular reference.");
             }
 
-            var membership = TeamMembership.Create(Id, parentTeam.Id, dateRange);
+            var membership = TeamMembership.Create(this, parentTeam, dateRange);
             _parentMemberships.Add(membership);
+
+            // Both ends, so the hierarchy is consistent as soon as the edge exists rather than only once it
+            // has been saved. The cycle check above reads the parent's children, so an edge added earlier in
+            // the same batch is only visible if it was recorded here too.
+            parentTeam.RecordChildMembership(membership);
 
             return membership;
         }

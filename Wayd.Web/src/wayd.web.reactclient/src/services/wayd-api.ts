@@ -34398,6 +34398,134 @@ export class ImportsClient {
     }
 
     /**
+     * Get a page of import runs, newest first.
+     * @param status (optional) 
+     * @param importType (optional) 
+     * @param submittedByUserId (optional) 
+     * @param pageNumber (optional) 
+     * @param pageSize (optional) 
+     */
+    getList(status?: ImportProcessStatus | null | undefined, importType?: string | null | undefined, submittedByUserId?: string | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<ImportProcessPageDto> {
+        let url_ = this.baseUrl + "/api/imports?";
+        if (status !== undefined && status !== null)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (importType !== undefined && importType !== null)
+            url_ += "importType=" + encodeURIComponent("" + importType) + "&";
+        if (submittedByUserId !== undefined && submittedByUserId !== null)
+            url_ += "submittedByUserId=" + encodeURIComponent("" + submittedByUserId) + "&";
+        if (pageNumber === null)
+            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetList(_response);
+        });
+    }
+
+    protected processGetList(response: AxiosResponse): Promise<ImportProcessPageDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessPageDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessPageDto>(null as any);
+    }
+
+    /**
+     * Get the import types the caller may submit.
+     */
+    getDefinitions( cancelToken?: CancelToken): Promise<ImportDefinitionDto[]> {
+        let url_ = this.baseUrl + "/api/imports/definitions";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDefinitions(_response);
+        });
+    }
+
+    protected processGetDefinitions(response: AxiosResponse): Promise<ImportDefinitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportDefinitionDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportDefinitionDto[]>(null as any);
+    }
+
+    /**
      * Get the status and counts of an import.
      */
     getById(id: string, cancelToken?: CancelToken): Promise<ImportProcessDto> {
@@ -43912,6 +44040,13 @@ export interface UpdateLinkRequest {
     url: string;
 }
 
+export interface ImportProcessPageDto {
+    processes: ImportProcessDto[];
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+}
+
 export interface ImportProcessDto {
     id: string;
     importType: string;
@@ -43920,6 +44055,7 @@ export interface ImportProcessDto {
     status: ImportProcessStatus;
     submissionGroupId?: string | undefined;
     submittedByUserId: string;
+    submittedByName?: string | undefined;
     submittedOn: Date;
     startedOn?: Date | undefined;
     completedOn?: Date | undefined;
@@ -43944,6 +44080,14 @@ export enum ImportProcessStatus {
     PartiallySucceeded = "PartiallySucceeded",
     Failed = "Failed",
     Cancelled = "Cancelled",
+}
+
+export interface ImportDefinitionDto {
+    key: string;
+    displayName: string;
+    atomicity: ImportAtomicity;
+    maxRows: number;
+    inlineThreshold: number;
 }
 
 export interface ImportProcessRowPageDto {

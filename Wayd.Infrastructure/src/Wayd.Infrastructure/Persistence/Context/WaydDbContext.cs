@@ -39,9 +39,11 @@ using Wolverine.EntityFrameworkCore;
 using PpmStrategicTheme = Wayd.ProjectPortfolioManagement.Domain.Models.StrategicTheme;
 using StrategicTheme = Wayd.StrategicManagement.Domain.Models.StrategicTheme;
 
+using Wayd.Common.Domain.Imports;
+
 namespace Wayd.Infrastructure.Persistence.Context;
 
-public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, IGoalsDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IStatusWorkflowDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
+public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, IGoalsDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 
@@ -117,6 +119,13 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<StoryMap> StoryMaps => Set<StoryMap>();
 
     #endregion IPlanning
+
+    #region Imports
+
+    public DbSet<ImportProcess> ImportProcesses => Set<ImportProcess>();
+    public DbSet<ImportProcessRow> ImportProcessRows => Set<ImportProcessRow>();
+
+    #endregion Imports
 
     #region StatusWorkflows
 

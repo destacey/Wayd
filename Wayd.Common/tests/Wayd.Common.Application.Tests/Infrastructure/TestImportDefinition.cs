@@ -28,6 +28,14 @@ public sealed class TestImportDefinition(ISerializerService serializer) : Import
     /// <summary>Set to make the pass itself fail, as distinct from a row failing.</summary>
     public string? PassFailure { get; set; }
 
+    /// <summary>Runs before each pass call, so a test can simulate something arriving mid-run.</summary>
+    public Action? BeforePass { get; set; }
+
+    /// <summary>Atomicity is overridable so one definition can stand in for both shapes.</summary>
+    public ImportAtomicity AtomicityOverride { get; set; } = ImportAtomicity.PerRow;
+
+    public override ImportAtomicity Atomicity => AtomicityOverride;
+
     protected override IReadOnlyList<ImportPass<TestImportRow>> Steps =>
     [
         new("Create", ImportPassScope.Chunked, Create),
@@ -37,6 +45,7 @@ public sealed class TestImportDefinition(ISerializerService serializer) : Import
     private Task<Result> Create(ImportPassContext<TestImportRow> context, CancellationToken cancellationToken)
     {
         Calls.Add(("Create", [.. context.Rows.Select(r => r.ImportId)], context.IsFinalChunk));
+        BeforePass?.Invoke();
 
         if (PassFailure is not null)
             return Task.FromResult(Result.Failure(PassFailure));

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using NodaTime;
 using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Application.Behaviors;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Validation;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
@@ -24,6 +25,9 @@ namespace Wayd.Infrastructure.Messaging;
 /// </summary>
 public static class WolverineConfiguration
 {
+    /// <summary>Local queue imports run on, kept separate so their parallelism can be pinned.</summary>
+    internal const string ImportQueueName = "imports";
+
     /// <summary>
     /// Marker types used only to reach each handler-bearing assembly for Wolverine discovery. Kept as
     /// <c>typeof(...)</c> references (not string names) so a moved/renamed assembly is a compile error
@@ -236,6 +240,19 @@ public static class WolverineConfiguration
         // handlers run outside the request, so their failures are governed here rather than by
         // ExceptionMiddleware.
         opts.Policies.Add<DurableEventFailurePolicy>();
+
+        // Imports get their own local queue with a pinned ceiling. A single import handler occupies a worker
+        // for as long as the file takes, and the durable local queues also carry domain-event replication —
+        // so left on the default (processor-count) parallelism, a few large imports could crowd out the
+        // projections that keep cross-domain records consistent. Two at a time bounds both the worker
+        // pressure and the database load a tenant can create by pressing Import, and anything beyond that
+        // waits its turn and shows as Queued rather than looking stuck.
+        opts.PublishMessage<RunImportProcessCommand>().ToLocalQueue(ImportQueueName);
+        opts.LocalQueue(ImportQueueName).MaximumParallelMessages(2);
+
+        // The durable event policy above is scoped to its own message types, so the import message needs its
+        // own rule or it would get no retry and no dead-lettering at all.
+        opts.Policies.Add<ImportFailurePolicy>();
 
         // Wolverine 6 codegen constructor-injects handler dependencies and, at the NotAllowed default, throws
         // when a dependency has a DI registration it cannot "see through". This used to be impossible here:

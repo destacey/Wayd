@@ -57,6 +57,13 @@ public sealed class ImportProcessRow : BaseEntity
         new(importId, rowNumber, payload);
 
     /// <summary>
+    /// Notes the record this row created while the run is still working through its later passes. The row
+    /// is not finished yet — a created employee still has to survive the manager and deactivation passes —
+    /// so the id is held until <see cref="MarkSucceeded"/> carries it forward.
+    /// </summary>
+    public void RecordCreatedEntity(Guid createdEntityId) => CreatedEntityId = createdEntityId;
+
+    /// <summary>
     /// Drops the payload along with the status, because a succeeded row's payload has no remaining job — the
     /// record it created is the better record of it, and keeping a copy only widens the personal data held.
     /// </summary>

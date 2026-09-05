@@ -186,7 +186,7 @@ const ScoringModelCriteriaList = ({
 
     return [
       createActionsColumn<ScoringModelCriterionDto>({
-        hide: !canManage,
+        unavailable: !canManage,
         ariaLabel: 'Criterion actions',
         getItems: (criterion) =>
           getRowMenuItems({

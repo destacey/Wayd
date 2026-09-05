@@ -122,7 +122,7 @@ const TeamMemberRolesPage = () => {
 
     return [
       createActionsColumn<TeamMemberRoleDto>({
-        hide: !canUpdate && !canDelete,
+        unavailable: !canUpdate && !canDelete,
         ariaLabel: 'Team member role actions',
         getItems: (role) => getRowMenuItems(role),
       }),

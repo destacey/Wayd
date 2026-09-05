@@ -84,7 +84,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
       sortFn: workStatusCategorySort,
       meta: { filterType: 'set' },
     },
-    // Context-redundant columns are excluded from the defs (not meta.hide):
+    // Context-redundant columns are excluded from the defs (not meta.unavailable):
     // they never belong on the hosting page, so they shouldn't appear in
     // the column chooser or the persisted layout either.
     ...(hideTeamColumn

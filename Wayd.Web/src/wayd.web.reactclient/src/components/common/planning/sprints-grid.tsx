@@ -49,7 +49,7 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         cell: ({ row }) =>
           renderSprintLink(row.original, { showTeamCode: false }),
       },
-      // Context-redundant column: excluded from the defs (not meta.hide) so
+      // Context-redundant column: excluded from the defs (not meta.unavailable) so
       // it stays out of the column chooser and persisted layouts.
       ...(props.hideTeam
         ? []

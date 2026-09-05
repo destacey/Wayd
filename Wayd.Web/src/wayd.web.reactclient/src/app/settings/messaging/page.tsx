@@ -72,7 +72,7 @@ const MessagingPage = () => {
 
     return [
       createActionsColumn<DeadLetterMessageResponse>({
-        hide: !showRowActions,
+        unavailable: !showRowActions,
         ariaLabel: 'Dead letter message actions',
         getItems: (deadLetter) => {
           const items: ItemType[] = []

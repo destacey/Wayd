@@ -182,7 +182,7 @@ const StrategicInitiativeKpisGrid: FC<StrategicInitiativeKpisGridProps> = (
           enableColumnFilter: false,
           enableResizing: false,
           enableGlobalFilter: false,
-          meta: { hide: !canManageKpis || isReadOnly },
+          meta: { unavailable: !canManageKpis || isReadOnly },
           cell: ({ row }) => {
             const menuItems = getRowMenuItems({
               kpiId: row.original.id,

@@ -73,8 +73,8 @@ describe('column-menu', () => {
       ])
     })
 
-    it('excludes consumer-hidden (meta.hide), unhidable, and unlabeled columns', () => {
-      // Arrange — meta.hide=true is consumer-controlled; enableHiding=false is
+    it('excludes consumer-hidden (meta.unavailable), unhidable, and unlabeled columns', () => {
+      // Arrange — meta.unavailable=true is consumer-controlled; enableHiding=false is
       // locked; an empty header with no exportHeader (actions-style) has no
       // displayable label
       const table = buildChooserTable([
@@ -83,7 +83,7 @@ describe('column-menu', () => {
           id: 'secret',
           accessorKey: 'secret',
           header: 'Secret',
-          meta: { hide: true },
+          meta: { unavailable: true },
         },
         {
           id: 'flagged',

@@ -32,7 +32,7 @@ const RecurringJobsTab = () => {
   const columns = useMemo<ColumnDef<RecurringJobResponse, any>[]>(
     () => [
       createActionsColumn<RecurringJobResponse>({
-        hide: !canDelete,
+        unavailable: !canDelete,
         ariaLabel: 'Recurring job actions',
         getItems: (job) => {
           const items: ItemType[] = [

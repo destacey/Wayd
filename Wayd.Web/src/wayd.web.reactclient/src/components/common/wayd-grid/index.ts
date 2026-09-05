@@ -52,6 +52,10 @@ export { createMultiValueSetFilter } from '../wayd-grid-core/filters'
 // filter for a column whose data is comma-separated values or an array. The set
 // panel's checkbox list is faceted from live data (via meta.multiValueSplit), so
 // no option list is passed. Prefer this over wiring those pieces by hand.
+// The hidden `Id` column the grid appends so users can export record ids for
+// imports. Exported for grids that need to reference it by id.
+export { ID_COLUMN_ID } from '../wayd-grid-core/id-column'
+
 export { createCsvColumn, splitCsv } from '../wayd-grid-core/csv-column'
 export type { CsvColumnOptions } from '../wayd-grid-core/csv-column'
 export { default as TagListCell } from '../wayd-grid-core/tag-list-cell'

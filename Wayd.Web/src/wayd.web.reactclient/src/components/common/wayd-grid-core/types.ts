@@ -43,8 +43,19 @@ export interface WaydGridColumnMeta {
    * Keeps the column in one static literal rather than conditionally pushed
    * into the array, which would lose its size, pinning and order each time it
    * came back.
+   *
+   * For a column the user *may* have but shouldn't see initially, use
+   * {@link hiddenByDefault}.
    */
   unavailable?: boolean
+  /**
+   * Starts the column hidden while leaving it in Choose Columns, so the user
+   * owns it from there. Only an initial state, unlike {@link unavailable}.
+   *
+   * A user's explicit choice wins over this, and Reset Columns drops that
+   * choice — so the column returns to hidden rather than to visible.
+   */
+  hiddenByDefault?: boolean
   /**
    * Filter type driving the per-column filter popup. Accepts the descriptor
    * filter types (`text` | `number` | `date` | `dateTime` | `set`) directly.

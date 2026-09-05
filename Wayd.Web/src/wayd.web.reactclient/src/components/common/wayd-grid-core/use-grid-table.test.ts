@@ -30,6 +30,38 @@ describe('use-grid-table', () => {
       // Assert
       expect(merged).toEqual({ name: true, secret: false, team: false })
     })
+
+    it('starts a hiddenByDefault column hidden', () => {
+      // Arrange / Act
+      const merged = mergeColumnVisibility({}, {}, { id: false })
+
+      // Assert
+      expect(merged).toEqual({ id: false })
+    })
+
+    it('lets a user show choice beat the default', () => {
+      // Arrange / Act
+      const merged = mergeColumnVisibility({}, { id: true }, { id: false })
+
+      // Assert
+      expect(merged).toEqual({ id: true })
+    })
+
+    it('falls back to hidden once the user choice is cleared by a reset', () => {
+      // Arrange — the state a reset leaves behind: no user layer at all
+      const merged = mergeColumnVisibility({}, {}, { id: false })
+
+      // Act / Assert
+      expect(merged.id).toBe(false)
+    })
+
+    it('still lets the consumer force a hiddenByDefault column hidden', () => {
+      // Arrange / Act
+      const merged = mergeColumnVisibility({ id: false }, { id: true }, { id: false })
+
+      // Assert
+      expect(merged).toEqual({ id: false })
+    })
   })
 
   describe('useGridState', () => {

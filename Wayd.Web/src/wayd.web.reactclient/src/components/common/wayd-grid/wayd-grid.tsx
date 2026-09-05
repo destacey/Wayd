@@ -86,6 +86,7 @@ import {
   type PinnedCellClasses,
 } from '../wayd-grid-core/column-pinning'
 import { applyColumnType } from '../wayd-grid-core/column-types'
+import { withIdColumn } from '../wayd-grid-core/id-column'
 import { useGridDndSensors } from '../wayd-grid-core/dnd/grid-dnd'
 import {
   INDENTATION_WIDTH,
@@ -709,6 +710,7 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     rightSlot,
     emptyMessage = 'No records found',
     csvFileName = 'grid-export',
+    includeIdColumn = true,
     height,
     initialSorting,
     variant = 'advanced',
@@ -1185,11 +1187,10 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
 
   // ─── Resolved columns ───────────────────────────────────
   const columns = useMemo(() => {
-    if (typeof columnsProp === 'function') {
-      return columnsProp(columnContext)
-    }
-    return columnsProp
-  }, [columnsProp, columnContext])
+    const resolved =
+      typeof columnsProp === 'function' ? columnsProp(columnContext) : columnsProp
+    return withIdColumn(resolved, data, includeIdColumn) as typeof resolved
+  }, [columnsProp, columnContext, data, includeIdColumn])
 
   // applySafeAccessor must run before applyColumnType (the type's raw-value
   // reader handles accessorFns but not dotted keys). Memoized on `columns`:
@@ -1224,11 +1225,35 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     return visibility
   }, [resolvedColumns])
 
+  // meta.hiddenByDefault → the layer *below* the user's choices, so the column
+  // starts hidden, stays in the chooser, and returns to hidden on reset.
+  const defaultColumnVisibility = useMemo<VisibilityState>(() => {
+    const visibility: VisibilityState = {}
+    const collect = (cols: typeof resolvedColumns) => {
+      for (const col of cols) {
+        const children = (col as { columns?: typeof resolvedColumns }).columns
+        if (children) collect(children)
+        if (col.meta?.hiddenByDefault !== true) continue
+        const id =
+          col.id ??
+          (col as { accessorKey?: string | number }).accessorKey?.toString()
+        if (id) visibility[id] = false
+      }
+    }
+    collect(resolvedColumns)
+    return visibility
+  }, [resolvedColumns])
+
   // The user's Choose Columns choices layer on top: consumer-hidden columns
   // stay hidden (and out of the chooser); user choices win everywhere else.
   const columnVisibility = useMemo<VisibilityState>(
-    () => mergeColumnVisibility(consumerColumnVisibility, userColumnVisibility),
-    [consumerColumnVisibility, userColumnVisibility],
+    () =>
+      mergeColumnVisibility(
+        consumerColumnVisibility,
+        userColumnVisibility,
+        defaultColumnVisibility,
+      ),
+    [consumerColumnVisibility, userColumnVisibility, defaultColumnVisibility],
   )
 
   // Leaf column ids in DEF order (recursing bands), for reconciling the

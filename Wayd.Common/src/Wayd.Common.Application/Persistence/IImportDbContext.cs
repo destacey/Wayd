@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Common.Application.Persistence;
@@ -16,6 +17,14 @@ public interface IImportDbContext
 {
     DbSet<ImportProcess> ImportProcesses { get; }
     DbSet<ImportProcessRow> ImportProcessRows { get; }
+
+    /// <summary>
+    /// Lets the runner throw away what an atomic import staged. Its passes mutate before the domain checks
+    /// that only fire while mutating — a cycle is discovered while adding the edge that closes it — so
+    /// "validate before you mutate" cannot cover every rejection, and the run has to be able to discard
+    /// what it did rather than promise it did nothing.
+    /// </summary>
+    ChangeTracker ChangeTracker { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

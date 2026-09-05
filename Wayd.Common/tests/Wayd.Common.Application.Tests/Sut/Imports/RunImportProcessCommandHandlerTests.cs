@@ -10,12 +10,14 @@ using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Common.Application.Tests.Sut.Imports;
 
-public sealed class RunImportProcessCommandHandlerTests
+public sealed class RunImportProcessCommandHandlerTests : IDisposable
 {
     private static readonly Instant _now = Instant.FromUtc(2026, 9, 5, 10, 0, 0);
 
     private readonly FakeImportDbContext _db = new();
     private readonly TestImportDefinition _definition = new(new ImportPayloadSerializer());
+
+    public void Dispose() => _db.Dispose();
 
     private RunImportProcessCommandHandler CreateHandler()
     {

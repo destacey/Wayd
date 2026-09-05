@@ -9,13 +9,15 @@ using Wayd.Common.Domain.Enums.Imports;
 
 namespace Wayd.Common.Application.Tests.Sut.Imports;
 
-public sealed class SubmitImportCommandHandlerTests
+public sealed class SubmitImportCommandHandlerTests : IDisposable
 {
     private static readonly Instant _now = Instant.FromUtc(2026, 9, 5, 10, 0, 0);
 
     private readonly FakeImportDbContext _db = new();
     private readonly TestImportDefinition _definition = new(new ImportPayloadSerializer());
     private readonly Mock<IDispatcher> _dispatcher = new();
+
+    public void Dispose() => _db.Dispose();
 
     private SubmitImportCommandHandler CreateHandler()
     {

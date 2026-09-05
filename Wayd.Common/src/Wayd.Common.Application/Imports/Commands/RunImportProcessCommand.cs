@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
@@ -63,9 +64,12 @@ public sealed class RunImportProcessCommandHandler(
             if (eligible.Count == 0)
                 break;
 
-            List<IReadOnlyList<ImportProcessRow>> chunks = pass.Scope == ImportPassScope.WholeSet
-                ? [eligible]
-                : Chunk(eligible, definition.ChunkSize);
+            // An atomic import is never split, whatever its passes declare: discarding staged work only
+            // holds while none of it has been saved, and a second chunk would mean the first already had.
+            List<IReadOnlyList<ImportProcessRow>> chunks =
+                pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
+                    ? [eligible]
+                    : Chunk(eligible, definition.ChunkSize);
 
             for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
             {
@@ -87,7 +91,10 @@ public sealed class RunImportProcessCommandHandler(
                 var failedInChunk = ApplyOutcomes(process, chunks[chunkIndex], passResult.Value);
 
                 if (definition.Atomicity == ImportAtomicity.Atomic && failedInChunk > 0)
+                {
+                    DiscardStagedChanges();
                     return await FailAtomicRun(process, pass.Name, cancellationToken);
+                }
 
                 // One SaveChanges per chunk covers the pass's entity changes and the row state together, so
                 // a crash can never leave records created against rows still marked Pending — which a
@@ -200,8 +207,33 @@ public sealed class RunImportProcessCommandHandler(
     }
 
     /// <summary>
-    /// An atomic import applies as one unit, so a single rejection keeps the whole file out. The pass is
-    /// required to validate before it mutates, which is why nothing needs undoing here.
+    /// Throws away everything the pass staged, so an atomic run that rejects a row applies none of it.
+    /// </summary>
+    /// <remarks>
+    /// A pass is asked to validate before it mutates, and that covers the rejections it makes itself — an
+    /// unresolved reference, a parent of the wrong kind. It cannot cover the ones the domain raises
+    /// <em>while</em> mutating: a cycle is only found when the edge closing it is added, by which point the
+    /// earlier edges are staged. Detaching is enough because the check runs before the chunk is saved, and
+    /// an atomic import is never split — so nothing it staged has reached the database.
+    /// <para>
+    /// The import's own rows are left tracked: they carry the outcome and are saved immediately after.
+    /// </para>
+    /// </remarks>
+    private void DiscardStagedChanges()
+    {
+        var staged = _importDbContext.ChangeTracker.Entries()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Where(e => e.Entity is not ImportProcess and not ImportProcessRow)
+            .ToList();
+
+        foreach (var entry in staged)
+        {
+            entry.State = EntityState.Detached;
+        }
+    }
+
+    /// <summary>
+    /// An atomic import applies as one unit, so a single rejection keeps the whole file out.
     /// </summary>
     private async Task<Result> FailAtomicRun(ImportProcess process, string passName, CancellationToken cancellationToken)
     {

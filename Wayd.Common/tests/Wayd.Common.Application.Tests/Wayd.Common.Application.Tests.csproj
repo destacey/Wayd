@@ -7,6 +7,8 @@
 
   <ItemGroup>
       <PackageReference Include="FluentAssertions" />
+      <!-- Backs the empty ChangeTracker the import fake exposes; nothing is queried through it. -->
+      <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" />
       <PackageReference Include="Moq.AutoMock" />
       <PackageReference Include="xunit.v3" />

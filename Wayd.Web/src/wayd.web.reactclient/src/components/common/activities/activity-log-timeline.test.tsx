@@ -1,7 +1,22 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { App } from 'antd'
 import { ActivityLogDto, EventActorKind } from '@/src/services/wayd-api'
 import ActivityLogTimeline from './activity-log-timeline'
+
+jest.mock('./export-activities-modal', () => {
+  const MockExportModal = ({ open }: any) =>
+    open ? <div>Export Activity History</div> : null
+  MockExportModal.displayName = 'MockExportModal'
+  return MockExportModal
+})
+
+jest.mock('./compare-payload-modal', () => {
+  const MockCompareModal = ({ open }: any) =>
+    open ? <div>Compare Event Payloads</div> : null
+  MockCompareModal.displayName = 'MockCompareModal'
+  return MockCompareModal
+})
 
 const createActivity = (
   overrides: Partial<ActivityLogDto> = {},
@@ -13,6 +28,7 @@ const createActivity = (
   aggregateId: '22222222-2222-2222-2222-222222222222',
   actorKind: EventActorKind.User,
   timestamp: new Date('2026-04-01T09:00:00Z'),
+  eventVersion: '1.0',
   payload: JSON.stringify({
     name: 'Alpha Team',
     code: 'ALPHA',
@@ -82,6 +98,7 @@ describe('ActivityLogTimeline', () => {
     expect(screen.getByText('Phoenix Team')).toBeInTheDocument()
     expect(screen.getByText('PHX')).toBeInTheDocument()
     expect(screen.getByText('Event Properties')).toBeInTheDocument()
+    expect(screen.queryByText(/UTC/)).not.toBeInTheDocument()
   })
 
   it('renders null or empty event properties as None', () => {
@@ -215,9 +232,9 @@ describe('ActivityLogTimeline', () => {
     expect(screen.queryByText('Rollback Release')).not.toBeInTheDocument()
   })
 
-  it('renders pagination toolbar and triggers callback on page change', async () => {
+  it('renders load more toolbar with remaining count and triggers callback on click', async () => {
     const user = userEvent.setup()
-    const handlePageChange = jest.fn()
+    const handleLoadMore = jest.fn()
     const activities = [createActivity({ id: 'act-1' })]
 
     render(
@@ -225,18 +242,191 @@ describe('ActivityLogTimeline', () => {
         activities={activities}
         isLoading={false}
         totalCount={60}
-        page={1}
-        pageSize={20}
-        onPageChange={handlePageChange}
+        hasMore={true}
+        onLoadMore={handleLoadMore}
       />,
     )
 
-    expect(screen.getByText('60 events')).toBeInTheDocument()
-    const nextBtn = screen.getByTitle('Next Page')
-    expect(nextBtn).toBeInTheDocument()
-    await user.click(nextBtn)
+    expect(screen.getByText('Showing 1 of 60 events')).toBeInTheDocument()
+    const loadMoreBtn = screen.getByRole('button', {
+      name: /Load more activities \(59 remaining\)/i,
+    })
+    expect(loadMoreBtn).toBeInTheDocument()
+    await user.click(loadMoreBtn)
 
-    expect(handlePageChange).toHaveBeenCalledWith(2, 20)
+    expect(handleLoadMore).toHaveBeenCalledTimes(1)
+  })
+
+  it('displays all loaded message when total count is reached', () => {
+    const activities = Array.from({ length: 25 }, (_, i) =>
+      createActivity({ id: `act-${i}` }),
+    )
+
+    render(
+      <ActivityLogTimeline
+        activities={activities}
+        isLoading={false}
+        totalCount={25}
+        hasMore={false}
+      />,
+    )
+
+    expect(screen.getByText('25 events')).toBeInTheDocument()
+    expect(screen.getByText('All 25 activities loaded')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Load more activities/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('copies raw payload to clipboard and triggers context-aware message on click', async () => {
+    const user = userEvent.setup()
+    const writeTextMock = jest
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockResolvedValue(undefined)
+
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        payload: JSON.stringify({ name: 'Alpha Team' }),
+      }),
+    ]
+
+    render(
+      <App>
+        <ActivityLogTimeline activities={activities} isLoading={false} />
+      </App>,
+    )
+
+    const collapseHeader = screen.getByText('Raw Event Payload & Traceability')
+    await user.click(collapseHeader)
+
+    const copyBtn = screen.getByRole('button', { name: /copy json/i })
+    expect(copyBtn).toBeInTheDocument()
+    fireEvent.click(copyBtn)
+
+    expect(writeTextMock).toHaveBeenCalledWith(
+      JSON.stringify({ name: 'Alpha Team' }, null, 2),
+    )
+  })
+
+  it('does not render panel export button by default', () => {
+    const activities = [createActivity({ id: 'act-1' })]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={1}
+        />
+      </App>,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: /Export activity history/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders export modal when isExportOpen is true', () => {
+    const activities = [createActivity({ id: 'act-1' })]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={1}
+          isExportOpen={true}
+        />
+      </App>,
+    )
+
+    expect(screen.getByText('Export Activity History')).toBeInTheDocument()
+  })
+
+  it('opens export modal when showExportButton is enabled and clicked', async () => {
+    const user = userEvent.setup()
+    const activities = [createActivity({ id: 'act-1' })]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={1}
+          showExportButton={true}
+        />
+      </App>,
+    )
+
+    const exportBtn = screen.getByRole('button', {
+      name: /Export activity history/i,
+    })
+    expect(exportBtn).toBeInTheDocument()
+    await user.click(exportBtn)
+
+    expect(screen.getByText('Export Activity History')).toBeInTheDocument()
+  })
+
+  it('shows Compare with previous button when a preceding event exists and opens compare modal on click', async () => {
+    const user = userEvent.setup()
+    const activities = [
+      createActivity({
+        id: 'act-2',
+        eventType: 'TeamUpdatedEvent',
+        summary: 'Team Updated',
+        timestamp: new Date('2026-04-01T10:00:00Z'),
+      }),
+      createActivity({
+        id: 'act-1',
+        eventType: 'TeamCreatedEvent',
+        summary: 'Team Created',
+        timestamp: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={2}
+        />
+      </App>,
+    )
+
+    // The first item (act-2) is selected by default and has a preceding item (act-1)
+    const compareButtons = screen.getAllByRole('button', {
+      name: /Compare with previous/i,
+    })
+    expect(compareButtons.length).toBeGreaterThan(0)
+
+    await user.click(compareButtons[0])
+    expect(screen.getByText('Compare Event Payloads')).toBeInTheDocument()
+  })
+
+  it('does not show Compare with previous button when viewing the oldest/initial event', () => {
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        eventType: 'TeamCreatedEvent',
+        summary: 'Team Created',
+      }),
+    ]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={1}
+        />
+      </App>,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: /Compare with previous/i }),
+    ).not.toBeInTheDocument()
   })
 })
 

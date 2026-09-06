@@ -73,7 +73,7 @@ export const teamApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [
+      invalidatesTags: (result, error, request) => [
         // Invalidate the team list queries (both includeInactive true and false)
         { type: QueryTags.Team, id: 'LIST-true' },
         { type: QueryTags.Team, id: 'LIST-false' },
@@ -83,6 +83,7 @@ export const teamApi = apiSlice.injectEndpoints({
         // Invalidate team of teams options queries
         { type: QueryTags.TeamOptions, id: 'TEAM_OF_TEAMS-true' },
         { type: QueryTags.TeamOptions, id: 'TEAM_OF_TEAMS-false' },
+        { type: QueryTags.ActivityLog, id: request.id },
       ],
     }),
 
@@ -110,6 +111,7 @@ export const teamApi = apiSlice.injectEndpoints({
           // Invalidate team of teams options queries
           { type: QueryTags.TeamOptions, id: 'TEAM_OF_TEAMS-true' },
           { type: QueryTags.TeamOptions, id: 'TEAM_OF_TEAMS-false' },
+          { type: QueryTags.ActivityLog, id: request.id },
         ],
       },
     ),
@@ -402,6 +404,8 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamMembership, id: membership.teamId },
         { type: QueryTags.TeamMembership, id: membership.parentTeamId },
         { type: QueryTags.TeamMembership, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: membership.teamId },
+        { type: QueryTags.ActivityLog, id: membership.parentTeamId },
       ],
     }),
 
@@ -441,6 +445,8 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamMembership, id: membership.teamId },
         { type: QueryTags.TeamMembership, id: parentTeamId },
         { type: QueryTags.TeamMembership, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: membership.teamId },
+        { type: QueryTags.ActivityLog, id: parentTeamId },
       ],
     }),
 
@@ -479,6 +485,8 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamMembership, id: teamId },
         { type: QueryTags.TeamMembership, id: parentTeamId },
         { type: QueryTags.TeamMembership, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: teamId },
+        { type: QueryTags.ActivityLog, id: parentTeamId },
       ],
     }),
 
@@ -630,6 +638,7 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOperatingModel, id: teamId },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-scrum` },
+        { type: QueryTags.ActivityLog, id: teamId },
       ],
     }),
 
@@ -658,6 +667,7 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOperatingModel, id: teamId },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-scrum` },
+        { type: QueryTags.ActivityLog, id: teamId },
       ],
     }),
 
@@ -681,6 +691,7 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOperatingModel, id: teamId },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-scrum` },
+        { type: QueryTags.ActivityLog, id: teamId },
       ],
     }),
 
@@ -694,7 +705,9 @@ export const teamApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      providesTags: (result, error, key) => [{ type: QueryTags.Team, id: String(key) }],
+      providesTags: (result, error, key) => [
+        { type: QueryTags.Team, id: String(key) },
+      ],
     }),
 
     getTeamOfTeamsDetails: builder.query<TeamOfTeamsDetailsDto, number>({
@@ -707,13 +720,19 @@ export const teamApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      providesTags: (result, error, key) => [{ type: QueryTags.Team, id: String(key) }],
+      providesTags: (result, error, key) => [
+        { type: QueryTags.Team, id: String(key) },
+      ],
     }),
 
-    createTeam: builder.mutation<TeamDetailsDto | TeamOfTeamsDetailsDto, CreateTeamFormValues>({
+    createTeam: builder.mutation<
+      TeamDetailsDto | TeamOfTeamsDetailsDto,
+      CreateTeamFormValues
+    >({
       queryFn: async (newTeam) => {
         try {
-          const teamClient = newTeam.type === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
+          const teamClient =
+            newTeam.type === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
           const request = {
             ...newTeam,
             activeDate: (newTeam.activeDate as any)?.format('YYYY-MM-DD'),
@@ -736,10 +755,14 @@ export const teamApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    updateTeam: builder.mutation<TeamDetailsDto | TeamOfTeamsDetailsDto, EditTeamFormValues>({
+    updateTeam: builder.mutation<
+      TeamDetailsDto | TeamOfTeamsDetailsDto,
+      EditTeamFormValues
+    >({
       queryFn: async (team) => {
         try {
-          const teamClient = team.type === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
+          const teamClient =
+            team.type === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
           await teamClient.update(team.id, team)
           const data = await teamClient.getById(team.key)
           return { data }
@@ -756,6 +779,8 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOptions, id: 'OPTIONS-false' },
         { type: QueryTags.TeamOptions, id: 'TEAM_OF_TEAMS-true' },
         { type: QueryTags.TeamOptions, id: 'TEAM_OF_TEAMS-false' },
+        { type: QueryTags.ActivityLog, id: team.id },
+        { type: QueryTags.ActivityLog, id: String(team.key) },
       ],
     }),
 
@@ -855,4 +880,5 @@ export const {
   useCreateTeamMutation,
   useUpdateTeamMutation,
   useGetTeamActivitiesQuery,
+  useLazyGetTeamActivitiesQuery,
 } = teamApi

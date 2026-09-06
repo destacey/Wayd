@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.FeatureManagement;
@@ -132,6 +132,7 @@ internal static class ConfigureServices
         services.AddScoped<IPlanningDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IProductManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IStatusWorkflowDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IActivityLogDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IProjectPortfolioManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IStrategicManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IWorkDbContext>(sp => sp.GetRequiredService<WaydDbContext>());

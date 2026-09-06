@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
@@ -43,7 +43,7 @@ using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
-public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, IGoalsDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
+public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, IGoalsDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 

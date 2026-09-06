@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -39,4 +40,9 @@ public sealed record PackageAssembledEvent : DomainEvent, IProductManagementEven
 
     public Guid StatusId { get; }
     public StatusCategory StatusCategory { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "ReleasePackage";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

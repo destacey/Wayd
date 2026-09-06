@@ -1,3 +1,5 @@
+using Wayd.Common.Domain.Events;
+
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
@@ -14,6 +16,6 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// rather than by memory.
 /// </para>
 /// </remarks>
-public interface IProductManagementEvent : IEvent
+public interface IProductManagementEvent : IEvent, IAggregateEvent
 {
 }

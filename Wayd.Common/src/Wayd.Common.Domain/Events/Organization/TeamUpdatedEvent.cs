@@ -1,9 +1,10 @@
-﻿using Wayd.Common.Domain.Models.Organizations;
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Models.Organizations;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Organization;
 
-public sealed record TeamUpdatedEvent : DomainEvent
+public sealed record TeamUpdatedEvent : DomainEvent, IAggregateEvent
 {
     public TeamUpdatedEvent(Guid id, TeamCode code, string name, string? description, EventActor actor, Instant timestamp)
         : base(actor)
@@ -19,4 +20,9 @@ public sealed record TeamUpdatedEvent : DomainEvent
     public TeamCode Code { get; }
     public string Name { get; }
     public string? Description { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Team";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

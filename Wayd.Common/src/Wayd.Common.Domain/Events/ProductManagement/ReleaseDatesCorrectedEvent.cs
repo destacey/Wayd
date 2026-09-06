@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -48,4 +49,9 @@ public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagemen
     public LocalDate? ToTargetDate { get; }
     public LocalDate? FromReleasedDate { get; }
     public LocalDate? ToReleasedDate { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Release";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

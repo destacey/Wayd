@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -52,4 +53,9 @@ public sealed record VersionPlannedEvent : DomainEvent, IProductManagementEvent
     public LocalDate? TargetDate { get; }
     public Guid StatusId { get; }
     public StatusCategory StatusCategory { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Version";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

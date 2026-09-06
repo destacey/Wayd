@@ -1,9 +1,14 @@
-﻿using System.Data;
+using System.Data;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Options;
+using NodaTime.Serialization.SystemTextJson;
+using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Infrastructure.Common.Services;
@@ -42,6 +47,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     public IDbConnection Connection => Database.GetDbConnection();
 
     public DbSet<Trail> AuditTrails => Set<Trail>();
+    public DbSet<ActivityLogEntry> ActivityLogs => Set<ActivityLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -120,21 +126,22 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         // by the second save below); inline events are dispatched synchronously after the commit, preserving
         // read-your-writes for the cross-domain replication projections. Events are drained from the aggregates
         // as they are routed.
-        var (inlineEvents, enrolledDurableEvents) = await EnlistDomainEvents();
+        var (inlineEvents, enrolledDurableEvents, enrolledActivityLogs) = await EnlistDomainEvents();
 
-        // Commit the staged durable envelopes. This is a second, small transaction — the outbox envelope is
-        // therefore not committed atomically with the entity change, but it IS durably persisted before it is
-        // flushed to the sending agents, so a crash after this point still delivers via the recovery agent.
-        // (Post-persistence events capture a DB-generated Key, so they cannot be enlisted before the entity
-        // save; that rules out a single atomic write here.)
-        if (enrolledDurableEvents)
+        // Commit the staged durable envelopes and/or activity logs. This is a second, small transaction — the outbox
+        // envelope and activity log rows are committed atomically here, after post-persistence events have captured
+        // any DB-generated Keys.
+        if (enrolledDurableEvents || enrolledActivityLogs)
         {
             await base.SaveChangesAsync(cancellationToken);
 
-            // Hand the committed envelopes to the sending agents for background delivery. Flush before the
-            // inline dispatch so a durable event is on its way even if an inline handler throws; the durable
-            // path has its own retry/dead-letter policy.
-            await _outbox.FlushOutgoingMessagesAsync();
+            if (enrolledDurableEvents)
+            {
+                // Hand the committed envelopes to the sending agents for background delivery. Flush before the
+                // inline dispatch so a durable event is on its way even if an inline handler throws; the durable
+                // path has its own retry/dead-letter policy.
+                await _outbox.FlushOutgoingMessagesAsync();
+            }
         }
 
         foreach (var inlineEvent in inlineEvents)
@@ -561,9 +568,10 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     /// </summary>
     /// <returns>
     /// The inline events (in raise order) for the caller to dispatch after the commit, and whether any
-    /// durable event was enrolled in the outbox this pass (so the caller knows whether to flush).
+    /// durable event was enrolled in the outbox this pass (so the caller knows whether to flush), and whether
+    /// any activity log entries were staged into this change tracker.
     /// </returns>
-    private async Task<(List<IEvent> InlineEvents, bool EnrolledDurableEvents)> EnlistDomainEvents()
+    private async Task<(List<IEvent> InlineEvents, bool EnrolledDurableEvents, bool EnrolledActivityLogs)> EnlistDomainEvents()
     {
         var entitiesWithEvents = ChangeTracker.Entries<IEntity>()
             .Select(e => e.Entity)
@@ -571,7 +579,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             .ToArray();
 
         var inlineEvents = new List<IEvent>();
-        var enrolled = false;
+        var enrolledDurable = false;
+        var enrolledActivity = false;
 
         // Resolved once per drain rather than per event, so every event raised by one save shares a
         // correlation id — one save is one chain of consequences. Never throws or blocks on there being a
@@ -589,14 +598,19 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                 // point would not survive to the handler.
                 domainEvent.CorrelationId ??= correlationId;
 
+                // Auto-capture into ActivityLogs table
+                var activityLog = CreateActivityLogEntry(domainEvent, entity, correlationId);
+                Set<ActivityLogEntry>().Add(activityLog);
+                enrolledActivity = true;
+
                 if (DurableEventRoutes.IsDurable(domainEvent))
                 {
                     // Enroll THIS DbContext instance (not the outbox's own scoped context) exactly once, so the
                     // envelope rows land in this change tracker and are committed by the caller's second save.
-                    if (!enrolled)
+                    if (!enrolledDurable)
                     {
                         _outbox.Enroll(this);
-                        enrolled = true;
+                        enrolledDurable = true;
                     }
 
                     // PublishAsync on an enrolled outbox routes the message and persists its OutgoingMessage
@@ -612,6 +626,133 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             }
         }
 
-        return (inlineEvents, enrolled);
+        return (inlineEvents, enrolledDurable, enrolledActivity);
+    }
+
+    private static readonly JsonSerializerOptions ActivityJsonOptions = CreateActivityJsonOptions();
+
+    private static JsonSerializerOptions CreateActivityJsonOptions()
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters =
+            {
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+            }
+        };
+        options.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+        return options;
+    }
+
+    private static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IEntity entity, string? correlationId)
+    {
+        var eventType = domainEvent.GetType().Name;
+
+        string aggregateType;
+        Guid aggregateId;
+
+        if (domainEvent is IAggregateEvent aggEvent)
+        {
+            aggregateType = aggEvent.AggregateType;
+            aggregateId = aggEvent.AggregateId;
+        }
+        else
+        {
+            aggregateType = entity.GetType().Name;
+            aggregateId = ResolveAggregateId(entity, domainEvent);
+        }
+
+        var entityNamespace = entity.GetType().Namespace ?? string.Empty;
+        var eventNamespace = domainEvent.GetType().Namespace ?? string.Empty;
+        var domainArea = ResolveDomainArea(entityNamespace, eventNamespace);
+
+        var payload = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), ActivityJsonOptions);
+        var summary = FormatSummary(eventType, aggregateType);
+
+        return new ActivityLogEntry(
+            domainEvent.EventId,
+            eventType,
+            domainArea,
+            aggregateType,
+            aggregateId,
+            domainEvent.Actor,
+            domainEvent.Timestamp,
+            correlationId,
+            payload,
+            summary);
+    }
+
+    private static string ResolveDomainArea(string entityNamespace, string eventNamespace)
+    {
+        if (entityNamespace.Contains("ProjectPortfolioManagement") || eventNamespace.Contains("ProjectPortfolioManagement"))
+            return "Ppm";
+        if (entityNamespace.Contains("Organization") || eventNamespace.Contains("Organization"))
+            return "Organization";
+        if (entityNamespace.Contains("ProductManagement") || eventNamespace.Contains("ProductManagement"))
+            return "ProductManagement";
+        if (entityNamespace.Contains("Planning") || eventNamespace.Contains("Planning"))
+            return "Planning";
+        if (entityNamespace.Contains("Work") || eventNamespace.Contains("Work"))
+            return "Work";
+        if (entityNamespace.Contains("StrategicManagement") || eventNamespace.Contains("StrategicManagement"))
+            return "StrategicManagement";
+        if (entityNamespace.Contains("StatusWorkflow") || eventNamespace.Contains("StatusWorkflow"))
+            return "StatusWorkflows";
+        if (entityNamespace.Contains("Identity") || eventNamespace.Contains("Identity"))
+            return "Identity";
+        if (entityNamespace.Contains("Goals") || eventNamespace.Contains("Goals"))
+            return "Goals";
+        if (entityNamespace.Contains("Links") || eventNamespace.Contains("Links"))
+            return "Links";
+        if (entityNamespace.Contains("AppIntegration") || eventNamespace.Contains("AppIntegration"))
+            return "AppIntegration";
+
+        return "App";
+    }
+
+    private static Guid ResolveAggregateId(IEntity entity, DomainEvent domainEvent)
+    {
+        if (entity is IEntity<Guid> guidEntity && guidEntity.Id != Guid.Empty)
+        {
+            return guidEntity.Id;
+        }
+
+        var idProp = entity.GetType().GetProperty("Id");
+        if (idProp?.GetValue(entity) is Guid gid && gid != Guid.Empty)
+        {
+            return gid;
+        }
+
+        if (idProp?.GetValue(entity) is string sid && Guid.TryParse(sid, out var parsedGuid) && parsedGuid != Guid.Empty)
+        {
+            return parsedGuid;
+        }
+
+        var eventIdProp = domainEvent.GetType().GetProperty("Id");
+        if (eventIdProp?.GetValue(domainEvent) is Guid eventGuid && eventGuid != Guid.Empty)
+        {
+            return eventGuid;
+        }
+
+        return domainEvent.EventId;
+    }
+
+    private static string FormatSummary(string eventType, string aggregateType)
+    {
+        var readableEvent = eventType.EndsWith("Event", StringComparison.Ordinal)
+            ? eventType[..^5]
+            : eventType;
+
+        var words = Regex.Replace(readableEvent, "(\\B[A-Z])", " $1");
+
+        if (words.StartsWith(aggregateType, StringComparison.OrdinalIgnoreCase))
+        {
+            return words;
+        }
+
+        return $"{words} on {aggregateType}";
     }
 }

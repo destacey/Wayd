@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -26,4 +27,9 @@ public sealed record PackageReleasedEvent : DomainEvent, IProductManagementEvent
     public LocalDate ReleasedDate { get; }
     public int ComponentCount { get; }
     public Guid StatusId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "ReleasePackage";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

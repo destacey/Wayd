@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -24,4 +25,9 @@ public sealed record EnvironmentRetiredEvent : DomainEvent, IProductManagementEv
     public Guid Id { get; }
     public int Key { get; }
     public string Name { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "DeploymentEnvironment";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Events;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
@@ -17,7 +19,7 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// stale, and once the remap engine exists this is what starts migrating every record in the scope.
 /// </para>
 /// </remarks>
-public sealed record WorkflowAssignedEvent : DomainEvent
+public sealed record WorkflowAssignedEvent : DomainEvent, IAggregateEvent
 {
     public WorkflowAssignedEvent(
         string ownerType,
@@ -57,4 +59,9 @@ public sealed record WorkflowAssignedEvent : DomainEvent
     /// later rename.
     /// </summary>
     public string ToWorkflowName { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Workflow";
+    [JsonIgnore]
+    public Guid AggregateId => ToWorkflowId;
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.Interfaces.ProductManagement;
 
@@ -33,4 +34,9 @@ public sealed record ProductLinkedExternallyEvent : DomainEvent, IProductManagem
     public string Name { get; }
     public string? Description { get; }
     public string? ExternalId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Product";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

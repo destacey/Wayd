@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -24,4 +25,9 @@ public sealed record ProductRemovedEvent : DomainEvent, IProductManagementEvent
 
     /// <summary>The parent it hung from, so a consumer can invalidate that subtree's rollups.</summary>
     public Guid? ParentId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Product";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

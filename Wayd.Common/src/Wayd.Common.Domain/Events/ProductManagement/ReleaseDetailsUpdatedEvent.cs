@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -34,4 +35,9 @@ public sealed record ReleaseDetailsUpdatedEvent : DomainEvent, IProductManagemen
 
     /// <summary>The manual ordering override, or <c>null</c> when the release orders by chronology.</summary>
     public long? Sequence { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Release";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

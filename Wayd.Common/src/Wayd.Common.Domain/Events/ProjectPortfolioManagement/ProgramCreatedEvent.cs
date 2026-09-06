@@ -1,11 +1,11 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
-public sealed record ProgramCreatedEvent : DomainEvent, ISimpleProgram
+public sealed record ProgramCreatedEvent : DomainEvent, ISimpleProgram, IAggregateEvent
 {
     public ProgramCreatedEvent(ISimpleProgram project, int statusId, LocalDateRange? dateRange, Guid portfolioId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
         : this(project.Id, project.Key, project.Name, project.Description, statusId, dateRange, portfolioId, roles, strategicThemes, actor, timestamp)
@@ -50,4 +50,9 @@ public sealed record ProgramCreatedEvent : DomainEvent, ISimpleProgram
     /// The strategic theme ids for the program.
     /// </summary>
     public Guid[] StrategicThemes { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Program";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

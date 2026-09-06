@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -29,4 +30,9 @@ public sealed record ProductRetypedEvent : DomainEvent, IProductManagementEvent
     public string Name { get; }
     public Guid FromProductTypeId { get; }
     public Guid ToProductTypeId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Product";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

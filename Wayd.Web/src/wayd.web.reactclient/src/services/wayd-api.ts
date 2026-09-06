@@ -11301,6 +11301,77 @@ export class PortfoliosClient {
     }
 
     /**
+     * Get activity history for the portfolio.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     */
+    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{idOrKey}/activities?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
      * Import portfolios from a csv file.
      * @param file (optional) 
      */
@@ -14546,6 +14617,77 @@ export class ProjectsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ProjectStatusHistoryDto[]>(null as any);
+    }
+
+    /**
+     * Get activity history for the project.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     */
+    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/activities?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
     }
 
     /**
@@ -30949,6 +31091,77 @@ export class TeamsClient {
     }
 
     /**
+     * Get activity history for the team.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     */
+    getActivities(idOrKey: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{idOrKey}/activities?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
      * Import teams and teams of teams from a csv file.
      * @param file (optional) 
      */
@@ -41224,6 +41437,38 @@ export interface ProjectPortfolioDetailsDto {
     portfolioOwners: EmployeeNavigationDto[];
     portfolioManagers: EmployeeNavigationDto[];
     canManagePortfolio: boolean;
+}
+
+export interface PagedResponseOfActivityLogDto {
+    items: ActivityLogDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+export interface ActivityLogDto {
+    id: string;
+    eventType: string;
+    domainArea: string;
+    aggregateType: string;
+    aggregateId: string;
+    actorKind: EventActorKind;
+    employee?: EmployeeNavigationDto | undefined;
+    timestamp: Date;
+    correlationId?: string | undefined;
+    payload: string;
+    summary?: string | undefined;
+}
+
+export enum EventActorKind {
+    User = "User",
+    System = "System",
+    Import = "Import",
+    Sync = "Sync",
+    Anonymous = "Anonymous",
 }
 
 export interface CreatePortfolioRequest {

@@ -260,12 +260,7 @@ const parsePayloadDetails = (
 
     const filtered: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(raw)) {
-      if (
-        !excludedKeys.has(key.toLowerCase()) &&
-        value !== null &&
-        value !== undefined &&
-        value !== ''
-      ) {
+      if (!excludedKeys.has(key.toLowerCase()) && value !== undefined) {
         filtered[key] = value
       }
     }
@@ -717,14 +712,18 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                       </Text>
                     ),
                     children:
-                      typeof val === 'boolean' ? (
+                      val === null || val === undefined || val === '' ? (
+                        <Text type="secondary" italic>
+                          None
+                        </Text>
+                      ) : typeof val === 'boolean' ? (
                         <Tag
                           color={val ? 'green' : 'default'}
                           style={{ margin: 0 }}
                         >
                           {val ? 'Yes' : 'No'}
                         </Tag>
-                      ) : typeof val === 'object' && val !== null ? (
+                      ) : typeof val === 'object' ? (
                         <Text code style={{ wordBreak: 'break-all' }}>
                           {JSON.stringify(val)}
                         </Text>

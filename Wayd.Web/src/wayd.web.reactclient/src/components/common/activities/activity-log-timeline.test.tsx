@@ -84,6 +84,23 @@ describe('ActivityLogTimeline', () => {
     expect(screen.getByText('Event Properties')).toBeInTheDocument()
   })
 
+  it('renders null or empty event properties as None', () => {
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        payload: JSON.stringify({
+          name: 'Phoenix Team',
+          description: null,
+        }),
+      }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    expect(screen.getByText('Description')).toBeInTheDocument()
+    expect(screen.getByText('None')).toBeInTheDocument()
+  })
+
   it('switches selected activity when clicking an item in the ledger list', async () => {
     const user = userEvent.setup()
     const activities = [

@@ -637,7 +637,6 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Converters =
             {
                 new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)

@@ -21254,10 +21254,10 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Import objectives for a planning interval from a csv file.
+     * Submit a csv file of objectives for a planning interval. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    importObjectives(id: string, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    importObjectives(id: string, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/import";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -21275,6 +21275,7 @@ export class PlanningIntervalsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -21290,7 +21291,7 @@ export class PlanningIntervalsClient {
         });
     }
 
-    protected processImportObjectives(response: AxiosResponse): Promise<void> {
+    protected processImportObjectives(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -21300,9 +21301,12 @@ export class PlanningIntervalsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -21322,7 +21326,7 @@ export class PlanningIntervalsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**

@@ -6,7 +6,13 @@ namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 
 public class ImportPlanningIntervalObjectivesRequest
 {
-    public int ImportId { get; set; }
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public Guid PlanningIntervalId { get; set; }
     public Guid TeamId { get; set; }
     public string Name { get; set; } = default!;
@@ -24,7 +30,7 @@ public class ImportPlanningIntervalObjectivesRequest
         LocalDate? startDate = StartDate?.ToLocalDateTime().Date;
         LocalDate? targetDate = TargetDate?.ToLocalDateTime().Date;
         Instant? closedDateUtc = ClosedDateUtc.HasValue ? Instant.FromDateTimeUtc(DateTime.SpecifyKind(ClosedDateUtc.Value, DateTimeKind.Utc)) : null;
-        return new ImportPlanningIntervalObjectiveDto(ImportId, PlanningIntervalId, TeamId, Name, Description, (ObjectiveStatus)StatusId, Progress, startDate, targetDate, IsStretch, closedDateUtc, Order);
+        return new ImportPlanningIntervalObjectiveDto(PlanningIntervalId, TeamId, Name, Description, (ObjectiveStatus)StatusId, Progress, startDate, targetDate, IsStretch, closedDateUtc, Order);
     }
 }
 

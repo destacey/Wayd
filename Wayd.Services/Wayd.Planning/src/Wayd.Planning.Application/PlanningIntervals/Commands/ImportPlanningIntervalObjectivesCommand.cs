@@ -1,108 +1,86 @@
-﻿using Wayd.Common.Application.Requests.Goals.Commands;
-using Wayd.Common.Domain.Enums.Goals;
+using CSharpFunctionalExtensions;
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Imports.Commands;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
-using Wayd.Planning.Application.PlanningIntervals.Extensions;
+using Wayd.Planning.Application.PlanningIntervals.Imports;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
-public sealed record ImportPlanningIntervalObjectivesCommand : ICommand
-{
-    public ImportPlanningIntervalObjectivesCommand(IEnumerable<ImportPlanningIntervalObjectiveDto> objectives)
-    {
-        Objectives = objectives.ToList();
-    }
+/// <summary>
+/// Submits a file of planning interval objectives to import, and answers with the id of the run.
+/// </summary>
+/// <remarks>
+/// The application boundary for this import, and the first one with a rule of its own: a file must belong
+/// to a single planning interval. That was previously enforced in the controller by comparing each row
+/// against the route id and answering with a route-parameter mismatch, which described the HTTP shape of
+/// the request rather than the rule.
+/// </remarks>
+public sealed record ImportPlanningIntervalObjectivesCommand(
+    Guid PlanningIntervalId,
+    IReadOnlyList<SubmittedImportRow<ImportPlanningIntervalObjectiveDto>> Rows) : ICommand<Guid>;
 
-    public List<ImportPlanningIntervalObjectiveDto> Objectives { get; }
-}
-
-public sealed class ImportPlanningIntervalObjectivesCommandValidator : CustomValidator<ImportPlanningIntervalObjectivesCommand>
+/// <summary>
+/// Validates the rows themselves, not the file they arrived in.
+/// </summary>
+/// <remarks>
+/// On the handler pipeline, so the check holds for any caller rather than only the one endpoint that
+/// happens to validate its request model first. A controller's validator covers the CSV shape it parsed;
+/// this covers what the import is actually being asked to apply.
+/// </remarks>
+public sealed class ImportPlanningIntervalObjectivesCommandValidator
+    : CustomValidator<ImportPlanningIntervalObjectivesCommand>
 {
     public ImportPlanningIntervalObjectivesCommandValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(o => o.Objectives)
-            .NotNull()
+        RuleFor(c => c.PlanningIntervalId)
             .NotEmpty();
 
-        RuleForEach(o => o.Objectives)
-            .NotNull()
-            .SetValidator(new ImportPlanningIntervalObjectiveDtoValidator());
+        RuleFor(c => c.Rows)
+            .NotEmpty();
+
+        RuleForEach(c => c.Rows)
+            .ChildRules(row => row.RuleFor(r => r.Data)
+                .NotNull()
+                .SetValidator(new ImportPlanningIntervalObjectiveDtoValidator()));
     }
 }
 
-public sealed class ImportPlanningIntervalObjectivesCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<ImportPlanningIntervalObjectivesCommandHandler> logger) : ICommandHandler<ImportPlanningIntervalObjectivesCommand>
+public sealed class ImportPlanningIntervalObjectivesCommandHandler(
+    IImportDefinitionRegistry registry,
+    IDispatcher dispatcher) : ICommandHandler<ImportPlanningIntervalObjectivesCommand, Guid>
 {
-    private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IImportDefinitionRegistry _registry = registry;
     private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly ILogger<ImportPlanningIntervalObjectivesCommandHandler> _logger = logger;
 
-    public async Task<Result> Handle(ImportPlanningIntervalObjectivesCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(
+        ImportPlanningIntervalObjectivesCommand command, CancellationToken cancellationToken)
     {
-        // TODO: allow individual records to fail and return a list of errors
+        if (command.Rows.Count == 0)
+            return Result.Failure<Guid>("The file contains no objectives.");
 
-        try
-        {
-            var piId = request.Objectives.First().PlanningIntervalId;
+        // One file, one planning interval. The definition resolves each row's interval independently and
+        // would happily apply a mixed file, so this is the rule rather than a limitation: an import of
+        // objectives is submitted against an interval, and a row naming a different one is a mistake in
+        // the file, not an instruction to spread the import across two.
+        var foreign = command.Rows.FirstOrDefault(r => r.Data.PlanningIntervalId != command.PlanningIntervalId);
+        if (foreign is not null)
+            return Result.Failure<Guid>(
+                $"Row '{foreign.ImportId}' names planning interval '{foreign.Data.PlanningIntervalId}', but this import is for '{command.PlanningIntervalId}'. A file must belong to one planning interval.");
 
-            var planningInterval = await _planningDbContext.PlanningIntervals
-                .SingleOrDefaultAsync(p => p.Id == piId, cancellationToken);
-            if (planningInterval is null)
-                return Result.Failure<int>($"Planning Interval {piId} not found.");
+        var definition = _registry.Find(PlanningIntervalObjectiveImportDefinition.ImportKey);
+        if (definition.IsFailure)
+            return Result.Failure<Guid>(definition.Error);
 
-            if (planningInterval.ObjectivesLocked)
-                return Result.Failure<int>($"Objectives are locked for Planning Interval {piId}");
+        // The definition owns how a row is stored, so the same payload shape reaches the runner whether it
+        // applies now or days later after a resume.
+        var rows = command.Rows
+            .Select(r => new SubmittedImportRow(r.ImportId, definition.Value.SerializeRow(r.Data)))
+            .ToList();
 
-            var teams = await _planningDbContext.PlanningTeams
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-
-            foreach (var importedObjective in request.Objectives)
-            {
-                var team = teams.FirstOrDefault(t => t.Id == importedObjective.TeamId);
-                if (team is null)
-                    return Result.Failure<int>($"Team {importedObjective.TeamId} not found. (Record Id: {importedObjective.ImportId})");
-
-                var mappedStatus = importedObjective.Status.ToGoalObjectiveStatus();
-
-                var objectiveResult = await _dispatcher.Send(new ImportObjectiveCommand(
-                    importedObjective.Name,
-                    importedObjective.Description,
-                    ObjectiveType.PlanningInterval,
-                    mappedStatus,
-                    importedObjective.Progress,
-                    importedObjective.TeamId,
-                    importedObjective.PlanningIntervalId,
-                    importedObjective.StartDate,
-                    importedObjective.TargetDate,
-                    importedObjective.ClosedDateUtc,
-                    importedObjective.Order), cancellationToken);
-                if (objectiveResult.IsFailure)
-                    return Result.Failure<int>($"Unable to create objective. (Record Id: {importedObjective.ImportId}).  Error: {objectiveResult.Error}");
-
-                var result = planningInterval.CreateObjective(team, objectiveResult.Value, importedObjective.IsStretch);
-                if (result.IsFailure)
-                {
-                    var deleteResult = await _dispatcher.Send(new DeleteObjectiveCommand(objectiveResult.Value), cancellationToken);
-                    if (deleteResult.IsFailure)
-                        _logger.LogError("Unable to delete objective. (Import Id: {ImportId}).  Error: {Error}", importedObjective.ImportId, deleteResult.Error);
-
-                    _logger.LogError("Unable to create PI objective. (Import Id: {ImportId}).  Error: {Error}", importedObjective.ImportId, result.Error);
-                    return Result.Failure<int>($"Unable to PI create objective. (Record Id: {importedObjective.ImportId}).  Error: {result.Error}");
-                }
-
-                await _planningDbContext.SaveChangesAsync(cancellationToken);
-            }
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
-
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
-
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName} {request}");
-        }
+        return await _dispatcher.Send(
+            new SubmitImportCommand(PlanningIntervalObjectiveImportDefinition.ImportKey, rows), cancellationToken);
     }
 }

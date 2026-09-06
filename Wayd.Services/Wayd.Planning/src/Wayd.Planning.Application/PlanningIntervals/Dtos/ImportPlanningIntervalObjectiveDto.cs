@@ -2,8 +2,14 @@
 
 namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
 
+/// <summary>
+/// One planning interval objective on its way in.
+/// </summary>
+/// <remarks>
+/// Carries no import id: the platform holds the caller's key on the row rather than in the payload, so
+/// there is only one of it and results are reported against that.
+/// </remarks>
 public sealed record ImportPlanningIntervalObjectiveDto(
-    int ImportId,
     Guid PlanningIntervalId,
     Guid TeamId,
     string Name,

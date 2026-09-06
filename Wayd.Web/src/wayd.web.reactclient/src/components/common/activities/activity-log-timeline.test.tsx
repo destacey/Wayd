@@ -131,6 +131,39 @@ describe('ActivityLogTimeline', () => {
     const link = screen.getByRole('link', { name: 'Sarah Connor' })
     expect(link).toBeInTheDocument()
     expect(link).toHaveAttribute('href', '/organizations/employees/42')
+    expect(screen.getByText('Initiated by employee #42')).toBeInTheDocument()
+  })
+
+  it('renders direct action attribution when actor is user without linked employee', () => {
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        actorKind: EventActorKind.User,
+        employee: undefined,
+      }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    expect(
+      screen.getByText('Direct action performed by user'),
+    ).toBeInTheDocument()
+  })
+
+  it('renders system process attribution when actor is system', () => {
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        actorKind: EventActorKind.System,
+        employee: undefined,
+      }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    expect(
+      screen.getByText('Automated action performed by platform'),
+    ).toBeInTheDocument()
   })
 
   it('filters activity items when typing in search input', async () => {
@@ -154,10 +187,14 @@ describe('ActivityLogTimeline', () => {
     ).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Rollback Release')).toBeInTheDocument()
 
-    const searchInput = screen.getByPlaceholderText('Search events, actors, or types...')
+    const searchInput = screen.getByPlaceholderText(
+      'Search events, actors, or types...',
+    )
     await user.type(searchInput, 'Deploy')
 
-    expect(screen.getAllByText('Deploy Production').length).toBeGreaterThanOrEqual(1)
+    expect(
+      screen.getAllByText('Deploy Production').length,
+    ).toBeGreaterThanOrEqual(1)
     expect(screen.queryByText('Rollback Release')).not.toBeInTheDocument()
   })
 
@@ -185,3 +222,4 @@ describe('ActivityLogTimeline', () => {
     expect(handlePageChange).toHaveBeenCalledWith(2, 20)
   })
 })
+

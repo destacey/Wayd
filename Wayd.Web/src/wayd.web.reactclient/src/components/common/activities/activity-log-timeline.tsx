@@ -147,6 +147,99 @@ const getEventBadge = (
   }
 }
 
+const getActorDisplay = (
+  activity: ActivityLogDto,
+  token: ReturnType<typeof theme.useToken>['token'],
+) => {
+  if (activity.employee) {
+    return {
+      title: (
+        <EntityLink
+          href={`/organizations/employees/${activity.employee.key}`}
+        >
+          {activity.employee.name}
+        </EntityLink>
+      ),
+      subtitle: `Initiated by employee #${activity.employee.key}`,
+      avatar: (
+        <Avatar
+          size={36}
+          style={{
+            backgroundColor: token.colorPrimary,
+            fontWeight: 600,
+          }}
+        >
+          {getInitials(activity.employee.name)}
+        </Avatar>
+      ),
+    }
+  }
+
+  switch (activity.actorKind) {
+    case EventActorKind.User:
+      return {
+        title: 'User',
+        subtitle: 'Direct action performed by user',
+        avatar: (
+          <Avatar
+            size={36}
+            icon={<UserOutlined />}
+            style={{ backgroundColor: token.colorPrimary }}
+          />
+        ),
+      }
+    case EventActorKind.Import:
+      return {
+        title: 'Data Import',
+        subtitle: 'Bulk data import process',
+        avatar: (
+          <Avatar
+            size={36}
+            icon={<UserOutlined />}
+            style={{ backgroundColor: token.colorWarning }}
+          />
+        ),
+      }
+    case EventActorKind.Sync:
+      return {
+        title: 'Integration Sync',
+        subtitle: 'Automated synchronization from external system',
+        avatar: (
+          <Avatar
+            size={36}
+            icon={<UserOutlined />}
+            style={{ backgroundColor: token.colorInfo }}
+          />
+        ),
+      }
+    case EventActorKind.Anonymous:
+      return {
+        title: 'Anonymous',
+        subtitle: 'Action performed without authentication',
+        avatar: (
+          <Avatar
+            size={36}
+            icon={<UserOutlined />}
+            style={{ backgroundColor: token.colorTextSecondary }}
+          />
+        ),
+      }
+    case EventActorKind.System:
+    default:
+      return {
+        title: 'System Process',
+        subtitle: 'Automated action performed by platform',
+        avatar: (
+          <Avatar
+            size={36}
+            icon={<UserOutlined />}
+            style={{ backgroundColor: token.colorTextSecondary }}
+          />
+        ),
+      }
+  }
+}
+
 const parsePayloadDetails = (
   payload: string,
 ): Record<string, unknown> | null => {
@@ -565,61 +658,41 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
             </Flex>
 
             {/* Actor Card */}
-            <Card
-              size="small"
-              variant="outlined"
-              style={{
-                borderRadius: token.borderRadius,
-                background: token.colorFillQuaternary,
-              }}
-            >
-              <Flex align="center" gap="middle">
-                {selectedActivity.employee ? (
-                  <Avatar
-                    size={36}
-                    style={{
-                      backgroundColor: token.colorPrimary,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {getInitials(selectedActivity.employee.name)}
-                  </Avatar>
-                ) : (
-                  <Avatar
-                    size={36}
-                    icon={<UserOutlined />}
-                    style={{ backgroundColor: token.colorTextSecondary }}
-                  />
-                )}
-                <Flex vertical gap={2} style={{ flex: 1 }}>
-                  <Flex align="center" gap="small">
-                    <Text strong>
-                      {selectedActivity.employee ? (
-                        <EntityLink
-                          href={`/organizations/employees/${selectedActivity.employee.key}`}
+            {(() => {
+              const actorDisplay = getActorDisplay(selectedActivity, token)
+              return (
+                <Card
+                  size="small"
+                  variant="outlined"
+                  style={{
+                    borderRadius: token.borderRadius,
+                    background: token.colorFillQuaternary,
+                  }}
+                >
+                  <Flex align="center" gap="middle">
+                    {actorDisplay.avatar}
+                    <Flex vertical gap={2} style={{ flex: 1 }}>
+                      <Flex align="center" gap="small">
+                        <Text strong>{actorDisplay.title}</Text>
+                        <Tag
+                          color={actorTagColor(selectedActivity.actorKind)}
+                          variant="filled"
+                          style={{ margin: 0 }}
                         >
-                          {selectedActivity.employee.name}
-                        </EntityLink>
-                      ) : (
-                        `${selectedActivity.actorKind} Process`
-                      )}
-                    </Text>
-                    <Tag
-                      color={actorTagColor(selectedActivity.actorKind)}
-                      variant="filled"
-                      style={{ margin: 0 }}
-                    >
-                      {selectedActivity.actorKind}
-                    </Tag>
+                          {selectedActivity.actorKind}
+                        </Tag>
+                      </Flex>
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: token.fontSizeSM }}
+                      >
+                        {actorDisplay.subtitle}
+                      </Text>
+                    </Flex>
                   </Flex>
-                  <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                    {selectedActivity.employee
-                      ? `Initiated by employee #${selectedActivity.employee.key}`
-                      : `Automated action performed via ${selectedActivity.actorKind.toLowerCase()}`}
-                  </Text>
-                </Flex>
-              </Flex>
-            </Card>
+                </Card>
+              )
+            })()}
 
             {/* Event Properties / Changed Values */}
             <Flex vertical gap="xs">

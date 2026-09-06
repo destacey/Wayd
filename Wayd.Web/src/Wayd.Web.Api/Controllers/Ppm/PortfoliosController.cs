@@ -1,4 +1,5 @@
-﻿using CsvHelper;
+using CsvHelper;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Finalization.Commands;
@@ -60,6 +61,20 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
         return portfolio is not null
             ? Ok(portfolio)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
+    [OpenApiOperation("Get activity history for the portfolio.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetPortfolioActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
             : NotFound();
     }
 

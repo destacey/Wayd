@@ -1,3 +1,4 @@
+export { ActivityLogTimeline } from './activities'
 export { default as ContainerCard } from './container-card'
 export { default as IconMenu } from './icon-menu'
 export { default as InactiveTag } from './inactive-tag'

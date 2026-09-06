@@ -29,6 +29,7 @@ export enum QueryTags {
   SyncRunDetail = 'AppIntegration.SyncRunDetail',
 
   // COMMON
+  ActivityLog = 'Common.ActivityLog',
   Links = 'Common.Links',
   HealthCheck = 'Common.HealthCheck',
   HealthChecksHealthReport = 'Common.HealthChecks.HealthReport',

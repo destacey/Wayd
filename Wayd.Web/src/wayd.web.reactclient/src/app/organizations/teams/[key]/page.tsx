@@ -8,6 +8,7 @@ import RisksGrid, {
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
 import {
+  useGetTeamActivitiesQuery,
   useGetTeamDetailsQuery,
   useGetTeamHasEverBeenScrumQuery,
   useGetTeamMembershipsQuery,
@@ -43,6 +44,7 @@ import TeamDetailsLoading from './loading'
 import TeamOverview from './_components/team-overview'
 import TeamFacts from '@/src/app/organizations/teams/[key]/_components/team-facts'
 import AddTeamMemberForm from '@/src/app/organizations/teams/_components/add-team-member-form'
+import { ActivityLogTimeline } from '@/src/components/common/activities'
 
 const CycleTimeReport = dynamic(
   () =>
@@ -67,6 +69,7 @@ enum TeamTabs {
   Members = 'members',
   OperatingModelHistory = 'operating-model-history',
   CycleTimeReport = 'cycle-time-report',
+  Activities = 'activities',
 }
 
 const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -89,6 +92,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openUpdateOperatingModelForm, setOpenUpdateOperatingModelForm] =
     useState<boolean>(false)
   const [includeClosedRisks, setIncludeClosedRisks] = useState<boolean>(false)
+  const [activityPage, setActivityPage] = useState<number>(1)
+  const [activityPageSize, setActivityPageSize] = useState<number>(20)
 
   // Expensive sections do not fetch until their section is open — including on
   // arrival via a deep link, since this reads the URL rather than a click.
@@ -96,6 +101,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // returning to a section serves the cached result instead of refetching.
   const risksQueryEnabled = activeTab === TeamTabs.RiskManagement
   const teamMembershipsQueryEnabled = activeTab === TeamTabs.TeamMemberships
+  const activitiesQueryEnabled = activeTab === TeamTabs.Activities
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateTeam = hasPermissionClaim('Permissions.Teams.Update')
@@ -132,6 +138,15 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       enabled: risksQueryEnabled,
     },
     { skip: !team?.id || !risksQueryEnabled },
+  )
+
+  const activitiesQuery = useGetTeamActivitiesQuery(
+    {
+      idOrKey: team?.id ?? '',
+      page: activityPage,
+      pageSize: activityPageSize,
+    },
+    { skip: !team?.id || !activitiesQueryEnabled },
   )
 
   const onIncludeClosedRisksChanged = (includeClosed: boolean) => {
@@ -267,6 +282,20 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         )
       case TeamTabs.CycleTimeReport:
         return <CycleTimeReport teamCode={team!.code} />
+      case TeamTabs.Activities:
+        return (
+          <ActivityLogTimeline
+            activities={activitiesQuery.data?.items}
+            isLoading={activitiesQuery.isLoading}
+            totalCount={activitiesQuery.data?.totalCount}
+            page={activityPage}
+            pageSize={activityPageSize}
+            onPageChange={(page, pageSize) => {
+              setActivityPage(page)
+              setActivityPageSize(pageSize)
+            }}
+          />
+        )
       default:
         return null
     }
@@ -293,6 +322,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       { id: TeamTabs.RiskManagement, label: 'Risks' },
       { id: TeamTabs.Members, label: 'Members' },
       { id: TeamTabs.TeamMemberships, label: 'Team Memberships' },
+      { id: TeamTabs.Activities, label: 'Activity' },
     )
     return items
   })()

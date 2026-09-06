@@ -15,6 +15,7 @@ import {
   SetTeamOperatingModelRequest,
   UpdateTeamOperatingModelRequest,
   TeamOperatingModelDetailsDto,
+  PagedResponseOfActivityLogDto,
 } from './../../../services/wayd-api'
 import {
   CreateTeamFormValues,
@@ -795,6 +796,28 @@ export const teamApi = apiSlice.injectEndpoints({
         return tags
       },
     }),
+
+    getTeamActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getTeamsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -831,4 +854,5 @@ export const {
   useGetTeamOfTeamsDetailsQuery,
   useCreateTeamMutation,
   useUpdateTeamMutation,
+  useGetTeamActivitiesQuery,
 } = teamApi

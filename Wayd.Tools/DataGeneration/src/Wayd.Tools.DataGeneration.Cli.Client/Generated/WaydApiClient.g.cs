@@ -62099,7 +62099,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the import types the caller may submit.
+        /// Get the import types the caller may see, each flagged with whether they may submit it.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ImportDefinitionDto>> GetDefinitionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -62296,7 +62296,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the import types the caller may submit.
+        /// Get the import types the caller may see, each flagged with whether they may submit it.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ImportDefinitionDto>> GetDefinitionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))

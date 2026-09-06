@@ -41,6 +41,20 @@ public sealed class ImportProcessRow : BaseEntity
     /// The client's own correlation key for this row, unique within the file. Results are reported against
     /// it, and rows in the same file reference each other by it.
     /// </summary>
+    /// <remarks>
+    /// Belongs to the import, not to what the import creates. It is never written onto the record a row
+    /// produces, and it does not survive as a way to find that record later: the durable link runs the
+    /// other way, as <see cref="CreatedEntityId"/> recorded here and handed back in the results.
+    /// <para>
+    /// Deliberately a string rather than a number, because the useful case is the caller pasting the key
+    /// their own system uses, which is often neither numeric nor free of leading zeros. A caller who only
+    /// wants row numbers writes those instead — the string holds both.
+    /// </para>
+    /// <para>
+    /// Uniqueness is case-insensitive, which is the collation of the index enforcing it rather than a
+    /// choice made here.
+    /// </para>
+    /// </remarks>
     public string ImportId { get; private set; } = default!;
 
     /// <summary>Position in the submitted file, so an error can name a line the user can find.</summary>

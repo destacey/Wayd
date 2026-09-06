@@ -7,6 +7,19 @@ using Wayd.Common.Domain.Imports;
 namespace Wayd.Common.Application.Imports.Commands;
 
 /// <summary>One parsed row on its way in: the caller's key for it, and its serialized data.</summary>
+/// <param name="ImportId">
+/// The caller's own key for this row. Any value they like — a row number, an employee number, a key from
+/// the system the file came from — provided it is unique within this one file. Nothing compares it across
+/// imports, and nothing writes it onto the records the import creates — it identifies a row of the file,
+/// not a thing in the domain.
+/// <para>
+/// Uniqueness is <em>case-insensitive</em>, matching the collation of the unique index behind it: a file
+/// carrying both <c>abc</c> and <c>ABC</c> is rejected. Checking it any more strictly here would let the
+/// pair past validation and into a constraint violation at save.
+/// </para>
+/// <para>Falls back to the row's position when absent, so a hand-authored file works without the column.</para>
+/// </param>
+/// <param name="Payload">The row, serialized by the definition that will apply it.</param>
 public sealed record SubmittedImportRow(string? ImportId, string Payload);
 
 /// <summary>

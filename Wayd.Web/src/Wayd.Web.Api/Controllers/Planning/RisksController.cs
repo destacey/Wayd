@@ -108,12 +108,16 @@ public class RisksController : ControllerBase
             var validator = new ImportRiskRequestValidator(_dateTimeProvider);
             foreach (var risk in importedRisks)
             {
+                // The same key the run will know this row by, so a file without the column still names a
+                // row the reader can find rather than an empty id.
+                var key = SubmittedImportRow.KeyFor(risk.ImportId, rows.Count + 1);
+
                 var validationResults = await validator.ValidateAsync(risk, cancellationToken);
                 if (!validationResults.IsValid)
                 {
                     foreach (var error in validationResults.Errors)
                     {
-                        error.ErrorMessage = $"{error.ErrorMessage} (Import Id: {risk.ImportId})";
+                        error.ErrorMessage = $"{error.ErrorMessage} (Import Id: {key})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));

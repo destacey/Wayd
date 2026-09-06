@@ -20,7 +20,21 @@ namespace Wayd.Common.Application.Imports.Commands;
 /// <para>Falls back to the row's position when absent, so a hand-authored file works without the column.</para>
 /// </param>
 /// <param name="Payload">The row, serialized by the definition that will apply it.</param>
-public sealed record SubmittedImportRow(string? ImportId, string Payload);
+public sealed record SubmittedImportRow(string? ImportId, string Payload)
+{
+    /// <summary>
+    /// The key this row will be known by, applying the fallback when the caller supplied none.
+    /// </summary>
+    /// <remarks>
+    /// Shared so that whatever names a row before it is persisted — a validation message, a rule about the
+    /// file — names it the same way the run eventually will. Reporting the raw value instead produces
+    /// "(Import Id: )" for a file without the column, which is the case the fallback exists for.
+    /// </remarks>
+    /// <param name="importId">The caller's key, if they gave one.</param>
+    /// <param name="rowNumber">The row's position in the file, counting from one.</param>
+    public static string KeyFor(string? importId, int rowNumber) =>
+        string.IsNullOrWhiteSpace(importId) ? rowNumber.ToString() : importId.Trim();
+}
 
 /// <summary>
 /// The same row before the definition has serialized it: the caller's key, and the parsed data.
@@ -125,7 +139,7 @@ public sealed class SubmitImportCommandHandler(
     private static List<ImportProcessRow> BuildRows(IReadOnlyList<SubmittedImportRow> submitted) =>
         [.. submitted.Select((row, index) =>
             ImportProcessRow.Create(
-                string.IsNullOrWhiteSpace(row.ImportId) ? (index + 1).ToString() : row.ImportId.Trim(),
+                SubmittedImportRow.KeyFor(row.ImportId, index + 1),
                 index + 1,
                 row.Payload))];
 }

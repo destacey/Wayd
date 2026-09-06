@@ -65,10 +65,17 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandler(
         // would happily apply a mixed file, so this is the rule rather than a limitation: an import of
         // objectives is submitted against an interval, and a row naming a different one is a mistake in
         // the file, not an instruction to spread the import across two.
-        var foreign = command.Rows.FirstOrDefault(r => r.Data.PlanningIntervalId != command.PlanningIntervalId);
-        if (foreign is not null)
+        var foreign = command.Rows
+            .Select((row, index) => (Row: row, Number: index + 1))
+            .FirstOrDefault(r => r.Row.Data.PlanningIntervalId != command.PlanningIntervalId);
+
+        if (foreign.Row is not null)
+        {
+            var key = SubmittedImportRow.KeyFor(foreign.Row.ImportId, foreign.Number);
+
             return Result.Failure<Guid>(
-                $"Row '{foreign.ImportId}' names planning interval '{foreign.Data.PlanningIntervalId}', but this import is for '{command.PlanningIntervalId}'. A file must belong to one planning interval.");
+                $"Row '{key}' names planning interval '{foreign.Row.Data.PlanningIntervalId}', but this import is for '{command.PlanningIntervalId}'. A file must belong to one planning interval.");
+        }
 
         var definition = _registry.Find(PlanningIntervalObjectiveImportDefinition.ImportKey);
         if (definition.IsFailure)

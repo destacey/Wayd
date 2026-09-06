@@ -40,7 +40,7 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
         new(new ImportDefinitionRegistry([_definition]), _dispatcher.Object);
 
     private static SubmittedImportRow<ImportPlanningIntervalObjectiveDto> Row(
-        string importId = "r1", Guid? intervalId = null) =>
+        string? importId = "r1", Guid? intervalId = null) =>
         new(importId, new ImportPlanningIntervalObjectiveDto(
             intervalId ?? PlanningIntervalId,
             Guid.CreateVersion7(),
@@ -136,5 +136,26 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
 
         // Assert
         result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_NamesTheOffendingRowByPositionWhenItHasNoImportId()
+    {
+        // Arrange — the column is optional, so the message must not read "Row ''"
+        var elsewhere = Guid.CreateVersion7();
+        var rows = new[]
+        {
+            Row(importId: null),
+            Row(importId: null!, intervalId: elsewhere),
+        };
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new ImportPlanningIntervalObjectivesCommand(PlanningIntervalId, rows),
+            TestContext.Current.CancellationToken);
+
+        // Assert — the same key the run would give it, so the two agree
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Row '2'");
     }
 }

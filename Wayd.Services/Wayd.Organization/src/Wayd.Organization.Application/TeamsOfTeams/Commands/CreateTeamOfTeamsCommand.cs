@@ -1,4 +1,4 @@
-﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
 using NodaTime;
@@ -61,7 +61,7 @@ public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeam
     {
         try
         {
-            var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+            var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             await _organizationDbContext.TeamOfTeams.AddAsync(team, cancellationToken);
 
             await _organizationDbContext.SaveChangesAsync(cancellationToken);

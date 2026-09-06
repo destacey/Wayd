@@ -1,4 +1,4 @@
-﻿using Wayd.Organization.Application.Teams.Models;
+using Wayd.Organization.Application.Teams.Models;
 using NodaTime;
 using Wayd.Common.Domain.Events;
 
@@ -41,7 +41,7 @@ public sealed class DeactivateTeamOfTeamsCommandHandler(IOrganizationDbContext o
                 return Result.Failure("Team of Teams not found.");
             }
 
-            var result = team.Deactivate(TeamDeactivatableArgs.Create(request.InactiveDate, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+            var result = team.Deactivate(TeamDeactivatableArgs.Create(request.InactiveDate, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
             if (result.IsFailure)
             {
                 // Reset the entity

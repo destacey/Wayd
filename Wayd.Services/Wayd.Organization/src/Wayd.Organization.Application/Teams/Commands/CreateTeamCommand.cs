@@ -1,4 +1,4 @@
-﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.Domain.Enums;
@@ -70,7 +70,7 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
                 request.ActiveDate,
                 Methodology.Kanban,
                 SizingMethod.Count,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
 
             await _organizationDbContext.Teams.AddAsync(team, cancellationToken);

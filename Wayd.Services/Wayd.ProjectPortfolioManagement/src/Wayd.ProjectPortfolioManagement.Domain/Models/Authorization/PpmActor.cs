@@ -50,5 +50,5 @@ public sealed record PpmActor(Guid EmployeeId, bool IsPpmAdministrator, string U
     public EventActor ToEventActor() =>
         string.Equals(UserId, SystemUser.Id, StringComparison.OrdinalIgnoreCase)
             ? EventActor.System
-            : EventActor.User(UserId);
+            : EventActor.User(UserId, EmployeeIdOrNull);
 }

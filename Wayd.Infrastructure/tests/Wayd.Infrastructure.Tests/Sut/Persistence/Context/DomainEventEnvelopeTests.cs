@@ -16,9 +16,9 @@ using Wolverine.EntityFrameworkCore;
 namespace Wayd.Infrastructure.Tests.Sut.Persistence.Context;
 
 /// <summary>
-/// Covers what <see cref="BaseDbContext"/> does to the <see cref="DomainEvent"/> envelope when it drains
-/// domain events: it stamps the correlation id, and nothing else. The event id and the actor are the
-/// domain's, assigned at construction, and the drain point must leave both alone.
+/// Covers what <see cref="BaseDbContext"/> does to the domain event when it drains events:
+/// domain events remain clean and immutable (preserving EventId, Actor, Timestamp, EventVersion),
+/// while the infrastructure envelope (ActivityLogs) captures the CorrelationId and EventVersion.
 /// </summary>
 /// <remarks>
 /// Exercised through a real <see cref="BaseDbContext"/> subclass on the InMemory provider rather than a
@@ -27,7 +27,7 @@ namespace Wayd.Infrastructure.Tests.Sut.Persistence.Context;
 public sealed class DomainEventEnvelopeTests
 {
     [Fact]
-    public async Task SaveChanges_StampsTheCorrelationIdOnAnInlineEvent()
+    public async Task SaveChanges_PublishesInlineEvent_PreservingDomainAttributes()
     {
         // Arrange
         var harness = new Harness(correlationId: "corr-abc");
@@ -40,17 +40,21 @@ public sealed class DomainEventEnvelopeTests
 
         // Assert
         var published = harness.PublishedInline.Should().ContainSingle().Subject.Should().BeOfType<PortfolioRenamedEvent>().Subject;
-        published.CorrelationId.Should().Be("corr-abc");
         published.EventId.Should().NotBe(Guid.Empty, "the id is assigned at construction, never left empty");
         published.Actor.UserId.Should().Be("user-42", "the actor is the domain's and the drain point must not touch it");
-        published.Timestamp.Should().Be(Instant.FromUnixTimeSeconds(1), "stamping must not disturb the payload the aggregate supplied");
+        published.Timestamp.Should().Be(Instant.FromUnixTimeSeconds(1), "draining must not disturb the payload the aggregate supplied");
+        published.EventVersion.Should().Be("1.0");
+
+        var activityLog = await harness.Context.ActivityLogs.SingleAsync(TestContext.Current.CancellationToken);
+        activityLog.CorrelationId.Should().Be("corr-abc", "the infrastructure correlation id is stamped onto the activity log");
+        activityLog.EventVersion.Should().Be("1.0");
     }
 
     [Fact]
-    public async Task SaveChanges_StampsTheCorrelationIdOnADurableEvent()
+    public async Task SaveChanges_RoutesDurableEventToOutbox_PreservingDomainAttributes()
     {
         // Arrange — ProjectDeletedEvent is on the DurableEventRoutes allow-list, so it takes the outbox
-        // branch rather than the inline one. Both branches must be stamped.
+        // branch rather than the inline one. Both branches must record activity with correlation.
         var harness = new Harness(correlationId: "corr-durable");
         var entity = new EventRaisingEntity();
         entity.Raise(new ProjectDeletedEvent(Guid.NewGuid(), EventActor.User("user-7"), Instant.FromUnixTimeSeconds(2)));
@@ -62,9 +66,13 @@ public sealed class DomainEventEnvelopeTests
         // Assert
         harness.PublishedInline.Should().BeEmpty("a durable event is routed to the outbox, not dispatched inline");
         var enrolled = harness.PublishedToOutbox.Should().ContainSingle().Subject.Should().BeOfType<ProjectDeletedEvent>().Subject;
-        enrolled.CorrelationId.Should().Be("corr-durable", "the correlation id must be stamped before the event is serialized into an outbox row");
         enrolled.EventId.Should().NotBe(Guid.Empty);
         enrolled.Actor.UserId.Should().Be("user-7");
+        enrolled.EventVersion.Should().Be("1.0");
+
+        var activityLog = await harness.Context.ActivityLogs.SingleAsync(TestContext.Current.CancellationToken);
+        activityLog.CorrelationId.Should().Be("corr-durable");
+        activityLog.EventVersion.Should().Be("1.0");
     }
 
     [Fact]
@@ -85,7 +93,9 @@ public sealed class DomainEventEnvelopeTests
         var published = harness.PublishedInline.Should().ContainSingle().Subject.Should().BeOfType<PortfolioRenamedEvent>().Subject;
         published.Actor.Kind.Should().Be(EventActorKind.System);
         published.Actor.UserId.Should().Be(SystemUser.Id);
-        published.CorrelationId.Should().Be("corr-system", "correlation does not depend on there being a user");
+
+        var activityLog = await harness.Context.ActivityLogs.SingleAsync(TestContext.Current.CancellationToken);
+        activityLog.CorrelationId.Should().Be("corr-system", "correlation does not depend on there being a user");
     }
 
     [Fact]
@@ -108,7 +118,7 @@ public sealed class DomainEventEnvelopeTests
     }
 
     [Fact]
-    public async Task SaveChanges_GivesEachEventItsOwnIdButOneSharedCorrelationId()
+    public async Task SaveChanges_GivesEachEventItsOwnIdButOneSharedCorrelationIdInActivityLogs()
     {
         // Arrange
         var harness = new Harness(correlationId: "corr-shared");
@@ -124,25 +134,29 @@ public sealed class DomainEventEnvelopeTests
         var published = harness.PublishedInline.Cast<PortfolioRenamedEvent>().ToArray();
         published.Should().HaveCount(2);
         published.Select(e => e.EventId).Distinct().Should().HaveCount(2, "each occurrence is deduplicated independently");
-        published.Select(e => e.CorrelationId).Should().AllBe("corr-shared", "one save is one chain of consequences");
+
+        var logs = await harness.Context.ActivityLogs.ToListAsync(TestContext.Current.CancellationToken);
+        logs.Should().HaveCount(2);
+        logs.Select(l => l.CorrelationId).Should().AllBe("corr-shared", "one save is one chain of consequences");
+        logs.Select(l => l.EventVersion).Should().AllBe("1.0");
     }
 
     [Fact]
-    public async Task SaveChanges_DoesNotOverwriteACorrelationIdTheEventAlreadyCarries()
+    public async Task SaveChanges_CapturesActivityLogWithEventVersionAndCorrelationId()
     {
-        // Arrange — a re-entrant save (the audit temp-property pass calls SaveChanges again) must not
-        // re-stamp an event that has already been through the drain point.
+        // Arrange
         var harness = new Harness(correlationId: "corr-new");
         var entity = new EventRaisingEntity();
-        entity.Raise(new PortfolioRenamedEvent(EventActor.User("user-1"), Instant.FromUnixTimeSeconds(7)) { CorrelationId = "corr-original" });
+        entity.Raise(new PortfolioRenamedEvent(EventActor.User("user-1"), Instant.FromUnixTimeSeconds(7)));
         harness.Context.Entities.Add(entity);
 
         // Act
         await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var published = harness.PublishedInline.Should().ContainSingle().Subject.Should().BeOfType<PortfolioRenamedEvent>().Subject;
-        published.CorrelationId.Should().Be("corr-original");
+        var log = await harness.Context.ActivityLogs.SingleAsync(TestContext.Current.CancellationToken);
+        log.CorrelationId.Should().Be("corr-new");
+        log.EventVersion.Should().Be("1.0");
     }
 
     /// <summary>

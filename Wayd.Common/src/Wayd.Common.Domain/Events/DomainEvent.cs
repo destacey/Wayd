@@ -1,4 +1,4 @@
-﻿using NodaTime;
+using NodaTime;
 
 namespace Wayd.Common.Domain.Events;
 
@@ -27,6 +27,7 @@ namespace Wayd.Common.Domain.Events;
 /// <item>
 /// <see cref="CorrelationId"/> is stamped by <c>BaseDbContext</c> where events are drained. It is the one
 /// genuinely infrastructural field — the domain has no idea what request it is running inside.
+/// <see cref="EventVersion"/> identifies the schema version of the event occurrence (e.g. "1.0").
 /// </item>
 /// </list>
 /// </remarks>
@@ -36,10 +37,14 @@ public abstract record DomainEvent : IEvent
     /// Who caused the event. Required — see the remarks on this type for why this is a constructor
     /// parameter rather than something stamped later.
     /// </param>
-    protected DomainEvent(EventActor actor)
+    /// <param name="eventVersion">
+    /// The schema version of this domain event. Defaults to "1.0".
+    /// </param>
+    protected DomainEvent(EventActor actor, string eventVersion = "1.0")
     {
         ArgumentNullException.ThrowIfNull(actor);
         Actor = actor;
+        EventVersion = string.IsNullOrWhiteSpace(eventVersion) ? "1.0" : eventVersion.Trim();
     }
 
     /// <summary>
@@ -64,9 +69,7 @@ public abstract record DomainEvent : IEvent
     public EventActor Actor { get; init; }
 
     /// <summary>
-    /// Ties this event back to the request or background operation that caused it, so a chain of
-    /// consequences can be followed to its origin. Lines up with the audit trail's correlation id and the
-    /// distributed trace id. Stamped at the drain point; <c>null</c> on an event that has not been saved.
+    /// The schema version of this domain event (e.g. "1.0").
     /// </summary>
-    public string? CorrelationId { get; set; }
+    public virtual string EventVersion { get; init; } = "1.0";
 }

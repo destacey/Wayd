@@ -31,10 +31,7 @@ public sealed class DomainEventEnvelopeSerializationTests
         var original = new ProjectDeletedEvent(
             Guid.CreateVersion7(),
             EventActor.User("user-99"),
-            Instant.FromUnixTimeSeconds(1_700_000_000))
-        {
-            CorrelationId = "corr-round-trip",
-        };
+            Instant.FromUnixTimeSeconds(1_700_000_000));
 
         // Act
         var json = JsonSerializer.Serialize(original, options);
@@ -46,7 +43,7 @@ public sealed class DomainEventEnvelopeSerializationTests
         restored.Actor.Should().Be(original.Actor);
         restored.Actor.Kind.Should().Be(EventActorKind.User);
         restored.Actor.UserId.Should().Be("user-99");
-        restored.CorrelationId.Should().Be("corr-round-trip");
+        restored.EventVersion.Should().Be("1.0");
         restored.Timestamp.Should().Be(original.Timestamp);
         restored.Id.Should().Be(original.Id);
     }
@@ -64,10 +61,7 @@ public sealed class DomainEventEnvelopeSerializationTests
             "A project",
             expenditureCategoryId: 3,
             EventActor.Import("user-100"),
-            Instant.FromUnixTimeSeconds(1_700_000_100))
-        {
-            CorrelationId = "corr-json-ctor",
-        };
+            Instant.FromUnixTimeSeconds(1_700_000_100));
 
         // Act
         var json = JsonSerializer.Serialize(original, options);
@@ -78,7 +72,7 @@ public sealed class DomainEventEnvelopeSerializationTests
         restored!.EventId.Should().Be(original.EventId);
         restored.Actor.Kind.Should().Be(EventActorKind.Import, "the mechanism must survive, not just the user behind it");
         restored.Actor.UserId.Should().Be("user-100");
-        restored.CorrelationId.Should().Be("corr-json-ctor");
+        restored.EventVersion.Should().Be("1.0");
         restored.Name.Should().Be("Apollo", "the payload must round-trip unchanged alongside the envelope");
         restored.ExpenditureCategoryId.Should().Be(3);
     }

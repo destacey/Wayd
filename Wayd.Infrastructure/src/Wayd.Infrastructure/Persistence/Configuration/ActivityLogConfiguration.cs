@@ -15,6 +15,7 @@ public class ActivityLogConfiguration : IEntityTypeConfiguration<ActivityLogEntr
         builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.EventType).IsRequired().HasColumnType("varchar").HasMaxLength(128);
+        builder.Property(x => x.EventVersion).IsRequired().HasColumnType("varchar").HasMaxLength(16).HasDefaultValue("1.0");
         builder.Property(x => x.DomainArea).IsRequired().HasColumnType("varchar").HasMaxLength(64);
         builder.Property(x => x.AggregateType).IsRequired().HasColumnType("varchar").HasMaxLength(64);
         builder.Property(x => x.AggregateId).IsRequired();

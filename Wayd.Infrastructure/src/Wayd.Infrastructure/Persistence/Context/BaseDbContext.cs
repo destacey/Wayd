@@ -15,6 +15,7 @@ using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Messaging;
 using Wayd.Infrastructure.Persistence.Extensions;
 using NodaTime;
+using Wolverine;
 using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.Infrastructure.Persistence.Context;
@@ -593,11 +594,6 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             entity.ClearDomainEvents();
             foreach (var domainEvent in domainEvents)
             {
-                // Stamp BEFORE routing, so the durable and inline paths are stamped alike — the durable
-                // branch below serializes the event into an outbox row, and a value assigned after that
-                // point would not survive to the handler.
-                domainEvent.CorrelationId ??= correlationId;
-
                 // Auto-capture into ActivityLogs table
                 var activityLog = CreateActivityLogEntry(domainEvent, entity, correlationId);
                 Set<ActivityLogEntry>().Add(activityLog);
@@ -615,9 +611,9 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
                     // PublishAsync on an enrolled outbox routes the message and persists its OutgoingMessage
                     // envelope into the change tracker (it does NOT save); base.SaveChangesAsync commits it.
-                    // IMessageBus.PublishAsync takes DeliveryOptions, not a token — the envelope insert is
-                    // part of the caller's SaveChangesAsync(cancellationToken) transaction.
-                    await _outbox.PublishAsync(domainEvent);
+                    // Pass DeliveryOptions carrying the correlation id so it is stamped onto the outbox envelope.
+                    var deliveryOptions = new DeliveryOptions { CorrelationId = correlationId };
+                    await _outbox.PublishAsync(domainEvent, deliveryOptions);
                 }
                 else
                 {
@@ -681,7 +677,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             domainEvent.Timestamp,
             correlationId,
             payload,
-            summary);
+            summary,
+            domainEvent.EventVersion);
     }
 
     private static string ResolveDomainArea(string entityNamespace, string eventNamespace)

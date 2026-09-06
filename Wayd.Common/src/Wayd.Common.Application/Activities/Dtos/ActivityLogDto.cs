@@ -15,6 +15,7 @@ public sealed record ActivityLogDto : IMapFrom<ActivityLogEntry>
     public EmployeeNavigationDto? Employee { get; init; }
     public Instant Timestamp { get; init; }
     public string? CorrelationId { get; init; }
+    public string EventVersion { get; init; } = "1.0";
     public required string Payload { get; init; }
     public string? Summary { get; init; }
 }

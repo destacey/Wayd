@@ -48,7 +48,10 @@ public sealed class ActivityLogPersistenceTests
         savedLog.EmployeeId.Should().Be(domainEvent.Actor.EmployeeId);
         savedLog.Timestamp.Should().Be(Instant.FromUnixTimeSeconds(100));
         savedLog.CorrelationId.Should().Be("corr-123");
+        savedLog.EventVersion.Should().Be("1.0");
         savedLog.Payload.Should().Contain("Sample Details");
+        savedLog.Payload.Should().NotContain("corr-123");
+        savedLog.Payload.Should().Contain("1.0");
         savedLog.Summary.Should().NotBeNullOrWhiteSpace();
     }
 

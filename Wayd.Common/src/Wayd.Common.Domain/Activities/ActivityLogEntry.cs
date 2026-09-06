@@ -22,10 +22,12 @@ public sealed class ActivityLogEntry : BaseEntity
         Instant timestamp,
         string? correlationId,
         string payload,
-        string? summary = null)
+        string? summary = null,
+        string eventVersion = "1.0")
     {
         Id = Guard.Against.Default(id, nameof(id));
         EventType = Guard.Against.NullOrWhiteSpace(eventType, nameof(eventType)).Trim();
+        EventVersion = string.IsNullOrWhiteSpace(eventVersion) ? "1.0" : eventVersion.Trim();
         DomainArea = Guard.Against.NullOrWhiteSpace(domainArea, nameof(domainArea)).Trim();
         AggregateType = Guard.Against.NullOrWhiteSpace(aggregateType, nameof(aggregateType)).Trim();
         AggregateId = Guard.Against.Default(aggregateId, nameof(aggregateId));
@@ -43,6 +45,9 @@ public sealed class ActivityLogEntry : BaseEntity
 
     /// <summary>The runtime type name of the raised domain event.</summary>
     public string EventType { get; private init; } = default!;
+
+    /// <summary>The schema version of the event (e.g. "1.0").</summary>
+    public string EventVersion { get; private init; } = "1.0";
 
     /// <summary>The bounded context domain area (e.g. "Ppm", "Organization", "Planning", "ProductManagement", "Work").</summary>
     public string DomainArea { get; private init; } = default!;

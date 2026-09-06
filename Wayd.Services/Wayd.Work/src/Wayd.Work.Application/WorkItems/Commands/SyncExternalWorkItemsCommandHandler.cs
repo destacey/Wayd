@@ -269,8 +269,17 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
                 await _workDbContext.SaveChangesAsync(cancellationToken);
 
-                // Clear the change tracker to release tracked entities and prevent memory bloat
-                // needs a null check for tests
+                // Release the chunk now it is saved, or a large workspace holds every item it synced.
+                //
+                // Clear() empties the tracker for the whole message scope, not just this context — every
+                // module interface resolves to the one WaydDbContext in the scope. It is safe here only
+                // because this handler is the sole consumer of its scope: it is dispatched with Send, so
+                // Wolverine gives it a fresh one, and nothing else stages writes in it. Anything that
+                // changes — a caller sharing the scope, or work staged before this runs — makes this a
+                // silent discard of someone else's changes, and it should then filter by entity type the
+                // way the import runner's DetachAppliedEntities does.
+                //
+                // The null check is for tests, whose fake supplies no tracker.
                 _workDbContext.ChangeTracker?.Clear();
 
                 _logger.LogInformation("Synced {ChunkCount} of {TotalChunks} for workspace {WorkspaceId} ({WorkspaceName}).", c++, chunks.Count, workspace.Id, workspace.Name);

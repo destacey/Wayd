@@ -101,6 +101,7 @@ public sealed class RunImportProcessCommandHandler(
                 // redelivery would then apply a second time.
                 process.RecordProgress(succeeded: 0, failed: failedInChunk, _dateTimeProvider.Now);
                 await _importDbContext.SaveChangesAsync(cancellationToken);
+                DetachAppliedEntities();
             }
         }
 
@@ -204,6 +205,34 @@ public sealed class RunImportProcessCommandHandler(
             "Import {ImportProcessId} stopped on request after {Succeeded} row(s).", process.Id, process.SucceededRowCount);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Lets go of the records a chunk applied, now that they are saved.
+    /// </summary>
+    /// <remarks>
+    /// Every module interface resolves to the one context in this message, so without this a fifty
+    /// thousand row import would hold every record it created for the life of the run. The chunk is the
+    /// natural boundary: it has just been saved, and nothing later needs it.
+    /// <para>
+    /// Which is also the constraint this places on a definition — a pass may not rely on entities an
+    /// earlier pass left tracked. Both multi-pass imports already query theirs back by natural key, which
+    /// is what makes that reasonable to ask.
+    /// </para>
+    /// <para>
+    /// The run and its rows stay: the runner keeps writing to them, and completes them at the end.
+    /// </para>
+    /// </remarks>
+    private void DetachAppliedEntities()
+    {
+        var applied = _importDbContext.ChangeTracker.Entries()
+            .Where(e => e.Entity is not ImportProcess and not ImportProcessRow)
+            .ToList();
+
+        foreach (var entry in applied)
+        {
+            entry.State = EntityState.Detached;
+        }
     }
 
     /// <summary>

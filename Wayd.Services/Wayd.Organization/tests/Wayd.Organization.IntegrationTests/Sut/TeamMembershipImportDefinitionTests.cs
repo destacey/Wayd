@@ -279,4 +279,27 @@ public sealed class TeamMembershipImportDefinitionTests
         var edges = await assertContext.Set<TeamMembershipEdge>().CountAsync(cancellationToken);
         edges.Should().Be(1);
     }
+
+    [Fact]
+    public async Task ARunLetsGoOfWhatItAppliedOnceItIsSaved()
+    {
+        // Arrange — every module interface resolves to the one context in the message, so a run that held
+        // on to what it created would grow with the file rather than with the chunk
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        await SeedHierarchyTeams(cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var definition = CreateDefinition(context);
+        var rows = Rows(definition, ("TEAM", "ART"));
+
+        // Act
+        var process = await RunImport(context, definition, rows, cancellationToken);
+
+        // Assert — the run and its rows stay, because the runner is still writing to them
+        process.Status.Should().Be(ImportProcessStatus.Succeeded);
+        context.ChangeTracker.Entries()
+            .Select(e => e.Entity)
+            .Should().AllSatisfy(e => e.Should().Match(x => x is ImportProcess || x is ImportProcessRow));
+    }
 }

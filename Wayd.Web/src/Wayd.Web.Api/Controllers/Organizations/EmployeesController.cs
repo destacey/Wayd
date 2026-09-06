@@ -23,13 +23,11 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 public class EmployeesController(
     ILogger<EmployeesController> logger,
     IDispatcher dispatcher,
-    ICsvService csvService,
-    IImportDefinitionRegistry importDefinitions) : ControllerBase
+    ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<EmployeesController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
-    private readonly IImportDefinitionRegistry _importDefinitions = importDefinitions;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
@@ -76,7 +74,10 @@ public class EmployeesController(
     [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import(
+        [FromForm] IFormFile file,
+        [FromServices] IImportDefinitionRegistry importDefinitions,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -84,7 +85,7 @@ public class EmployeesController(
 
             // The definition owns how a row is stored, so the same payload shape reaches the runner
             // whether it applies now or days later after a resume.
-            var definition = _importDefinitions.Find(EmployeeImportDefinition.ImportKey);
+            var definition = importDefinitions.Find(EmployeeImportDefinition.ImportKey);
             if (definition.IsFailure)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest(definition.Error, HttpContext));
 

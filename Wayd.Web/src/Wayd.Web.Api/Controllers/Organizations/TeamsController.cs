@@ -29,13 +29,11 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 public class TeamsController(
     ILogger<TeamsController> logger,
     IDispatcher dispatcher,
-    ICsvService csvService,
-    IImportDefinitionRegistry importDefinitions) : ControllerBase
+    ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<TeamsController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
-    private readonly IImportDefinitionRegistry _importDefinitions = importDefinitions;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
@@ -171,13 +169,16 @@ public class TeamsController(
     [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportTeamMemberships(
+        [FromForm] IFormFile file,
+        [FromServices] IImportDefinitionRegistry importDefinitions,
+        CancellationToken cancellationToken)
     {
         try
         {
             var importedMemberships = _csvService.ReadCsv<ImportTeamMembershipRequest>(file.OpenReadStream());
 
-            var definition = _importDefinitions.Find(TeamMembershipImportDefinition.ImportKey);
+            var definition = importDefinitions.Find(TeamMembershipImportDefinition.ImportKey);
             if (definition.IsFailure)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest(definition.Error, HttpContext));
 

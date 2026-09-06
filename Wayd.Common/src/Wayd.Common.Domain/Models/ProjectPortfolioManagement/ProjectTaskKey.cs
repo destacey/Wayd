@@ -1,32 +1,25 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Ardalis.GuardClauses;
-using CSharpFunctionalExtensions;
+using Wayd.Common.Models;
+using Wayd.Common.Serialization;
 
 namespace Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 
 /// <summary>
 /// Represents a unique identifier for a project task in the format {ProjectKey}-{Number}.
 /// </summary>
-public sealed class ProjectTaskKey : ValueObject
+[JsonConverter(typeof(ScalarValueObjectJsonConverterFactory))]
+public sealed class ProjectTaskKey : ScalarValueObject<string>
 {
     internal const string ValidationRegex = "^([A-Z0-9]{2,30})-(\\d+)$";
-
-    private ProjectTaskKey() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectTaskKey"/> class from a string value.
     /// </summary>
     /// <param name="value">The task key value (e.g., "APOLLO-1").</param>
-    public ProjectTaskKey(string value)
+    public ProjectTaskKey(string value) : base(Validate(value))
     {
-        Guard.Against.NullOrWhiteSpace(value, nameof(value));
-
-        if (!ValidateFormat(value))
-        {
-            throw new ArgumentException($"The value '{value}' does not meet the required format for a project task key. Expected format: PROJECT-###", nameof(value));
-        }
-
-        Value = value;
     }
 
     /// <summary>
@@ -34,25 +27,36 @@ public sealed class ProjectTaskKey : ValueObject
     /// </summary>
     /// <param name="projectKey">The project key.</param>
     /// <param name="taskNumber">The task number.</param>
-    public ProjectTaskKey(ProjectKey projectKey, int taskNumber)
+    public ProjectTaskKey(ProjectKey projectKey, int taskNumber) : base(FormatAndValidate(projectKey, taskNumber))
+    {
+    }
+
+    private static string Validate(string value)
+    {
+        Guard.Against.NullOrWhiteSpace(value, nameof(value));
+
+        if (!Regex.IsMatch(value, ValidationRegex))
+        {
+            throw new ArgumentException($"The value '{value}' does not meet the required format for a project task key. Expected format: PROJECT-###", nameof(value));
+        }
+
+        return value;
+    }
+
+    private static string FormatAndValidate(ProjectKey projectKey, int taskNumber)
     {
         Guard.Against.Null(projectKey, nameof(projectKey));
         Guard.Against.NegativeOrZero(taskNumber, nameof(taskNumber));
 
         string value = $"{projectKey.Value}-{taskNumber}";
 
-        if (!ValidateFormat(value))
+        if (!Regex.IsMatch(value, ValidationRegex))
         {
             throw new ArgumentException($"The project key '{projectKey.Value}' does not meet the required format. Must be 2-30 uppercase alphanumeric characters or hyphens.", nameof(projectKey));
         }
 
-        Value = value;
+        return value;
     }
-
-    /// <summary>
-    /// Gets the full task key value (e.g., "APOLLO-1").
-    /// </summary>
-    public string Value { get; init; } = default!;
 
     private int LastHyphenIndex
     {
@@ -75,21 +79,5 @@ public sealed class ProjectTaskKey : ValueObject
     /// </summary>
     public int TaskNumber => int.Parse(Value[(LastHyphenIndex + 1)..]);
 
-    /// <summary>
-    /// Validates the format of a task key value.
-    /// </summary>
-    private static bool ValidateFormat(string value)
-    {
-        return Regex.IsMatch(value, ValidationRegex);
-    }
-
-    protected override IEnumerable<IComparable> GetEqualityComponents()
-    {
-        yield return Value;
-    }
-
-    public override string ToString() => Value;
-
-    public static implicit operator string(ProjectTaskKey key) => key.Value;
     public static explicit operator ProjectTaskKey(string value) => new(value);
 }

@@ -57,9 +57,12 @@ public sealed class DomainEventSerializationTests
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
+        var json = JsonSerializer.Serialize(original, Options);
         var roundTripped = RoundTrip(original);
 
         // Assert
+        json.Should().Contain("\"Code\":\"ABC123\"");
+        json.Should().NotContain("\"Code\":{\"Value\"");
         roundTripped.Id.Should().Be(original.Id);
         roundTripped.Key.Should().Be(original.Key);
         roundTripped.Code.Value.Should().Be(original.Code.Value);
@@ -97,9 +100,12 @@ public sealed class DomainEventSerializationTests
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
+        var json = JsonSerializer.Serialize(original, Options);
         var roundTripped = RoundTrip(original);
 
         // Assert
+        json.Should().Contain("\"Key\":\"PROJ01\"");
+        json.Should().NotContain("\"Key\":{\"Value\"");
         roundTripped.Id.Should().Be(original.Id);
         roundTripped.Key.Value.Should().Be(original.Key.Value);
         roundTripped.ExpenditureCategoryId.Should().Be(original.ExpenditureCategoryId);

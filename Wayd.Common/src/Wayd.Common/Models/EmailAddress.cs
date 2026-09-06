@@ -1,37 +1,24 @@
-﻿using Ardalis.GuardClauses;
-using CSharpFunctionalExtensions;
+using System.Text.Json.Serialization;
+using Ardalis.GuardClauses;
+using Wayd.Common.Serialization;
 
 namespace Wayd.Common.Models;
 
-public class EmailAddress : ValueObject
+[JsonConverter(typeof(ScalarValueObjectJsonConverterFactory))]
+public class EmailAddress : ScalarValueObject<string>
 {
-    public EmailAddress(string value)
+    public EmailAddress(string value) : base(Validate(value))
+    {
+    }
+
+    private static string Validate(string value)
     {
         value = Guard.Against.NullOrWhiteSpace(value, nameof(EmailAddress)).Trim();
 
-        if (ValidateEmailAddressFormat(value))
-        {
-            Value = value;
-        }
-    }
-
-    public string Value { get; } = null!;
-
-    protected override IEnumerable<IComparable> GetEqualityComponents()
-    {
-        yield return Value;
-    }
-
-    // only validates that the format is correct
-    private bool ValidateEmailAddressFormat(string value)
-    {
         return value.IsValidEmailAddressFormat()
-            ? true
+            ? value
             : throw new ArgumentException("The value submitted does not meet the required format.", nameof(EmailAddress));
     }
 
-    public override string ToString() => Value;
-
-    public static implicit operator string(EmailAddress emailAddress) => emailAddress.Value;
     public static explicit operator EmailAddress(string value) => new(value);
 }

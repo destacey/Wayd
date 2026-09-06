@@ -76511,11 +76511,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EventActorKind>))]
         public EventActorKind ActorKind { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("userId")]
-        public string? UserId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
-        public System.Guid? EmployeeId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("employee")]
+        public EmployeeNavigationDto? Employee { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

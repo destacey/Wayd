@@ -97,7 +97,9 @@ public sealed class SubmitImportCommandHandler(
         }
         else
         {
-            await _dispatcher.Publish(run, cancellationToken);
+            // Passed explicitly even though the caller is the submitter here, so every path that queues a
+            // run attributes it the same way rather than two of them relying on ambient identity.
+            await _dispatcher.Publish(run, process.SubmittedByUserId, cancellationToken);
             _logger.LogInformation(
                 "Queued import {ImportProcessId} ({ImportType}, {RowCount} rows).", process.Id, definition.Key, rows.Count);
         }

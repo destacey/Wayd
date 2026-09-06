@@ -86,6 +86,8 @@ public sealed class ResumeImportProcessCommandHandlerTests : IDisposable
         _dispatcher.Verify(
             d => d.Publish(
                 It.Is<RunImportProcessCommand>(c => c.ImportProcessId == process.Id),
+                // Whoever submitted the file, not whoever pressed retry.
+                process.SubmittedByUserId,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

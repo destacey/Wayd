@@ -59,19 +59,23 @@ public sealed class RecoverStalledImportsCommandHandler(
     /// </summary>
     private async Task<int> RepublishAbandonedQueue(Instant cutoff, CancellationToken cancellationToken)
     {
-        var ids = await _importDbContext.ImportProcesses
+        var abandoned = await _importDbContext.ImportProcesses
             .AsNoTracking()
             .Where(p => p.Status == ImportProcessStatus.Queued && p.SubmittedOn < cutoff)
-            .Select(p => p.Id)
+            .Select(p => new { p.Id, p.SubmittedByUserId })
             .ToListAsync(cancellationToken);
 
-        foreach (var id in ids)
+        foreach (var run in abandoned)
         {
-            _logger.LogWarning("Import {ImportProcessId} is still queued well after submission; publishing it again.", id);
-            await _dispatcher.Publish(new RunImportProcessCommand(id), cancellationToken);
+            _logger.LogWarning("Import {ImportProcessId} is still queued well after submission; publishing it again.", run.Id);
+
+            // The submitter, not this sweep. It runs as the system, so without saying so every record the
+            // reclaimed run creates would be audited against a maintenance job.
+            await _dispatcher.Publish(
+                new RunImportProcessCommand(run.Id), run.SubmittedByUserId, cancellationToken);
         }
 
-        return ids.Count;
+        return abandoned.Count;
     }
 
     /// <summary>

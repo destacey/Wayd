@@ -1,0 +1,104 @@
+---
+title: Imports
+description: Following a submitted import — what became of each row, and how to stop, resume or retry a run.
+sidebar_position: 5
+audience: [user, agent]
+---
+
+# Imports
+
+**Settings → Imports** shows every import file that has been submitted, what became of it, and what you
+can still do about it.
+
+Files are submitted through the import endpoints for each area — see the bulk import guides for
+[Organization](../organizations/bulk-import.mdx), [Planning](../planning/bulk-import.mdx),
+[PPM](../ppm/bulk-import.mdx) and [Product Management](../product-management/bulk-import.mdx). This page
+is where a submitted file goes afterwards.
+
+## Why a run exists at all
+
+A small file is applied while you wait. A large one is handed to a background worker, so the response
+tells you the import was **accepted** rather than finished. Either way you get an import id and a row in
+this list, so there is one place to look and one thing to poll — the only difference is whether the run
+is already finished by the time you look.
+
+## What you see
+
+Each run shows the kind of import, who submitted it, when, and four counts:
+
+| Count | Meaning |
+|---|---|
+| **Rows** | Lines in the submitted file. |
+| **Applied** | Rows that created a record. These are never applied a second time. |
+| **Rejected** | Rows that changed nothing, each with a reason. |
+| **Not Applied** | Rows the run never reached, because it was stopped or failed partway. |
+
+Open a run to see the outcome of every row. It opens on the **rejected** rows when there are any, since
+that is usually why you came, and each carries the reason it was refused and the line it came from.
+
+:::note "0 of 40 applied" is not always a bug
+Some imports are **all-or-nothing** — a team hierarchy, for instance, because half an imported hierarchy
+is worse than none. One rejected row in those means nothing is written. The run shows which import
+behaves this way.
+:::
+
+## Status
+
+| Status | Meaning |
+|---|---|
+| **Queued** | Accepted, waiting for a worker. |
+| **Processing** | Being applied now. Counts move as it goes. |
+| **Stopping** | A stop was requested; the worker finishes its current batch and stops. |
+| **Succeeded** | Every row applied. |
+| **Partially Succeeded** | Some rows applied, some were rejected. |
+| **Failed** | Nothing usable came of it — either every row was rejected, or the run could not continue. |
+| **Cancelled** | Stopped before it finished. Rows already applied stay applied. |
+
+## What you can do
+
+Actions appear on a run only when they apply to it, and only if you may submit that kind of import.
+
+**Stop** a run that is still going. It is a request, not an undo: the worker stops at its next batch
+boundary, and rows already applied stay applied. The rest are left for a resume.
+
+**Resume** a run that stopped partway to apply the rows it never reached. Rows that already succeeded
+are skipped.
+
+**Retry rejected rows** once you have fixed whatever they were rejected for — a missing team, a name
+that did not resolve. Only the rejected rows are reattempted; successful ones are never reapplied, so
+this cannot duplicate them.
+
+Both resume and retry report how many rows were queued, and how many could not be.
+
+:::warning Row data is kept for 30 days
+Retrying re-applies the data you submitted, which is held for 30 days after a run finishes and then
+discarded — it is a copy of your file, and keeping it forever would mean holding that data forever.
+After that the run's history remains, but its rows can no longer be retried and the file must be
+submitted again.
+:::
+
+## Who sees what
+
+There is no single "imports" permission that grants the page. Being allowed to submit a kind of file is
+what entitles you to see how it went, so you see the import types you can submit — and nothing else.
+The menu entry appears only when there is at least one.
+
+**View Imports** is a separate, optional grant for oversight: it shows every import type, including ones
+you cannot submit yourself, and it is **read-only**. Stopping, resuming or retrying a run changes the
+records that run created, so those still require the permission that gates submitting that kind of file.
+
+| You hold | You see | You can act |
+|---|---|---|
+| Import Employees | Employee imports | Yes, on those |
+| View Imports only | Every import type | No |
+| Both | Everything | Only the types you can submit |
+
+## Related
+
+- **[Permissions](./permissions.mdx)** — how import permissions are granted.
+
+Two scheduled maintenance jobs act on runs listed here. **Import Stall Recovery** reclaims runs no worker
+will finish — re-queueing one whose message never arrived, and failing one that stopped reporting progress
+so its remaining rows can be resumed. **Import Retention Sweep** discards submitted row data once a run is
+more than 30 days old, keeping the run and its per-row outcomes. Both are configured under
+**Settings → Background Jobs**.

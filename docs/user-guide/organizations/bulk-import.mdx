@@ -12,11 +12,14 @@ useful for standing up an environment, onboarding a company's people and teams, 
 another tool. Each import is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and
 each is gated by a permission.
 
-:::info API only
-Bulk import is an **API feature** — there is no import screen in the app. Calls are made directly to the
-endpoints below (for example with `curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
+:::info Submitting is API only; following a run is not
+There is no upload screen in the app — files are posted directly to the endpoints below (for example with
+`curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
 which generates these exact CSVs and posts them for you). Exact request/response shapes are also in the
 OpenAPI/Swagger spec served by the API.
+
+Once submitted, the run itself is visible in **Settings → Imports**, where you can see what became of each
+row and act on a run that did not finish. See [Imports](../settings/imports.mdx).
 :::
 
 ## How imports work
@@ -26,9 +29,17 @@ A few rules apply to every import:
 - **References are by natural key, not ID.** A CSV cannot carry Wayd's generated IDs, so rows reference each
   other by human-readable keys — an employee by their **employee number**, a team by its **code**, and a role
   by its **name**. A manager, a team parent, or a staffing assignment is expressed with those keys.
+- **A successful post returns `202 Accepted` and the id of the run**, not the records it created. A small
+  file is applied while you wait and a large one is handed to a background worker, so the response means
+  "accepted" rather than "done". Follow the run in [Settings → Imports](../settings/imports.mdx).
 - **All-or-nothing.** If any reference cannot be resolved — an unknown employee number, team code, or role
   name, or an ambiguous/duplicate value — the **entire import fails** with a message listing the offending
   values, and nothing is saved. This keeps a run safe to fix and re-try.
+- **`ImportId` is an optional column, and it is yours.** Any value you like — a row number, a key from
+  whatever system the file came out of — provided it is unique within the one file, compared
+  case-insensitively. Row outcomes are reported against it, and leaving it blank uses the row's position
+  instead. It is never written onto the records the import creates; the durable link runs the other way,
+  as the id of the record each applied row reports creating.
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
   needs a value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.

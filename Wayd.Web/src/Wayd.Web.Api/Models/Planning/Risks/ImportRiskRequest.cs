@@ -7,7 +7,12 @@ namespace Wayd.Web.Api.Models.Planning.Risks;
 
 public class ImportRiskRequest
 {
-    public int ImportId { get; set; }
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
     public Guid TeamId { get; set; }
     public string Summary { get; set; } = default!;
     public string? Description { get; set; }
@@ -28,7 +33,7 @@ public class ImportRiskRequest
         Instant? closedDate = ClosedDateUtc.HasValue ? Instant.FromDateTimeUtc(DateTime.SpecifyKind(ClosedDateUtc.Value, DateTimeKind.Utc)) : null;
         LocalDate? followUpDate = FollowUpDate?.ToLocalDateTime().Date;
 
-        return new ImportRiskDto(ImportId, Summary, Description, TeamId, reportedOn, ReportedById, (RiskStatus)StatusId, (RiskCategory)CategoryId, (RiskGrade)ImpactId, (RiskGrade)LikelihoodId, AssigneeId, followUpDate, Response, closedDate);
+        return new ImportRiskDto(Summary, Description, TeamId, reportedOn, ReportedById, (RiskStatus)StatusId, (RiskCategory)CategoryId, (RiskGrade)ImpactId, (RiskGrade)LikelihoodId, AssigneeId, followUpDate, Response, closedDate);
     }
 }
 
@@ -37,9 +42,6 @@ public sealed class ImportRiskRequestValidator : CustomValidator<ImportRiskReque
     public ImportRiskRequestValidator(IDateTimeProvider dateTimeProvider)
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
-
-        RuleFor(r => r.ImportId)
-            .NotEmpty();
 
         RuleFor(r => r.TeamId)
             .NotEmpty();

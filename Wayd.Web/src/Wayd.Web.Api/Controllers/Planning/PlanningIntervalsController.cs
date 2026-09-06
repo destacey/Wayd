@@ -14,6 +14,7 @@ using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Dtos;
 using Wayd.Planning.Application.Risks.Queries;
 using Wayd.Web.Api.Dtos.Planning;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Planning.HealthChecks;
 using Wayd.Web.Api.Models.Planning.PlanningIntervals;
@@ -722,8 +723,8 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/objectives/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Import objectives for a planning interval from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of objectives for a planning interval. Returns the id of the import to follow.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ImportObjectives(Guid id, [FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -732,40 +733,36 @@ public class PlanningIntervalsController : ControllerBase
         {
             var importedObjectives = _csvService.ReadCsv<ImportPlanningIntervalObjectivesRequest>(file.OpenReadStream());
 
-            List<ImportPlanningIntervalObjectiveDto> objectives = [];
+            List<SubmittedImportRow<ImportPlanningIntervalObjectiveDto>> rows = [];
             var validator = new ImportPlanningIntervalObjectivesRequestValidator();
             foreach (var objective in importedObjectives)
             {
-                // TODO: allow importing of objectives for multiple PIs at once
-                if (id != objective.PlanningIntervalId)
-                    return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(objective.PlanningIntervalId), HttpContext));
+                // The same key the run will know this row by, so a file without the column still names a
+                // row the reader can find rather than an empty id.
+                var key = SubmittedImportRow.KeyFor(objective.ImportId, rows.Count + 1);
 
                 var validationResults = await validator.ValidateAsync(objective, cancellationToken);
                 if (!validationResults.IsValid)
                 {
                     foreach (var error in validationResults.Errors)
                     {
-                        if (error.PropertyName != "RecordId")
-                        {
-                            error.ErrorMessage = $"{error.ErrorMessage} (Record Id: {objective.ImportId})";
-                            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-                        }
+                        error.ErrorMessage = $"{error.ErrorMessage} (Import Id: {key})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
-                else
-                {
-                    objectives.Add(objective.ToImportPlanningIntervalObjectiveDto());
-                }
+
+                rows.Add(new SubmittedImportRow<ImportPlanningIntervalObjectiveDto>(
+                    objective.ImportId, objective.ToImportPlanningIntervalObjectiveDto()));
             }
 
-            if (!objectives.Any())
-                return BadRequest("No PI objectives imported.");
-
-            var result = await _dispatcher.Send(new ImportPlanningIntervalObjectivesCommand(objectives), cancellationToken);
+            // Whether the file belongs to this planning interval is the command's rule, not a route
+            // concern — it is about the import, and it holds for callers that never saw a route.
+            var result = await _dispatcher.Send(
+                new ImportPlanningIntervalObjectivesCommand(id, rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

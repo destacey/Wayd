@@ -10,9 +10,9 @@ namespace Wayd.Web.Api.Models.Organizations.Employees;
 public sealed class ImportEmployeeRequest
 {
     /// <summary>
-    /// The caller's own key for this row, unique within the file. Results are reported against it, and it
-    /// is how a row is identified without depending on a display name. Falls back to the row's position
-    /// when the column is absent, so a hand-authored file still works.
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it, and it is how a row is identified without depending on a display name. Falls
+    /// back to the row's position when the column is absent, so a hand-authored file still works.
     /// </summary>
     public string? ImportId { get; set; }
 

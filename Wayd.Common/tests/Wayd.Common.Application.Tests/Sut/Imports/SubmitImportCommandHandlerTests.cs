@@ -72,7 +72,9 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
 
         // Assert — invoked, not queued, so the caller has an answer in the response
         _dispatcher.Verify(d => d.Send(It.IsAny<RunImportProcessCommand>(), It.IsAny<CancellationToken>()), Times.Once);
-        _dispatcher.Verify(d => d.Publish(It.IsAny<RunImportProcessCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        _dispatcher.Verify(
+            d => d.Publish(It.IsAny<RunImportProcessCommand>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -82,7 +84,9 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
         await Submit(Rows(101));
 
         // Assert
-        _dispatcher.Verify(d => d.Publish(It.IsAny<RunImportProcessCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dispatcher.Verify(
+            d => d.Publish(It.IsAny<RunImportProcessCommand>(), "user-1", It.IsAny<CancellationToken>()),
+            Times.Once);
         _dispatcher.Verify(d => d.Send(It.IsAny<RunImportProcessCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

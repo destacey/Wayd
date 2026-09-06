@@ -213,4 +213,5 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
         // Assert — a save claiming the run, one per chunk, and one completing it
         _db.SaveChangesCallCount.Should().BeGreaterThanOrEqualTo(6);
     }
+
 }

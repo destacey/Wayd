@@ -60,6 +60,9 @@ public sealed class RecoverStalledImportsCommandHandlerTests : IDisposable
         _dispatcher.Verify(
             d => d.Publish(
                 It.Is<RunImportProcessCommand>(c => c.ImportProcessId == process.Id),
+                // The submitter, not this sweep: it runs as the system and must not claim authorship of
+                // the records the reclaimed run goes on to create.
+                process.SubmittedByUserId,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

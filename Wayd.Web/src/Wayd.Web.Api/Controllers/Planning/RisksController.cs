@@ -1,4 +1,5 @@
 ﻿using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Planning.Application.Risks.Commands;
 using Wayd.Planning.Application.Risks.Dtos;
@@ -93,8 +94,8 @@ public class RisksController : ControllerBase
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Risks)]
-    [OpenApiOperation("Import risks from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of risks to import. Returns the id of the import to follow.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -103,36 +104,32 @@ public class RisksController : ControllerBase
         {
             var importedRisks = _csvService.ReadCsv<ImportRiskRequest>(file.OpenReadStream());
 
-            List<ImportRiskDto> risks = [];
+            List<SubmittedImportRow<ImportRiskDto>> rows = [];
             var validator = new ImportRiskRequestValidator(_dateTimeProvider);
             foreach (var risk in importedRisks)
             {
+                // The same key the run will know this row by, so a file without the column still names a
+                // row the reader can find rather than an empty id.
+                var key = SubmittedImportRow.KeyFor(risk.ImportId, rows.Count + 1);
+
                 var validationResults = await validator.ValidateAsync(risk, cancellationToken);
                 if (!validationResults.IsValid)
                 {
                     foreach (var error in validationResults.Errors)
                     {
-                        if (error.PropertyName != "RecordId")
-                        {
-                            error.ErrorMessage = $"{error.ErrorMessage} (Record Id: {risk.ImportId})";
-                            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-                        }
+                        error.ErrorMessage = $"{error.ErrorMessage} (Import Id: {key})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
-                else
-                {
-                    risks.Add(risk.ToImportRiskDto());
-                }
+
+                rows.Add(new SubmittedImportRow<ImportRiskDto>(risk.ImportId, risk.ToImportRiskDto()));
             }
 
-            if (risks.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No risks imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportRisksCommand(risks), cancellationToken);
+            var result = await _dispatcher.Send(new ImportRisksCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

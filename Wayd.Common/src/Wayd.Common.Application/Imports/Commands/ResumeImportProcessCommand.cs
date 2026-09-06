@@ -75,7 +75,10 @@ public sealed class ResumeImportProcessCommandHandler(
             return Result.Failure<ResumedImport>(requeue.Error);
 
         await _importDbContext.SaveChangesAsync(cancellationToken);
-        await _dispatcher.Publish(new RunImportProcessCommand(process.Id), cancellationToken);
+        // Attributed to whoever submitted the file, not whoever pressed the button. The rows this run
+        // applies are their import; an admin retrying it should not end up as the author of the records.
+        await _dispatcher.Publish(
+            new RunImportProcessCommand(process.Id), process.SubmittedByUserId, cancellationToken);
 
         _logger.LogInformation(
             "Import {ImportProcessId} was requeued with {QueuedRowCount} row(s) to attempt ({SkippedRowCount} skipped).",

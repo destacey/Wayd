@@ -23,8 +23,17 @@ public interface IDispatcher
     /// request that asked for it, such as applying an import.
     /// </remarks>
     /// <param name="command">The command to queue.</param>
+    /// <param name="onBehalfOfUserId">
+    /// Attributes the queued work to this user instead of whoever is queueing it.
+    /// <para>
+    /// Queued work is normally attributed to the caller, which is right when they are the one asking for it.
+    /// It is wrong whenever the trigger and the author differ: an admin retrying someone else's import, or a
+    /// maintenance job reclaiming a stalled one, would otherwise have every record the run then creates
+    /// audited against them rather than the person whose file it is.
+    /// </para>
+    /// </param>
     /// <param name="cancellationToken">A token to cancel accepting the message.</param>
-    Task Publish(ICommand command, CancellationToken cancellationToken = default);
+    Task Publish(ICommand command, string? onBehalfOfUserId = null, CancellationToken cancellationToken = default);
 
     /// <summary>Dispatches a command that yields a plain <see cref="Result"/>.</summary>
     /// <param name="command">The command to dispatch.</param>

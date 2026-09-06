@@ -2,8 +2,14 @@
 
 namespace Wayd.Planning.Application.Risks.Dtos;
 
+/// <summary>
+/// One risk on its way in.
+/// </summary>
+/// <remarks>
+/// Carries no import id: the platform holds the caller's key on the row rather than in the payload, so
+/// there is only one of it and results are reported against that.
+/// </remarks>
 public sealed record ImportRiskDto(
-    int ImportId,
     string Summary,
     string? Description,
     Guid TeamId,
@@ -23,9 +29,6 @@ public sealed class ImportRiskDtoValidator : CustomValidator<ImportRiskDto>
     public ImportRiskDtoValidator(IDateTimeProvider dateTimeProvider)
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
-
-        RuleFor(r => r.ImportId)
-            .NotEmpty();
 
         RuleFor(r => r.TeamId)
             .NotEmpty();

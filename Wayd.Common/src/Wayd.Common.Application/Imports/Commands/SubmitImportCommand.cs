@@ -7,7 +7,45 @@ using Wayd.Common.Domain.Imports;
 namespace Wayd.Common.Application.Imports.Commands;
 
 /// <summary>One parsed row on its way in: the caller's key for it, and its serialized data.</summary>
-public sealed record SubmittedImportRow(string? ImportId, string Payload);
+/// <param name="ImportId">
+/// The caller's own key for this row. Any value they like — a row number, an employee number, a key from
+/// the system the file came from — provided it is unique within this one file. Nothing compares it across
+/// imports, and nothing writes it onto the records the import creates — it identifies a row of the file,
+/// not a thing in the domain.
+/// <para>
+/// Uniqueness is <em>case-insensitive</em>, matching the collation of the unique index behind it: a file
+/// carrying both <c>abc</c> and <c>ABC</c> is rejected. Checking it any more strictly here would let the
+/// pair past validation and into a constraint violation at save.
+/// </para>
+/// <para>Falls back to the row's position when absent, so a hand-authored file works without the column.</para>
+/// </param>
+/// <param name="Payload">The row, serialized by the definition that will apply it.</param>
+public sealed record SubmittedImportRow(string? ImportId, string Payload)
+{
+    /// <summary>
+    /// The key this row will be known by, applying the fallback when the caller supplied none.
+    /// </summary>
+    /// <remarks>
+    /// Shared so that whatever names a row before it is persisted — a validation message, a rule about the
+    /// file — names it the same way the run eventually will. Reporting the raw value instead produces
+    /// "(Import Id: )" for a file without the column, which is the case the fallback exists for.
+    /// </remarks>
+    /// <param name="importId">The caller's key, if they gave one.</param>
+    /// <param name="rowNumber">The row's position in the file, counting from one.</param>
+    public static string KeyFor(string? importId, int rowNumber) =>
+        string.IsNullOrWhiteSpace(importId) ? rowNumber.ToString() : importId.Trim();
+}
+
+/// <summary>
+/// The same row before the definition has serialized it: the caller's key, and the parsed data.
+/// </summary>
+/// <remarks>
+/// What an import's own submission command carries, so a controller hands over typed rows and never has
+/// to know the definition or how a payload is stored. The application layer turns these into the
+/// serialized <see cref="SubmittedImportRow"/> the run persists.
+/// </remarks>
+/// <typeparam name="TRow">The row type the definition applies.</typeparam>
+public sealed record SubmittedImportRow<TRow>(string? ImportId, TRow Data);
 
 /// <summary>
 /// Accepts a parsed file and either applies it now or queues it.
@@ -84,7 +122,9 @@ public sealed class SubmitImportCommandHandler(
         }
         else
         {
-            await _dispatcher.Publish(run, cancellationToken);
+            // Passed explicitly even though the caller is the submitter here, so every path that queues a
+            // run attributes it the same way rather than two of them relying on ambient identity.
+            await _dispatcher.Publish(run, process.SubmittedByUserId, cancellationToken);
             _logger.LogInformation(
                 "Queued import {ImportProcessId} ({ImportType}, {RowCount} rows).", process.Id, definition.Key, rows.Count);
         }
@@ -99,7 +139,7 @@ public sealed class SubmitImportCommandHandler(
     private static List<ImportProcessRow> BuildRows(IReadOnlyList<SubmittedImportRow> submitted) =>
         [.. submitted.Select((row, index) =>
             ImportProcessRow.Create(
-                string.IsNullOrWhiteSpace(row.ImportId) ? (index + 1).ToString() : row.ImportId.Trim(),
+                SubmittedImportRow.KeyFor(row.ImportId, index + 1),
                 index + 1,
                 row.Payload))];
 }

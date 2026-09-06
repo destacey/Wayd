@@ -103,4 +103,57 @@ public sealed class WolverineDispatcherTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be("ok");
     }
+
+    [Fact]
+    public async Task Publish_OnBehalfOfAUser_StampsThatUserRatherThanTheCaller()
+    {
+        // Arrange — an admin queueing work that belongs to someone else
+        _currentUser.Setup(u => u.GetUserId()).Returns("admin-1");
+        DeliveryOptions? captured = null;
+        _bus.Setup(b => b.PublishAsync(It.IsAny<object>(), It.IsAny<DeliveryOptions>()))
+            .Callback((object _, DeliveryOptions opts) => captured = opts)
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await CreateDispatcher().Publish(new TestCommand(), "submitter-7", TestContext.Current.CancellationToken);
+
+        // Assert
+        captured!.Headers[UserIdentityHeaders.UserId].Should().Be("submitter-7");
+    }
+
+    [Fact]
+    public async Task Publish_OnBehalfOfAUser_StampsEvenFromASystemScope()
+    {
+        // Arrange — the maintenance sweep case. A system scope stamps nothing by default, which would
+        // attribute the reclaimed work to the job rather than to whoever it belongs to.
+        _currentUser.Setup(u => u.Kind).Returns(ActorKind.System);
+        _currentUser.Setup(u => u.GetUserId()).Returns("system");
+        DeliveryOptions? captured = null;
+        _bus.Setup(b => b.PublishAsync(It.IsAny<object>(), It.IsAny<DeliveryOptions>()))
+            .Callback((object _, DeliveryOptions opts) => captured = opts)
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await CreateDispatcher().Publish(new TestCommand(), "submitter-7", TestContext.Current.CancellationToken);
+
+        // Assert
+        captured!.Headers[UserIdentityHeaders.UserId].Should().Be("submitter-7");
+    }
+
+    [Fact]
+    public async Task Publish_WithNoAttribution_FallsBackToTheCaller()
+    {
+        // Arrange
+        _currentUser.Setup(u => u.GetUserId()).Returns("user-9");
+        DeliveryOptions? captured = null;
+        _bus.Setup(b => b.PublishAsync(It.IsAny<object>(), It.IsAny<DeliveryOptions>()))
+            .Callback((object _, DeliveryOptions opts) => captured = opts)
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await CreateDispatcher().Publish(new TestCommand(), cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        captured!.Headers[UserIdentityHeaders.UserId].Should().Be("user-9");
+    }
 }

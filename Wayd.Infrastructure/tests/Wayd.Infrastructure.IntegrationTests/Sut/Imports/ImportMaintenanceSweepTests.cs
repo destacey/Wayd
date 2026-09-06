@@ -155,6 +155,7 @@ public sealed class ImportMaintenanceSweepTests
         dispatcher.Verify(
             d => d.Publish(
                 It.Is<RunImportProcessCommand>(c => c.ImportProcessId == abandoned.Id),
+                abandoned.SubmittedByUserId,
                 It.IsAny<CancellationToken>()),
             Times.Once);
         dispatcher.VerifyNoOtherCalls();

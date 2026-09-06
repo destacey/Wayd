@@ -28,9 +28,9 @@ internal sealed class WolverineDispatcher(IMessageBus bus, ICurrentUser currentU
     /// the signature so every dispatch method reads the same at the call site.
     /// </para>
     /// </remarks>
-    public Task Publish(ICommand command, CancellationToken cancellationToken = default)
+    public Task Publish(ICommand command, string? onBehalfOfUserId = null, CancellationToken cancellationToken = default)
     {
-        var options = UserDeliveryOptions();
+        var options = UserDeliveryOptions(onBehalfOfUserId);
         return options is null
             ? _bus.PublishAsync(command).AsTask()
             : _bus.PublishAsync(command, options).AsTask();
@@ -66,8 +66,18 @@ internal sealed class WolverineDispatcher(IMessageBus bus, ICurrentUser currentU
     /// the caller use the plain <c>InvokeAsync</c> overload — behaviourally identical to before for the
     /// anonymous/system path.
     /// </summary>
-    private DeliveryOptions? UserDeliveryOptions()
+    private DeliveryOptions? UserDeliveryOptions(string? onBehalfOfUserId = null)
     {
+        // An explicit attribution wins outright, including over a system scope. A maintenance job
+        // republishing someone's stalled import is exactly the case: the scope is System, and stamping
+        // nothing would attribute every record the run creates to the job rather than to them.
+        if (!string.IsNullOrEmpty(onBehalfOfUserId))
+        {
+            var onBehalfOf = new DeliveryOptions();
+            onBehalfOf.Headers[UserIdentityHeaders.UserId] = onBehalfOfUserId;
+            return onBehalfOf;
+        }
+
         // System scopes are self-identifying — a handler scope with no HTTP context and no user header
         // already resolves to ActorKind.System — so propagating the system id would be redundant. The
         // header exists solely to carry a real acting user across the scope boundary.

@@ -249,11 +249,19 @@ How the tree reaches tests and the shipped image (see `.github/workflows/docker.
 - Codegen output is **DI-registration-order sensitive and not reproducible across environments** (even the OTLP exporter's presence reorders it), which is *why* it is generated once and shared rather than regenerated independently — and why committing it was noise (500+ churned files per handler change, which blocked Copilot review).
 - The `codegen write` boot needs `ASPNETCORE_ENVIRONMENT=Development` (Auto mode + skips the prod JWT-secret guard in `AddLocalJwtAuth`), `WAYD_SKIP_DB_INIT=true`, a **placeholder** `DatabaseSettings:ConnectionString` (it never connects — the verb builds the host but never calls `app.Run()`), and empty `OTEL_EXPORTER_OTLP_ENDPOINT`.
 - A broken codegen config is invisible to `dotnet build` and unit tests — only a real host boot and the `Wayd.Web.Api.IntegrationTests` dispatch suite catch it.
-- Service location is disabled (`ServiceLocationPolicy.NotAllowed`): codegen constructor-inlines handler dependencies. A handler dependency whose registered implementation class is `internal` needs an `AlwaysUseServiceLocationFor<T>()` allow-list entry in `WolverineConfiguration` (or a public implementation) — otherwise `codegen write` fails with an `InvalidServiceLocationException` naming the type. `AmbientUserId` is on that list for correctness, not opaqueness (the middleware-written user id must be the same instance every consumer in the scope reads) — do not remove it.
+- Service location is disabled (`ServiceLocationPolicy.NotAllowed`): codegen constructor-inlines handler dependencies. A handler dependency whose registered implementation class is `internal` needs an `AlwaysUseServiceLocationFor<T>()` allow-list entry in `WolverineConfiguration` (or a public implementation) — otherwise `codegen write` fails with an `InvalidServiceLocationException` naming the type.
+- **Two entries on that allow-list are there for correctness, not opaqueness, and removing either breaks behaviour rather than the build.** `AmbientUserId`: the middleware-written user id must be the same instance every consumer in the scope reads. **Every `IXxxDbContext` facade and `WaydDbContext` itself**: inline construction created one context *per interface*, so a handler taking two of them got two change trackers, and each was disposed at the end of the message. That is invisible to a handler using a single interface and was silently discarding work for the one that spans two — see Database below.
 
 ### Database
 
 Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistence/Configuration/`. Migrations in `Wayd.Infrastructure.Migrators.MSSQL`. Auto-applied on startup via `app.Services.InitializeDatabases()`.
+
+**The thirteen `IXxxDbContext` interfaces are views over that one context, not separate contexts.** They constrain what each module can see; they are not persistence boundaries, and they overlap by design (`IPlanningDbContext : IWaydDbContext`). Keeping that true takes two things working together, and either alone leaves it broken:
+
+1. `AddDomainDbContexts` registers each as a **factory** (`sp => sp.GetRequiredService<WaydDbContext>()`). `AddScoped<IFoo, WaydDbContext>()` reads as an alias but is a distinct service descriptor, so it hands out a separate context per interface.
+2. Each is **allow-listed for service location** in `WolverineConfiguration`, or codegen inline-constructs its own and never consults the container at all.
+
+A factory is opaque to codegen, so the two cannot drift apart quietly: dropping an allow-list entry fails `codegen write`. `DbContextScopeSharingTests` asserts the result against the booted container, which is the only place it is observable — unit fakes and hand-wired integration tests both pass one context to every role and so assume what is being tested.
 
 ### Testing
 

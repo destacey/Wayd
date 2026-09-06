@@ -1,6 +1,9 @@
 using System.Reflection;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Imports;
+using Wayd.Planning.Application.PlanningIntervals.Imports;
+using Wayd.Planning.Application.Risks.Imports;
 
 namespace Wayd.Planning.Application;
 
@@ -11,6 +14,9 @@ public static class ConfigureServices
         var assembly = Assembly.GetExecutingAssembly();
 
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<IImportDefinition, PlanningIntervalObjectiveImportDefinition>();
+        services.AddScoped<IImportDefinition, RiskImportDefinition>();
 
         ConfigureMapster(assembly);
 

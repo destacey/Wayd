@@ -2,9 +2,7 @@
 using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Employees.Queries;
-using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
-using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Organization.Application.Teams.Dtos;
@@ -74,22 +72,13 @@ public class EmployeesController(
     [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import(
-        [FromForm] IFormFile file,
-        [FromServices] IImportDefinitionRegistry importDefinitions,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
     {
         try
         {
             var importedEmployees = _csvService.ReadCsv<ImportEmployeeRequest>(file.OpenReadStream());
 
-            // The definition owns how a row is stored, so the same payload shape reaches the runner
-            // whether it applies now or days later after a resume.
-            var definition = importDefinitions.Find(EmployeeImportDefinition.ImportKey);
-            if (definition.IsFailure)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest(definition.Error, HttpContext));
-
-            List<SubmittedImportRow> submittedRows = [];
+            List<SubmittedImportRow<ImportEmployeeDto>> rows = [];
             var validator = new ImportEmployeeRequestValidator();
             foreach (var employee in importedEmployees)
             {
@@ -104,15 +93,11 @@ public class EmployeesController(
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                submittedRows.Add(new SubmittedImportRow(
-                    employee.ImportId, definition.Value.SerializeRow(employee.ToImportEmployeeDto())));
+                rows.Add(new SubmittedImportRow<ImportEmployeeDto>(
+                    employee.ImportId, employee.ToImportEmployeeDto()));
             }
 
-            if (submittedRows.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No employees imported.", HttpContext));
-
-            var result = await _dispatcher.Send(
-                new SubmitImportCommand(EmployeeImportDefinition.ImportKey, submittedRows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportEmployeesCommand(rows), cancellationToken);
 
             // 202 either way: the run is recorded and identified whether it was applied in this request or
             // queued, so a caller polls the same resource without branching on which happened.

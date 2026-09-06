@@ -1,7 +1,5 @@
 ﻿using CsvHelper;
-using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
-using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Work;
@@ -169,20 +167,13 @@ public class TeamsController(
     [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportTeamMemberships(
-        [FromForm] IFormFile file,
-        [FromServices] IImportDefinitionRegistry importDefinitions,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, CancellationToken cancellationToken)
     {
         try
         {
             var importedMemberships = _csvService.ReadCsv<ImportTeamMembershipRequest>(file.OpenReadStream());
 
-            var definition = importDefinitions.Find(TeamMembershipImportDefinition.ImportKey);
-            if (definition.IsFailure)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest(definition.Error, HttpContext));
-
-            List<SubmittedImportRow> submittedRows = [];
+            List<SubmittedImportRow<ImportTeamMembershipDto>> rows = [];
             var validator = new ImportTeamMembershipRequestValidator();
             foreach (var membership in importedMemberships)
             {
@@ -197,15 +188,11 @@ public class TeamsController(
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                submittedRows.Add(new SubmittedImportRow(
-                    membership.ImportId, definition.Value.SerializeRow(membership.ToImportTeamMembershipDto())));
+                rows.Add(new SubmittedImportRow<ImportTeamMembershipDto>(
+                    membership.ImportId, membership.ToImportTeamMembershipDto()));
             }
 
-            if (submittedRows.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No team memberships imported.", HttpContext));
-
-            var result = await _dispatcher.Send(
-                new SubmitImportCommand(TeamMembershipImportDefinition.ImportKey, submittedRows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(rows), cancellationToken);
 
             return result.IsSuccess
                 ? Accepted(result.Value)

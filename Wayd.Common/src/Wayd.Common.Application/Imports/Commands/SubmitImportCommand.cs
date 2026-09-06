@@ -23,6 +23,17 @@ namespace Wayd.Common.Application.Imports.Commands;
 public sealed record SubmittedImportRow(string? ImportId, string Payload);
 
 /// <summary>
+/// The same row before the definition has serialized it: the caller's key, and the parsed data.
+/// </summary>
+/// <remarks>
+/// What an import's own submission command carries, so a controller hands over typed rows and never has
+/// to know the definition or how a payload is stored. The application layer turns these into the
+/// serialized <see cref="SubmittedImportRow"/> the run persists.
+/// </remarks>
+/// <typeparam name="TRow">The row type the definition applies.</typeparam>
+public sealed record SubmittedImportRow<TRow>(string? ImportId, TRow Data);
+
+/// <summary>
 /// Accepts a parsed file and either applies it now or queues it.
 /// </summary>
 /// <remarks>

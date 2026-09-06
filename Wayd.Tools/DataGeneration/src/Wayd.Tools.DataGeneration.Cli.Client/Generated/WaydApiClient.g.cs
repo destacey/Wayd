@@ -76521,6 +76521,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("correlationId")]
         public string? CorrelationId { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("eventVersion")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string EventVersion { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("payload")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Payload { get; set; } = default!;

@@ -39169,7 +39169,8 @@
           "id",
           "aggregateId",
           "actorKind",
-          "timestamp"
+          "timestamp",
+          "eventVersion"
         ],
         "properties": {
           "id": {
@@ -39211,6 +39212,9 @@
           "correlationId": {
             "type": "string",
             "nullable": true
+          },
+          "eventVersion": {
+            "type": "string"
           },
           "payload": {
             "type": "string"

@@ -41459,6 +41459,7 @@ export interface ActivityLogDto {
     employee?: EmployeeNavigationDto | undefined;
     timestamp: Date;
     correlationId?: string | undefined;
+    eventVersion: string;
     payload: string;
     summary?: string | undefined;
 }

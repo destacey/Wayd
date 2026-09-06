@@ -18,6 +18,8 @@ jest.mock('dayjs', () => {
 
 describe('json-utils', () => {
   let mockLink: any
+  let appendChildSpy: jest.SpyInstance
+  let removeChildSpy: jest.SpyInstance
 
   beforeEach(() => {
     global.URL.createObjectURL = jest.fn(() => 'blob:mock-json-url')
@@ -29,6 +31,12 @@ describe('json-utils', () => {
       click: jest.fn(),
     }
     jest.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
+    appendChildSpy = jest
+      .spyOn(document.body, 'appendChild')
+      .mockImplementation(() => mockLink as any)
+    removeChildSpy = jest
+      .spyOn(document.body, 'removeChild')
+      .mockImplementation(() => mockLink as any)
   })
 
   afterEach(() => {
@@ -38,8 +46,6 @@ describe('json-utils', () => {
   describe('downloadJson', () => {
     it('creates a blob with json content and triggers download', () => {
       jest.useFakeTimers()
-      const appendChildSpy = jest.spyOn(document.body, 'appendChild')
-      const removeChildSpy = jest.spyOn(document.body, 'removeChild')
 
       const jsonContent = JSON.stringify({ name: 'Alpha Team' }, null, 2)
       downloadJson(jsonContent, 'team.json')
@@ -72,7 +78,9 @@ describe('json-utils', () => {
       downloadJsonWithTimestamp(jsonContent, 'team-alpha-activities')
 
       expect(mockLink.download).toBe('team-alpha-activities-2026-09-06.json')
+      expect(appendChildSpy).toHaveBeenCalledWith(mockLink)
       expect(mockLink.click).toHaveBeenCalled()
+      expect(removeChildSpy).toHaveBeenCalledWith(mockLink)
     })
   })
 })

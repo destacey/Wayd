@@ -1,7 +1,8 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Mapster;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Dispatching;
 using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
@@ -27,6 +28,7 @@ public static class ConfigureServices
         services.AddScoped<IImportPayloadSerializer, ImportPayloadSerializer>();
         services.AddScoped<IImportDefinition, EmployeeImportDefinition>();
         services.AddScoped<IImportDefinitionRegistry, ImportDefinitionRegistry>();
+        services.AddScoped<IActivityLogReader, ActivityLogReader>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
         TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);

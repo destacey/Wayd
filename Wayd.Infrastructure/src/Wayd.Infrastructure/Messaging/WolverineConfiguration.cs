@@ -258,11 +258,9 @@ public static class WolverineConfiguration
         // when a dependency has a DI registration it cannot "see through". This used to be impossible here:
         // CurrentUser injected raw IServiceProvider (its old lazy-IUserService cycle-breaker), and that single
         // registration poisoned every handler's transitive graph, forcing AlwaysAllowed. With the cycle now
-        // broken properly (ICurrentPrincipal), codegen inline-constructs the full EF graph — DbContextOptions,
-        // WaydDbContext, and the IXxxDbContext → WaydDbContext facades are all plain type-mapped registrations
-        // it sees through; none of them needs service location. What remains genuinely opaque are the internal
-        // implementation types below (public interface, impl not visible to the generated assembly), which the
-        // allow-list opts in to scoped service location. A NEW internal-impl handler dependency will fail
+        // broken properly (ICurrentPrincipal), what remains genuinely opaque are the internal implementation
+        // types below (public interface, impl not visible to the generated assembly), which the allow-list
+        // opts in to scoped service location. A NEW internal-impl handler dependency will fail
         // `codegen write` (and therefore the local Debug build's regen target + CI staleness check) with an
         // InvalidServiceLocationException naming the type — add it here, or make the implementation public.
         opts.ServiceLocationPolicy = ServiceLocationPolicy.NotAllowed;
@@ -275,6 +273,32 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Identity.IUserIdentityStore>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Users.IUserService>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Roles.IRoleService>();
+
+        // The DbContext facades are allow-listed for CORRECTNESS, like AmbientUserId below, not opaqueness.
+        // Codegen used to inline-construct them, and it constructed one PER INTERFACE: a handler taking two of
+        // these got two contexts with two change trackers, and each was disposed at the end of the message. The
+        // import runner made that visible — every definition wrote into its own context while the runner saved
+        // a different one, so imports reported success and persisted nothing. Resolving them from the scope,
+        // against the alias registrations in AddDomainDbContexts, gives the whole message one context.
+        //
+        // Keep the two in step: the registrations are factories, which codegen cannot see through, so removing
+        // an entry here fails `codegen write` rather than silently regressing.
+
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IWaydDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.AppIntegration.Application.Persistence.IAppIntegrationDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.FeatureManagement.IFeatureManagementDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Goals.Application.Persistence.IGoalsDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IImportDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Links.ILinksDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Organization.Application.Persistence.IOrganizationDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.Persistence.IPlanningDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProductManagement.Application.IProductManagementDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IStatusWorkflowDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProjectPortfolioManagement.Application.IProjectPortfolioManagementDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.StrategicManagement.Application.IStrategicManagementDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Work.Application.Persistence.IWorkDbContext>();
+
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Persistence.Context.WaydDbContext>();
 
         // AmbientUserId is allow-listed for CORRECTNESS, not opaqueness (it's a plain public scoped class):
         // UserIdentityMiddleware.Before writes the acting user id to it, and every consumer in the same message

@@ -101,21 +101,40 @@ internal static class ConfigureServices
         }
     }
 
+    /// <summary>
+    /// Points every module's interface at the one <see cref="WaydDbContext"/> in the scope.
+    /// </summary>
+    /// <remarks>
+    /// A factory rather than <c>AddScoped&lt;IModuleDbContext, WaydDbContext&gt;()</c>, which reads as an
+    /// alias but is not one: each of those is its own service descriptor, so every interface handed out a
+    /// separate context with a separate change tracker. Anything spanning two of them silently half-worked.
+    /// <para>
+    /// The import runner is where it surfaced. A definition adds records through its module's interface
+    /// while the runner saves through <c>IImportDbContext</c>, so the save persisted the row outcomes and
+    /// discarded everything the import had created — a run reporting every row applied and creating none.
+    /// </para>
+    /// <para>
+    /// A factory is opaque to Wolverine's codegen, so each of these is also allow-listed for service
+    /// location in <c>WolverineConfiguration</c>. Both halves are required: without the allow-list codegen
+    /// cannot see through the registration, and without the factory it inline-constructs a private context
+    /// per interface and never consults the container at all.
+    /// </para>
+    /// </remarks>
     private static IServiceCollection AddDomainDbContexts(this IServiceCollection services)
     {
-        services.AddScoped<IWaydDbContext, WaydDbContext>();
-        services.AddScoped<IAppIntegrationDbContext, WaydDbContext>();
-        services.AddScoped<IFeatureManagementDbContext, WaydDbContext>();
-        services.AddScoped<IGoalsDbContext, WaydDbContext>();
-        services.AddScoped<IImportDbContext, WaydDbContext>();
-        services.AddScoped<ILinksDbContext, WaydDbContext>();
-        services.AddScoped<IOrganizationDbContext, WaydDbContext>();
-        services.AddScoped<IPlanningDbContext, WaydDbContext>();
-        services.AddScoped<IProductManagementDbContext, WaydDbContext>();
-        services.AddScoped<IStatusWorkflowDbContext, WaydDbContext>();
-        services.AddScoped<IProjectPortfolioManagementDbContext, WaydDbContext>();
-        services.AddScoped<IStrategicManagementDbContext, WaydDbContext>();
-        services.AddScoped<IWorkDbContext, WaydDbContext>();
+        services.AddScoped<IWaydDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IAppIntegrationDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IFeatureManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IGoalsDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IImportDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<ILinksDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IOrganizationDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IPlanningDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IProductManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IStatusWorkflowDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IProjectPortfolioManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IStrategicManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IWorkDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
 
         return services;
     }

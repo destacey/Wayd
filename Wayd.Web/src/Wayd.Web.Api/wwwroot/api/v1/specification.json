@@ -19359,7 +19359,7 @@
         "tags": [
           "Risks"
         ],
-        "summary": "Import risks from a csv file.",
+        "summary": "Submit a csv file of risks to import. Returns the id of the import to follow.",
         "operationId": "Risks_Import",
         "requestBody": {
           "content": {
@@ -19382,8 +19382,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",

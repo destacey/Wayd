@@ -1,7 +1,9 @@
 ﻿using CsvHelper;
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
-using Wayd.Planning.Application.Risks.Commands;
 using Wayd.Planning.Application.Risks.Dtos;
+using Wayd.Planning.Application.Risks.Imports;
 using Wayd.Planning.Application.Risks.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Planning.Risks;
@@ -93,17 +95,24 @@ public class RisksController : ControllerBase
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Risks)]
-    [OpenApiOperation("Import risks from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of risks to import. Returns the id of the import to follow.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import(
+        [FromForm] IFormFile file,
+        [FromServices] IImportDefinitionRegistry importDefinitions,
+        CancellationToken cancellationToken)
     {
         try
         {
             var importedRisks = _csvService.ReadCsv<ImportRiskRequest>(file.OpenReadStream());
 
-            List<ImportRiskDto> risks = [];
+            var definition = importDefinitions.Find(RiskImportDefinition.ImportKey);
+            if (definition.IsFailure)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest(definition.Error, HttpContext));
+
+            List<SubmittedImportRow> submittedRows = [];
             var validator = new ImportRiskRequestValidator(_dateTimeProvider);
             foreach (var risk in importedRisks)
             {
@@ -112,27 +121,24 @@ public class RisksController : ControllerBase
                 {
                     foreach (var error in validationResults.Errors)
                     {
-                        if (error.PropertyName != "RecordId")
-                        {
-                            error.ErrorMessage = $"{error.ErrorMessage} (Record Id: {risk.ImportId})";
-                            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-                        }
+                        error.ErrorMessage = $"{error.ErrorMessage} (Import Id: {risk.ImportId})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
-                else
-                {
-                    risks.Add(risk.ToImportRiskDto());
-                }
+
+                submittedRows.Add(new SubmittedImportRow(
+                    risk.ImportId, definition.Value.SerializeRow(risk.ToImportRiskDto())));
             }
 
-            if (risks.Count == 0)
+            if (submittedRows.Count == 0)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest("No risks imported.", HttpContext));
 
-            var result = await _dispatcher.Send(new ImportRisksCommand(risks), cancellationToken);
+            var result = await _dispatcher.Send(
+                new SubmitImportCommand(RiskImportDefinition.ImportKey, submittedRows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

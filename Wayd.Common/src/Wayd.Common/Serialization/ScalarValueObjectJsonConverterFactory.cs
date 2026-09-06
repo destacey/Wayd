@@ -116,9 +116,13 @@ internal sealed class ScalarValueObjectConverter<TDerived, TValue> : JsonConvert
         {
             JsonSerializer.Serialize(writer, scalarVo.Value, options);
         }
-        else
+        else if (value is null)
         {
             writer.WriteNullValue();
+        }
+        else
+        {
+            throw new JsonException($"Expected value of type {typeof(ScalarValueObject<TValue>).FullName} but received {value.GetType().FullName}.");
         }
     }
 }

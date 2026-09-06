@@ -37,6 +37,10 @@ describe('json-utils', () => {
 
   describe('downloadJson', () => {
     it('creates a blob with json content and triggers download', () => {
+      jest.useFakeTimers()
+      const appendChildSpy = jest.spyOn(document.body, 'appendChild')
+      const removeChildSpy = jest.spyOn(document.body, 'removeChild')
+
       const jsonContent = JSON.stringify({ name: 'Alpha Team' }, null, 2)
       downloadJson(jsonContent, 'team.json')
 
@@ -47,10 +51,18 @@ describe('json-utils', () => {
       )
       expect(mockLink.href).toBe('blob:mock-json-url')
       expect(mockLink.download).toBe('team.json')
+      expect(appendChildSpy).toHaveBeenCalledWith(mockLink)
       expect(mockLink.click).toHaveBeenCalled()
+      expect(removeChildSpy).toHaveBeenCalledWith(mockLink)
+
+      // revokeObjectURL called after timeout
+      expect(global.URL.revokeObjectURL).not.toHaveBeenCalled()
+      jest.advanceTimersByTime(100)
       expect(global.URL.revokeObjectURL).toHaveBeenCalledWith(
         'blob:mock-json-url',
       )
+
+      jest.useRealTimers()
     })
   })
 

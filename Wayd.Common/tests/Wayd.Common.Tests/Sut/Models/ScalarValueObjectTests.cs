@@ -118,4 +118,17 @@ public sealed class ScalarValueObjectTests
         (vo1 == vo2).Should().BeTrue();
         (vo1 != vo3).Should().BeTrue();
     }
+
+    [Fact]
+    public void Serializes_Null_ValueObject_As_Null()
+    {
+        // Arrange
+        TestStringVo? nullVo = null;
+
+        // Act
+        var json = JsonSerializer.Serialize(nullVo);
+
+        // Assert
+        json.Should().Be("null");
+    }
 }

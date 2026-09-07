@@ -337,15 +337,16 @@ public class OrgGeneratorTests
     [Fact]
     public void Generate_ProducesEmailAddressesThatCanBecomeUsernames()
     {
-        // Arrange — Wayd signs people in by email, and ASP.NET Identity's allowed-character set is letters,
-        // digits and a handful of punctuation. A name like O'Connell built straight into an address is
-        // rejected when an account is created for them, and the failure surfaces a long way from the name
-        // that caused it, so it is caught here instead.
+        // Arrange — Wayd signs people in by email, so a generated address has to be one the username rule
+        // accepts. That rule follows RFC 5322's unquoted local part, and this asserts the same grammar
+        // from the generator's side: a name that cannot become an address fails here rather than as a
+        // rejected account a long way downstream.
+        const string atext = "!#$%&'*+-/=?^_`{|}~";
         var org = Generate();
 
         // Act
         var unusable = org.Employees
-            .Where(e => e.Email.Split('@')[0].Any(c => !char.IsLetterOrDigit(c) && c != '.'))
+            .Where(e => e.Email.Split('@')[0].Any(c => !char.IsLetterOrDigit(c) && c != '.' && !atext.Contains(c)))
             .Select(e => e.Email)
             .ToList();
 

@@ -386,15 +386,14 @@ public sealed class OrgGenerator
     /// A work address for someone, unique across the company.
     /// </summary>
     /// <remarks>
-    /// Anything but letters and digits is dropped from the name rather than carried through. Wayd uses the
-    /// email as the account's username, and ASP.NET Identity's allowed-character set has no apostrophe, so
-    /// an address built straight from "O'Connell" is rejected when the user area tries to create a sign-in
-    /// for them — a failure that surfaces a long way from the name that caused it. Companies flatten these
-    /// out of addresses anyway.
+    /// Characters an address may not contain are dropped from the name; an apostrophe is kept, because an
+    /// address may legitimately contain one and a seeded O'Connell is what proves it. That is not
+    /// hypothetical — a live run produced exactly that name and could not create a sign-in for them, which
+    /// is how the username rule was found to be narrower than the address grammar.
     /// </remarks>
     private string UniqueEmail(string first, string last)
     {
-        var baseLocal = new string([.. $"{first}.{last}".ToLowerInvariant().Where(c => char.IsLetterOrDigit(c) || c == '.')]);
+        var baseLocal = new string([.. $"{first}.{last}".ToLowerInvariant().Where(IsAddressCharacter)]);
         var candidate = $"{baseLocal}@acme.example";
         var suffix = 1;
         while (!_usedEmails.Add(candidate))
@@ -404,6 +403,13 @@ public sealed class OrgGenerator
         }
         return candidate;
     }
+
+    /// <summary>
+    /// Whether a character may appear unquoted in an email address: RFC 5322's <c>atext</c>, plus the dot
+    /// that separates atoms. Kept in step with the username rule the API applies to the same value.
+    /// </summary>
+    private static bool IsAddressCharacter(char c) =>
+        char.IsLetterOrDigit(c) || c == '.' || "!#$%&'*+-/=?^_`{|}~".Contains(c);
 
     // ---- Teams --------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-﻿using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
 using Wayd.Common.Domain.Events;
 
@@ -68,7 +68,7 @@ public sealed class UpdateTeamCommandHandler : ICommandHandler<UpdateTeamCommand
                 request.Name,
                 request.Code,
                 request.Description,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now
                 );
 

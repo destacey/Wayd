@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -36,4 +37,9 @@ public sealed record VersionWithdrawnEvent : DomainEvent, IProductManagementEven
     public string? Reason { get; }
 
     public Guid StatusId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Version";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

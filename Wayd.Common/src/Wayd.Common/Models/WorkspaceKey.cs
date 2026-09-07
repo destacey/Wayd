@@ -1,43 +1,26 @@
-﻿using Ardalis.GuardClauses;
-using CSharpFunctionalExtensions;
+using System.Text.Json.Serialization;
+using Ardalis.GuardClauses;
+using Wayd.Common.Serialization;
 
 namespace Wayd.Common.Models;
 
-public sealed class WorkspaceKey : ValueObject
+[JsonConverter(typeof(ScalarValueObjectJsonConverterFactory))]
+public sealed class WorkspaceKey : ScalarValueObject<string>
 {
-    /// <summary>
-    /// The regular expression used to validate the workspace key format.
-    /// The workspace key must be uppercase letters and numbers only, start with an uppercase letter, and have a length between 2-20 characters.
-    /// </summary>
     internal const string Regex = "^([A-Z][A-Z0-9]{1,19})$";
 
-    public WorkspaceKey(string value)
+    public WorkspaceKey(string value) : base(Validate(value))
+    {
+    }
+
+    private static string Validate(string value)
     {
         value = Guard.Against.NullOrWhiteSpace(value, nameof(WorkspaceKey)).Trim().ToUpper();
 
-        if (ValidateWorkspaceKeyFormat(value))
-        {
-            Value = value;
-        }
-    }
-
-    public string Value { get; init; } = null!;
-
-    protected override IEnumerable<IComparable> GetEqualityComponents()
-    {
-        yield return Value;
-    }
-
-    // only validates that the format is correct
-    private bool ValidateWorkspaceKeyFormat(string value)
-    {
         return value.IsValidWorkspaceKeyFormat()
-            ? true
+            ? value
             : throw new ArgumentException("The value submitted does not meet the required format.", nameof(WorkspaceKey));
     }
 
-    public override string ToString() => Value;
-
-    public static implicit operator string(WorkspaceKey workspaceKey) => workspaceKey.Value;
     public static explicit operator WorkspaceKey(string value) => new(value);
 }

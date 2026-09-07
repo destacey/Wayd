@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Events;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
@@ -10,7 +12,7 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// records losing their statuses. Those keep resolving through it permanently, which is why archiving
 /// retains the row rather than deleting it.
 /// </remarks>
-public sealed record WorkflowArchivedEvent : DomainEvent
+public sealed record WorkflowArchivedEvent : DomainEvent, IAggregateEvent
 {
     public WorkflowArchivedEvent(Guid id, int key, string name, string ownerType, EventActor actor, Instant timestamp)
         : base(actor)
@@ -27,4 +29,9 @@ public sealed record WorkflowArchivedEvent : DomainEvent
     public int Key { get; }
     public string Name { get; }
     public string OwnerType { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Workflow";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

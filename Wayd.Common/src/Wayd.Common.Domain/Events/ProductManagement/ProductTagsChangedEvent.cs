@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -29,4 +30,9 @@ public sealed record ProductTagsChangedEvent : DomainEvent, IProductManagementEv
 
     /// <summary>Every tag the product now carries.</summary>
     public Guid[] TagIds { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Product";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

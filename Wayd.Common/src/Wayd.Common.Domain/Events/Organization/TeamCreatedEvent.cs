@@ -1,11 +1,12 @@
-﻿using Wayd.Common.Domain.Enums.Organization;
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Organization;
 
-public sealed record TeamCreatedEvent : DomainEvent, ISimpleTeam
+public sealed record TeamCreatedEvent : DomainEvent, ISimpleTeam, IAggregateEvent
 {
     public TeamCreatedEvent(Guid id, int key, TeamCode code, string name, string? description, TeamType type, LocalDate activeDate, LocalDate? inactiveDate, bool isActive, EventActor actor, Instant timestamp)
         : base(actor)
@@ -31,4 +32,9 @@ public sealed record TeamCreatedEvent : DomainEvent, ISimpleTeam
     public LocalDate ActiveDate { get; }
     public LocalDate? InactiveDate { get; }
     public bool IsActive { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Team";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

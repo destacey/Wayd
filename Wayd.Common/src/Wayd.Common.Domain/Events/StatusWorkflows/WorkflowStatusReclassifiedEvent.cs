@@ -1,4 +1,6 @@
-﻿using NodaTime;
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Events;
+using NodaTime;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
@@ -21,7 +23,7 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// with the status they point at, and moving those is a remap rather than an edit.
 /// </para>
 /// </remarks>
-public sealed record WorkflowStatusReclassifiedEvent : DomainEvent
+public sealed record WorkflowStatusReclassifiedEvent : DomainEvent, IAggregateEvent
 {
     public WorkflowStatusReclassifiedEvent(
         Guid workflowId,
@@ -50,4 +52,9 @@ public sealed record WorkflowStatusReclassifiedEvent : DomainEvent
     public string OwnerType { get; }
     public StatusCategory FromCategory { get; }
     public StatusCategory ToCategory { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Workflow";
+    [JsonIgnore]
+    public Guid AggregateId => WorkflowId;
 }

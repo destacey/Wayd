@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -29,4 +30,9 @@ public sealed record PackageManifestAmendedEvent : DomainEvent, IProductManageme
     public string Version { get; }
     public int ComponentCount { get; }
     public int ChangedCount { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "ReleasePackage";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

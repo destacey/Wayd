@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 
@@ -61,4 +62,9 @@ public sealed record DeploymentFailedEvent : DomainEvent, IProductManagementEven
     public string? Reason { get; }
     public Instant CompletedAt { get; }
     public Guid StatusId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Deployment";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

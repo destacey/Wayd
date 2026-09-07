@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
@@ -25,6 +26,15 @@ public interface IWaydDbContext
     DbSet<PersonalAccessToken> PersonalAccessTokens { get; }
     DbSet<User> WaydUsers { get; }
     DbSet<ScoringModel> ScoringModels { get; }
+}
+
+/// <summary>
+/// Persistence interface for reading and querying activity logs.
+/// </summary>
+public interface IActivityLogDbContext
+{
+    DbSet<ActivityLogEntry> ActivityLogs { get; }
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>

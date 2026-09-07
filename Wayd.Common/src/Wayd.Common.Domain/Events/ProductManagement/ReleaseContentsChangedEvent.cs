@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -34,4 +35,9 @@ public sealed record ReleaseContentsChangedEvent : DomainEvent, IProductManageme
 
     /// <summary>How many packages the release ships.</summary>
     public int PackageCount { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Release";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 
@@ -58,4 +59,9 @@ public sealed record DeploymentSucceededEvent : DomainEvent, IProductManagementE
     public string? ArtifactId { get; }
     public Instant CompletedAt { get; }
     public Guid StatusId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Deployment";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

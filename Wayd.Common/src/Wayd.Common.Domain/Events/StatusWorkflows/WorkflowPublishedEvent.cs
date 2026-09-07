@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Events;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
@@ -13,7 +15,7 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// by design, each scope picking its own. <c>WorkflowAssignedEvent</c> is what reports use.
 /// </para>
 /// </remarks>
-public sealed record WorkflowPublishedEvent : DomainEvent
+public sealed record WorkflowPublishedEvent : DomainEvent, IAggregateEvent
 {
     public WorkflowPublishedEvent(Guid id, int key, string name, string ownerType, int statusCount, EventActor actor, Instant timestamp)
         : base(actor)
@@ -38,4 +40,9 @@ public sealed record WorkflowPublishedEvent : DomainEvent
 
     /// <summary>How many statuses it carries, for a notification that summarises without a query.</summary>
     public int StatusCount { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Workflow";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

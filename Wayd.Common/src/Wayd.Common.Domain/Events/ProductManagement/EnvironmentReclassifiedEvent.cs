@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 
@@ -31,4 +32,9 @@ public sealed record EnvironmentReclassifiedEvent : DomainEvent, IProductManagem
     public string Name { get; }
     public EnvironmentCategory FromCategory { get; }
     public EnvironmentCategory ToCategory { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "DeploymentEnvironment";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

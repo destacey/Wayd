@@ -41,4 +41,9 @@ public sealed record ProductAddedEvent : DomainEvent, IProductManagementEvent, I
     public Guid? ParentId { get; }
     public Guid StatusId { get; }
     public StatusCategory StatusCategory { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Product";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

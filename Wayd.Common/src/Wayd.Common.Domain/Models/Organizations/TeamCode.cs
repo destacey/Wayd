@@ -1,37 +1,28 @@
-﻿using Ardalis.GuardClauses;
-using CSharpFunctionalExtensions;
+using System.Text.Json.Serialization;
+using Ardalis.GuardClauses;
 using Wayd.Common.Domain.Extensions.Organizations;
+using Wayd.Common.Models;
+using Wayd.Common.Serialization;
 
 namespace Wayd.Common.Domain.Models.Organizations;
 
-public sealed class TeamCode : ValueObject
+[JsonConverter(typeof(ScalarValueObjectJsonConverterFactory))]
+public sealed class TeamCode : ScalarValueObject<string>
 {
     public const string Regex = "^([A-Z0-9]){2,10}$";
 
-    public TeamCode(string value)
+    public TeamCode(string value) : base(Validate(value))
+    {
+    }
+
+    private static string Validate(string value)
     {
         value = Guard.Against.NullOrWhiteSpace(value, nameof(TeamCode)).Trim().ToUpper();
 
-        ValidateOrganizationCodeFormat(value);
-
-        Value = value;
-    }
-
-    public string Value { get; }
-
-    protected override IEnumerable<IComparable> GetEqualityComponents()
-    {
-        yield return Value;
-    }
-
-    // only validates that the format is correct
-    private bool ValidateOrganizationCodeFormat(string value)
-    {
         return value.IsValidTeamCodeFormat()
-            ? true
+            ? value
             : throw new ArgumentException("The value submitted does not meet the required format.", nameof(TeamCode));
     }
 
-    public static implicit operator string(TeamCode organizationCode) => organizationCode.Value;
     public static explicit operator TeamCode(string value) => new(value);
 }

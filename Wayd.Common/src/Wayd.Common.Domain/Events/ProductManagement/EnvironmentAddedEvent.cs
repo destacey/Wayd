@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 
@@ -25,4 +26,9 @@ public sealed record EnvironmentAddedEvent : DomainEvent, IProductManagementEven
     public string Name { get; }
     public EnvironmentCategory Category { get; }
     public int RingOrder { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "DeploymentEnvironment";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

@@ -41,14 +41,13 @@ public sealed class DomainEventEnvelopeTests
     }
 
     [Fact]
-    public void Construction_LeavesTheCorrelationIdUnsetUntilItIsSaved()
+    public void Construction_AssignsDefaultEventVersion()
     {
-        // Arrange / Act — correlation is infrastructure's to stamp; the domain has no idea what request
-        // it is running inside.
+        // Arrange / Act
         var @event = new TestEvent(EventActor.System, Instant.FromUnixTimeSeconds(1));
 
         // Assert
-        @event.CorrelationId.Should().BeNull();
+        @event.EventVersion.Should().Be("1.0");
     }
 
     private sealed record TestEvent : DomainEvent

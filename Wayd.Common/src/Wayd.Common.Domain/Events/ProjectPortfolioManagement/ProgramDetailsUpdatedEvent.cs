@@ -1,10 +1,11 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
-public sealed record ProgramDetailsUpdatedEvent : DomainEvent, ISimpleProgram
+public sealed record ProgramDetailsUpdatedEvent : DomainEvent, ISimpleProgram, IAggregateEvent
 {
     public ProgramDetailsUpdatedEvent(ISimpleProgram program, EventActor actor, Instant timestamp)
         : this(program.Id, program.Key, program.Name, program.Description, actor, timestamp)
@@ -29,4 +30,9 @@ public sealed record ProgramDetailsUpdatedEvent : DomainEvent, ISimpleProgram
     public int Key { get; }
     public string Name { get; }
     public string Description { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Program";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { MenuProps, Spin } from 'antd'
+import { DownloadOutlined } from '@ant-design/icons'
+import { Button, MenuProps, Spin } from 'antd'
 import { createElement, use, useEffect, useState } from 'react'
 import RisksGrid, {
   RisksGridProps,
@@ -8,6 +9,8 @@ import RisksGrid, {
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
 import {
+  useGetTeamActivitiesQuery,
+  useLazyGetTeamActivitiesQuery,
   useGetTeamDetailsQuery,
   useGetTeamHasEverBeenScrumQuery,
   useGetTeamMembershipsQuery,
@@ -32,7 +35,7 @@ import {
   TeamOperatingModelsGrid,
   EditTeamOperatingModelForm,
 } from '@/src/app/organizations/teams/_components'
-import { Methodology } from '@/src/services/wayd-api'
+import { ActivityLogDto, Methodology } from '@/src/services/wayd-api'
 import {
   CreateTeamMembershipForm,
   EditTeamForm,
@@ -43,6 +46,7 @@ import TeamDetailsLoading from './loading'
 import TeamOverview from './_components/team-overview'
 import TeamFacts from '@/src/app/organizations/teams/[key]/_components/team-facts'
 import AddTeamMemberForm from '@/src/app/organizations/teams/_components/add-team-member-form'
+import { ActivityLogTimeline } from '@/src/components/common/activities'
 
 const CycleTimeReport = dynamic(
   () =>
@@ -52,10 +56,13 @@ const CycleTimeReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
-const TeamBacklog = dynamic(() => import('@/src/app/organizations/teams/_components/team-backlog'), {
-  ssr: false,
-  loading: () => <Spin />,
-})
+const TeamBacklog = dynamic(
+  () => import('@/src/app/organizations/teams/_components/team-backlog'),
+  {
+    ssr: false,
+    loading: () => <Spin />,
+  },
+)
 
 enum TeamTabs {
   Overview = 'overview',
@@ -67,6 +74,7 @@ enum TeamTabs {
   Members = 'members',
   OperatingModelHistory = 'operating-model-history',
   CycleTimeReport = 'cycle-time-report',
+  Activities = 'activities',
 }
 
 const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -89,6 +97,15 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openUpdateOperatingModelForm, setOpenUpdateOperatingModelForm] =
     useState<boolean>(false)
   const [includeClosedRisks, setIncludeClosedRisks] = useState<boolean>(false)
+  const [activityPage, setActivityPage] = useState<number>(1)
+  const [accumulatedActivities, setAccumulatedActivities] = useState<
+    ActivityLogDto[]
+  >([])
+  const [isLoadingMoreActivities, setIsLoadingMoreActivities] =
+    useState<boolean>(false)
+  const [fetchMoreActivities] = useLazyGetTeamActivitiesQuery()
+  const [isExportActivitiesOpen, setIsExportActivitiesOpen] =
+    useState<boolean>(false)
 
   // Expensive sections do not fetch until their section is open — including on
   // arrival via a deep link, since this reads the URL rather than a click.
@@ -96,6 +113,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // returning to a section serves the cached result instead of refetching.
   const risksQueryEnabled = activeTab === TeamTabs.RiskManagement
   const teamMembershipsQueryEnabled = activeTab === TeamTabs.TeamMemberships
+  const activitiesQueryEnabled = activeTab === TeamTabs.Activities
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateTeam = hasPermissionClaim('Permissions.Teams.Update')
@@ -114,9 +132,12 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const router = useRouter()
   const isScrumTeam = team?.operatingModel?.methodology === Methodology.Scrum
 
-  const { data: hasEverBeenScrum } = useGetTeamHasEverBeenScrumQuery(team?.id ?? '', {
-    skip: !team?.id,
-  })
+  const { data: hasEverBeenScrum } = useGetTeamHasEverBeenScrumQuery(
+    team?.id ?? '',
+    {
+      skip: !team?.id,
+    },
+  )
 
   const teamMembershipsQuery = useGetTeamMembershipsQuery(
     { teamId: team?.id ?? '', enabled: teamMembershipsQueryEnabled },
@@ -133,6 +154,67 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     },
     { skip: !team?.id || !risksQueryEnabled },
   )
+
+  const activitiesQuery = useGetTeamActivitiesQuery(
+    {
+      idOrKey: team?.id ?? '',
+      page: 1,
+      pageSize: 50,
+    },
+    { skip: !team?.id || !activitiesQueryEnabled },
+  )
+
+  useEffect(() => {
+    if (activitiesQuery.data?.items) {
+      setAccumulatedActivities(activitiesQuery.data.items)
+      setActivityPage(1)
+    }
+  }, [activitiesQuery.data, team?.id])
+
+  const totalActivitiesCount = activitiesQuery.data?.totalCount
+  const hasMoreActivities =
+    totalActivitiesCount !== undefined &&
+    accumulatedActivities.length < totalActivitiesCount
+
+  const handleLoadMoreActivities = async () => {
+    if (!team?.id || isLoadingMoreActivities || !hasMoreActivities) return
+    const nextPage = activityPage + 1
+    setIsLoadingMoreActivities(true)
+    try {
+      const result = await fetchMoreActivities({
+        idOrKey: team.id,
+        page: nextPage,
+        pageSize: 50,
+      }).unwrap()
+
+      if (result.items && result.items.length > 0) {
+        setAccumulatedActivities((prev) => {
+          const existingIds = new Set(prev.map((a) => a.id))
+          const fresh = result.items.filter((a) => !existingIds.has(a.id))
+          return [...prev, ...fresh]
+        })
+        setActivityPage(nextPage)
+      }
+    } catch (err) {
+      console.error('Failed to load more activities:', err)
+    } finally {
+      setIsLoadingMoreActivities(false)
+    }
+  }
+
+  const handleFetchExportBatch = async (page: number, pageSize: number) => {
+    if (!team?.id) return { items: [], totalCount: 0 }
+    const result = await fetchMoreActivities({
+      idOrKey: team.id,
+      page,
+      pageSize,
+    }).unwrap()
+
+    return {
+      items: result.items ?? [],
+      totalCount: result.totalCount ?? 0,
+    }
+  }
 
   const onIncludeClosedRisksChanged = (includeClosed: boolean) => {
     setIncludeClosedRisks(includeClosed)
@@ -157,7 +239,10 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       }
     }
 
-    if (team?.isActive === true && (canUpdateTeam || canManageTeamMemberships)) {
+    if (
+      team?.isActive === true &&
+      (canUpdateTeam || canManageTeamMemberships)
+    ) {
       const teamManagementChildren: ItemType[] = []
 
       if (canUpdateTeam) {
@@ -223,9 +308,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const renderSectionContent = (activeTab: TeamTabs) => {
     switch (activeTab) {
       case TeamTabs.Overview:
-        return (
-          <TeamOverview team={team!} onNavigateToSection={goToSection} />
-        )
+        return <TeamOverview team={team!} onNavigateToSection={goToSection} />
       case TeamTabs.Backlog:
         return <TeamBacklog teamId={team!.id!} />
       case TeamTabs.Sprints:
@@ -259,14 +342,24 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           />
         )
       case TeamTabs.Members:
-        return (
-          <TeamMembersGrid
-            teamId={team!.id!}
-            teamType="Team"
-          />
-        )
+        return <TeamMembersGrid teamId={team!.id!} teamType="Team" />
       case TeamTabs.CycleTimeReport:
         return <CycleTimeReport teamCode={team!.code} />
+      case TeamTabs.Activities:
+        return (
+          <ActivityLogTimeline
+            activities={accumulatedActivities}
+            isLoading={activitiesQuery.isLoading}
+            isLoadingMore={isLoadingMoreActivities}
+            totalCount={totalActivitiesCount}
+            hasMore={hasMoreActivities}
+            onLoadMore={handleLoadMoreActivities}
+            onFetchExportBatch={handleFetchExportBatch}
+            exportFilename={`team-${team?.code ?? teamKey}-activity`}
+            isExportOpen={isExportActivitiesOpen}
+            onExportClose={() => setIsExportActivitiesOpen(false)}
+          />
+        )
       default:
         return null
     }
@@ -283,7 +376,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sections: RecordSection[] = (() => {
     const items: RecordSection[] = [
       { id: TeamTabs.Overview, label: 'Overview' },
-        { id: TeamTabs.Backlog, label: 'Backlog' },
+      { id: TeamTabs.Backlog, label: 'Backlog' },
     ]
     if (hasEverBeenScrum === true) {
       items.push({ id: TeamTabs.Sprints, label: 'Sprints' })
@@ -293,6 +386,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       { id: TeamTabs.RiskManagement, label: 'Risks' },
       { id: TeamTabs.Members, label: 'Members' },
       { id: TeamTabs.TeamMemberships, label: 'Team Memberships' },
+      { id: TeamTabs.Activities, label: 'Activity' },
     )
     return items
   })()
@@ -365,9 +459,21 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           tags: <InactiveTag isActive={team.isActive ?? false} />,
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
-        facts={
-          <TeamFacts team={team} operatingModel={team.operatingModel} />
+        sectionActions={
+          activeTab === TeamTabs.Activities ? (
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() => setIsExportActivitiesOpen(true)}
+              disabled={
+                activitiesQuery.isLoading ||
+                (!accumulatedActivities.length && !totalActivitiesCount)
+              }
+            >
+              Export
+            </Button>
+          ) : undefined
         }
+        facts={<TeamFacts team={team} operatingModel={team.operatingModel} />}
       >
         {(section) => renderSectionContent(section as TeamTabs)}
       </RecordLayout>

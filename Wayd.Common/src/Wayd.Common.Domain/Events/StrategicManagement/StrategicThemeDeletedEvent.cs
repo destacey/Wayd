@@ -1,8 +1,10 @@
-﻿using NodaTime;
+using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Events;
+using NodaTime;
 
 namespace Wayd.Common.Domain.Events.StrategicManagement;
 
-public sealed record StrategicThemeDeletedEvent : DomainEvent
+public sealed record StrategicThemeDeletedEvent : DomainEvent, IAggregateEvent
 {
     public StrategicThemeDeletedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor)
@@ -13,4 +15,9 @@ public sealed record StrategicThemeDeletedEvent : DomainEvent
     }
 
     public Guid Id { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "StrategicTheme";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

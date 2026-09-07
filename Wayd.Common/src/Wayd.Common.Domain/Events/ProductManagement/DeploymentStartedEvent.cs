@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -54,4 +55,9 @@ public sealed record DeploymentStartedEvent : DomainEvent, IProductManagementEve
 
     public Instant StartedAt { get; }
     public Guid StatusId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Deployment";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -39,4 +40,9 @@ public sealed record ProductReparentedEvent : DomainEvent, IProductManagementEve
 
     /// <summary>The parent it moved to, or <c>null</c> when it became a root node.</summary>
     public Guid? ToParentId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Product";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

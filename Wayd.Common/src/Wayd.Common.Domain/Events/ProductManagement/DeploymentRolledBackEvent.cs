@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 
@@ -55,4 +56,9 @@ public sealed record DeploymentRolledBackEvent : DomainEvent, IProductManagement
     public string? Reason { get; }
     public Instant RolledBackAt { get; }
     public Guid StatusId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Deployment";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

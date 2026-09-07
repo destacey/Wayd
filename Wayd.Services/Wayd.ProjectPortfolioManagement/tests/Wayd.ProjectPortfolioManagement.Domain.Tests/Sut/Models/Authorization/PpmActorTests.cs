@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -23,6 +23,7 @@ public sealed class PpmActorTests
         // Assert
         eventActor.Kind.Should().Be(EventActorKind.User);
         eventActor.UserId.Should().Be("user-1");
+        eventActor.EmployeeId.Should().Be(actor.EmployeeId);
     }
 
     [Fact]
@@ -38,6 +39,7 @@ public sealed class PpmActorTests
         // Assert
         eventActor.Kind.Should().Be(EventActorKind.User);
         eventActor.UserId.Should().Be("user-2");
+        eventActor.EmployeeId.Should().Be(actor.EmployeeId);
     }
 
     [Fact]

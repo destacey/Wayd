@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
@@ -15,7 +16,7 @@ namespace Wayd.Common.Application.Tests.Infrastructure;
 /// A test double for IWaydDbContext that provides in-memory collections for all DbSets.
 /// This eliminates the need for complex Moq setups in tests and is reusable across all Common domain tests.
 /// </summary>
-public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IDisposable
+public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IActivityLogDbContext, IDisposable
 {
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -25,6 +26,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IDisp
     private readonly List<PersonalAccessToken> _personalAccessTokens = [];
     private readonly List<User> _waydUsers = [];
     private readonly List<ScoringModel> _scoringModels = [];
+    private readonly List<ActivityLogEntry> _activityLogs = [];
 
     // The workflow engine's tables, for handlers that reach IStatusWorkflowDbContext.
     private readonly List<StatusWorkflow> _statusWorkflows = [];
@@ -40,6 +42,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IDisp
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
     public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
+    public DbSet<ActivityLogEntry> ActivityLogs => _activityLogs.AsDbSet();
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();

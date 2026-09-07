@@ -1,4 +1,5 @@
-﻿using NodaTime;
+using System.Text.Json.Serialization;
+using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -67,4 +68,9 @@ public sealed record ProductLifecycleChangedEvent : DomainEvent, IProductManagem
     /// consumer branches on — never the status name, which an administrator may rename at any time.
     /// </summary>
     public ProductStatusAlias ToAlias { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Product";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

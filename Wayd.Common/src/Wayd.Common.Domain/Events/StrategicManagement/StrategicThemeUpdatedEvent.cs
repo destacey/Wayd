@@ -1,11 +1,12 @@
 using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Enums.StrategicManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Interfaces.StrategicManagement;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.StrategicManagement;
 
-public sealed record StrategicThemeUpdatedEvent : DomainEvent
+public sealed record StrategicThemeUpdatedEvent : DomainEvent, IAggregateEvent
 {
     public StrategicThemeUpdatedEvent(IStrategicThemeData strategicTheme, EventActor actor, Instant timestamp)
         : this(strategicTheme.Id, strategicTheme.Name, strategicTheme.Description, strategicTheme.State, actor, timestamp)
@@ -30,4 +31,9 @@ public sealed record StrategicThemeUpdatedEvent : DomainEvent
     public string Name { get; }
     public string Description { get; }
     public StrategicThemeState State { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "StrategicTheme";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

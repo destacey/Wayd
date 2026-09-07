@@ -1,12 +1,13 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Planning.Iterations;
 
-public sealed record IterationUpdatedEvent : DomainEvent, ISimpleIteration
+public sealed record IterationUpdatedEvent : DomainEvent, ISimpleIteration, IAggregateEvent
 {
     public IterationUpdatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
         : this(iteration.Id, iteration.Key, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
@@ -37,4 +38,9 @@ public sealed record IterationUpdatedEvent : DomainEvent, ISimpleIteration
     public IterationState State { get; }
     public IterationDateRange DateRange { get; }
     public Guid? TeamId { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Iteration";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
 }

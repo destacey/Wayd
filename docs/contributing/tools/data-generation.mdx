@@ -208,8 +208,14 @@ Every run resolves a concrete seed (random when `--random-seed` is omitted) and 
 Using seed 193051458 (pass --random-seed 193051458 to reproduce this data).
 ```
 
-Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool**. The seed
-pins the randomness, not the algorithm: if the generator changes, the same seed produces different data.
+Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool, on the
+same day**. The seed pins the randomness, not the algorithm: if the generator changes, the same seed produces
+different data.
+
+The "same day" part is a real limitation rather than a nicety. The whole PPM timeline is anchored on today —
+two years back and two years forward — and statuses and transition dates follow from where each record sits
+on that window, so the same seed run tomorrow shifts every date by a day and flips anything that crossed
+today from active to complete.
 
 :::note What "reproducible" means here
 The seed reproduces the **generated data** — the same names, emails, employee numbers, team codes, and
@@ -250,6 +256,28 @@ employees → teams → team hierarchy → roles (created as needed) → team st
   → strategic themes → portfolios → programs → projects → project tasks → project stage statuses
   → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 ```
+
+### One area can be more than one file
+
+An import rejects a file past its row cap outright, and the atomic ones — which is all of the PPM imports —
+cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a
+run that is applied as one transaction; it is the server's guard against an arbitrary client, and the seed
+is a client like any other.
+
+The task file is the one that passes it: a dense breakdown across a few hundred projects runs to around
+12,000 rows at default options. So that area sends several files, and the run log says so:
+
+```
+Importing 11573 project tasks in 2 batch(es)...
+  batch 1 of 2: 7988 tasks
+  batch 2 of 2: 3585 tasks
+```
+
+The split falls on **project boundaries**, and that is not a convenience. The task import is whole-set
+because rows within a project are not independent — a child names its parent by that parent's `ImportId` in
+the same file, and the per-project task number advances as rows are applied. Cutting a project across two
+files hands the second one a child whose parent it never saw. A single project larger than the cap is left
+whole and rejected rather than split, because a named failure beats a file that imports a broken tree.
 
 ### Post, wait, read back, substitute
 

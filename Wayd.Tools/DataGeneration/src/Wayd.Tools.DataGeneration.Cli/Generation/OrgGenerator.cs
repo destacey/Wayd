@@ -1,4 +1,4 @@
-using Bogus;
+﻿using Bogus;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
@@ -26,13 +26,18 @@ public sealed class OrgGenerator
     private readonly HashSet<string> _roleNames = new(StringComparer.OrdinalIgnoreCase);
     private int _nextEmployeeSeq = 1000;
 
-    public OrgGenerator(OrgOptions options)
+    /// <summary>The area name this generator draws its seed under.</summary>
+    public const string AreaName = "organization";
+
+    private readonly GenerationContext _context;
+
+    public OrgGenerator(OrgOptions options, GenerationContext context)
     {
         _options = options;
-        // Always drive Bogus from an explicit seed so every run is reproducible. Callers that do not supply
-        // one should resolve a random seed up front (and log it) rather than leaving it null.
-        var seed = options.Seed ?? Random.Shared.Next();
-        _faker = new Faker { Random = new Randomizer(seed) };
+        _context = context;
+
+        // Derived from the area name, so adding another generator does not shift this one's data.
+        _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
     }
 
     private Person _ceo = null!;
@@ -309,8 +314,9 @@ public sealed class OrgGenerator
             FirstName = first,
             LastName = last,
             Email = UniqueEmail(first, last),
-            // The company is ~5 years old, so hires span anywhere from founding to now.
-            HireDate = _faker.Date.Past(CompanyAgeYears),
+            // Hires span anywhere from founding to the run's today. The reference date has to be passed
+            // in: left out, Bogus measures back from its own DateTime.Now, so a pinned seed still moves.
+            HireDate = _faker.Date.Past(_context.CompanyAgeYears, _context.AsOf),
             JobTitle = jobTitle,
             Department = department,
             ManagerNumber = manager?.EmployeeNumber,
@@ -481,11 +487,15 @@ public sealed class OrgGenerator
     private string PickExcept(string[] pool, string excluded) =>
         _faker.PickRandom(pool.Where(p => !string.Equals(p, excluded, StringComparison.OrdinalIgnoreCase)).ToArray());
 
-    // The company is ~5 years old; the current team structure was set up ~2 years ago.
-    private const int CompanyAgeYears = 5;
-    private const int TeamStructureAgeYears = 2;
-
-    private DateTime RecentActiveDate() => DateTime.SpecifyKind(_faker.Date.Past(TeamStructureAgeYears), DateTimeKind.Utc).Date;
+    /// <summary>
+    /// When a team was stood up: within the current structure's age, which is shorter than the company's.
+    /// </summary>
+    /// <remarks>
+    /// The reference date is passed explicitly for the same reason as hire dates — Bogus otherwise counts
+    /// back from its own DateTime.Now, which moves every run regardless of the seed.
+    /// </remarks>
+    private DateTime RecentActiveDate() =>
+        DateTime.SpecifyKind(_faker.Date.Past(_context.TeamStructureAgeYears, _context.AsOf), DateTimeKind.Utc).Date;
 
     private string MakeUnique(string name, HashSet<string> used)
     {

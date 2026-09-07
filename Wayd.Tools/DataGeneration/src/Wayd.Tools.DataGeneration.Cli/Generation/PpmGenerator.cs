@@ -38,12 +38,15 @@ public sealed class PpmGenerator
     /// <summary>A generated program with the theme and window a project is matched against.</summary>
     private sealed record GeneratedProgram(string Name, PpmVocabulary.ProgramTheme Theme, DateTime Start, DateTime End, string Status);
 
-    // Today anchors the four-year window: two years back, two years forward.
-    private static readonly DateTime Today = DateTime.UtcNow.Date;
-    private static readonly DateTime WindowStart = Today.AddYears(-HistoryYears);
-    private static readonly DateTime WindowEnd = Today.AddYears(RunwayYears);
-    private const int HistoryYears = 2;
-    private const int RunwayYears = 2;
+    // Today anchors the window that work is placed on: history behind it, runway ahead. Instance state
+    // read from the run's context — as statics off DateTime.UtcNow they could not be pinned, so a fixed
+    // seed still produced different data tomorrow.
+    private DateTime Today => _context.AsOf;
+    private DateTime WindowStart => _context.WindowStart;
+    private DateTime WindowEnd => _context.WindowEnd;
+
+    /// <summary>How long the window is, which the concurrency-to-total derivations divide by duration.</summary>
+    private double WindowMonths => (_context.HistoryYears + _context.RunwayYears) * 12.0;
 
     // A project runs 2-9 months typically. The average feeds the concurrency-to-total derivation.
     private const int MinProjectMonths = 2;
@@ -59,11 +62,19 @@ public sealed class PpmGenerator
     // About one project in six is standalone (portfolio-direct) rather than grouped under a program.
     private const double PortfolioDirectFraction = 0.15;
 
-    public PpmGenerator(OrgStructure org, PpmOptions options)
+    /// <summary>The area name this generator draws its seed under.</summary>
+    public const string AreaName = "ppm";
+
+    private readonly GenerationContext _context;
+
+    public PpmGenerator(OrgStructure org, PpmOptions options, GenerationContext context)
     {
         _org = org;
         _options = options;
-        _faker = new Faker { Random = new Randomizer(options.Seed) };
+        _context = context;
+
+        // Derived from the area name, so adding another generator does not shift this one's data.
+        _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
     }
 
     public GeneratedPpm Generate()
@@ -208,7 +219,7 @@ public sealed class PpmGenerator
     /// <summary>The number of thematic programs to run in one portfolio over the window, derived from the concurrency knob and program duration.</summary>
     private int DeriveProgramCount()
     {
-        const double windowMonths = (HistoryYears + RunwayYears) * 12;
+        var windowMonths = WindowMonths;
         const double averageDurationMonths = (MinProgramMonths + MaxProgramMonths) / 2.0;
         var turnover = windowMonths / averageDurationMonths;
         // A theme should not repeat until the portfolio has used them all in a given period; the concurrency
@@ -224,7 +235,7 @@ public sealed class PpmGenerator
     /// </summary>
     private int DeriveProjectCount()
     {
-        const double windowMonths = (HistoryYears + RunwayYears) * 12;
+        var windowMonths = WindowMonths;
         const double averageDurationMonths = (MinProjectMonths + MaxProjectMonths) / 2.0;
         var turnover = windowMonths / averageDurationMonths;
         return Math.Max(1, (int)Math.Round(_options.ConcurrentProjectsPerArt * turnover));

@@ -1,4 +1,4 @@
-using System.CommandLine;
+﻿using System.CommandLine;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Seeding;
@@ -17,28 +17,40 @@ var functionPortfoliosOption = new Option<int>("--function-portfolios") { Descri
 var concurrentProjectsPerArtOption = new Option<int>("--concurrent-projects-per-art") { Description = "Average number of projects an ART has in flight at once. Projects are ART-scoped (a subset of the ART's teams each); the total generated is derived from this across the four-year window.", DefaultValueFactory = _ => 10 };
 var concurrentProgramsPerPortfolioOption = new Option<int>("--concurrent-programs-per-portfolio") { Description = "Average number of thematic programs a portfolio runs at once (Modernization, Integrations, …). Programs group projects by theme, independent of the delivery hierarchy; the total is derived across the window.", DefaultValueFactory = _ => 5 };
 
-// The seed resolved once and shared by both the org and PPM generators, so a single --random-seed
-// reproduces the whole dataset.
+var asOfOption = new Option<DateTime?>("--as-of") { Description = "The date the run treats as today, which the whole timeline is anchored on. Defaults to today, so generated data straddles now. Pin it together with --random-seed for byte-identical output — either alone is not enough." };
+
+// The seed resolved once and shared by every generator, so a single --random-seed reproduces the whole
+// dataset. Each generator derives its own from the area name rather than taking this directly.
 int ResolveSeed(ParseResult parse) => parse.GetValue(seedOption) ?? Random.Shared.Next();
 
-OrgOptions ReadOrgOptions(ParseResult parse, int seed) => new()
+// Everything time-dependent reads from here, so one run has one "today" instead of three independent ones.
+GenerationContext ReadContext(ParseResult parse, int seed) => new()
+{
+    AsOf = (parse.GetValue(asOfOption) ?? DateTime.UtcNow).Date,
+    Seed = seed,
+};
+
+// Printed after every run: the seed alone does not reproduce a dataset, because the timeline is anchored
+// on the day it ran.
+void ReportRunInputs(GenerationContext context) =>
+    Console.WriteLine(
+        $"Using seed {context.Seed} as of {context.AsOf:yyyy-MM-dd} "
+        + $"(pass --random-seed {context.Seed} --as-of {context.AsOf:yyyy-MM-dd} to reproduce this data).");
+
+OrgOptions ReadOrgOptions(ParseResult parse) => new()
 {
     CompanyType = parse.GetValue(companyTypeOption),
     DeliveryRatio = parse.GetValue(deliveryRatioOption),
     ValueStreams = parse.GetValue(valueStreamsOption),
     Teams = parse.GetValue(teamsOption),
-    Seed = seed,
     FormerEmployeeFraction = parse.GetValue(formerEmployeesOption),
 };
 
-PpmOptions ReadPpmOptions(ParseResult parse, int seed) => new()
+PpmOptions ReadPpmOptions(ParseResult parse) => new()
 {
     FunctionPortfolios = parse.GetValue(functionPortfoliosOption),
     ConcurrentProjectsPerArt = parse.GetValue(concurrentProjectsPerArtOption),
     ConcurrentProgramsPerPortfolio = parse.GetValue(concurrentProgramsPerPortfolioOption),
-    // Offset the PPM seed from the org seed so the two generators do not draw an identical value stream, yet
-    // stay deterministic under one --random-seed.
-    Seed = unchecked(seed + 1),
 };
 
 void AddGenerationOptions(Command command)
@@ -48,6 +60,7 @@ void AddGenerationOptions(Command command)
     command.Add(valueStreamsOption);
     command.Add(teamsOption);
     command.Add(seedOption);
+    command.Add(asOfOption);
     command.Add(formerEmployeesOption);
     command.Add(skipPpmOption);
     command.Add(functionPortfoliosOption);
@@ -70,9 +83,10 @@ generateCommand.Add(outOption);
 generateCommand.SetAction((parse, _) =>
 {
     var seed = ResolveSeed(parse);
-    Console.WriteLine($"Using seed {seed} (pass --random-seed {seed} to reproduce this data).");
+    var context = ReadContext(parse, seed);
+    ReportRunInputs(context);
 
-    var org = new OrgGenerator(ReadOrgOptions(parse, seed)).Generate();
+    var org = new OrgGenerator(ReadOrgOptions(parse), context).Generate();
     var outDir = parse.GetValue(outOption)!;
     outDir.Create();
 
@@ -85,7 +99,7 @@ generateCommand.SetAction((parse, _) =>
 
     if (!parse.GetValue(skipPpmOption))
     {
-        var ppm = new PpmGenerator(org.Structure, ReadPpmOptions(parse, seed)).Generate();
+        var ppm = new PpmGenerator(org.Structure, ReadPpmOptions(parse), context).Generate();
 
         CsvFile.Write(Path.Combine(outDir.FullName, "strategic-themes.csv"), ppm.StrategicThemes);
         CsvFile.Write(Path.Combine(outDir.FullName, "portfolios.csv"), ppm.Portfolios);
@@ -125,15 +139,16 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
     }
 
     var seed = ResolveSeed(parse);
-    Console.WriteLine($"Using seed {seed} (pass --random-seed {seed} to reproduce this data).");
+    var context = ReadContext(parse, seed);
+    ReportRunInputs(context);
 
-    var org = new OrgGenerator(ReadOrgOptions(parse, seed)).Generate();
+    var org = new OrgGenerator(ReadOrgOptions(parse), context).Generate();
     Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");
 
     GeneratedPpm? ppm = null;
     if (!parse.GetValue(skipPpmOption))
     {
-        ppm = new PpmGenerator(org.Structure, ReadPpmOptions(parse, seed)).Generate();
+        ppm = new PpmGenerator(org.Structure, ReadPpmOptions(parse), context).Generate();
         Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
     }
 

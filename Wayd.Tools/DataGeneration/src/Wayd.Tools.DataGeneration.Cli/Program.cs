@@ -20,6 +20,8 @@ var valueStreamsOption = new Option<int?>("--value-streams", "-v") { Description
 var teamsOption = new Option<int?>("--teams", "-t") { Description = "Number of leaf delivery teams to generate." };
 var seedOption = new Option<int?>("--random-seed", "-r") { Description = "Fixed random seed for reproducible output." };
 var formerEmployeesOption = new Option<double?>("--former-employees") { Description = "Fraction (0..1) of non-delivery individual contributors generated as former (inactive) employees." };
+var skipUsersOption = new Option<bool>("--skip-users") { Description = "Do not create application roles or sign-ins. A shorthand for a recipe that disables the users area." };
+var userPasswordOption = new Option<string?>("--user-password") { Description = "The password every generated account is created with. Defaults to what the recipe states." };
 var skipPpmOption = new Option<bool>("--skip-ppm") { Description = "Generate only the organization; skip the PPM dataset. A shorthand for a recipe that disables the ppm area — see the org-only built-in." };
 var functionPortfoliosOption = new Option<int?>("--function-portfolios") { Description = "Number of cross-cutting business-function portfolios, in addition to one portfolio per value stream." };
 var concurrentProjectsPerArtOption = new Option<int?>("--concurrent-projects-per-art") { Description = "Average number of projects an ART has in flight at once. Projects are ART-scoped (a subset of the ART's teams each); the total generated is derived from this across the window." };
@@ -64,6 +66,13 @@ Recipe ResolveRecipe(ParseResult parse)
             FunctionPortfolios = FlagOr(parse, functionPortfoliosOption),
             ConcurrentProjectsPerArt = FlagOr(parse, concurrentProjectsPerArtOption),
             ConcurrentProgramsPerPortfolio = FlagOr(parse, concurrentProgramsPerPortfolioOption),
+        },
+        Users = new UsersRecipe
+        {
+            // Reads like --skip-ppm and for the same reason: it can only turn the area off, so not
+            // passing it says nothing rather than switching it back on over a recipe.
+            Enabled = parse.GetValue(skipUsersOption) ? false : null,
+            Password = parse.GetValue(userPasswordOption),
         },
     };
 
@@ -116,6 +125,8 @@ void AddGenerationOptions(Command command)
     command.Add(asOfOption);
     command.Add(formerEmployeesOption);
     command.Add(skipPpmOption);
+    command.Add(skipUsersOption);
+    command.Add(userPasswordOption);
     command.Add(functionPortfoliosOption);
     command.Add(concurrentProjectsPerArtOption);
     command.Add(concurrentProgramsPerPortfolioOption);
@@ -217,7 +228,7 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
 
     try
     {
-        await runner.Run(org, ppm, cancellationToken);
+        await runner.Run(org, ppm, resolved.CreateUsers, resolved.UserPassword, cancellationToken);
         return 0;
     }
     catch (SeedException ex)

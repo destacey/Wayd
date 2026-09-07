@@ -1,4 +1,4 @@
-namespace Wayd.Tools.DataGeneration.Cli.Generation;
+﻿namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
 /// A structural view of the generated delivery hierarchy, exposed so the PPM generator can hang portfolios,
@@ -6,7 +6,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// from the people already on those teams. Everything is keyed by the same natural keys the CSV imports use
 /// (team codes, employee numbers), so the PPM rows line up with the org rows without sharing generated Ids.
 /// </summary>
-public sealed record OrgStructure(IReadOnlyList<ValueStreamNode> ValueStreams);
+/// <param name="ValueStreams">The delivery hierarchy.</param>
+/// <param name="ChiefExecutiveEmployeeNumber">
+/// The executives, named so the user generator can give a seeded environment a way in that does not depend
+/// on PPM having been generated. Optional because a structure can be built without an executive layer.
+/// </param>
+public sealed record OrgStructure(
+    IReadOnlyList<ValueStreamNode> ValueStreams,
+    string? ChiefExecutiveEmployeeNumber = null,
+    string? ChiefTechnologyEmployeeNumber = null,
+    string? ChiefProductEmployeeNumber = null);
 
 /// <summary>
 /// A value stream (top of the delivery hierarchy). In a small org this may be a single ART with no separate

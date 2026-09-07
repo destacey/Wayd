@@ -126,6 +126,7 @@ public class RecipeLayeringTests
                 ConcurrentProjectsPerArt = 1,
                 ConcurrentProgramsPerPortfolio = 1,
             },
+            Users = new UsersRecipe { Password = "Under123$" },
         };
 
         var over = new Recipe
@@ -152,6 +153,7 @@ public class RecipeLayeringTests
                 ConcurrentProjectsPerArt = 11,
                 ConcurrentProgramsPerPortfolio = 4,
             },
+            Users = new UsersRecipe { Password = "Over1234$" },
         };
 
         // Act
@@ -173,6 +175,8 @@ public class RecipeLayeringTests
         result.Ppm.FunctionPortfolios.Should().Be(6);
         result.Ppm.ConcurrentProjectsPerArt.Should().Be(11);
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
+
+        result.UserPassword.Should().Be("Over1234$");
     }
 
     [Fact]
@@ -204,6 +208,7 @@ public class RecipeLayeringTests
                 ConcurrentProjectsPerArt = 11,
                 ConcurrentProgramsPerPortfolio = 4,
             },
+            Users = new UsersRecipe { Password = "Over1234$" },
         };
 
         // Act — an upper layer that states nothing at all, which is what an unflagged run looks like
@@ -225,6 +230,8 @@ public class RecipeLayeringTests
         result.Ppm.FunctionPortfolios.Should().Be(6);
         result.Ppm.ConcurrentProjectsPerArt.Should().Be(11);
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
+
+        result.UserPassword.Should().Be("Over1234$");
     }
 
     [Fact]

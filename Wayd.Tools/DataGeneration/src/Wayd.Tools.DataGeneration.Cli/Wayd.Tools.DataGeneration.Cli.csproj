@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
     wayd-data: a standalone dev tool that generates realistic organization data (people with a management
@@ -23,6 +23,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Wayd.Tools.DataGeneration.Cli.Client\Wayd.Tools.DataGeneration.Cli.Client.csproj" />
+
+    <!--
+      For the permission catalogue only. The tool still reaches the running system exclusively over HTTP;
+      this is a compile-time reference so a role's permissions are looked up rather than spelled out.
+      The roles endpoint stores whatever strings it is sent without checking them, so a renamed resource
+      would otherwise be written as a claim that silently grants nothing.
+    -->
+    <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
   </ItemGroup>
 
   <!--

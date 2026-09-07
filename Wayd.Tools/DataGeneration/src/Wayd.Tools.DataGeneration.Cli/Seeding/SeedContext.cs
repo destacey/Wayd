@@ -1,4 +1,4 @@
-using Wayd.Tools.DataGeneration.Cli.Generation;
+﻿using Wayd.Tools.DataGeneration.Cli.Generation;
 
 namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 
@@ -40,6 +40,16 @@ public sealed class SeedContext(WaydSeedClient client, Action<string> log)
     /// <summary>The active project lifecycle every generated project is assigned.</summary>
     public Guid ProjectLifecycleId { get; set; }
 
+    /// <summary>Whether this run creates application roles and sign-ins.</summary>
+    public bool CreateUsers { get; set; }
+
+    /// <summary>
+    /// The password every generated account is created with. Shared on purpose: these are throwaway
+    /// sign-ins for a development environment, and one password for all of them is what makes switching
+    /// between people to check a permission rule practical.
+    /// </summary>
+    public string UserPassword { get; set; } = string.Empty;
+
     /// <summary>
     /// Records what an area created, so later areas can reference it.
     /// </summary>
@@ -49,6 +59,12 @@ public sealed class SeedContext(WaydSeedClient client, Action<string> log)
     /// assigned it, with no second mapping to keep in step.
     /// </remarks>
     public void Publish(string area, IReadOnlyDictionary<string, Guid> createdIds) => _idsByArea[area] = createdIds;
+
+    /// <summary>Everything one area created, by handle.</summary>
+    public IReadOnlyDictionary<string, Guid> Ids(string area) =>
+        _idsByArea.TryGetValue(area, out var ids)
+            ? ids
+            : throw new SeedException($"Area '{area}' has not run. Check the area's declared dependencies.");
 
     /// <summary>The id of one record an earlier area created, by that area's name and the record's handle.</summary>
     public Guid Id(string area, string handle)

@@ -14,7 +14,9 @@ public sealed record ResolvedRecipe(
     GenerationContext Context,
     OrgOptions Organization,
     PpmOptions Ppm,
-    bool GeneratePpm)
+    bool GeneratePpm,
+    bool CreateUsers,
+    string UserPassword)
 {
     /// <summary>
     /// Settles a layered recipe into the types the generators take.
@@ -26,6 +28,7 @@ public sealed record ResolvedRecipe(
         var timeline = recipe.Timeline ?? new TimelineRecipe();
         var organization = recipe.Organization ?? new OrganizationRecipe();
         var ppm = recipe.Ppm ?? new PpmRecipe();
+        var users = recipe.Users ?? new UsersRecipe();
 
         // Every other area is layered over the organization — portfolios and projects name people by
         // employee number, and projects are scoped to a team — so a run without it generates nothing at
@@ -67,7 +70,10 @@ public sealed record ResolvedRecipe(
                 ConcurrentProjectsPerArt = Required(ppm.ConcurrentProjectsPerArt, "ppm.concurrentProjectsPerArt"),
                 ConcurrentProgramsPerPortfolio = Required(ppm.ConcurrentProgramsPerPortfolio, "ppm.concurrentProgramsPerPortfolio"),
             },
-            GeneratePpm: ppm.Enabled ?? true);
+            GeneratePpm: ppm.Enabled ?? true,
+            CreateUsers: users.Enabled ?? true,
+            UserPassword: users.Password ?? throw new RecipeException(
+                "The resolved recipe does not set 'users.password'. The built-in default recipe is expected to set every knob."));
     }
 
     /// <summary>

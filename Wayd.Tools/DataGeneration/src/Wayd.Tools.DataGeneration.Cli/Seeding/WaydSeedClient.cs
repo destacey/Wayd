@@ -1,5 +1,6 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text.Json;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Tools.DataGeneration.Cli.Client;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -21,6 +22,8 @@ public sealed class WaydSeedClient : IDisposable
     private readonly TeamMemberRolesClient _rolesClient;
     private readonly ExpenditureCategoriesClient _expenditureCategoriesClient;
     private readonly ProjectLifecyclesClient _projectLifecyclesClient;
+    private readonly RolesClient _applicationRolesClient;
+    private readonly UsersClient _usersClient;
     private readonly ImportAwaiter _awaiter;
 
     /// <summary>
@@ -40,8 +43,106 @@ public sealed class WaydSeedClient : IDisposable
         _rolesClient = new TeamMemberRolesClient(root, _httpClient);
         _expenditureCategoriesClient = new ExpenditureCategoriesClient(root, _httpClient);
         _projectLifecyclesClient = new ProjectLifecyclesClient(root, _httpClient);
+        _applicationRolesClient = new RolesClient(root, _httpClient);
+        _usersClient = new UsersClient(root, _httpClient);
         _awaiter = new ImportAwaiter(new ImportsClient(root, _httpClient), PollInterval, ImportTimeout);
     }
+
+    /// <summary>
+    /// Ensures each application role exists with exactly the permissions given, creating what is missing.
+    /// </summary>
+    /// <remarks>
+    /// Create-or-update by name, so a re-seed onto an environment that already has these roles refreshes
+    /// their permissions rather than failing. Admin is skipped if it appears: the API refuses to modify
+    /// its permissions, and it already carries everything.
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, string>> EnsureRoles(
+        IEnumerable<SeedRole> roles, CancellationToken cancellationToken)
+    {
+        var existing = await _applicationRolesClient.GetListAsync(cancellationToken);
+        var idsByName = existing
+            .Where(r => r.Name is not null)
+            .ToDictionary(r => r.Name!, r => r.Id!, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var role in roles)
+        {
+            if (string.Equals(role.Name, ApplicationRoles.Admin, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var id = await _applicationRolesClient.CreateOrUpdateAsync(
+                new CreateOrUpdateRoleRequest
+                {
+                    Id = idsByName.TryGetValue(role.Name, out var existingId) ? existingId : null,
+                    Name = role.Name,
+                    Description = role.Description,
+                },
+                cancellationToken);
+
+            idsByName[role.Name] = id;
+
+            await _applicationRolesClient.UpdatePermissionsAsync(
+                id,
+                new UpdateRolePermissionsRequest { RoleId = id, Permissions = [.. role.Permissions] },
+                cancellationToken);
+        }
+
+        return idsByName;
+    }
+
+    /// <summary>
+    /// Creates one sign-in per generated user, linked to the employee it belongs to.
+    /// </summary>
+    /// <remarks>
+    /// One call each: there is no user import endpoint, and unlike the CSV imports this is a handful of
+    /// accounts rather than thousands of rows. A row that fails is reported and the rest continue, because
+    /// an environment with most of its accounts is still worth having — the usual cause is an address the
+    /// environment already knows, which is not a reason to abandon the run.
+    /// </remarks>
+    public async Task<int> CreateUsers(
+        IEnumerable<GeneratedUser> users,
+        IReadOnlyDictionary<string, Guid> employeeIdsByNumber,
+        string password,
+        Action<string> log,
+        CancellationToken cancellationToken)
+    {
+        var created = 0;
+
+        foreach (var user in users)
+        {
+            if (!employeeIdsByNumber.TryGetValue(user.EmployeeNumber, out var employeeId))
+            {
+                log($"  skipped {user.Email}: no employee was created for {user.EmployeeNumber}.");
+                continue;
+            }
+
+            try
+            {
+                await _usersClient.CreateUserAsync(
+                    new CreateUserRequest
+                    {
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        Email = user.Email,
+                        EmployeeId = employeeId,
+                        LoginProvider = LocalLoginProvider,
+                        Password = password,
+                        RoleNames = [user.RoleName],
+                    },
+                    cancellationToken);
+
+                created++;
+            }
+            catch (WaydApiException ex)
+            {
+                log($"  skipped {user.Email}: {ex.Message}");
+            }
+        }
+
+        return created;
+    }
+
+    /// <summary>The provider a password-backed account signs in through.</summary>
+    private const string LocalLoginProvider = "Wayd";
 
     public Task<ImportRun> ImportEmployees(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/organization/employees/import", csv, "employees.csv", "employees", cancellationToken);

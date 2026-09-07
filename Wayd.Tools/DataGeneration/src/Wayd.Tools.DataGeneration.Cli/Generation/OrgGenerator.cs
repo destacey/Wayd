@@ -61,7 +61,11 @@ public sealed class OrgGenerator
             _teamMemberships,
             _members,
             _roleNames.ToList(),
-            new OrgStructure(_valueStreamNodes));
+            new OrgStructure(
+                _valueStreamNodes,
+                _ceo.EmployeeNumber,
+                _cto.EmployeeNumber,
+                _cpo.EmployeeNumber));
     }
 
     // ---- Executive layer ----------------------------------------------------------------------

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
@@ -107,6 +107,36 @@ public sealed class ImportProjectDtoValidatorTests
 
         // Assert
         result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validate_RejectsACanceledProjectThatWasActivatedWithNoTimeline()
+    {
+        // Arrange — reaching Canceled through Active still activates, and activating needs a date range.
+        // Without this the row passes here and fails inside the run instead, which for an atomic import
+        // rejects the whole file rather than naming the problem at submission.
+        var row = Row(ProjectStatus.Canceled) with { ActivatedOn = _activated, Start = null, End = null };
+
+        // Act
+        var result = _sut.Validate(row);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(ImportProjectDto.Start));
+    }
+
+    [Fact]
+    public void Validate_AcceptsACanceledProjectWithNoTimelineWhenItNeverActivated()
+    {
+        // Arrange — the other side of the same rule: cancelled straight from Proposed needs no dates,
+        // which is what the domain allows
+        var row = Row(ProjectStatus.Canceled) with { ActivatedOn = null, Start = null, End = null };
+
+        // Act
+        var result = _sut.Validate(row);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]

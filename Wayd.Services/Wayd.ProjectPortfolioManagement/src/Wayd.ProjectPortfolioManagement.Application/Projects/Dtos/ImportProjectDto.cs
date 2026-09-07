@@ -81,12 +81,13 @@ public sealed class ImportProjectDtoValidator : CustomValidator<ImportProjectDto
             .Must((p, end) => end is null || p.Start is null || p.Start <= end)
                 .WithMessage("End date must be on or after the start date.");
 
-        // Activating and completing both require a date range; approval requires a lifecycle. Canceled is
-        // exempt from both, since the domain allows canceling straight from Proposed.
+        // Activating and completing both require a date range, and so does a canceled row that names an
+        // activation, since reaching Canceled through Active still activates. Only a cancellation straight
+        // from Proposed is exempt, which the domain allows without dates. Approval requires a lifecycle.
         RuleFor(p => p.Start)
             .NotNull()
-            .When(p => p.Status is ProjectStatus.Active or ProjectStatus.Completed)
-                .WithMessage("An active or completed project must have a Start and End date.");
+            .When(p => p.Status is ProjectStatus.Active or ProjectStatus.Completed || p.ActivatedOn is not null)
+                .WithMessage("A project that was activated must have a Start and End date.");
 
         RuleFor(p => p.ProjectLifecycleId)
             .NotNull()

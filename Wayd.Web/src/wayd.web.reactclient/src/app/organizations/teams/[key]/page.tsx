@@ -1,7 +1,6 @@
 'use client'
 
-import { DownloadOutlined } from '@ant-design/icons'
-import { Button, MenuProps, Spin } from 'antd'
+import { MenuProps, Spin } from 'antd'
 import { createElement, use, useEffect, useState } from 'react'
 import RisksGrid, {
   RisksGridProps,
@@ -35,7 +34,7 @@ import {
   TeamOperatingModelsGrid,
   EditTeamOperatingModelForm,
 } from '@/src/app/organizations/teams/_components'
-import { ActivityLogDto, Methodology } from '@/src/services/wayd-api'
+import { Methodology } from '@/src/services/wayd-api'
 import {
   CreateTeamMembershipForm,
   EditTeamForm,
@@ -46,7 +45,12 @@ import TeamDetailsLoading from './loading'
 import TeamOverview from './_components/team-overview'
 import TeamFacts from '@/src/app/organizations/teams/[key]/_components/team-facts'
 import AddTeamMemberForm from '@/src/app/organizations/teams/_components/add-team-member-form'
-import { ActivityLogTimeline } from '@/src/components/common/activities'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 
 const CycleTimeReport = dynamic(
   () =>
@@ -97,15 +101,6 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openUpdateOperatingModelForm, setOpenUpdateOperatingModelForm] =
     useState<boolean>(false)
   const [includeClosedRisks, setIncludeClosedRisks] = useState<boolean>(false)
-  const [activityPage, setActivityPage] = useState<number>(1)
-  const [accumulatedActivities, setAccumulatedActivities] = useState<
-    ActivityLogDto[]
-  >([])
-  const [isLoadingMoreActivities, setIsLoadingMoreActivities] =
-    useState<boolean>(false)
-  const [fetchMoreActivities] = useLazyGetTeamActivitiesQuery()
-  const [isExportActivitiesOpen, setIsExportActivitiesOpen] =
-    useState<boolean>(false)
 
   // Expensive sections do not fetch until their section is open — including on
   // arrival via a deep link, since this reads the URL rather than a click.
@@ -156,65 +151,17 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   )
 
   const activitiesQuery = useGetTeamActivitiesQuery(
-    {
-      idOrKey: team?.id ?? '',
-      page: 1,
-      pageSize: 50,
-    },
+    { idOrKey: team?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
     { skip: !team?.id || !activitiesQueryEnabled },
   )
+  const [fetchActivityLogPage] = useLazyGetTeamActivitiesQuery()
 
-  useEffect(() => {
-    if (activitiesQuery.data?.items) {
-      setAccumulatedActivities(activitiesQuery.data.items)
-      setActivityPage(1)
-    }
-  }, [activitiesQuery.data, team?.id])
-
-  const totalActivitiesCount = activitiesQuery.data?.totalCount
-  const hasMoreActivities =
-    totalActivitiesCount !== undefined &&
-    accumulatedActivities.length < totalActivitiesCount
-
-  const handleLoadMoreActivities = async () => {
-    if (!team?.id || isLoadingMoreActivities || !hasMoreActivities) return
-    const nextPage = activityPage + 1
-    setIsLoadingMoreActivities(true)
-    try {
-      const result = await fetchMoreActivities({
-        idOrKey: team.id,
-        page: nextPage,
-        pageSize: 50,
-      }).unwrap()
-
-      if (result.items && result.items.length > 0) {
-        setAccumulatedActivities((prev) => {
-          const existingIds = new Set(prev.map((a) => a.id))
-          const fresh = result.items.filter((a) => !existingIds.has(a.id))
-          return [...prev, ...fresh]
-        })
-        setActivityPage(nextPage)
-      }
-    } catch (err) {
-      console.error('Failed to load more activities:', err)
-    } finally {
-      setIsLoadingMoreActivities(false)
-    }
-  }
-
-  const handleFetchExportBatch = async (page: number, pageSize: number) => {
-    if (!team?.id) return { items: [], totalCount: 0 }
-    const result = await fetchMoreActivities({
-      idOrKey: team.id,
-      page,
-      pageSize,
-    }).unwrap()
-
-    return {
-      items: result.items ?? [],
-      totalCount: result.totalCount ?? 0,
-    }
-  }
+  const activityLog = useActivityLog({
+    idOrKey: team?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `team-${team?.code ?? teamKey}-activity`,
+  })
 
   const onIncludeClosedRisksChanged = (includeClosed: boolean) => {
     setIncludeClosedRisks(includeClosed)
@@ -346,20 +293,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       case TeamTabs.CycleTimeReport:
         return <CycleTimeReport teamCode={team!.code} />
       case TeamTabs.Activities:
-        return (
-          <ActivityLogTimeline
-            activities={accumulatedActivities}
-            isLoading={activitiesQuery.isLoading}
-            isLoadingMore={isLoadingMoreActivities}
-            totalCount={totalActivitiesCount}
-            hasMore={hasMoreActivities}
-            onLoadMore={handleLoadMoreActivities}
-            onFetchExportBatch={handleFetchExportBatch}
-            exportFilename={`team-${team?.code ?? teamKey}-activity`}
-            isExportOpen={isExportActivitiesOpen}
-            onExportClose={() => setIsExportActivitiesOpen(false)}
-          />
-        )
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       default:
         return null
     }
@@ -461,16 +395,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         }}
         sectionActions={
           activeTab === TeamTabs.Activities ? (
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => setIsExportActivitiesOpen(true)}
-              disabled={
-                activitiesQuery.isLoading ||
-                (!accumulatedActivities.length && !totalActivitiesCount)
-              }
-            >
-              Export
-            </Button>
+            <ActivityLogExportButton activityLog={activityLog} />
           ) : undefined
         }
         facts={<TeamFacts team={team} operatingModel={team.operatingModel} />}

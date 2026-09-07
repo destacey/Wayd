@@ -6,12 +6,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 public class PpmGeneratorTests
 {
     /// <summary>
-    /// A context for one test. AsOf is left at today deliberately: nearly every assertion here is about
-    /// where work sits relative to now — what has finished, what is in flight, what has not started — so
-    /// pinning it to a fixed date would freeze the very relationship being asserted.
+    /// Today, read once for the whole class. Nearly every assertion here is about where work sits relative
+    /// to now — what has finished, what is in flight, what has not started — so a fixed date would freeze
+    /// the very relationship being asserted. But reading the clock per call means a run crossing UTC
+    /// midnight anchors two contexts to different days, and several tests build their org and their PPM
+    /// from separate calls, so the two halves of one dataset would disagree about when now is.
     /// </summary>
+    private static readonly DateTime _asOf = DateTime.UtcNow.Date;
+
+    /// <summary>A context for one test, all of them sharing the class's single today.</summary>
     private static GenerationContext ContextOf(int seed) =>
-        new() { AsOf = DateTime.UtcNow.Date, Seed = seed };
+        new() { AsOf = _asOf, Seed = seed };
 
     private static GeneratedPpm Generate(PpmOptions? ppmOptions = null, OrgOptions? orgOptions = null)
     {

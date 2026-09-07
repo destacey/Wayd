@@ -37,7 +37,7 @@ void ReportRunInputs(GenerationContext context) =>
         $"Using seed {context.Seed} as of {context.AsOf:yyyy-MM-dd} "
         + $"(pass --random-seed {context.Seed} --as-of {context.AsOf:yyyy-MM-dd} to reproduce this data).");
 
-OrgOptions ReadOrgOptions(ParseResult parse, int seed) => new()
+OrgOptions ReadOrgOptions(ParseResult parse) => new()
 {
     CompanyType = parse.GetValue(companyTypeOption),
     DeliveryRatio = parse.GetValue(deliveryRatioOption),
@@ -86,7 +86,7 @@ generateCommand.SetAction((parse, _) =>
     var context = ReadContext(parse, seed);
     ReportRunInputs(context);
 
-    var org = new OrgGenerator(ReadOrgOptions(parse, seed), context).Generate();
+    var org = new OrgGenerator(ReadOrgOptions(parse), context).Generate();
     var outDir = parse.GetValue(outOption)!;
     outDir.Create();
 
@@ -142,7 +142,7 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
     var context = ReadContext(parse, seed);
     ReportRunInputs(context);
 
-    var org = new OrgGenerator(ReadOrgOptions(parse, seed), context).Generate();
+    var org = new OrgGenerator(ReadOrgOptions(parse), context).Generate();
     Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");
 
     GeneratedPpm? ppm = null;

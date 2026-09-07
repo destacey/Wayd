@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using NodaTime;
 using NodaTime.Testing;
@@ -27,6 +27,7 @@ public sealed class ProgramImportDefinitionTests : IDisposable
 
     private static readonly LocalDate _start = new(2024, 7, 1);
     private static readonly LocalDate _end = new(2025, 6, 30);
+    private static readonly LocalDate _created = new(2024, 3, 4);
 
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly ProgramImportDefinition _definition;
@@ -201,5 +202,17 @@ public sealed class ProgramImportDefinitionTests : IDisposable
     }
 
     private ImportProgramDto Row(string name, ProgramStatus status) =>
-        new(name, $"{name} program", status, _portfolio.Id, _start, _end, [], [], [], []);
+        new(
+            name,
+            $"{name} program",
+            status,
+            _portfolio.Id,
+            _start,
+            _end,
+            _created,
+            status is ProgramStatus.Proposed ? null : _start,
+            [],
+            [],
+            [],
+            []);
 }

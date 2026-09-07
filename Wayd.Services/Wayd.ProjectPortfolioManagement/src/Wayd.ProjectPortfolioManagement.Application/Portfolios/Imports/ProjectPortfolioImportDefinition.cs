@@ -117,7 +117,8 @@ public sealed class ProjectPortfolioImportDefinition(
         if (row.Status is ProjectPortfolioStatus.Proposed)
             return Result.Success();
 
-        var activate = portfolio.Activate(PpmActor.System, row.Start!.Value);
+        // Guaranteed present by ImportProjectPortfolioDtoValidator for any status past Proposed.
+        var activate = portfolio.Activate(PpmActor.System, row.ActivatedOn!.Value);
         if (activate.IsFailure)
             return activate;
 

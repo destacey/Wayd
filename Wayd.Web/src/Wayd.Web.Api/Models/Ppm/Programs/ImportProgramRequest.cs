@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+﻿using NodaTime.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
@@ -26,8 +26,23 @@ public sealed class ImportProgramRequest
     /// <summary>The program's status. Defaults to Active when the column is absent.</summary>
     public string Status { get; set; } = nameof(ProgramStatus.Active);
 
+    /// <summary>The timeline the program plans to run over.</summary>
     public DateTime? Start { get; set; }
     public DateTime? End { get; set; }
+
+    /// <summary>
+    /// The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps
+    /// no transition dates beyond the audit stamp, which records when the file was uploaded — but the
+    /// column is required now so that no file has to change on the day one is kept.
+    /// </summary>
+    public DateTime? CreatedOn { get; set; }
+
+    /// <summary>
+    /// The date the program became active. Required once the status is Active or Completed, optional on a
+    /// canceled program, and rejected on one that never got that far. There is no closing date here: an
+    /// import cannot complete or cancel a program, so the finalize import carries that one.
+    /// </summary>
+    public DateTime? ActivatedOn { get; set; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
@@ -46,6 +61,9 @@ public sealed class ImportProgramRequest
             PortfolioId,
             Start?.ToLocalDateTime().Date,
             End?.ToLocalDateTime().Date,
+            // Required by the validator that runs before this mapping.
+            CreatedOn!.Value.ToLocalDateTime().Date,
+            ActivatedOn?.ToLocalDateTime().Date,
             CsvList.SplitIds(StrategicThemes),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
@@ -86,5 +104,31 @@ public sealed class ImportProgramRequestValidator : CustomValidator<ImportProgra
         RuleFor(p => p.End)
             .Must((p, end) => end is null || p.Start is null || p.Start <= end)
                 .WithMessage("End date must be on or after the start date.");
+
+        RuleFor(p => p.CreatedOn)
+            .NotNull()
+                .WithMessage("Every program must have a CreatedOn date.");
+
+        // Which of the remaining two a row may carry depends on the status, which is parsed here rather
+        // than compared as text so 'active' and 'Active' are the same row.
+        When(p => StatusOf(p) is ProgramStatus.Active or ProgramStatus.Completed,
+            () => RuleFor(p => p.ActivatedOn)
+                .NotNull()
+                    .WithMessage("An active or completed program must have an ActivatedOn date."))
+            .Otherwise(() => RuleFor(p => p.ActivatedOn)
+                .Empty()
+                .When(p => StatusOf(p) is not (null or ProgramStatus.Canceled))
+                    .WithMessage("ActivatedOn is only allowed on a program that reached Active."));
+
+        RuleFor(p => p.ActivatedOn)
+            .Must((p, activatedOn) => activatedOn is null || p.CreatedOn is null || p.CreatedOn <= activatedOn)
+                .WithMessage("ActivatedOn cannot be earlier than CreatedOn.");
     }
+
+    /// <summary>
+    /// The row's status, or null when it does not name a real one — the status rule reports that, so the
+    /// date rules stay quiet rather than piling a second complaint onto the same row.
+    /// </summary>
+    private static ProgramStatus? StatusOf(ImportProgramRequest request) =>
+        Enum.TryParse<ProgramStatus>(request.Status?.Trim(), ignoreCase: true, out var status) ? status : null;
 }

@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text.Json;
 using Wayd.Tools.DataGeneration.Cli.Client;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -7,8 +8,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 /// <summary>
 /// Talks to the Wayd API for seeding. CSV uploads are posted directly as multipart/form-data (the
 /// generated NSwag client mishandles IFormFile, so we do the upload by hand with the field name "file"
-/// that the [FromForm] IFormFile endpoints expect). Role bootstrap reuses the generated typed client.
+/// that the [FromForm] IFormFile endpoints expect). Settings bootstrap reuses the generated typed client.
 /// Authentication is a Personal Access Token sent in the x-api-key header on every request.
+/// <para>
+/// Every import posts and then waits: a submission answers with the id of a queued run, and the ids it
+/// created are what the next stage's file references. <see cref="ImportAwaiter"/> owns that wait.
+/// </para>
 /// </summary>
 public sealed class WaydSeedClient : IDisposable
 {
@@ -16,6 +21,15 @@ public sealed class WaydSeedClient : IDisposable
     private readonly TeamMemberRolesClient _rolesClient;
     private readonly ExpenditureCategoriesClient _expenditureCategoriesClient;
     private readonly ProjectLifecyclesClient _projectLifecyclesClient;
+    private readonly ImportAwaiter _awaiter;
+
+    /// <summary>
+    /// How long a stage waits for its run. Generous because the queue is shared: a seed's own earlier
+    /// stages, or anything else the environment is doing, sit in front of it.
+    /// </summary>
+    private static readonly TimeSpan ImportTimeout = TimeSpan.FromMinutes(10);
+
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(500);
 
     public WaydSeedClient(string baseUrl, string apiKey)
     {
@@ -26,64 +40,70 @@ public sealed class WaydSeedClient : IDisposable
         _rolesClient = new TeamMemberRolesClient(root, _httpClient);
         _expenditureCategoriesClient = new ExpenditureCategoriesClient(root, _httpClient);
         _projectLifecyclesClient = new ProjectLifecyclesClient(root, _httpClient);
+        _awaiter = new ImportAwaiter(new ImportsClient(root, _httpClient), PollInterval, ImportTimeout);
     }
 
-    public Task ImportEmployees(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/organization/employees/import", csv, "employees.csv", cancellationToken);
+    public Task<ImportRun> ImportEmployees(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/organization/employees/import", csv, "employees.csv", "employees", cancellationToken);
 
-    public Task ImportTeams(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/organization/teams/import", csv, "teams.csv", cancellationToken);
+    public Task<ImportRun> ImportTeams(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/organization/teams/import", csv, "teams.csv", "teams", cancellationToken);
 
-    public Task ImportTeamMemberships(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/organization/teams/team-memberships/import", csv, "team-memberships.csv", cancellationToken);
+    public Task<ImportRun> ImportTeamMemberships(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/organization/teams/team-memberships/import", csv, "team-memberships.csv", "team hierarchy", cancellationToken);
 
-    public Task ImportTeamMembers(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/organization/teams/members/import", csv, "members.csv", cancellationToken);
+    public Task<ImportRun> ImportTeamMembers(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/organization/teams/members/import", csv, "members.csv", "team staffing", cancellationToken);
 
     // ---- PPM CSV imports ----------------------------------------------------------------------
 
-    public Task ImportStrategicThemes(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/strategic-management/strategic-themes/import", csv, "strategic-themes.csv", cancellationToken);
+    public Task<ImportRun> ImportStrategicThemes(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/strategic-management/strategic-themes/import", csv, "strategic-themes.csv", "strategic themes", cancellationToken);
 
-    public Task ImportPortfolios(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/portfolios/import", csv, "portfolios.csv", cancellationToken);
+    public Task<ImportRun> ImportPortfolios(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/ppm/portfolios/import", csv, "portfolios.csv", "portfolios", cancellationToken);
 
-    public Task ImportPrograms(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/programs/import", csv, "programs.csv", cancellationToken);
+    public Task<ImportRun> ImportPrograms(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/ppm/programs/import", csv, "programs.csv", "programs", cancellationToken);
 
-    public Task ImportProjects(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/projects/import", csv, "projects.csv", cancellationToken);
+    public Task<ImportRun> ImportProjects(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/ppm/projects/import", csv, "projects.csv", "projects", cancellationToken);
 
-    public Task ImportProjectTasks(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/projects/tasks/import", csv, "project-tasks.csv", cancellationToken);
+    public Task<ImportRun> ImportProjectTasks(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/ppm/projects/tasks/import", csv, "project-tasks.csv", "project tasks", cancellationToken);
 
-    public Task ImportProjectStages(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/projects/stages/import", csv, "project-stages.csv", cancellationToken);
+    public Task<ImportRun> ImportProjectStages(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/ppm/projects/stages/import", csv, "project-stages.csv", "project stage statuses", cancellationToken);
 
-    public Task ImportStrategicInitiatives(byte[] initiativesCsv, byte[]? kpisCsv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/strategic-initiatives/import", initiativesCsv, "strategic-initiatives.csv", cancellationToken,
+    public Task<ImportRun> ImportStrategicInitiatives(byte[] initiativesCsv, byte[]? kpisCsv, CancellationToken cancellationToken) =>
+        Import("api/ppm/strategic-initiatives/import", initiativesCsv, "strategic-initiatives.csv", "strategic initiatives", cancellationToken,
             secondFieldName: "kpiFile", secondCsv: kpisCsv, secondFileName: "strategic-initiative-kpis.csv");
 
-    public Task ImportPpmFinalizations(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/portfolios/finalize/import", csv, "ppm-finalizations.csv", cancellationToken);
+    public Task<ImportRun> ImportPpmFinalizations(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/ppm/portfolios/finalize/import", csv, "ppm-finalizations.csv", "finalize", cancellationToken);
 
     // ---- Settings bootstrap (create-or-get by name) -------------------------------------------
 
     /// <summary>
-    /// Ensures each expenditure category exists, creating any that are missing. Categories are settings-level
-    /// (no CSV import); projects reference them by name, so this must run before the project import.
+    /// Ensures each expenditure category exists, creating any that are missing, and answers with their ids
+    /// keyed by name.
     /// </summary>
-    public async Task EnsureExpenditureCategories(IEnumerable<PpmVocabulary.ExpenditureCategoryDefinition> categories, CancellationToken cancellationToken)
+    /// <remarks>
+    /// Categories are settings-level rather than an import, and projects reference them by id — so the ids
+    /// have to come back here, since nothing downstream can look them up from a name.
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, int>> EnsureExpenditureCategories(
+        IEnumerable<PpmVocabulary.ExpenditureCategoryDefinition> categories, CancellationToken cancellationToken)
     {
         var existing = await _expenditureCategoriesClient.GetExpenditureCategoriesAsync(cancellationToken);
-        var existingNames = existing.Select(c => c.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var byName = existing.ToDictionary(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
 
         foreach (var category in categories)
         {
-            if (existingNames.Contains(category.Name))
+            if (byName.ContainsKey(category.Name))
                 continue;
 
-            await _expenditureCategoriesClient.CreateAsync(new CreateExpenditureCategoryRequest
+            byName[category.Name] = await _expenditureCategoriesClient.CreateAsync(new CreateExpenditureCategoryRequest
             {
                 Name = category.Name,
                 Description = category.Description,
@@ -92,20 +112,22 @@ public sealed class WaydSeedClient : IDisposable
                 AccountingCode = category.AccountingCode,
             }, cancellationToken);
         }
+
+        return byName;
     }
 
     /// <summary>
-    /// Ensures the project lifecycle exists (creating it with its stages if missing) and returns it active,
-    /// since a lifecycle must be active before a project can be assigned it. Projects reference it by name.
+    /// Ensures the project lifecycle exists (creating it with its stages if missing), returns it active
+    /// since a lifecycle must be active before a project can be assigned it, and answers with its id.
     /// </summary>
-    public async Task EnsureProjectLifecycle(PpmVocabulary.ProjectLifecycleDefinition lifecycle, CancellationToken cancellationToken)
+    public async Task<Guid> EnsureProjectLifecycle(PpmVocabulary.ProjectLifecycleDefinition lifecycle, CancellationToken cancellationToken)
     {
         var existing = await _projectLifecyclesClient.GetProjectLifecyclesAsync(null, cancellationToken);
         var match = existing.FirstOrDefault(l => string.Equals(l.Name, lifecycle.Name, StringComparison.OrdinalIgnoreCase));
 
         // If it already exists and is active, there is nothing to do — projects can use it as-is.
         if (match is not null && string.Equals(match.State?.Name, "Active", StringComparison.OrdinalIgnoreCase))
-            return;
+            return match.Id;
 
         Guid lifecycleId;
         if (match is not null)
@@ -126,6 +148,8 @@ public sealed class WaydSeedClient : IDisposable
         // swallowed — a lifecycle that cannot be activated (a real error, an archived one, an auth problem)
         // would otherwise let the whole seed proceed and fail confusingly at project import.
         await _projectLifecyclesClient.ActivateAsync(lifecycleId, cancellationToken);
+
+        return lifecycleId;
     }
 
     /// <summary>
@@ -148,7 +172,18 @@ public sealed class WaydSeedClient : IDisposable
         }
     }
 
-    private async Task PostCsv(string path, byte[] csv, string fileName, CancellationToken cancellationToken,
+    /// <summary>Posts a file, waits for the run it queued, and answers with what that run created.</summary>
+    private async Task<ImportRun> Import(
+        string path, byte[] csv, string fileName, string label, CancellationToken cancellationToken,
+        string? secondFieldName = null, byte[]? secondCsv = null, string? secondFileName = null)
+    {
+        var processId = await PostCsv(path, csv, fileName, cancellationToken, secondFieldName, secondCsv, secondFileName);
+
+        return await _awaiter.Await(processId, label, cancellationToken);
+    }
+
+    /// <summary>Posts the multipart file(s) and reads the run id out of the 202.</summary>
+    private async Task<Guid> PostCsv(string path, byte[] csv, string fileName, CancellationToken cancellationToken,
         string? secondFieldName = null, byte[]? secondCsv = null, string? secondFileName = null)
     {
         using var content = new MultipartFormDataContent();
@@ -167,11 +202,18 @@ public sealed class WaydSeedClient : IDisposable
         }
 
         using var response = await _httpClient.PostAsync(path, content, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
         if (!response.IsSuccessStatusCode)
-        {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
             throw new SeedException($"POST {path} failed ({(int)response.StatusCode} {response.ReasonPhrase}): {body}");
-        }
+
+        // The body is the run id as a bare JSON string. A submission that answered anything else means the
+        // endpoint is not the async one this tool expects, which is worth saying rather than parsing past.
+        var processId = JsonSerializer.Deserialize<Guid?>(body);
+        if (processId is null || processId == Guid.Empty)
+            throw new SeedException($"POST {path} did not answer with an import id. Body: {body}");
+
+        return processId.Value;
     }
 
     public void Dispose() => _httpClient.Dispose();

@@ -40,8 +40,28 @@ public sealed class ImportProjectRequest
     public string? BusinessCase { get; set; }
     public string? ExpectedBenefits { get; set; }
 
+    /// <summary>The timeline the project plans to run over.</summary>
     public DateTime? Start { get; set; }
     public DateTime? End { get; set; }
+
+    /// <summary>
+    /// The date the project was proposed. Required on every row, and what the project's opening status
+    /// history entry is dated — the audit stamp records when the file was uploaded, which is not the
+    /// same thing.
+    /// </summary>
+    public DateTime? CreatedOn { get; set; }
+
+    /// <summary>
+    /// The date the project became active. Required once the status is Active or Completed, optional on
+    /// a canceled project, and rejected on one that never got that far.
+    /// </summary>
+    public DateTime? ActivatedOn { get; set; }
+
+    /// <summary>
+    /// The date the project was completed or canceled — the status says which. Required on those two
+    /// statuses and rejected on the rest.
+    /// </summary>
+    public DateTime? ClosedOn { get; set; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
@@ -67,6 +87,11 @@ public sealed class ImportProjectRequest
             ExpectedBenefits,
             Start?.ToLocalDateTime().Date,
             End?.ToLocalDateTime().Date,
+            // Required by the validator that runs before this mapping, so the row cannot reach here
+            // without one.
+            CreatedOn!.Value.ToLocalDateTime().Date,
+            ActivatedOn?.ToLocalDateTime().Date,
+            ClosedOn?.ToLocalDateTime().Date,
             CsvList.SplitIds(StrategicThemes),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
@@ -122,5 +147,44 @@ public sealed class ImportProjectRequestValidator : CustomValidator<ImportProjec
         RuleFor(p => p.End)
             .Must((p, end) => end is null || p.Start is null || p.Start <= end)
                 .WithMessage("End date must be on or after the start date.");
+
+        RuleFor(p => p.CreatedOn)
+            .NotNull()
+                .WithMessage("Every project must have a CreatedOn date.");
+
+        // Which of the remaining two a row may carry depends on the status, which is parsed here rather
+        // than compared as text so 'active' and 'Active' are the same row.
+        When(p => StatusOf(p) is ProjectStatus.Active or ProjectStatus.Completed,
+            () => RuleFor(p => p.ActivatedOn)
+                .NotNull()
+                    .WithMessage("An active or completed project must have an ActivatedOn date."))
+            .Otherwise(() => RuleFor(p => p.ActivatedOn)
+                .Empty()
+                .When(p => StatusOf(p) is not (null or ProjectStatus.Canceled))
+                    .WithMessage("ActivatedOn is only allowed on a project that reached Active."));
+
+        When(p => StatusOf(p) is ProjectStatus.Completed or ProjectStatus.Canceled,
+            () => RuleFor(p => p.ClosedOn)
+                .NotNull()
+                    .WithMessage("A completed or canceled project must have a ClosedOn date."))
+            .Otherwise(() => RuleFor(p => p.ClosedOn)
+                .Empty()
+                .When(p => StatusOf(p) is not null)
+                    .WithMessage("ClosedOn is only allowed on a project that was completed or canceled."));
+
+        RuleFor(p => p.ActivatedOn)
+            .Must((p, activatedOn) => activatedOn is null || p.CreatedOn is null || p.CreatedOn <= activatedOn)
+                .WithMessage("ActivatedOn cannot be earlier than CreatedOn.");
+
+        RuleFor(p => p.ClosedOn)
+            .Must((p, closedOn) => closedOn is null || (p.ActivatedOn ?? p.CreatedOn) is null || (p.ActivatedOn ?? p.CreatedOn) <= closedOn)
+                .WithMessage("ClosedOn cannot be earlier than ActivatedOn or CreatedOn.");
     }
+
+    /// <summary>
+    /// The row's status, or null when it does not name a real one — the status rule reports that, so the
+    /// date rules stay quiet rather than piling a second complaint onto the same row.
+    /// </summary>
+    private static ProjectStatus? StatusOf(ImportProjectRequest request) =>
+        Enum.TryParse<ProjectStatus>(request.Status?.Trim(), ignoreCase: true, out var status) ? status : null;
 }

@@ -27,6 +27,13 @@ Aspire dashboard command), not part of this tool.
 The tool has two verbs: **`generate`** (write CSVs to disk to inspect) and **`seed`** (generate and push
 through the API). They share the same generation options.
 
+:::note `generate` writes files to read, not files to post
+The organization files are postable as they stand — every reference in them is a natural key the generator
+owns. The PPM files are the generated model: they name portfolios, programs and categories rather than
+pointing at ids, because those ids only exist once a run has created the records. `seed` resolves them
+stage by stage as it goes; there is no way to write a postable PPM file ahead of a run.
+:::
+
 ```bash
 # Preview: write the CSVs to a folder, no API needed
 dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli -- \
@@ -169,6 +176,18 @@ item's status follows its position on that window: finished in the past (**Compl
 **Canceled**), in flight around today (**Active**), and not-yet-started in the future (**Proposed** /
 **Approved**). Task progress and status track the same timeline.
 
+Each portfolio, program and project also carries the dates it *moved* — `CreatedOn`, and `ActivatedOn` and
+`ClosedOn` where its status reached them — which are separate from the `Start`/`End` timeline it plans to run
+over. The import rejects a date for a status a record never reached, so the generator emits exactly the ones
+each status allows: a proposed project gets no activation date, and only a closed one gets a closing date.
+Records are proposed a few weeks to a few months before they activate, which for the earliest of them is
+before the window itself — work proposed before the window is exactly what a creation date is for.
+
+For projects this is what dates the [status history](/user-guide/ppm/projects): every replayed transition is
+stamped from these columns, so a seeded project's history reads as its own timeline rather than as the moment
+the seed ran. Portfolios and programs record no transition dates yet, so theirs are validated and then go no
+further than picking which transitions to replay.
+
 **Settings prerequisites.** Expenditure categories and the project lifecycle are **settings**, not imports.
 The `seed` verb bootstraps them through the normal settings API (create-or-get by name, and it activates the
 lifecycle) before importing projects, which reference them by id. They are not written as CSV by
@@ -189,8 +208,14 @@ Every run resolves a concrete seed (random when `--random-seed` is omitted) and 
 Using seed 193051458 (pass --random-seed 193051458 to reproduce this data).
 ```
 
-Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool**. The seed
-pins the randomness, not the algorithm: if the generator changes, the same seed produces different data.
+Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool, on the
+same day**. The seed pins the randomness, not the algorithm: if the generator changes, the same seed produces
+different data.
+
+The "same day" part is a real limitation rather than a nicety. The whole PPM timeline is anchored on today —
+two years back and two years forward — and statuses and transition dates follow from where each record sits
+on that window, so the same seed run tomorrow shifts every date by a day and flips anything that crossed
+today from active to complete.
 
 :::note What "reproducible" means here
 The seed reproduces the **generated data** — the same names, emails, employee numbers, team codes, and
@@ -211,7 +236,19 @@ Planning, and Work read models via domain events). Going through the domain path
 fires those events, so the copies stay consistent — a direct insert would leave them empty. A useful side
 effect: seeding proves the real API and cross-domain wiring work.
 
-The `seed` verb imports in the order that replication and the domain's own rules require:
+### Areas, and the order they run in
+
+A seed is a set of **areas**, each one a unit that reads what it needs, writes its file, waits for the
+import to finish, and publishes the ids it created. An area declares what it depends on; the runner
+derives the order from those declarations rather than from a list someone maintains by hand.
+
+That indirection earns its place because the order is not a preference. A program cannot be created before
+its portfolio, staffing resolves roles it does not create, and the finalize pass can only close a program
+once its projects are closed. Stating the dependency keeps it from drifting away from the ordering as
+areas are added — and adding one means declaring what it needs, not finding the right line to insert a
+call at.
+
+Today's areas resolve to:
 
 ```
 employees → teams → team hierarchy → roles (created as needed) → team staffing
@@ -220,10 +257,42 @@ employees → teams → team hierarchy → roles (created as needed) → team st
   → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 ```
 
-Each import is all-or-nothing: one rejected row fails the whole run and nothing is saved, so the run stays
-re-runnable against a fresh database. References resolve by natural key where a record has one — employee
-number, team code, project key — and by id otherwise, which is why each stage has to read the previous
-run's results before it can write the next file. Pass `--skip-ppm` to stop after the organization.
+### One area can be more than one file
+
+An import rejects a file past its row cap outright, and the atomic ones — which is all of the PPM imports —
+cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a
+run that is applied as one transaction; it is the server's guard against an arbitrary client, and the seed
+is a client like any other.
+
+The task file is the one that passes it: a dense breakdown across a few hundred projects runs to around
+12,000 rows at default options. So that area sends several files, and the run log says so:
+
+```
+Importing 11573 project tasks in 2 batch(es)...
+  batch 1 of 2: 7988 tasks
+  batch 2 of 2: 3585 tasks
+```
+
+The split falls on **project boundaries**, and that is not a convenience. The task import is whole-set
+because rows within a project are not independent — a child names its parent by that parent's `ImportId` in
+the same file, and the per-project task number advances as rows are applied. Cutting a project across two
+files hands the second one a child whose parent it never saw. A single project larger than the cap is left
+whole and rejected rather than split, because a named failure beats a file that imports a broken tree.
+
+### Post, wait, read back, substitute
+
+An import answers `202 Accepted` with the id of a **queued run** — the file was taken, not applied. Each
+area therefore polls that run to completion and reads its row outcomes back before the next area writes
+anything, because those outcomes are where the created ids are.
+
+Each row is submitted under an `ImportId` set to the generator's own handle for that record — a
+portfolio's name, a project's key — so the ids come back keyed the way the next file already refers to
+them, with no second mapping to keep in step.
+
+Each import is all-or-nothing, and the seed aborts on anything short of a clean run, naming the rows that
+were rejected by their import id. References resolve by natural key where a record has one — employee
+number, team code, project key — and by id otherwise. Pass `--skip-ppm` to stop after the organization;
+nothing in the organization depends on a resolved id, so that path is unaffected by any of this.
 
 ## Data conventions
 

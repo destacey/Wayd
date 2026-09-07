@@ -1,5 +1,4 @@
-using Bogus;
-using Wayd.Tools.DataGeneration.Cli.Csv;
+﻿using Bogus;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -22,15 +21,15 @@ public sealed class PpmGenerator
     private readonly PpmOptions _options;
     private readonly Faker _faker;
 
-    private readonly List<StrategicThemeCsvRow> _themes = [];
-    private readonly List<PortfolioCsvRow> _portfolios = [];
-    private readonly List<ProgramCsvRow> _programs = [];
-    private readonly List<ProjectCsvRow> _projects = [];
-    private readonly List<ProjectTaskCsvRow> _tasks = [];
-    private readonly List<ProjectStageCsvRow> _stageStatuses = [];
-    private readonly List<StrategicInitiativeCsvRow> _initiatives = [];
-    private readonly List<StrategicInitiativeKpiCsvRow> _kpis = [];
-    private readonly List<PpmFinalizationCsvRow> _finalizations = [];
+    private readonly List<StrategicThemeModel> _themes = [];
+    private readonly List<PortfolioModel> _portfolios = [];
+    private readonly List<ProgramModel> _programs = [];
+    private readonly List<ProjectModel> _projects = [];
+    private readonly List<ProjectTaskModel> _tasks = [];
+    private readonly List<ProjectStageModel> _stageStatuses = [];
+    private readonly List<StrategicInitiativeModel> _initiatives = [];
+    private readonly List<StrategicInitiativeKpiModel> _kpis = [];
+    private readonly List<PpmFinalizationModel> _finalizations = [];
 
     private readonly HashSet<string> _usedProjectKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _usedInitiativeNames = new(StringComparer.OrdinalIgnoreCase);
@@ -96,7 +95,7 @@ public sealed class PpmGenerator
         foreach (var name in names)
         {
             _themeNames.Add(name);
-            _themes.Add(new StrategicThemeCsvRow
+            _themes.Add(new StrategicThemeModel
             {
                 Name = name,
                 Description = $"{name}: a cross-cutting priority guiding investment across the portfolio.",
@@ -120,7 +119,7 @@ public sealed class PpmGenerator
             var portfolioStart = EarlyWindowDate();
             var portfolioName = AddPortfolio($"{valueStream.Domain} {Pick(PpmVocabulary.ValueStreamPortfolioSuffixes)}",
                 $"Delivery portfolio for the {valueStream.Domain} value stream.",
-                status: "Active", start: portfolioStart, end: null,
+                status: "Active", activatedOn: portfolioStart,
                 sponsors: [leadProduct], owners: [leadEng], managers: [leadEng]);
 
             // Programs are the portfolio's thematic groupings of projects (Modernization, Integrations, …) —
@@ -159,12 +158,27 @@ public sealed class PpmGenerator
             var baseName = $"{valueStream.Domain} {theme.Name}{(suffix.Length > 0 ? $" {suffix}" : string.Empty)}";
             var name = MakeUnique(baseName, _programNames);
 
-            // Programs are imported active and only closed by the finalize pass once all their projects are
-            // closed; carry the intended status so a finalize row can be emitted after the projects land.
+            // Programs are imported active whatever they end up as: a program cannot be completed or
+            // canceled until every project inside it is closed, and none of them exists yet.
             AddProgram(name, $"{theme.Description} Part of the {portfolioName} portfolio.", portfolioName,
                 status: "Active", start: start, end: end,
                 themes: PickThemes(1),
                 sponsors: [leadProduct], owners: [leadEng], managers: [leadEng]);
+
+            // So one that belongs in a closed state is finished off by the finalize file, which runs last.
+            // Its projects are closed by then: a project only joins a program whose window covers its own,
+            // so a program that ended in the past can only hold projects that ended in the past too.
+            if (IsClosedStatus(status))
+            {
+                _finalizations.Add(new PpmFinalizationModel
+                {
+                    Type = "Program",
+                    Name = name,
+                    PortfolioName = portfolioName,
+                    Status = status,
+                    EndDate = end,
+                });
+            }
 
             programs.Add(new GeneratedProgram(name, theme, start, end, status));
         }
@@ -271,7 +285,7 @@ public sealed class PpmGenerator
             // AddPortfolio dedupes the name and returns the one it stored, so projects and the initiative
             // attach to exactly the portfolio that was created.
             var portfolioName = AddPortfolio(name, $"{name}: cross-cutting investment spanning multiple value streams.",
-                status: "Active", start: portfolioStart, end: null,
+                status: "Active", activatedOn: portfolioStart,
                 sponsors: [leads.FirstOrDefault()], owners: [leads.Skip(1).FirstOrDefault() ?? leads.FirstOrDefault()], managers: []);
 
             // Cross-cutting, portfolio-direct projects (no program), each drawn from teams anywhere in the
@@ -324,7 +338,7 @@ public sealed class PpmGenerator
         var programName = programs is null ? null : PickProgramForProject(programs, verb, start, end);
 
         // A lifecycle is required to approve a project or to give it tasks, so every project gets the standard one.
-        _projects.Add(new ProjectCsvRow
+        _projects.Add(new ProjectModel
         {
             Name = name,
             Description = $"{name}. {deliveredBy}",
@@ -338,6 +352,11 @@ public sealed class PpmGenerator
             ExpectedBenefits = "Improved efficiency, reliability and customer outcomes.",
             Start = start,
             End = end,
+            CreatedOn = ProposedBefore(start),
+            // A project that never started has no activation, and one that closed has a closing date. The
+            // import rejects a date for a state the project never reached, so these have to match the status.
+            ActivatedOn = IsProposedStatus(status) ? null : start,
+            ClosedOn = IsClosedStatus(status) ? end : null,
             StrategicThemes = Join(PickThemes(_faker.Random.Int(0, 2))),
             Sponsors = Join([sponsor]),
             Owners = Join([manager]),
@@ -411,7 +430,7 @@ public sealed class PpmGenerator
 
             // A milestone at the end of each stage.
             var milestoneName = MakeUniqueTaskName($"{stage.Name} complete", projectKey);
-            _tasks.Add(new ProjectTaskCsvRow
+            _tasks.Add(new ProjectTaskModel
             {
                 ProjectKey = projectKey,
                 Name = milestoneName,
@@ -451,7 +470,7 @@ public sealed class PpmGenerator
 
         var status = RollUpStageStatus(taskStatuses);
 
-        _stageStatuses.Add(new ProjectStageCsvRow
+        _stageStatuses.Add(new ProjectStageModel
         {
             ProjectKey = projectKey,
             StageName = stageName,
@@ -484,7 +503,7 @@ public sealed class PpmGenerator
                 ? ("NotStarted", 0m)
                 : ("InProgress", _faker.Random.Decimal(10, 80));
 
-        _tasks.Add(new ProjectTaskCsvRow
+        _tasks.Add(new ProjectTaskModel
         {
             ProjectKey = projectKey,
             Name = name,
@@ -522,7 +541,7 @@ public sealed class PpmGenerator
             .Take(_faker.Random.Int(1, 3))
             .ToList();
 
-        _initiatives.Add(new StrategicInitiativeCsvRow
+        _initiatives.Add(new StrategicInitiativeModel
         {
             Name = name,
             Description = $"{name} across the {portfolioName} portfolio.",
@@ -538,7 +557,7 @@ public sealed class PpmGenerator
         // A couple of KPIs per initiative.
         foreach (var template in _faker.PickRandom(PpmVocabulary.KpiTemplates, Math.Min(2, PpmVocabulary.KpiTemplates.Length)))
         {
-            _kpis.Add(new StrategicInitiativeKpiCsvRow
+            _kpis.Add(new StrategicInitiativeKpiModel
             {
                 StrategicInitiativeName = name,
                 Name = template.Name,
@@ -559,17 +578,17 @@ public sealed class PpmGenerator
     private readonly Dictionary<string, HashSet<string>> _taskNamesByProject = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Adds a portfolio row, deduping its name, and returns the stored name so callers reference the right one.</summary>
-    private string AddPortfolio(string name, string description, string status, DateTime? start, DateTime? end,
+    private string AddPortfolio(string name, string description, string status, DateTime? activatedOn,
         IReadOnlyList<string?> sponsors, IReadOnlyList<string?> owners, IReadOnlyList<string?> managers)
     {
         name = MakeUnique(name, _portfolioNames);
-        _portfolios.Add(new PortfolioCsvRow
+        _portfolios.Add(new PortfolioModel
         {
             Name = name,
             Description = description,
             Status = status,
-            Start = start,
-            End = end,
+            CreatedOn = ProposedBefore(activatedOn),
+            ActivatedOn = activatedOn,
             Sponsors = Join(sponsors),
             Owners = Join(owners),
             Managers = Join(managers),
@@ -580,7 +599,7 @@ public sealed class PpmGenerator
     private void AddProgram(string name, string description, string portfolioName, string status, DateTime? start, DateTime? end,
         IReadOnlyList<string> themes, IReadOnlyList<string?> sponsors, IReadOnlyList<string?> owners, IReadOnlyList<string?> managers)
     {
-        _programs.Add(new ProgramCsvRow
+        _programs.Add(new ProgramModel
         {
             Name = name,
             Description = description,
@@ -588,6 +607,8 @@ public sealed class PpmGenerator
             Status = status,
             Start = start,
             End = end,
+            CreatedOn = ProposedBefore(start),
+            ActivatedOn = IsProposedStatus(status) ? null : start,
             StrategicThemes = Join(themes),
             Sponsors = Join(sponsors),
             Owners = Join(owners),
@@ -654,6 +675,23 @@ public sealed class PpmGenerator
         || string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase);
 
     private DateTime EarlyWindowDate() => _faker.Date.Between(WindowStart, WindowStart.AddMonths(3)).Date;
+
+    /// <summary>
+    /// When something was proposed, given when it started: a few weeks to a few months earlier. Deliberately
+    /// before the window for the earliest records — work proposed before the window is exactly what a
+    /// creation date is for, and the import only requires it to be on or before the activation.
+    /// </summary>
+    /// <remarks>
+    /// Never later than today. The window runs two years ahead, so subtracting from a future start would
+    /// date the proposal in the future too — and nothing was proposed on a day that has not happened.
+    /// Work that starts later was still proposed by now, so it falls in the recent past instead.
+    /// </remarks>
+    private DateTime ProposedBefore(DateTime? activatedOn)
+    {
+        var proposed = (activatedOn ?? Today).AddDays(-_faker.Random.Int(20, 120)).Date;
+
+        return proposed <= Today ? proposed : Today.AddDays(-_faker.Random.Int(0, 120)).Date;
+    }
 
     private (DateTime Start, DateTime End) SubWindow(DateTime start, DateTime end)
     {

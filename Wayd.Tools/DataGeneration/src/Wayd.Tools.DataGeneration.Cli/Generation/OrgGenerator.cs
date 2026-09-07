@@ -215,7 +215,11 @@ public sealed class OrgGenerator
         // A single-team engineering manager who is ALSO an individual contributor on that team.
         var em = AddPerson(jobTitle: "Engineering Manager", department: "Engineering", manager: art.EngineeringLead);
         AddMembership(team, em, OrgVocabulary.EngineeringManagerRole);
-        AddMembership(team, em, Pick(OrgVocabulary.Roles)); // also contributes as an IC
+
+        // Also contributes as an IC — in a discipline they do not already hold. "Engineering Manager" is
+        // in the discipline pool as well as being the leadership role above, so an unfiltered draw can
+        // land on the role this person was just given and emit the same staffing fact twice.
+        AddMembership(team, em, PickExcept(OrgVocabulary.Roles, OrgVocabulary.EngineeringManagerRole));
         team.EngineeringManager = em;
         team.Members.Add(em);
 
@@ -279,6 +283,7 @@ public sealed class OrgGenerator
 
         public EmployeeCsvRow ToRow() => new()
         {
+            ImportId = EmployeeNumber,
             EmployeeNumber = EmployeeNumber,
             FirstName = FirstName,
             LastName = LastName,
@@ -404,6 +409,7 @@ public sealed class OrgGenerator
         var code = ResolveCode(name, _usedCodes);
         _teams.Add(new TeamCsvRow
         {
+            ImportId = code,
             Type = "Team",
             Name = name,
             Code = code,
@@ -421,6 +427,7 @@ public sealed class OrgGenerator
         var code = ResolveCode(name, _usedCodes);
         _teams.Add(new TeamCsvRow
         {
+            ImportId = code,
             Type = "TeamOfTeams",
             Name = name,
             Code = code,
@@ -440,6 +447,7 @@ public sealed class OrgGenerator
         var start = activeDate > parent.ActiveDate ? activeDate : parent.ActiveDate;
         _teamMemberships.Add(new TeamMembershipCsvRow
         {
+            ImportId = $"{child.Code}|{parent.Code}",
             ChildCode = child.Code,
             ParentCode = parent.Code,
             Start = start,
@@ -452,6 +460,9 @@ public sealed class OrgGenerator
         _roleNames.Add(roleName);
         _members.Add(new TeamMemberCsvRow
         {
+            // One person can hold several roles on a team, and each is its own row — so the role has to be
+            // part of the key or the second row would collide with the first.
+            ImportId = $"{team.Code}|{person.EmployeeNumber}|{roleName}",
             TeamCode = team.Code,
             EmployeeNumber = person.EmployeeNumber,
             RoleName = roleName,
@@ -465,6 +476,10 @@ public sealed class OrgGenerator
     private string PickDistinctDomainWord() => Pick(OrgVocabulary.Domains);
 
     private string Pick(string[] pool) => _faker.PickRandom(pool);
+
+    /// <summary>Draws from the pool, never returning the one value the caller already used.</summary>
+    private string PickExcept(string[] pool, string excluded) =>
+        _faker.PickRandom(pool.Where(p => !string.Equals(p, excluded, StringComparison.OrdinalIgnoreCase)).ToArray());
 
     // The company is ~5 years old; the current team structure was set up ~2 years ago.
     private const int CompanyAgeYears = 5;

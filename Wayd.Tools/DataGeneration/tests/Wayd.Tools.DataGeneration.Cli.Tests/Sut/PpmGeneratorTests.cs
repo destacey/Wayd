@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
 namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
@@ -13,6 +13,157 @@ public class PpmGeneratorTests
 
     private static IEnumerable<string> Split(string? value) =>
         string.IsNullOrWhiteSpace(value) ? [] : value.Split(';');
+
+    [Fact]
+    public void Generate_EveryProjectCarriesExactlyTheTransitionDatesItsStatusAllows()
+    {
+        // Arrange — the import rejects a date for a state the project never reached, and rejects a
+        // missing one for a state it did, so a mismatch here fails the whole file at upload
+        var ppm = Generate();
+
+        // Act
+        var wrong = ppm.Projects
+            .Where(p => p.ActivatedOn.HasValue != Reached(p.Status) || p.ClosedOn.HasValue != Closed(p.Status))
+            .Select(p => $"{p.Key} ({p.Status})")
+            .ToList();
+
+        // Assert
+        wrong.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_NothingIsProposedOnADayThatHasNotHappened()
+    {
+        // Arrange — the window runs two years ahead, so a record starting in the future would otherwise
+        // be dated from that start and claim it was proposed then. A future project was still proposed by
+        // now, and a status history showing "Proposed" as a future event is plainly wrong.
+        var ppm = Generate();
+        var today = DateTime.UtcNow.Date;
+
+        // Act
+        var future = ppm.Projects.Where(p => p.CreatedOn > today).Select(p => p.Key)
+            .Concat(ppm.Programs.Where(p => p.CreatedOn > today).Select(p => p.Name))
+            .Concat(ppm.Portfolios.Where(p => p.CreatedOn > today).Select(p => p.Name))
+            .ToList();
+
+        // Assert
+        future.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_EveryProjectsTransitionDatesRunForwards()
+    {
+        // Arrange — the import also rejects an activation before creation, or a closure before either
+        var ppm = Generate();
+
+        // Act
+        var outOfOrder = ppm.Projects
+            .Where(p => (p.ActivatedOn is { } a && a < p.CreatedOn)
+                || (p.ClosedOn is { } c && c < (p.ActivatedOn ?? p.CreatedOn)))
+            .Select(p => p.Key)
+            .ToList();
+
+        // Assert
+        outOfOrder.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_EveryPortfolioAndProgramIsCreatedBeforeItIsActivated()
+    {
+        // Arrange
+        var ppm = Generate();
+
+        // Act
+        var portfolios = ppm.Portfolios.Where(p => p.ActivatedOn is { } a && a < p.CreatedOn).Select(p => p.Name);
+        var programs = ppm.Programs.Where(p => p.ActivatedOn is { } a && a < p.CreatedOn).Select(p => p.Name);
+
+        // Assert
+        portfolios.Concat(programs).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ProposedWorkIsNeverGivenAnActivationDate()
+    {
+        // Arrange — a project that has not started did not activate, and inventing a date would put a
+        // stretch of delivery into its history that never happened
+        var ppm = Generate();
+
+        // Act
+        var claimed = ppm.Projects
+            .Where(p => !Reached(p.Status) && p.ActivatedOn is not null)
+            .Select(p => p.Key)
+            .ToList();
+
+        // Assert
+        claimed.Should().BeEmpty();
+    }
+
+    /// <summary>Whether a project in this status has been activated — the generator never cancels one that did not run.</summary>
+    private static bool Reached(string status) =>
+        status is "Active" or "Completed" or "Canceled";
+
+    private static bool Closed(string status) => status is "Completed" or "Canceled";
+
+    [Fact]
+    public void Generate_EmitsAFinalizationForEveryProgramThatShouldEndClosed()
+    {
+        // Arrange — a program is imported active whatever it ends up as, because it cannot close until
+        // its projects are. The finalize file is the only thing that finishes the job, so a program the
+        // timeline says is over but that emits no row stays active forever.
+        var ppm = Generate();
+
+        var shouldClose = ppm.Programs
+            .Where(p => p.End is { } end && end < DateTime.UtcNow.Date)
+            .Select(p => p.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var finalized = ppm.Finalizations
+            .Where(f => f.Type == "Program")
+            .Select(f => f.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Assert
+        shouldClose.Should().NotBeEmpty("the four-year window puts some programs in the past");
+        finalized.Should().BeEquivalentTo(shouldClose);
+    }
+
+    [Fact]
+    public void Generate_FinalizesEveryProgramIntoAClosedStatusOnItsOwnEndDate()
+    {
+        // Arrange
+        var ppm = Generate();
+        var programEnds = ppm.Programs.ToDictionary(p => p.Name, p => p.End, StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var wrong = ppm.Finalizations
+            .Where(f => f.Status is not ("Completed" or "Canceled") || f.EndDate != programEnds[f.Name])
+            .Select(f => $"{f.Name} ({f.Status}, {f.EndDate:yyyy-MM-dd})")
+            .ToList();
+
+        // Assert
+        wrong.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_FinalizesNoProgramWhileItStillHoldsAnOpenProject()
+    {
+        // Arrange — the domain refuses to complete or cancel a program with an open project, so a
+        // finalize row naming one would fail the whole file
+        var ppm = Generate();
+        var finalized = ppm.Finalizations.Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var blocked = ppm.Projects
+            .Where(p => p.ProgramName is not null
+                && finalized.Contains(p.ProgramName)
+                && p.Status is not ("Completed" or "Canceled"))
+            .Select(p => $"{p.Key} ({p.Status}) in {p.ProgramName}")
+            .ToList();
+
+        // Assert
+        blocked.Should().BeEmpty();
+    }
 
     [Fact]
     public void Generate_EveryProgramReferencesAnExistingPortfolio()

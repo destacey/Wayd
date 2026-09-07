@@ -46,6 +46,13 @@ A few rules apply to every import:
   themes, project keys) separate their values with semicolons — for example `E-1001;E-1002`. A comma would
   collide with the CSV field delimiter.
 - **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
+- **Transition dates say when a record moved, and are separate from its timeline.** `CreatedOn`,
+  `ActivatedOn` and `ClosedOn` record when the record reached each status; `Start`/`End`, where a record has
+  them, are the timeline it plans to run over. A project that overran closed after the end it planned for, so
+  the two are not interchangeable. `CreatedOn` is required on every portfolio, program and project row;
+  which of the other two a row may carry depends on its status, and **a date for a status the record never
+  reached is rejected** rather than ignored. They must also run forwards:
+  `CreatedOn` ≤ `ActivatedOn` ≤ `ClosedOn`.
 - **Status columns are case-insensitive** and use the same status names shown in the app (for example
   `Active`, `Completed`).
 - **A missing file returns 422**, not 400 — the file is a validation failure like any other.
@@ -113,17 +120,18 @@ Only **active** themes can be attached to programs and projects.
 
 `POST /api/ppm/portfolios/import`
 
-Loads [portfolios](./portfolios-programs.mdx#portfolios). A portfolio only gets its date range from its
-lifecycle transitions, so the **Start**/**End** dates are carried on the row and applied as the portfolio is
-walked to its status.
+Loads [portfolios](./portfolios-programs.mdx#portfolios). A portfolio has no planned timeline of its own —
+its date range is set entirely by its lifecycle transitions — so the row carries those dates directly and
+they are applied as the portfolio is walked to its status. There is no closing date column, for the reason
+in the note below.
 
 | Column | Required | Notes |
 |---|---|---|
 | `Name` | Yes | Unique within the file and against existing portfolios. Max 128 chars. |
 | `Description` | Yes | Max 1024 chars. |
-| `Status` | No | `Proposed`, `Active`, `OnHold`, `Closed`, or `Archived`. Defaults to `Active`. |
-| `Start` | Conditional | Required unless `Proposed`. The date the portfolio was activated. |
-| `End` | Conditional | Required when `Closed` or `Archived`. Must be on or after `Start`. |
+| `Status` | No | `Proposed`, `Active`, `OnHold`, `Closed`, or `Archived`. Defaults to `Active`. A row naming `Closed` or `Archived` is imported **active** — see below. |
+| `CreatedOn` | Yes | The date the portfolio was proposed. |
+| `ActivatedOn` | Conditional | Required unless `Proposed`; not allowed on a `Proposed` row. The date the portfolio was activated, which becomes the start of its date range. |
 | `Sponsors` | No | Semicolon-separated employee numbers. |
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
@@ -139,16 +147,19 @@ a portfolio cannot close until its contents are closed.
 `POST /api/ppm/programs/import`
 
 Loads [programs](./portfolios-programs.mdx#programs) into their portfolio. A program is created inside its
-portfolio, so the portfolio must exist (and be active) first.
+portfolio, so the portfolio must exist (and be active) first. There is no closing date column, for the
+reason in the note below.
 
 | Column | Required | Notes |
 |---|---|---|
 | `Name` | Yes | Unique within the file and against existing programs. Max 128 chars. |
 | `Description` | Yes | Max 2048 chars. |
 | `PortfolioId` | Yes | The owning portfolio, by id. |
-| `Status` | No | `Proposed`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. |
-| `Start` | Conditional | Start and End must both be empty or both set. Required for active/completed programs. |
+| `Status` | No | `Proposed`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. A row naming `Completed` or `Canceled` is imported **active** — see below. |
+| `Start` | Conditional | The planned timeline. Start and End must both be empty or both set. Required for any program that was activated. |
 | `End` | Conditional | Must be on or after `Start`. |
+| `CreatedOn` | Yes | The date the program was proposed. |
+| `ActivatedOn` | Conditional | Required for `Active` and `Completed`; optional for `Canceled` (a program can be canceled before or after it started); not allowed on a `Proposed` row. |
 | `StrategicThemes` | No | Semicolon-separated theme **ids** (must be active). |
 | `Sponsors` | No | Semicolon-separated employee numbers. |
 | `Owners` | No | Semicolon-separated employee numbers. |
@@ -179,10 +190,17 @@ referenced by id.
 | `ProjectLifecycleId` | Conditional | A [lifecycle](./projects.mdx#project-lifecycles), by id. Required for `Approved` projects and for any project that will have tasks. |
 | `BusinessCase` | No | Max 4096 chars. |
 | `ExpectedBenefits` | No | Max 4096 chars. |
-| `Start` | Conditional | Start and End must both be empty or both set. Required for active/completed projects. |
+| `Start` | Conditional | The planned timeline. Start and End must both be empty or both set. Required for active/completed projects. |
 | `End` | Conditional | Must be on or after `Start`. |
+| `CreatedOn` | Yes | The date the project was proposed. An `Approved` project is dated by this too — the row carries no separate approval date. |
+| `ActivatedOn` | Conditional | Required for `Active` and `Completed`; optional for `Canceled` (a project can be canceled before or after it started); not allowed on `Proposed` or `Approved`. |
+| `ClosedOn` | Conditional | Required for `Completed` and `Canceled` — the status says which it records; not allowed on the rest. |
 | `StrategicThemes` | No | Semicolon-separated theme **ids** (must be active). |
 | `Sponsors` · `Owners` · `Managers` · `Members` | No | Semicolon-separated employee numbers. |
+
+Unlike portfolios and programs, a project has nothing beneath it that must close first, so it reaches its
+real final status during the run. Its [status history](./projects.mdx) is dated from these columns rather
+than from when the file was uploaded, so an imported project reads the same as one driven through the app.
 
 ## Project tasks import
 

@@ -176,6 +176,18 @@ item's status follows its position on that window: finished in the past (**Compl
 **Canceled**), in flight around today (**Active**), and not-yet-started in the future (**Proposed** /
 **Approved**). Task progress and status track the same timeline.
 
+Each portfolio, program and project also carries the dates it *moved* — `CreatedOn`, and `ActivatedOn` and
+`ClosedOn` where its status reached them — which are separate from the `Start`/`End` timeline it plans to run
+over. The import rejects a date for a status a record never reached, so the generator emits exactly the ones
+each status allows: a proposed project gets no activation date, and only a closed one gets a closing date.
+Records are proposed a few weeks to a few months before they activate, which for the earliest of them is
+before the window itself — work proposed before the window is exactly what a creation date is for.
+
+For projects this is what dates the [status history](/user-guide/ppm/projects): every replayed transition is
+stamped from these columns, so a seeded project's history reads as its own timeline rather than as the moment
+the seed ran. Portfolios and programs record no transition dates yet, so theirs are validated and then go no
+further than picking which transitions to replay.
+
 **Settings prerequisites.** Expenditure categories and the project lifecycle are **settings**, not imports.
 The `seed` verb bootstraps them through the normal settings API (create-or-get by name, and it activates the
 lifecycle) before importing projects, which reference them by id. They are not written as CSV by

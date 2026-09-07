@@ -73,8 +73,8 @@ Each step then needs the one above it:
 | Import | Needs | Why |
 |---|---|---|
 | Products | Types, tags | A product's type must exist and be active. |
-| Versions | Products | A version is cut against a product named by name. |
-| Release packages | Products, versions | A manifest line names a product; where a version record exists it is linked. |
+| Versions | Products | A version is cut against a product, named by id. |
+| Release packages | Products, versions | A manifest line names a product by id; where a version record matches its version string, the line is linked to it. |
 | Releases | Packages, versions | A release announces them, and cannot announce what does not exist. |
 
 :::warning Releases are last, and their contents must have shipped
@@ -205,8 +205,8 @@ everything in it.
 `POST /api/product-management/versions/import`
 
 Loads [versions](./delivery.mdx#versions) against products that already exist. Import the
-[catalog](#products-import) first — a version names its product by name, and an unknown one fails the
-batch.
+[catalog](#products-import) first — a version names its product by id, which that run's results report,
+and an unknown one fails the run.
 
 | Column | Required | Notes |
 |---|---|---|

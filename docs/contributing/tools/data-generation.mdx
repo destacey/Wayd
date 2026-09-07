@@ -171,7 +171,7 @@ item's status follows its position on that window: finished in the past (**Compl
 
 **Settings prerequisites.** Expenditure categories and the project lifecycle are **settings**, not imports.
 The `seed` verb bootstraps them through the normal settings API (create-or-get by name, and it activates the
-lifecycle) before importing projects, which reference them by name. They are not written as CSV by
+lifecycle) before importing projects, which reference them by id. They are not written as CSV by
 `generate`.
 
 :::note Why some historical work is "finalized" separately
@@ -220,9 +220,10 @@ employees → teams → team hierarchy → roles (created as needed) → team st
   → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 ```
 
-Each import is all-or-nothing: an unresolved or ambiguous reference fails the whole batch with a clear
-message (references are resolved by natural key — employee number, team code, project key, or name), so the
-run stays re-runnable against a fresh database. Pass `--skip-ppm` to stop after the organization.
+Each import is all-or-nothing: one rejected row fails the whole run and nothing is saved, so the run stays
+re-runnable against a fresh database. References resolve by natural key where a record has one — employee
+number, team code, project key — and by id otherwise, which is why each stage has to read the previous
+run's results before it can write the next file. Pass `--skip-ppm` to stop after the organization.
 
 ## Data conventions
 

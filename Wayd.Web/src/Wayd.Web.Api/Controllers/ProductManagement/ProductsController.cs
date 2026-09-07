@@ -129,20 +129,24 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
     {
         try
         {
-            var importedProducts = _csvService.ReadCsv<ImportProductRequest>(file.OpenReadStream());
+            var importedProducts = _csvService.ReadCsv<ImportProductRequest>(file.OpenReadStream()).ToList();
 
             List<SubmittedImportRow<ImportProductDto>> rows = [];
             var validator = new ImportProductRequestValidator();
-            foreach (var product in importedProducts)
+            for (var i = 0; i < importedProducts.Count; i++)
             {
+                var product = importedProducts[i];
+
                 var validationResults = await validator.ValidateAsync(product, cancellationToken);
                 if (!validationResults.IsValid)
                 {
                     foreach (var error in validationResults.Errors)
                     {
-                        // The row number rather than the name: names repeat legitimately across the
-                        // tree, so naming one would not identify which row failed.
-                        error.ErrorMessage = $"{error.ErrorMessage} (Name: {product.Name})";
+                        // The row's own key rather than its name: a catalog legitimately holds the same
+                        // name in two places, so naming one would not say which row failed. This is the
+                        // same key the run reports outcomes against.
+                        error.ErrorMessage =
+                            $"{error.ErrorMessage} (Row: {SubmittedImportRow.KeyFor(product.ImportId, i + 1)})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
@@ -150,6 +154,7 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
 
                 rows.Add(new SubmittedImportRow<ImportProductDto>(product.ImportId, product.ToImportProductDto()));
             }
+
             var result = await _dispatcher.Send(new ImportProductsCommand(rows), cancellationToken);
 
             return result.IsSuccess

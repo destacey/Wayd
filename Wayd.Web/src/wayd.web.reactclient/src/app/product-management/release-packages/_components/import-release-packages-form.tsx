@@ -11,8 +11,8 @@ export interface ImportReleasePackagesFormProps {
   onFormCancel: () => void
 }
 
-const PACKAGE_COLUMNS = 'Version,Name,TargetDate,ReleasedDate'
-const MANIFEST_COLUMNS = 'PackageVersion,ProductName,VersionNumber,Kind'
+const PACKAGE_COLUMNS = 'ImportId,Version,Name,TargetDate,ReleasedDate'
+const MANIFEST_COLUMNS = 'PackageImportId,ProductId,VersionNumber,Kind'
 
 const ImportReleasePackagesForm = ({
   onFormComplete,
@@ -33,7 +33,7 @@ const ImportReleasePackagesForm = ({
       columns={PACKAGE_COLUMNS}
       secondFile={{ label: 'Manifest', columns: MANIFEST_COLUMNS, required: true }}
       onImport={handleImport}
-      successMessage="Release packages imported successfully."
+      successMessage="Release packages submitted. Follow the run in Settings → Imports."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >

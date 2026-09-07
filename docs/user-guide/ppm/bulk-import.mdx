@@ -256,7 +256,7 @@ accepts neither new projects nor new KPIs).
 
 | Column | Required | Notes |
 |---|---|---|
-| `StrategicInitiativeImportId` | Yes | The `ImportId` of the initiative row this KPI belongs to (must be in the same import). A KPI file therefore requires the initiatives file to carry `ImportId` rather than relying on row position. |
+| `StrategicInitiativeImportId` | Yes | The `ImportId` of the initiative row this KPI belongs to (must be in the same import). Where that row left the column blank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs should supply `ImportId`, since inserting a row silently re-parents every KPI below it. |
 | `Name` | Yes | Max 64 chars. |
 | `Description` | No | Max 512 chars. |
 | `TargetValue` | Yes | The target value that defines success. |

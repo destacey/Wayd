@@ -12,9 +12,8 @@ export interface ImportReleasesFormProps {
 }
 
 const RELEASE_COLUMNS =
-  'Version,Name,ProductName,TargetDate,ReleasedDate,Sequence,Notes'
-const CONTENTS_COLUMNS =
-  'ReleaseVersion,Kind,PackageVersion,ProductName,VersionNumber'
+  'ImportId,Version,Name,ProductId,TargetDate,ReleasedDate,Sequence,Notes'
+const CONTENTS_COLUMNS = 'ReleaseImportId,Kind,PackageId,VersionId'
 
 const ImportReleasesForm = ({
   onFormComplete,
@@ -37,15 +36,15 @@ const ImportReleasesForm = ({
         required: false,
       }}
       onImport={handleImport}
-      successMessage="Releases imported successfully."
+      successMessage="Releases submitted. Follow the run in Settings → Imports."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >
       <Paragraph type="secondary">
         The first file lists the releases. The second, optional, lists what each
         one announces — a <Text code>Kind</Text> of <Text code>Package</Text> or{' '}
-        <Text code>Version</Text>, pointing back by{' '}
-        <Text code>ReleaseVersion</Text>.
+        <Text code>Version</Text>, pointing back at its release by{' '}
+        <Text code>ReleaseImportId</Text>.
       </Paragraph>
       <Paragraph type="secondary">
         A release given a <Text code>ReleasedDate</Text> is refused while

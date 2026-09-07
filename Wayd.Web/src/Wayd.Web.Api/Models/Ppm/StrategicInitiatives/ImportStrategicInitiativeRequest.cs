@@ -95,8 +95,9 @@ public sealed class ImportStrategicInitiativeRequestValidator : CustomValidator<
 public sealed class ImportStrategicInitiativeKpiRequest
 {
     /// <summary>
-    /// The <c>ImportId</c> of the initiative row this KPI belongs to. A KPI file therefore requires the
-    /// initiative file to carry <c>ImportId</c> rather than relying on row position.
+    /// The <c>ImportId</c> of the initiative row this KPI belongs to. Where that row left the column
+    /// blank its position stands in, so <c>1</c> reaches the first initiative — but a file carrying KPIs
+    /// should supply <c>ImportId</c>, since inserting a row silently re-parents every KPI below it.
     /// </summary>
     public string StrategicInitiativeImportId { get; set; } = default!;
 

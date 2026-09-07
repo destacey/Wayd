@@ -12,7 +12,7 @@ export interface ImportVersionsFormProps {
 }
 
 const COLUMNS =
-  'ProductName,Number,Name,TargetDate,CutDate,ReleasedDate,Sequence,Notes'
+  'ImportId,ProductId,Number,Name,TargetDate,CutDate,ReleasedDate,Sequence,Notes'
 
 const ImportVersionsForm = ({
   onFormComplete,
@@ -30,12 +30,12 @@ const ImportVersionsForm = ({
       title="Import Versions"
       columns={COLUMNS}
       onImport={handleImport}
-      successMessage="Versions imported successfully."
+      successMessage="Versions submitted. Follow the run in Settings → Imports."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >
       <Paragraph type="secondary">
-        Loads versions against products named by <Text code>ProductName</Text>.
+        Loads versions against products named by <Text code>ProductId</Text>.
         There is no status column — the dates decide: no dates leaves a version
         planned, a <Text code>CutDate</Text> makes it ready, and a{' '}
         <Text code>ReleasedDate</Text> makes it released.

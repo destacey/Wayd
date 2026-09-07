@@ -12,7 +12,7 @@ export interface ImportProductsFormProps {
 }
 
 const COLUMNS =
-  'Number,Name,Description,ProductTypeName,ParentNumber,ExternalId,Status,Tags'
+  'ImportId,Name,Description,ProductTypeName,ParentImportId,ExternalId,Status,Tags'
 
 const ImportProductsForm = ({
   onFormComplete,
@@ -30,13 +30,13 @@ const ImportProductsForm = ({
       title="Import Products"
       columns={COLUMNS}
       onImport={handleImport}
-      successMessage="Products imported successfully."
+      successMessage="Products submitted. Follow the run in Settings → Imports."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >
       <Paragraph type="secondary">
-        Loads a whole catalog from one CSV. Rows reference each other by a{' '}
-        <Text code>Number</Text> that is used only within the file, so a child
+        Loads a whole catalog from one CSV. Rows reference each other by an{' '}
+        <Text code>ImportId</Text> that is used only within the file, so a child
         can name its parent before either exists.
       </Paragraph>
     </CsvImportForm>

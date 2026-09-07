@@ -39,6 +39,53 @@ public abstract class PpmSeedArea(string name, params string[] dependsOn) : Seed
     /// <summary>Splits a generated multi-value column back into its parts.</summary>
     protected static IReadOnlyList<string> Split(string? value) =>
         string.IsNullOrWhiteSpace(value) ? [] : value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>
+    /// The most rows a seed puts in one file. The atomic imports reject anything past 10,000 outright,
+    /// since an atomic run cannot be split server-side and the cap is what bounds it; this leaves room
+    /// under that rather than sitting on it, because a batch is sized by whole groups and the last one
+    /// added can overshoot a tighter limit.
+    /// </summary>
+    private const int MaxRowsPerFile = 8_000;
+
+    /// <summary>
+    /// Splits rows into files small enough for one import run, keeping every row of a group together.
+    /// </summary>
+    /// <remarks>
+    /// The group is not a convenience: the imports that need batching are whole-set precisely because
+    /// rows within a group are not independent — a child task names its parent by that parent's ImportId
+    /// in the same file, and the per-project task number advances as rows are applied. Cutting a group
+    /// across two files hands the second one a child whose parent it never saw.
+    /// <para>
+    /// A single group larger than the cap is left whole and over the limit. Splitting it would break the
+    /// references it exists to hold, so the import rejecting the file is the honest outcome.
+    /// </para>
+    /// </remarks>
+    protected static IReadOnlyList<IReadOnlyList<TRow>> Batch<TRow, TKey>(
+        IEnumerable<TRow> rows, Func<TRow, TKey> groupBy)
+        where TKey : notnull
+    {
+        List<IReadOnlyList<TRow>> batches = [];
+        List<TRow> current = [];
+
+        foreach (var group in rows.GroupBy(groupBy))
+        {
+            var members = group.ToList();
+
+            if (current.Count > 0 && current.Count + members.Count > MaxRowsPerFile)
+            {
+                batches.Add(current);
+                current = [];
+            }
+
+            current.AddRange(members);
+        }
+
+        if (current.Count > 0)
+            batches.Add(current);
+
+        return batches;
+    }
 }
 
 /// <summary>
@@ -213,7 +260,6 @@ public sealed class ProjectTasksArea() : PpmSeedArea(
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
     {
         var tasks = Ppm(context).ProjectTasks;
-        context.Log($"Importing {tasks.Count} project tasks...");
 
         var rows = tasks.Select(t => new ProjectTaskCsvRow
         {
@@ -234,8 +280,23 @@ public sealed class ProjectTasksArea() : PpmSeedArea(
             Assignees = t.Assignees,
         });
 
-        var run = await context.Client.ImportProjectTasks(CsvFile.ToBytes(rows), cancellationToken);
-        context.Publish(Name, run.CreatedIdsByImportId);
+        // Batched by project, because a dense breakdown across a few hundred projects runs past what one
+        // atomic import accepts. Each batch is its own run, so a failure names the file it happened in.
+        var batches = Batch(rows, r => r.ProjectKey);
+        context.Log($"Importing {tasks.Count} project tasks in {batches.Count} batch(es)...");
+
+        Dictionary<string, Guid> created = [];
+        for (var i = 0; i < batches.Count; i++)
+        {
+            if (batches.Count > 1)
+                context.Log($"  batch {i + 1} of {batches.Count}: {batches[i].Count} tasks");
+
+            var run = await context.Client.ImportProjectTasks(CsvFile.ToBytes(batches[i]), cancellationToken);
+            foreach (var (importId, id) in run.CreatedIdsByImportId)
+                created[importId] = id;
+        }
+
+        context.Publish(Name, created);
     }
 
     /// <summary>

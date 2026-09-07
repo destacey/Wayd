@@ -13,8 +13,10 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 /// indexed, so a name is a display value that may match more than one record. People keep their employee
 /// number, which is the natural key an employee actually has.
 /// <para>
-/// A project receives its date range on creation, and the <see cref="Status"/> transitions only move the
-/// status, so no additional dates are needed on the row.
+/// <see cref="Start"/> and <see cref="End"/> are the timeline the project plans to run over.
+/// <see cref="CreatedOn"/>, <see cref="ActivatedOn"/> and <see cref="ClosedOn"/> are separate from it:
+/// they say when the project actually moved, and are what the replayed transitions are stamped with. A
+/// project that ran late closed after the end it planned for, so the two are not interchangeable.
 /// </para>
 /// </remarks>
 public sealed record ImportProjectDto(
@@ -30,6 +32,9 @@ public sealed record ImportProjectDto(
     string? ExpectedBenefits,
     LocalDate? Start,
     LocalDate? End,
+    LocalDate CreatedOn,
+    LocalDate? ActivatedOn,
+    LocalDate? ClosedOn,
     IReadOnlyList<Guid> StrategicThemeIds,
     IReadOnlyList<string> SponsorEmployeeNumbers,
     IReadOnlyList<string> OwnerEmployeeNumbers,
@@ -87,5 +92,34 @@ public sealed class ImportProjectDtoValidator : CustomValidator<ImportProjectDto
             .NotNull()
             .When(p => p.Status is ProjectStatus.Approved)
                 .WithMessage("An approved project must have a project lifecycle.");
+
+        // A date for a state the project never reached is rejected rather than dropped: silently ignoring
+        // it would import a project whose history disagrees with the file that produced it.
+        When(p => p.Status is ProjectStatus.Active or ProjectStatus.Completed,
+            () => RuleFor(p => p.ActivatedOn)
+                .NotNull()
+                    .WithMessage("An active or completed project must have an ActivatedOn date."))
+            .Otherwise(() => RuleFor(p => p.ActivatedOn)
+                // Canceled is the exception: a project can be canceled either before or after it was
+                // activated, and the status alone does not say which.
+                .Empty()
+                .When(p => p.Status is not ProjectStatus.Canceled)
+                    .WithMessage("ActivatedOn is only allowed on a project that reached Active."));
+
+        When(p => p.Status is ProjectStatus.Completed or ProjectStatus.Canceled,
+            () => RuleFor(p => p.ClosedOn)
+                .NotNull()
+                    .WithMessage("A completed or canceled project must have a ClosedOn date."))
+            .Otherwise(() => RuleFor(p => p.ClosedOn)
+                .Empty()
+                    .WithMessage("ClosedOn is only allowed on a project that was completed or canceled."));
+
+        RuleFor(p => p.ActivatedOn)
+            .Must((p, activatedOn) => activatedOn is null || p.CreatedOn <= activatedOn)
+                .WithMessage("ActivatedOn cannot be earlier than CreatedOn.");
+
+        RuleFor(p => p.ClosedOn)
+            .Must((p, closedOn) => closedOn is null || (p.ActivatedOn ?? p.CreatedOn) <= closedOn)
+                .WithMessage("ClosedOn cannot be earlier than ActivatedOn or CreatedOn.");
     }
 }

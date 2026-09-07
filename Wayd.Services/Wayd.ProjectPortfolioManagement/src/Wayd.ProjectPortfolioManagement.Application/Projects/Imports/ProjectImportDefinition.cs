@@ -26,13 +26,11 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 /// </remarks>
 public sealed class ProjectImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    IDateTimeProvider dateTimeProvider,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportProjectDto>(serializer)
 {
     public const string ImportKey = "ppm.projects";
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Projects";
@@ -54,8 +52,6 @@ public sealed class ProjectImportDefinition(
     /// </summary>
     private async Task<Result> CreateProjects(ImportPassContext<ImportProjectDto> context, CancellationToken cancellationToken)
     {
-        var timestamp = _dateTimeProvider.Now;
-
         var takenKeys = await ResolveTakenKeys(context, cancellationToken);
         var portfoliosById = await ResolvePortfolios(context, cancellationToken);
         var categoryIds = await ResolveExpenditureCategoryIds(context, cancellationToken);
@@ -142,7 +138,7 @@ public sealed class ProjectImportDefinition(
                 data.ExpectedBenefits?.Trim(),
                 BuildRoles(data, employeeIdsByNumber),
                 [.. data.StrategicThemeIds],
-                timestamp,
+                At(data.CreatedOn),
                 PpmActor.System,
                 currentMaxRank);
             if (created.IsFailure)
@@ -164,7 +160,7 @@ public sealed class ProjectImportDefinition(
                 }
             }
 
-            var transition = ApplyStatus(project, data.Status, timestamp);
+            var transition = ApplyStatus(project, data);
             if (transition.IsFailure)
             {
                 row.Failed($"Could not set project '{key}' to {data.Status}: {transition.Error}");
@@ -183,41 +179,68 @@ public sealed class ProjectImportDefinition(
     /// <summary>
     /// Walks a freshly created (Proposed) project to its target status through the real transitions, so
     /// every guard the domain enforces is honoured — approval requires a lifecycle, activation a date
-    /// range. A canceled project is canceled straight from Proposed, which the domain permits.
+    /// range — and stamps each one with the date the row says it happened on.
     /// </summary>
     /// <remarks>
+    /// The route is chosen by the dates rather than by the status alone. Which of them a row carries is
+    /// settled by <c>ImportProjectDtoValidator</c> before any of this runs, so a missing one here is a
+    /// validation gap rather than a case to fall back on.
+    /// <para>
+    /// Approval is stamped with <c>CreatedOn</c>: an approved project is still one that has not started,
+    /// and the row does not separate the two. That leaves two history rows sharing an instant, which
+    /// <c>ProjectStatusHistory.Sequence</c> already exists to order.
+    /// </para>
+    /// <para>
     /// Runs as <see cref="PpmActor.System"/>: import is a bulk administrative operation authorized by the
     /// caller's Permissions.Projects.Import claim, not by delivery-leadership membership. Membership
     /// gating cannot apply here in any case — the project is created by this same run, so nobody holds a
     /// role on it yet.
+    /// </para>
     /// </remarks>
-    private static Result ApplyStatus(Project project, ProjectStatus status, Instant timestamp)
+    private static Result ApplyStatus(Project project, ImportProjectDto data)
     {
         var actor = PpmActor.System;
         var ancestry = ProjectAncestryRoles.None;
 
-        switch (status)
+        switch (data.Status)
         {
             case ProjectStatus.Proposed:
                 return Result.Success();
 
-            case ProjectStatus.Canceled:
-                return project.Cancel(actor, ancestry, timestamp);
-
             case ProjectStatus.Approved:
-                return project.Approve(actor, ancestry, timestamp);
+                return project.Approve(actor, ancestry, At(data.CreatedOn));
 
             case ProjectStatus.Active:
-                return project.Activate(actor, ancestry, timestamp);
+                return project.Activate(actor, ancestry, At(data.ActivatedOn!.Value));
 
             case ProjectStatus.Completed:
-                var activate = project.Activate(actor, ancestry, timestamp);
-                return activate.IsFailure ? activate : project.Complete(actor, ancestry, timestamp);
+                var activate = project.Activate(actor, ancestry, At(data.ActivatedOn!.Value));
+                return activate.IsFailure
+                    ? activate
+                    : project.Complete(actor, ancestry, At(data.ClosedOn!.Value));
+
+            case ProjectStatus.Canceled:
+                // Activation is optional here and nowhere else: a project can be canceled before it ever
+                // started, and the status alone does not say whether this one was.
+                if (data.ActivatedOn is { } activatedOn)
+                {
+                    var reached = project.Activate(actor, ancestry, At(activatedOn));
+                    if (reached.IsFailure)
+                        return reached;
+                }
+
+                return project.Cancel(actor, ancestry, At(data.ClosedOn!.Value));
 
             default:
-                return Result.Failure($"Unsupported project status '{status}'.");
+                return Result.Failure($"Unsupported project status '{data.Status}'.");
         }
     }
+
+    /// <summary>
+    /// The instant a transition dated <paramref name="date"/> is recorded at. Status history is kept to
+    /// the instant, and a row carries only a date, so the day is anchored at its UTC start.
+    /// </summary>
+    private static Instant At(LocalDate date) => date.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
 
     private async Task<HashSet<string>> ResolveTakenKeys(
         ImportPassContext<ImportProjectDto> context, CancellationToken cancellationToken)

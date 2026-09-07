@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using NodaTime.Testing;
 using NodaTime.Extensions;
@@ -27,6 +27,12 @@ public sealed class ProjectImportDefinitionTests : IDisposable
     private static readonly LocalDate _start = new(2024, 7, 1);
     private static readonly LocalDate _end = new(2025, 6, 30);
 
+    // Deliberately all different, and all well before the run: a transition stamped with the wrong one of
+    // them is then visible, which a shared date would hide.
+    private static readonly LocalDate _created = new(2024, 3, 4);
+    private static readonly LocalDate _activated = new(2024, 7, 8);
+    private static readonly LocalDate _closed = new(2025, 5, 6);
+
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly ProjectImportDefinition _definition;
@@ -37,7 +43,7 @@ public sealed class ProjectImportDefinitionTests : IDisposable
     public ProjectImportDefinitionTests()
     {
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _definition = new ProjectImportDefinition(_dbContext, _dateTimeProvider, new ImportPayloadSerializer());
+        _definition = new ProjectImportDefinition(_dbContext, new ImportPayloadSerializer());
 
         // A project can only be created inside an active portfolio, so every case starts from one.
         _portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
@@ -270,6 +276,106 @@ public sealed class ProjectImportDefinitionTests : IDisposable
         outcome.Error.Should().Contain("expenditure category");
     }
 
+    [Fact]
+    public async Task CreateProjects_DatesTheOpeningHistoryEntryWithCreatedOn()
+    {
+        // Arrange & Act — the import used to stamp every entry with the moment the file ran, so a
+        // project proposed in 2024 read as though its whole life happened on upload day
+        var result = await Run(Row("APOLLO", ProjectStatus.Proposed, start: null));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+
+        var opening = _portfolio.Projects.Single().StatusHistory.Single();
+        opening.FromStatus.Should().BeNull();
+        opening.ToStatus.Should().Be(ProjectStatus.Proposed);
+        opening.ChangedOn.Should().Be(At(_created));
+    }
+
+    [Fact]
+    public async Task CreateProjects_DatesTheActivationWithActivatedOn()
+    {
+        // Arrange & Act
+        var result = await Run(Row("APOLLO", ProjectStatus.Active, _start, _end));
+
+        // Assert — two entries, each on its own date, rather than both on the run's
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+
+        var history = _portfolio.Projects.Single().StatusHistory.OrderBy(h => h.Sequence).ToList();
+        history.Should().HaveCount(2);
+        history[0].ChangedOn.Should().Be(At(_created));
+        history[1].ToStatus.Should().Be(ProjectStatus.Active);
+        history[1].ChangedOn.Should().Be(At(_activated));
+    }
+
+    [Fact]
+    public async Task CreateProjects_DatesTheCompletionWithClosedOn()
+    {
+        // Arrange & Act — reaching Completed replays Active on the way, so all three dates are in play
+        var result = await Run(Row("APOLLO", ProjectStatus.Completed, _start, _end));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+
+        var history = _portfolio.Projects.Single().StatusHistory.OrderBy(h => h.Sequence).ToList();
+        history.Select(h => h.ToStatus).Should()
+            .Equal(ProjectStatus.Proposed, ProjectStatus.Active, ProjectStatus.Completed);
+        history.Select(h => h.ChangedOn).Should().Equal(At(_created), At(_activated), At(_closed));
+    }
+
+    [Fact]
+    public async Task CreateProjects_DatesTheApprovalWithCreatedOn()
+    {
+        // Arrange — approval needs a lifecycle
+        var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithStages(("Plan", "Planning"));
+        _dbContext.AddProjectLifecycle(lifecycle);
+
+        // Act
+        var result = await Run(
+            Row("APOLLO", ProjectStatus.Approved, start: null) with { ProjectLifecycleId = lifecycle.Id });
+
+        // Assert — the row carries no approval date of its own, so an approved project is still dated
+        // by when it was proposed rather than by when the file happened to run
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+
+        var history = _portfolio.Projects.Single().StatusHistory.OrderBy(h => h.Sequence).ToList();
+        history.Select(h => h.ToStatus).Should().Equal(ProjectStatus.Proposed, ProjectStatus.Approved);
+        history.Should().AllSatisfy(h => h.ChangedOn.Should().Be(At(_created)));
+    }
+
+    [Fact]
+    public async Task CreateProjects_CancelsStraightFromProposedWhenTheRowNamesNoActivation()
+    {
+        // Arrange & Act — a project canceled before it ever started never activated, and inventing an
+        // activation would put a stretch of delivery into the history that never happened
+        var result = await Run(Row("APOLLO", ProjectStatus.Canceled, start: null) with { ActivatedOn = null });
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+
+        var history = _portfolio.Projects.Single().StatusHistory.OrderBy(h => h.Sequence).ToList();
+        history.Select(h => h.ToStatus).Should().Equal(ProjectStatus.Proposed, ProjectStatus.Canceled);
+        history[1].ChangedOn.Should().Be(At(_closed));
+    }
+
+    [Fact]
+    public async Task CreateProjects_ActivatesBeforeCancelingWhenTheRowNamesAnActivation()
+    {
+        // Arrange & Act — the other half of the same rule: a project canceled mid-flight did run for a
+        // while, and the history has to show it
+        var result = await Run(Row("APOLLO", ProjectStatus.Canceled, _start, _end) with { ActivatedOn = _activated });
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+
+        var history = _portfolio.Projects.Single().StatusHistory.OrderBy(h => h.Sequence).ToList();
+        history.Select(h => h.ToStatus).Should()
+            .Equal(ProjectStatus.Proposed, ProjectStatus.Active, ProjectStatus.Canceled);
+        history.Select(h => h.ChangedOn).Should().Equal(At(_created), At(_activated), At(_closed));
+    }
+
+    private static Instant At(LocalDate date) => date.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
+
     private ImportProjectDto Row(string key, ProjectStatus status, LocalDate? start, LocalDate? end = null) =>
         new(
             $"Project {key}",
@@ -284,6 +390,11 @@ public sealed class ProjectImportDefinitionTests : IDisposable
             null,
             start,
             end,
+            _created,
+            // The dates the validator would require for this status. A row builds them itself so a case
+            // that is not about dates does not have to state them.
+            status is ProjectStatus.Active or ProjectStatus.Completed ? _activated : null,
+            status is ProjectStatus.Completed or ProjectStatus.Canceled ? _closed : null,
             [],
             [],
             [],

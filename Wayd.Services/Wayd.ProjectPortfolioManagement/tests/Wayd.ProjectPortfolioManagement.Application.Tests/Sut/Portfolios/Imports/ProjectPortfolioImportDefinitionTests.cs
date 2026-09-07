@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Enums.Imports;
@@ -16,8 +16,8 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
 {
     private const int CreatePass = 0;
 
+    private static readonly LocalDate _created = new(2024, 4, 1);
     private static readonly LocalDate _start = new(2024, 7, 1);
-    private static readonly LocalDate _end = new(2026, 6, 30);
 
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly ProjectPortfolioImportDefinition _definition;
@@ -49,7 +49,7 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
     public async Task CreatePortfolios_CreatesAProposedPortfolioWithoutDates()
     {
         // Arrange & Act
-        var result = await Run(Row("Growth", ProjectPortfolioStatus.Proposed, start: null));
+        var result = await Run(Row("Growth", ProjectPortfolioStatus.Proposed, activatedOn: null));
 
         // Assert
         var outcome = result.Value.Rows.Single();
@@ -63,7 +63,7 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
     }
 
     [Fact]
-    public async Task CreatePortfolios_ActivatesWithTheRowsOwnStartDate()
+    public async Task CreatePortfolios_ActivatesWithTheRowsOwnActivatedOnDate()
     {
         // Arrange & Act — the row's date must win: the activate command hardcodes today, which would
         // flatten the historical timeline
@@ -95,7 +95,7 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
     {
         // Arrange & Act — a portfolio cannot close until its contents are closed, so the finalize import
         // finishes the job once they have landed
-        var result = await Run(Row("Growth", status, _start, _end));
+        var result = await Run(Row("Growth", status, _start));
 
         // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();
@@ -180,7 +180,7 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
         // Arrange & Act
         var result = await Run(
             Row("Growth", ProjectPortfolioStatus.Active, _start),
-            Row("Efficiency", ProjectPortfolioStatus.Proposed, start: null),
+            Row("Efficiency", ProjectPortfolioStatus.Proposed, activatedOn: null),
             Row("Platform", ProjectPortfolioStatus.OnHold, _start));
 
         // Assert
@@ -189,6 +189,6 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
     }
 
     private static ImportProjectPortfolioDto Row(
-        string name, ProjectPortfolioStatus status, LocalDate? start, LocalDate? end = null) =>
-        new(name, $"{name} portfolio", status, start, end, [], [], []);
+        string name, ProjectPortfolioStatus status, LocalDate? activatedOn) =>
+        new(name, $"{name} portfolio", status, _created, activatedOn, [], [], []);
 }

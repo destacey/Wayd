@@ -6,10 +6,17 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 /// A single portfolio row. Programs, projects and strategic initiatives reference their portfolio by
 /// <see cref="Name"/>, so names must be unique within the batch and against existing portfolios.
 /// <para>
-/// Dates are carried on the row because a portfolio never receives them on creation — <c>Create</c> makes a
-/// Proposed portfolio with no date range, and the range is only ever set by the <c>Activate(startDate)</c>
-/// and <c>Close(endDate)</c> transitions. The handler replays those transitions with these dates, which is
-/// also why they cannot be imported through <c>ActivateProjectPortfolioCommand</c> (it hardcodes today).
+/// A portfolio has no planned timeline of its own: <c>Create</c> makes a Proposed portfolio with no date
+/// range, and the range is only ever set by the <c>Activate(startDate)</c> and <c>Close(endDate)</c>
+/// transitions. So <see cref="ActivatedOn"/> is on the row and the handler replays the activation with it
+/// — which is also why it cannot be imported through <c>ActivateProjectPortfolioCommand</c> (that
+/// hardcodes today). There is no closing date here: an import cannot close a portfolio, since it can only
+/// close once its contents are closed, so the finalize import carries that date on its own row.
+/// </para>
+/// <para>
+/// <see cref="CreatedOn"/> is required on every row but nothing stores it yet: a portfolio records no
+/// creation date beyond the <c>SystemCreated</c> audit stamp, which is when the file was uploaded.
+/// Requiring it now means the day the portfolio does record one, no file has to change.
 /// </para>
 /// People are referenced by employee number rather than Id so a batch can be authored without knowing
 /// generated Ids.
@@ -18,8 +25,8 @@ public sealed record ImportProjectPortfolioDto(
     string Name,
     string Description,
     ProjectPortfolioStatus Status,
-    LocalDate? Start,
-    LocalDate? End,
+    LocalDate CreatedOn,
+    LocalDate? ActivatedOn,
     IReadOnlyList<string> SponsorEmployeeNumbers,
     IReadOnlyList<string> OwnerEmployeeNumbers,
     IReadOnlyList<string> ManagerEmployeeNumbers);
@@ -41,20 +48,19 @@ public sealed class ImportProjectPortfolioDtoValidator : CustomValidator<ImportP
         RuleFor(p => p.Status)
             .IsInEnum();
 
-        // Mirrors the domain's own construction rules: anything past Proposed needs a start, and anything
-        // closed or archived needs both ends of the range.
-        RuleFor(p => p.Start)
-            .NotNull()
-            .When(p => p.Status is not ProjectPortfolioStatus.Proposed)
-                .WithMessage("A portfolio that is not proposed must have a Start date.");
+        // Mirrors the domain's own construction rules: anything past Proposed has been activated, and
+        // anything closed or archived has been closed as well. A date for a state the portfolio never
+        // reached is rejected rather than dropped.
+        When(p => p.Status is not ProjectPortfolioStatus.Proposed,
+            () => RuleFor(p => p.ActivatedOn)
+                .NotNull()
+                    .WithMessage("A portfolio that is not proposed must have an ActivatedOn date."))
+            .Otherwise(() => RuleFor(p => p.ActivatedOn)
+                .Empty()
+                    .WithMessage("ActivatedOn is only allowed on a portfolio that reached Active."));
 
-        RuleFor(p => p.End)
-            .NotNull()
-            .When(p => p.Status is ProjectPortfolioStatus.Closed or ProjectPortfolioStatus.Archived)
-                .WithMessage("A closed or archived portfolio must have an End date.");
-
-        RuleFor(p => p.End)
-            .Must((p, end) => end is null || p.Start is null || p.Start <= end)
-                .WithMessage("End date must be on or after the start date.");
+        RuleFor(p => p.ActivatedOn)
+            .Must((p, activatedOn) => activatedOn is null || p.CreatedOn <= activatedOn)
+                .WithMessage("ActivatedOn cannot be earlier than CreatedOn.");
     }
 }

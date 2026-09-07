@@ -169,6 +169,18 @@ The TypeScript client is auto-generated from this spec and located in:
 wayd.web.reactclient/src/services/wayd-api.ts
 ```
 
+## Activity History Endpoints
+
+Every record that raises domain events exposes its history at the same sub-route:
+
+```
+GET {record route}/{idOrKey}/activities?page=1&pageSize=50
+```
+
+`page` is 1-based and `pageSize` is clamped to 1–100. The response is a `PagedResponse<ActivityLogDto>`, newest first. Reading a record's activity requires the same **View** permission as reading the record itself, and the handler resolves the record before reading its history — an unknown id or key returns 404 rather than an empty page.
+
+It is available on `teams`, `teams-of-teams`, `sprints`, `portfolios`, `programs`, `projects`, `strategic-themes`, `products`, `versions`, `releases`, `release-packages`, `deployments`, `status-workflows` and `work-processes`. See [Activity Log](../user-guide/activity-log.mdx) for what the corresponding UI does.
+
 ## PPM Ranking Endpoints
 
 Portfolio project ranking is exposed under `/api/ppm/portfolios`:

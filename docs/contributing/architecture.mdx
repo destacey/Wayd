@@ -209,6 +209,43 @@ the replicated `PlanningTeam` row must already exist or the save FK-faults. Crea
 this ordering correct for free; bulk operations (e.g. the [data generation tool](./tools/data-generation.mdx))
 must create per row via the domain path plus one `SaveChanges`, never a raw `AddRange`.
 
+### Activity log
+
+Every domain event drained by `SaveChanges` is also captured as an `ActivityLogEntry` row — automatically,
+in `BaseDbContext`, with no per-aggregate wiring. An event implementing `IAggregateEvent` declares the
+aggregate type and id the entry belongs to; anything else falls back to the raising entity's type name and
+id. That is what the record pages' **Activity** section reads.
+
+Reading is an `IActivityLogReader` **service**, not a standalone query. Each module writes its own thin
+query handler that resolves and authorizes its record first, then reads the history inside that record's
+security boundary:
+
+```csharp
+var projectId = await _ppmDbContext.Projects
+    .Where(request.IdOrKeyFilter)
+    .Select(p => (Guid?)p.Id)
+    .FirstOrDefaultAsync(cancellationToken);
+
+if (projectId is null)
+{
+    return Result.Success<PagedResponse<ActivityLogDto>?>(null);
+}
+
+var activities = await _activityLogReader.Read(
+    projectId.Value, aggregateType: "Project", page: request.Page, pageSize: request.PageSize,
+    cancellationToken: cancellationToken);
+```
+
+A generic `/api/activities?aggregateId=` endpoint would have to re-derive which permission guards which
+aggregate type; this way the module that already knows answers it, and the controller carries the same
+`[MustHavePermission]` as the record's own GET.
+
+**The aggregate type is the event's, not the entity's.** Two cases differ today and both are load-bearing:
+a `TeamOfTeams` raises the same `Team*` events, so its entries carry `"Team"` and only the id separates
+them; and `StatusWorkflow`'s events name the aggregate `"Workflow"`. Reading with the entity's own class
+name would silently return nothing. Adding an Activity section to a new record means checking what its
+events actually declare — `grep 'AggregateType =>'` lists every value in use.
+
 ## Connector framework
 
 Customer-configured integrations (Azure DevOps, Entra, Azure OpenAI, future Jira / GitHub / Workday connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.

@@ -432,6 +432,16 @@ A deployment's **Category** is the environment's category *as it stood when the 
 the environment's category today. A row can therefore legitimately show a different category from the
 environment it names — see [Reclassifying does not rewrite history](#environments) above.
 
+## Activity
+
+Versions, releases, packages and deployments each carry an **Activity** section holding the record's
+full history: what changed, who changed it, and when. Where a record also has a Status History
+section, the two differ in scope — status history covers transitions alone, while activity covers
+every change the record raised an event for, including edits, date corrections and manifest changes.
+See [Activity Log](../activity-log.mdx).
+
+Environments have no detail page, so their changes are recorded but not browsable this way.
+
 ## Delivery Metrics
 
 Two of the four [DORA](https://dora.dev/) measures are computable from what this module records. The other two are reported as explicitly unavailable rather than omitted or approximated, so you can tell "we do not measure this yet" from "there were no deployments."

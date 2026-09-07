@@ -81,6 +81,11 @@ const sidebars: SidebarsConfig = {
           id: 'user-guide/settings/index',
           label: 'Administration',
         },
+        {
+          type: 'doc',
+          id: 'user-guide/activity-log',
+          label: 'Activity Log',
+        },
       ],
     },
   ],

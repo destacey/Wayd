@@ -15,9 +15,9 @@ public class EmailAddress : ScalarValueObject<string>
     /// <remarks>
     /// The same set <see cref="StringExtensions.IsValidEmailAddressFormat"/> matches, named here so
     /// anything that has to agree with it can say so rather than restate it. Identity's allowed-username
-    /// characters is the case that matters: a Wayd username is always the user's address, so a character
-    /// accepted as an address and refused as a username makes the account impossible to create and says
-    /// nothing useful about why.
+    /// characters is the case that matters: a username is an address for a locally created account and a
+    /// UPN for an Entra one, both address-shaped, so a character accepted as an address and refused as a
+    /// username makes the account impossible to create and says nothing useful about why.
     /// </remarks>
     public const string AllowedCharacters =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-/=?^_`{|}~.@";

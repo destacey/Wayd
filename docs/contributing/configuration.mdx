@@ -223,6 +223,23 @@ Only enabled providers appear. `AllowedTenantIds` and any future server-side sec
 
 ### Identity model
 
+:::note `UserName` is address-shaped, and validated as such
+A locally created account takes `UserName` from the email it was created with; an Entra account takes it
+from the UPN. Both are addresses or address-shaped identifiers, so **the allowed-username character set is
+the email grammar** — `IdentityOptions.User.AllowedUserNameCharacters` is assigned
+`EmailAddress.AllowedCharacters`, which is RFC 5322 `atext` plus `.` and `@`.
+
+This matters because the two rules are applied a step apart by different components: the create-user
+command validates the value as an email, then Identity validates the same string as a username. Any
+character one accepts and the other rejects makes the account impossible to create, and the error talks
+about a username the caller never supplied. The apostrophe was such a character until it was fixed —
+`o'brien@example.com` is a valid address, and nobody with that surname could be given an account.
+
+Widening it further is safe only for characters an address may actually contain. Whitespace and quoted
+local parts are legal in an address and still excluded: a username has to survive being compared,
+normalized and stored as one token.
+:::
+
 User → login-provider linkage lives in a `UserIdentity` table. One row per (user, provider-identity) pair, keyed by `(Provider, ProviderTenantId, ProviderSubject)`:
 
 ```mermaid

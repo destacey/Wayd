@@ -22,8 +22,9 @@ internal static class ConfigureServices
 
                     options.User.RequireUniqueEmail = true;
 
-                    // A Wayd username is always the user's email address, so this takes the address
-                    // grammar rather than keeping a list of its own. The two rules are applied a step
+                    // A username here is an address or an address-shaped identifier: a locally created
+                    // account takes it from the email, and an Entra one from the UPN. So this takes the
+                    // address grammar rather than keeping a list of its own. The rules are applied a step
                     // apart by different components, and a character one accepts and the other refuses
                     // makes the account impossible to create while complaining about a username the
                     // caller never supplied.

@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Wayd.Common.Extensions;
+using Wayd.Common.Models;
 using Wayd.Infrastructure.Identity;
 
 namespace Wayd.Infrastructure.Tests.Sut.Identity;
@@ -49,19 +51,31 @@ public sealed class IdentityUserNameCharacterTests
     }
 
     [Fact]
-    public void AllowedUserNameCharacters_AdmitsEveryCharacterTheAddressGrammarAllows()
+    public void AllowedUserNameCharacters_IsTheAddressGrammar()
     {
-        // Arrange — the set is meant to be derived from RFC 5322's unquoted local part rather than
-        // extended a character at a time when someone hits a rejection. Spelled out independently here so
-        // the test disagrees with the implementation if either drifts.
-        const string atext = "!#$%&'*+-/=?^_`{|}~";
+        // Arrange & Act — not "contains the same characters" but "is the same value". A username here is
+        // an address, so the two cannot be allowed to diverge by a character.
         var allowed = AllowedCharacters();
 
+        // Assert
+        allowed.Should().Be(EmailAddress.AllowedCharacters);
+    }
+
+    [Fact]
+    public void AllowedCharacters_AgreesWithWhatTheFormatCheckActuallyAccepts()
+    {
+        // Arrange — the constant and the regex behind IsValidEmailAddressFormat are two statements of one
+        // grammar, written apart. This is what stops them drifting: every character the constant permits
+        // has to survive being put in a real address and validated.
+        var localPartCharacters = EmailAddress.AllowedCharacters.Replace("@", string.Empty).Replace(".", string.Empty);
+
         // Act
-        var missing = (atext + ".@").Where(c => !allowed.Contains(c)).ToList();
+        var rejected = localPartCharacters
+            .Where(c => !$"a{c}b@example.com".IsValidEmailAddressFormat())
+            .ToList();
 
         // Assert
-        missing.Should().BeEmpty();
+        rejected.Should().BeEmpty();
     }
 
     [Fact]

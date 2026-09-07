@@ -65,8 +65,21 @@ No password is ever handled by the tool, and a token is scoped, expiring, and re
 
 :::tip Re-seeding
 The import is **additive** and rejects duplicates, so it expects a clean database. To re-seed, reset the
-database first (Aspire dashboard → the reset command), then run `seed` again. A reset wipes tokens too, so
-you will need a fresh Personal Access Token afterward.
+database first (Aspire dashboard → the reset command), then run `seed` again.
+
+A reset takes **your account with it**, not just your tokens — the seeder creates roles, not users — so the
+loop back to a working token is:
+
+1. **Reset**, then start the application. With no users in the database it prints a one-time bootstrap token
+   to the log; see [First-Run Setup](../first-run-setup.mdx).
+2. **Create the first admin** at `<your-app-url>/setup`, or `POST /api/auth/setup` with the token. This
+   account is created with no forced password change, so it is usable immediately.
+3. **Create a Personal Access Token** under Settings → Personal Access Tokens, or
+   `POST /api/user-management/personal-access-tokens`.
+4. **Seed** with that token.
+
+Every step has an HTTP endpoint, so the whole loop can be scripted — the bootstrap token is the only value
+that has to come out of the log, and it lasts for the lifetime of that process only.
 :::
 
 ## Recipes

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
+  "version": 1,
+  "extends": "default",
+  "description": "A young company: one product line, a handful of teams, and little history behind it.",
+  "timeline": {
+    "companyAgeYears": 2,
+    "teamStructureAgeYears": 1,
+    "historyYears": 1,
+    "runwayYears": 1
+  },
+  "organization": {
+    "valueStreams": 1,
+    "teams": 4,
+    "formerEmployeeFraction": 0.03
+  },
+  "ppm": {
+    "functionPortfolios": 0,
+    "concurrentProjectsPerArt": 4,
+    "concurrentProgramsPerPortfolio": 2
+  }
+}

@@ -25,4 +25,14 @@
     <ProjectReference Include="..\Wayd.Tools.DataGeneration.Cli.Client\Wayd.Tools.DataGeneration.Cli.Client.csproj" />
   </ItemGroup>
 
+  <!--
+    Built-in recipes ship inside the assembly so the tool needs nothing beside it on disk. They are read
+    through the same parser as a hand-written file, so a custom recipe can express anything a built-in
+    can. The schema ships alongside them for `recipes schema` to write out.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Recipes\BuiltIn\*.json" />
+    <EmbeddedResource Include="Recipes\recipe.schema.json" />
+  </ItemGroup>
+
 </Project>

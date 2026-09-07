@@ -1,0 +1,21 @@
+{
+  "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
+  "version": 1,
+  "extends": "default",
+  "description": "A large non-delivery-led business, where most of the headcount sits outside the delivery structure.",
+  "timeline": {
+    "companyAgeYears": 25,
+    "historyYears": 3,
+    "runwayYears": 2
+  },
+  "organization": {
+    "companyType": "Enterprise",
+    "valueStreams": 4,
+    "teams": 30,
+    "formerEmployeeFraction": 0.12
+  },
+  "ppm": {
+    "functionPortfolios": 5,
+    "concurrentProjectsPerArt": 8
+  }
+}

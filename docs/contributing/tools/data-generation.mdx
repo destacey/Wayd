@@ -17,7 +17,8 @@ it doubles as an integration smoke test.
 
 :::info Scope
 Generates the organization (people + team hierarchy) and the PPM dataset (portfolios, programs, projects,
-tasks, strategic themes, and strategic initiatives with KPIs). Pass `--skip-ppm` for organization only.
+tasks, strategic themes, and strategic initiatives with KPIs). Use the `org-only` recipe, or `--skip-ppm`,
+for the organization on its own.
 Planning and work items are not generated. Database **reset** is a separate, out-of-band operation (an
 Aspire dashboard command), not part of this tool.
 :::
@@ -68,16 +69,132 @@ database first (Aspire dashboard → the reset command), then run `seed` again. 
 you will need a fresh Personal Access Token afterward.
 :::
 
+## Recipes
+
+A **recipe** is a JSON file naming the knobs you care about, so a particular shape of company is something
+you name rather than a line of flags you remember. Six ship with the tool:
+
+```
+$ wayd-data recipes
+
+  default        A small tech company with a full four-year delivery window.
+  demo           A fixed dataset for demos and screenshots.
+  enterprise     A large non-delivery-led business.
+  large-tech     A scaled product organization.
+  org-only       The organization on its own, with no PPM dataset over it.
+  startup        A young company: one product line, a handful of teams.
+```
+
+Use one with `--recipe <name>`, or point `--recipe` at a file of your own.
+
+:::note
+Examples in this section use the short `wayd-data` form. From a checkout that is
+`dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli -- …`, as above.
+:::
+
+```bash
+wayd-data generate --recipe large-tech --out ./seed
+wayd-data seed --recipe startup --api http://localhost:5150 --api-key $WAYD_API_KEY
+```
+
+### The three layers
+
+Values resolve bottom-up, and the top one that states a value wins:
+
+1. **The shipped defaults** (the `default` built-in) — states every knob, so a run always has a complete set.
+2. **The recipe you named** — states only what it cares about; anything it leaves out shows the layer below.
+3. **The flags you passed** — beats both.
+
+So `--recipe startup --teams 9` gives you the startup shape with nine teams. That last layer is why no
+option has a default value any more: an option carrying one reads back as "the user typed this" whether
+they did or not, which makes "an explicit flag wins" impossible to implement.
+
+### Writing your own
+
+Start from a built-in rather than a blank file. `recipes show` prints one with its `extends` chain already
+resolved, so it is both a worked example of the format and a working starting point:
+
+```bash
+wayd-data recipes show large-tech > my-company.json
+wayd-data generate --recipe ./my-company.json
+```
+
+A recipe states only what it changes and inherits the rest:
+
+```json
+{
+  "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
+  "version": 1,
+  "extends": "large-tech",
+  "description": "Our shape, but with a longer history and no function portfolios.",
+  "timeline": { "companyAgeYears": 20, "historyYears": 4 },
+  "ppm": { "functionPortfolios": 0 }
+}
+```
+
+Point `$schema` at the schema (`wayd-data recipes schema` writes it out) and your editor will complete
+field names and flag typos as you type. The tool checks the same thing at run time and **rejects a key it
+does not recognise**:
+
+```
+Recipe error: Recipe 'my-company.json' could not be read: The JSON property 'teemz'
+could not be mapped to any .NET member contained in type 'OrganizationRecipe'.
+```
+
+That strictness is deliberate. A misspelled key that parses cleanly and does nothing is the worst thing
+this format could do — the run succeeds and quietly ignores what you asked for.
+
+### Areas
+
+Each area block carries an `enabled` flag, so switching one off is part of the format rather than another
+`--skip-x` flag:
+
+```json
+{ "extends": "default", "ppm": { "enabled": false } }
+```
+
+That is exactly what the `org-only` built-in is. `--skip-ppm` still works as a shorthand, and only ever
+turns the area off — leaving it out never switches an area back on over a recipe that disabled it.
+
+The organization is the exception: it cannot be disabled, and saying so is an error rather than a silent
+no-op. Every other area is generated *over* it — portfolios and projects name people by employee number,
+and projects are scoped to a team — so a run without it produces nothing at all.
+
+### The timeline block
+
+`timeline` is the run's clock in serialized form, and the same values described under
+[Reproducibility](#reproducibility):
+
+```json
+"timeline": {
+  "asOf": null,
+  "companyAgeYears": 5,
+  "teamStructureAgeYears": 2,
+  "historyYears": 2,
+  "runwayYears": 2
+}
+```
+
+`asOf: null` anchors on the real today, so data straddles now. `demo` is the only built-in that pins it,
+which is what lets a demo dataset be reproduced byte for byte when paired with `--random-seed`.
+
+A recipe never pins the seed. A recipe describes a *shape*, and baking a seed into one would make every
+run of it produce the same company — which is what `--random-seed` is for, when you want it.
+
 ## Options
+
+Flags beat whatever the recipe said. Defaults below are what the shipped `default` recipe states, not
+values baked into the options themselves.
 
 | Option | Default | Purpose |
 |---|---|---|
+| `--recipe` | `default` | A built-in recipe name, or a path to a recipe file |
 | `--company-type`, `-c` | `tech` | `tech` / `balanced` / `enterprise` — sets the share of employees inside the delivery team structure |
 | `--delivery-ratio` | (from type) | Override (0..1) for the inside-teams share |
 | `--value-streams`, `-v` | `3` | Number of value streams (product lines); larger ones become three-tier |
 | `--teams`, `-t` | `18` | Number of leaf delivery teams (overall headcount derives from this) |
 | `--former-employees` | `0.08` | Fraction of non-delivery ICs marked former (inactive) |
-| `--skip-ppm` | off | Generate only the organization; skip the PPM dataset |
+| `--skip-ppm` | off | Generate only the organization; skip the PPM dataset. A shorthand for the `org-only` recipe |
 | `--function-portfolios` | `2` | Cross-cutting business-function portfolios, on top of one per value stream |
 | `--concurrent-projects-per-art` | `10` | Projects an ART has *in flight at once*; the total generated is derived from this across the window |
 | `--concurrent-programs-per-portfolio` | `5` | Thematic programs a portfolio runs at once; the total generated is derived from this across the window |
@@ -184,7 +301,7 @@ each status allows: a proposed project gets no activation date, and only a close
 Records are proposed a few weeks to a few months before they activate, which for the earliest of them is
 before the window itself — work proposed before the window is exactly what a creation date is for.
 
-For projects this is what dates the [status history](/user-guide/ppm/projects): every replayed transition is
+For projects this is what dates the [status history](../../user-guide/ppm/projects.mdx): every replayed transition is
 stamped from these columns, so a seeded project's history reads as its own timeline rather than as the moment
 the seed ran. Portfolios and programs record no transition dates yet, so theirs are validated and then go no
 further than picking which transitions to replay.

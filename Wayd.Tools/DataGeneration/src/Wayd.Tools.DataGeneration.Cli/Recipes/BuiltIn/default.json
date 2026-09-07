@@ -1,0 +1,25 @@
+{
+  "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
+  "version": 1,
+  "description": "A small tech company with a full four-year delivery window. What a run uses when no recipe is named.",
+  "timeline": {
+    "asOf": null,
+    "companyAgeYears": 5,
+    "teamStructureAgeYears": 2,
+    "historyYears": 2,
+    "runwayYears": 2
+  },
+  "organization": {
+    "enabled": true,
+    "companyType": "Tech",
+    "valueStreams": 3,
+    "teams": 18,
+    "formerEmployeeFraction": 0.08
+  },
+  "ppm": {
+    "enabled": true,
+    "functionPortfolios": 2,
+    "concurrentProjectsPerArt": 10,
+    "concurrentProgramsPerPortfolio": 5
+  }
+}

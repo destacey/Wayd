@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
+  "version": 1,
+  "extends": "default",
+  "description": "A scaled product organization: several value streams, many teams, and a dense portfolio.",
+  "timeline": {
+    "companyAgeYears": 12,
+    "historyYears": 3,
+    "runwayYears": 2
+  },
+  "organization": {
+    "valueStreams": 6,
+    "teams": 60
+  },
+  "ppm": {
+    "functionPortfolios": 4,
+    "concurrentProjectsPerArt": 12,
+    "concurrentProgramsPerPortfolio": 6
+  }
+}

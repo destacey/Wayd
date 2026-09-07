@@ -105,6 +105,67 @@ public class PpmGeneratorTests
     private static bool Closed(string status) => status is "Completed" or "Canceled";
 
     [Fact]
+    public void Generate_EmitsAFinalizationForEveryProgramThatShouldEndClosed()
+    {
+        // Arrange — a program is imported active whatever it ends up as, because it cannot close until
+        // its projects are. The finalize file is the only thing that finishes the job, so a program the
+        // timeline says is over but that emits no row stays active forever.
+        var ppm = Generate();
+
+        var shouldClose = ppm.Programs
+            .Where(p => p.End is { } end && end < DateTime.UtcNow.Date)
+            .Select(p => p.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var finalized = ppm.Finalizations
+            .Where(f => f.Type == "Program")
+            .Select(f => f.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Assert
+        shouldClose.Should().NotBeEmpty("the four-year window puts some programs in the past");
+        finalized.Should().BeEquivalentTo(shouldClose);
+    }
+
+    [Fact]
+    public void Generate_FinalizesEveryProgramIntoAClosedStatusOnItsOwnEndDate()
+    {
+        // Arrange
+        var ppm = Generate();
+        var programEnds = ppm.Programs.ToDictionary(p => p.Name, p => p.End, StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var wrong = ppm.Finalizations
+            .Where(f => f.Status is not ("Completed" or "Canceled") || f.EndDate != programEnds[f.Name])
+            .Select(f => $"{f.Name} ({f.Status}, {f.EndDate:yyyy-MM-dd})")
+            .ToList();
+
+        // Assert
+        wrong.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_FinalizesNoProgramWhileItStillHoldsAnOpenProject()
+    {
+        // Arrange — the domain refuses to complete or cancel a program with an open project, so a
+        // finalize row naming one would fail the whole file
+        var ppm = Generate();
+        var finalized = ppm.Finalizations.Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var blocked = ppm.Projects
+            .Where(p => p.ProgramName is not null
+                && finalized.Contains(p.ProgramName)
+                && p.Status is not ("Completed" or "Canceled"))
+            .Select(p => $"{p.Key} ({p.Status}) in {p.ProgramName}")
+            .ToList();
+
+        // Assert
+        blocked.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_EveryProgramReferencesAnExistingPortfolio()
     {
         // Arrange

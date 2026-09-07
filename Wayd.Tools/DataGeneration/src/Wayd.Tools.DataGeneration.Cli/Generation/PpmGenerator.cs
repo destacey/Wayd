@@ -158,12 +158,27 @@ public sealed class PpmGenerator
             var baseName = $"{valueStream.Domain} {theme.Name}{(suffix.Length > 0 ? $" {suffix}" : string.Empty)}";
             var name = MakeUnique(baseName, _programNames);
 
-            // Programs are imported active and only closed by the finalize pass once all their projects are
-            // closed; carry the intended status so a finalize row can be emitted after the projects land.
+            // Programs are imported active whatever they end up as: a program cannot be completed or
+            // canceled until every project inside it is closed, and none of them exists yet.
             AddProgram(name, $"{theme.Description} Part of the {portfolioName} portfolio.", portfolioName,
                 status: "Active", start: start, end: end,
                 themes: PickThemes(1),
                 sponsors: [leadProduct], owners: [leadEng], managers: [leadEng]);
+
+            // So one that belongs in a closed state is finished off by the finalize file, which runs last.
+            // Its projects are closed by then: a project only joins a program whose window covers its own,
+            // so a program that ended in the past can only hold projects that ended in the past too.
+            if (IsClosedStatus(status))
+            {
+                _finalizations.Add(new PpmFinalizationModel
+                {
+                    Type = "Program",
+                    Name = name,
+                    PortfolioName = portfolioName,
+                    Status = status,
+                    EndDate = end,
+                });
+            }
 
             programs.Add(new GeneratedProgram(name, theme, start, end, status));
         }

@@ -666,8 +666,17 @@ public sealed class PpmGenerator
     /// before the window for the earliest records — work proposed before the window is exactly what a
     /// creation date is for, and the import only requires it to be on or before the activation.
     /// </summary>
-    private DateTime ProposedBefore(DateTime? activatedOn) =>
-        (activatedOn ?? Today).AddDays(-_faker.Random.Int(20, 120)).Date;
+    /// <remarks>
+    /// Never later than today. The window runs two years ahead, so subtracting from a future start would
+    /// date the proposal in the future too — and nothing was proposed on a day that has not happened.
+    /// Work that starts later was still proposed by now, so it falls in the recent past instead.
+    /// </remarks>
+    private DateTime ProposedBefore(DateTime? activatedOn)
+    {
+        var proposed = (activatedOn ?? Today).AddDays(-_faker.Random.Int(20, 120)).Date;
+
+        return proposed <= Today ? proposed : Today.AddDays(-_faker.Random.Int(0, 120)).Date;
+    }
 
     private (DateTime Start, DateTime End) SubWindow(DateTime start, DateTime end)
     {

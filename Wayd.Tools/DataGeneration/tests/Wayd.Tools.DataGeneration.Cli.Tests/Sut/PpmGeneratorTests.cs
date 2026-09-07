@@ -32,6 +32,25 @@ public class PpmGeneratorTests
     }
 
     [Fact]
+    public void Generate_NothingIsProposedOnADayThatHasNotHappened()
+    {
+        // Arrange — the window runs two years ahead, so a record starting in the future would otherwise
+        // be dated from that start and claim it was proposed then. A future project was still proposed by
+        // now, and a status history showing "Proposed" as a future event is plainly wrong.
+        var ppm = Generate();
+        var today = DateTime.UtcNow.Date;
+
+        // Act
+        var future = ppm.Projects.Where(p => p.CreatedOn > today).Select(p => p.Key)
+            .Concat(ppm.Programs.Where(p => p.CreatedOn > today).Select(p => p.Name))
+            .Concat(ppm.Portfolios.Where(p => p.CreatedOn > today).Select(p => p.Name))
+            .ToList();
+
+        // Assert
+        future.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_EveryProjectsTransitionDatesRunForwards()
     {
         // Arrange — the import also rejects an activation before creation, or a closure before either

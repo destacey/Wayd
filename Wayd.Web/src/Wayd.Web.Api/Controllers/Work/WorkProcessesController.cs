@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Requests.WorkManagement.Queries;
+﻿using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Work.Application.WorkProcesses.Commands;
 using Wayd.Work.Application.WorkProcesses.Dtos;
@@ -54,6 +56,20 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
             : result.Value is not null
                 ? Ok(result.Value)
                 : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkProcesses)]
+    [OpenApiOperation("Get activity history for the work process.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetWorkProcessActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
+            : NotFound();
     }
 
     [HttpPost("{id}/activate")]

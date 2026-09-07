@@ -28479,6 +28479,13 @@ export class WorkProcessesClient {
             result200 = resultData200;
             return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
         } else if (status === 404) {
             const _responseText = response.data;
             let result404: any = null;

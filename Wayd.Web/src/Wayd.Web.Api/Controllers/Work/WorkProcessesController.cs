@@ -63,8 +63,16 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
     [OpenApiOperation("Get activity history for the work process.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
     {
+        // Parsed the same way as Get above rather than through IdOrKey's string constructor, which
+        // int.Parses whatever is not a Guid and throws on anything else.
+        if (!Guid.TryParse(idOrKey, out _) && !int.TryParse(idOrKey, out _))
+        {
+            return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
+        }
+
         var result = await _dispatcher.Send(new GetWorkProcessActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
 
         return result.Value is not null

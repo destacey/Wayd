@@ -335,6 +335,25 @@ public class OrgGeneratorTests
     }
 
     [Fact]
+    public void Generate_ProducesEmailAddressesThatCanBecomeUsernames()
+    {
+        // Arrange — Wayd signs people in by email, and ASP.NET Identity's allowed-character set is letters,
+        // digits and a handful of punctuation. A name like O'Connell built straight into an address is
+        // rejected when an account is created for them, and the failure surfaces a long way from the name
+        // that caused it, so it is caught here instead.
+        var org = Generate();
+
+        // Act
+        var unusable = org.Employees
+            .Where(e => e.Email.Split('@')[0].Any(c => !char.IsLetterOrDigit(c) && c != '.'))
+            .Select(e => e.Email)
+            .ToList();
+
+        // Assert
+        unusable.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_NoDatePrecedesTheCompanysFounding()
     {
         // Arrange — the floor. Employees span the full company age and teams a shorter one, but nothing

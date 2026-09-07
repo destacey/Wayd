@@ -382,9 +382,19 @@ public sealed class OrgGenerator
     private bool StaffedSomewhere(Person person) =>
         _members.Any(m => m.EmployeeNumber == person.EmployeeNumber);
 
+    /// <summary>
+    /// A work address for someone, unique across the company.
+    /// </summary>
+    /// <remarks>
+    /// Anything but letters and digits is dropped from the name rather than carried through. Wayd uses the
+    /// email as the account's username, and ASP.NET Identity's allowed-character set has no apostrophe, so
+    /// an address built straight from "O'Connell" is rejected when the user area tries to create a sign-in
+    /// for them — a failure that surfaces a long way from the name that caused it. Companies flatten these
+    /// out of addresses anyway.
+    /// </remarks>
     private string UniqueEmail(string first, string last)
     {
-        var baseLocal = $"{first}.{last}".ToLowerInvariant().Replace(" ", string.Empty);
+        var baseLocal = new string([.. $"{first}.{last}".ToLowerInvariant().Where(c => char.IsLetterOrDigit(c) || c == '.')]);
         var candidate = $"{baseLocal}@acme.example";
         var suffix = 1;
         while (!_usedEmails.Add(candidate))

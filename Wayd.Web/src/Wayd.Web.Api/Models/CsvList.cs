@@ -23,4 +23,14 @@ public static class CsvList
             .Split(_separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
+
+    /// <summary>
+    /// Splits a semicolon-separated column of ids. A value that is not a GUID is dropped rather than
+    /// throwing: the request validator reports the malformed cell, which names the row it came from.
+    /// </summary>
+    public static IReadOnlyList<Guid> SplitIds(string? value) =>
+        [.. Split(value).Select(v => Guid.TryParse(v, out var id) ? id : (Guid?)null).Where(id => id.HasValue).Select(id => id!.Value)];
+
+    /// <summary>Whether every value in a semicolon-separated column parses as a GUID.</summary>
+    public static bool AreAllIds(string? value) => Split(value).All(v => Guid.TryParse(v, out _));
 }

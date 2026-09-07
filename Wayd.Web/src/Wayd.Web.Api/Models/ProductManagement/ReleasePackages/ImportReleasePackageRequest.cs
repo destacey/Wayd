@@ -8,11 +8,18 @@ namespace Wayd.Web.Api.Models.ProductManagement.ReleasePackages;
 /// A single CSV row for the release package import — one package, without its manifest.
 /// <para>
 /// A package is identified by <see cref="Version"/> alone: it has no product, because it spans them.
-/// Manifest lines arrive in a second file and point back here by that version.
+/// Manifest lines arrive in a second file and point back here by this row's <see cref="ImportId"/>.
 /// </para>
 /// </summary>
 public sealed class ImportReleasePackageRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it, and the manifest file names it to say which package a line belongs to.
+    /// Falls back to the row's position when the column is absent.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     /// <summary>The package's own version, distinct from any component's. Free text, never parsed.</summary>
     public string Version { get; set; } = default!;
 
@@ -57,11 +64,11 @@ public sealed class ImportReleasePackageRequestValidator : CustomValidator<Impor
 /// </remarks>
 public sealed class ImportReleasePackageComponentRequest
 {
-    /// <summary>The package this line belongs to, by its version.</summary>
-    public string PackageVersion { get; set; } = default!;
+    /// <summary>The `ImportId` of the package row this line belongs to.</summary>
+    public string PackageImportId { get; set; } = default!;
 
-    /// <summary>The component product, by name.</summary>
-    public string ProductName { get; set; } = default!;
+    /// <summary>The component product, by id.</summary>
+    public Guid ProductId { get; set; }
 
     /// <summary>The component's version in this package. Free text, never parsed.</summary>
     public string VersionNumber { get; set; } = default!;
@@ -70,10 +77,7 @@ public sealed class ImportReleasePackageComponentRequest
     public string Kind { get; set; } = nameof(ManifestEntryKind.Changed);
 
     public ImportReleasePackageComponentDto ToImportReleasePackageComponentDto() =>
-        new(PackageVersion,
-            ProductName,
-            VersionNumber,
-            Enum.Parse<ManifestEntryKind>(Kind.Trim(), ignoreCase: true));
+        new(ProductId, VersionNumber, Enum.Parse<ManifestEntryKind>(Kind.Trim(), ignoreCase: true));
 }
 
 public sealed class ImportReleasePackageComponentRequestValidator
@@ -83,10 +87,10 @@ public sealed class ImportReleasePackageComponentRequestValidator
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(c => c.PackageVersion)
+        RuleFor(c => c.PackageImportId)
             .NotEmpty();
 
-        RuleFor(c => c.ProductName)
+        RuleFor(c => c.ProductId)
             .NotEmpty();
 
         RuleFor(c => c.VersionNumber)

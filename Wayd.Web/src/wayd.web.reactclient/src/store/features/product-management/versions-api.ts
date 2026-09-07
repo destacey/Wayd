@@ -92,7 +92,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     }),
     // The generated client takes a FileParameter, so the caller hands over the browser File and its
     // name travels with it.
-    importVersions: builder.mutation<void, File>({
+    importVersions: builder.mutation<string, File>({
       queryFn: async (file) => {
         try {
           const data = await getVersionsClient().import({

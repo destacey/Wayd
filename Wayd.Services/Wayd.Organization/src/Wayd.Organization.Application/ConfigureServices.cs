@@ -15,6 +15,8 @@ public static class ConfigureServices
 
         services.AddValidatorsFromAssembly(assembly);
 
+        services.AddScoped<IImportDefinition, TeamImportDefinition>();
+        services.AddScoped<IImportDefinition, TeamMemberImportDefinition>();
         services.AddScoped<IImportDefinition, TeamMembershipImportDefinition>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);

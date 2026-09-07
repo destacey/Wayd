@@ -11,6 +11,13 @@ namespace Wayd.Web.Api.Models.Ppm.ProjectTasks;
 /// </summary>
 public sealed class ImportProjectStageRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public string ProjectKey { get; set; } = default!;
     public string StageName { get; set; } = default!;
 

@@ -1,4 +1,5 @@
-﻿using CsvHelper;
+using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
@@ -108,9 +109,9 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Import release packages from a csv file.",
-        "Takes two files: one row per package, and one row per manifest line pointing back at its package by version. Both are required — a package cannot be assembled without a manifest.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+        "Submit a csv file of release packages to import. Returns the id of the import to follow.",
+        "Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import(
@@ -140,12 +141,9 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
                 packages.Add(package);
             }
 
-            if (packages.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No release packages imported.", HttpContext));
-
             var importedComponents = _csvService.ReadCsv<ImportReleasePackageComponentRequest>(manifestFile.OpenReadStream());
 
-            List<ImportReleasePackageComponentDto> components = [];
+            var componentsByPackage = new Dictionary<string, List<ImportReleasePackageComponentDto>>(StringComparer.OrdinalIgnoreCase);
             var componentValidator = new ImportReleasePackageComponentRequestValidator();
             foreach (var component in importedComponents)
             {
@@ -155,47 +153,50 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
                     foreach (var error in validationResults.Errors)
                     {
                         error.ErrorMessage =
-                            $"{error.ErrorMessage} (Package: {component.PackageVersion}, Component: {component.ProductName})";
+                            $"{error.ErrorMessage} (Package: {component.PackageImportId}, Component: {component.ProductId})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                components.Add(component.ToImportReleasePackageComponentDto());
+                var parent = component.PackageImportId.Trim();
+                if (!componentsByPackage.TryGetValue(parent, out var forPackage))
+                    componentsByPackage[parent] = forPackage = [];
+
+                forPackage.Add(component.ToImportReleasePackageComponentDto());
             }
 
-            // Every manifest line must find its package. A line naming one that is not in the package
-            // file is a mistyped version rather than a line to drop, so it fails the batch.
-            var packageVersions = packages
-                .Select(p => p.Version.Trim())
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            // The same key the run reports row outcomes against, so a manifest line and its package row
+            // agree on what the parent is called whether or not the file supplied an ImportId.
+            List<SubmittedImportRow<ImportReleasePackageDto>> rows = [];
+            HashSet<string> claimedParents = new(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < packages.Count; i++)
+            {
+                var package = packages[i];
+                var key = SubmittedImportRow.KeyFor(package.ImportId, i + 1);
 
-            var orphaned = components
-                .Select(c => c.PackageVersion.Trim())
-                .Where(v => !packageVersions.Contains(v))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+                claimedParents.Add(key);
+                rows.Add(new SubmittedImportRow<ImportReleasePackageDto>(
+                    package.ImportId,
+                    package.ToImportReleasePackageDto(
+                        componentsByPackage.TryGetValue(key, out var forPackage) ? forPackage : [])));
+            }
 
+            // Every manifest line must find its package. A line naming one that is not in the package file
+            // is a mistyped reference rather than a line to drop, so it fails the submission.
+            var orphaned = componentsByPackage.Keys.Where(k => !claimedParents.Contains(k)).ToList();
             if (orphaned.Count > 0)
             {
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest(
-                    $"The following manifest lines name a package that is not in the import: {string.Join(", ", orphaned.Select(v => $"'{v}'"))}.",
-                    HttpContext));
+                ModelState.AddModelError(
+                    nameof(ImportReleasePackageComponentRequest.PackageImportId),
+                    $"The following manifest lines name a package that is not in the file: {string.Join(", ", orphaned.Select(v => $"'{v}'"))}.");
+                return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
             }
 
-            var componentsByPackage = components
-                .GroupBy(c => c.PackageVersion.Trim(), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => (IReadOnlyList<ImportReleasePackageComponentDto>)[.. g], StringComparer.OrdinalIgnoreCase);
-
-            var dtos = packages
-                .Select(p => p.ToImportReleasePackageDto(
-                    componentsByPackage.GetValueOrDefault(p.Version.Trim(), [])))
-                .ToList();
-
-            var result = await _dispatcher.Send(new ImportReleasePackagesCommand(dtos), cancellationToken);
+            var result = await _dispatcher.Send(new ImportReleasePackagesCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

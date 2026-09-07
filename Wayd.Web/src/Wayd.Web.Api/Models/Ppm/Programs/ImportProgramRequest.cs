@@ -5,16 +5,23 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 namespace Wayd.Web.Api.Models.Ppm.Programs;
 
 /// <summary>
-/// A single CSV row for the program import. The owning portfolio is referenced by name and strategic themes
-/// by a semicolon-separated list of names; role columns hold semicolon-separated employee numbers.
+/// A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes
+/// by a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers.
 /// <see cref="Status"/> is the status the program should end up in (case-insensitive), reached by replaying
 /// the real lifecycle transitions.
 /// </summary>
 public sealed class ImportProgramRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
-    public string PortfolioName { get; set; } = default!;
+    public Guid PortfolioId { get; set; }
 
     /// <summary>The program's status. Defaults to Active when the column is absent.</summary>
     public string Status { get; set; } = nameof(ProgramStatus.Active);
@@ -22,6 +29,7 @@ public sealed class ImportProgramRequest
     public DateTime? Start { get; set; }
     public DateTime? End { get; set; }
 
+    /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
     public string? Sponsors { get; set; }
     public string? Owners { get; set; }
@@ -35,10 +43,10 @@ public sealed class ImportProgramRequest
             Name,
             Description,
             status,
-            PortfolioName,
+            PortfolioId,
             Start?.ToLocalDateTime().Date,
             End?.ToLocalDateTime().Date,
-            CsvList.Split(StrategicThemes),
+            CsvList.SplitIds(StrategicThemes),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
             CsvList.Split(Managers));
@@ -59,8 +67,12 @@ public sealed class ImportProgramRequestValidator : CustomValidator<ImportProgra
             .NotEmpty()
             .MaximumLength(2048);
 
-        RuleFor(p => p.PortfolioName)
+        RuleFor(p => p.PortfolioId)
             .NotEmpty();
+
+        RuleFor(p => p.StrategicThemes)
+            .Must(CsvList.AreAllIds)
+                .WithMessage("StrategicThemes must be a semicolon-separated list of ids.");
 
         RuleFor(p => p.Status)
             .NotEmpty()

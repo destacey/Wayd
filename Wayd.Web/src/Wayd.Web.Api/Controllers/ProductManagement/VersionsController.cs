@@ -1,4 +1,5 @@
-﻿using CsvHelper;
+using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
@@ -104,9 +105,9 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Import versions from a csv file.",
-        "Each row is planned against its product by name and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+        "Submit a csv file of versions to import. Returns the id of the import to follow.",
+        "Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -115,7 +116,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
         {
             var importedVersions = _csvService.ReadCsv<ImportVersionRequest>(file.OpenReadStream());
 
-            List<ImportVersionDto> versions = [];
+            List<SubmittedImportRow<ImportVersionDto>> rows = [];
             var validator = new ImportVersionRequestValidator();
             foreach (var version in importedVersions)
             {
@@ -126,22 +127,19 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
                     {
                         // Both halves of the key: a number alone does not identify a row, since two
                         // products may each carry the same one.
-                        error.ErrorMessage = $"{error.ErrorMessage} (Product: {version.ProductName}, Version: {version.Number})";
+                        error.ErrorMessage = $"{error.ErrorMessage} (Product: {version.ProductId}, Version: {version.Number})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                versions.Add(version.ToImportVersionDto());
+                rows.Add(new SubmittedImportRow<ImportVersionDto>(version.ImportId, version.ToImportVersionDto()));
             }
 
-            if (versions.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No versions imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportVersionsCommand(versions), cancellationToken);
+            var result = await _dispatcher.Send(new ImportVersionsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

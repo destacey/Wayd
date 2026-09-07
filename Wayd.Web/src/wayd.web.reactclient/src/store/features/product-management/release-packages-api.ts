@@ -95,7 +95,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     // Two files: the packages and their manifest lines. Both are required — a package cannot be
     // assembled without a manifest.
     importReleasePackages: builder.mutation<
-      void,
+      string,
       { file: File; manifestFile: File }
     >({
       queryFn: async ({ file, manifestFile }) => {

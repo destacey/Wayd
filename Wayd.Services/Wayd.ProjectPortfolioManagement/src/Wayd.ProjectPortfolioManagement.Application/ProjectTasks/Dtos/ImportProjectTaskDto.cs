@@ -1,20 +1,24 @@
-﻿using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
 
 /// <summary>
-/// A single project task row. The task's own <see cref="Name"/> is its natural key within its project, so
-/// child rows can name their parent: <see cref="ParentTaskName"/> when nesting under another task, or
-/// <see cref="StageName"/> alone for a task at the root of a stage. Stages come from the lifecycle assigned
-/// to the project, so the project must already have one.
+/// A single project task row.
+/// </summary>
+/// <remarks>
+/// A task hangs off one of three things. <see cref="ParentImportId"/> nests it under another task in the
+/// same file, by that row's import id. <see cref="ParentTaskId"/> nests it under a task the project
+/// already has. With neither, it sits at the root of <see cref="StageName"/> — stages come from the
+/// lifecycle assigned to the project, so the project must already have one, and a stage name is unique
+/// within the project the lifecycle was copied into.
 /// <para>
 /// A milestone carries a single <see cref="PlannedDate"/> and no progress; a task carries a planned range
 /// and a progress value. The domain enforces both, and the validator mirrors them so a bad row is rejected
-/// before the batch is applied.
+/// before the run starts.
 /// </para>
-/// </summary>
+/// </remarks>
 public sealed record ImportProjectTaskDto(
     ProjectKey ProjectKey,
     string Name,
@@ -23,7 +27,8 @@ public sealed record ImportProjectTaskDto(
     TaskStatus Status,
     TaskPriority Priority,
     string StageName,
-    string? ParentTaskName,
+    string? ParentImportId,
+    Guid? ParentTaskId,
     decimal? Progress,
     LocalDate? PlannedStart,
     LocalDate? PlannedEnd,
@@ -58,6 +63,10 @@ public sealed class ImportProjectTaskDtoValidator : CustomValidator<ImportProjec
 
         RuleFor(t => t.StageName)
             .NotEmpty();
+
+        RuleFor(t => t)
+            .Must(t => t.ParentImportId is null || t.ParentTaskId is null)
+                .WithMessage("A task cannot name both a ParentImportId and a ParentTaskId.");
 
         RuleFor(t => t.EstimatedEffortHours)
             .GreaterThan(0)

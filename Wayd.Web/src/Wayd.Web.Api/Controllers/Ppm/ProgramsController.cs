@@ -1,4 +1,5 @@
-﻿using CsvHelper;
+using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
@@ -74,8 +75,8 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Programs)]
-    [OpenApiOperation("Import programs from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of programs to import. Returns the id of the import to follow.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -84,7 +85,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
         {
             var importedPrograms = _csvService.ReadCsv<ImportProgramRequest>(file.OpenReadStream());
 
-            List<ImportProgramDto> programs = [];
+            List<SubmittedImportRow<ImportProgramDto>> rows = [];
             var validator = new ImportProgramRequestValidator();
             foreach (var program in importedPrograms)
             {
@@ -99,16 +100,12 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                programs.Add(program.ToImportProgramDto());
+                rows.Add(new SubmittedImportRow<ImportProgramDto>(program.ImportId, program.ToImportProgramDto()));
             }
-
-            if (programs.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No programs imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportProgramsCommand(programs), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProgramsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

@@ -4,9 +4,9 @@ namespace Wayd.ProductManagement.Application.Releases.Dtos;
 /// A single release row.
 /// <para>
 /// A release is identified by <see cref="Version"/> alone — deliberately not by product, even though
-/// a release may name one. <c>ProductId</c> is nullable by design: a release spanning product lines has
-/// no single owner, so a product-qualified key would be unresolvable for exactly the releases the
-/// model exists to allow.
+/// a release may name one. <see cref="ProductId"/> is nullable by design: a release spanning product
+/// lines has no single owner, so a product-qualified key would be unresolvable for exactly the
+/// releases the model exists to allow.
 /// </para>
 /// <para>
 /// Contents arrive in a second file. They have to be a separate list because a release carries two
@@ -17,7 +17,7 @@ namespace Wayd.ProductManagement.Application.Releases.Dtos;
 public sealed record ImportReleaseDto(
     string Version,
     string? Name,
-    string? ProductName,
+    Guid? ProductId,
     LocalDate? TargetDate,
     LocalDate? ReleasedDate,
     long? Sequence,
@@ -28,15 +28,14 @@ public sealed record ImportReleaseDto(
 /// One thing a release announces: either a package, or a version carried directly.
 /// </summary>
 /// <remarks>
-/// A version carried directly needs its product to identify it, since a version number is only unique
-/// within one product. A package needs nothing else — its version is its whole identity.
+/// Both are referenced by id. A version number is only unique within its product and a package version
+/// carries no unique index, so neither label identifies a record on its own. The release this belongs
+/// to is the row it was grouped onto, so it carries no reference of its own.
 /// </remarks>
 public sealed record ImportReleaseContentDto(
-    string ReleaseVersion,
     ReleaseContentKind Kind,
-    string? PackageVersion,
-    string? ProductName,
-    string? VersionNumber);
+    Guid? PackageId,
+    Guid? VersionId);
 
 /// <summary>Which of a release's two content routes a row describes.</summary>
 public enum ReleaseContentKind
@@ -78,25 +77,17 @@ public sealed class ImportReleaseContentDtoValidator : AbstractValidator<ImportR
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(c => c.ReleaseVersion)
-            .NotEmpty();
-
         RuleFor(c => c.Kind)
             .IsInEnum();
 
-        RuleFor(c => c.PackageVersion)
-            .NotEmpty()
+        RuleFor(c => c.PackageId)
+            .NotNull()
             .When(c => c.Kind == ReleaseContentKind.Package)
-                .WithMessage("A package row must name a PackageVersion.");
+                .WithMessage("A package row must name a PackageId.");
 
-        RuleFor(c => c.ProductName)
-            .NotEmpty()
+        RuleFor(c => c.VersionId)
+            .NotNull()
             .When(c => c.Kind == ReleaseContentKind.Version)
-                .WithMessage("A version row must name a ProductName.");
-
-        RuleFor(c => c.VersionNumber)
-            .NotEmpty()
-            .When(c => c.Kind == ReleaseContentKind.Version)
-                .WithMessage("A version row must name a VersionNumber.");
+                .WithMessage("A version row must name a VersionId.");
     }
 }

@@ -22,12 +22,23 @@ exact request/response shapes are in the OpenAPI/Swagger spec served by the API.
 
 A few rules apply to every import:
 
-- **References are by natural key, not ID.** A CSV cannot carry Wayd's generated IDs, so rows reference
-  product types, statuses and tags by their human-readable names. This means a file can be authored by
-  hand without knowing any IDs.
-- **All-or-nothing.** If any reference cannot be resolved — a name that does not exist, one that is
-  inactive, or a duplicate within the file — the **entire import fails** with a message listing the
-  offending values, and nothing is saved. This keeps a run safe to fix and re-try.
+- **References are by name where a name identifies one record, otherwise by id.** Product types, statuses
+  and tags are referenced by name — each is unique within its own scope. Products, versions and packages
+  are referenced by **id**: their names and version strings are not uniquely indexed, so a label may match
+  more than one record. A run reports the id of the record each applied row created, so one import's
+  results are what the next file references.
+- **A successful post returns `202 Accepted` and the id of the run**, not the records it created. A small
+  file is applied while you wait and a large one is handed to a background worker, so the response means
+  "accepted" rather than "done". Follow the run in [Settings → Imports](../settings/imports.mdx), which
+  shows what became of each row.
+- **`ImportId` is an optional column, and it is yours.** Any value you like — a row number, a key from
+  whatever system the file came out of — provided it is unique within the one file, compared
+  case-insensitively. Row outcomes are reported against it, rows reference each other by it (a child
+  product names its parent's, a manifest line its package's), and leaving it blank uses the row's
+  position instead. It is never written onto the records the import creates.
+- **All-or-nothing.** Every import here is atomic: if any row is rejected — a reference that does not
+  exist or is inactive, a duplicate within the file, or something the domain refuses — the **entire
+  import fails**, nothing is saved, and the run names the row and the reason.
 - **Every column must be present, even the optional ones.** *Required* below means the cell needs a
   value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
@@ -62,8 +73,8 @@ Each step then needs the one above it:
 | Import | Needs | Why |
 |---|---|---|
 | Products | Types, tags | A product's type must exist and be active. |
-| Versions | Products | A version is cut against a product named by name. |
-| Release packages | Products, versions | A manifest line names a product; where a version record exists it is linked. |
+| Versions | Products | A version is cut against a product, named by id. |
+| Release packages | Products, versions | A manifest line names a product by id; where a version record matches its version string, the line is linked to it. |
 | Releases | Packages, versions | A release announces them, and cannot announce what does not exist. |
 
 :::warning Releases are last, and their contents must have shipped
@@ -100,24 +111,24 @@ Loads the [product catalog](./products.mdx) — the whole tree in one file, pare
 
 | Column | Required | Notes |
 |---|---|---|
-| `Number` | Yes | The row's identifier **within this file only**. Never stored. Max 64 chars. |
-| `Name` | Yes | Max 128 chars. Need not be unique — see [names repeat](#names-repeat-numbers-do-not). |
+| `ImportId` | No | The row's key **within this file only**. Never stored. Children name it as their `ParentImportId`, so a file with a tree should supply it rather than relying on row position. |
+| `Name` | Yes | Max 128 chars. Need not be unique — see [names repeat](#names-repeat-import-ids-do-not). |
 | `Description` | No | Max 1024 chars. |
 | `ProductTypeName` | Yes | The [type](./products.mdx#product-types) by name. Must exist and be active. |
-| `ParentNumber` | No | The `Number` of another row in this file. Empty makes the product a root. |
+| `ParentImportId` | No | The `ImportId` of another row in this file. Empty makes the product a root. |
 | `ExternalId` | No | The product's identifier in the system that owns it. Max 256 chars. |
 | `Status` | No | A [product status](./products.mdx#product-status) by name. Defaults to the workflow's initial status. |
 | `Tags` | No | Semicolon-separated `Category\|Tag` pairs — see [tags](#tags). |
 
-### Names repeat, numbers do not
+### Names repeat, import ids do not
 
-`Number` exists because a product tree legitimately holds the same name in more than one place. A catalog
-with `Platform A → API` and `Platform B → API` is perfectly ordinary, so names cannot identify a row.
+A product tree legitimately holds the same name in more than one place. A catalog with
+`Platform A → API` and `Platform B → API` is perfectly ordinary, so names cannot identify a row.
 
-Each row therefore carries its own number, and children point at their parent's:
+Each row therefore carries its own `ImportId`, and children point at their parent's:
 
 ```csv
-Number,Name,Description,ProductTypeName,ParentNumber,ExternalId,Status,Tags
+ImportId,Name,Description,ProductTypeName,ParentImportId,ExternalId,Status,Tags
 1,Platform A,,Platform,,,,
 2,Platform B,,Platform,,,,
 3,API,,Service,1,,,
@@ -126,9 +137,9 @@ Number,Name,Description,ProductTypeName,ParentNumber,ExternalId,Status,Tags
 
 Every column appears even where it carries nothing, because a missing header fails the file.
 
-The number is a label for this file and nothing else. It is not stored, it does not appear in the app, and
-it has no relationship to the product **Key** Wayd assigns. Any text works — `1`, `PL-1`, `a.2` — as long
-as it is unique within the file.
+The import id is a label for this file and nothing else. It is not stored, it does not appear in the app,
+and it has no relationship to the product **Key** Wayd assigns. Any text works — `1`, `PL-1`, `a.2` — as
+long as it is unique within the file.
 
 ### Rows can be in any order
 
@@ -140,8 +151,8 @@ fails the batch.
 
 ### Parents must be in the same file
 
-`ParentNumber` can only name another row in the file being imported. A product **already in the catalog**
-cannot be named as a parent.
+`ParentImportId` can only name another row in the file being imported. A product **already in the
+catalog** cannot be named as a parent.
 
 This import is for standing a catalog up, not for grafting single products onto an existing one. To add a
 product beneath one that already exists, use **Add Product** on that product's page, which is quicker than
@@ -194,12 +205,12 @@ everything in it.
 `POST /api/product-management/versions/import`
 
 Loads [versions](./delivery.mdx#versions) against products that already exist. Import the
-[catalog](#products-import) first — a version names its product by name, and an unknown one fails the
-batch.
+[catalog](#products-import) first — a version names its product by id, which that run's results report,
+and an unknown one fails the run.
 
 | Column | Required | Notes |
 |---|---|---|
-| `ProductName` | Yes | The product this version was cut against, by name. Its [type must be releasable](./products.mdx#product-types). |
+| `ProductId` | Yes | The product this version was cut against, by id. Its [type must be releasable](./products.mdx#product-types). |
 | `Number` | Yes | The version as you write it — `4.8.2`, `2026.04`. Free text, never parsed. Max 64 chars. |
 | `Name` | No | An optional human name. Max 128 chars. |
 | `TargetDate` | No | `yyyy-MM-dd`. When it is expected to ship. |
@@ -267,8 +278,8 @@ assembled and one with a released date has shipped.
 
 | Column | Required | Notes |
 |---|---|---|
-| `PackageVersion` | Yes | The package this line belongs to, matching a `Version` in the first file. |
-| `ProductName` | Yes | The component product, by name. |
+| `PackageImportId` | Yes | The package this line belongs to, matching an `ImportId` in the first file. |
+| `ProductId` | Yes | The component product, by id. |
 | `VersionNumber` | Yes | The component's version in this package. Free text. Max 64 chars. |
 | `Kind` | Yes | `Changed` or `CarriedForward` (case-insensitive). |
 
@@ -302,13 +313,13 @@ announces.
 |---|---|---|
 | `Version` | Yes | The release as you announce it — `2026.07`. Free text, never parsed. Max 64 chars. |
 | `Name` | No | An optional human name. Max 128 chars. |
-| `ProductName` | No | The product it is announced under, by name. Usually a product line. |
+| `ProductId` | No | The product it is announced under, by id. Usually a product line. |
 | `TargetDate` | No | `yyyy-MM-dd`. When it is expected to be announced. |
 | `ReleasedDate` | No | `yyyy-MM-dd`. Supplying it announces the release — see [below](#announcing-a-release). |
 | `Sequence` | No | A manual ordering override. |
 | `Notes` | No | Product notes, written for customers. |
 
-`ProductName` is **optional by design**. A release spanning product lines has no single owner, so
+`ProductId` is **optional by design**. A release spanning product lines has no single owner, so
 requiring one would force a misleading choice — and a release identified partly by product would be
 unresolvable for exactly the releases the model exists to allow. A release is therefore keyed on
 `Version` alone.
@@ -320,11 +331,10 @@ state**, not a draft: a repackaging or a pricing change is announced with nothin
 
 | Column | Required | Notes |
 |---|---|---|
-| `ReleaseVersion` | Yes | The release this row belongs to, matching a `Version` in the first file. |
+| `ReleaseImportId` | Yes | The release this row belongs to, matching an `ImportId` in the first file. |
 | `Kind` | Yes | `Package` or `Version` (case-insensitive). |
-| `PackageVersion` | Conditional | Required when `Kind` is `Package`. The package's version. |
-| `ProductName` | Conditional | Required when `Kind` is `Version`. |
-| `VersionNumber` | Conditional | Required when `Kind` is `Version`. |
+| `PackageId` | Conditional | Required when `Kind` is `Package`. The package, by id. |
+| `VersionId` | Conditional | Required when `Kind` is `Version`. The version, by id. |
 
 Both routes share one file because the rule below spans them. A version carried directly needs its
 product as well as its number, since a number is only unique within one product.

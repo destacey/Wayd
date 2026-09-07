@@ -22,16 +22,23 @@ OpenAPI/Swagger spec served by the API.
 
 A few rules apply to every import:
 
-- **References are by natural key, not ID** — with two exceptions. A CSV cannot usually carry Wayd's
-  generated IDs, so rows reference each other by human-readable keys: a project by its **Key**, everything
-  else (portfolios, programs, themes, categories, lifecycles) by **Name**, and people by **employee
-  number**. The two [Planning imports](../planning/bulk-import.mdx) are the exceptions: they take
-  **GUIDs** for teams, people and intervals, so those files cannot be authored without looking the ids
-  up first.
-- **All-or-nothing.** If any reference cannot be resolved — a name that does not exist, a name that is
-  ambiguous (matches more than one), or a duplicate within the file — the **entire import fails** with a
-  message listing the offending values, and nothing is saved. This keeps a run safe to fix and re-try
-  against a fresh environment.
+- **References are by natural key where a record has one, otherwise by id.** A project is referenced by its
+  **Key** and a person by their **employee number**, because those are keys the record genuinely has.
+  Portfolios, programs, themes, categories and lifecycles are referenced by **id**: their names are not
+  uniquely indexed, so a name is a display value that may match more than one record. A run reports the id
+  of the record each applied row created, so one import's results are what the next file references.
+- **A successful post returns `202 Accepted` and the id of the run**, not the records it created. A small
+  file is applied while you wait and a large one is handed to a background worker, so the response means
+  "accepted" rather than "done". Follow the run in [Settings → Imports](../settings/imports.mdx), which
+  shows what became of each row.
+- **`ImportId` is an optional column, and it is yours.** Any value you like — a row number, a key from
+  whatever system the file came out of — provided it is unique within the one file, compared
+  case-insensitively. Row outcomes are reported against it, rows reference each other by it (a KPI names
+  its initiative's `ImportId`, a task its parent's), and leaving it blank uses the row's position instead.
+  It is never written onto the records the import creates.
+- **All-or-nothing.** Every PPM import is atomic: if any row is rejected — a reference that does not
+  exist, a duplicate within the file, or a transition the domain refuses — the **entire import fails**,
+  nothing is saved, and the run names the row and the reason. This keeps a run safe to fix and re-try.
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
   needs a value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
@@ -68,7 +75,7 @@ Two ordering points are worth calling out:
 
 - **Reference data comes first.** [Expenditure categories](../settings/index.mdx#expenditure-categories) and
   [project lifecycles](../settings/index.mdx#project-lifecycles) are managed in **Settings** and are *not* imported
-  — create them there first, because projects reference them by name. A lifecycle must be **active** before a
+  — create them there first, because projects reference them by id. A lifecycle must be **active** before a
   project can be assigned it.
 - **Historical work is finished last.** The domain only lets you *add* work to an active program or
   portfolio, but only lets you *close* one when everything inside it is already closed. So programs and
@@ -93,7 +100,7 @@ Each import requires the **Import** permission for the relevant resource:
 
 `POST /api/strategic-management/strategic-themes/import`
 
-Loads [strategic themes](../strategic-management/index.mdx), which programs and projects reference by name.
+Loads [strategic themes](../strategic-management/index.mdx), which programs and projects reference by id.
 Only **active** themes can be attached to programs and projects.
 
 | Column | Required | Notes |
@@ -138,11 +145,11 @@ portfolio, so the portfolio must exist (and be active) first.
 |---|---|---|
 | `Name` | Yes | Unique within the file and against existing programs. Max 128 chars. |
 | `Description` | Yes | Max 2048 chars. |
-| `PortfolioName` | Yes | The owning portfolio, by name. |
+| `PortfolioId` | Yes | The owning portfolio, by id. |
 | `Status` | No | `Proposed`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. |
 | `Start` | Conditional | Start and End must both be empty or both set. Required for active/completed programs. |
 | `End` | Conditional | Must be on or after `Start`. |
-| `StrategicThemes` | No | Semicolon-separated theme **names** (must be active). |
+| `StrategicThemes` | No | Semicolon-separated theme **ids** (must be active). |
 | `Sponsors` | No | Semicolon-separated employee numbers. |
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
@@ -158,23 +165,23 @@ the [finalize import](#finalize-import), since a program can only be closed once
 
 Loads [projects](./projects.mdx). `Key` is the project's own natural key (which tasks and initiatives
 reference), so it must be unique. The portfolio, program, expenditure category, lifecycle, and themes are all
-referenced by name.
+referenced by id.
 
 | Column | Required | Notes |
 |---|---|---|
 | `Name` | Yes | Max 128 chars. |
 | `Description` | Yes | Max 4096 chars. |
 | `Key` | Yes | 2–20 uppercase letters/numbers. Unique across all projects. |
-| `PortfolioName` | Yes | The owning portfolio, by name. |
-| `ExpenditureCategoryName` | Yes | An [expenditure category](../settings/index.mdx#expenditure-categories), by name. Create in Settings first. |
+| `PortfolioId` | Yes | The owning portfolio, by id. |
+| `ExpenditureCategoryId` | Yes | An [expenditure category](../settings/index.mdx#expenditure-categories), by id. Create in Settings first. |
 | `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. |
-| `ProgramName` | No | A program **in the same portfolio**, by name. Empty means portfolio-direct. |
-| `ProjectLifecycleName` | Conditional | A [lifecycle](./projects.mdx#project-lifecycles), by name. Required for `Approved` projects and for any project that will have tasks. |
+| `ProgramId` | No | A program **in the same portfolio**, by id. Empty means portfolio-direct. |
+| `ProjectLifecycleId` | Conditional | A [lifecycle](./projects.mdx#project-lifecycles), by id. Required for `Approved` projects and for any project that will have tasks. |
 | `BusinessCase` | No | Max 4096 chars. |
 | `ExpectedBenefits` | No | Max 4096 chars. |
 | `Start` | Conditional | Start and End must both be empty or both set. Required for active/completed projects. |
 | `End` | Conditional | Must be on or after `Start`. |
-| `StrategicThemes` | No | Semicolon-separated theme **names** (must be active). |
+| `StrategicThemes` | No | Semicolon-separated theme **ids** (must be active). |
 | `Sponsors` · `Owners` · `Managers` · `Members` | No | Semicolon-separated employee numbers. |
 
 ## Project tasks import
@@ -182,17 +189,18 @@ referenced by name.
 `POST /api/ppm/projects/tasks/import`
 
 Loads the [work breakdown](./projects.mdx#project-tasks) for projects. One file can cover many projects — each row
-names its project by key. Tasks are named within their project, so a child task references its parent by
-name. **Rows may be listed in any order**; parents are always created before their children, and a parent
-cycle is rejected.
+names its project by key. A child task references its parent row by that row's `ImportId`, or an existing
+task by id. **Rows may be listed in any order**; parents are always created before their children, and a
+parent cycle is rejected.
 
 | Column | Required | Notes |
 |---|---|---|
 | `ProjectKey` | Yes | The project this task belongs to, by key. |
-| `Name` | Yes | Unique within the project (child tasks reference parents by name). Max 128 chars. |
+| `Name` | Yes | Unique within the project. Max 128 chars. |
 | `Description` | No | Max 2048 chars. |
-| `StageName` | Yes | A project stage, by name — created from a stage of the project's assigned lifecycle. |
-| `ParentTaskName` | No | The parent task, by name. Empty makes this a root task of its stage. |
+| `StageName` | Yes | A project stage, by name — created from a stage of the project's assigned lifecycle, so the name is unique within the project. |
+| `ParentImportId` | No | The `ImportId` of the row this task nests under. Empty makes this a root task of its stage. |
+| `ParentTaskId` | No | An **existing** task to nest under, by id. Cannot be combined with `ParentImportId`. |
 | `Type` | No | `Task` or `Milestone`. Defaults to `Task`. |
 | `Status` | No | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. Defaults to `NotStarted`. |
 | `Priority` | No | `Low`, `Medium`, `High`, or `Critical`. Defaults to `Medium`. |
@@ -237,7 +245,7 @@ accepts neither new projects nor new KPIs).
 |---|---|---|
 | `Name` | Yes | Unique within the file and against existing initiatives. Max 128 chars. |
 | `Description` | Yes | Max 2048 chars. |
-| `PortfolioName` | Yes | The owning portfolio, by name. |
+| `PortfolioId` | Yes | The owning portfolio, by id. |
 | `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. (`OnHold` is not supported by import.) |
 | `Start` | Yes | Initiative start date. |
 | `End` | Yes | On or after `Start`. |
@@ -248,7 +256,7 @@ accepts neither new projects nor new KPIs).
 
 | Column | Required | Notes |
 |---|---|---|
-| `StrategicInitiativeName` | Yes | The initiative this KPI belongs to (must be in the same import). |
+| `StrategicInitiativeImportId` | Yes | The `ImportId` of the initiative row this KPI belongs to (must be in the same import). Where that row left the column blank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs should supply `ImportId`, since inserting a row silently re-parents every KPI below it. |
 | `Name` | Yes | Max 64 chars. |
 | `Description` | No | Max 512 chars. |
 | `TargetValue` | Yes | The target value that defines success. |
@@ -270,8 +278,7 @@ one of its programs is still open.
 | Column | Required | Notes |
 |---|---|---|
 | `Type` | Yes | `Program` or `Portfolio`. |
-| `Name` | Yes | The program or portfolio, by name. |
-| `PortfolioName` | Conditional | Required for **program** rows (a program's name is only unique within its portfolio); ignored for portfolio rows. |
+| `Id` | Yes | The program or portfolio this row closes, by id, per `Type`. |
 | `Status` | Yes | Programs: `Completed` or `Canceled`. Portfolios: `Closed` or `Archived`. |
 | `EndDate` | Conditional | Required for **portfolio** rows (becomes the portfolio's end date); ignored for program rows. |
 

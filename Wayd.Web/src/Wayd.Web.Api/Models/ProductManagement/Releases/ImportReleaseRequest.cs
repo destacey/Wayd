@@ -6,20 +6,27 @@ namespace Wayd.Web.Api.Models.ProductManagement.Releases;
 /// <summary>
 /// A single CSV row for the release import — one release, without its contents.
 /// <para>
-/// A release is identified by <see cref="Version"/> alone. <see cref="ProductName"/> is optional by
+/// A release is identified by <see cref="Version"/> alone. <see cref="ProductId"/> is optional by
 /// design: a release spanning product lines has no single owner, so requiring one would force a
 /// misleading choice.
 /// </para>
 /// </summary>
 public sealed class ImportReleaseRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it, and the contents file names it to say which release a row belongs to.
+    /// Falls back to the row's position when the column is absent.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     /// <summary>The release as the organization announces it — `2026.07`. Free text, never parsed.</summary>
     public string Version { get; set; } = default!;
 
     public string? Name { get; set; }
 
-    /// <summary>The product this release is announced under, if any. Usually a product line.</summary>
-    public string? ProductName { get; set; }
+    /// <summary>The product this release is announced under, if any, by id. Usually a product line.</summary>
+    public Guid? ProductId { get; set; }
 
     public DateTime? TargetDate { get; set; }
 
@@ -37,7 +44,7 @@ public sealed class ImportReleaseRequest
     public ImportReleaseDto ToImportReleaseDto(IReadOnlyList<ImportReleaseContentDto> contents) =>
         new(Version,
             Name,
-            ProductName,
+            ProductId,
             TargetDate?.ToLocalDateTime().Date,
             ReleasedDate?.ToLocalDateTime().Date,
             Sequence,
@@ -70,27 +77,20 @@ public sealed class ImportReleaseRequestValidator : CustomValidator<ImportReleas
 /// </remarks>
 public sealed class ImportReleaseContentRequest
 {
-    /// <summary>The release this row belongs to, by its version.</summary>
-    public string ReleaseVersion { get; set; } = default!;
+    /// <summary>The `ImportId` of the release row this row belongs to.</summary>
+    public string ReleaseImportId { get; set; } = default!;
 
     /// <summary>`Package` or `Version`.</summary>
     public string Kind { get; set; } = nameof(ReleaseContentKind.Package);
 
-    /// <summary>The package's version. Required when <see cref="Kind"/> is `Package`.</summary>
-    public string? PackageVersion { get; set; }
+    /// <summary>The package, by id. Required when <see cref="Kind"/> is `Package`.</summary>
+    public Guid? PackageId { get; set; }
 
-    /// <summary>The version's product, by name. Required when <see cref="Kind"/> is `Version`.</summary>
-    public string? ProductName { get; set; }
-
-    /// <summary>The version's number. Required when <see cref="Kind"/> is `Version`.</summary>
-    public string? VersionNumber { get; set; }
+    /// <summary>The version, by id. Required when <see cref="Kind"/> is `Version`.</summary>
+    public Guid? VersionId { get; set; }
 
     public ImportReleaseContentDto ToImportReleaseContentDto() =>
-        new(ReleaseVersion,
-            Enum.Parse<ReleaseContentKind>(Kind.Trim(), ignoreCase: true),
-            PackageVersion,
-            ProductName,
-            VersionNumber);
+        new(Enum.Parse<ReleaseContentKind>(Kind.Trim(), ignoreCase: true), PackageId, VersionId);
 }
 
 public sealed class ImportReleaseContentRequestValidator : CustomValidator<ImportReleaseContentRequest>
@@ -99,7 +99,7 @@ public sealed class ImportReleaseContentRequestValidator : CustomValidator<Impor
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(c => c.ReleaseVersion)
+        RuleFor(c => c.ReleaseImportId)
             .NotEmpty();
 
         RuleFor(c => c.Kind)
@@ -107,20 +107,15 @@ public sealed class ImportReleaseContentRequestValidator : CustomValidator<Impor
             .Must(k => Enum.TryParse<ReleaseContentKind>(k.Trim(), ignoreCase: true, out _))
                 .WithMessage("Kind must be either 'Package' or 'Version'.");
 
-        RuleFor(c => c.PackageVersion)
-            .NotEmpty()
+        RuleFor(c => c.PackageId)
+            .NotNull()
             .When(IsPackage)
-                .WithMessage("A package row must name a PackageVersion.");
+                .WithMessage("A package row must name a PackageId.");
 
-        RuleFor(c => c.ProductName)
-            .NotEmpty()
+        RuleFor(c => c.VersionId)
+            .NotNull()
             .When(IsVersion)
-                .WithMessage("A version row must name a ProductName.");
-
-        RuleFor(c => c.VersionNumber)
-            .NotEmpty()
-            .When(IsVersion)
-                .WithMessage("A version row must name a VersionNumber.");
+                .WithMessage("A version row must name a VersionId.");
     }
 
     private static bool IsPackage(ImportReleaseContentRequest row) =>

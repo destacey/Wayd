@@ -100,7 +100,7 @@ export const productsApi = apiSlice.injectEndpoints({
     }),
     // The generated client takes a FileParameter, so the caller hands over the browser File and
     // its name travels with it.
-    importProducts: builder.mutation<void, File>({
+    importProducts: builder.mutation<string, File>({
       queryFn: async (file) => {
         try {
           const data = await getProductsClient().import({

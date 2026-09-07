@@ -1,4 +1,5 @@
 using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
@@ -131,8 +132,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Projects)]
-    [OpenApiOperation("Import projects from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of projects to import. Returns the id of the import to follow.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -141,7 +142,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         {
             var importedProjects = _csvService.ReadCsv<ImportProjectRequest>(file.OpenReadStream());
 
-            List<ImportProjectDto> projects = [];
+            List<SubmittedImportRow<ImportProjectDto>> rows = [];
             var validator = new ImportProjectRequestValidator();
             foreach (var project in importedProjects)
             {
@@ -156,16 +157,12 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                projects.Add(project.ToImportProjectDto());
+                rows.Add(new SubmittedImportRow<ImportProjectDto>(project.ImportId, project.ToImportProjectDto()));
             }
-
-            if (projects.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No projects imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportProjectsCommand(projects), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)
@@ -180,8 +177,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     /// </summary>
     [HttpPost("tasks/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Projects)]
-    [OpenApiOperation("Import project tasks from a csv file.", "Each row names the project it belongs to, so one file can cover many projects.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of project tasks to import. Returns the id of the import to follow.", "Each row names the project it belongs to, so one file can cover many projects.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ImportTasks([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -190,7 +187,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         {
             var importedTasks = _csvService.ReadCsv<ImportProjectTaskRequest>(file.OpenReadStream());
 
-            List<ImportProjectTaskDto> tasks = [];
+            List<SubmittedImportRow<ImportProjectTaskDto>> rows = [];
             var validator = new ImportProjectTaskRequestValidator();
             foreach (var task in importedTasks)
             {
@@ -205,16 +202,12 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                tasks.Add(task.ToImportProjectTaskDto());
+                rows.Add(new SubmittedImportRow<ImportProjectTaskDto>(task.ImportId, task.ToImportProjectTaskDto()));
             }
-
-            if (tasks.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No project tasks imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportProjectTasksCommand(tasks), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectTasksCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)
@@ -230,8 +223,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     /// </summary>
     [HttpPost("stages/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Projects)]
-    [OpenApiOperation("Import project stage statuses from a csv file.", "Each row names the project and stage it sets, so one file can cover many projects.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of project stage statuses to import. Returns the id of the import to follow.", "Each row names the project and stage it sets, so one file can cover many projects.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ImportStages([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -240,7 +233,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         {
             var importedStages = _csvService.ReadCsv<ImportProjectStageRequest>(file.OpenReadStream());
 
-            List<ImportProjectStageDto> stages = [];
+            List<SubmittedImportRow<ImportProjectStageDto>> rows = [];
             var validator = new ImportProjectStageRequestValidator();
             foreach (var stage in importedStages)
             {
@@ -255,16 +248,12 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                stages.Add(stage.ToImportProjectStageDto());
+                rows.Add(new SubmittedImportRow<ImportProjectStageDto>(stage.ImportId, stage.ToImportProjectStageDto()));
             }
-
-            if (stages.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No project stages imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportProjectStagesCommand(stages), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectStagesCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

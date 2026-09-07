@@ -1,4 +1,4 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
+namespace Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
 
 /// <summary>The kind of item a finalization row closes.</summary>
 public enum FinalizePpmItemType
@@ -25,20 +25,22 @@ public enum FinalizePpmItemStatus
 
 /// <summary>
 /// A single finalization row, closing one program or portfolio after its contents have been imported.
-/// <para>
+/// </summary>
+/// <remarks>
 /// This exists because the domain forces an order that a single top-down pass cannot satisfy: a program
 /// only accepts projects while it is active and a portfolio only accepts programs and projects while it is
 /// active, yet a program can only be completed once all its projects are closed and a portfolio only once
 /// all its programs and projects are. Historical work therefore has to be imported active and closed here,
 /// last.
+/// <para>
+/// <see cref="Id"/> is the program or portfolio itself, which <see cref="Type"/> says how to read. An id
+/// rather than a name because neither is uniquely indexed, and a program name is only unique within its
+/// portfolio — so a name needed a second column to disambiguate it and could still match twice.
 /// </para>
-/// Items are referenced by name — a program by its own name plus its portfolio's, since program names are
-/// only unique within a portfolio.
-/// </summary>
+/// </remarks>
 public sealed record FinalizePpmItemDto(
     FinalizePpmItemType Type,
-    string Name,
-    string? PortfolioName,
+    Guid Id,
     FinalizePpmItemStatus Status,
     LocalDate? EndDate);
 
@@ -51,16 +53,11 @@ public sealed class FinalizePpmItemDtoValidator : CustomValidator<FinalizePpmIte
         RuleFor(i => i.Type)
             .IsInEnum();
 
-        RuleFor(i => i.Name)
+        RuleFor(i => i.Id)
             .NotEmpty();
 
         RuleFor(i => i.Status)
             .IsInEnum();
-
-        RuleFor(i => i.PortfolioName)
-            .NotEmpty()
-            .When(i => i.Type is FinalizePpmItemType.Program)
-                .WithMessage("A program row must name the portfolio it belongs to.");
 
         RuleFor(i => i.Status)
             .Must(s => s is FinalizePpmItemStatus.Completed or FinalizePpmItemStatus.Canceled)

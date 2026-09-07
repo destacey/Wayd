@@ -9,26 +9,33 @@ namespace Wayd.Web.Api.Models.Ppm.Projects;
 /// <summary>
 /// A single CSV row for the project import. <see cref="Key"/> is the project's natural key, which project
 /// tasks and strategic initiatives reference. The portfolio, program, expenditure category and lifecycle
-/// are referenced by name; strategic themes and the role columns hold semicolon-separated lists.
+/// are referenced by id; strategic themes and the role columns hold semicolon-separated lists.
 /// <see cref="Status"/> is the status the project should end up in (case-insensitive), reached by replaying
 /// the real lifecycle transitions.
 /// </summary>
 public sealed class ImportProjectRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
     public string Key { get; set; } = default!;
-    public string PortfolioName { get; set; } = default!;
-    public string ExpenditureCategoryName { get; set; } = default!;
+    public Guid PortfolioId { get; set; }
+    public int ExpenditureCategoryId { get; set; }
 
     /// <summary>The project's status. Defaults to Active when the column is absent.</summary>
     public string Status { get; set; } = nameof(ProjectStatus.Active);
 
     /// <summary>The program this project belongs to, if any. The program must be in the same portfolio.</summary>
-    public string? ProgramName { get; set; }
+    public Guid? ProgramId { get; set; }
 
     /// <summary>The lifecycle to assign. Required for approved projects, and by any project with tasks.</summary>
-    public string? ProjectLifecycleName { get; set; }
+    public Guid? ProjectLifecycleId { get; set; }
 
     public string? BusinessCase { get; set; }
     public string? ExpectedBenefits { get; set; }
@@ -36,6 +43,7 @@ public sealed class ImportProjectRequest
     public DateTime? Start { get; set; }
     public DateTime? End { get; set; }
 
+    /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
     public string? Sponsors { get; set; }
     public string? Owners { get; set; }
@@ -51,15 +59,15 @@ public sealed class ImportProjectRequest
             Description,
             new ProjectKey(Key),
             status,
-            PortfolioName,
-            string.IsNullOrWhiteSpace(ProgramName) ? null : ProgramName,
-            ExpenditureCategoryName,
-            string.IsNullOrWhiteSpace(ProjectLifecycleName) ? null : ProjectLifecycleName,
+            PortfolioId,
+            ProgramId,
+            ExpenditureCategoryId,
+            ProjectLifecycleId,
             BusinessCase,
             ExpectedBenefits,
             Start?.ToLocalDateTime().Date,
             End?.ToLocalDateTime().Date,
-            CsvList.Split(StrategicThemes),
+            CsvList.SplitIds(StrategicThemes),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
             CsvList.Split(Managers),
@@ -86,11 +94,15 @@ public sealed class ImportProjectRequestValidator : CustomValidator<ImportProjec
             .Must(k => k.Trim().IsValidProjectKeyFormat())
                 .WithMessage("Invalid key format. Project keys are uppercase letters and numbers only, 2-20 characters.");
 
-        RuleFor(p => p.PortfolioName)
+        RuleFor(p => p.PortfolioId)
             .NotEmpty();
 
-        RuleFor(p => p.ExpenditureCategoryName)
-            .NotEmpty();
+        RuleFor(p => p.ExpenditureCategoryId)
+            .GreaterThan(0);
+
+        RuleFor(p => p.StrategicThemes)
+            .Must(CsvList.AreAllIds)
+                .WithMessage("StrategicThemes must be a semicolon-separated list of ids.");
 
         RuleFor(p => p.Status)
             .NotEmpty()

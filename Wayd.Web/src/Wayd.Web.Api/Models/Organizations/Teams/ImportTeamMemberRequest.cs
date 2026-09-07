@@ -8,6 +8,13 @@ namespace Wayd.Web.Api.Models.Organizations.Teams;
 /// </summary>
 public sealed class ImportTeamMemberRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public string TeamCode { get; set; } = default!;
     public string EmployeeNumber { get; set; } = default!;
     public string RoleName { get; set; } = default!;

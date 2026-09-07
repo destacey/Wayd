@@ -42,10 +42,14 @@ export interface CsvImportFormProps {
 /**
  * Turns an import's refusal into something a person can act on.
  *
- * An import fails in two shapes and they read differently: 422 carries per-row validation errors
- * naming the row, and 400 carries one message about the batch as a whole — an unresolvable name, a
- * duplicate, a broken reference. Both are worth showing verbatim, because they name the offending
- * value and that is what the reader has to go and fix.
+ * Only the refusals that happen before the run starts reach here. 422 carries per-row shape errors
+ * naming the row, plus the file-level rules the submission checks as a set — a repeated key, a parent
+ * cycle, a child row naming no parent. 400 carries one message about the submission itself. Both are
+ * worth showing verbatim, because they name the offending value and that is what the reader has to go
+ * and fix.
+ *
+ * A reference that does not resolve is NOT one of these: the run accepts the file and rejects the row,
+ * so that failure surfaces in Settings → Imports rather than in this dialog.
  */
 const describeFailure = (error: unknown): string => {
   const apiError: ApiError = isApiError(error) ? error : {}
@@ -63,9 +67,9 @@ const describeFailure = (error: unknown): string => {
 /**
  * The shared shape of every CSV import: pick one file, post it, and show what came back.
  *
- * One component rather than one per area because the endpoints behave identically — a single
- * multipart file, all-or-nothing, 422 for a bad row and 400 for a bad batch. Only the wording and the
- * mutation differ, so those are the props.
+ * One component rather than one per area because the endpoints behave identically — a multipart file,
+ * 202 with the id of the run, and the same two refusal shapes before it starts. Only the wording and
+ * the mutation differ, so those are the props.
  */
 const CsvImportForm = ({
   title,

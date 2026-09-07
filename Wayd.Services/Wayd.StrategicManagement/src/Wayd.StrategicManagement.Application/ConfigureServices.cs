@@ -1,6 +1,8 @@
 using System.Reflection;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Imports;
+using Wayd.StrategicManagement.Application.StrategicThemes.Imports;
 
 namespace Wayd.StrategicManagement.Application;
 
@@ -10,6 +12,8 @@ public static class ConfigureServices
     {
         var assembly = Assembly.GetExecutingAssembly();
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<IImportDefinition, StrategicThemeImportDefinition>();
 
         ConfigureMapster(assembly);
 

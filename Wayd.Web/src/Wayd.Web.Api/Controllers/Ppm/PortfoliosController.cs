@@ -1,4 +1,5 @@
 using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
@@ -93,8 +94,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Import portfolios from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of portfolios to import. Returns the id of the import to follow.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -103,7 +104,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
         {
             var importedPortfolios = _csvService.ReadCsv<ImportPortfolioRequest>(file.OpenReadStream());
 
-            List<ImportProjectPortfolioDto> portfolios = [];
+            List<SubmittedImportRow<ImportProjectPortfolioDto>> rows = [];
             var validator = new ImportPortfolioRequestValidator();
             foreach (var portfolio in importedPortfolios)
             {
@@ -118,16 +119,13 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                portfolios.Add(portfolio.ToImportProjectPortfolioDto());
+                rows.Add(new SubmittedImportRow<ImportProjectPortfolioDto>(portfolio.ImportId, portfolio.ToImportProjectPortfolioDto()));
             }
 
-            if (portfolios.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No portfolios imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportProjectPortfoliosCommand(portfolios), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectPortfoliosCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)
@@ -143,8 +141,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     /// </summary>
     [HttpPost("finalize/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.ProjectPortfolios)]
-    [OpenApiOperation("Finalize imported programs and portfolios from a csv file.", "Completes or cancels programs and closes or archives portfolios, after their contents have been imported.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of PPM finalizations to import. Returns the id of the import to follow.", "Completes or cancels programs and closes or archives portfolios, after their contents have been imported.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> FinalizeImport([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -153,7 +151,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
         {
             var importedItems = _csvService.ReadCsv<ImportPpmFinalizationRequest>(file.OpenReadStream());
 
-            List<FinalizePpmItemDto> items = [];
+            List<SubmittedImportRow<FinalizePpmItemDto>> rows = [];
             var validator = new ImportPpmFinalizationRequestValidator();
             foreach (var item in importedItems)
             {
@@ -162,22 +160,19 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
                 {
                     foreach (var error in validationResults.Errors)
                     {
-                        error.ErrorMessage = $"{error.ErrorMessage} (Name: {item.Name})";
+                        error.ErrorMessage = $"{error.ErrorMessage} (Id: {item.Id})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                items.Add(item.ToFinalizePpmItemDto());
+                rows.Add(new SubmittedImportRow<FinalizePpmItemDto>(item.ImportId, item.ToFinalizePpmItemDto()));
             }
 
-            if (items.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No items to finalize.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportPpmFinalizationsCommand(items), cancellationToken);
+            var result = await _dispatcher.Send(new ImportPpmFinalizationsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

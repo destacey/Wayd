@@ -1,0 +1,16 @@
+{
+  "$schema": "../recipe.schema.json",
+  "version": 1,
+  "extends": "default",
+  "description": "A fixed dataset for demos and screenshots. The only built-in that pins asOf, so it reproduces byte-for-byte when paired with --random-seed.",
+  "timeline": {
+    "asOf": "2026-06-15"
+  },
+  "organization": {
+    "valueStreams": 3,
+    "teams": 12
+  },
+  "ppm": {
+    "concurrentProjectsPerArt": 6
+  }
+}

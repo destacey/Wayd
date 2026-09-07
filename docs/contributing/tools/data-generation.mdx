@@ -82,6 +82,7 @@ you will need a fresh Personal Access Token afterward.
 | `--concurrent-projects-per-art` | `10` | Projects an ART has *in flight at once*; the total generated is derived from this across the window |
 | `--concurrent-programs-per-portfolio` | `5` | Thematic programs a portfolio runs at once; the total generated is derived from this across the window |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (org **and** PPM) |
+| `--as-of` | today | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
 | `--out`, `-o` | `./seed` | (`generate` only) output directory |
 | `--api`, `-a` | — | (`seed` only, required) API base URL |
 | `--api-key` | `WAYD_API_KEY` | (`seed` only) Personal Access Token |
@@ -205,17 +206,17 @@ rows automatically; you'll see a "Finalizing …" line at the end of a seed run 
 Every run resolves a concrete seed (random when `--random-seed` is omitted) and prints it:
 
 ```
-Using seed 193051458 (pass --random-seed 193051458 to reproduce this data).
+Using seed 193051458 as of 2026-06-15 (pass --random-seed 193051458 --as-of 2026-06-15 to reproduce this data).
 ```
 
-Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool, on the
-same day**. The seed pins the randomness, not the algorithm: if the generator changes, the same seed produces
-different data.
+Re-run with **both** of those to reproduce byte-identical data, for a given build of the tool. The seed pins
+the randomness, not the algorithm: if the generator changes, the same seed produces different data.
 
-The "same day" part is a real limitation rather than a nicety. The whole PPM timeline is anchored on today —
-two years back and two years forward — and statuses and transition dates follow from where each record sits
-on that window, so the same seed run tomorrow shifts every date by a day and flips anything that crossed
-today from active to complete.
+Both are needed because they pin different things, and either alone reproduces nothing. `--random-seed` fixes
+the draws; `--as-of` fixes the date the whole timeline hangs off. Leave `--as-of` out and it defaults to
+today, which is usually what you want — generated data straddles now, so there is history behind and runway
+ahead — but it also means tomorrow's run places every record a day further along, and flips anything that
+crossed today from active to complete.
 
 :::note What "reproducible" means here
 The seed reproduces the **generated data** — the same names, emails, employee numbers, team codes, and

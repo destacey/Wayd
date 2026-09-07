@@ -27,6 +27,13 @@ Aspire dashboard command), not part of this tool.
 The tool has two verbs: **`generate`** (write CSVs to disk to inspect) and **`seed`** (generate and push
 through the API). They share the same generation options.
 
+:::note `generate` writes files to read, not files to post
+The organization files are postable as they stand — every reference in them is a natural key the generator
+owns. The PPM files are the generated model: they name portfolios, programs and categories rather than
+pointing at ids, because those ids only exist once a run has created the records. `seed` resolves them
+stage by stage as it goes; there is no way to write a postable PPM file ahead of a run.
+:::
+
 ```bash
 # Preview: write the CSVs to a folder, no API needed
 dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli -- \
@@ -211,7 +218,19 @@ Planning, and Work read models via domain events). Going through the domain path
 fires those events, so the copies stay consistent — a direct insert would leave them empty. A useful side
 effect: seeding proves the real API and cross-domain wiring work.
 
-The `seed` verb imports in the order that replication and the domain's own rules require:
+### Areas, and the order they run in
+
+A seed is a set of **areas**, each one a unit that reads what it needs, writes its file, waits for the
+import to finish, and publishes the ids it created. An area declares what it depends on; the runner
+derives the order from those declarations rather than from a list someone maintains by hand.
+
+That indirection earns its place because the order is not a preference. A program cannot be created before
+its portfolio, staffing resolves roles it does not create, and the finalize pass can only close a program
+once its projects are closed. Stating the dependency keeps it from drifting away from the ordering as
+areas are added — and adding one means declaring what it needs, not finding the right line to insert a
+call at.
+
+Today's areas resolve to:
 
 ```
 employees → teams → team hierarchy → roles (created as needed) → team staffing
@@ -220,10 +239,20 @@ employees → teams → team hierarchy → roles (created as needed) → team st
   → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 ```
 
-Each import is all-or-nothing: one rejected row fails the whole run and nothing is saved, so the run stays
-re-runnable against a fresh database. References resolve by natural key where a record has one — employee
-number, team code, project key — and by id otherwise, which is why each stage has to read the previous
-run's results before it can write the next file. Pass `--skip-ppm` to stop after the organization.
+### Post, wait, read back, substitute
+
+An import answers `202 Accepted` with the id of a **queued run** — the file was taken, not applied. Each
+area therefore polls that run to completion and reads its row outcomes back before the next area writes
+anything, because those outcomes are where the created ids are.
+
+Each row is submitted under an `ImportId` set to the generator's own handle for that record — a
+portfolio's name, a project's key — so the ids come back keyed the way the next file already refers to
+them, with no second mapping to keep in step.
+
+Each import is all-or-nothing, and the seed aborts on anything short of a clean run, naming the rows that
+were rejected by their import id. References resolve by natural key where a record has one — employee
+number, team code, project key — and by id otherwise. Pass `--skip-ppm` to stop after the organization;
+nothing in the organization depends on a resolved id, so that path is unaffected by any of this.
 
 ## Data conventions
 

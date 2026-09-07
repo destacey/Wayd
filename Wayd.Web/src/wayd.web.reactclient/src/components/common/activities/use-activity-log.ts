@@ -16,9 +16,14 @@ export interface ActivityLogQueryArg {
   pageSize?: number
 }
 
-/** The subset of an RTK query result this hook reads. */
+/**
+ * The subset of an RTK query result this hook reads.
+ *
+ * `currentData`, not `data`: `data` holds the last result for *any* argument, so it still carries the
+ * previous record's page while the next record's is in flight.
+ */
 export interface ActivityLogQueryResult {
-  data?: PagedResponseOfActivityLogDto
+  currentData?: PagedResponseOfActivityLogDto
   isLoading: boolean
 }
 
@@ -43,6 +48,12 @@ export interface ActivityLog {
   isExportDisabled: boolean
 }
 
+/** The loaded rows, and the record they belong to. */
+interface LoadedActivities {
+  idOrKey: string | number | undefined
+  items: ActivityLogDto[]
+}
+
 /**
  * Drives a record's activity section: incremental loading on top of the first page, and the
  * export modal's state.
@@ -54,18 +65,27 @@ export const useActivityLog = ({
   exportFilename,
 }: UseActivityLogOptions): ActivityLog => {
   const [page, setPage] = useState<number>(1)
-  const [activities, setActivities] = useState<ActivityLogDto[]>([])
+  const [loaded, setLoaded] = useState<LoadedActivities>({
+    idOrKey: undefined,
+    items: [],
+  })
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false)
 
   useEffect(() => {
-    if (query.data?.items) {
-      setActivities(query.data.items)
+    if (query.currentData?.items) {
+      setLoaded({ idOrKey, items: query.currentData.items })
       setPage(1)
     }
-  }, [query.data, idOrKey])
+  }, [query.currentData, idOrKey])
 
-  const totalCount = query.data?.totalCount
+  // Accumulated rows are held against the record they were loaded for. These pages navigate between
+  // records of the same kind without remounting — the sprint switcher, a link to a sibling product —
+  // so an unkeyed list would show one record's history under another record's name until the next
+  // page resolved.
+  const activities = loaded.idOrKey === idOrKey ? loaded.items : []
+
+  const totalCount = query.currentData?.totalCount
   const hasMore = totalCount !== undefined && activities.length < totalCount
 
   const onLoadMore = async () => {
@@ -80,10 +100,14 @@ export const useActivityLog = ({
       }).unwrap()
 
       if (result.items && result.items.length > 0) {
-        setActivities((prev) => {
-          const existingIds = new Set(prev.map((a) => a.id))
+        setLoaded((prev) => {
+          // The record can change while this page is in flight; those rows belong to the record
+          // that was open when it was asked for, not the one open when it arrives.
+          if (prev.idOrKey !== idOrKey) return prev
+
+          const existingIds = new Set(prev.items.map((a) => a.id))
           const fresh = result.items.filter((a) => !existingIds.has(a.id))
-          return [...prev, ...fresh]
+          return { idOrKey, items: [...prev.items, ...fresh] }
         })
         setPage(nextPage)
       }

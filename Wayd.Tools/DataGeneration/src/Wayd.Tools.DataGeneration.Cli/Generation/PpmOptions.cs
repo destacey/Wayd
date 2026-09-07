@@ -1,4 +1,4 @@
-namespace Wayd.Tools.DataGeneration.Cli.Generation;
+﻿namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
 /// Knobs for the generated PPM dataset. It is layered on top of a generated organization, so most of its
@@ -28,7 +28,4 @@ public sealed class PpmOptions
     /// the window. Capped at the number of available program themes so concurrent programs stay distinct.
     /// </summary>
     public int ConcurrentProgramsPerPortfolio { get; init; } = 5;
-
-    /// <summary>The random seed. Shared with the org generator so a single seed reproduces the whole dataset.</summary>
-    public int Seed { get; init; }
 }

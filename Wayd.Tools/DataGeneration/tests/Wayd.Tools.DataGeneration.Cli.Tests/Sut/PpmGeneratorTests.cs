@@ -5,10 +5,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 
 public class PpmGeneratorTests
 {
+    /// <summary>
+    /// A context for one test. AsOf is left at today deliberately: nearly every assertion here is about
+    /// where work sits relative to now — what has finished, what is in flight, what has not started — so
+    /// pinning it to a fixed date would freeze the very relationship being asserted.
+    /// </summary>
+    private static GenerationContext ContextOf(int seed) =>
+        new() { AsOf = DateTime.UtcNow.Date, Seed = seed };
+
     private static GeneratedPpm Generate(PpmOptions? ppmOptions = null, OrgOptions? orgOptions = null)
     {
-        var org = new OrgGenerator(orgOptions ?? new OrgOptions { ValueStreams = 3, Teams = 15, Seed = 1234 }).Generate();
-        return new PpmGenerator(org.Structure, ppmOptions ?? new PpmOptions { Seed = 5678 }).Generate();
+        var context = ContextOf(1234);
+        var org = new OrgGenerator(orgOptions ?? new OrgOptions { ValueStreams = 3, Teams = 15 }, context).Generate();
+        return new PpmGenerator(org.Structure, ppmOptions ?? new PpmOptions(), context).Generate();
     }
 
     private static IEnumerable<string> Split(string? value) =>
@@ -279,11 +288,12 @@ public class PpmGeneratorTests
     public void Generate_ProgramCountScalesWithConcurrency()
     {
         // Arrange — the knob is concurrency and the total is derived, so more concurrent programs yields more.
-        var org = new OrgGenerator(new OrgOptions { ValueStreams = 2, Teams = 12, Seed = 4242 }).Generate();
+        var context = ContextOf(4242);
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 2, Teams = 12 }, context).Generate();
 
         // Act
-        var few = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProgramsPerPortfolio = 2, Seed = 7 }).Generate();
-        var many = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProgramsPerPortfolio = 5, Seed = 7 }).Generate();
+        var few = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProgramsPerPortfolio = 2 }, context).Generate();
+        var many = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProgramsPerPortfolio = 5 }, context).Generate();
 
         // Assert
         many.Programs.Count.Should().BeGreaterThan(few.Programs.Count);
@@ -557,10 +567,11 @@ public class PpmGeneratorTests
     public void Generate_ProducesAPortfolioPerValueStreamPlusTheFunctionPortfolios()
     {
         // Arrange
-        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 15, Seed = 1234 }).Generate();
+        var context = ContextOf(1234);
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 15 }, context).Generate();
 
         // Act
-        var ppm = new PpmGenerator(org.Structure, new PpmOptions { FunctionPortfolios = 2, Seed = 5678 }).Generate();
+        var ppm = new PpmGenerator(org.Structure, new PpmOptions { FunctionPortfolios = 2 }, context).Generate();
 
         // Assert — one portfolio per value stream, plus the requested function portfolios.
         ppm.Portfolios.Should().HaveCount(org.Structure.ValueStreams.Count + 2);
@@ -571,8 +582,8 @@ public class PpmGeneratorTests
     public void Generate_RoleAssignmentsReferenceGeneratedEmployeeNumbers()
     {
         // Arrange — every person referenced on a portfolio/program/project must be a generated employee.
-        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 15, Seed = 1234 }).Generate();
-        var ppm = new PpmGenerator(org.Structure, new PpmOptions { Seed = 5678 }).Generate();
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 15 }, ContextOf(1234)).Generate();
+        var ppm = new PpmGenerator(org.Structure, new PpmOptions(), ContextOf(5678)).Generate();
         var employeeNumbers = org.Employees.Select(e => e.EmployeeNumber).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Act
@@ -591,8 +602,8 @@ public class PpmGeneratorTests
         // Arrange — projects are ART-scoped: a subset of the ART's teams collaborate, so single-team is the
         // minority. A team is a handful of people, so a project staffed from one team has far fewer members
         // than a multi-team one. Using a large employee base makes the member counts separable.
-        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 24, Seed = 20240721 }).Generate();
-        var ppm = new PpmGenerator(org.Structure, new PpmOptions { Seed = 99 }).Generate();
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 24 }, ContextOf(20240721)).Generate();
+        var ppm = new PpmGenerator(org.Structure, new PpmOptions(), ContextOf(99)).Generate();
 
         // The smallest possible team has 5 members (3 ICs + EM + PO), so >9 members means two or more teams.
         var multiTeam = ppm.Projects.Count(p => Split(p.Members).Count() > 9);
@@ -624,11 +635,11 @@ public class PpmGeneratorTests
     {
         // Arrange — the knob is concurrency, and the total is derived from it, so doubling the concurrent
         // load should roughly double the number of projects generated.
-        var org = new OrgGenerator(new OrgOptions { ValueStreams = 2, Teams = 12, Seed = 4242 }).Generate();
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 2, Teams = 12 }, ContextOf(4242)).Generate();
 
         // Act
-        var low = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProjectsPerArt = 5, Seed = 7 }).Generate();
-        var high = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProjectsPerArt = 10, Seed = 7 }).Generate();
+        var low = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProjectsPerArt = 5 }, ContextOf(7)).Generate();
+        var high = new PpmGenerator(org.Structure, new PpmOptions { ConcurrentProjectsPerArt = 10 }, ContextOf(7)).Generate();
 
         // Assert — more concurrency yields materially more projects (not a strict 2x, but clearly higher).
         high.Projects.Count.Should().BeGreaterThan(low.Projects.Count);
@@ -640,8 +651,8 @@ public class PpmGeneratorTests
         // Arrange — a minority of projects reach across ARTs within a value stream. Map each member's
         // employee number to the ART its team belongs to, then look for a project whose members come from
         // more than one ART. A large org and project count make the ~10% cross-ART slice reliably present.
-        var org = new OrgGenerator(new OrgOptions { ValueStreams = 2, Teams = 24, Seed = 20240721 }).Generate();
-        var ppm = new PpmGenerator(org.Structure, new PpmOptions { Seed = 314 }).Generate();
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 2, Teams = 24 }, ContextOf(20240721)).Generate();
+        var ppm = new PpmGenerator(org.Structure, new PpmOptions(), ContextOf(314)).Generate();
 
         // employee number → ART team code (the ART the member's team sits under)
         var artByEmployee = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

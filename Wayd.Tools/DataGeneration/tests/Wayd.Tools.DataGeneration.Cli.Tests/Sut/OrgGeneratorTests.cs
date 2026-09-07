@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -6,8 +6,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 
 public class OrgGeneratorTests
 {
-    private static GeneratedOrg Generate(OrgOptions? options = null) =>
-        new OrgGenerator(options ?? new OrgOptions { ValueStreams = 3, Teams = 20, Seed = 1234 }).Generate();
+    /// <summary>A pinned context, so a test never depends on the day it runs on.</summary>
+    private static GenerationContext Context(int seed = 1234) =>
+        new() { AsOf = new DateTime(2026, 6, 15), Seed = seed };
+
+    private static GeneratedOrg Generate(OrgOptions? options = null, GenerationContext? context = null) =>
+        new OrgGenerator(options ?? new OrgOptions { ValueStreams = 3, Teams = 20 }, context ?? Context()).Generate();
 
     [Fact]
     public void Generate_EveryManagerReferenceResolvesToAnEmployee()
@@ -260,7 +264,7 @@ public class OrgGeneratorTests
     public void Generate_DeliveryRatioMatchesCompanyType(CompanyType companyType, double expected)
     {
         // Arrange
-        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, CompanyType = companyType, Seed = 1234 });
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, CompanyType = companyType });
 
         // Act — "inside" = people staffed on a team.
         var staffedNumbers = org.Members.Select(m => m.EmployeeNumber).ToHashSet();
@@ -273,14 +277,14 @@ public class OrgGeneratorTests
     // ---- Reproducibility ----------------------------------------------------------------------
 
     [Fact]
-    public void Generate_SameSeedProducesIdenticalOutput()
+    public void Generate_SameSeedAndAsOfProduceIdenticalOutput()
     {
         // Arrange
-        var options = new OrgOptions { ValueStreams = 3, Teams = 20, Seed = 42 };
+        var options = new OrgOptions { ValueStreams = 3, Teams = 20 };
 
         // Act
-        var a = new OrgGenerator(options).Generate();
-        var b = new OrgGenerator(options).Generate();
+        var a = new OrgGenerator(options, Context(42)).Generate();
+        var b = new OrgGenerator(options, Context(42)).Generate();
 
         // Assert
         Serialize(a).Should().Be(Serialize(b));
@@ -290,11 +294,76 @@ public class OrgGeneratorTests
     public void Generate_DifferentSeedsProduceDifferentOutput()
     {
         // Arrange / Act
-        var a = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 20, Seed = 1 }).Generate();
-        var b = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 20, Seed = 2 }).Generate();
+        var options = new OrgOptions { ValueStreams = 3, Teams = 20 };
+        var a = new OrgGenerator(options, Context(1)).Generate();
+        var b = new OrgGenerator(options, Context(2)).Generate();
 
         // Assert
         Serialize(a).Should().NotBe(Serialize(b));
+    }
+
+    [Fact]
+    public void Generate_AnchorsDatesOnAsOfRatherThanTheRealToday()
+    {
+        // Arrange — the bug this replaced: dates were measured back from Bogus's own DateTime.Now, so a
+        // pinned seed still produced a different dataset tomorrow while the tool claimed otherwise. A test
+        // cannot stage two different days in one process, so it pins asOf far enough into the past that
+        // anything still reading the real clock lands outside the window and is caught.
+        var asOf = new DateTime(2020, 6, 15);
+        var context = new GenerationContext { AsOf = asOf, Seed = 42 };
+
+        // Act
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 20 }, context).Generate();
+
+        // Assert — nobody was hired after the run's today, and nobody before the company existed
+        org.Employees.Should().OnlyContain(e => e.HireDate <= asOf && e.HireDate >= context.FoundedOn);
+        org.Teams.Should().OnlyContain(t => t.ActiveDate <= asOf && t.ActiveDate >= context.FoundedOn);
+    }
+
+    [Fact]
+    public void Generate_MovingAsOfMovesTheWholeTimeline()
+    {
+        // Arrange — the other half: asOf is what anchors the data, so changing it has to change the dates
+        var options = new OrgOptions { ValueStreams = 3, Teams = 20 };
+
+        // Act
+        var a = new OrgGenerator(options, new GenerationContext { AsOf = new DateTime(2026, 6, 15), Seed = 42 }).Generate();
+        var b = new OrgGenerator(options, new GenerationContext { AsOf = new DateTime(2020, 6, 15), Seed = 42 }).Generate();
+
+        // Assert
+        a.Employees.Max(e => e.HireDate).Should().BeAfter(b.Employees.Max(e => e.HireDate)!.Value);
+    }
+
+    [Fact]
+    public void Generate_NoDatePrecedesTheCompanysFounding()
+    {
+        // Arrange — the floor. Employees span the full company age and teams a shorter one, but nothing
+        // may fall before the company existed.
+        var context = Context();
+
+        // Act
+        var org = Generate(context: context);
+
+        // Assert
+        org.Employees.Should().OnlyContain(e => e.HireDate >= context.FoundedOn);
+        org.Teams.Should().OnlyContain(t => t.ActiveDate >= context.FoundedOn);
+    }
+
+    [Fact]
+    public void Generate_NoTeamMembershipStartsBeforeEitherTeamExisted()
+    {
+        // Arrange — no child may predate its parent, which is the floor applied one layer down
+        var org = Generate();
+        var activeByCode = org.Teams.ToDictionary(t => t.Code, t => t.ActiveDate);
+
+        // Act
+        var early = org.TeamMemberships
+            .Where(m => m.Start < activeByCode[m.ChildCode] || m.Start < activeByCode[m.ParentCode])
+            .Select(m => $"{m.ChildCode} under {m.ParentCode}")
+            .ToList();
+
+        // Assert
+        early.Should().BeEmpty();
     }
 
     private static string Serialize(GeneratedOrg org)

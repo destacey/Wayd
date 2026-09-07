@@ -1,4 +1,4 @@
-namespace Wayd.Tools.DataGeneration.Cli.Generation;
+﻿namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
 /// The kind of company being generated, which sets what share of employees sit inside the product-delivery
@@ -40,9 +40,6 @@ public sealed class OrgOptions
 
     /// <summary>Fraction (0..1) of non-delivery employees generated as former (inactive) employees.</summary>
     public double FormerEmployeeFraction { get; init; } = 0.08;
-
-    /// <summary>Optional fixed seed for reproducible output. Null = nondeterministic.</summary>
-    public int? Seed { get; init; }
 
     /// <summary>The effective share of employees inside the delivery structure — the override, or the type default.</summary>
     public double EffectiveDeliveryRatio => DeliveryRatio ?? CompanyType switch

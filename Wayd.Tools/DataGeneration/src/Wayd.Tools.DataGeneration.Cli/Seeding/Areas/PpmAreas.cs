@@ -1,4 +1,4 @@
-using Wayd.Tools.DataGeneration.Cli.Csv;
+﻿using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
 namespace Wayd.Tools.DataGeneration.Cli.Seeding.Areas;
@@ -103,8 +103,8 @@ public sealed class PortfoliosArea() : PpmSeedArea(PpmArea.Portfolios, Organizat
             Name = p.Name,
             Description = p.Description,
             Status = p.Status,
-            Start = p.Start,
-            End = p.End,
+            CreatedOn = p.CreatedOn,
+            ActivatedOn = p.ActivatedOn,
             Sponsors = p.Sponsors,
             Owners = p.Owners,
             Managers = p.Managers,
@@ -135,6 +135,8 @@ public sealed class ProgramsArea() : PpmSeedArea(
             Status = p.Status,
             Start = p.Start,
             End = p.End,
+            CreatedOn = p.CreatedOn,
+            ActivatedOn = p.ActivatedOn,
             StrategicThemes = Join(context.Ids(PpmArea.Themes, Split(p.StrategicThemes)).Select(id => id.ToString())),
             Sponsors = p.Sponsors,
             Owners = p.Owners,
@@ -179,6 +181,9 @@ public sealed class ProjectsArea() : PpmSeedArea(
             ExpectedBenefits = p.ExpectedBenefits,
             Start = p.Start,
             End = p.End,
+            CreatedOn = p.CreatedOn,
+            ActivatedOn = p.ActivatedOn,
+            ClosedOn = p.ClosedOn,
             StrategicThemes = Join(context.Ids(PpmArea.Themes, Split(p.StrategicThemes)).Select(id => id.ToString())),
             Sponsors = p.Sponsors,
             Owners = p.Owners,

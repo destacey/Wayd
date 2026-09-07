@@ -1,4 +1,4 @@
-using Bogus;
+﻿using Bogus;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -119,7 +119,7 @@ public sealed class PpmGenerator
             var portfolioStart = EarlyWindowDate();
             var portfolioName = AddPortfolio($"{valueStream.Domain} {Pick(PpmVocabulary.ValueStreamPortfolioSuffixes)}",
                 $"Delivery portfolio for the {valueStream.Domain} value stream.",
-                status: "Active", start: portfolioStart, end: null,
+                status: "Active", activatedOn: portfolioStart,
                 sponsors: [leadProduct], owners: [leadEng], managers: [leadEng]);
 
             // Programs are the portfolio's thematic groupings of projects (Modernization, Integrations, …) —
@@ -270,7 +270,7 @@ public sealed class PpmGenerator
             // AddPortfolio dedupes the name and returns the one it stored, so projects and the initiative
             // attach to exactly the portfolio that was created.
             var portfolioName = AddPortfolio(name, $"{name}: cross-cutting investment spanning multiple value streams.",
-                status: "Active", start: portfolioStart, end: null,
+                status: "Active", activatedOn: portfolioStart,
                 sponsors: [leads.FirstOrDefault()], owners: [leads.Skip(1).FirstOrDefault() ?? leads.FirstOrDefault()], managers: []);
 
             // Cross-cutting, portfolio-direct projects (no program), each drawn from teams anywhere in the
@@ -337,6 +337,11 @@ public sealed class PpmGenerator
             ExpectedBenefits = "Improved efficiency, reliability and customer outcomes.",
             Start = start,
             End = end,
+            CreatedOn = ProposedBefore(start),
+            // A project that never started has no activation, and one that closed has a closing date. The
+            // import rejects a date for a state the project never reached, so these have to match the status.
+            ActivatedOn = IsProposedStatus(status) ? null : start,
+            ClosedOn = IsClosedStatus(status) ? end : null,
             StrategicThemes = Join(PickThemes(_faker.Random.Int(0, 2))),
             Sponsors = Join([sponsor]),
             Owners = Join([manager]),
@@ -558,7 +563,7 @@ public sealed class PpmGenerator
     private readonly Dictionary<string, HashSet<string>> _taskNamesByProject = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Adds a portfolio row, deduping its name, and returns the stored name so callers reference the right one.</summary>
-    private string AddPortfolio(string name, string description, string status, DateTime? start, DateTime? end,
+    private string AddPortfolio(string name, string description, string status, DateTime? activatedOn,
         IReadOnlyList<string?> sponsors, IReadOnlyList<string?> owners, IReadOnlyList<string?> managers)
     {
         name = MakeUnique(name, _portfolioNames);
@@ -567,8 +572,8 @@ public sealed class PpmGenerator
             Name = name,
             Description = description,
             Status = status,
-            Start = start,
-            End = end,
+            CreatedOn = ProposedBefore(activatedOn),
+            ActivatedOn = activatedOn,
             Sponsors = Join(sponsors),
             Owners = Join(owners),
             Managers = Join(managers),
@@ -587,6 +592,8 @@ public sealed class PpmGenerator
             Status = status,
             Start = start,
             End = end,
+            CreatedOn = ProposedBefore(start),
+            ActivatedOn = IsProposedStatus(status) ? null : start,
             StrategicThemes = Join(themes),
             Sponsors = Join(sponsors),
             Owners = Join(owners),
@@ -653,6 +660,14 @@ public sealed class PpmGenerator
         || string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase);
 
     private DateTime EarlyWindowDate() => _faker.Date.Between(WindowStart, WindowStart.AddMonths(3)).Date;
+
+    /// <summary>
+    /// When something was proposed, given when it started: a few weeks to a few months earlier. Deliberately
+    /// before the window for the earliest records — work proposed before the window is exactly what a
+    /// creation date is for, and the import only requires it to be on or before the activation.
+    /// </summary>
+    private DateTime ProposedBefore(DateTime? activatedOn) =>
+        (activatedOn ?? Today).AddDays(-_faker.Random.Int(20, 120)).Date;
 
     private (DateTime Start, DateTime End) SubWindow(DateTime start, DateTime end)
     {

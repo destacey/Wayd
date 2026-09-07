@@ -1,4 +1,4 @@
-namespace Wayd.Tools.DataGeneration.Cli.Generation;
+﻿namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 // The generated PPM model, keyed by the generator's own handles — portfolio and program names, project
 // keys — because those are what the generator can decide for itself, and what its own cross-references are
@@ -13,14 +13,18 @@ public sealed class StrategicThemeModel
     public required string State { get; init; }
 }
 
-/// <summary>A generated portfolio. People are referenced by employee number, which stays a natural key end to end.</summary>
+/// <summary>
+/// A generated portfolio. People are referenced by employee number, which stays a natural key end to end.
+/// A portfolio has no planned timeline of its own — its date range is whatever its transitions set — so
+/// the transition dates are all it carries.
+/// </summary>
 public sealed class PortfolioModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
     public required string Status { get; init; }
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
+    public DateTime CreatedOn { get; init; }
+    public DateTime? ActivatedOn { get; init; }
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
     public string? Managers { get; init; }
@@ -35,6 +39,8 @@ public sealed class ProgramModel
     public required string Status { get; init; }
     public DateTime? Start { get; init; }
     public DateTime? End { get; init; }
+    public DateTime CreatedOn { get; init; }
+    public DateTime? ActivatedOn { get; init; }
     public string? StrategicThemes { get; init; }
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
@@ -56,6 +62,9 @@ public sealed class ProjectModel
     public string? ExpectedBenefits { get; init; }
     public DateTime? Start { get; init; }
     public DateTime? End { get; init; }
+    public DateTime CreatedOn { get; init; }
+    public DateTime? ActivatedOn { get; init; }
+    public DateTime? ClosedOn { get; init; }
     public string? StrategicThemes { get; init; }
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }

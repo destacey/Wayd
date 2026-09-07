@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
 namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
@@ -13,6 +13,77 @@ public class PpmGeneratorTests
 
     private static IEnumerable<string> Split(string? value) =>
         string.IsNullOrWhiteSpace(value) ? [] : value.Split(';');
+
+    [Fact]
+    public void Generate_EveryProjectCarriesExactlyTheTransitionDatesItsStatusAllows()
+    {
+        // Arrange — the import rejects a date for a state the project never reached, and rejects a
+        // missing one for a state it did, so a mismatch here fails the whole file at upload
+        var ppm = Generate();
+
+        // Act
+        var wrong = ppm.Projects
+            .Where(p => p.ActivatedOn.HasValue != Reached(p.Status) || p.ClosedOn.HasValue != Closed(p.Status))
+            .Select(p => $"{p.Key} ({p.Status})")
+            .ToList();
+
+        // Assert
+        wrong.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_EveryProjectsTransitionDatesRunForwards()
+    {
+        // Arrange — the import also rejects an activation before creation, or a closure before either
+        var ppm = Generate();
+
+        // Act
+        var outOfOrder = ppm.Projects
+            .Where(p => (p.ActivatedOn is { } a && a < p.CreatedOn)
+                || (p.ClosedOn is { } c && c < (p.ActivatedOn ?? p.CreatedOn)))
+            .Select(p => p.Key)
+            .ToList();
+
+        // Assert
+        outOfOrder.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_EveryPortfolioAndProgramIsCreatedBeforeItIsActivated()
+    {
+        // Arrange
+        var ppm = Generate();
+
+        // Act
+        var portfolios = ppm.Portfolios.Where(p => p.ActivatedOn is { } a && a < p.CreatedOn).Select(p => p.Name);
+        var programs = ppm.Programs.Where(p => p.ActivatedOn is { } a && a < p.CreatedOn).Select(p => p.Name);
+
+        // Assert
+        portfolios.Concat(programs).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ProposedWorkIsNeverGivenAnActivationDate()
+    {
+        // Arrange — a project that has not started did not activate, and inventing a date would put a
+        // stretch of delivery into its history that never happened
+        var ppm = Generate();
+
+        // Act
+        var claimed = ppm.Projects
+            .Where(p => !Reached(p.Status) && p.ActivatedOn is not null)
+            .Select(p => p.Key)
+            .ToList();
+
+        // Assert
+        claimed.Should().BeEmpty();
+    }
+
+    /// <summary>Whether a project in this status has been activated — the generator never cancels one that did not run.</summary>
+    private static bool Reached(string status) =>
+        status is "Active" or "Completed" or "Canceled";
+
+    private static bool Closed(string status) => status is "Completed" or "Canceled";
 
     [Fact]
     public void Generate_EveryProgramReferencesAnExistingPortfolio()

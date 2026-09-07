@@ -1,4 +1,4 @@
-namespace Wayd.Tools.DataGeneration.Cli.Csv;
+﻿namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
 // The PPM CSV rows, as the API import endpoints consume them. Column names must match the request models
 // in Wayd.Web.Api/Models/Ppm and Wayd.Web.Api/Models/StrategicManagement; multi-value columns hold
@@ -18,15 +18,19 @@ public sealed class StrategicThemeCsvRow
     public required string State { get; init; }
 }
 
-/// <summary>One row of the portfolios CSV. People are referenced by semicolon-separated employee numbers.</summary>
+/// <summary>
+/// One row of the portfolios CSV. People are referenced by semicolon-separated employee numbers. A
+/// portfolio has no planned timeline of its own, so it carries only the transition dates — and no closing
+/// one, since an import cannot close a portfolio.
+/// </summary>
 public sealed class PortfolioCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
     public required string Description { get; init; }
     public required string Status { get; init; }
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
+    public required DateTime CreatedOn { get; init; }
+    public DateTime? ActivatedOn { get; init; }
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
     public string? Managers { get; init; }
@@ -40,8 +44,14 @@ public sealed class ProgramCsvRow
     public required string Description { get; init; }
     public required Guid PortfolioId { get; init; }
     public required string Status { get; init; }
+
+    /// <summary>The timeline the program plans to run over, which its transitions read but never set.</summary>
     public DateTime? Start { get; init; }
     public DateTime? End { get; init; }
+
+    /// <summary>When the program actually moved. No closing date: an import cannot close a program.</summary>
+    public required DateTime CreatedOn { get; init; }
+    public DateTime? ActivatedOn { get; init; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; init; }
@@ -65,8 +75,17 @@ public sealed class ProjectCsvRow
     public Guid? ProjectLifecycleId { get; init; }
     public string? BusinessCase { get; init; }
     public string? ExpectedBenefits { get; init; }
+    /// <summary>The timeline the project plans to run over, which is not the same as when it moved.</summary>
     public DateTime? Start { get; init; }
     public DateTime? End { get; init; }
+
+    /// <summary>
+    /// When the project actually moved. Each replayed transition is stamped with the matching one, so these
+    /// are what the project's status history ends up dated by.
+    /// </summary>
+    public required DateTime CreatedOn { get; init; }
+    public DateTime? ActivatedOn { get; init; }
+    public DateTime? ClosedOn { get; init; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; init; }

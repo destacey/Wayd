@@ -37,7 +37,6 @@ public sealed class GetProjectActivitiesQueryHandler(
         GetProjectActivitiesQuery request, CancellationToken cancellationToken)
     {
         var projectId = await _ppmDbContext.Projects
-            .AsNoTracking()
             .Where(request.IdOrKeyFilter)
             .Select(p => (Guid?)p.Id)
             .FirstOrDefaultAsync(cancellationToken);

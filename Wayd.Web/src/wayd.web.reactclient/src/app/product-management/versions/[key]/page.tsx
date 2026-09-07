@@ -12,16 +12,24 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetVersionActivitiesQuery,
   useGetVersionQuery,
   useGetVersionStatusHistoryQuery,
+  useLazyGetVersionActivitiesQuery,
 } from '@/src/store/features/product-management/versions-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { useGetDeploymentsQuery } from '@/src/store/features/product-management/deployments-api'
 import { useGetReleasePackagesQuery } from '@/src/store/features/product-management/release-packages-api'
 import { DeploymentsGrid } from '../../deployments/_components'
 import { ReleasePackagesGrid } from '../../release-packages/_components'
 import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import CorrectVersionDatesForm from '../_components/correct-version-dates-form'
 import CutVersionForm from '../_components/cut-version-form'
@@ -40,6 +48,7 @@ enum VersionSections {
   Packages = 'packages',
   Deployments = 'deployments',
   StatusHistory = 'status-history',
+  Activities = 'activities',
 }
 
 const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -51,9 +60,16 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isMarkReleasedOpen, setIsMarkReleasedOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
   const [isRevertOpen, setIsRevertOpen] = useState<boolean>(false)
-  const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] = useState<boolean>(false)
+  const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] =
+    useState<boolean>(false)
 
   const router = useRouter()
+
+  // The active section lives in the URL (?section=), owned by RecordLayout. Read
+  // here to hold the activity query back until its section is open, and because
+  // sectionActions renders for whichever section that is.
+  const searchParams = useSearchParams()
+  const activeSection = searchParams.get('section') ?? VersionSections.Overview
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateVersion = hasPermissionClaim('Permissions.Delivery.Update')
@@ -68,17 +84,32 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     useGetVersionStatusHistoryQuery(key)
 
   // Skipped without the claim: the section is not offered, so the request would only ever 403.
-  const { data: deployments, isLoading: deploymentsLoading } = useGetDeploymentsQuery(
-    { versionId: version?.id },
-    { skip: !version?.id || !canViewDeployments },
-  )
+  const { data: deployments, isLoading: deploymentsLoading } =
+    useGetDeploymentsQuery(
+      { versionId: version?.id },
+      { skip: !version?.id || !canViewDeployments },
+    )
 
   // Filtered by version rather than by product: the product-wide filter would list packages this
   // version was never part of, which reads as a wrong answer rather than a broad one.
-  const { data: packages, isLoading: packagesLoading } = useGetReleasePackagesQuery(
-    { containingVersionId: version?.id },
-    { skip: !version?.id || !canViewPackages },
+  const { data: packages, isLoading: packagesLoading } =
+    useGetReleasePackagesQuery(
+      { containingVersionId: version?.id },
+      { skip: !version?.id || !canViewPackages },
+    )
+
+  const activitiesQuery = useGetVersionActivitiesQuery(
+    { idOrKey: version?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
+    { skip: !version?.id || activeSection !== VersionSections.Activities },
   )
+  const [fetchActivityLogPage] = useLazyGetVersionActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: version?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `version-${version?.key ?? key}-activity`,
+  })
 
   useDocumentTitle(version ? `${version.number} - Version` : 'Version')
 
@@ -152,7 +183,11 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     // correction says the record was wrong, a move says the version changed.
     const lifecycle: ItemType[] = []
     if (canCut) {
-      lifecycle.push({ key: 'cut', label: 'Cut', onClick: () => setIsCutOpen(true) })
+      lifecycle.push({
+        key: 'cut',
+        label: 'Cut',
+        onClick: () => setIsCutOpen(true),
+      })
     }
     if (canRelease) {
       lifecycle.push({
@@ -206,9 +241,14 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       ? [{ id: VersionSections.Deployments, label: 'Deployments' }]
       : []),
     { id: VersionSections.StatusHistory, label: 'Status History' },
+    { id: VersionSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: string) => {
+    if (section === VersionSections.Activities) {
+      return <ActivityLogTimeline {...activityLog.timelineProps} />
+    }
+
     if (section === VersionSections.Packages) {
       return (
         <ReleasePackagesGrid
@@ -274,6 +314,11 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             ) : undefined,
         }}
         facts={<VersionFacts version={version} />}
+        sectionActions={
+          activeSection === VersionSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section)}
       </RecordLayout>

@@ -1,0 +1,230 @@
+import { act, renderHook } from '@testing-library/react'
+import {
+  ActivityLogDto,
+  PagedResponseOfActivityLogDto,
+} from '@/src/services/wayd-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  useActivityLog,
+  UseActivityLogOptions,
+} from './use-activity-log'
+
+const activity = (id: string): ActivityLogDto =>
+  ({
+    id,
+    eventType: 'ProjectDetailsUpdatedEvent',
+    domainArea: 'Ppm',
+    aggregateType: 'Project',
+    payload: '{}',
+  }) as unknown as ActivityLogDto
+
+const pageOf = (
+  items: ActivityLogDto[],
+  totalCount: number,
+): PagedResponseOfActivityLogDto =>
+  ({ items, totalCount }) as unknown as PagedResponseOfActivityLogDto
+
+// Built once, not per render: RTK Query hands back a referentially stable `currentData`, and a fresh
+// object each render would re-fire the seeding effect forever.
+const DEFAULT_QUERY = {
+  currentData: pageOf([activity('a')], 3),
+  isLoading: false,
+}
+
+const optionsFor = (
+  overrides: Partial<UseActivityLogOptions>,
+  fetchPage: UseActivityLogOptions['fetchPage'],
+): UseActivityLogOptions => ({
+  idOrKey: 'record-1',
+  query: DEFAULT_QUERY,
+  fetchPage,
+  exportFilename: 'project-PHX-activity',
+  ...overrides,
+})
+
+const setup = (overrides: Partial<UseActivityLogOptions> = {}) => {
+  const fetchPage = overrides.fetchPage ?? jest.fn()
+  const rendered = renderHook(
+    (props: Partial<UseActivityLogOptions>) =>
+      useActivityLog(optionsFor(props, fetchPage)),
+    { initialProps: overrides },
+  )
+
+  return { fetchPage, ...rendered }
+}
+
+/** A fetchPage stand-in: RTK's trigger returns an object carrying `unwrap`. */
+const resolving = (response: PagedResponseOfActivityLogDto) =>
+  jest.fn().mockReturnValue({ unwrap: () => Promise.resolve(response) })
+
+describe('useActivityLog', () => {
+  it('seeds the timeline from the first page', () => {
+    // Arrange & Act
+    const { result } = setup()
+
+    // Assert
+    expect(result.current.timelineProps.activities).toHaveLength(1)
+    expect(result.current.timelineProps.totalCount).toBe(3)
+    expect(result.current.timelineProps.hasMore).toBe(true)
+  })
+
+  it('reports no more to load once the loaded count reaches the total', () => {
+    // Arrange & Act
+    const { result } = setup({
+      query: { currentData: pageOf([activity('a')], 1), isLoading: false },
+    })
+
+    // Assert
+    expect(result.current.timelineProps.hasMore).toBe(false)
+  })
+
+  it('appends the next page and asks for it at the shared page size', async () => {
+    // Arrange
+    const fetchPage = resolving(pageOf([activity('b')], 3))
+    const { result } = setup({ fetchPage })
+
+    // Act
+    await act(() => result.current.timelineProps.onLoadMore!())
+
+    // Assert
+    expect(fetchPage).toHaveBeenCalledWith({
+      idOrKey: 'record-1',
+      page: 2,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    })
+    expect(result.current.timelineProps.activities?.map((a) => a.id)).toEqual([
+      'a',
+      'b',
+    ])
+  })
+
+  // The server pages by timestamp, so an entry written between two requests can
+  // shift a row onto the next page and be returned twice.
+  it('drops entries the previous pages already carried', async () => {
+    // Arrange
+    const fetchPage = resolving(pageOf([activity('a'), activity('b')], 3))
+    const { result } = setup({ fetchPage })
+
+    // Act
+    await act(() => result.current.timelineProps.onLoadMore!())
+
+    // Assert
+    expect(result.current.timelineProps.activities?.map((a) => a.id)).toEqual([
+      'a',
+      'b',
+    ])
+  })
+
+  it('does not load more when everything is already loaded', async () => {
+    // Arrange
+    const fetchPage = jest.fn()
+    const { result } = setup({
+      query: { currentData: pageOf([activity('a')], 1), isLoading: false },
+      fetchPage,
+    })
+
+    // Act
+    await act(() => result.current.timelineProps.onLoadMore!())
+
+    // Assert
+    expect(fetchPage).not.toHaveBeenCalled()
+  })
+
+  // These pages navigate between records of the same kind without remounting, and RTK Query's `data`
+  // still holds the previous record's page while the next one loads — so rows have to be held
+  // against the record they were loaded for, or one record's history shows under another's name.
+  it('shows nothing for a record whose history has not loaded yet', () => {
+    // Arrange
+    const { result, rerender } = setup()
+    expect(result.current.timelineProps.activities).toHaveLength(1)
+
+    // Act — the page switches records; the new record's query has not resolved
+    rerender({
+      idOrKey: 'record-2',
+      query: { currentData: undefined, isLoading: true },
+    })
+
+    // Assert
+    expect(result.current.timelineProps.activities).toEqual([])
+  })
+
+  it('does not append a page that arrives after the record changed', async () => {
+    // Arrange
+    const fetchPage = resolving(pageOf([activity('b')], 3))
+    const { result, rerender } = setup({ fetchPage })
+    const loadMore = result.current.timelineProps.onLoadMore!
+
+    // Act — the record changes while the next page is in flight
+    rerender({
+      idOrKey: 'record-2',
+      query: { currentData: undefined, isLoading: true },
+    })
+    await act(() => loadMore())
+
+    // Assert
+    expect(result.current.timelineProps.activities).toEqual([])
+  })
+
+  it('disables export while there is nothing to export', () => {
+    // Arrange & Act
+    const { result } = setup({
+      query: { currentData: pageOf([], 0), isLoading: false },
+    })
+
+    // Assert
+    expect(result.current.isExportDisabled).toBe(true)
+  })
+
+  it('opens and closes the export modal', () => {
+    // Arrange
+    const { result } = setup()
+    expect(result.current.timelineProps.isExportOpen).toBe(false)
+
+    // Act
+    act(() => result.current.openExport())
+
+    // Assert
+    expect(result.current.timelineProps.isExportOpen).toBe(true)
+
+    // Act
+    act(() => result.current.timelineProps.onExportClose!())
+
+    // Assert
+    expect(result.current.timelineProps.isExportOpen).toBe(false)
+  })
+
+  it('returns an empty export batch before the record has loaded', async () => {
+    // Arrange
+    const fetchPage = jest.fn()
+    const { result } = setup({
+      idOrKey: undefined,
+      query: { currentData: undefined, isLoading: true },
+      fetchPage,
+    })
+
+    // Act
+    const batch = await result.current.timelineProps.onFetchExportBatch!(1, 100)
+
+    // Assert
+    expect(batch).toEqual({ items: [], totalCount: 0 })
+    expect(fetchPage).not.toHaveBeenCalled()
+  })
+
+  it('fetches an export batch at the size the export asks for', async () => {
+    // Arrange
+    const fetchPage = resolving(pageOf([activity('a'), activity('b')], 2))
+    const { result } = setup({ fetchPage })
+
+    // Act
+    const batch = await result.current.timelineProps.onFetchExportBatch!(1, 100)
+
+    // Assert
+    expect(fetchPage).toHaveBeenCalledWith({
+      idOrKey: 'record-1',
+      page: 1,
+      pageSize: 100,
+    })
+    expect(batch.totalCount).toBe(2)
+    expect(batch.items).toHaveLength(2)
+  })
+})

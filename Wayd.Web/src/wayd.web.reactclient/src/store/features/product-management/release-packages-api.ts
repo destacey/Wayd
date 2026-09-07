@@ -8,6 +8,7 @@ import {
   SetReleasePackageManifestRequest,
   StatusTransitionDto,
   WithdrawReleasePackageRequest,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
@@ -78,7 +79,10 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
         { type: QueryTags.ReleasePackage, id: arg },
       ],
     }),
-    getReleasePackageStatusHistory: builder.query<StatusTransitionDto[], string>({
+    getReleasePackageStatusHistory: builder.query<
+      StatusTransitionDto[],
+      string
+    >({
       queryFn: async (id) => {
         try {
           const data = await getReleasePackagesClient().getStatusHistory(id)
@@ -135,7 +139,11 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
      */
     setReleasePackageManifest: builder.mutation<
       void,
-      { id: string; cacheKey: number; request: SetReleasePackageManifestRequest }
+      {
+        id: string
+        cacheKey: number
+        request: SetReleasePackageManifestRequest
+      }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -146,22 +154,31 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => packageTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        packageTags(arg.id, arg.cacheKey),
     }),
     markReleasePackageReleased: builder.mutation<
       void,
-      { id: string; cacheKey: number; request: MarkReleasePackageReleasedRequest }
+      {
+        id: string
+        cacheKey: number
+        request: MarkReleasePackageReleasedRequest
+      }
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasePackagesClient().markReleased(id, request)
+          const data = await getReleasePackagesClient().markReleased(
+            id,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => packageTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        packageTags(arg.id, arg.cacheKey),
     }),
     withdrawReleasePackage: builder.mutation<
       void,
@@ -176,7 +193,30 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => packageTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        packageTags(arg.id, arg.cacheKey),
+    }),
+
+    getReleasePackageActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getReleasePackagesClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
     }),
   }),
 })
@@ -190,4 +230,6 @@ export const {
   useSetReleasePackageManifestMutation,
   useMarkReleasePackageReleasedMutation,
   useWithdrawReleasePackageMutation,
+  useGetReleasePackageActivitiesQuery,
+  useLazyGetReleasePackageActivitiesQuery,
 } = releasePackagesApi

@@ -5,6 +5,7 @@ import {
   StrategicThemeDetailsDto,
   StrategicThemeListDto,
   UpdateStrategicThemeRequest,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { getStrategicThemesClient } from '@/src/services/clients'
 import { QueryTags } from '../query-tags'
@@ -190,6 +191,28 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
         }
       },
     }),
+
+    getStrategicThemeActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getStrategicThemesClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -203,4 +226,6 @@ export const {
   useDeleteStrategicThemeMutation,
   useGetStateOptionsQuery,
   useGetStrategicThemeOptionsQuery,
+  useGetStrategicThemeActivitiesQuery,
+  useLazyGetStrategicThemeActivitiesQuery,
 } = strategicThemesApi

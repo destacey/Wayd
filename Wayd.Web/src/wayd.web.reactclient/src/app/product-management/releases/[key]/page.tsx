@@ -12,12 +12,20 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetReleaseActivitiesQuery,
   useGetReleaseQuery,
   useGetReleaseStatusHistoryQuery,
+  useLazyGetReleaseActivitiesQuery,
 } from '@/src/store/features/product-management/releases-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import CorrectReleaseDatesForm from '../_components/correct-release-dates-form'
 import EditReleaseForm from '../_components/edit-release-form'
@@ -36,6 +44,7 @@ enum ReleaseSections {
   Overview = 'overview',
   Contents = 'contents',
   StatusHistory = 'status-history',
+  Activities = 'activities',
 }
 
 const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -47,9 +56,16 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isMarkReleasedOpen, setIsMarkReleasedOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
   const [isRevertOpen, setIsRevertOpen] = useState<boolean>(false)
-  const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] = useState<boolean>(false)
+  const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] =
+    useState<boolean>(false)
 
   const router = useRouter()
+
+  // The active section lives in the URL (?section=), owned by RecordLayout. Read
+  // here to hold the activity query back until its section is open, and because
+  // sectionActions renders for whichever section that is.
+  const searchParams = useSearchParams()
+  const activeSection = searchParams.get('section') ?? ReleaseSections.Overview
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateRelease = hasPermissionClaim('Permissions.Releases.Update')
@@ -60,6 +76,19 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { data: statusHistory, isLoading: statusHistoryLoading } =
     useGetReleaseStatusHistoryQuery(key)
+
+  const activitiesQuery = useGetReleaseActivitiesQuery(
+    { idOrKey: release?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
+    { skip: !release?.id || activeSection !== ReleaseSections.Activities },
+  )
+  const [fetchActivityLogPage] = useLazyGetReleaseActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: release?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `release-${release?.key ?? key}-activity`,
+  })
 
   useDocumentTitle(release ? `${release.version} - Release` : 'Release')
 
@@ -186,9 +215,14 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     { id: ReleaseSections.Overview, label: 'Overview' },
     { id: ReleaseSections.Contents, label: 'Contents' },
     { id: ReleaseSections.StatusHistory, label: 'Status History' },
+    { id: ReleaseSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: string) => {
+    if (section === ReleaseSections.Activities) {
+      return <ActivityLogTimeline {...activityLog.timelineProps} />
+    }
+
     if (section === ReleaseSections.Contents) {
       return <ReleaseContents release={release} />
     }
@@ -244,6 +278,11 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             ) : undefined,
         }}
         facts={<ReleaseFacts release={release} />}
+        sectionActions={
+          activeSection === ReleaseSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section)}
       </RecordLayout>

@@ -2,13 +2,23 @@
 
 import { PageActions } from '@/src/components/common'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import { RecordShell } from '@/src/components/common/record'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { useGetStrategicThemeQuery } from '@/src/store/features/strategic-management/strategic-themes-api'
+import {
+  useGetStrategicThemeActivitiesQuery,
+  useGetStrategicThemeQuery,
+  useLazyGetStrategicThemeActivitiesQuery,
+} from '@/src/store/features/strategic-management/strategic-themes-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { MenuProps, Tag } from 'antd'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import StrategicThemeDetailsLoading from './loading'
 import { use, useEffect, useState } from 'react'
 import { ItemType } from 'antd/es/menu/interface'
@@ -25,6 +35,16 @@ enum MenuActions {
   Activate = 'Activate',
   Archive = 'Archive',
 }
+
+enum StrategicThemeSections {
+  Overview = 'overview',
+  Activities = 'activities',
+}
+
+const sections: RecordSection[] = [
+  { id: StrategicThemeSections.Overview, label: 'Overview' },
+  { id: StrategicThemeSections.Activities, label: 'Activity' },
+]
 
 const StrategicThemeDetailsPage = (props: {
   params: Promise<{ key: string }>
@@ -63,6 +83,33 @@ const StrategicThemeDetailsPage = (props: {
   useEffect(() => {
     error && console.error(error)
   }, [error])
+
+  // The active section lives in the URL, owned by RecordLayout. Read here only
+  // to hold the activity query back until its section is open.
+  const searchParams = useSearchParams()
+  const activeSection = (searchParams.get('section') ??
+    StrategicThemeSections.Overview) as StrategicThemeSections
+
+  const activitiesQuery = useGetStrategicThemeActivitiesQuery(
+    {
+      idOrKey: strategicThemeData?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !strategicThemeData?.id ||
+        activeSection !== StrategicThemeSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetStrategicThemeActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: strategicThemeData?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `strategic-theme-${strategicThemeData?.key ?? stKey}-activity`,
+  })
 
   const actionsMenuItems: MenuProps['items'] = (() => {
     const currentState = strategicThemeData?.state.name
@@ -166,7 +213,9 @@ const StrategicThemeDetailsPage = (props: {
 
   return (
     <>
-      <RecordShell
+      <RecordLayout
+        sections={sections}
+        defaultSection={StrategicThemeSections.Overview}
         record={{
           name: strategicThemeData.name,
           recordKey: String(strategicThemeData.key),
@@ -178,11 +227,22 @@ const StrategicThemeDetailsPage = (props: {
           tags: <Tag>{strategicThemeData.state.name}</Tag>,
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
+        sectionActions={
+          activeSection === StrategicThemeSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
-        {/* The description is the whole of a theme's content, so it leads
-            rather than sitting in a facts panel that opens closed. */}
-        <MarkdownRenderer markdown={strategicThemeData.description} />
-      </RecordShell>
+        {(section) =>
+          section === StrategicThemeSections.Activities ? (
+            <ActivityLogTimeline {...activityLog.timelineProps} />
+          ) : (
+            /* The description is the whole of a theme's content, so it leads
+               rather than sitting in a facts panel that opens closed. */
+            <MarkdownRenderer markdown={strategicThemeData.description} />
+          )
+        }
+      </RecordLayout>
 
       {openEditStrategicThemeForm && (
         <EditStrategicThemeForm

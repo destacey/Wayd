@@ -12,12 +12,20 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetDeploymentActivitiesQuery,
   useGetDeploymentQuery,
   useGetDeploymentStatusHistoryQuery,
+  useLazyGetDeploymentActivitiesQuery,
 } from '@/src/store/features/product-management/deployments-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { Button, MenuProps, Result, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import CompleteDeploymentForm, {
   type DeploymentOutcome,
@@ -32,6 +40,7 @@ const { Paragraph } = Typography
 enum DeploymentSections {
   Overview = 'overview',
   StatusHistory = 'status-history',
+  Activities = 'activities',
 }
 
 /**
@@ -48,10 +57,15 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const router = useRouter()
 
+  // The active section lives in the URL (?section=), owned by RecordLayout. Read
+  // here to hold the activity query back until its section is open, and because
+  // sectionActions renders for whichever section that is.
+  const searchParams = useSearchParams()
+  const activeSection =
+    searchParams.get('section') ?? DeploymentSections.Overview
+
   const { hasPermissionClaim } = useAuth()
-  const canUpdateDeployment = hasPermissionClaim(
-    'Permissions.Delivery.Update',
-  )
+  const canUpdateDeployment = hasPermissionClaim('Permissions.Delivery.Update')
 
   const messageApi = useMessage()
 
@@ -65,9 +79,26 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { data: statusHistory, isLoading: statusHistoryLoading } =
     useGetDeploymentStatusHistoryQuery(key)
 
-  useDocumentTitle(
-    deployment ? `Deployment ${deployment.key}` : 'Deployment',
+  const activitiesQuery = useGetDeploymentActivitiesQuery(
+    {
+      idOrKey: deployment?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip: !deployment?.id || activeSection !== DeploymentSections.Activities,
+    },
   )
+  const [fetchActivityLogPage] = useLazyGetDeploymentActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: deployment?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `deployment-${deployment?.key ?? key}-activity`,
+  })
+
+  useDocumentTitle(deployment ? `Deployment ${deployment.key}` : 'Deployment')
 
   const isNotFound = (error as { status?: number })?.status === 404
 
@@ -141,9 +172,14 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sections: RecordSection[] = [
     { id: DeploymentSections.Overview, label: 'Overview' },
     { id: DeploymentSections.StatusHistory, label: 'Status History' },
+    { id: DeploymentSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: string) => {
+    if (section === DeploymentSections.Activities) {
+      return <ActivityLogTimeline {...activityLog.timelineProps} />
+    }
+
     if (section === DeploymentSections.StatusHistory) {
       return (
         <StatusHistoryTimeline
@@ -174,7 +210,9 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           subtitle: deployed
             ? `${deployed.name} to ${deployment.environment.name}`
             : deployment.environment.name,
-          parent: [{ label: 'Deployments', href: '/product-management/deployments' }],
+          parent: [
+            { label: 'Deployments', href: '/product-management/deployments' },
+          ],
           recordKey: String(deployment.key),
           tags: (
             <StatusHistoryTag
@@ -192,6 +230,11 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             ) : undefined,
         }}
         facts={<DeploymentFacts deployment={deployment} />}
+        sectionActions={
+          activeSection === DeploymentSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section)}
       </RecordLayout>

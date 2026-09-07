@@ -13,6 +13,7 @@ import {
   UpdateStatusWorkflowRequest,
   WorkflowAssignmentDto,
   WorkflowOwnerTypeDto,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import {
   getStatusWorkflowsClient,
@@ -45,7 +46,8 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     getStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getStatusWorkflowsClient().getStatusWorkflow(idOrKey)
+          const data =
+            await getStatusWorkflowsClient().getStatusWorkflow(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -73,18 +75,20 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       },
     }),
 
-    createStatusWorkflow: builder.mutation<string, CreateStatusWorkflowRequest>({
-      queryFn: async (request) => {
-        try {
-          const data = await getStatusWorkflowsClient().create(request)
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
+    createStatusWorkflow: builder.mutation<string, CreateStatusWorkflowRequest>(
+      {
+        queryFn: async (request) => {
+          try {
+            const data = await getStatusWorkflowsClient().create(request)
+            return { data }
+          } catch (error) {
+            console.error('API Error:', error)
+            return { error }
+          }
+        },
+        invalidatesTags: () => [{ type: QueryTags.StatusWorkflow, id: 'LIST' }],
       },
-      invalidatesTags: () => [{ type: QueryTags.StatusWorkflow, id: 'LIST' }],
-    }),
+    ),
 
     updateStatusWorkflow: builder.mutation<
       void,
@@ -159,7 +163,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().addStatus(workflowId, request)
+          const data = await getStatusWorkflowsClient().addStatus(
+            workflowId,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -172,7 +179,11 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
 
     renameWorkflowStatus: builder.mutation<
       void,
-      { workflowId: string; statusId: string; request: RenameWorkflowStatusRequest }
+      {
+        workflowId: string
+        statusId: string
+        request: RenameWorkflowStatusRequest
+      }
     >({
       queryFn: async ({ workflowId, statusId, request }) => {
         try {
@@ -259,7 +270,9 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       queryFn: async (ownerType) => {
         try {
           const data =
-            await getWorkflowAssignmentsClient().getWorkflowAssignments(ownerType)
+            await getWorkflowAssignmentsClient().getWorkflowAssignments(
+              ownerType,
+            )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -311,6 +324,28 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Product },
       ],
     }),
+
+    getStatusWorkflowActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getStatusWorkflowsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -331,4 +366,6 @@ export const {
   useGetWorkflowAssignmentsQuery,
   usePreviewStatusRemapQuery,
   useReassignWorkflowMutation,
+  useGetStatusWorkflowActivitiesQuery,
+  useLazyGetStatusWorkflowActivitiesQuery,
 } = statusWorkflowsApi

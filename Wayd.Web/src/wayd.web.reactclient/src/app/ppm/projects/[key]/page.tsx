@@ -6,9 +6,17 @@ import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetProjectActivitiesQuery,
   useGetProjectQuery,
   useGetProjectWorkItemsQuery,
+  useLazyGetProjectActivitiesQuery,
 } from '@/src/store/features/ppm/projects-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { Alert, Button, Flex, MenuProps, Spin, Tooltip } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import dynamic from 'next/dynamic'
@@ -47,9 +55,7 @@ const ProjectTeamGrid = dynamic(
 
 const ProjectWorkItemsViewManager = dynamic(
   () =>
-    import(
-      '@/src/app/ppm/projects/_components/project-work-items-view-manager'
-    ),
+    import('@/src/app/ppm/projects/_components/project-work-items-view-manager'),
   { ssr: false, loading: () => <Spin /> },
 )
 
@@ -64,6 +70,7 @@ enum ProjectSections {
   Team = 'team',
   Plan = 'plan',
   WorkItems = 'work-items',
+  Activities = 'activities',
   HealthReport = 'health-report',
 }
 
@@ -153,6 +160,25 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     refetch: refetchWorkItemsData,
   } = useGetProjectWorkItemsQuery(projectData?.id ?? '', {
     skip: !projectData?.id || activeSection !== ProjectSections.WorkItems,
+  })
+
+  const activitiesQuery = useGetProjectActivitiesQuery(
+    {
+      idOrKey: projectData?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip: !projectData?.id || activeSection !== ProjectSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetProjectActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: projectData?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `project-${projectData?.key ?? projectKey}-activity`,
   })
 
   const missingDates = projectData?.start === null || projectData?.end === null
@@ -383,6 +409,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       ? [{ id: ProjectSections.Plan, label: 'Plan' }]
       : []),
     { id: ProjectSections.WorkItems, label: 'Work Items' },
+    { id: ProjectSections.Activities, label: 'Activity' },
   ]
 
   // Closed statuses are included because revert targets depend on the lifecycle and dates too — a
@@ -421,7 +448,10 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <ProjectTeamGrid projectIdOrKey={projectKey} />
       case ProjectSections.Plan:
         return (
-          <ProjectPlan project={projectData} canManageTasks={canUpdateProject} />
+          <ProjectPlan
+            project={projectData}
+            canManageTasks={canUpdateProject}
+          />
         )
       case ProjectSections.WorkItems:
         return (
@@ -432,6 +462,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             hideProjectColumn={true}
           />
         )
+      case ProjectSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case ProjectSections.HealthReport:
         return <ProjectHealthReport projectId={projectData.id} />
       default:
@@ -497,6 +529,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         sectionActions={
           activeSection === ProjectSections.Plan ? (
             <ProjectTaskMetricsInline projectKey={projectKey} />
+          ) : activeSection === ProjectSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
           ) : null
         }
       >

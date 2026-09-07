@@ -11,6 +11,7 @@ import {
   ProjectPortfolioListDto,
   StrategicInitiativeListDto,
   UpdatePortfolioRequest,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { BaseOptionType } from 'antd/es/select'
@@ -376,6 +377,28 @@ export const portfoliosApi = apiSlice.injectEndpoints({
         { type: QueryTags.PortfolioPrograms, id: arg },
       ],
     }),
+
+    getPortfolioActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getPortfoliosClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -399,4 +422,6 @@ export const {
   useGetPortfolioOptionsQuery,
   useGetPortfolioProgramOptionsQuery,
   useGetPortfolioStatusOptionsQuery,
+  useGetPortfolioActivitiesQuery,
+  useLazyGetPortfolioActivitiesQuery,
 } = portfoliosApi

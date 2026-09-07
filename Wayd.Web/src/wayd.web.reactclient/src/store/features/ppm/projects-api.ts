@@ -18,6 +18,7 @@ import {
   MyProjectsTaskMetricsDto,
   ProjectStatusHistoryDto,
   ProjectStatus,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { BaseOptionType } from 'antd/es/select'
@@ -325,7 +326,10 @@ export const projectsApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.WorkItem,
-        ...(result?.map(({ key }) => ({ type: QueryTags.ProjectWorkItems, key })) ?? []),
+        ...(result?.map(({ key }) => ({
+          type: QueryTags.ProjectWorkItems,
+          key,
+        })) ?? []),
       ],
     }),
 
@@ -572,10 +576,11 @@ export const projectsApi = apiSlice.injectEndpoints({
         try {
           const status =
             request && 'status' in request ? request.status : undefined
-          const role =
-            request && 'role' in request ? request.role : undefined
-          const data =
-            await getProjectsClient().getMyProjectsTaskMetrics(status, role)
+          const role = request && 'role' in request ? request.role : undefined
+          const data = await getProjectsClient().getMyProjectsTaskMetrics(
+            status,
+            role,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -614,6 +619,28 @@ export const projectsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
       ],
     }),
+
+    getProjectActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getProjectsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -644,4 +671,6 @@ export const {
   useGetMyProjectsTaskMetricsQuery,
   useGetProjectTeamQuery,
   useGetProjectStatusHistoryQuery,
+  useGetProjectActivitiesQuery,
+  useLazyGetProjectActivitiesQuery,
 } = projectsApi

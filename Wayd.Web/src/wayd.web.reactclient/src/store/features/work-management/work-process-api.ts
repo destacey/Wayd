@@ -3,6 +3,7 @@ import {
   WorkProcessDto,
   WorkProcessListDto,
   WorkProcessSchemeDto,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -42,7 +43,8 @@ export const workProcessApi = apiSlice.injectEndpoints({
       //providesTags: (result, error, arg) => providesList(result, QueryTags.WorkProcess),
       providesTags: (result) => [
         QueryTags.WorkProcess,
-        ...(result?.map(({ id }) => ({ type: QueryTags.WorkProcess, id })) ?? []),
+        ...(result?.map(({ id }) => ({ type: QueryTags.WorkProcess, id })) ??
+          []),
       ],
     }),
     getWorkProcess: builder.query<WorkProcessDto | null, string>({
@@ -101,7 +103,32 @@ export const workProcessApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, arg) => [
         { type: QueryTags.WorkProcessScheme, id: arg },
-        ...(result?.map(({ id }) => ({ type: QueryTags.WorkProcessScheme, id })) ?? []),
+        ...(result?.map(({ id }) => ({
+          type: QueryTags.WorkProcessScheme,
+          id,
+        })) ?? []),
+      ],
+    }),
+
+    getWorkProcessActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getWorkProcessesClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
       ],
     }),
   }),
@@ -113,4 +140,6 @@ export const {
   useGetWorkProcessQuery,
   useChangeWorkProcessIsActiveMutation,
   useGetWorkProcessSchemesQuery,
+  useGetWorkProcessActivitiesQuery,
+  useLazyGetWorkProcessActivitiesQuery,
 } = workProcessApi

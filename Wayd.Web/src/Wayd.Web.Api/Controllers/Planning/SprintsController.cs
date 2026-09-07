@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Dtos;
+﻿using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Models;
 using Wayd.Planning.Application.Iterations.Dtos;
 using Wayd.Planning.Application.Iterations.Queries;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -37,6 +39,20 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
         return sprint is not null
             ? Ok(sprint)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
+    [OpenApiOperation("Get activity history for the sprint.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetSprintActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
             : NotFound();
     }
 

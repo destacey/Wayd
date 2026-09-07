@@ -12,13 +12,21 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetReleasePackageActivitiesQuery,
   useGetReleasePackageQuery,
   useGetReleasePackageStatusHistoryQuery,
+  useLazyGetReleasePackageActivitiesQuery,
 } from '@/src/store/features/product-management/release-packages-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { useGetDeploymentsQuery } from '@/src/store/features/product-management/deployments-api'
 import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import { DeploymentsGrid } from '../../deployments/_components'
 import MarkReleasePackageReleasedForm from '../_components/mark-release-package-released-form'
@@ -33,6 +41,7 @@ enum ReleasePackageSections {
   Manifest = 'manifest',
   Deployments = 'deployments',
   StatusHistory = 'status-history',
+  Activities = 'activities',
 }
 
 const ReleasePackageDetailsPage = (props: {
@@ -46,10 +55,15 @@ const ReleasePackageDetailsPage = (props: {
 
   const router = useRouter()
 
+  // The active section lives in the URL (?section=), owned by RecordLayout. Read
+  // here to hold the activity query back until its section is open, and because
+  // sectionActions renders for whichever section that is.
+  const searchParams = useSearchParams()
+  const activeSection =
+    searchParams.get('section') ?? ReleasePackageSections.Manifest
+
   const { hasPermissionClaim } = useAuth()
-  const canUpdatePackage = hasPermissionClaim(
-    'Permissions.Delivery.Update',
-  )
+  const canUpdatePackage = hasPermissionClaim('Permissions.Delivery.Update')
   const canViewDeployments = hasPermissionClaim('Permissions.Delivery.View')
 
   const messageApi = useMessage()
@@ -70,6 +84,27 @@ const ReleasePackageDetailsPage = (props: {
       { packageId: releasePackage?.id },
       { skip: !releasePackage?.id || !canViewDeployments },
     )
+
+  const activitiesQuery = useGetReleasePackageActivitiesQuery(
+    {
+      idOrKey: releasePackage?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !releasePackage?.id ||
+        activeSection !== ReleasePackageSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetReleasePackageActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: releasePackage?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `release-package-${releasePackage?.key ?? key}-activity`,
+  })
 
   useDocumentTitle(
     releasePackage ? `${releasePackage.version} - Package` : 'Release Package',
@@ -162,9 +197,14 @@ const ReleasePackageDetailsPage = (props: {
       ? [{ id: ReleasePackageSections.Deployments, label: 'Deployments' }]
       : []),
     { id: ReleasePackageSections.StatusHistory, label: 'Status History' },
+    { id: ReleasePackageSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: string) => {
+    if (section === ReleasePackageSections.Activities) {
+      return <ActivityLogTimeline {...activityLog.timelineProps} />
+    }
+
     if (section === ReleasePackageSections.Deployments) {
       return (
         <DeploymentsGrid
@@ -199,7 +239,10 @@ const ReleasePackageDetailsPage = (props: {
           name: releasePackage.version,
           subtitle: releasePackage.name ?? 'Release Package Details',
           parent: [
-            { label: 'Release Packages', href: '/product-management/release-packages' },
+            {
+              label: 'Release Packages',
+              href: '/product-management/release-packages',
+            },
           ],
           recordKey: String(releasePackage.key),
           tags: (
@@ -219,6 +262,11 @@ const ReleasePackageDetailsPage = (props: {
             ) : undefined,
         }}
         facts={<ReleasePackageFacts releasePackage={releasePackage} />}
+        sectionActions={
+          activeSection === ReleasePackageSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section)}
       </RecordLayout>

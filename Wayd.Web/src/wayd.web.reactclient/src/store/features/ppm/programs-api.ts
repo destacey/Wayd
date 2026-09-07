@@ -7,6 +7,7 @@ import {
   ProgramDetailsDto,
   UpdateProgramRequest,
   ProjectListDto,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { BaseOptionType } from 'antd/es/select'
@@ -217,6 +218,28 @@ export const programsApi = apiSlice.injectEndpoints({
         }
       },
     }),
+
+    getProgramActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getProgramsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -232,4 +255,6 @@ export const {
   useGetProgramProjectsQuery,
   useGetProgramOptionsQuery,
   useGetProgramStatusOptionsQuery,
+  useGetProgramActivitiesQuery,
+  useLazyGetProgramActivitiesQuery,
 } = programsApi

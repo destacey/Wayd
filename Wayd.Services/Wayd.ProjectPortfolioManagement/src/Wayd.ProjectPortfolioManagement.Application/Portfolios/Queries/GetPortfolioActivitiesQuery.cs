@@ -36,7 +36,6 @@ public sealed class GetPortfolioActivitiesQueryHandler(
         GetPortfolioActivitiesQuery request, CancellationToken cancellationToken)
     {
         var portfolioId = await _ppmDbContext.Portfolios
-            .AsNoTracking()
             .Where(request.IdOrKeyFilter)
             .Select(p => (Guid?)p.Id)
             .FirstOrDefaultAsync(cancellationToken);

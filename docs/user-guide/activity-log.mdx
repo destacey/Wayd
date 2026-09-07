@@ -1,0 +1,62 @@
+---
+title: Activity Log
+description: Read the recorded history of what changed on a record, who changed it, and when.
+sidebar_position: 8
+audience: [user, agent]
+---
+
+# Activity Log
+
+The **Activity** section on a record shows what has happened to it — every business event the record raised, newest first. It answers "who changed this, and when" without anyone having to remember.
+
+Activity is recorded automatically. There is nothing to switch on, and no way to edit or delete an entry: the log is append-only.
+
+## Where it appears
+
+Every record whose changes raise domain events carries an **Activity** section in its rail:
+
+| Module | Records |
+|--------|---------|
+| [Organizations](./organizations/index.mdx) | Teams, Teams of Teams |
+| [Planning](./planning/index.mdx) | Sprints |
+| [Project Portfolios](./ppm/index.mdx) | Portfolios, Programs, Projects |
+| [Strategic Management](./strategic-management/index.mdx) | Strategic Themes |
+| [Product Management](./product-management/index.mdx) | Products, Versions, Releases, Release Packages, Deployments |
+| [Administration](./settings/index.mdx) | Status Workflows, Work Processes |
+
+Seeing a record's activity needs only the same **View** permission that lets you open the record.
+
+Records not listed here have no Activity section, because nothing they do raises an event yet.
+
+## Reading the log
+
+The section is a master-detail view: the timeline of events on the left, the selected event's full detail on the right.
+
+Each timeline entry shows an icon for the kind of change (created, updated, activated, deactivated, assigned), a short summary, who made it, and when. Hovering the timestamp shows the exact time to the second.
+
+**Who made the change** is one of:
+
+- **A person** — the employee behind the change, with their avatar. Selecting them opens their profile card.
+- **System** — no human actor: a scheduled job, a message being delivered, or startup work. Imports and integrations record as System.
+
+Selecting an entry opens its detail, which adds the event type, the module it came from, the kind of record it targeted, and the **payload** — the full data the event carried, as recorded at the time.
+
+Two entries can be compared: **Compare** on an event shows its payload beside the previous one for the same record, with changed fields called out. That is the quickest way to see exactly what one edit altered.
+
+Use the search box to narrow the timeline by event, actor, or type. Long histories load a page at a time — **Load more** fetches the next page.
+
+## Exporting
+
+**Export** in the section header writes the history to a JSON file. Choose what to include:
+
+- **All events** — the complete recorded history.
+- **Date range** — events within a timeframe, with presets for the last 7, 30 or 90 days and this year.
+- **Current search results** — only what your search matched. Offered when a search is active.
+
+The export walks the full history rather than only what is on screen, so a filtered export still covers every matching event.
+
+## What is recorded
+
+An entry holds what happened, on what record, by whom, and when — plus the event's payload and a correlation id tying together every change made by the same request or job. Events also carry a schema version, so a payload recorded by an older release still reads correctly.
+
+The log records **business events** — a project's details being updated, a version being cut, a workflow being published. It is not a field-level audit of every column, and it is not the same thing as a record's [status history](./ppm/projects.mdx#project-status-history), which tracks status transitions alone and appears in its own section where a record has one.

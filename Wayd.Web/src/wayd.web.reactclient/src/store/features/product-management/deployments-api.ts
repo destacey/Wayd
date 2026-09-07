@@ -8,6 +8,7 @@ import {
   StartDeploymentRequest,
   StatusTransitionDto,
   SucceedDeploymentRequest,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
@@ -120,7 +121,8 @@ export const deploymentsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => deploymentTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        deploymentTags(arg.id, arg.cacheKey),
     }),
     failDeployment: builder.mutation<
       void,
@@ -135,7 +137,8 @@ export const deploymentsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => deploymentTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        deploymentTags(arg.id, arg.cacheKey),
     }),
     rollBackDeployment: builder.mutation<
       void,
@@ -150,7 +153,30 @@ export const deploymentsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => deploymentTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        deploymentTags(arg.id, arg.cacheKey),
+    }),
+
+    getDeploymentActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getDeploymentsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
     }),
   }),
 })
@@ -163,4 +189,6 @@ export const {
   useSucceedDeploymentMutation,
   useFailDeploymentMutation,
   useRollBackDeploymentMutation,
+  useGetDeploymentActivitiesQuery,
+  useLazyGetDeploymentActivitiesQuery,
 } = deploymentsApi

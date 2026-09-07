@@ -1,4 +1,5 @@
 using CsvHelper;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
@@ -47,6 +48,20 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
         return theme is not null
             ? Ok(theme)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
+    [OpenApiOperation("Get activity history for the strategic theme.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetStrategicThemeActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
             : NotFound();
     }
 

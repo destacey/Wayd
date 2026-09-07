@@ -6,12 +6,20 @@ import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetPortfolioActivitiesQuery,
   useGetPortfolioProgramsQuery,
   useGetPortfolioProjectsQuery,
   useGetPortfolioQuery,
   useGetPortfolioRankingScoreboardQuery,
   useGetPortfolioStrategicInitiativesQuery,
+  useLazyGetPortfolioActivitiesQuery,
 } from '@/src/store/features/ppm/portfolios-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
@@ -47,6 +55,7 @@ enum PortfolioSections {
   Projects = 'projects',
   StrategicInitiatives = 'strategic-initiatives',
   Ranking = 'ranking',
+  Activities = 'activities',
 }
 
 // Non-closed project statuses for the ranking board: Proposed(1), Approved(5), Active(2)
@@ -217,6 +226,26 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       skip: !isRanking || !portfolioData?.id,
     })
 
+  const activitiesQuery = useGetPortfolioActivitiesQuery(
+    {
+      idOrKey: portfolioData?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !portfolioData?.id || activeSection !== PortfolioSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetPortfolioActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: portfolioData?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `portfolio-${portfolioData?.key ?? portfolioKey}-activity`,
+  })
+
   useDocumentTitle(`${portfolioData?.name ?? portfolioKey} - Portfolio Details`)
 
   const actionsMenuItems: MenuProps['items'] = (() => {
@@ -248,7 +277,8 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    const canSetScoringModel = canManagePortfolio && currentStatus !== 'Archived'
+    const canSetScoringModel =
+      canManagePortfolio && currentStatus !== 'Archived'
 
     const hasManageActions =
       canSetScoringModel ||
@@ -416,10 +446,13 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       count: strategicInitiativeData?.length,
     },
     { id: PortfolioSections.Ranking, label: 'Ranking' },
+    { id: PortfolioSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: PortfolioSections) => {
     switch (section) {
+      case PortfolioSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case PortfolioSections.Programs:
         return (
           <>
@@ -500,6 +533,11 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
         facts={<PortfolioFacts portfolio={portfolioData} />}
+        sectionActions={
+          activeSection === PortfolioSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section as PortfolioSections)}
       </RecordLayout>

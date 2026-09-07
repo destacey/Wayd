@@ -1,4 +1,5 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -66,6 +67,20 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
 
         return deployment is not null
             ? Ok(deployment)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
+    [OpenApiOperation("Get activity history for the deployment.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetDeploymentActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
             : NotFound();
     }
 

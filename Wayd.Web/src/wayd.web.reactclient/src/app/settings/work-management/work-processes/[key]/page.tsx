@@ -5,9 +5,19 @@ import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { useGetWorkProcessQuery } from '@/src/store/features/work-management/work-process-api'
+import {
+  useGetWorkProcessActivitiesQuery,
+  useGetWorkProcessQuery,
+  useLazyGetWorkProcessActivitiesQuery,
+} from '@/src/store/features/work-management/work-process-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound } from 'next/navigation'
+import { notFound, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import ChangeWorkProcessIsActiveForm from '../_components/change-work-process-isactive-form'
 import WorkProcessDetailsLoading from './loading'
@@ -15,6 +25,7 @@ import { WorkProcessFacts, WorkProcessSchemes } from './_components'
 
 enum WorkProcessSections {
   Schemes = 'schemes',
+  Activities = 'activities',
 }
 
 const WorkProcessDetailsPage = (props: {
@@ -38,6 +49,33 @@ const WorkProcessDetailsPage = (props: {
 
   useDocumentTitle(`${workProcess?.key ?? key} - Work Process Details`)
 
+  // The active section lives in the URL (?section=), owned by RecordLayout. Read
+  // here to hold the activity query back until its section is open, and because
+  // sectionActions renders for whichever section that is.
+  const searchParams = useSearchParams()
+  const activeSection =
+    searchParams.get('section') ?? WorkProcessSections.Schemes
+
+  const activitiesQuery = useGetWorkProcessActivitiesQuery(
+    {
+      idOrKey: workProcess?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !workProcess?.id || activeSection !== WorkProcessSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetWorkProcessActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: workProcess?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `work-process-${workProcess?.key ?? key}-activity`,
+  })
+
   useEffect(() => {
     error && console.error(error)
   }, [error])
@@ -53,10 +91,9 @@ const WorkProcessDetailsPage = (props: {
     ]
   })()
 
-  // One section, so `RecordLayout` renders no rail — a rail holding a single
-  // item spends its width saying there is nowhere to go.
   const sections: RecordSection[] = [
     { id: WorkProcessSections.Schemes, label: 'Work Types and Workflows' },
+    { id: WorkProcessSections.Activities, label: 'Activity' },
   ]
 
   const onChangeIsActiveFormClosed = (wasSaved: boolean) => {
@@ -94,8 +131,19 @@ const WorkProcessDetailsPage = (props: {
             ) : undefined,
         }}
         facts={<WorkProcessFacts workProcess={workProcess} />}
+        sectionActions={
+          activeSection === WorkProcessSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
-        {() => <WorkProcessSchemes workProcessId={workProcess.id} />}
+        {(section) =>
+          section === WorkProcessSections.Activities ? (
+            <ActivityLogTimeline {...activityLog.timelineProps} />
+          ) : (
+            <WorkProcessSchemes workProcessId={workProcess.id} />
+          )
+        }
       </RecordLayout>
 
       {openChangeIsActiveForm && (

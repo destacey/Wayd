@@ -12,6 +12,7 @@ import {
   StatusTransitionDto,
   UpdateVersionRequest,
   WithdrawVersionRequest,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
@@ -74,7 +75,9 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      providesTags: (result, error, arg) => [{ type: QueryTags.Version, id: arg }],
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.Version, id: arg },
+      ],
     }),
     getVersionStatusHistory: builder.query<StatusTransitionDto[], string>({
       queryFn: async (id) => {
@@ -133,7 +136,8 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => versionTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        versionTags(arg.id, arg.cacheKey),
     }),
     moveVersionTargetDate: builder.mutation<
       void,
@@ -148,7 +152,8 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => versionTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        versionTags(arg.id, arg.cacheKey),
     }),
     /**
      * Corrects recorded dates without moving the version's status.
@@ -186,7 +191,8 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => versionTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        versionTags(arg.id, arg.cacheKey),
     }),
     markVersionReleased: builder.mutation<
       void,
@@ -201,7 +207,8 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => versionTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        versionTags(arg.id, arg.cacheKey),
     }),
     withdrawVersion: builder.mutation<
       void,
@@ -216,7 +223,8 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => versionTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        versionTags(arg.id, arg.cacheKey),
     }),
     /**
      * Records that a version marked as shipped did not in fact ship.
@@ -237,7 +245,30 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => versionTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        versionTags(arg.id, arg.cacheKey),
+    }),
+
+    getVersionActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getVersionsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
     }),
   }),
 })
@@ -255,4 +286,6 @@ export const {
   useMarkVersionReleasedMutation,
   useWithdrawVersionMutation,
   useRevertVersionMutation,
+  useGetVersionActivitiesQuery,
+  useLazyGetVersionActivitiesQuery,
 } = versionsApi

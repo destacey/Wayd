@@ -7,6 +7,7 @@ import {
   SprintDetailsDto,
   SprintListDto,
   SprintWorkItemMetricsDto,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 
 export const sprintsApi = apiSlice.injectEndpoints({
@@ -85,6 +86,28 @@ export const sprintsApi = apiSlice.injectEndpoints({
         { type: QueryTags.SprintPlanningIntervals, id: sprintKey },
       ],
     }),
+
+    getSprintActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getSprintsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -94,4 +117,6 @@ export const {
   useGetSprintBacklogQuery,
   useGetSprintMetricsQuery,
   useGetSprintPlanningIntervalsQuery,
+  useGetSprintActivitiesQuery,
+  useLazyGetSprintActivitiesQuery,
 } = sprintsApi

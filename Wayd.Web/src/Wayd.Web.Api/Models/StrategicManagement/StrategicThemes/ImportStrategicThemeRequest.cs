@@ -10,6 +10,13 @@ namespace Wayd.Web.Api.Models.StrategicManagement.StrategicThemes;
 /// </summary>
 public sealed class ImportStrategicThemeRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
 

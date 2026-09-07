@@ -6,16 +6,23 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 namespace Wayd.Web.Api.Models.Ppm.StrategicInitiatives;
 
 /// <summary>
-/// A single CSV row for the strategic initiative import. The owning portfolio is referenced by name and
-/// the delivering projects by a semicolon-separated list of their keys; role columns hold semicolon-
-/// separated employee numbers. <see cref="Status"/> is the status the initiative should end up in
-/// (case-insensitive), reached by replaying the real lifecycle transitions.
+/// A single CSV row for the strategic initiative import. The owning portfolio is referenced by id and the
+/// delivering projects by a semicolon-separated list of their keys; role columns hold semicolon-separated
+/// employee numbers. <see cref="Status"/> is the status the initiative should end up in (case-insensitive),
+/// reached by replaying the real lifecycle transitions.
 /// </summary>
 public sealed class ImportStrategicInitiativeRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back
+    /// to the row's position when the column is absent, so a hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
-    public string PortfolioName { get; set; } = default!;
+    public Guid PortfolioId { get; set; }
 
     /// <summary>The initiative's status. Defaults to Active when the column is absent.</summary>
     public string Status { get; set; } = nameof(StrategicInitiativeStatus.Active);
@@ -29,7 +36,8 @@ public sealed class ImportStrategicInitiativeRequest
     public string? Sponsors { get; set; }
     public string? Owners { get; set; }
 
-    public ImportStrategicInitiativeDto ToImportStrategicInitiativeDto()
+    public ImportStrategicInitiativeDto ToImportStrategicInitiativeDto(
+        IReadOnlyList<ImportStrategicInitiativeKpiDto> kpis)
     {
         var status = Enum.Parse<StrategicInitiativeStatus>(Status.Trim(), ignoreCase: true);
 
@@ -37,12 +45,13 @@ public sealed class ImportStrategicInitiativeRequest
             Name,
             Description,
             status,
-            PortfolioName,
+            PortfolioId,
             Start.ToLocalDateTime().Date,
             End.ToLocalDateTime().Date,
             CsvList.Split(ProjectKeys),
             CsvList.Split(Sponsors),
-            CsvList.Split(Owners));
+            CsvList.Split(Owners),
+            kpis);
     }
 }
 
@@ -60,7 +69,7 @@ public sealed class ImportStrategicInitiativeRequestValidator : CustomValidator<
             .NotEmpty()
             .MaximumLength(2048);
 
-        RuleFor(i => i.PortfolioName)
+        RuleFor(i => i.PortfolioId)
             .NotEmpty();
 
         RuleFor(i => i.Status)
@@ -79,12 +88,18 @@ public sealed class ImportStrategicInitiativeRequestValidator : CustomValidator<
 }
 
 /// <summary>
-/// A single CSV row for the strategic initiative KPI import, attached to its initiative by name. KPIs are
-/// a separate file because an initiative has many of them, which a single initiative row cannot carry.
+/// A single CSV row for the strategic initiative KPI import, attached to its initiative by that row's
+/// <c>ImportId</c>. KPIs are a separate file because an initiative has many of them, which a single
+/// initiative row cannot carry.
 /// </summary>
 public sealed class ImportStrategicInitiativeKpiRequest
 {
-    public string StrategicInitiativeName { get; set; } = default!;
+    /// <summary>
+    /// The <c>ImportId</c> of the initiative row this KPI belongs to. A KPI file therefore requires the
+    /// initiative file to carry <c>ImportId</c> rather than relying on row position.
+    /// </summary>
+    public string StrategicInitiativeImportId { get; set; } = default!;
+
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
     public double TargetValue { get; set; }
@@ -104,7 +119,6 @@ public sealed class ImportStrategicInitiativeKpiRequest
         var direction = Enum.Parse<KpiTargetDirection>(TargetDirection.Trim(), ignoreCase: true);
 
         return new ImportStrategicInitiativeKpiDto(
-            StrategicInitiativeName,
             Name,
             Description,
             TargetValue,
@@ -121,7 +135,7 @@ public sealed class ImportStrategicInitiativeKpiRequestValidator : CustomValidat
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(k => k.StrategicInitiativeName)
+        RuleFor(k => k.StrategicInitiativeImportId)
             .NotEmpty();
 
         RuleFor(k => k.Name)

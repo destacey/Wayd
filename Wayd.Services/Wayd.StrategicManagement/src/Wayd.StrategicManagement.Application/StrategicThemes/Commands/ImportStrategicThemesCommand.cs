@@ -1,110 +1,68 @@
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Validation;
 using Wayd.StrategicManagement.Application.StrategicThemes.Dtos;
-using Wayd.StrategicManagement.Domain.Models;
-using Wayd.Common.Domain.Events;
+using Wayd.StrategicManagement.Application.StrategicThemes.Imports;
 
 namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 
 /// <summary>
-/// Additively imports a batch of strategic themes. Themes are the natural-key anchor other imports resolve
-/// against (programs and projects reference them by name), so the batch is all-or-nothing and rejects any
-/// name that is duplicated within the batch or already exists — a silently reused name would attach later
-/// rows to the wrong theme. Each theme is created through the domain factory and persisted with a single
-/// SaveChanges so the creation events fire and replicate into the PPM projection.
+/// Submits a file of strategic themes to import, and answers with the id of the run.
 /// </summary>
-public sealed record ImportStrategicThemesCommand : ICommand
-{
-    public ImportStrategicThemesCommand(IEnumerable<ImportStrategicThemeDto> strategicThemes)
-    {
-        StrategicThemes = [.. strategicThemes];
-    }
+/// <remarks>
+/// The application boundary for this import. A controller parses the file, checks the permission and
+/// validates each row's shape, then hands the parsed rows here.
+/// </remarks>
+public sealed record ImportStrategicThemesCommand(
+    IReadOnlyList<SubmittedImportRow<ImportStrategicThemeDto>> Rows) : ICommand<Guid>;
 
-    public List<ImportStrategicThemeDto> StrategicThemes { get; }
-}
-
+/// <summary>
+/// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
+/// </summary>
+/// <remarks>
+/// Themes are resolved by name from the program and project imports, so a file repeating a name is
+/// ambiguous no matter what already exists. The definition checks each row against what is already there;
+/// only this can see the file as a set, so the two checks are complements rather than duplicates.
+/// </remarks>
 public sealed class ImportStrategicThemesCommandValidator : CustomValidator<ImportStrategicThemesCommand>
 {
     public ImportStrategicThemesCommandValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(t => t.StrategicThemes)
-            .NotNull()
-            .NotEmpty();
+        RuleFor(c => c.Rows)
+            .NotEmpty()
+            .Must(rows => rows.Select(r => r.Data.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() == rows.Count)
+                .WithMessage("Strategic theme Name must be unique within the file.");
 
-        RuleForEach(t => t.StrategicThemes)
-            .NotNull()
-            .SetValidator(new ImportStrategicThemeDtoValidator());
+        RuleForEach(c => c.Rows)
+            .ChildRules(row => row.RuleFor(r => r.Data).NotNull().SetValidator(new ImportStrategicThemeDtoValidator()));
     }
 }
 
 public sealed class ImportStrategicThemesCommandHandler(
-    IStrategicManagementDbContext strategicManagementDbContext,
-    IDateTimeProvider dateTimeProvider,
-    ICurrentUser currentUser,
-    ILogger<ImportStrategicThemesCommandHandler> logger) : ICommandHandler<ImportStrategicThemesCommand>
+    IImportDefinitionRegistry registry,
+    IDispatcher dispatcher) : ICommandHandler<ImportStrategicThemesCommand, Guid>
 {
-    private const string RequestName = nameof(ImportStrategicThemesCommand);
+    private readonly IImportDefinitionRegistry _registry = registry;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
-    private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ILogger<ImportStrategicThemesCommandHandler> _logger = logger;
-
-    public async Task<Result> Handle(ImportStrategicThemesCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(ImportStrategicThemesCommand command, CancellationToken cancellationToken)
     {
-        var timestamp = _dateTimeProvider.Now;
-        // One import run is one actor: the events say "the import", not "this person edited
-        // every row by hand", while still recording who set it running.
-        var actor = EventActor.Import(_currentUser.GetUserId());
+        if (command.Rows.Count == 0)
+            return Result.Failure<Guid>("The file contains no strategic themes.");
 
-        try
-        {
-            var duplicates = request.StrategicThemes
-                .GroupBy(t => Normalize(t.Name), StringComparer.OrdinalIgnoreCase)
-                .Where(g => g.Count() > 1)
-                .Select(g => g.Key)
-                .ToList();
-            if (duplicates.Count > 0)
-                return Fail($"The following strategic theme names appear more than once in the import: {Quote(duplicates)}.");
+        var definition = _registry.Find(StrategicThemeImportDefinition.ImportKey);
+        if (definition.IsFailure)
+            return Result.Failure<Guid>(definition.Error);
 
-            var names = request.StrategicThemes.Select(t => Normalize(t.Name)).ToList();
+        // The definition owns how a row is stored, so the same payload shape reaches the runner whether it
+        // applies now or days later after a resume.
+        var rows = command.Rows
+            .Select(r => new SubmittedImportRow(r.ImportId, definition.Value.SerializeRow(r.Data)))
+            .ToList();
 
-            var existing = await _strategicManagementDbContext.StrategicThemes
-                .Where(t => names.Contains(t.Name))
-                .Select(t => t.Name)
-                .ToListAsync(cancellationToken);
-            if (existing.Count > 0)
-                return Fail($"The following strategic themes already exist: {Quote(existing)}.");
-
-            foreach (var row in request.StrategicThemes)
-            {
-                var theme = StrategicTheme.Create(Normalize(row.Name), row.Description.Trim(), row.State, actor, timestamp);
-
-                await _strategicManagementDbContext.StrategicThemes.AddAsync(theme, cancellationToken);
-            }
-
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("{RequestName}: imported {Count} strategic theme(s).", RequestName, request.StrategicThemes.Count);
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-
-            return Result.Failure($"Exception for request {RequestName}: {ex.Message}");
-        }
+        return await _dispatcher.Send(
+            new SubmitImportCommand(StrategicThemeImportDefinition.ImportKey, rows), cancellationToken);
     }
-
-    private Result Fail(string message)
-    {
-        _logger.LogWarning("{RequestName}: {Message}", RequestName, message);
-        return Result.Failure(message);
-    }
-
-    private static string Normalize(string name) => name.Trim();
-
-    private static string Quote(IEnumerable<string> values) => string.Join(", ", values.Select(v => $"'{v}'"));
 }

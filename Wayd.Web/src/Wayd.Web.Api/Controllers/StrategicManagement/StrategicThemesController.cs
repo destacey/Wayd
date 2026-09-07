@@ -1,4 +1,5 @@
-﻿using CsvHelper;
+using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.StrategicManagement;
@@ -64,8 +65,8 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.StrategicThemes)]
-    [OpenApiOperation("Import strategic themes from a csv file.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of strategic themes to import. Returns the id of the import to follow.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
@@ -74,7 +75,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
         {
             var importedThemes = _csvService.ReadCsv<ImportStrategicThemeRequest>(file.OpenReadStream());
 
-            List<ImportStrategicThemeDto> themes = [];
+            List<SubmittedImportRow<ImportStrategicThemeDto>> rows = [];
             var validator = new ImportStrategicThemeRequestValidator();
             foreach (var theme in importedThemes)
             {
@@ -89,16 +90,14 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
 
-                themes.Add(theme.ToImportStrategicThemeDto());
+                rows.Add(new SubmittedImportRow<ImportStrategicThemeDto>(
+                    theme.ImportId, theme.ToImportStrategicThemeDto()));
             }
 
-            if (themes.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No strategic themes imported.", HttpContext));
-
-            var result = await _dispatcher.Send(new ImportStrategicThemesCommand(themes), cancellationToken);
+            var result = await _dispatcher.Send(new ImportStrategicThemesCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

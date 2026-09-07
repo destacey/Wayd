@@ -1,6 +1,8 @@
 using System.Reflection;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Imports;
+using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Imports;
 
 namespace Wayd.ProjectPortfolioManagement.Application;
 
@@ -10,6 +12,8 @@ public static class ConfigureServices
     {
         var assembly = Assembly.GetExecutingAssembly();
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<IImportDefinition, StrategicInitiativeImportDefinition>();
 
         ConfigureMapster(assembly);
 

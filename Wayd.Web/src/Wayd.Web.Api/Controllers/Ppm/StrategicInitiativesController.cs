@@ -1,4 +1,5 @@
-﻿using CsvHelper;
+using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
@@ -75,17 +76,16 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     /// </summary>
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.StrategicInitiatives)]
-    [OpenApiOperation("Import strategic initiatives from a csv file.", "Optionally accepts a second csv of KPIs, whose rows name the initiative they belong to.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [OpenApiOperation("Submit a csv file of strategic initiatives to import. Returns the id of the import to follow.", "Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import([FromForm] IFormFile file, [FromForm] IFormFile? kpiFile, CancellationToken cancellationToken)
     {
         try
         {
-            var importedInitiatives = _csvService.ReadCsv<ImportStrategicInitiativeRequest>(file.OpenReadStream());
+            var importedInitiatives = _csvService.ReadCsv<ImportStrategicInitiativeRequest>(file.OpenReadStream()).ToList();
 
-            List<ImportStrategicInitiativeDto> initiatives = [];
             var validator = new ImportStrategicInitiativeRequestValidator();
             foreach (var initiative in importedInitiatives)
             {
@@ -99,14 +99,9 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
                     }
                     return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                 }
-
-                initiatives.Add(initiative.ToImportStrategicInitiativeDto());
             }
 
-            if (initiatives.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No strategic initiatives imported.", HttpContext));
-
-            List<ImportStrategicInitiativeKpiDto> kpis = [];
+            var kpisByInitiative = new Dictionary<string, List<ImportStrategicInitiativeKpiDto>>(StringComparer.OrdinalIgnoreCase);
             if (kpiFile is not null)
             {
                 var importedKpis = _csvService.ReadCsv<ImportStrategicInitiativeKpiRequest>(kpiFile.OpenReadStream());
@@ -119,20 +114,49 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
                     {
                         foreach (var error in validationResults.Errors)
                         {
-                            error.ErrorMessage = $"{error.ErrorMessage} (Strategic Initiative: {kpi.StrategicInitiativeName}, KPI: {kpi.Name})";
+                            error.ErrorMessage = $"{error.ErrorMessage} (Strategic Initiative: {kpi.StrategicInitiativeImportId}, KPI: {kpi.Name})";
                             ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                         }
                         return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                     }
 
-                    kpis.Add(kpi.ToImportStrategicInitiativeKpiDto());
+                    var parent = kpi.StrategicInitiativeImportId.Trim();
+                    if (!kpisByInitiative.TryGetValue(parent, out var forInitiative))
+                        kpisByInitiative[parent] = forInitiative = [];
+
+                    forInitiative.Add(kpi.ToImportStrategicInitiativeKpiDto());
                 }
             }
 
-            var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(initiatives, kpis), cancellationToken);
+            // The same key the run reports row outcomes against, so a KPI row and its initiative row agree
+            // on what the parent is called whether or not the file supplied an ImportId.
+            List<SubmittedImportRow<ImportStrategicInitiativeDto>> rows = [];
+            HashSet<string> claimedParents = new(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < importedInitiatives.Count; i++)
+            {
+                var initiative = importedInitiatives[i];
+                var key = SubmittedImportRow.KeyFor(initiative.ImportId, i + 1);
+
+                claimedParents.Add(key);
+                rows.Add(new SubmittedImportRow<ImportStrategicInitiativeDto>(
+                    initiative.ImportId,
+                    initiative.ToImportStrategicInitiativeDto(
+                        kpisByInitiative.TryGetValue(key, out var kpis) ? kpis : [])));
+            }
+
+            var orphans = kpisByInitiative.Keys.Where(k => !claimedParents.Contains(k)).ToList();
+            if (orphans.Count > 0)
+            {
+                ModelState.AddModelError(
+                    nameof(ImportStrategicInitiativeKpiRequest.StrategicInitiativeImportId),
+                    $"The following KPI rows name a strategic initiative that is not in the file: {string.Join(", ", orphans.Select(o => $"'{o}'"))}.");
+                return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+            }
+
+            var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

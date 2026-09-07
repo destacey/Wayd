@@ -6,10 +6,20 @@ import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { useGetStatusWorkflowQuery } from '@/src/store/features/common/status-workflows-api'
+import {
+  useGetStatusWorkflowActivitiesQuery,
+  useGetStatusWorkflowQuery,
+  useLazyGetStatusWorkflowActivitiesQuery,
+} from '@/src/store/features/common/status-workflows-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { isApiError } from '@/src/utils'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound } from 'next/navigation'
+import { notFound, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import ArchiveStatusWorkflowForm from '../_components/archive-status-workflow-form'
 import CloneStatusWorkflowForm from '../_components/clone-status-workflow-form'
@@ -21,6 +31,7 @@ import { StatusWorkflowFacts } from './_components'
 
 enum StatusWorkflowSections {
   Statuses = 'statuses',
+  Activities = 'activities',
 }
 
 /** The dialogs this record can open. One value, not one boolean each. */
@@ -41,6 +52,34 @@ const StatusWorkflowDetailsPage = (props: {
     error,
     refetch,
   } = useGetStatusWorkflowQuery(key)
+
+  // The active section lives in the URL (?section=), owned by RecordLayout. Read
+  // here to hold the activity query back until its section is open, and because
+  // sectionActions renders for whichever section that is.
+  const searchParams = useSearchParams()
+  const activeSection =
+    searchParams.get('section') ?? StatusWorkflowSections.Statuses
+
+  const activitiesQuery = useGetStatusWorkflowActivitiesQuery(
+    {
+      idOrKey: statusWorkflow?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !statusWorkflow?.id ||
+        activeSection !== StatusWorkflowSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetStatusWorkflowActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: statusWorkflow?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `status-workflow-${statusWorkflow?.key ?? key}-activity`,
+  })
 
   const { hasPermissionClaim } = useAuth()
   const canUpdate = hasPermissionClaim('Permissions.StatusWorkflows.Update')
@@ -73,7 +112,11 @@ const StatusWorkflowDetailsPage = (props: {
     const items: ItemType[] = []
 
     if (canUpdate && statusWorkflow.canEdit) {
-      items.push({ key: 'edit', label: 'Edit', onClick: () => setDialog('edit') })
+      items.push({
+        key: 'edit',
+        label: 'Edit',
+        onClick: () => setDialog('edit'),
+      })
     }
     if (canCreate) {
       items.push({
@@ -120,10 +163,13 @@ const StatusWorkflowDetailsPage = (props: {
       label: 'Statuses',
       count: statusWorkflow?.statuses?.length,
     },
+    { id: StatusWorkflowSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: string) => {
     switch (section as StatusWorkflowSections) {
+      case StatusWorkflowSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case StatusWorkflowSections.Statuses:
         return (
           <WorkflowStatusesList
@@ -163,6 +209,11 @@ const StatusWorkflowDetailsPage = (props: {
             ) : undefined,
         }}
         facts={<StatusWorkflowFacts statusWorkflow={statusWorkflow} />}
+        sectionActions={
+          activeSection === StatusWorkflowSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section)}
       </RecordLayout>

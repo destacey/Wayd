@@ -12,6 +12,7 @@ import {
   StatusTransitionDto,
   UpdateReleaseRequest,
   WithdrawReleaseRequest,
+  PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
@@ -79,7 +80,9 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      providesTags: (result, error, arg) => [{ type: QueryTags.Release, id: arg }],
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.Release, id: arg },
+      ],
     }),
     getReleaseStatusHistory: builder.query<StatusTransitionDto[], string>({
       queryFn: async (idOrKey) => {
@@ -142,7 +145,8 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        releaseTags(arg.id, arg.cacheKey),
     }),
     /**
      * Replaces everything the release announces, both routes at once.
@@ -164,7 +168,8 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        releaseTags(arg.id, arg.cacheKey),
     }),
     moveReleaseTargetDate: builder.mutation<
       void,
@@ -179,7 +184,8 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        releaseTags(arg.id, arg.cacheKey),
     }),
     /**
      * Corrects recorded dates without moving the release's status.
@@ -217,7 +223,8 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        releaseTags(arg.id, arg.cacheKey),
     }),
     withdrawRelease: builder.mutation<
       void,
@@ -232,7 +239,8 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        releaseTags(arg.id, arg.cacheKey),
     }),
     /**
      * Records that a release marked as announced was not in fact announced.
@@ -253,7 +261,30 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => releaseTags(arg.id, arg.cacheKey),
+      invalidatesTags: (result, error, arg) =>
+        releaseTags(arg.id, arg.cacheKey),
+    }),
+
+    getReleaseActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getReleasesClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
     }),
   }),
 })
@@ -271,4 +302,6 @@ export const {
   useMarkReleaseReleasedMutation,
   useWithdrawReleaseMutation,
   useRevertReleaseMutation,
+  useGetReleaseActivitiesQuery,
+  useLazyGetReleaseActivitiesQuery,
 } = releasesApi

@@ -1,25 +1,31 @@
 'use client'
 
 import { MenuProps } from 'antd'
-import {
-  createElement,
-  use,
-  useEffect,
-  useState,
-} from 'react'
+import { createElement, use, useEffect, useState } from 'react'
 import RisksGrid, {
   RisksGridProps,
 } from '@/src/components/common/planning/risks-grid'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { EditTeamForm, TeamMembershipsGrid } from '@/src/app/organizations/_components'
+import {
+  EditTeamForm,
+  TeamMembershipsGrid,
+} from '@/src/app/organizations/_components'
 import TeamMembersGrid from '@/src/app/organizations/teams/_components/team-members-grid'
 import AddTeamMemberForm from '@/src/app/organizations/teams/_components/add-team-member-form'
 import useAuth from '@/src/components/contexts/auth'
 import {
+  useGetTeamOfTeamsActivitiesQuery,
   useGetTeamOfTeamsDetailsQuery,
   useGetTeamOfTeamsMembershipsQuery,
   useGetTeamOfTeamsRisksQuery,
+  useLazyGetTeamOfTeamsActivitiesQuery,
 } from '@/src/store/features/organizations/team-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { authorizePage } from '@/src/components/hoc'
 import {
   notFound,
@@ -41,6 +47,7 @@ enum TeamOfTeamsTabs {
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
+  Activities = 'activities',
 }
 
 const TeamOfTeamsDetailsPage = (props: {
@@ -104,6 +111,19 @@ const TeamOfTeamsDetailsPage = (props: {
     { skip: !team?.id || !risksQueryEnabled },
   )
 
+  const activitiesQuery = useGetTeamOfTeamsActivitiesQuery(
+    { idOrKey: team?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
+    { skip: !team?.id || activeTab !== TeamOfTeamsTabs.Activities },
+  )
+  const [fetchActivityLogPage] = useLazyGetTeamOfTeamsActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: team?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `team-of-teams-${team?.code ?? teamKey}-activity`,
+  })
+
   const onIncludeClosedRisksChanged = (includeClosed: boolean) => {
     setIncludeClosedRisks(includeClosed)
   }
@@ -127,7 +147,10 @@ const TeamOfTeamsDetailsPage = (props: {
       }
     }
 
-    if (team?.isActive === true && (canUpdateTeam || canManageTeamMemberships)) {
+    if (
+      team?.isActive === true &&
+      (canUpdateTeam || canManageTeamMemberships)
+    ) {
       const teamManagementChildren: ItemType[] = []
 
       if (canUpdateTeam) {
@@ -183,11 +206,10 @@ const TeamOfTeamsDetailsPage = (props: {
         })
       case TeamOfTeamsTabs.Members:
         return (
-          <TeamMembersGrid
-            teamId={team?.id ?? ''}
-            teamType="TeamOfTeams"
-          />
+          <TeamMembersGrid teamId={team?.id ?? ''} teamType="TeamOfTeams" />
         )
+      case TeamOfTeamsTabs.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       default:
         return null
     }
@@ -202,6 +224,7 @@ const TeamOfTeamsDetailsPage = (props: {
     { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
     { id: TeamOfTeamsTabs.TeamMemberships, label: 'Team Memberships' },
+    { id: TeamOfTeamsTabs.Activities, label: 'Activity' },
   ]
 
   const onCreateTeamMembershipFormClosed = (wasSaved: boolean) => {
@@ -254,6 +277,11 @@ const TeamOfTeamsDetailsPage = (props: {
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
         facts={<TeamFacts team={team} hasChildTeams />}
+        sectionActions={
+          activeTab === TeamOfTeamsTabs.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSectionContent(section as TeamOfTeamsTabs)}
       </RecordLayout>

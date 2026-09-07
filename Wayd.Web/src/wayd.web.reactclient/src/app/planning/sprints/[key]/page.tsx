@@ -4,9 +4,17 @@ import { IconMenu } from '@/src/components/common'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetSprintActivitiesQuery,
   useGetSprintBacklogQuery,
   useGetSprintQuery,
+  useLazyGetSprintActivitiesQuery,
 } from '@/src/store/features/planning/sprints-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { ReactNode, use, useState } from 'react'
 import SprintDetailsLoading from './loading'
@@ -28,6 +36,7 @@ import SprintFacts from './_components/sprint-facts'
 enum SprintSections {
   Overview = 'overview',
   Backlog = 'backlog',
+  Activities = 'activities',
 }
 
 const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -65,6 +74,19 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     },
     { skip: !sprint || !sprint?.team.id },
   )
+
+  const activitiesQuery = useGetSprintActivitiesQuery(
+    { idOrKey: sprint?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
+    { skip: !sprint?.id || activeSection !== SprintSections.Activities },
+  )
+  const [fetchActivityLogPage] = useLazyGetSprintActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: sprint?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `sprint-${sprint?.key ?? sprintKey}-activity`,
+  })
 
   useDocumentTitle(`${sprint?.name ?? sprintKey} - Sprint Details`)
 
@@ -109,10 +131,13 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sections: RecordSection[] = [
     { id: SprintSections.Overview, label: 'Overview' },
     { id: SprintSections.Backlog, label: 'Backlog' },
+    { id: SprintSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: SprintSections) => {
     switch (section) {
+      case SprintSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case SprintSections.Backlog:
         return (
           <SprintBacklogGrid
@@ -155,6 +180,11 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         actions: healthIndicator,
       }}
       facts={<SprintFacts sprint={sprint} />}
+      sectionActions={
+        activeSection === SprintSections.Activities ? (
+          <ActivityLogExportButton activityLog={activityLog} />
+        ) : undefined
+      }
     >
       {(section) => renderSection(section as SprintSections)}
     </RecordLayout>

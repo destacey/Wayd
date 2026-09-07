@@ -6,9 +6,17 @@ import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetProgramActivitiesQuery,
   useGetProgramProjectsQuery,
   useGetProgramQuery,
+  useLazyGetProgramActivitiesQuery,
 } from '@/src/store/features/ppm/programs-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { Alert, Flex, MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
@@ -32,11 +40,13 @@ import ProgramOverview from './_components/program-overview'
 enum ProgramSections {
   Overview = 'overview',
   Projects = 'projects',
+  Activities = 'activities',
 }
 
 const sections: RecordSection[] = [
   { id: ProgramSections.Overview, label: 'Overview' },
   { id: ProgramSections.Projects, label: 'Projects' },
+  { id: ProgramSections.Activities, label: 'Activity' },
 ]
 
 /** Approved(5), Active(2) — what a program's delivery is usually about. */
@@ -97,6 +107,30 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     },
     { skip: !programData },
   )
+
+  // The active section lives in the URL, owned by RecordLayout. Read here only
+  // to hold the activity query back until its section is open.
+  const activeSection = (searchParams.get('section') ??
+    ProgramSections.Overview) as ProgramSections
+
+  const activitiesQuery = useGetProgramActivitiesQuery(
+    {
+      idOrKey: programData?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip: !programData?.id || activeSection !== ProgramSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetProgramActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: programData?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `program-${programData?.key ?? programKey}-activity`,
+  })
 
   useDocumentTitle(`${programData?.name ?? programKey} - Program Details`)
 
@@ -261,6 +295,8 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const renderSection = (section: ProgramSections) => {
     switch (section) {
+      case ProgramSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case ProgramSections.Projects:
         return (
           <>
@@ -312,6 +348,11 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
         facts={<ProgramFacts program={programData} />}
+        sectionActions={
+          activeSection === ProgramSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section as ProgramSections)}
       </RecordLayout>

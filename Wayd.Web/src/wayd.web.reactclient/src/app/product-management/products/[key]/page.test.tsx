@@ -162,6 +162,8 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
     refetch: jest.fn(),
   }),
   useGetProductsQuery: () => ({ data: components, isLoading: false }),
+  useGetProductActivitiesQuery: () => ({ data: undefined, isLoading: false }),
+  useLazyGetProductActivitiesQuery: () => [jest.fn()],
   useGetProductStatusOptionsQuery: () => ({ data: [], isLoading: false }),
   useChangeProductStatusMutation: () => [jest.fn()],
   useRetypeProductMutation: () => [jest.fn()],
@@ -204,10 +206,7 @@ describe('ProductDetailsPage', () => {
 
     // Assert
     const parentLink = await screen.findByRole('link', { name: 'Trio WFS' })
-    expect(parentLink).toHaveAttribute(
-      'href',
-      '/product-management/products/1',
-    )
+    expect(parentLink).toHaveAttribute('href', '/product-management/products/1')
   })
 
   it('offers each guarded change as its own action', async () => {

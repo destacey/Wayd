@@ -10,9 +10,17 @@ import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetProductActivitiesQuery,
   useGetProductQuery,
   useGetProductsQuery,
+  useLazyGetProductActivitiesQuery,
 } from '@/src/store/features/product-management/products-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { useGetVersionsQuery } from '@/src/store/features/product-management/versions-api'
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -50,6 +58,7 @@ enum ProductSections {
   Releases = 'releases',
   Versions = 'versions',
   StatusHistory = 'status-history',
+  Activities = 'activities',
 }
 
 const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -62,7 +71,8 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isRetypeOpen, setIsRetypeOpen] = useState<boolean>(false)
   const [isReparentOpen, setIsReparentOpen] = useState<boolean>(false)
   const [isManageTagsOpen, setIsManageTagsOpen] = useState<boolean>(false)
-  const [isLinkExternallyOpen, setIsLinkExternallyOpen] = useState<boolean>(false)
+  const [isLinkExternallyOpen, setIsLinkExternallyOpen] =
+    useState<boolean>(false)
   const [isPlanVersionOpen, setIsPlanVersionOpen] = useState<boolean>(false)
   const [isPlanReleaseOpen, setIsPlanReleaseOpen] = useState<boolean>(false)
   const router = useRouter()
@@ -85,14 +95,22 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const messageApi = useMessage()
 
-  const {
-    data: product,
-    error,
-    isLoading,
-    refetch,
-  } = useGetProductQuery(key)
+  const { data: product, error, isLoading, refetch } = useGetProductQuery(key)
 
   useDocumentTitle(product ? `${product.name} - Product` : 'Product')
+
+  const activitiesQuery = useGetProductActivitiesQuery(
+    { idOrKey: product?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
+    { skip: !product?.id || activeSection !== ProductSections.Activities },
+  )
+  const [fetchActivityLogPage] = useLazyGetProductActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: product?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `product-${product?.key ?? key}-activity`,
+  })
 
   // The children of this node, for the Components section. Filtered server-side
   // so the page does not pull the whole catalogue to find them. Its own refetch
@@ -259,11 +277,16 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       ? [{ id: ProductSections.Versions, label: 'Versions' }]
       : []),
     { id: ProductSections.StatusHistory, label: 'Status History' },
+    { id: ProductSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: string) => {
     if (section === ProductSections.StatusHistory) {
       return <ProductStatusHistory productId={product.id} />
+    }
+
+    if (section === ProductSections.Activities) {
+      return <ActivityLogTimeline {...activityLog.timelineProps} />
     }
 
     if (section === ProductSections.Releases) {
@@ -396,6 +419,8 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Button onClick={() => setIsPlanReleaseOpen(true)}>
               Add Release
             </Button>
+          ) : activeSection === ProductSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
           ) : undefined
         }
         facts={<ProductFacts product={product} />}

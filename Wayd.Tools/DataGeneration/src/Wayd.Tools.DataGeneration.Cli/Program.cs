@@ -55,7 +55,12 @@ void AddGenerationOptions(Command command)
     command.Add(concurrentProgramsPerPortfolioOption);
 }
 
-// ---- generate: write the three CSVs to a directory --------------------------------------------
+// ---- generate: write the CSVs to a directory for inspection -----------------------------------
+//
+// The organization files are the real thing — its references are natural keys the generator owns, so they
+// can be posted as they stand. The PPM files are the generated model, which names portfolios, programs and
+// categories rather than pointing at ids: those ids only exist once a run has created the records, so a
+// postable PPM file cannot be written ahead of a seed. Inspect these; seed from `seed`.
 
 var outOption = new Option<DirectoryInfo>("--out", "-o") { Description = "Directory to write the CSV files to.", DefaultValueFactory = _ => new DirectoryInfo("./seed") };
 
@@ -94,6 +99,7 @@ generateCommand.SetAction((parse, _) =>
 
         Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
         Console.WriteLine("Expenditure categories and the project lifecycle are bootstrapped via the API at seed time (not written as CSV).");
+        Console.WriteLine("The PPM files name portfolios, programs and categories rather than referencing them by id, so they are for inspection — `seed` resolves those ids from each run as it goes.");
     }
 
     Console.WriteLine($"Wrote CSVs to {outDir.FullName}");

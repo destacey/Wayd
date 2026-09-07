@@ -1,16 +1,31 @@
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
-// These rows are written as CSV whose headers must match the API import request models
-// (Wayd.Web.Api/Models/Organizations/...). CsvHelper maps property names to columns by default.
+// The organization CSV rows, as the API import endpoints consume them. Headers must match the request
+// models in Wayd.Web.Api/Models/Organizations; CsvHelper maps property names to columns by default.
+//
+// Organization is the one area whose references are all natural keys the generator already owns — an
+// employee number, a team code, a role name — so nothing here needs an id resolved from an earlier run.
+// ImportId is carried anyway, so a run's results name the record the way the generator does and a failure
+// says which team or person could not be created.
 
 /// <summary>One row of the employees CSV. Manager is referenced by employee number.</summary>
 public sealed class EmployeeCsvRow
 {
+    /// <summary>The employee number, which is already this row's natural key.</summary>
+    public required string ImportId { get; init; }
+
     public required string EmployeeNumber { get; init; }
     public required string FirstName { get; init; }
     public string? MiddleName { get; init; }
     public required string LastName { get; init; }
     public required string Email { get; init; }
+
+    /// <summary>
+    /// Other work addresses this person is known by. The generator invents one address each, so this is
+    /// always empty — but the column has to be here: a missing header fails the whole file.
+    /// </summary>
+    public string? AdditionalEmails { get; init; }
+
     public DateTime? HireDate { get; init; }
     public string? JobTitle { get; init; }
     public string? Department { get; init; }
@@ -23,6 +38,9 @@ public sealed class EmployeeCsvRow
 /// <summary>One row of the unified teams CSV. <see cref="Type"/> is "Team" or "TeamOfTeams".</summary>
 public sealed class TeamCsvRow
 {
+    /// <summary>The team code, which is already this row's natural key.</summary>
+    public required string ImportId { get; init; }
+
     public required string Type { get; init; }
     public required string Name { get; init; }
     public required string Code { get; init; }
@@ -35,6 +53,9 @@ public sealed class TeamCsvRow
 /// <summary>One row of the staffing CSV: one employee on one team in one role, all by natural key.</summary>
 public sealed class TeamMemberCsvRow
 {
+    /// <summary>Team code and employee number together, since neither identifies a staffing row alone.</summary>
+    public required string ImportId { get; init; }
+
     public required string TeamCode { get; init; }
     public required string EmployeeNumber { get; init; }
     public required string RoleName { get; init; }
@@ -43,135 +64,11 @@ public sealed class TeamMemberCsvRow
 /// <summary>One row of the hierarchy CSV: a child team/ToT placed under a parent ToT for a date range.</summary>
 public sealed class TeamMembershipCsvRow
 {
+    /// <summary>Child and parent code together, since a child may sit under more than one parent over time.</summary>
+    public required string ImportId { get; init; }
+
     public required string ChildCode { get; init; }
     public required string ParentCode { get; init; }
     public required DateTime Start { get; init; }
     public DateTime? End { get; init; }
-}
-
-// ---- PPM rows -------------------------------------------------------------------------------------
-// Column names must match the API import request models in Wayd.Web.Api/Models/Ppm and
-// Wayd.Web.Api/Models/StrategicManagement. Multi-value columns hold semicolon-separated values, matching
-// the CsvList helper the import endpoints use.
-
-/// <summary>One row of the strategic themes CSV. Themes are referenced elsewhere by name.</summary>
-public sealed class StrategicThemeCsvRow
-{
-    public required string Name { get; init; }
-    public required string Description { get; init; }
-    public required string State { get; init; }
-}
-
-/// <summary>One row of the portfolios CSV. People are referenced by semicolon-separated employee numbers.</summary>
-public sealed class PortfolioCsvRow
-{
-    public required string Name { get; init; }
-    public required string Description { get; init; }
-    public required string Status { get; init; }
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
-    public string? Sponsors { get; init; }
-    public string? Owners { get; init; }
-    public string? Managers { get; init; }
-}
-
-/// <summary>One row of the programs CSV. Portfolio and themes are referenced by name.</summary>
-public sealed class ProgramCsvRow
-{
-    public required string Name { get; init; }
-    public required string Description { get; init; }
-    public required string PortfolioName { get; init; }
-    public required string Status { get; init; }
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
-    public string? StrategicThemes { get; init; }
-    public string? Sponsors { get; init; }
-    public string? Owners { get; init; }
-    public string? Managers { get; init; }
-}
-
-/// <summary>One row of the projects CSV. Key is the project's natural key; everything else is by name.</summary>
-public sealed class ProjectCsvRow
-{
-    public required string Name { get; init; }
-    public required string Description { get; init; }
-    public required string Key { get; init; }
-    public required string PortfolioName { get; init; }
-    public required string ExpenditureCategoryName { get; init; }
-    public required string Status { get; init; }
-    public string? ProgramName { get; init; }
-    public string? ProjectLifecycleName { get; init; }
-    public string? BusinessCase { get; init; }
-    public string? ExpectedBenefits { get; init; }
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
-    public string? StrategicThemes { get; init; }
-    public string? Sponsors { get; init; }
-    public string? Owners { get; init; }
-    public string? Managers { get; init; }
-    public string? Members { get; init; }
-}
-
-/// <summary>One row of the project tasks CSV. Project by key; stage and parent task by name.</summary>
-public sealed class ProjectTaskCsvRow
-{
-    public required string ProjectKey { get; init; }
-    public required string Name { get; init; }
-    public string? Description { get; init; }
-    public required string StageName { get; init; }
-    public string? ParentTaskName { get; init; }
-    public required string Type { get; init; }
-    public required string Status { get; init; }
-    public required string Priority { get; init; }
-    public decimal? Progress { get; init; }
-    public DateTime? PlannedStart { get; init; }
-    public DateTime? PlannedEnd { get; init; }
-    public DateTime? PlannedDate { get; init; }
-    public decimal? EstimatedEffortHours { get; init; }
-    public string? Assignees { get; init; }
-}
-
-/// <summary>One row of the project stages CSV: sets one stage's status. Project by key; stage by name.</summary>
-public sealed class ProjectStageCsvRow
-{
-    public required string ProjectKey { get; init; }
-    public required string StageName { get; init; }
-    public required string Status { get; init; }
-}
-
-/// <summary>One row of the strategic initiatives CSV. Portfolio by name; projects by semicolon-separated keys.</summary>
-public sealed class StrategicInitiativeCsvRow
-{
-    public required string Name { get; init; }
-    public required string Description { get; init; }
-    public required string PortfolioName { get; init; }
-    public required string Status { get; init; }
-    public DateTime Start { get; init; }
-    public DateTime End { get; init; }
-    public string? ProjectKeys { get; init; }
-    public string? Sponsors { get; init; }
-    public string? Owners { get; init; }
-}
-
-/// <summary>One row of the strategic initiative KPIs CSV, attached to its initiative by name.</summary>
-public sealed class StrategicInitiativeKpiCsvRow
-{
-    public required string StrategicInitiativeName { get; init; }
-    public required string Name { get; init; }
-    public string? Description { get; init; }
-    public double TargetValue { get; init; }
-    public double? StartingValue { get; init; }
-    public string? Prefix { get; init; }
-    public string? Suffix { get; init; }
-    public required string TargetDirection { get; init; }
-}
-
-/// <summary>One row of the finalize CSV: closes one program or portfolio after its contents are imported.</summary>
-public sealed class PpmFinalizationCsvRow
-{
-    public required string Type { get; init; }
-    public required string Name { get; init; }
-    public string? PortfolioName { get; init; }
-    public required string Status { get; init; }
-    public DateTime? EndDate { get; init; }
 }

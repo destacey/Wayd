@@ -1,21 +1,22 @@
-using Wayd.Tools.DataGeneration.Cli.Csv;
-
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
-/// The generated PPM dataset, as the CSV row sets the API import endpoints consume. Expenditure categories
-/// and lifecycles are not CSVs — they are bootstrapped through the settings API and carried here as the
-/// definitions to create, since the projects reference them by name.
+/// The generated PPM dataset, keyed throughout by the generator's own handles. Each seed area projects its
+/// slice to CSV rows, substituting the ids the environment has handed back by then.
 /// </summary>
+/// <remarks>
+/// Expenditure categories and the lifecycle are not imports — they are bootstrapped through the settings
+/// API and carried here as the definitions to create, since a project needs their ids.
+/// </remarks>
 public sealed record GeneratedPpm(
-    IReadOnlyList<StrategicThemeCsvRow> StrategicThemes,
-    IReadOnlyList<PortfolioCsvRow> Portfolios,
-    IReadOnlyList<ProgramCsvRow> Programs,
-    IReadOnlyList<ProjectCsvRow> Projects,
-    IReadOnlyList<ProjectTaskCsvRow> ProjectTasks,
-    IReadOnlyList<ProjectStageCsvRow> ProjectStages,
-    IReadOnlyList<StrategicInitiativeCsvRow> StrategicInitiatives,
-    IReadOnlyList<StrategicInitiativeKpiCsvRow> StrategicInitiativeKpis,
-    IReadOnlyList<PpmFinalizationCsvRow> Finalizations,
+    IReadOnlyList<StrategicThemeModel> StrategicThemes,
+    IReadOnlyList<PortfolioModel> Portfolios,
+    IReadOnlyList<ProgramModel> Programs,
+    IReadOnlyList<ProjectModel> Projects,
+    IReadOnlyList<ProjectTaskModel> ProjectTasks,
+    IReadOnlyList<ProjectStageModel> ProjectStages,
+    IReadOnlyList<StrategicInitiativeModel> StrategicInitiatives,
+    IReadOnlyList<StrategicInitiativeKpiModel> StrategicInitiativeKpis,
+    IReadOnlyList<PpmFinalizationModel> Finalizations,
     IReadOnlyList<PpmVocabulary.ExpenditureCategoryDefinition> ExpenditureCategories,
     PpmVocabulary.ProjectLifecycleDefinition Lifecycle);

@@ -1,5 +1,4 @@
 using Bogus;
-using Wayd.Tools.DataGeneration.Cli.Csv;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -22,15 +21,15 @@ public sealed class PpmGenerator
     private readonly PpmOptions _options;
     private readonly Faker _faker;
 
-    private readonly List<StrategicThemeCsvRow> _themes = [];
-    private readonly List<PortfolioCsvRow> _portfolios = [];
-    private readonly List<ProgramCsvRow> _programs = [];
-    private readonly List<ProjectCsvRow> _projects = [];
-    private readonly List<ProjectTaskCsvRow> _tasks = [];
-    private readonly List<ProjectStageCsvRow> _stageStatuses = [];
-    private readonly List<StrategicInitiativeCsvRow> _initiatives = [];
-    private readonly List<StrategicInitiativeKpiCsvRow> _kpis = [];
-    private readonly List<PpmFinalizationCsvRow> _finalizations = [];
+    private readonly List<StrategicThemeModel> _themes = [];
+    private readonly List<PortfolioModel> _portfolios = [];
+    private readonly List<ProgramModel> _programs = [];
+    private readonly List<ProjectModel> _projects = [];
+    private readonly List<ProjectTaskModel> _tasks = [];
+    private readonly List<ProjectStageModel> _stageStatuses = [];
+    private readonly List<StrategicInitiativeModel> _initiatives = [];
+    private readonly List<StrategicInitiativeKpiModel> _kpis = [];
+    private readonly List<PpmFinalizationModel> _finalizations = [];
 
     private readonly HashSet<string> _usedProjectKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _usedInitiativeNames = new(StringComparer.OrdinalIgnoreCase);
@@ -96,7 +95,7 @@ public sealed class PpmGenerator
         foreach (var name in names)
         {
             _themeNames.Add(name);
-            _themes.Add(new StrategicThemeCsvRow
+            _themes.Add(new StrategicThemeModel
             {
                 Name = name,
                 Description = $"{name}: a cross-cutting priority guiding investment across the portfolio.",
@@ -324,7 +323,7 @@ public sealed class PpmGenerator
         var programName = programs is null ? null : PickProgramForProject(programs, verb, start, end);
 
         // A lifecycle is required to approve a project or to give it tasks, so every project gets the standard one.
-        _projects.Add(new ProjectCsvRow
+        _projects.Add(new ProjectModel
         {
             Name = name,
             Description = $"{name}. {deliveredBy}",
@@ -411,7 +410,7 @@ public sealed class PpmGenerator
 
             // A milestone at the end of each stage.
             var milestoneName = MakeUniqueTaskName($"{stage.Name} complete", projectKey);
-            _tasks.Add(new ProjectTaskCsvRow
+            _tasks.Add(new ProjectTaskModel
             {
                 ProjectKey = projectKey,
                 Name = milestoneName,
@@ -451,7 +450,7 @@ public sealed class PpmGenerator
 
         var status = RollUpStageStatus(taskStatuses);
 
-        _stageStatuses.Add(new ProjectStageCsvRow
+        _stageStatuses.Add(new ProjectStageModel
         {
             ProjectKey = projectKey,
             StageName = stageName,
@@ -484,7 +483,7 @@ public sealed class PpmGenerator
                 ? ("NotStarted", 0m)
                 : ("InProgress", _faker.Random.Decimal(10, 80));
 
-        _tasks.Add(new ProjectTaskCsvRow
+        _tasks.Add(new ProjectTaskModel
         {
             ProjectKey = projectKey,
             Name = name,
@@ -522,7 +521,7 @@ public sealed class PpmGenerator
             .Take(_faker.Random.Int(1, 3))
             .ToList();
 
-        _initiatives.Add(new StrategicInitiativeCsvRow
+        _initiatives.Add(new StrategicInitiativeModel
         {
             Name = name,
             Description = $"{name} across the {portfolioName} portfolio.",
@@ -538,7 +537,7 @@ public sealed class PpmGenerator
         // A couple of KPIs per initiative.
         foreach (var template in _faker.PickRandom(PpmVocabulary.KpiTemplates, Math.Min(2, PpmVocabulary.KpiTemplates.Length)))
         {
-            _kpis.Add(new StrategicInitiativeKpiCsvRow
+            _kpis.Add(new StrategicInitiativeKpiModel
             {
                 StrategicInitiativeName = name,
                 Name = template.Name,
@@ -563,7 +562,7 @@ public sealed class PpmGenerator
         IReadOnlyList<string?> sponsors, IReadOnlyList<string?> owners, IReadOnlyList<string?> managers)
     {
         name = MakeUnique(name, _portfolioNames);
-        _portfolios.Add(new PortfolioCsvRow
+        _portfolios.Add(new PortfolioModel
         {
             Name = name,
             Description = description,
@@ -580,7 +579,7 @@ public sealed class PpmGenerator
     private void AddProgram(string name, string description, string portfolioName, string status, DateTime? start, DateTime? end,
         IReadOnlyList<string> themes, IReadOnlyList<string?> sponsors, IReadOnlyList<string?> owners, IReadOnlyList<string?> managers)
     {
-        _programs.Add(new ProgramCsvRow
+        _programs.Add(new ProgramModel
         {
             Name = name,
             Description = description,

@@ -199,6 +199,41 @@ public class OrgGeneratorTests
     }
 
     [Fact]
+    public void Generate_NoStaffingRowIsEmittedTwice()
+    {
+        // Arrange
+        // The same person, team and role stated twice is the same fact twice. The import rejects it — each
+        // row's import id must be unique within a file — and before that check existed it silently
+        // collapsed the pair, so the seeded data quietly lost a row instead of failing.
+        var org = Generate();
+
+        // Act
+        var duplicated = org.Members
+            .GroupBy(m => (m.TeamCode, m.EmployeeNumber, m.RoleName))
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        // Assert
+        duplicated.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ImportIdsAreUniqueWithinEveryFile()
+    {
+        // Arrange
+        // Every import rejects a file whose import ids repeat, so a collision fails the seed rather than
+        // any one row.
+        var org = Generate();
+
+        // Act & Assert
+        org.Employees.Select(e => e.ImportId).Should().OnlyHaveUniqueItems();
+        org.Teams.Select(t => t.ImportId).Should().OnlyHaveUniqueItems();
+        org.TeamMemberships.Select(m => m.ImportId).Should().OnlyHaveUniqueItems();
+        org.Members.Select(m => m.ImportId).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public void Generate_EachTeamHasAnEngineeringManagerWhoIsAlsoAnIndividualContributor()
     {
         // Arrange

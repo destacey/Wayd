@@ -2,6 +2,11 @@ using System.Reflection;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Imports;
+using Wayd.ProjectPortfolioManagement.Application.Finalization.Imports;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Imports;
+using Wayd.ProjectPortfolioManagement.Application.Programs.Imports;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
+using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Imports;
 
 namespace Wayd.ProjectPortfolioManagement.Application;
@@ -13,7 +18,13 @@ public static class ConfigureServices
         var assembly = Assembly.GetExecutingAssembly();
         services.AddValidatorsFromAssembly(assembly);
 
+        services.AddScoped<IImportDefinition, ProjectPortfolioImportDefinition>();
+        services.AddScoped<IImportDefinition, ProgramImportDefinition>();
+        services.AddScoped<IImportDefinition, ProjectImportDefinition>();
+        services.AddScoped<IImportDefinition, ProjectStageImportDefinition>();
+        services.AddScoped<IImportDefinition, ProjectTaskImportDefinition>();
         services.AddScoped<IImportDefinition, StrategicInitiativeImportDefinition>();
+        services.AddScoped<IImportDefinition, PpmFinalizationImportDefinition>();
 
         ConfigureMapster(assembly);
 

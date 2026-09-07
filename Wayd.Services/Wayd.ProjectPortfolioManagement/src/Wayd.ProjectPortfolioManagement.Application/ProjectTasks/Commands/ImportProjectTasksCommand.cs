@@ -1,317 +1,107 @@
-﻿using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
-using Wayd.ProjectPortfolioManagement.Domain.Enums;
-using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Imports.Commands;
+using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 
 namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 
 /// <summary>
-/// Additively imports a batch of project tasks and milestones, each created through its project so the
-/// aggregate assigns keys, ordering and rolled-up stage dates exactly as it would for a task created in the
-/// UI.
-/// <para>
-/// Rows are applied parents-before-children rather than in file order, so a batch can describe a whole work
-/// breakdown without being pre-sorted. Tasks are named within their project, which is what lets a child row
-/// point at its parent by name; a cycle or an unresolved parent fails the batch.
-/// </para>
+/// Submits a file of project tasks to import, and answers with the id of the run.
 /// </summary>
-public sealed record ImportProjectTasksCommand : ICommand
-{
-    public ImportProjectTasksCommand(IEnumerable<ImportProjectTaskDto> tasks)
-    {
-        Tasks = [.. tasks];
-    }
+/// <remarks>
+/// The application boundary for this import. A controller parses the file, checks the permission and
+/// validates each row's shape, then hands the parsed rows here.
+/// </remarks>
+public sealed record ImportProjectTasksCommand(
+    IReadOnlyList<SubmittedImportRow<ImportProjectTaskDto>> Rows) : ICommand<Guid>;
 
-    public List<ImportProjectTaskDto> Tasks { get; }
-}
-
+/// <summary>
+/// Validates the rows themselves, and the two things that are true of a file rather than of any row.
+/// </summary>
+/// <remarks>
+/// A task name is unique within its project, and a parent chain that loops back on itself can never be
+/// ordered parents-first. Both are properties of the file as a set, which the definition cannot see: it
+/// applies rows one at a time.
+/// </remarks>
 public sealed class ImportProjectTasksCommandValidator : CustomValidator<ImportProjectTasksCommand>
 {
     public ImportProjectTasksCommandValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(t => t.Tasks)
-            .NotNull()
-            .NotEmpty();
+        RuleFor(c => c.Rows)
+            .NotEmpty()
+            .Must(rows => rows
+                .Select(r => $"{r.Data.ProjectKey.Value}|{r.Data.Name.Trim()}")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count() == rows.Count)
+                .WithMessage("Task Name must be unique within its project.")
+            .Must(NoParentCycles)
+                .WithMessage("Some tasks form a parent cycle, so they can never be created parents-first.");
 
-        RuleForEach(t => t.Tasks)
-            .NotNull()
-            .SetValidator(new ImportProjectTaskDtoValidator());
-    }
-}
-
-public sealed class ImportProjectTasksCommandHandler(
-    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<ImportProjectTasksCommandHandler> logger) : ICommandHandler<ImportProjectTasksCommand>
-{
-    private const string RequestName = nameof(ImportProjectTasksCommand);
-
-    private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
-    private readonly ILogger<ImportProjectTasksCommandHandler> _logger = logger;
-
-    public async Task<Result> Handle(ImportProjectTasksCommand request, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var duplicates = request.Tasks
-                .GroupBy(t => (t.ProjectKey.Value, Name: Normalize(t.Name)), TaskNameComparer.Instance)
-                .Where(g => g.Count() > 1)
-                .Select(g => $"{g.Key.Value}: '{g.Key.Name}'")
-                .ToList();
-            if (duplicates.Count > 0)
-                return Fail($"The following task names appear more than once within their project: {string.Join(", ", duplicates)}.");
-
-            var projectsResult = await ResolveProjects(request, cancellationToken);
-            if (projectsResult.IsFailure)
-                return Result.Failure(projectsResult.Error);
-            var projectsByKey = projectsResult.Value;
-
-            var employeeNumbers = request.Tasks
-                .SelectMany(t => t.AssigneeEmployeeNumbers)
-                .Select(Normalize)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var employeeIdsByNumber = await ResolveEmployees(employeeNumbers, cancellationToken);
-
-            var unresolvedEmployees = employeeNumbers.Where(n => !employeeIdsByNumber.ContainsKey(n)).ToList();
-            if (unresolvedEmployees.Count > 0)
-                return Fail($"Could not resolve the following employee numbers: {Quote(unresolvedEmployees)}.");
-
-            var nextNumbers = await NextTaskNumbers(projectsByKey.Values, cancellationToken);
-
-            foreach (var group in request.Tasks.GroupBy(t => t.ProjectKey.Value, StringComparer.OrdinalIgnoreCase))
-            {
-                var project = projectsByKey[group.Key];
-
-                var orderedResult = OrderParentsFirst([.. group]);
-                if (orderedResult.IsFailure)
-                    return Result.Failure(orderedResult.Error);
-
-                // Tasks are named within their project, so a child row resolves its parent against the
-                // tasks this batch has already created for that same project.
-                var createdByName = new Dictionary<string, ProjectTask>(StringComparer.OrdinalIgnoreCase);
-
-                foreach (var row in orderedResult.Value)
-                {
-                    var parentIdResult = ResolveParentId(project, row, createdByName);
-                    if (parentIdResult.IsFailure)
-                        return Result.Failure(parentIdResult.Error);
-
-                    var plannedDateRange = row.PlannedStart is null || row.PlannedEnd is null
-                        ? null
-                        : new FlexibleDateRange(row.PlannedStart.Value, row.PlannedEnd.Value);
-
-                    nextNumbers.TryGetValue(project.Id, out var nextNumber);
-
-                    var createResult = project.CreateTask(
-                        nextNumber,
-                        Normalize(row.Name),
-                        row.Description?.Trim(),
-                        row.Type,
-                        row.Status,
-                        row.Priority,
-                        row.Progress.HasValue ? new Progress(row.Progress.Value) : null,
-                        parentIdResult.Value,
-                        plannedDateRange,
-                        row.PlannedDate,
-                        row.EstimatedEffortHours,
-                        BuildRoles(row, employeeIdsByNumber));
-                    if (createResult.IsFailure)
-                        return Fail($"Could not create task '{row.Name}' in project '{row.ProjectKey.Value}': {createResult.Error}");
-
-                    nextNumbers[project.Id] = nextNumber + 1;
-                    createdByName[Normalize(row.Name)] = createResult.Value;
-                }
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("{RequestName}: imported {Count} project task(s).", RequestName, request.Tasks.Count);
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-
-            return Result.Failure($"Exception for request {RequestName}: {ex.Message}");
-        }
+        RuleForEach(c => c.Rows)
+            .ChildRules(row => row.RuleFor(r => r.Data).NotNull().SetValidator(new ImportProjectTaskDtoValidator()));
     }
 
     /// <summary>
-    /// Orders a project's rows so every parent is created before its children, letting a batch be authored
-    /// in any order. Rows whose parent is not in the batch come first — their parent either already exists
-    /// or is missing, which the per-row resolution reports. Rows left unplaced form a cycle.
+    /// Walks the in-file parent links, peeling off rows whose parent is outside the file or already
+    /// placed. Anything left when nothing more can be placed is a cycle.
     /// </summary>
-    private Result<List<ImportProjectTaskDto>> OrderParentsFirst(List<ImportProjectTaskDto> rows)
+    private static bool NoParentCycles(IReadOnlyList<SubmittedImportRow<ImportProjectTaskDto>> rows)
     {
-        var rowsByName = rows.ToDictionary(r => Normalize(r.Name), r => r, StringComparer.OrdinalIgnoreCase);
+        var keys = new Dictionary<SubmittedImportRow<ImportProjectTaskDto>, string>();
+        for (var i = 0; i < rows.Count; i++)
+            keys[rows[i]] = SubmittedImportRow.KeyFor(rows[i].ImportId, i + 1);
 
-        var ordered = new List<ImportProjectTaskDto>(rows.Count);
+        var present = keys.Values.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var placed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         var remaining = rows.ToList();
+
         while (remaining.Count > 0)
         {
             var ready = remaining
-                .Where(r => r.ParentTaskName is null
-                    || !rowsByName.ContainsKey(Normalize(r.ParentTaskName))
-                    || placed.Contains(Normalize(r.ParentTaskName)))
+                .Where(r => r.Data.ParentImportId is not { } parent
+                    || !present.Contains(parent.Trim())
+                    || placed.Contains(parent.Trim()))
                 .ToList();
 
             if (ready.Count == 0)
-            {
-                var cycle = remaining.Select(r => $"'{r.Name}'");
-                return Fail<List<ImportProjectTaskDto>>(
-                    $"The following tasks in project '{rows[0].ProjectKey.Value}' form a parent cycle: {string.Join(", ", cycle)}.");
-            }
+                return false;
 
             foreach (var row in ready)
             {
-                ordered.Add(row);
-                placed.Add(Normalize(row.Name));
+                placed.Add(keys[row]);
                 remaining.Remove(row);
             }
         }
 
-        return Result.Success(ordered);
+        return true;
     }
+}
 
-    /// <summary>
-    /// Resolves the id a row hangs off: its named parent task when it has one, otherwise the stage itself,
-    /// which the aggregate reads as "root task in this stage". Parents may come from this batch or from
-    /// tasks the project already has.
-    /// </summary>
-    private Result<Guid> ResolveParentId(Project project, ImportProjectTaskDto row, Dictionary<string, ProjectTask> createdByName)
+public sealed class ImportProjectTasksCommandHandler(
+    IImportDefinitionRegistry registry,
+    IDispatcher dispatcher) : ICommandHandler<ImportProjectTasksCommand, Guid>
+{
+    private readonly IImportDefinitionRegistry _registry = registry;
+    private readonly IDispatcher _dispatcher = dispatcher;
+
+    public async Task<Result<Guid>> Handle(ImportProjectTasksCommand command, CancellationToken cancellationToken)
     {
-        if (row.ParentTaskName is not null)
-        {
-            var parentName = Normalize(row.ParentTaskName);
+        if (command.Rows.Count == 0)
+            return Result.Failure<Guid>("The file contains no project tasks.");
 
-            if (createdByName.TryGetValue(parentName, out var batchParent))
-                return Result.Success(batchParent.Id);
+        var definition = _registry.Find(ProjectTaskImportDefinition.ImportKey);
+        if (definition.IsFailure)
+            return Result.Failure<Guid>(definition.Error);
 
-            var existing = project.Tasks
-                .Where(t => string.Equals(t.Name, parentName, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            return existing.Count switch
-            {
-                1 => Result.Success(existing[0].Id),
-                0 => Fail<Guid>($"Could not resolve parent task '{row.ParentTaskName}' for task '{row.Name}' in project '{row.ProjectKey.Value}'."),
-                _ => Fail<Guid>($"Parent task name '{row.ParentTaskName}' matches more than one task in project '{row.ProjectKey.Value}'."),
-            };
-        }
-
-        var stageName = Normalize(row.StageName);
-        var stages = project.Stages
-            .Where(p => string.Equals(p.Name, stageName, StringComparison.OrdinalIgnoreCase))
+        // The definition owns how a row is stored, so the same payload shape reaches the runner whether it
+        // applies now or days later after a resume.
+        var rows = command.Rows
+            .Select(r => new SubmittedImportRow(r.ImportId, definition.Value.SerializeRow(r.Data)))
             .ToList();
 
-        return stages.Count switch
-        {
-            1 => Result.Success(stages[0].Id),
-            0 => Fail<Guid>($"Could not resolve stage '{row.StageName}' for task '{row.Name}' in project '{row.ProjectKey.Value}'. The project's lifecycle determines its stages."),
-            _ => Fail<Guid>($"Stage name '{row.StageName}' matches more than one stage in project '{row.ProjectKey.Value}'."),
-        };
-    }
-
-    /// <summary>
-    /// Loads every referenced project with the stages and tasks the aggregate needs to place new work.
-    /// </summary>
-    private async Task<Result<Dictionary<string, Project>>> ResolveProjects(ImportProjectTasksCommand request, CancellationToken cancellationToken)
-    {
-        // Key is persisted through a value converter, so compare against ProjectKey instances.
-        var keys = request.Tasks.Select(t => t.ProjectKey).Distinct().ToList();
-
-        var projects = await _projectPortfolioManagementDbContext.Projects
-            .Include(p => p.Stages)
-            .Include(p => p.Tasks)
-            .Where(p => keys.Contains(p.Key))
-            .ToListAsync(cancellationToken);
-
-        var projectsByKey = projects.ToDictionary(p => p.Key.Value, p => p, StringComparer.OrdinalIgnoreCase);
-
-        var unresolved = keys
-            .Select(k => k.Value)
-            .Where(k => !projectsByKey.ContainsKey(k))
-            .ToList();
-        if (unresolved.Count > 0)
-            return Fail<Dictionary<string, Project>>($"Could not resolve the following projects: {Quote(unresolved)}.");
-
-        return Result.Success(projectsByKey);
-    }
-
-    private async Task<Dictionary<string, Guid>> ResolveEmployees(HashSet<string> employeeNumbers, CancellationToken cancellationToken)
-    {
-        if (employeeNumbers.Count == 0)
-            return [];
-
-        return (await _projectPortfolioManagementDbContext.Employees
-                .Where(e => employeeNumbers.Contains(e.EmployeeNumber))
-                .Select(e => new { e.Id, e.EmployeeNumber })
-                .ToListAsync(cancellationToken))
-            .ToDictionary(e => e.EmployeeNumber, e => e.Id, StringComparer.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Seeds the per-project task number sequence from the highest number already used. The single-task
-    /// handler takes a row lock for this because tasks can be created concurrently; an import applies its
-    /// rows in one pass, so the running number is advanced in memory instead.
-    /// </summary>
-    private async Task<Dictionary<Guid, int>> NextTaskNumbers(IEnumerable<Project> projects, CancellationToken cancellationToken)
-    {
-        var projectIds = projects.Select(p => p.Id).ToList();
-
-        var maxNumbers = (await _projectPortfolioManagementDbContext.ProjectTasks
-                .Where(t => projectIds.Contains(t.ProjectId))
-                .GroupBy(t => t.ProjectId)
-                .Select(g => new { ProjectId = g.Key, MaxNumber = g.Max(t => t.Number) })
-                .ToListAsync(cancellationToken))
-            .ToDictionary(x => x.ProjectId, x => x.MaxNumber);
-
-        return projectIds.ToDictionary(id => id, id => maxNumbers.TryGetValue(id, out var max) ? max + 1 : 1);
-    }
-
-    private static Dictionary<TaskRole, HashSet<Guid>> BuildRoles(ImportProjectTaskDto row, Dictionary<string, Guid> employeeIdsByNumber)
-    {
-        if (row.AssigneeEmployeeNumbers.Count == 0)
-            return [];
-
-        return new Dictionary<TaskRole, HashSet<Guid>>
-        {
-            [TaskRole.Assignee] = [.. row.AssigneeEmployeeNumbers.Select(n => employeeIdsByNumber[Normalize(n)])],
-        };
-    }
-
-    private Result Fail(string message)
-    {
-        _logger.LogWarning("{RequestName}: {Message}", RequestName, message);
-        return Result.Failure(message);
-    }
-
-    private Result<T> Fail<T>(string message)
-    {
-        _logger.LogWarning("{RequestName}: {Message}", RequestName, message);
-        return Result.Failure<T>(message);
-    }
-
-    private static string Normalize(string value) => value.Trim();
-
-    private static string Quote(IEnumerable<string> values) => string.Join(", ", values.Select(v => $"'{v}'"));
-
-    /// <summary>Compares (project key, task name) pairs case-insensitively on both parts.</summary>
-    private sealed class TaskNameComparer : IEqualityComparer<(string Value, string Name)>
-    {
-        public static readonly TaskNameComparer Instance = new();
-
-        public bool Equals((string Value, string Name) x, (string Value, string Name) y) =>
-            StringComparer.OrdinalIgnoreCase.Equals(x.Value, y.Value)
-            && StringComparer.OrdinalIgnoreCase.Equals(x.Name, y.Name);
-
-        public int GetHashCode((string Value, string Name) obj) =>
-            HashCode.Combine(
-                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Value),
-                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Name));
+        return await _dispatcher.Send(
+            new SubmitImportCommand(ProjectTaskImportDefinition.ImportKey, rows), cancellationToken);
     }
 }

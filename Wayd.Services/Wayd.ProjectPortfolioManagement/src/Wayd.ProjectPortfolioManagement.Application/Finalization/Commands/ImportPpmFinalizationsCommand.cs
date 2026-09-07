@@ -1,166 +1,66 @@
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
-using Wayd.ProjectPortfolioManagement.Domain.Models;
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.ProjectPortfolioManagement.Application.Finalization.Imports;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Finalization.Commands;
 
 /// <summary>
-/// Closes out programs and portfolios once their contents have been imported — the last step of a PPM
-/// import, and the only one that is not additive.
-/// <para>
-/// It exists because the domain's guards run in opposite directions: things can only be added to an
-/// <i>active</i> program or portfolio, but one can only be closed when everything inside it is already
-/// closed. Historical work is therefore imported active and finished here.
-/// </para>
-/// <para>
-/// Rows are applied programs-first regardless of the order they appear in, since a portfolio cannot close
-/// while one of its programs is still open. The batch is all-or-nothing.
-/// </para>
+/// Submits a file of PPM finalizations to import, and answers with the id of the run.
 /// </summary>
-public sealed record ImportPpmFinalizationsCommand : ICommand
-{
-    public ImportPpmFinalizationsCommand(IEnumerable<FinalizePpmItemDto> items)
-    {
-        Items = [.. items];
-    }
+/// <remarks>
+/// The application boundary for this import. A controller parses the file, checks the permission and
+/// validates each row's shape, then hands the parsed rows here.
+/// </remarks>
+public sealed record ImportPpmFinalizationsCommand(
+    IReadOnlyList<SubmittedImportRow<FinalizePpmItemDto>> Rows) : ICommand<Guid>;
 
-    public List<FinalizePpmItemDto> Items { get; }
-}
-
+/// <summary>
+/// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
+/// </summary>
+/// <remarks>
+/// An item can only be finalized once, so two rows for the same one contradict each other — and the second
+/// would be refused by the domain anyway, once the first had closed it.
+/// </remarks>
 public sealed class ImportPpmFinalizationsCommandValidator : CustomValidator<ImportPpmFinalizationsCommand>
 {
     public ImportPpmFinalizationsCommandValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(i => i.Items)
-            .NotNull()
-            .NotEmpty();
+        RuleFor(c => c.Rows)
+            .NotEmpty()
+            .Must(rows => rows.Select(r => r.Data.Id).Distinct().Count() == rows.Count)
+                .WithMessage("Each program or portfolio may appear only once within the file.");
 
-        RuleForEach(i => i.Items)
-            .NotNull()
-            .SetValidator(new FinalizePpmItemDtoValidator());
+        RuleForEach(c => c.Rows)
+            .ChildRules(row => row.RuleFor(r => r.Data).NotNull().SetValidator(new FinalizePpmItemDtoValidator()));
     }
 }
 
 public sealed class ImportPpmFinalizationsCommandHandler(
-    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<ImportPpmFinalizationsCommandHandler> logger) : ICommandHandler<ImportPpmFinalizationsCommand>
+    IImportDefinitionRegistry registry,
+    IDispatcher dispatcher) : ICommandHandler<ImportPpmFinalizationsCommand, Guid>
 {
-    private const string RequestName = nameof(ImportPpmFinalizationsCommand);
+    private readonly IImportDefinitionRegistry _registry = registry;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
-    private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
-    private readonly ILogger<ImportPpmFinalizationsCommandHandler> _logger = logger;
-
-    public async Task<Result> Handle(ImportPpmFinalizationsCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(ImportPpmFinalizationsCommand command, CancellationToken cancellationToken)
     {
-        try
-        {
-            // Every portfolio named by the batch is loaded with the programs and projects the closing
-            // guards read, whether it is being closed itself or merely owns a program that is.
-            var portfolioNames = request.Items
-                .Select(i => Normalize(i.Type is FinalizePpmItemType.Portfolio ? i.Name : i.PortfolioName!))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (command.Rows.Count == 0)
+            return Result.Failure<Guid>("The file contains no finalizations.");
 
-            var portfolios = await _projectPortfolioManagementDbContext.Portfolios
-                .Include(p => p.Programs)
-                    .ThenInclude(p => p.Projects)
-                .Include(p => p.Projects)
-                .Where(p => portfolioNames.Contains(p.Name))
-                .ToListAsync(cancellationToken);
+        var definition = _registry.Find(PpmFinalizationImportDefinition.ImportKey);
+        if (definition.IsFailure)
+            return Result.Failure<Guid>(definition.Error);
 
-            var ambiguous = portfolios
-                .GroupBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-                .Where(g => g.Count() > 1)
-                .Select(g => g.Key)
-                .ToList();
-            if (ambiguous.Count > 0)
-                return Fail($"The following portfolio names match more than one portfolio: {Quote(ambiguous)}.");
-
-            var portfoliosByName = portfolios.ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
-
-            var unresolved = portfolioNames.Where(n => !portfoliosByName.ContainsKey(n)).ToList();
-            if (unresolved.Count > 0)
-                return Fail($"Could not resolve the following portfolios: {Quote(unresolved)}.");
-
-            // Programs first: a portfolio cannot close while one of its programs is still open, so the row
-            // order in the file must not decide the outcome.
-            foreach (var row in request.Items.Where(i => i.Type is FinalizePpmItemType.Program))
-            {
-                var result = FinalizeProgram(portfoliosByName[Normalize(row.PortfolioName!)], row);
-                if (result.IsFailure)
-                    return result;
-            }
-
-            foreach (var row in request.Items.Where(i => i.Type is FinalizePpmItemType.Portfolio))
-            {
-                var result = FinalizePortfolio(portfoliosByName[Normalize(row.Name)], row);
-                if (result.IsFailure)
-                    return result;
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("{RequestName}: finalized {Count} item(s).", RequestName, request.Items.Count);
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-
-            return Result.Failure($"Exception for request {RequestName}: {ex.Message}");
-        }
-    }
-
-    private Result FinalizeProgram(ProjectPortfolio portfolio, FinalizePpmItemDto row)
-    {
-        var matches = portfolio.Programs
-            .Where(p => string.Equals(p.Name, Normalize(row.Name), StringComparison.OrdinalIgnoreCase))
+        // The definition owns how a row is stored, so the same payload shape reaches the runner whether it
+        // applies now or days later after a resume.
+        var rows = command.Rows
+            .Select(r => new SubmittedImportRow(r.ImportId, definition.Value.SerializeRow(r.Data)))
             .ToList();
 
-        if (matches.Count == 0)
-            return Fail($"Could not resolve program '{row.Name}' in portfolio '{row.PortfolioName}'.");
-        if (matches.Count > 1)
-            return Fail($"Program name '{row.Name}' matches more than one program in portfolio '{row.PortfolioName}'.");
-
-        var program = matches[0];
-
-        // Runs as PpmActor.System: finalization is a bulk administrative operation authorized by the
-        // caller's Permissions.ProjectPortfolios.Import claim, not by delivery-leadership membership.
-        var result = row.Status is FinalizePpmItemStatus.Canceled
-            ? program.Cancel(PpmActor.System, ProgramAncestryRoles.None)
-            : program.Complete(PpmActor.System, ProgramAncestryRoles.None);
-
-        return result.IsFailure
-            ? Fail($"Could not finalize program '{row.Name}' as {row.Status}: {result.Error}")
-            : Result.Success();
+        return await _dispatcher.Send(
+            new SubmitImportCommand(PpmFinalizationImportDefinition.ImportKey, rows), cancellationToken);
     }
-
-    private Result FinalizePortfolio(ProjectPortfolio portfolio, FinalizePpmItemDto row)
-    {
-        // Runs as PpmActor.System — see FinalizeProgram.
-        var close = portfolio.Close(PpmActor.System, row.EndDate!.Value);
-        if (close.IsFailure)
-            return Fail($"Could not close portfolio '{row.Name}': {close.Error}");
-
-        if (row.Status is not FinalizePpmItemStatus.Archived)
-            return Result.Success();
-
-        var archive = portfolio.Archive(PpmActor.System);
-
-        return archive.IsFailure
-            ? Fail($"Could not archive portfolio '{row.Name}': {archive.Error}")
-            : Result.Success();
-    }
-
-    private Result Fail(string message)
-    {
-        _logger.LogWarning("{RequestName}: {Message}", RequestName, message);
-        return Result.Failure(message);
-    }
-
-    private static string Normalize(string value) => value.Trim();
-
-    private static string Quote(IEnumerable<string> values) => string.Join(", ", values.Select(v => $"'{v}'"));
 }

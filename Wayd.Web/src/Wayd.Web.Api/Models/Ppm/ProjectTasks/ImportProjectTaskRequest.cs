@@ -9,19 +9,30 @@ namespace Wayd.Web.Api.Models.Ppm.ProjectTasks;
 
 /// <summary>
 /// A single CSV row for the project task import. The project is referenced by key and the stage by name
-/// (stages come from the project's assigned lifecycle). A task nests under another by naming it in
-/// <see cref="ParentTaskName"/>; leaving that empty makes the task a root task of its stage. Rows may be
-/// listed in any order — parents are applied before children.
+/// (stages come from the project's assigned lifecycle). A task nests under another row in this file by its
+/// <see cref="ParentImportId"/>, or under a task the project already has by <see cref="ParentTaskId"/>;
+/// with neither it is a root task of its stage. Rows may be listed in any order — parents are applied
+/// before children.
 /// </summary>
 public sealed class ImportProjectTaskRequest
 {
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it, and child rows name it as their ParentImportId. Falls back to the row's
+    /// position when the column is absent, so a hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
     public string ProjectKey { get; set; } = default!;
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
     public string StageName { get; set; } = default!;
 
-    /// <summary>The task this one nests under. Empty makes it a root task of its stage.</summary>
-    public string? ParentTaskName { get; set; }
+    /// <summary>The ImportId of the row this task nests under. Empty makes it a root task of its stage.</summary>
+    public string? ParentImportId { get; set; }
+
+    /// <summary>The id of an existing task this one nests under. Cannot be combined with ParentImportId.</summary>
+    public Guid? ParentTaskId { get; set; }
 
     /// <summary>'Task' or 'Milestone'. Defaults to Task when the column is absent.</summary>
     public string Type { get; set; } = nameof(ProjectTaskType.Task);
@@ -58,7 +69,8 @@ public sealed class ImportProjectTaskRequest
             status,
             priority,
             StageName,
-            string.IsNullOrWhiteSpace(ParentTaskName) ? null : ParentTaskName,
+            string.IsNullOrWhiteSpace(ParentImportId) ? null : ParentImportId,
+            ParentTaskId,
             Progress,
             PlannedStart?.ToLocalDateTime().Date,
             PlannedEnd?.ToLocalDateTime().Date,
@@ -88,6 +100,10 @@ public sealed class ImportProjectTaskRequestValidator : CustomValidator<ImportPr
 
         RuleFor(t => t.StageName)
             .NotEmpty();
+
+        RuleFor(t => t)
+            .Must(t => string.IsNullOrWhiteSpace(t.ParentImportId) || t.ParentTaskId is null)
+                .WithMessage("A task cannot name both a ParentImportId and a ParentTaskId.");
 
         RuleFor(t => t.Type)
             .NotEmpty()

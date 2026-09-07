@@ -1,24 +1,27 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 
 /// <summary>
-/// A single program row. Everything is referenced by natural key so a batch can be authored without knowing
-/// generated Ids: the owning portfolio and any strategic themes by name, people by employee number, and
-/// projects point back at their program by <see cref="Name"/> in turn.
+/// A single program row.
+/// </summary>
+/// <remarks>
+/// The owning portfolio and any strategic themes are referenced by id — neither name is uniquely indexed,
+/// so a name is a display value that may match more than one record. People keep their employee number,
+/// which is the natural key an employee actually has.
 /// <para>
 /// Unlike a portfolio, a program receives its date range on creation; the <see cref="Status"/> transitions
 /// only move the status and read that range, so no additional dates are needed on the row.
 /// </para>
-/// </summary>
+/// </remarks>
 public sealed record ImportProgramDto(
     string Name,
     string Description,
     ProgramStatus Status,
-    string PortfolioName,
+    Guid PortfolioId,
     LocalDate? Start,
     LocalDate? End,
-    IReadOnlyList<string> StrategicThemeNames,
+    IReadOnlyList<Guid> StrategicThemeIds,
     IReadOnlyList<string> SponsorEmployeeNumbers,
     IReadOnlyList<string> OwnerEmployeeNumbers,
     IReadOnlyList<string> ManagerEmployeeNumbers);
@@ -40,7 +43,7 @@ public sealed class ImportProgramDtoValidator : CustomValidator<ImportProgramDto
         RuleFor(p => p.Status)
             .IsInEnum();
 
-        RuleFor(p => p.PortfolioName)
+        RuleFor(p => p.PortfolioId)
             .NotEmpty();
 
         RuleFor(p => p)

@@ -156,6 +156,10 @@ Each area block carries an `enabled` flag, so switching one off is part of the f
 That is exactly what the `org-only` built-in is. `--skip-ppm` still works as a shorthand, and only ever
 turns the area off — leaving it out never switches an area back on over a recipe that disabled it.
 
+The organization is the exception: it cannot be disabled, and saying so is an error rather than a silent
+no-op. Every other area is generated *over* it — portfolios and projects name people by employee number,
+and projects are scoped to a team — so a run without it produces nothing at all.
+
 ### The timeline block
 
 `timeline` is the run's clock in serialized form, and the same values described under

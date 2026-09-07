@@ -18,6 +18,11 @@ public static class RecipeLayering
         // Version and Extends describe the upper recipe itself rather than the run, so they do not inherit.
         Version = over.Version,
         Extends = over.Extends,
+
+        // Schema does inherit, and has to: `recipes show` prints a resolved recipe as the starting point
+        // for a custom one, so dropping it here would hand back a file with no $schema for every recipe
+        // that extends another — losing editor completion on exactly the file that needs it most.
+        Schema = over.Schema ?? under.Schema,
         Description = over.Description ?? under.Description,
         Timeline = Layer(over.Timeline, under.Timeline),
         Organization = Layer(over.Organization, under.Organization),

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Recipes;
 
@@ -233,10 +233,30 @@ public class RecipeLayeringTests
         // Arrange — the one knob a recipe may leave open, so an unpinned run still straddles now
         var recipe = RecipeLibrary.Defaults();
 
-        // Act
+        // Act — bracketed by the clock, because reading UtcNow again in the assertion would disagree
+        // with the resolver's own reading on a run that crosses UTC midnight
+        var before = DateTime.UtcNow.Date;
         var result = ResolvedRecipe.From(recipe, seed: 1);
+        var after = DateTime.UtcNow.Date;
 
         // Assert
-        result.Context.AsOf.Should().Be(DateTime.UtcNow.Date);
+        result.Context.AsOf.Should().BeOneOf(before, after);
+    }
+
+    [Fact]
+    public void From_RefusesToDisableTheOrganization()
+    {
+        // Arrange — every other area is generated over the organization, so a run without it produces
+        // nothing. Accepting the value and generating the organization anyway would be exactly the
+        // "stated value does nothing" failure the format's strictness exists to prevent.
+        var recipe = new Recipe { Organization = new OrganizationRecipe { Enabled = false } };
+
+        // Act
+        var act = () => ResolvedRecipe.From(recipe.LayerOver(RecipeLibrary.Defaults()), seed: 1);
+
+        // Assert — and it points at the built-in that does what they probably meant
+        act.Should().Throw<RecipeException>()
+            .WithMessage("*organization.enabled*")
+            .WithMessage("*org-only*");
     }
 }

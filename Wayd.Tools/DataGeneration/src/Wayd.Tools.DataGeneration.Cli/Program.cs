@@ -74,18 +74,21 @@ Recipe ResolveRecipe(ParseResult parse)
 // This has to wrap the resolution rather than the whole invocation: System.CommandLine catches inside the
 // action and prints the stack trace itself, so an outer handler never sees it — and a trace says "the tool
 // broke" when what happened is a misspelled key.
-bool TryResolve(ParseResult parse, out Recipe recipe)
+bool TryResolve(ParseResult parse, int seed, out ResolvedRecipe resolved)
 {
     try
     {
-        recipe = ResolveRecipe(parse);
+        // Settling is inside the guard as well as reading. A recipe can parse cleanly and still describe
+        // a run that cannot happen — a knob the defaults no longer cover, or an area that nothing can be
+        // generated without — and those deserve the same message rather than a trace.
+        resolved = ResolvedRecipe.From(ResolveRecipe(parse), seed);
 
         return true;
     }
     catch (RecipeException ex)
     {
         Console.Error.WriteLine($"Recipe error: {ex.Message}");
-        recipe = new Recipe();
+        resolved = null!;
 
         return false;
     }
@@ -132,11 +135,10 @@ AddGenerationOptions(generateCommand);
 generateCommand.Add(outOption);
 generateCommand.SetAction((parse, _) =>
 {
-    if (!TryResolve(parse, out var recipe))
+    var seed = ResolveSeed(parse);
+    if (!TryResolve(parse, seed, out var resolved))
         return Task.FromResult(1);
 
-    var seed = ResolveSeed(parse);
-    var resolved = ResolvedRecipe.From(recipe, seed);
     var context = resolved.Context;
     ReportRunInputs(parse, context);
 
@@ -192,11 +194,10 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
         return 1;
     }
 
-    if (!TryResolve(parse, out var recipe))
+    var seed = ResolveSeed(parse);
+    if (!TryResolve(parse, seed, out var resolved))
         return 1;
 
-    var seed = ResolveSeed(parse);
-    var resolved = ResolvedRecipe.From(recipe, seed);
     var context = resolved.Context;
     ReportRunInputs(parse, context);
 

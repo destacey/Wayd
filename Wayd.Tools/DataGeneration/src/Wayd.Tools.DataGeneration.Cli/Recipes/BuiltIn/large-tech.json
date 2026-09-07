@@ -1,5 +1,5 @@
 {
-  "$schema": "../recipe.schema.json",
+  "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
   "version": 1,
   "extends": "default",
   "description": "A scaled product organization: several value streams, many teams, and a dense portfolio.",

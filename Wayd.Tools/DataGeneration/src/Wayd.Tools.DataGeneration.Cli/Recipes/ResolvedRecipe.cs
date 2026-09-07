@@ -1,4 +1,4 @@
-using Wayd.Tools.DataGeneration.Cli.Generation;
+﻿using Wayd.Tools.DataGeneration.Cli.Generation;
 
 namespace Wayd.Tools.DataGeneration.Cli.Recipes;
 
@@ -14,7 +14,6 @@ public sealed record ResolvedRecipe(
     GenerationContext Context,
     OrgOptions Organization,
     PpmOptions Ppm,
-    bool GenerateOrganization,
     bool GeneratePpm)
 {
     /// <summary>
@@ -27,6 +26,18 @@ public sealed record ResolvedRecipe(
         var timeline = recipe.Timeline ?? new TimelineRecipe();
         var organization = recipe.Organization ?? new OrganizationRecipe();
         var ppm = recipe.Ppm ?? new PpmRecipe();
+
+        // Every other area is layered over the organization — portfolios and projects name people by
+        // employee number, and projects are scoped to a team — so a run without it generates nothing at
+        // all. Saying so beats accepting the value and quietly generating the organization anyway, which
+        // is the "stated value does nothing" failure the format exists to prevent.
+        if (organization.Enabled is false)
+        {
+            throw new RecipeException(
+                "organization.enabled cannot be false: every other area is generated over the organization, "
+                + "so a run without it produces nothing. To generate the organization on its own, disable the "
+                + "other areas instead — see the org-only built-in.");
+        }
 
         var context = new GenerationContext
         {
@@ -56,7 +67,6 @@ public sealed record ResolvedRecipe(
                 ConcurrentProjectsPerArt = Required(ppm.ConcurrentProjectsPerArt, "ppm.concurrentProjectsPerArt"),
                 ConcurrentProgramsPerPortfolio = Required(ppm.ConcurrentProgramsPerPortfolio, "ppm.concurrentProgramsPerPortfolio"),
             },
-            GenerateOrganization: organization.Enabled ?? true,
             GeneratePpm: ppm.Enabled ?? true);
     }
 

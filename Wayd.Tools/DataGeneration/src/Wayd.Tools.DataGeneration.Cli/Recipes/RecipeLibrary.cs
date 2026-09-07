@@ -134,6 +134,16 @@ public static class RecipeLibrary
                 $"No recipe named '{path}', and no file at that path. Built-in recipes: {string.Join(", ", BuiltInNames)}.");
         }
 
-        return File.ReadAllText(path);
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            // File.Exists already ruled out "not there", so what is left is a file the process cannot
+            // read: locked, denied, or on a path the OS rejects. Still the caller's recipe, so it gets a
+            // message rather than a stack trace.
+            throw new RecipeException($"Recipe '{path}' could not be read: {ex.Message}");
+        }
     }
 }

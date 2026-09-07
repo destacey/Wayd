@@ -1,5 +1,5 @@
 {
-  "$schema": "../recipe.schema.json",
+  "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
   "version": 1,
   "extends": "default",
   "description": "A young company: one product line, a handful of teams, and little history behind it.",

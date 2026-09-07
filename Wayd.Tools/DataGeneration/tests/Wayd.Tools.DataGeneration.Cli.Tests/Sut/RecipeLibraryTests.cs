@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Recipes;
 
@@ -178,6 +178,48 @@ public class RecipeLibraryTests : IDisposable
 
         // Assert
         resolved.Organization.Teams.Should().NotBe(999);
+    }
+
+    [Fact]
+    public void EveryBuiltIn_PointsAtTheSchemaByUrl()
+    {
+        // Arrange — `recipes show <name> > mine.json` is the advertised way to start a custom recipe, and
+        // it carries this value with it. A path relative to where the built-ins live in this repo resolves
+        // nowhere once the output is saved somewhere else, so the editor stops completing and validating
+        // on exactly the file that most needs it.
+        var missing = RecipeLibrary.BuiltInNames
+            .Where(n => RecipeLibrary.Resolve(n).Schema?.StartsWith("https://", StringComparison.Ordinal) != true)
+            .ToList();
+
+        // Assert
+        missing.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Schema_MatchesTheCopyTheDocsSitePublishes()
+    {
+        // Arrange — the built-ins name an absolute URL, which only resolves because the docs site serves
+        // a copy from its static folder. Two files, so they can drift; this is what notices.
+        var published = Path.Combine(
+            RepositoryRoot(), "docs-site", "static", "schemas", "wayd-data", "recipe.schema.json");
+
+        // Act
+        var onDisk = File.ReadAllText(published).ReplaceLineEndings();
+
+        // Assert
+        onDisk.Should().Be(RecipeLibrary.Schema().ReplaceLineEndings());
+    }
+
+    /// <summary>Walks up from the test binary until the repository root is in hand.</summary>
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Wayd.slnx")))
+            directory = directory.Parent;
+
+        directory.Should().NotBeNull("the tests run from inside the repository");
+
+        return directory!.FullName;
     }
 
     [Fact]

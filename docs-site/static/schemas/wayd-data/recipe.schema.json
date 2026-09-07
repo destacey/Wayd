@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
+  "title": "wayd-data recipe",
+  "description": "A named bundle of generation knobs for wayd-data. Every field is optional: what a recipe leaves out is taken from the recipe it extends, and an explicit command-line flag beats both.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Points at this schema so an editor can complete and validate the file."
+    },
+    "version": {
+      "type": "integer",
+      "description": "The recipe format's version.",
+      "minimum": 1
+    },
+    "extends": {
+      "type": "string",
+      "description": "A built-in recipe name or file path to start from. Anything stated here is layered over it."
+    },
+    "description": {
+      "type": "string",
+      "description": "A one-line summary, shown by `wayd-data recipes`."
+    },
+    "timeline": {
+      "type": "object",
+      "description": "When the run happens, and how far it reaches either side of that.",
+      "additionalProperties": false,
+      "properties": {
+        "asOf": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "The date the run treats as today. Omit to anchor on the real one, so data straddles now. Pin it alongside --random-seed for byte-identical output."
+        },
+        "companyAgeYears": {
+          "type": "integer",
+          "description": "How far back the company's history reaches. Nothing is generated before this.",
+          "minimum": 1
+        },
+        "teamStructureAgeYears": {
+          "type": "integer",
+          "description": "How long the current team structure has stood, which is shorter than the company's own age.",
+          "minimum": 1
+        },
+        "historyYears": {
+          "type": "integer",
+          "description": "How much delivery history sits behind asOf.",
+          "minimum": 0
+        },
+        "runwayYears": {
+          "type": "integer",
+          "description": "How much planned work sits ahead of asOf.",
+          "minimum": 0
+        }
+      }
+    },
+    "organization": {
+      "type": "object",
+      "description": "The organization: people, teams, and the hierarchy over them.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the area is generated at all."
+        },
+        "companyType": {
+          "enum": ["Tech", "Balanced", "Enterprise"],
+          "description": "Sets the default share of employees inside the delivery structure (tech ~85%, balanced ~50%, enterprise ~20%)."
+        },
+        "deliveryRatio": {
+          "type": "number",
+          "description": "Override for that share, when the company type's default is not wanted.",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "valueStreams": {
+          "type": "integer",
+          "description": "Number of value streams (product lines).",
+          "minimum": 1
+        },
+        "teams": {
+          "type": "integer",
+          "description": "Number of leaf delivery teams.",
+          "minimum": 1
+        },
+        "formerEmployeeFraction": {
+          "type": "number",
+          "description": "Fraction of non-delivery individual contributors generated as former employees.",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "ppm": {
+      "type": "object",
+      "description": "The portfolios, programs, projects and the work beneath them.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the area is generated at all."
+        },
+        "functionPortfolios": {
+          "type": "integer",
+          "description": "Cross-cutting business-function portfolios, in addition to one per value stream.",
+          "minimum": 0
+        },
+        "concurrentProjectsPerArt": {
+          "type": "integer",
+          "description": "Average number of projects an ART has in flight at once. The total generated is derived from this across the window.",
+          "minimum": 1
+        },
+        "concurrentProgramsPerPortfolio": {
+          "type": "integer",
+          "description": "Average number of thematic programs a portfolio runs at once.",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

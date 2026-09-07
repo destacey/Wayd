@@ -28,10 +28,13 @@ public sealed record ImportReleasePackageDto(
 /// <see cref="VersionNumber"/> is held as text because a carried-forward component often has no
 /// version record in Wayd at all — it was already running and nobody cut anything for it. Where a
 /// version record does match, the line is linked to it; where none does, the string stands on its own.
+/// <para>
+/// The package this line belongs to is the row it was grouped onto, so it carries no reference of its
+/// own; the component product is referenced by id, since product names carry no unique index.
+/// </para>
 /// </remarks>
 public sealed record ImportReleasePackageComponentDto(
-    string PackageVersion,
-    string ProductName,
+    Guid ProductId,
     string VersionNumber,
     ManifestEntryKind Kind);
 
@@ -67,10 +70,7 @@ public sealed class ImportReleasePackageComponentDtoValidator
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(c => c.PackageVersion)
-            .NotEmpty();
-
-        RuleFor(c => c.ProductName)
+        RuleFor(c => c.ProductId)
             .NotEmpty();
 
         RuleFor(c => c.VersionNumber)

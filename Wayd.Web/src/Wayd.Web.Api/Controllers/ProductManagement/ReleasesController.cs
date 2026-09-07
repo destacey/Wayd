@@ -1,4 +1,5 @@
-﻿using CsvHelper;
+using CsvHelper;
+using Wayd.Common.Application.Imports.Commands;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
@@ -107,9 +108,9 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Import releases from a csv file.",
-        "Takes two files: one row per release, and one row per thing it announces. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+        "Submit a csv file of releases to import. Returns the id of the import to follow.",
+        "Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import(
@@ -139,10 +140,7 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
                 releases.Add(release);
             }
 
-            if (releases.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No releases imported.", HttpContext));
-
-            List<ImportReleaseContentDto> contents = [];
+            var contentsByRelease = new Dictionary<string, List<ImportReleaseContentDto>>(StringComparer.OrdinalIgnoreCase);
             if (contentsFile is not null)
             {
                 var importedContents = _csvService.ReadCsv<ImportReleaseContentRequest>(contentsFile.OpenReadStream());
@@ -155,47 +153,51 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
                     {
                         foreach (var error in validationResults.Errors)
                         {
-                            error.ErrorMessage = $"{error.ErrorMessage} (Release: {content.ReleaseVersion})";
+                            error.ErrorMessage = $"{error.ErrorMessage} (Release: {content.ReleaseImportId})";
                             ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                         }
                         return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
                     }
 
-                    contents.Add(content.ToImportReleaseContentDto());
+                    var parent = content.ReleaseImportId.Trim();
+                    if (!contentsByRelease.TryGetValue(parent, out var forRelease))
+                        contentsByRelease[parent] = forRelease = [];
+
+                    forRelease.Add(content.ToImportReleaseContentDto());
                 }
             }
 
-            // Every content row must find its release. A row naming one that is not in the release
-            // file is a mistyped version rather than a row to drop, so it fails the batch.
-            var releaseVersions = releases
-                .Select(r => r.Version.Trim())
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var orphaned = contents
-                .Select(c => c.ReleaseVersion.Trim())
-                .Where(v => !releaseVersions.Contains(v))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (orphaned.Count > 0)
+            // The same key the run reports row outcomes against, so a content row and its release row
+            // agree on what the parent is called whether or not the file supplied an ImportId.
+            List<SubmittedImportRow<ImportReleaseDto>> rows = [];
+            HashSet<string> claimedParents = new(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < releases.Count; i++)
             {
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest(
-                    $"The following content rows name a release that is not in the import: {string.Join(", ", orphaned.Select(v => $"'{v}'"))}.",
-                    HttpContext));
+                var release = releases[i];
+                var key = SubmittedImportRow.KeyFor(release.ImportId, i + 1);
+
+                claimedParents.Add(key);
+                rows.Add(new SubmittedImportRow<ImportReleaseDto>(
+                    release.ImportId,
+                    release.ToImportReleaseDto(
+                        contentsByRelease.TryGetValue(key, out var forRelease) ? forRelease : [])));
             }
 
-            var contentsByRelease = contents
-                .GroupBy(c => c.ReleaseVersion.Trim(), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => (IReadOnlyList<ImportReleaseContentDto>)[.. g], StringComparer.OrdinalIgnoreCase);
+            // Every content row must find its release. A row naming one that is not in the release file is
+            // a mistyped reference rather than a row to drop, so it fails the submission.
+            var orphaned = contentsByRelease.Keys.Where(k => !claimedParents.Contains(k)).ToList();
+            if (orphaned.Count > 0)
+            {
+                ModelState.AddModelError(
+                    nameof(ImportReleaseContentRequest.ReleaseImportId),
+                    $"The following content rows name a release that is not in the file: {string.Join(", ", orphaned.Select(v => $"'{v}'"))}.");
+                return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+            }
 
-            var dtos = releases
-                .Select(r => r.ToImportReleaseDto(contentsByRelease.GetValueOrDefault(r.Version.Trim(), [])))
-                .ToList();
-
-            var result = await _dispatcher.Send(new ImportReleasesCommand(dtos), cancellationToken);
+            var result = await _dispatcher.Send(new ImportReleasesCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? NoContent()
+                ? Accepted(result.Value)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

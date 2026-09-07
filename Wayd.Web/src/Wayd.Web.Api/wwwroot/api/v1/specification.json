@@ -3139,7 +3139,7 @@
         "tags": [
           "StrategicThemes"
         ],
-        "summary": "Import strategic themes from a csv file.",
+        "summary": "Submit a csv file of strategic themes to import. Returns the id of the import to follow.",
         "operationId": "StrategicThemes_Import",
         "requestBody": {
           "content": {
@@ -3162,8 +3162,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -5186,7 +5196,7 @@
         "tags": [
           "Products"
         ],
-        "summary": "Import products from a csv file.",
+        "summary": "Submit a csv file of products to import. Returns the id of the import to follow.",
         "operationId": "Products_Import",
         "requestBody": {
           "content": {
@@ -5209,8 +5219,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -6762,8 +6782,8 @@
         "tags": [
           "ReleasePackages"
         ],
-        "summary": "Import release packages from a csv file.",
-        "description": "Takes two files: one row per package, and one row per manifest line pointing back at its package by version. Both are required — a package cannot be assembled without a manifest.",
+        "summary": "Submit a csv file of release packages to import. Returns the id of the import to follow.",
+        "description": "Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.",
         "operationId": "ReleasePackages_Import",
         "requestBody": {
           "content": {
@@ -6792,8 +6812,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -7241,8 +7271,8 @@
         "tags": [
           "Releases"
         ],
-        "summary": "Import releases from a csv file.",
-        "description": "Takes two files: one row per release, and one row per thing it announces. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.",
+        "summary": "Submit a csv file of releases to import. Returns the id of the import to follow.",
+        "description": "Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.",
         "operationId": "Releases_Import",
         "requestBody": {
           "content": {
@@ -7270,8 +7300,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -7940,8 +7980,8 @@
         "tags": [
           "Versions"
         ],
-        "summary": "Import versions from a csv file.",
-        "description": "Each row is planned against its product by name and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.",
+        "summary": "Submit a csv file of versions to import. Returns the id of the import to follow.",
+        "description": "Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.",
         "operationId": "Versions_Import",
         "requestBody": {
           "content": {
@@ -7964,8 +8004,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -9013,7 +9063,7 @@
         "tags": [
           "Portfolios"
         ],
-        "summary": "Import portfolios from a csv file.",
+        "summary": "Submit a csv file of portfolios to import. Returns the id of the import to follow.",
         "operationId": "Portfolios_Import",
         "requestBody": {
           "content": {
@@ -9036,8 +9086,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -9072,7 +9132,7 @@
         "tags": [
           "Portfolios"
         ],
-        "summary": "Finalize imported programs and portfolios from a csv file.",
+        "summary": "Submit a csv file of PPM finalizations to import. Returns the id of the import to follow.",
         "description": "Completes or cancels programs and closes or archives portfolios, after their contents have been imported.",
         "operationId": "Portfolios_FinalizeImport",
         "requestBody": {
@@ -9096,8 +9156,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -10124,7 +10194,7 @@
         "tags": [
           "Programs"
         ],
-        "summary": "Import programs from a csv file.",
+        "summary": "Submit a csv file of programs to import. Returns the id of the import to follow.",
         "operationId": "Programs_Import",
         "requestBody": {
           "content": {
@@ -10147,8 +10217,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -11903,7 +11983,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Import projects from a csv file.",
+        "summary": "Submit a csv file of projects to import. Returns the id of the import to follow.",
         "operationId": "Projects_Import",
         "requestBody": {
           "content": {
@@ -11926,8 +12006,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -11962,7 +12052,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Import project tasks from a csv file.",
+        "summary": "Submit a csv file of project tasks to import. Returns the id of the import to follow.",
         "description": "Each row names the project it belongs to, so one file can cover many projects.",
         "operationId": "Projects_ImportTasks",
         "requestBody": {
@@ -11986,8 +12076,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -12022,7 +12122,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Import project stage statuses from a csv file.",
+        "summary": "Submit a csv file of project stage statuses to import. Returns the id of the import to follow.",
         "description": "Each row names the project and stage it sets, so one file can cover many projects.",
         "operationId": "Projects_ImportStages",
         "requestBody": {
@@ -12046,8 +12146,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -14486,8 +14596,8 @@
         "tags": [
           "StrategicInitiatives"
         ],
-        "summary": "Import strategic initiatives from a csv file.",
-        "description": "Optionally accepts a second csv of KPIs, whose rows name the initiative they belong to.",
+        "summary": "Submit a csv file of strategic initiatives to import. Returns the id of the import to follow.",
+        "description": "Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.",
         "operationId": "StrategicInitiatives_Import",
         "requestBody": {
           "content": {
@@ -14515,8 +14625,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -26451,7 +26571,7 @@
         "tags": [
           "Teams"
         ],
-        "summary": "Import teams and teams of teams from a csv file.",
+        "summary": "Submit a csv file of teams to import. Returns the id of the import to follow.",
         "operationId": "Teams_Import",
         "requestBody": {
           "content": {
@@ -26474,8 +26594,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",
@@ -26510,7 +26640,7 @@
         "tags": [
           "Teams"
         ],
-        "summary": "Import team members (staffing) from a csv file.",
+        "summary": "Submit a csv file of team staffing rows to import. Returns the id of the import to follow.",
         "operationId": "Teams_ImportMembers",
         "requestBody": {
           "content": {
@@ -26533,8 +26663,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": ""
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
           },
           "400": {
             "description": "",

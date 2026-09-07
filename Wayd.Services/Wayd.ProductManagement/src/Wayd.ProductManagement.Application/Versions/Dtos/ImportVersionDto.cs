@@ -3,9 +3,10 @@ namespace Wayd.ProductManagement.Application.Versions.Dtos;
 /// <summary>
 /// A single version row.
 /// <para>
-/// A version is identified by <see cref="ProductName"/> and <see cref="Number"/> together. The number
+/// A version is identified by <see cref="ProductId"/> and <see cref="Number"/> together. The number
 /// alone cannot serve: version strings are free text and only meaningful within one product, so two
-/// products may each hold a <c>1.0.0</c>.
+/// products may each hold a <c>1.0.0</c>. The product is referenced by id because product names carry
+/// no unique index — two products may share one.
 /// </para>
 /// <para>
 /// The dates decide where the version ends up, which is why there is no status column. A row with
@@ -16,7 +17,7 @@ namespace Wayd.ProductManagement.Application.Versions.Dtos;
 /// </para>
 /// </summary>
 public sealed record ImportVersionDto(
-    string ProductName,
+    Guid ProductId,
     string Number,
     string? Name,
     LocalDate? TargetDate,
@@ -31,7 +32,7 @@ public sealed class ImportVersionDtoValidator : AbstractValidator<ImportVersionD
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(v => v.ProductName)
+        RuleFor(v => v.ProductId)
             .NotEmpty();
 
         RuleFor(v => v.Number)

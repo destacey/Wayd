@@ -6,7 +6,7 @@ namespace Wayd.Web.Api.Models.ProductManagement.Versions;
 /// <summary>
 /// A single CSV row for the version import.
 /// <para>
-/// The product is referenced by name, and a version is identified by that name together with its
+/// The product is referenced by id, and a version is identified by that product together with its
 /// <see cref="Number"/> — version strings are free text and only meaningful within one product, so two
 /// products may each hold a <c>1.0.0</c>.
 /// </para>
@@ -19,8 +19,15 @@ namespace Wayd.Web.Api.Models.ProductManagement.Versions;
 /// </summary>
 public sealed class ImportVersionRequest
 {
-    /// <summary>The product this version was cut against, by name. Must be a releasable type.</summary>
-    public string ProductName { get; set; } = default!;
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it. Falls back to the row's position when the column is absent, so a
+    /// hand-authored file still works.
+    /// </summary>
+    public string? ImportId { get; set; }
+
+    /// <summary>The product this version was cut against, by id. Must be a releasable type.</summary>
+    public Guid ProductId { get; set; }
 
     /// <summary>The version as the organization writes it. Free text, never parsed.</summary>
     public string Number { get; set; } = default!;
@@ -42,7 +49,7 @@ public sealed class ImportVersionRequest
     public string? Notes { get; set; }
 
     public ImportVersionDto ToImportVersionDto() =>
-        new(ProductName,
+        new(ProductId,
             Number,
             Name,
             TargetDate?.ToLocalDateTime().Date,
@@ -58,7 +65,7 @@ public sealed class ImportVersionRequestValidator : CustomValidator<ImportVersio
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(v => v.ProductName)
+        RuleFor(v => v.ProductId)
             .NotEmpty();
 
         RuleFor(v => v.Number)

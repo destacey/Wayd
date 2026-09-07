@@ -4497,10 +4497,10 @@ export class StrategicThemesClient {
     }
 
     /**
-     * Import strategic themes from a csv file.
+     * Submit a csv file of strategic themes to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/strategic-management/strategic-themes/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -4515,6 +4515,7 @@ export class StrategicThemesClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -4530,7 +4531,7 @@ export class StrategicThemesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -4540,9 +4541,12 @@ export class StrategicThemesClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -4562,7 +4566,7 @@ export class StrategicThemesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -6976,10 +6980,10 @@ export class ProductsClient {
     }
 
     /**
-     * Import products from a csv file.
+     * Submit a csv file of products to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/product-management/products/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -6994,6 +6998,7 @@ export class ProductsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -7009,7 +7014,7 @@ export class ProductsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -7019,9 +7024,12 @@ export class ProductsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -7041,7 +7049,7 @@ export class ProductsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -8766,11 +8774,11 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Import release packages from a csv file.
+     * Submit a csv file of release packages to import. Returns the id of the import to follow.
      * @param file (optional) 
      * @param manifestFile (optional) 
      */
-    import(file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -8789,6 +8797,7 @@ export class ReleasePackagesClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -8804,7 +8813,7 @@ export class ReleasePackagesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8814,9 +8823,12 @@ export class ReleasePackagesClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -8836,7 +8848,7 @@ export class ReleasePackagesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -9302,11 +9314,11 @@ export class ReleasesClient {
     }
 
     /**
-     * Import releases from a csv file.
+     * Submit a csv file of releases to import. Returns the id of the import to follow.
      * @param file (optional) 
      * @param contentsFile (optional) 
      */
-    import(file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/product-management/releases/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -9323,6 +9335,7 @@ export class ReleasesClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -9338,7 +9351,7 @@ export class ReleasesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9348,9 +9361,12 @@ export class ReleasesClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -9370,7 +9386,7 @@ export class ReleasesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -10084,10 +10100,10 @@ export class VersionsClient {
     }
 
     /**
-     * Import versions from a csv file.
+     * Submit a csv file of versions to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/product-management/versions/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -10102,6 +10118,7 @@ export class VersionsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -10117,7 +10134,7 @@ export class VersionsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -10127,9 +10144,12 @@ export class VersionsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -10149,7 +10169,7 @@ export class VersionsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -11372,10 +11392,10 @@ export class PortfoliosClient {
     }
 
     /**
-     * Import portfolios from a csv file.
+     * Submit a csv file of portfolios to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -11390,6 +11410,7 @@ export class PortfoliosClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -11405,7 +11426,7 @@ export class PortfoliosClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11415,9 +11436,12 @@ export class PortfoliosClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -11437,14 +11461,14 @@ export class PortfoliosClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
-     * Finalize imported programs and portfolios from a csv file.
+     * Submit a csv file of PPM finalizations to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    finalizeImport(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    finalizeImport(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/finalize/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -11459,6 +11483,7 @@ export class PortfoliosClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -11474,7 +11499,7 @@ export class PortfoliosClient {
         });
     }
 
-    protected processFinalizeImport(response: AxiosResponse): Promise<void> {
+    protected processFinalizeImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11484,9 +11509,12 @@ export class PortfoliosClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -11506,7 +11534,7 @@ export class PortfoliosClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -12668,10 +12696,10 @@ export class ProgramsClient {
     }
 
     /**
-     * Import programs from a csv file.
+     * Submit a csv file of programs to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/programs/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -12686,6 +12714,7 @@ export class ProgramsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -12701,7 +12730,7 @@ export class ProgramsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -12711,9 +12740,12 @@ export class ProgramsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -12733,7 +12765,7 @@ export class ProgramsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -14691,10 +14723,10 @@ export class ProjectsClient {
     }
 
     /**
-     * Import projects from a csv file.
+     * Submit a csv file of projects to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/projects/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -14709,6 +14741,7 @@ export class ProjectsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -14724,7 +14757,7 @@ export class ProjectsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -14734,9 +14767,12 @@ export class ProjectsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -14756,14 +14792,14 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
-     * Import project tasks from a csv file.
+     * Submit a csv file of project tasks to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    importTasks(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    importTasks(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/projects/tasks/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -14778,6 +14814,7 @@ export class ProjectsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -14793,7 +14830,7 @@ export class ProjectsClient {
         });
     }
 
-    protected processImportTasks(response: AxiosResponse): Promise<void> {
+    protected processImportTasks(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -14803,9 +14840,12 @@ export class ProjectsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -14825,14 +14865,14 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
-     * Import project stage statuses from a csv file.
+     * Submit a csv file of project stage statuses to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    importStages(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    importStages(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/projects/stages/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -14847,6 +14887,7 @@ export class ProjectsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -14862,7 +14903,7 @@ export class ProjectsClient {
         });
     }
 
-    protected processImportStages(response: AxiosResponse): Promise<void> {
+    protected processImportStages(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -14872,9 +14913,12 @@ export class ProjectsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -14894,7 +14938,7 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -17589,11 +17633,11 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Import strategic initiatives from a csv file.
+     * Submit a csv file of strategic initiatives to import. Returns the id of the import to follow.
      * @param file (optional) 
      * @param kpiFile (optional) 
      */
-    import(file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -17610,6 +17654,7 @@ export class StrategicInitiativesClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -17625,7 +17670,7 @@ export class StrategicInitiativesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -17635,9 +17680,12 @@ export class StrategicInitiativesClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -17657,7 +17705,7 @@ export class StrategicInitiativesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
@@ -31162,10 +31210,10 @@ export class TeamsClient {
     }
 
     /**
-     * Import teams and teams of teams from a csv file.
+     * Submit a csv file of teams to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/organization/teams/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -31180,6 +31228,7 @@ export class TeamsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -31195,7 +31244,7 @@ export class TeamsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<void> {
+    protected processImport(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -31205,9 +31254,12 @@ export class TeamsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -31227,14 +31279,14 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**
-     * Import team members (staffing) from a csv file.
+     * Submit a csv file of team staffing rows to import. Returns the id of the import to follow.
      * @param file (optional) 
      */
-    importMembers(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<void> {
+    importMembers(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/organization/teams/members/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -31249,6 +31301,7 @@ export class TeamsClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -31264,7 +31317,7 @@ export class TeamsClient {
         });
     }
 
-    protected processImportMembers(response: AxiosResponse): Promise<void> {
+    protected processImportMembers(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -31274,9 +31327,12 @@ export class TeamsClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 202) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<string>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -31296,7 +31352,7 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<string>(null as any);
     }
 
     /**

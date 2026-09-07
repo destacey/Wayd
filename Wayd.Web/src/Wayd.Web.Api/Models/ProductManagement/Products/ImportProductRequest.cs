@@ -5,21 +5,22 @@ namespace Wayd.Web.Api.Models.ProductManagement.Products;
 /// <summary>
 /// A single CSV row for the product import.
 /// <para>
-/// <see cref="Number"/> identifies the row <em>within the file only</em> and is never stored. It is
-/// what <see cref="ParentNumber"/> points at, so a child can name its parent before either has an Id.
-/// Names cannot serve that purpose: a tree legitimately holds the same name in two places, so keying
-/// on names would make such a file unimportable.
-/// </para>
-/// <para>
-/// <see cref="ParentNumber"/> must name another row in the same file, or be empty for a root. A
-/// product already in the catalog cannot be named as a parent — this import stands a catalog up
-/// rather than grafting single products onto one, which is what the screens are for.
+/// <see cref="ParentImportId"/> must name another row in the same file by its <see cref="ImportId"/>,
+/// or be empty for a root. A product already in the catalog cannot be named as a parent — this import
+/// stands a catalog up rather than grafting single products onto one, which is what the screens are
+/// for. Names cannot serve as the link: a tree legitimately holds the same name in two places, so
+/// keying on names would make such a file unimportable.
 /// </para>
 /// </summary>
 public sealed class ImportProductRequest
 {
-    /// <summary>The row's identifier within this file. Not persisted.</summary>
-    public string Number { get; set; } = default!;
+    /// <summary>
+    /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+    /// reported against it, and child rows name it as their ParentImportId. Falls back to the row's
+    /// position when the column is absent — but a file with parents should supply it, since a
+    /// position is a fragile thing to reference.
+    /// </summary>
+    public string? ImportId { get; set; }
 
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
@@ -27,8 +28,8 @@ public sealed class ImportProductRequest
     /// <summary>The product type by name, which must already exist and be active.</summary>
     public string ProductTypeName { get; set; } = default!;
 
-    /// <summary>The <see cref="Number"/> of another row in this file, or empty for a root product.</summary>
-    public string? ParentNumber { get; set; }
+    /// <summary>The <see cref="ImportId"/> of another row in this file, or empty for a root product.</summary>
+    public string? ParentImportId { get; set; }
 
     public string? ExternalId { get; set; }
 
@@ -50,11 +51,10 @@ public sealed class ImportProductRequest
     public string? Tags { get; set; }
 
     public ImportProductDto ToImportProductDto() =>
-        new(Number,
-            Name,
+        new(Name,
             Description,
             ProductTypeName,
-            ParentNumber,
+            string.IsNullOrWhiteSpace(ParentImportId) ? null : ParentImportId,
             ExternalId,
             Status,
             [.. CsvList.Split(Tags).Select(ParseTag)]);
@@ -79,10 +79,6 @@ public sealed class ImportProductRequestValidator : CustomValidator<ImportProduc
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(p => p.Number)
-            .NotEmpty()
-            .MaximumLength(64);
-
         RuleFor(p => p.Name)
             .NotEmpty()
             .MaximumLength(128);
@@ -96,10 +92,11 @@ public sealed class ImportProductRequestValidator : CustomValidator<ImportProduc
         RuleFor(p => p.ExternalId)
             .MaximumLength(256);
 
-        // Caught here rather than by the handler's cycle check, which sees only resolved references
-        // and would report this as an unresolvable one.
+        // Caught here rather than by the cycle check, which sees only resolved references and would
+        // report this as an unresolvable one.
         RuleFor(p => p)
-            .Must(p => !string.Equals(p.Number?.Trim(), p.ParentNumber?.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Must(p => string.IsNullOrWhiteSpace(p.ParentImportId)
+                || !string.Equals(p.ImportId?.Trim(), p.ParentImportId.Trim(), StringComparison.OrdinalIgnoreCase))
                 .WithMessage("A product cannot be its own parent.");
 
         // Reported against the raw column, which is what the author actually wrote — the parsed pairs

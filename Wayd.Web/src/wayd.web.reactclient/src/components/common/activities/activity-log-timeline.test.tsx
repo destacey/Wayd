@@ -83,12 +83,21 @@ describe('ActivityLogTimeline', () => {
   })
 
   it.each([
-    // 'deactivated' contains 'activated', so a badge rule ordered the other way round labels a
+    // Activation and deactivation share a tag, so 'deactivated' containing 'activated' cannot label a
     // deactivation as its opposite.
-    ['TeamDeactivatedEvent', 'Deactivated'],
-    ['TeamActivatedEvent', 'Activated'],
+    ['TeamDeactivatedEvent', 'State Change'],
+    ['TeamActivatedEvent', 'State Change'],
+    ['ProjectStatusChangedEvent', 'Status Change'],
+    // A health check event also contains 'added' / 'removed'; the health signal has to win.
+    ['ProjectHealthCheckAddedEvent', 'Health'],
+    ['ProjectHealthCheckRemovedEvent', 'Health'],
     ['TeamCreatedEvent', 'Created'],
+    ['VersionCutEvent', 'Created'],
+    // Destructive events stay scannable rather than reading like an ordinary edit.
+    ['ProjectDeletedEvent', 'Removed'],
+    ['DeploymentFailedEvent', 'Removed'],
     ['TeamUpdatedEvent', 'Updated'],
+    ['ProjectTimelineChangedEvent', 'Updated'],
   ])('badges %s as %s', (eventType, expectedBadge) => {
     render(
       <ActivityLogTimeline

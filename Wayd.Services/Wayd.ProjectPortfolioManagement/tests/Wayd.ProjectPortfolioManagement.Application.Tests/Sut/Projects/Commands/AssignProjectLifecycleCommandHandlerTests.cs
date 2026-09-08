@@ -45,7 +45,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
 
 
         _handler = new AssignProjectLifecycleCommandHandler(_dbContext, _mockCurrentPrincipal.Object,
-            _mockCurrentUser.Object, _mockLogger.Object);
+            _mockCurrentUser.Object, _dateTimeProvider, _mockLogger.Object);
 
         _projectFaker = new ProjectFaker();
         _lifecycleFaker = new ProjectLifecycleFaker();
@@ -112,7 +112,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"), ("Execute", "Execution"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         _dbContext.AddProject(project);
 
         var secondLifecycle = _lifecycleFaker.AsActiveWithStages(("Design", "Design Stage"), ("Build", "Build Stage"));

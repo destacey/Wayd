@@ -57,7 +57,7 @@ public sealed class ProjectTaskImportDefinitionTests : IDisposable
             clock.Now, PpmActor.System).Value;
 
         var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithStages((StageName, "Delivery"), ("Close", "Closure"));
-        _project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        _project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, clock.Now);
 
         _dbContext.AddProject(_project);
     }

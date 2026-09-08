@@ -252,6 +252,34 @@ How the tree reaches tests and the shipped image (see `.github/workflows/docker.
 - Service location is disabled (`ServiceLocationPolicy.NotAllowed`): codegen constructor-inlines handler dependencies. A handler dependency whose registered implementation class is `internal` needs an `AlwaysUseServiceLocationFor<T>()` allow-list entry in `WolverineConfiguration` (or a public implementation) — otherwise `codegen write` fails with an `InvalidServiceLocationException` naming the type.
 - **Two entries on that allow-list are there for correctness, not opaqueness, and removing either breaks behaviour rather than the build.** `AmbientUserId`: the middleware-written user id must be the same instance every consumer in the scope reads. **Every `IXxxDbContext` facade and `WaydDbContext` itself**: inline construction created one context *per interface*, so a handler taking two of them got two change trackers, and each was disposed at the end of the message. That is invisible to a handler using a single interface and was silently discarding work for the one that spans two — see Database below.
 
+### Domain Events
+
+Every event drained by `SaveChanges` is auto-captured into the `ActivityLogs` table, and a subscriber-less
+event is a no-op — so **a new event gets a full audit trail with no handler and no `DurableEventRoutes`
+entry**. Add it to that allow-list only when a consumer needs asynchronous delivery.
+
+Name events for **what happened**, never a generic `Updated`, and match the domain method that raises them
+(`ChangeLifecycle` → `ProjectLifecycleChangedEvent`). Each module has a marker interface (`IPpmEvent`,
+`IProductManagementEvent`) so projections handle the marker rather than a hand-listed set that goes stale
+the day someone forgets to register a new type.
+
+**Pick the raise method by payload shape** — the rule is in `BaseEntity`'s remarks and
+[architecture.mdx](docs/contributing/architecture.mdx#snapshot-events-supersede-movement-events-append):
+
+- `AddSupersedingDomainEvent` for **state snapshots** (roles, timeline, details). The last raise in a
+  transaction is the net result; earlier ones describe states never committed. Carry only the new value.
+- `AddDomainEvent` for **movement and ledger entries** (status transitions, health checks, scores). Each
+  occurrence is its own fact. `ProjectImportDefinition` fast-forwards a project through several statuses
+  before one save, and superseding would erase the path. Movement events carry both ends, because the
+  delta is the fact.
+
+Superseding matches on event **type**, so never use it for a child-entity event — it would collapse events
+about different health checks.
+
+Where an aggregate writes a durable record *and* an event about the same occurrence, give the event that
+record's id as its `EventId` (`ProjectStatusChangedEvent` takes the `ProjectStatusHistory` row's). That is
+what makes a backfill replaying old records idempotent forever.
+
 ### Database
 
 Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistence/Configuration/`. Migrations in `Wayd.Infrastructure.Migrators.MSSQL`. Auto-applied on startup via `app.Services.InitializeDatabases()`.

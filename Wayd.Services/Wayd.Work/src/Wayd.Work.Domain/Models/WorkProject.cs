@@ -38,4 +38,22 @@ public sealed class WorkProject : ISimpleProject, IHasIdAndKey<ProjectKey>
         Name = project.Name;
         Description = project.Description;
     }
+
+    /// <summary>
+    /// Applies a key change from PPM.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="UpdateDetails"/> because the event that carries a key change names only
+    /// the key: writing the other fields here would copy them from a payload that never claimed to
+    /// describe them.
+    /// </remarks>
+    public void ChangeKey(Guid projectId, ProjectKey key)
+    {
+        if (projectId != Id)
+        {
+            throw new ArgumentException("Project ID mismatch when changing the WorkProject key.", nameof(projectId));
+        }
+
+        Key = key;
+    }
 }

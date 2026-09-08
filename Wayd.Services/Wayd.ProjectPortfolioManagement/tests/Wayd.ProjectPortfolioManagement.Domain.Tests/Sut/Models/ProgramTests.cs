@@ -152,95 +152,6 @@ public class ProgramTests
     #region Roles
 
     [Fact]
-    public void AssignRole_ShouldAssignEmployeeToRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var program = _programFaker.Generate();
-
-        // Act
-        var result = program.AssignRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        program.Roles.Should().ContainSingle();
-        program.Roles.First().Role.Should().Be(ProgramRole.Owner);
-        program.Roles.First().EmployeeId.Should().Be(employeeId);
-    }
-
-    [Fact]
-    public void AssignRole_ShouldFail_WhenEmployeeAlreadyAssignedToRole()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
-        {
-            { ProgramRole.Owner, new HashSet<Guid> { employeeId } }
-        }).Generate();
-
-        // Act
-        var result = program.AssignRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Employee is already assigned to this role.");
-    }
-
-    [Fact]
-    public void RemoveRole_WithOneRoleAssignment_ShouldRemoveEmployeeFromRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
-        {
-            { ProgramRole.Owner, new HashSet<Guid> { employeeId } }
-        }).Generate();
-
-        // Act
-        var result = program.RemoveRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        program.Roles.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void RemoveRole_WithMultipleRoleAssignments_ShouldRemoveEmployeeFromRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId1 = Guid.NewGuid();
-        var employeeId2 = Guid.NewGuid();
-        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
-        {
-            { ProgramRole.Owner, new HashSet<Guid> { employeeId1, employeeId2 } }
-        }).Generate();
-
-        // Act
-        var result = program.RemoveRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId1);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        program.Roles.Count.Should().Be(1);
-        program.Roles.First().Role.Should().Be(ProgramRole.Owner);
-        program.Roles.First().EmployeeId.Should().Be(employeeId2);
-    }
-
-    [Fact]
-    public void RemoveRole_ShouldFail_WhenEmployeeNotAssignedToRole()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var program = _programFaker.Generate();
-
-        // Act
-        var result = program.RemoveRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Employee is not assigned to this role.");
-    }
-
-    [Fact]
     public void UpdateRoles_ShouldAssignNewRolesSuccessfully()
     {
         // Arrange
@@ -409,7 +320,7 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.AsActive(_dateTimeProvider);
         var project = _projectFaker.AsActive(_dateTimeProvider, program.PortfolioId);
-        program.AddProject(project);
+        program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
@@ -623,7 +534,7 @@ public class ProgramTests
         var project = _projectFaker.WithPortfolioId(portfolioId).Generate();
 
         // Act
-        var result = program.AddProject(project);
+        var result = program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -640,7 +551,7 @@ public class ProgramTests
         var project = _projectFaker.WithPortfolioId(portfolioId).Generate();
 
         // Act
-        var result = program.AddProject(project);
+        var result = program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -657,7 +568,7 @@ public class ProgramTests
         var project = _projectFaker.WithPortfolioId(portfolioId2).Generate();
 
         // Act
-        var result = program.AddProject(project);
+        var result = program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -672,10 +583,10 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider, portfolioId);
         var project = _projectFaker.WithPortfolioId(portfolioId).Generate();
 
-        program.AddProject(project);
+        program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = program.AddProject(project);
+        var result = program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -690,7 +601,7 @@ public class ProgramTests
         var project = _projectFaker.Generate();
 
         // Act
-        var result = program.RemoveProject(project);
+        var result = program.RemoveProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

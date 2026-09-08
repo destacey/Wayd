@@ -60,6 +60,8 @@ public sealed class DomainEventEnvelopeSerializationTests
             "Apollo",
             "A project",
             expenditureCategoryId: 3,
+            businessCase: "Consolidates three regional trackers.",
+            expectedBenefits: "One source of truth for regional delivery dates.",
             EventActor.Import("user-100"),
             Instant.FromUnixTimeSeconds(1_700_000_100));
 
@@ -72,9 +74,11 @@ public sealed class DomainEventEnvelopeSerializationTests
         restored!.EventId.Should().Be(original.EventId);
         restored.Actor.Kind.Should().Be(EventActorKind.Import, "the mechanism must survive, not just the user behind it");
         restored.Actor.UserId.Should().Be("user-100");
-        restored.EventVersion.Should().Be("1.0");
+        restored.EventVersion.Should().Be("1.1", "an event that declares a version other than the default must carry it through the outbox");
         restored.Name.Should().Be("Apollo", "the payload must round-trip unchanged alongside the envelope");
         restored.ExpenditureCategoryId.Should().Be(3);
+        restored.BusinessCase.Should().Be("Consolidates three regional trackers.");
+        restored.ExpectedBenefits.Should().Be("One source of truth for regional delivery dates.");
     }
 
     [Fact]

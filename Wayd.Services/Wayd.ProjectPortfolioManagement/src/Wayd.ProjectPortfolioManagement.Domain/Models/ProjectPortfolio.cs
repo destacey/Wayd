@@ -176,50 +176,6 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Assigns an employee to a role on behalf of an actor who must be authorized to manage the portfolio.
-    /// Role assignment is gated because it is the path by which membership itself is granted — leaving it
-    /// open would let any holder of the Update permission make themselves an Owner.
-    /// </summary>
-    /// <param name="actor">The acting employee and their administrator standing.</param>
-    /// <param name="role">The role to assign.</param>
-    /// <param name="employeeId">The employee receiving the role.</param>
-    public Result AssignRole(PpmActor actor, ProjectPortfolioRole role, Guid employeeId)
-    {
-        if (!CanManagePortfolio(actor))
-        {
-            return Result.Failure(UnauthorizedManageActorError);
-        }
-
-        if (IsReadOnly)
-        {
-            return Result.Failure(ReadOnlyErrorMessage);
-        }
-
-        return RoleManager.AssignRole(_roles, Id, role, employeeId);
-    }
-
-    /// <summary>
-    /// Removes an employee from a role on behalf of an actor who must be authorized to manage the portfolio.
-    /// </summary>
-    /// <param name="actor">The acting employee and their administrator standing.</param>
-    /// <param name="role">The role to remove.</param>
-    /// <param name="employeeId">The employee losing the role.</param>
-    public Result RemoveRole(PpmActor actor, ProjectPortfolioRole role, Guid employeeId)
-    {
-        if (!CanManagePortfolio(actor))
-        {
-            return Result.Failure(UnauthorizedManageActorError);
-        }
-
-        if (IsReadOnly)
-        {
-            return Result.Failure(ReadOnlyErrorMessage);
-        }
-
-        return RoleManager.RemoveAssignment(_roles, role, employeeId);
-    }
-
-    /// <summary>
     /// Replaces the portfolio's role assignments on behalf of an actor who must be authorized to manage it.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
@@ -688,7 +644,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         // Associate the project with the program if provided
         if (program is not null)
         {
-            var addToProgramResult = program.AddProject(project);
+            var addToProgramResult = program.AddProject(project, actor.ToEventActor(), timestamp);
             if (addToProgramResult.IsFailure)
             {
                 return Result.Failure<Project>(addToProgramResult.Error);
@@ -706,7 +662,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="projectId">The project to reassign.</param>
     /// <param name="programId">The new program, or null to remove the project from its program.</param>
-    public Result ChangeProjectProgram(PpmActor actor, Guid projectId, Guid? programId)
+    public Result ChangeProjectProgram(PpmActor actor, Guid projectId, Guid? programId, Instant timestamp)
     {
         var project = _projects.SingleOrDefault(p => p.Id == projectId);
         if (project is null)
@@ -749,7 +705,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             {
                 return Result.Failure("The project is associated with an invalid program.");
             }
-            var removeProjectResult = currentProgram.RemoveProject(project);
+            var removeProjectResult = currentProgram.RemoveProject(project, actor.ToEventActor(), timestamp);
             if (removeProjectResult.IsFailure)
             {
                 return Result.Failure(removeProjectResult.Error);
@@ -758,7 +714,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 
         if (program is not null)
         {
-            var addToProgramResult = program.AddProject(project);
+            var addToProgramResult = program.AddProject(project, actor.ToEventActor(), timestamp);
             if (addToProgramResult.IsFailure)
             {
                 return Result.Failure(addToProgramResult.Error);
@@ -766,7 +722,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         }
         else
         {
-            var removeFromProgramResult = project.UpdateProgram(null);
+            var removeFromProgramResult = project.UpdateProgram(null, actor.ToEventActor(), timestamp);
             if (removeFromProgramResult.IsFailure)
             {
                 return Result.Failure(removeFromProgramResult.Error);
@@ -848,7 +804,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
                 return Result.Failure("The project is associated with an invalid program.");
             }
 
-            var removeProjectResult = program.RemoveProject(project);
+            var removeProjectResult = program.DetachProjectForDeletion(project);
             if (removeProjectResult.IsFailure)
             {
                 return Result.Failure(removeProjectResult.Error);

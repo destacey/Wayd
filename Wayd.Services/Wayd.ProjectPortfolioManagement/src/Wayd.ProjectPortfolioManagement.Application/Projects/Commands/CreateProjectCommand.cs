@@ -175,7 +175,7 @@ public sealed class CreateProjectCommandHandler(
 
                 // PpmActor.System: this runs as part of creating the project, so nobody holds a role on it
                 // yet. Authorization for creation is the caller's Permissions.Projects.Create claim.
-                var assignResult = project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+                var assignResult = project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
                 if (assignResult.IsFailure)
                 {
                     _logger.LogWarning("Unable to assign lifecycle to project {ProjectId}. Error: {Error}", project.Id, assignResult.Error);

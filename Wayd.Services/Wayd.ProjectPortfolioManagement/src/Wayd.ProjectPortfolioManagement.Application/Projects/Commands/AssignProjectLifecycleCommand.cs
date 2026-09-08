@@ -20,6 +20,7 @@ public sealed class AssignProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<AssignProjectLifecycleCommandHandler> logger)
     : ICommandHandler<AssignProjectLifecycleCommand>
 {
@@ -28,6 +29,7 @@ public sealed class AssignProjectLifecycleCommandHandler(
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AssignProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(AssignProjectLifecycleCommand request, CancellationToken cancellationToken)
@@ -60,7 +62,7 @@ public sealed class AssignProjectLifecycleCommandHandler(
                 return Result.Failure($"Project Lifecycle {request.LifecycleId} not found.");
             }
 
-            var result = project.AssignLifecycle(actor, project.AncestryRoles(), lifecycle);
+            var result = project.AssignLifecycle(actor, project.AncestryRoles(), lifecycle, _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogWarning("Unable to assign lifecycle to project {ProjectId}. Error: {Error}", request.ProjectId, result.Error);

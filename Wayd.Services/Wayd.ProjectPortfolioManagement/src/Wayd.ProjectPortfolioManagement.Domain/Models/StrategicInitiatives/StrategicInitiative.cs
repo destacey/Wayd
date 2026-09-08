@@ -117,22 +117,6 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Assigns an employee to a specific role within the strategic initiative, allowing multiple employees per role.
-    /// </summary>
-    public Result AssignRole(StrategicInitiativeRole role, Guid employeeId)
-    {
-        return RoleManager.AssignRole(_roles, Id, role, employeeId);
-    }
-
-    /// <summary>
-    /// Removes an employee from a specific role.
-    /// </summary>
-    public Result RemoveRole(StrategicInitiativeRole role, Guid employeeId)
-    {
-        return RoleManager.RemoveAssignment(_roles, role, employeeId);
-    }
-
-    /// <summary>
     /// Updates the roles for the strategic initiative.
     /// </summary>
     /// <param name="updatedRoles"></param>

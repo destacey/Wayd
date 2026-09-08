@@ -289,62 +289,53 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         ExpectedBenefits = expectedBenefits?.Trim();
         ExpenditureCategoryId = expenditureCategoryId;
 
-        AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, actor.ToEventActor(), timestamp));
+        AddSupersedingDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, BusinessCase, ExpectedBenefits, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Assigns an employee to a role on behalf of an actor who must be authorized to manage the project.
+    /// Replaces the project's role assignments on behalf of an actor who must be authorized to manage it.
+    /// The only way to change them: the API, the importers and the agent tools all replace the whole set,
+    /// and a single entry point means one authorization check and one event describing the net result.
     /// Role assignment is gated because it is the path by which membership itself is granted — leaving it
     /// open would let any holder of the Update permission make themselves an Owner.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
-    /// <param name="role">The role to assign.</param>
-    /// <param name="employeeId">The employee receiving the role.</param>
-    public Result AssignRole(PpmActor actor, ProjectAncestryRoles ancestry, ProjectRole role, Guid employeeId)
-    {
-        if (!CanManageProject(actor, ancestry))
-        {
-            return Result.Failure(UnauthorizedManageActorError);
-        }
-
-        return RoleManager.AssignRole(_roles, Id, role, employeeId);
-    }
-
-    /// <summary>
-    /// Removes an employee from a role on behalf of an actor who must be authorized to manage the project.
-    /// </summary>
-    /// <param name="actor">The acting employee and their administrator standing.</param>
-    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
-    /// <param name="role">The role to remove.</param>
-    /// <param name="employeeId">The employee losing the role.</param>
-    public Result RemoveRole(PpmActor actor, ProjectAncestryRoles ancestry, ProjectRole role, Guid employeeId)
-    {
-        if (!CanManageProject(actor, ancestry))
-        {
-            return Result.Failure(UnauthorizedManageActorError);
-        }
-
-        return RoleManager.RemoveAssignment(_roles, role, employeeId);
-    }
-
-    /// <summary>
-    /// Replaces the project's role assignments on behalf of an actor who must be authorized to manage it.
-    /// </summary>
-    /// <param name="actor">The acting employee and their administrator standing.</param>
-    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="updatedRoles">The replacement role assignments.</param>
-    public Result UpdateRoles(PpmActor actor, ProjectAncestryRoles ancestry, Dictionary<ProjectRole, HashSet<Guid>> updatedRoles)
+    public Result UpdateRoles(PpmActor actor, ProjectAncestryRoles ancestry, Dictionary<ProjectRole, HashSet<Guid>> updatedRoles, Instant timestamp)
     {
         if (!CanManageProject(actor, ancestry))
         {
             return Result.Failure(UnauthorizedManageActorError);
         }
 
-        return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        var before = RoleMap();
+
+        var result = RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        // A whole-record update replaces the role lists on every save, so most calls change nothing.
+        // Raising regardless would bury the calls that did change leadership.
+        var after = RoleMap();
+        if (!SameRoleMap(before, after))
+        {
+            AddSupersedingDomainEvent(new ProjectRolesChangedEvent(Id, Key, Name, after, actor.ToEventActor(), timestamp));
+        }
+
+        return result;
     }
+
+    private static bool SameRoleMap(Dictionary<int, Guid[]> before, Dictionary<int, Guid[]> after) =>
+        before.Count == after.Count
+        && before.All(entry =>
+            after.TryGetValue(entry.Key, out var employees)
+            && entry.Value.Length == employees.Length
+            && entry.Value.OrderBy(x => x).SequenceEqual(employees.OrderBy(x => x)));
 
     /// <summary>
     /// Updates the project's timeline on behalf of an actor who must be authorized to manage it. Dates
@@ -353,7 +344,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="dateRange">The new timeline, or null to clear it.</param>
-    public Result UpdateTimeline(PpmActor actor, ProjectAncestryRoles ancestry, LocalDateRange? dateRange)
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result UpdateTimeline(PpmActor actor, ProjectAncestryRoles ancestry, LocalDateRange? dateRange, Instant timestamp)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -365,7 +357,14 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure("Active and completed projects must have a start and end date.");
         }
 
+        if (Equals(DateRange, dateRange))
+        {
+            return Result.Success();
+        }
+
         DateRange = dateRange;
+
+        AddSupersedingDomainEvent(new ProjectTimelineChangedEvent(Id, Key, Name, DateRange, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -394,7 +393,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         Key = key;
 
-        AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, actor.ToEventActor(), timestamp));
+        AddSupersedingDomainEvent(new ProjectKeyChangedEvent(Id, Key, Name, actor.ToEventActor(), timestamp));
 
         foreach (var task in _tasks)
         {
@@ -409,6 +408,12 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
+    /// The project's role assignments in the shape every role-carrying event publishes them.
+    /// </summary>
+    private Dictionary<int, Guid[]> RoleMap() =>
+        _roles.GroupBy(x => (int)x.Role).ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray());
+
+    /// <summary>
     /// Repositions this project within its portfolio's ranking. Internal so only the owning
     /// <see cref="ProjectPortfolio"/> aggregate sets it (callers go through MoveProjectRanks /
     /// RebalanceRanks).
@@ -420,11 +425,16 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     /// <param name="program"></param>
     /// <returns></returns>
-    internal Result UpdateProgram(Program? program)
+    internal Result UpdateProgram(Program? program, EventActor actor, Instant timestamp)
     {
         if (program is null)
         {
-            ProgramId = null;
+            if (ProgramId is not null)
+            {
+                ProgramId = null;
+                AddSupersedingDomainEvent(new ProjectReparentedEvent(Id, Key, Name, PortfolioId, null, actor, timestamp));
+            }
+
             return Result.Success();
         }
 
@@ -433,29 +443,55 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure("The project must belong to the same portfolio as the program.");
         }
 
+        if (ProgramId == program.Id)
+        {
+            return Result.Success();
+        }
+
         ProgramId = program.Id;
+
+        AddSupersedingDomainEvent(new ProjectReparentedEvent(Id, Key, Name, PortfolioId, ProgramId, actor, timestamp));
 
         return Result.Success();
     }
 
     /// <summary>
+    /// Drops the program association without announcing a reparenting, for a project that is being
+    /// deleted. The project is about to stop existing, so "moved out of its program" is not a fact
+    /// anyone needs; <c>ProjectDeletedEvent</c> is the whole story.
+    /// </summary>
+    internal void ClearProgramForDeletion() => ProgramId = null;
+
+    /// <summary>
     /// Associates a strategic theme with this project.
     /// </summary>
-    public Result AddStrategicTheme(Guid strategicThemeId)
+    public Result AddStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
     {
         Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
 
-        return StrategicThemeTagManager<Project>.AddStrategicThemeTag(_strategicThemeTags, Id, strategicThemeId, "project");
+        var result = StrategicThemeTagManager<Project>.AddStrategicThemeTag(_strategicThemeTags, Id, strategicThemeId, "project");
+        if (result.IsSuccess)
+        {
+            RaiseStrategicThemesChanged(actor, timestamp);
+        }
+
+        return result;
     }
 
     /// <summary>
     /// Removes a strategic theme from this project.
     /// </summary>
-    public Result RemoveStrategicTheme(Guid strategicThemeId)
+    public Result RemoveStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
     {
         Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
 
-        return StrategicThemeTagManager<Project>.RemoveStrategicThemeTag(_strategicThemeTags, strategicThemeId, "project");
+        var result = StrategicThemeTagManager<Project>.RemoveStrategicThemeTag(_strategicThemeTags, strategicThemeId, "project");
+        if (result.IsSuccess)
+        {
+            RaiseStrategicThemesChanged(actor, timestamp);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -463,12 +499,32 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     /// <param name="strategicThemeIds"></param>
     /// <returns></returns>
-    public Result UpdateStrategicThemes(HashSet<Guid> strategicThemeIds)
+    public Result UpdateStrategicThemes(HashSet<Guid> strategicThemeIds, PpmActor actor, Instant timestamp)
     {
         Guard.Against.Null(strategicThemeIds, nameof(strategicThemeIds));
 
-        return StrategicThemeTagManager<Project>.UpdateTags(_strategicThemeTags, Id, strategicThemeIds, "project");
+        var before = _strategicThemeTags.Select(x => x.StrategicThemeId).ToHashSet();
+
+        var result = StrategicThemeTagManager<Project>.UpdateTags(_strategicThemeTags, Id, strategicThemeIds, "project");
+
+        // The update command replaces the tag set on every save, so raising unconditionally would report
+        // a change on edits that never touched the themes.
+        if (result.IsSuccess && !before.SetEquals(_strategicThemeTags.Select(x => x.StrategicThemeId)))
+        {
+            RaiseStrategicThemesChanged(actor, timestamp);
+        }
+
+        return result;
     }
+
+    private void RaiseStrategicThemesChanged(PpmActor actor, Instant timestamp) =>
+        AddSupersedingDomainEvent(new ProjectStrategicThemesChangedEvent(
+            Id,
+            Key,
+            Name,
+            [.. _strategicThemeTags.Select(x => x.StrategicThemeId)],
+            actor.ToEventActor(),
+            timestamp));
 
     #region Lifecycle
 
@@ -478,7 +534,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="lifecycle">The lifecycle to assign. Must be in Active state.</param>
-    public Result AssignLifecycle(PpmActor actor, ProjectAncestryRoles ancestry, ProjectLifecycle lifecycle)
+    public Result AssignLifecycle(PpmActor actor, ProjectAncestryRoles ancestry, ProjectLifecycle lifecycle, Instant timestamp)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -509,6 +565,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             _stages.Add(ProjectStage.Create(Id, lifecycleStage));
         }
 
+        AddSupersedingDomainEvent(new ProjectLifecycleAssignedEvent(
+            Id, Key, Name, lifecycle.Id, lifecycle.Name, _stages.Count, actor.ToEventActor(), timestamp));
+
         return Result.Success();
     }
 
@@ -523,7 +582,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         PpmActor actor,
         ProjectAncestryRoles ancestry,
         ProjectLifecycle newLifecycle,
-        Dictionary<Guid, Guid> stageMapping)
+        Dictionary<Guid, Guid> stageMapping,
+        Instant timestamp)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -598,6 +658,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         }
 
         // Remap all tasks to new stages
+        var remappedTaskCount = 0;
         foreach (var task in _tasks)
         {
             if (oldToNewStageMap.TryGetValue(task.ProjectStageId, out var newStageId))
@@ -609,6 +670,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
                 // Stage had no tasks (wasn't in the mapping), assign to first new stage
                 task.ChangeStage(newStages.First().Id);
             }
+
+            remappedTaskCount++;
         }
 
         // Remove old stages and add new ones
@@ -619,6 +682,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         }
 
         ProjectLifecycleId = newLifecycle.Id;
+
+        AddSupersedingDomainEvent(new ProjectLifecycleChangedEvent(
+            Id, Key, Name, newLifecycle.Id, newLifecycle.Name, _stages.Count, remappedTaskCount, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -858,10 +924,30 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             reason,
             StatusTransitionCount + 1);
 
+        var fromStatus = Status;
+
         StatusTransitionCount++;
         Status = toStatus;
 
         _statusHistory.Add(entry);
+
+        // The event carries the history row's id as its own, so the transition and its record share one
+        // identity. That is what lets history written before this event existed be replayed into the
+        // activity log without duplicating a transition that already raised one.
+        AddDomainEvent(new ProjectStatusChangedEvent(
+            entry.Id,
+            Id,
+            Key,
+            Name,
+            fromStatus.ToString(),
+            ProjectStatusLifecycle.CategoryOf(fromStatus),
+            toStatus.ToString(),
+            ProjectStatusLifecycle.CategoryOf(toStatus),
+            ProjectStatusLifecycle.IsBackwardTransition(fromStatus, toStatus),
+            reason,
+            entry.Sequence,
+            actor.ToEventActor(),
+            timestamp));
     }
 
     #endregion Lifecycle
@@ -1414,36 +1500,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure<ProjectScore>(UnauthorizedScoreActorError);
         }
 
-        return RecordScoreCore(model, ratingValuesByCriterionId, selectedLevels, actor.EmployeeId, timestamp);
-    }
-
-    /// <summary>
-    /// Records a new score for the project from a calculated scoring model result, capturing an immutable
-    /// snapshot of the ratings and computed outputs. The actor must be authorized per <see cref="CanManageProject"/>.
-    /// The supplied <paramref name="model"/> is read only — it is never attached to this aggregate.
-    /// </summary>
-    /// <param name="model">The active scoring model assigned to the project's portfolio.</param>
-    /// <param name="ratingValuesByCriterionId">The numeric rating value for each criterion, keyed by criterion ID.</param>
-    /// <param name="selectedLevels">For scale-rated criteria, the selected (level id, label) keyed by criterion ID.</param>
-    /// <param name="actorEmployeeId">The ID of the employee recording the score.</param>
-    /// <param name="portfolioRoles">The actor's roles in the parent portfolio.</param>
-    /// <param name="programRoles">The actor's roles in the parent program, if applicable.</param>
-    /// <param name="timestamp">The current time.</param>
-    public Result<ProjectScore> RecordScore(
-        ScoringModel model,
-        IReadOnlyDictionary<Guid, decimal> ratingValuesByCriterionId,
-        IReadOnlyDictionary<Guid, (Guid LevelId, string Label)>? selectedLevels,
-        Guid actorEmployeeId,
-        IEnumerable<RoleAssignment<ProjectPortfolioRole>> portfolioRoles,
-        IEnumerable<RoleAssignment<ProgramRole>>? programRoles,
-        Instant timestamp)
-    {
-        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
-        {
-            return Result.Failure<ProjectScore>(UnauthorizedScoreActorError);
-        }
-
-        return RecordScoreCore(model, ratingValuesByCriterionId, selectedLevels, actorEmployeeId, timestamp);
+        return RecordScoreCore(model, ratingValuesByCriterionId, selectedLevels, actor, timestamp);
     }
 
     /// <summary>
@@ -1454,7 +1511,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         ScoringModel model,
         IReadOnlyDictionary<Guid, decimal> ratingValuesByCriterionId,
         IReadOnlyDictionary<Guid, (Guid LevelId, string Label)>? selectedLevels,
-        Guid actorEmployeeId,
+        PpmActor actor,
         Instant timestamp)
     {
         Guard.Against.Null(model, nameof(model));
@@ -1474,7 +1531,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             calculation.Value,
             ratingValuesByCriterionId,
             selectedLevels,
-            actorEmployeeId,
+            actor.EmployeeId,
             timestamp,
             sequence);
 
@@ -1483,9 +1540,22 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         CurrentScore = new ScoreSummary(
             calculation.Value.PrimaryValue,
             timestamp,
-            actorEmployeeId,
+            actor.EmployeeId,
             model.Id,
             model.Name);
+
+        AddDomainEvent(new ProjectScoreRecordedEvent(
+            Id,
+            Key,
+            Name,
+            score.Id,
+            model.Id,
+            model.Name,
+            calculation.Value.PrimaryValue,
+            sequence,
+            actor.EmployeeId,
+            actor.ToEventActor(),
+            timestamp));
 
         return Result.Success(score);
     }
@@ -1496,35 +1566,6 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
     private const string UnauthorizedHealthCheckActorError =
         "Only the project's owner or manager — or the parent portfolio's or program's owner or manager — may manage health checks.";
-
-    /// <summary>
-    /// Adds a new health check to the project, attributed to <paramref name="actorEmployeeId"/>.
-    /// The actor must be authorized per <see cref="CanManageProject"/>; if the latest
-    /// existing check has not yet expired at <paramref name="now"/>, its expiration is truncated
-    /// so that no two checks are active simultaneously.
-    /// </summary>
-    /// <param name="status">The health status of the new check.</param>
-    /// <param name="actorEmployeeId">The ID of the employee adding the health check.</param>
-    /// <param name="portfolioRoles">The roles of the actor in the portfolio.</param>
-    /// <param name="programRoles">The roles of the actor in the program, if applicable.</param>
-    /// <param name="expiration">The expiration time of the health check.</param>
-    /// <param name="note">An optional note for the health check.</param>
-    /// <param name="now">The current time.</param>
-    /// <returns>The result of the operation, including the newly added health check if successful.</returns>
-    public Result<ProjectHealthCheck> AddHealthCheck(
-        HealthStatus status,
-        Guid actorEmployeeId,
-        IEnumerable<RoleAssignment<ProjectPortfolioRole>> portfolioRoles,
-        IEnumerable<RoleAssignment<ProgramRole>>? programRoles,
-        Instant expiration,
-        string? note,
-        Instant now)
-    {
-        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
-            return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
-
-        return AddHealthCheckCore(status, actorEmployeeId, expiration, note, now);
-    }
 
     /// <summary>
     /// Adds a health check on behalf of an actor who must be authorized to manage the project. Honours the
@@ -1547,7 +1588,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (!CanManageProject(actor, ancestry))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
-        return AddHealthCheckCore(status, actor.EmployeeId, expiration, note, now);
+        return AddHealthCheckCore(status, actor, expiration, note, now);
     }
 
     /// <summary>
@@ -1555,7 +1596,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     private Result<ProjectHealthCheck> AddHealthCheckCore(
         HealthStatus status,
-        Guid actorEmployeeId,
+        PpmActor actor,
         Instant expiration,
         string? note,
         Instant now)
@@ -1563,43 +1604,17 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (expiration <= now)
             return Result.Failure<ProjectHealthCheck>("Expiration must be in the future.");
 
-        var newCheck = new ProjectHealthCheck(Id, status, actorEmployeeId, now, expiration, note);
+        var newCheck = new ProjectHealthCheck(Id, status, actor.EmployeeId, now, expiration, note);
 
         var report = new HealthReport<ProjectHealthCheck>(_healthChecks);
         report.Add(newCheck, now);
 
         _healthChecks.Add(newCheck);
 
+        AddDomainEvent(new ProjectHealthCheckAddedEvent(
+            Id, Key, Name, newCheck.Id, status, note, expiration, actor.EmployeeId, actor.ToEventActor(), now));
+
         return Result.Success(newCheck);
-    }
-
-    /// <summary>
-    /// Updates an existing (non-expired) health check on this project. The actor must be
-    /// authorized at the time of the action — original reporters do not get special treatment.
-    /// </summary>
-    /// <param name="healthCheckId">The ID of the health check to update.</param>
-    /// <param name="actorEmployeeId">The ID of the employee updating the health check.</param>
-    /// <param name="portfolioRoles">The roles of the actor in the portfolio.</param>
-    /// <param name="programRoles">The roles of the actor in the program, if applicable.</param>
-    /// <param name="status">The new health status.</param>
-    /// <param name="expiration">The new expiration time.</param>
-    /// <param name="note">An optional note for the health check.</param>
-    /// <param name="now">The current time.</param>
-    /// <returns>The result of the operation, including the updated health check if successful.</returns>
-    public Result<ProjectHealthCheck> UpdateHealthCheck(
-        Guid healthCheckId,
-        Guid actorEmployeeId,
-        IEnumerable<RoleAssignment<ProjectPortfolioRole>> portfolioRoles,
-        IEnumerable<RoleAssignment<ProgramRole>>? programRoles,
-        HealthStatus status,
-        Instant expiration,
-        string? note,
-        Instant now)
-    {
-        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
-            return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
-
-        return UpdateHealthCheckCore(healthCheckId, status, expiration, note, now);
     }
 
     /// <summary>
@@ -1625,7 +1640,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (!CanManageProject(actor, ancestry))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
-        return UpdateHealthCheckCore(healthCheckId, status, expiration, note, now);
+        return UpdateHealthCheckCore(healthCheckId, status, expiration, note, now, actor);
     }
 
     /// <summary>
@@ -1636,7 +1651,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         HealthStatus status,
         Instant expiration,
         string? note,
-        Instant now)
+        Instant now,
+        PpmActor actor)
     {
         var healthCheck = _healthChecks.FirstOrDefault(h => h.Id == healthCheckId);
         if (healthCheck is null)
@@ -1646,27 +1662,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (updateResult.IsFailure)
             return Result.Failure<ProjectHealthCheck>(updateResult.Error);
 
+        AddDomainEvent(new ProjectHealthCheckUpdatedEvent(
+            Id, Key, Name, healthCheck.Id, status, note, expiration, actor.ToEventActor(), now));
+
         return Result.Success(healthCheck);
-    }
-
-    /// <summary>
-    /// Removes a health check from this project. The actor must be authorized at the time of the action.
-    /// </summary>
-    /// <param name="healthCheckId">The ID of the health check to remove.</param>
-    /// <param name="actorEmployeeId">The ID of the employee removing the health check.</param>
-    /// <param name="portfolioRoles">The roles of the actor in the portfolio.</param>
-    /// <param name="programRoles">The roles of the actor in the program, if applicable.</param>
-    /// <returns>The result of the operation, including the removed health check if successful.</returns>
-    public Result<ProjectHealthCheck> RemoveHealthCheck(
-        Guid healthCheckId,
-        Guid actorEmployeeId,
-        IEnumerable<RoleAssignment<ProjectPortfolioRole>> portfolioRoles,
-        IEnumerable<RoleAssignment<ProgramRole>>? programRoles)
-    {
-        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
-            return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
-
-        return RemoveHealthCheckCore(healthCheckId);
     }
 
     /// <summary>
@@ -1676,27 +1675,33 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// <param name="healthCheckId">The ID of the health check to remove.</param>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="now">The current time.</param>
     public Result<ProjectHealthCheck> RemoveHealthCheck(
         Guid healthCheckId,
         PpmActor actor,
-        ProjectAncestryRoles ancestry)
+        ProjectAncestryRoles ancestry,
+        Instant now)
     {
         if (!CanManageProject(actor, ancestry))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
-        return RemoveHealthCheckCore(healthCheckId);
+        return RemoveHealthCheckCore(healthCheckId, actor, now);
     }
 
     /// <summary>
     /// Removes the health check once authorization has been established by a calling overload.
     /// </summary>
-    private Result<ProjectHealthCheck> RemoveHealthCheckCore(Guid healthCheckId)
+    private Result<ProjectHealthCheck> RemoveHealthCheckCore(Guid healthCheckId, PpmActor actor, Instant now)
     {
         var healthCheck = _healthChecks.FirstOrDefault(h => h.Id == healthCheckId);
         if (healthCheck is null)
             return Result.Failure<ProjectHealthCheck>($"Health check {healthCheckId} not found on project {Id}.");
 
         _healthChecks.Remove(healthCheck);
+
+        AddDomainEvent(new ProjectHealthCheckRemovedEvent(
+            Id, Key, Name, healthCheck.Id, healthCheck.Status, actor.ToEventActor(), now));
+
         return Result.Success(healthCheck);
     }
 
@@ -1769,7 +1774,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     {
         var project = new Project(name, description, key, ProjectStatus.Proposed, expenditureCategoryId, dateRange, portfolioId, rank, programId, businessCase, expectedBenefits, roles, strategicThemes);
 
-        project._statusHistory.Add(new ProjectStatusHistory(
+        var originEntry = new ProjectStatusHistory(
             project.Id,
             fromStatus: null,
             ProjectStatus.Proposed,
@@ -1778,7 +1783,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             timestamp,
             ProjectStatusHistorySource.Recorded,
             reason: null,
-            sequence: 1));
+            sequence: 1);
+
+        project._statusHistory.Add(originEntry);
 
         // The origin row is written here rather than through ChangeStatus, so the count is set to match
         // it explicitly.
@@ -1793,6 +1800,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
                 project.DateRange,
                 project.PortfolioId,
                 project.ProgramId,
+                project.BusinessCase,
+                project.ExpectedBenefits,
                 project.Roles
                     .GroupBy(x => (int)x.Role)
                     .ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray()),
@@ -1800,6 +1809,26 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
                 actor.ToEventActor(),
                 timestamp
             )));
+
+        // Raised here rather than by ChangeStatus, which the origin row deliberately bypasses. Without
+        // it a created project would record no transition while an existing one has its origin row
+        // replayed into the log, so the two would disagree about how a project's history starts.
+        // Post-persistence for the same reason the created event is: Key is assigned on insert.
+        project.AddPostPersistenceAction(() => project.AddDomainEvent(
+            new ProjectStatusChangedEvent(
+                originEntry.Id,
+                project.Id,
+                project.Key,
+                project.Name,
+                fromStatus: null,
+                fromCategory: null,
+                ProjectStatus.Proposed.ToString(),
+                ProjectStatusLifecycle.CategoryOf(ProjectStatus.Proposed),
+                isBackward: false,
+                reason: null,
+                originEntry.Sequence,
+                actor.ToEventActor(),
+                timestamp)));
 
         return project;
     }

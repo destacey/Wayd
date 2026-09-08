@@ -152,7 +152,7 @@ public sealed class ProjectImportDefinition(
 
             if (lifecycle is not null)
             {
-                var assigned = project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+                var assigned = project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, At(data.CreatedOn));
                 if (assigned.IsFailure)
                 {
                     row.Failed($"Could not assign lifecycle '{lifecycle.Name}' to project '{key}': {assigned.Error}");

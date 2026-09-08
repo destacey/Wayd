@@ -197,42 +197,6 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     }
 
     /// <summary>
-    /// Assigns an employee to a role on behalf of an actor who must be authorized to manage the program.
-    /// Role assignment is gated because it is the path by which membership itself is granted — leaving it
-    /// open would let any holder of the Update permission make themselves an Owner.
-    /// </summary>
-    /// <param name="actor">The acting employee and their administrator standing.</param>
-    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
-    /// <param name="role">The role to assign.</param>
-    /// <param name="employeeId">The employee receiving the role.</param>
-    public Result AssignRole(PpmActor actor, ProgramAncestryRoles ancestry, ProgramRole role, Guid employeeId)
-    {
-        if (!CanManageProgram(actor, ancestry))
-        {
-            return Result.Failure(UnauthorizedManageActorError);
-        }
-
-        return RoleManager.AssignRole(_roles, Id, role, employeeId);
-    }
-
-    /// <summary>
-    /// Removes an employee from a role on behalf of an actor who must be authorized to manage the program.
-    /// </summary>
-    /// <param name="actor">The acting employee and their administrator standing.</param>
-    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
-    /// <param name="role">The role to remove.</param>
-    /// <param name="employeeId">The employee losing the role.</param>
-    public Result RemoveRole(PpmActor actor, ProgramAncestryRoles ancestry, ProgramRole role, Guid employeeId)
-    {
-        if (!CanManageProgram(actor, ancestry))
-        {
-            return Result.Failure(UnauthorizedManageActorError);
-        }
-
-        return RoleManager.RemoveAssignment(_roles, role, employeeId);
-    }
-
-    /// <summary>
     /// Replaces the program's role assignments on behalf of an actor who must be authorized to manage it.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
@@ -378,7 +342,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// <summary>
     /// Adds an existing project to the program.
     /// </summary>
-    internal Result AddProject(Project project)
+    internal Result AddProject(Project project, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(project, nameof(project));
 
@@ -397,7 +361,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Failure("The project is already part of this program.");
         }
 
-        var result = project.UpdateProgram(this);
+        var result = project.UpdateProgram(this, actor, timestamp);
         if (result.IsFailure)
         {
             return result;
@@ -411,7 +375,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// <summary>
     /// Removes an existing project from the program.
     /// </summary>
-    internal Result RemoveProject(Project project)
+    internal Result RemoveProject(Project project, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(project, nameof(project));
 
@@ -425,12 +389,37 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Failure("Projects cannot be removed from a closed program.");
         }
 
-        var result = project.UpdateProgram(null);
+        var result = project.UpdateProgram(null, actor, timestamp);
         if (result.IsFailure)
         {
             return result;
         }
 
+        _projects.Remove(project);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Removes a project that is being deleted, skipping the reparenting the ordinary removal announces.
+    /// Separate from <see cref="RemoveProject"/> rather than a flag on it, so the two intents read
+    /// differently at the call site.
+    /// </summary>
+    internal Result DetachProjectForDeletion(Project project)
+    {
+        Guard.Against.Null(project, nameof(project));
+
+        if (!_projects.Contains(project))
+        {
+            return Result.Failure("The project is not part of this program.");
+        }
+
+        if (IsClosed)
+        {
+            return Result.Failure("Projects cannot be removed from a closed program.");
+        }
+
+        project.ClearProgramForDeletion();
         _projects.Remove(project);
 
         return Result.Success();

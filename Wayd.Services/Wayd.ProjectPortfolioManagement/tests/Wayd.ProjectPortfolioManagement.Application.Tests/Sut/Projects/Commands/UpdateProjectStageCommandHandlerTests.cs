@@ -67,7 +67,7 @@ public class UpdateProjectStageCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"), ("Execute", "Execution"), ("Deliver", "Delivery"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         _dbContext.AddProject(project);
         _dbContext.AddProjectStages(project.Stages);
 
@@ -105,7 +105,7 @@ public class UpdateProjectStageCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"), ("Execute", "Execution"), ("Deliver", "Delivery"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         _dbContext.AddProject(project);
         _dbContext.AddProjectStages(project.Stages);
 
@@ -139,7 +139,7 @@ public class UpdateProjectStageCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         var stage = project.Stages.First();
         
         var rootTaskRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
@@ -174,7 +174,7 @@ public class UpdateProjectStageCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         var stage = project.Stages.First();
         
         var rootTaskRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));

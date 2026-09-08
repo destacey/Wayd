@@ -21,6 +21,7 @@ public class RecordProjectScoreCommandHandlerTests : IDisposable
     private readonly RecordProjectScoreCommandHandler _handler;
     private readonly Mock<ILogger<RecordProjectScoreCommandHandler>> _mockLogger = new();
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly Mock<IDateTimeProvider> _mockDateTimeProvider = new();
     private readonly Guid _currentEmployeeId = Guid.NewGuid();
     private readonly Instant _now = Instant.FromUtc(2026, 5, 1, 0, 0);
@@ -46,10 +47,11 @@ public class RecordProjectScoreCommandHandlerTests : IDisposable
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
         _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_currentEmployeeId);
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
         _mockDateTimeProvider.Setup(d => d.Now).Returns(_now);
 
         _handler = new RecordProjectScoreCommandHandler(
-            _dbContext, _mockDateTimeProvider.Object, _mockCurrentPrincipal.Object, _mockLogger.Object);
+            _dbContext, _mockDateTimeProvider.Object, _mockCurrentPrincipal.Object, _mockCurrentUser.Object, _mockLogger.Object);
     }
 
     private (Project Project, ScoringModel Model) ScorableProject(bool withModel = true, bool ownerIsActor = true)

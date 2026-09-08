@@ -88,123 +88,6 @@ public class ProjectPortfolioTests
     #region Roles
 
     [Fact]
-    public void AssignRole_ShouldAssignEmployeeToPortfolioRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.Generate();
-
-        // Act
-        var result = portfolio.AssignRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        portfolio.Roles.Should().ContainSingle();
-        portfolio.Roles.First().Role.Should().Be(ProjectPortfolioRole.Owner);
-        portfolio.Roles.First().EmployeeId.Should().Be(employeeId);
-    }
-
-    [Fact]
-    public void AssignRole_ShouldFail_WhenEmployeeAlreadyAssignedToRole()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-        {
-            { ProjectPortfolioRole.Owner, new HashSet<Guid> { employeeId } }
-        }).Generate();
-
-        // Act
-        var result = portfolio.AssignRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Employee is already assigned to this role.");
-    }
-
-    [Fact]
-    public void AssignRole_ShouldFail_WhenPortfolioIsReadonly()
-    {
-        // Arrange
-        var portfolio = _portfolioFaker.AsArchived(_dateTimeProvider);
-
-        // Act
-        var result = portfolio.AssignRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, Guid.NewGuid());
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Project Portfolio is readonly and cannot be updated.");
-    }
-
-    [Fact]
-    public void RemoveRole_WithOneRoleAssignment_ShouldRemoveEmployeeFromPortfolioRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-        {
-            { ProjectPortfolioRole.Owner, new HashSet<Guid> { employeeId } }
-        }).Generate();
-
-        // Act
-        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        portfolio.Roles.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void RemoveRole_WithMultipleRoleAssignments_ShouldRemoveEmployeeFromPortfolioRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId1 = Guid.NewGuid();
-        var employeeId2 = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-        {
-            { ProjectPortfolioRole.Owner, new HashSet<Guid> { employeeId1, employeeId2 } }
-        }).Generate();
-
-        // Act
-        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId1);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        portfolio.Roles.Count.Should().Be(1);
-        portfolio.Roles.First().Role.Should().Be(ProjectPortfolioRole.Owner);
-        portfolio.Roles.First().EmployeeId.Should().Be(employeeId2);
-    }
-
-    [Fact]
-    public void RemoveRole_ShouldFail_WhenEmployeeNotAssignedToRole()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.Generate();
-
-        // Act
-        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Employee is not assigned to this role.");
-    }
-
-    [Fact]
-    public void RemoveRole_ShouldFail_WhenPortfolioIsReadonly()
-    {
-        // Arrange
-        var portfolio = _portfolioFaker.AsArchived(_dateTimeProvider);
-
-        // Act
-        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, Guid.NewGuid());
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Project Portfolio is readonly and cannot be updated.");
-    }
-
-    [Fact]
     public void UpdateRoles_ShouldAssignNewRolesSuccessfully()
     {
         // Arrange
@@ -588,7 +471,7 @@ public class ProjectPortfolioTests
             seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
-        var result = portfolio.ChangeProjectProgram(AnUnauthorizedActor(), project.Id, program.Id);
+        var result = portfolio.ChangeProjectProgram(AnUnauthorizedActor(), project.Id, program.Id, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -616,7 +499,7 @@ public class ProjectPortfolioTests
             seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
-        var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id);
+        var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -650,7 +533,7 @@ public class ProjectPortfolioTests
             _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
-        var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id);
+        var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -673,7 +556,7 @@ public class ProjectPortfolioTests
 
         // Act
         var result = portfolio.ChangeProjectProgram(
-            Guid.NewGuid().AsPpmAdministrator(), project.Id, program.Id);
+            Guid.NewGuid().AsPpmAdministrator(), project.Id, program.Id, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -721,7 +604,7 @@ public class ProjectPortfolioTests
         var program = portfolio.CreateProgram("Test Program", "Description", null, null, null, EventActor.System, _dateTimeProvider.Now).Value;
         var project = _projectFaker.AsActive(_dateTimeProvider, portfolio.Id);
 
-        program.AddProject(project);
+        program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
@@ -908,7 +791,7 @@ public class ProjectPortfolioTests
         project.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, program2.Id);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, program2.Id, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -929,7 +812,7 @@ public class ProjectPortfolioTests
         project.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, null);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, null, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -949,7 +832,7 @@ public class ProjectPortfolioTests
         project.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, program.Id);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, program.Id, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -970,7 +853,7 @@ public class ProjectPortfolioTests
         projectResult.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio1.ChangeProjectProgram(AnAuthorizedActor(), projectResult.Value.Id, program2.Id);
+        var result = portfolio1.ChangeProjectProgram(AnAuthorizedActor(), projectResult.Value.Id, program2.Id, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -985,7 +868,7 @@ public class ProjectPortfolioTests
         var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
-        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Id, null);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Id, null, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

@@ -59,4 +59,8 @@ The export walks the full history rather than only what is on screen, so a filte
 
 An entry holds what happened, on what record, by whom, and when — plus the event's payload and a correlation id tying together every change made by the same request or job. Events also carry a schema version, so a payload recorded by an older release still reads correctly.
 
-The log records **business events** — a project's details being updated, a version being cut, a workflow being published. It is not a field-level audit of every column, and it is not the same thing as a record's [status history](./ppm/projects.mdx#project-status-history), which tracks status transitions alone and appears in its own section where a record has one.
+The log records **business events** — a project's details being updated, a version being cut, a workflow being published. It is not a field-level audit of every column.
+
+A project's status changes appear here **and** in its own [status history](./ppm/projects.mdx#project-status-history) section. The two agree: both are written from the same transition, so neither can show a move the other does not. Status history shows transitions alone, in lifecycle order; the Activity section shows them alongside everything else that happened to the project. Projects whose status changed before the Activity section existed still appear in full — that history was carried across.
+
+Where an edit changes several things at once, you see one entry per kind of change rather than one per field: replacing a project's team records a single entry holding the team as it stands afterwards, not one entry per person added or removed. Status changes are the exception, because each transition is its own step — a project imported as Completed shows the moves through Active and into Completed separately, exactly as they happened.

@@ -98,7 +98,7 @@ public sealed class GetProjectQueryHandlerTests
             await context.Set<ProjectLifecycle>().AddAsync(lifecycle, cancellationToken);
             await context.SaveChangesAsync(cancellationToken);
 
-            project.AssignLifecycle(actor, ProjectAncestryRoles.None, lifecycle);
+            project.AssignLifecycle(actor, ProjectAncestryRoles.None, lifecycle, FixedDateTimeProvider().Now);
         }
 
         if (targetStatus is ProjectStatus.Canceled)

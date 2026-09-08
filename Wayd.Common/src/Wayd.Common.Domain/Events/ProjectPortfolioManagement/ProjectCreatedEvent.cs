@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
@@ -6,10 +6,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
-public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject, IAggregateEvent
+public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject, IPpmEvent
 {
-    public ProjectCreatedEvent(ISimpleProject project, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
-        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, roles, strategicThemes, actor, timestamp)
+    public ProjectCreatedEvent(ISimpleProject project, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
+        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, businessCase, expectedBenefits, roles, strategicThemes, actor, timestamp)
     {
     }
 
@@ -19,8 +19,8 @@ public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject, IAggrega
     // Both constructors funnel through here, so the defensive copy of the mutable collections lives here
     // and applies regardless of which constructor a caller uses.
     [JsonConstructor]
-    public ProjectCreatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
-        : base(actor)
+    public ProjectCreatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -31,6 +31,8 @@ public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject, IAggrega
         DateRange = dateRange;
         PortfolioId = portfolioId;
         ProgramId = programId;
+        BusinessCase = businessCase;
+        ExpectedBenefits = expectedBenefits;
         Roles = roles?.ToDictionary(x => x.Key, x => x.Value.ToArray());
         StrategicThemes = [.. strategicThemes];
 
@@ -46,6 +48,13 @@ public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject, IAggrega
     public LocalDateRange? DateRange { get; }
     public Guid PortfolioId { get; }
     public Guid? ProgramId { get; }
+
+    /// <summary>
+    /// Added in 1.0 -> 1.1, so a created project describes the same fields an updated one does.
+    /// </summary>
+    public string? BusinessCase { get; }
+
+    public string? ExpectedBenefits { get; }
 
     /// <summary>
     /// The roles for the project.  The key is the role type id and the value is an array of user ids.

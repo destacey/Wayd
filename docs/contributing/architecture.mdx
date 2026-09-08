@@ -212,9 +212,43 @@ must create per row via the domain path plus one `SaveChanges`, never a raw `Add
 ### Activity log
 
 Every domain event drained by `SaveChanges` is also captured as an `ActivityLogEntry` row — automatically,
-in `BaseDbContext`, with no per-aggregate wiring. An event implementing `IAggregateEvent` declares the
-aggregate type and id the entry belongs to; anything else falls back to the raising entity's type name and
-id. That is what the record pages' **Activity** section reads.
+in `BaseDbContext` via `ActivityLogEntryFactory`, with no per-aggregate wiring. An event implementing
+`IAggregateEvent` declares the aggregate type and id the entry belongs to; anything else falls back to the
+raising entity's type name and id. That is what the record pages' **Activity** section reads.
+
+Capture happens whether the event is routed durably or inline, and `EventPublisher` treats a
+subscriber-less event as a no-op. **A new event therefore earns a full audit trail without a handler and
+without a `DurableEventRoutes` entry** — add it to that allow-list only when a real consumer needs it
+delivered asynchronously.
+
+#### Snapshot events supersede; movement events append
+
+`BaseEntity` offers two ways to raise, and the choice follows the event's *payload shape*:
+
+- **`AddDomainEvent`** — for an event that records **movement**, where each occurrence is its own fact.
+  `ProjectStatusChangedEvent` is the clear case: `ProjectImportDefinition` walks a new project through
+  Active and into Completed before a single save, and those are two transitions with two history rows and
+  two sequence numbers. Anything appended to a ledger — a health check, a score — is the same.
+- **`AddSupersedingDomainEvent`** — for an event carrying the **state after the change**. The last one
+  raised in a transaction already describes the net result, so the ones before it describe intermediate
+  states that were never committed. Replacing a project's role list twice in one request would otherwise
+  record two changes, the first of them a set that never existed as a fact.
+
+Superseding matches on event type alone, which is a second reason it is wrong for child-entity events:
+it would collapse events about *different* health checks, which are unrelated facts.
+
+The same distinction drives payloads. A snapshot event carries only the new value and leaves deltas to
+the Activity section's compare; a movement event carries both ends, because "reverted from Active" cannot
+be recovered from the new status alone.
+
+#### Sharing an id with the record a transition writes
+
+`ProjectStatusChangedEvent` takes its `EventId` from the `ProjectStatusHistory` row that recorded the
+transition, rather than a fresh value. The two describe one fact, and sharing an identity is what lets
+history written before the event existed be replayed into the log exactly once — the
+`Backfill-Project-Status-Activity` migration inserts `WHERE NOT EXISTS (… WHERE Id = h.Id)`, so it can
+never duplicate a transition that already raised its own event. Reach for this wherever an aggregate
+writes both a durable record and an event about the same occurrence.
 
 Reading is an `IActivityLogReader` **service**, not a standalone query. Each module writes its own thin
 query handler that resolves and authorizes its record first, then reads the history inside that record's

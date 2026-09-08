@@ -13,7 +13,9 @@ using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using static Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions.PpmActorDataExtensions;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
@@ -41,11 +43,204 @@ public class ProjectTests
     {
         var project = _projectFaker.Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(stages);
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
         return (project, project.Stages.ToList());
     }
 
     #region Project Create and Update
+
+    [Fact]
+    public void RecordScore_RaisesAScoreRecordedEventNamingTheModelAndTheHeadlineNumber()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var project = _projectFaker.Generate();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 10m), ("JS", 2m));
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, AnAuthorizedActor(), NoProjectAncestry(), now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = project.DomainEvents.OfType<ProjectScoreRecordedEvent>().Should().ContainSingle().Subject;
+        raised.ScoreId.Should().Be(result.Value.Id);
+        raised.ScoringModelId.Should().Be(model.Id);
+        raised.ScoringModelName.Should().Be(model.Name, "a score outlives the model version that produced it");
+        raised.PrimaryValue.Should().Be(5m);
+        raised.Sequence.Should().Be(result.Value.Sequence);
+    }
+
+    [Fact]
+    public void FastForwardingAProjectThroughItsLifecycle_KeepsEveryTransitionAsItsOwnEvent()
+    {
+        // Arrange — mirrors what ProjectImportDefinition does to a project whose imported status is
+        // Completed: create it, give it a lifecycle, then walk it forward, all before a single save.
+        var createdOn = _dateTimeProvider.Now;
+        var activatedOn = createdOn.Plus(Duration.FromDays(30));
+        var closedOn = createdOn.Plus(Duration.FromDays(120));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(120));
+
+        var project = Project.Create(
+            "Atlas", "desc", new ProjectKey("ATLAS"), 1, dateRange, Guid.CreateVersion7(), 1000d,
+            null, null, null, null, null, createdOn, PpmActor.System);
+
+        // Act
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Framing the problem")), createdOn);
+        project.Activate(PpmActor.System, ProjectAncestryRoles.None, activatedOn);
+        project.Complete(PpmActor.System, ProjectAncestryRoles.None, closedOn);
+        project.ExecutePostPersistenceActions();
+
+        // Assert
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().ToList();
+        raised.Should().HaveCount(3, "a fast-forwarded project reaches its status through real transitions, and none of them may be superseded");
+        raised.Select(e => e.ToStatus).Should().BeEquivalentTo(
+            [nameof(ProjectStatus.Proposed), nameof(ProjectStatus.Active), nameof(ProjectStatus.Completed)]);
+
+        // The log has to stay a faithful stand-in for the history table, so the two must agree row for row.
+        raised.Select(e => e.EventId).Should().BeEquivalentTo(project.StatusHistory.Select(h => h.Id));
+        raised.Select(e => e.Sequence).Should().BeEquivalentTo(project.StatusHistory.Select(h => h.Sequence));
+
+        // The lifecycle assignment supersedes, but the import only ever makes one, so it survives too.
+        project.DomainEvents.OfType<ProjectLifecycleAssignedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void RoleChanges_MadeInOneTransaction_RaiseASingleEventCarryingTheNetResult()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var leaving = Guid.CreateVersion7();
+        var arriving = Guid.CreateVersion7();
+        project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [leaving] } }, _dateTimeProvider.Now);
+        project.ClearDomainEvents();
+
+        // Act — two replacements in one transaction, the second superseding the first
+        project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [] } }, _dateTimeProvider.Now);
+        project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [arriving] } }, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = project.DomainEvents.OfType<ProjectRolesChangedEvent>().Should().ContainSingle(
+            "a snapshot event describes the state after the change, so only the last one in a transaction is a fact").Subject;
+        raised.Roles.Should().NotBeNull();
+        raised.Roles![(int)ProjectRole.Owner].Should().BeEquivalentTo([arriving]);
+    }
+
+    [Fact]
+    public void StatusTransitions_MadeInOneTransaction_EachRaiseTheirOwnEvent()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Framing the problem")), _dateTimeProvider.Now);
+        project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)), _dateTimeProvider.Now);
+        project.ClearDomainEvents();
+
+        // Act
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().ToList();
+        raised.Should().HaveCount(2, "a transition is movement, not state, so walking a project through two statuses is two facts");
+        raised.Select(e => e.ToStatus).Should().Equal(nameof(ProjectStatus.Approved), nameof(ProjectStatus.Active));
+        raised.Select(e => e.Sequence).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public void ChangeStatus_OnAForwardTransition_RaisesAStatusChangedEventKeyedToTheHistoryRow()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Framing the problem")), _dateTimeProvider.Now);
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromStatus.Should().Be(nameof(ProjectStatus.Proposed));
+        raised.ToStatus.Should().Be(nameof(ProjectStatus.Approved));
+        raised.IsBackward.Should().BeFalse();
+
+        var entry = project.StatusHistory.Single(h => h.ToStatus == ProjectStatus.Approved);
+        raised.EventId.Should().Be(entry.Id, "the event and the history row describe one transition, which is what makes the backfill idempotent");
+        raised.Sequence.Should().Be(entry.Sequence);
+    }
+
+    [Fact]
+    public void RevertStatus_RaisesAStatusChangedEventCarryingTheReasonAndTheBackwardFlag()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Framing the problem")), _dateTimeProvider.Now);
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Proposed, "Approved by the wrong committee.", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().Should().ContainSingle().Subject;
+        raised.IsBackward.Should().BeTrue();
+        raised.Reason.Should().Be("Approved by the wrong committee.");
+        raised.ToCategory.Should().Be(LifecycleCategory.NotStarted);
+    }
+
+    [Fact]
+    public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingTheNewRange()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), newRange, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = project.DomainEvents.OfType<ProjectTimelineChangedEvent>().Should().ContainSingle().Subject;
+        raised.DateRange.Should().Be(newRange);
+    }
+
+    [Fact]
+    public void UpdateTimeline_OnAnUnchangedRange_RaisesNothing()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var range = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), range, _dateTimeProvider.Now);
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), range, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.DomainEvents.OfType<ProjectTimelineChangedEvent>().Should().BeEmpty("a write that changes nothing is not a business event");
+    }
+
+    [Fact]
+    public void Create_RaisesAStatusChangedEventForTheOriginRow()
+    {
+        // Arrange
+        var portfolioId = Guid.CreateVersion7();
+
+        // Act
+        var project = Project.Create("Atlas", "desc", new ProjectKey("ATLAS"), 1, null, portfolioId, 1000d, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
+        project.ExecutePostPersistenceActions();
+
+        // Assert
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromStatus.Should().BeNull("the origin row records the project entering its initial state");
+        raised.ToStatus.Should().Be(nameof(ProjectStatus.Proposed));
+        raised.Sequence.Should().Be(1);
+        raised.EventId.Should().Be(project.StatusHistory.Single().Id);
+    }
 
     [Fact]
     public void Create_ShouldCreateProposedProjectSuccessfully()
@@ -112,7 +307,7 @@ public class ProjectTests
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
-        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), dateRange);
+        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), dateRange, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -128,7 +323,7 @@ public class ProjectTests
         var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), null);
+        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), null, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -142,7 +337,7 @@ public class ProjectTests
         var project = _projectFaker.AsCompleted(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), null);
+        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), null, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -159,7 +354,7 @@ public class ProjectTests
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
-        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), dateRange);
+        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), dateRange, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -171,96 +366,6 @@ public class ProjectTests
     #endregion UpdateTimeline Tests
 
     #region Roles
-
-    [Fact]
-    public void AssignRole_ShouldAssignEmployeeToRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var project = _projectFaker.Generate();
-
-        // Act
-        var result = project.AssignRole(AnAuthorizedActor(), NoProjectAncestry(), ProjectRole.Owner, employeeId);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        project.Roles.Should().ContainSingle();
-        project.Roles.First().Role.Should().Be(ProjectRole.Owner);
-        project.Roles.First().EmployeeId.Should().Be(employeeId);
-    }
-
-    [Fact]
-    public void AssignRole_ShouldFail_WhenEmployeeAlreadyAssignedToRole()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
-        {
-            { ProjectRole.Owner, new HashSet<Guid> { employeeId } }
-        }).Generate();
-
-        // Act
-        var result = project.AssignRole(AnAuthorizedActor(), NoProjectAncestry(), ProjectRole.Owner, employeeId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Employee is already assigned to this role.");
-    }
-
-    [Fact]
-    public void RemoveRole_WithOneRoleAssignment_ShouldRemoveEmployeeFromRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
-        {
-            { ProjectRole.Owner, new HashSet<Guid> { employeeId } }
-        }).Generate();
-
-        // Act
-        var result = project.RemoveRole(AnAuthorizedActor(), NoProjectAncestry(), ProjectRole.Owner, employeeId);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        project.Roles.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void RemoveRole_WithMultipleRoleAssignments_ShouldRemoveEmployeeFromRoleSuccessfully()
-    {
-        // Arrange
-        var employeeId1 = Guid.NewGuid();
-        var employeeId2 = Guid.NewGuid();
-        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
-        {
-            { ProjectRole.Owner, new HashSet<Guid> { employeeId1, employeeId2 } }
-        }).Generate();
-
-        // Act
-        var result = project.RemoveRole(AnAuthorizedActor(), NoProjectAncestry(), ProjectRole.Owner, employeeId1);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        project.Roles.Count.Should().Be(1);
-        project.Roles.First().Role.Should().Be(ProjectRole.Owner);
-        project.Roles.First().EmployeeId.Should().Be(employeeId2);
-    }
-
-    [Fact]
-    public void RemoveRole_ShouldFail_WhenEmployeeNotAssignedToRole()
-    {
-        // Arrange
-        var employeeId = Guid.NewGuid();
-        var project = _projectFaker.Generate();
-
-        // Act
-        var result = project.RemoveRole(AnAuthorizedActor(), NoProjectAncestry(), ProjectRole.Owner, employeeId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Employee is not assigned to this role.");
-    }
-
 
     [Fact]
     public void UpdateRoles_ShouldAssignNewRolesSuccessfully()
@@ -275,7 +380,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles);
+        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -299,7 +404,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles);
+        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -323,7 +428,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles);
+        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -343,7 +448,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles);
+        var result = project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -405,7 +510,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"), ("Execute", "Execute stage"));
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Act
         var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -544,7 +649,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
         var actor = Guid.NewGuid().AsPpmAdministrator();
 
         // Act
@@ -616,7 +721,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3))).Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Act
         project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -1071,7 +1176,7 @@ public class ProjectTests
             .WithDateRange(ADeliveredDateRange())
             .Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Delivery", "Delivery stage"));
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
         project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -1101,7 +1206,7 @@ public class ProjectTests
             roles: null, strategicThemes: null, timestamp: _dateTimeProvider.Now, actor: PpmActor.System);
 
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Delivery", "Delivery stage"));
-        project.AssignLifecycle(PpmActor.System, NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(PpmActor.System, NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
 
@@ -1129,7 +1234,7 @@ public class ProjectTests
         project.CanBeDeleted().Should().BeTrue();
 
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Delivery", "Delivery stage"));
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
         project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
@@ -1361,7 +1466,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage")));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage")), _dateTimeProvider.Now);
 
         // Act
         var result = project.Approve(AnUnauthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -1413,44 +1518,12 @@ public class ProjectTests
         var grabOwnership = new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Owner] = [attackerId] };
 
         // Act
-        var result = project.UpdateRoles(attackerId.AsActor(), NoProjectAncestry(), grabOwnership);
+        var result = project.UpdateRoles(attackerId.AsActor(), NoProjectAncestry(), grabOwnership, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not authorized");
         project.Roles.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void AssignRole_ShouldFail_WhenActorHoldsNoRole()
-    {
-        // Arrange
-        var attackerId = Guid.NewGuid();
-        var project = _projectFaker.WithStatus(ProjectStatus.Active).Generate();
-
-        // Act
-        var result = project.AssignRole(attackerId.AsActor(), NoProjectAncestry(), ProjectRole.Owner, attackerId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("not authorized");
-        project.Roles.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void RemoveRole_ShouldFail_WhenActorHoldsNoRole()
-    {
-        // Arrange — a non-member must not be able to remove the legitimate owner.
-        var ownerId = Guid.NewGuid();
-        var project = _projectFaker.WithStatus(ProjectStatus.Active).WithOwner(ownerId).Generate();
-
-        // Act
-        var result = project.RemoveRole(AnUnauthorizedActor(), NoProjectAncestry(), ProjectRole.Owner, ownerId);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("not authorized");
-        project.Roles.Should().ContainSingle(r => r.EmployeeId == ownerId);
     }
 
     [Fact]
@@ -1477,7 +1550,7 @@ public class ProjectTests
         var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(1));
 
         // Act
-        var result = project.UpdateTimeline(AnUnauthorizedActor(), NoProjectAncestry(), newRange);
+        var result = project.UpdateTimeline(AnUnauthorizedActor(), NoProjectAncestry(), newRange, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1573,7 +1646,7 @@ public class ProjectTests
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
 
         // Act
-        var result = project.AssignLifecycle(AnUnauthorizedActor(), NoProjectAncestry(), lifecycle);
+        var result = project.AssignLifecycle(AnUnauthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1593,7 +1666,7 @@ public class ProjectTests
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
 
         // Act
-        var result = project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), lifecycle);
+        var result = project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1609,7 +1682,7 @@ public class ProjectTests
 
         // Act
         var result = project.AssignLifecycle(
-            Guid.NewGuid().AsPpmAdministrator(), NoProjectAncestry(), lifecycle);
+            Guid.NewGuid().AsPpmAdministrator(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1621,14 +1694,14 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var original = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), original);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), original, _dateTimeProvider.Now);
 
         var replacement = new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Discovery stage"));
         var stageMapping = project.Stages.ToDictionary(p => p.Id, _ => replacement.Stages.First().Id);
 
         // Act
         var result = project.ChangeLifecycle(
-            AnUnauthorizedActor(), NoProjectAncestry(), replacement, stageMapping);
+            AnUnauthorizedActor(), NoProjectAncestry(), replacement, stageMapping, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1643,14 +1716,14 @@ public class ProjectTests
         var employeeId = Guid.NewGuid();
         var project = _projectFaker.WithOwner(employeeId).Generate();
         var original = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
-        project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), original);
+        project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), original, _dateTimeProvider.Now);
 
         var replacement = new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Discovery stage"));
         var stageMapping = project.Stages.ToDictionary(p => p.Id, _ => replacement.Stages.First().Id);
 
         // Act
         var result = project.ChangeLifecycle(
-            employeeId.AsActor(), NoProjectAncestry(), replacement, stageMapping);
+            employeeId.AsActor(), NoProjectAncestry(), replacement, stageMapping, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1669,7 +1742,7 @@ public class ProjectTests
         var program = Program.Create("Test Program", "Description", null, project.PortfolioId, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = project.UpdateProgram(program);
+        var result = project.UpdateProgram(program, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1685,7 +1758,7 @@ public class ProjectTests
         var program = Program.Create("Test Program", "Description", null, portfolioId, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = project.UpdateProgram(program);
+        var result = project.UpdateProgram(program, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1699,7 +1772,7 @@ public class ProjectTests
         var project = _projectFaker.WithProgramId(Guid.NewGuid()).Generate();
 
         // Act
-        var result = project.UpdateProgram(null);
+        var result = project.UpdateProgram(null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1718,7 +1791,7 @@ public class ProjectTests
         var themes = _themeFaker.Generate(3); // Generate 3 unique themes
 
         // Act
-        var result = project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet());
+        var result = project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1732,12 +1805,12 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        project.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet());
+        project.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         var newThemes = _themeFaker.Generate(3); // Replace with different themes
 
         // Act
-        var result = project.UpdateStrategicThemes(newThemes.Select(t => t.Id).ToHashSet());
+        var result = project.UpdateStrategicThemes(newThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1751,10 +1824,10 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var themes = _themeFaker.Generate(2);
-        project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet());
+        project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Act
-        var result = project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet()); // Same themes
+        var result = project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now); // Same themes
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1767,10 +1840,10 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        project.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet());
+        project.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Act
-        var result = project.UpdateStrategicThemes([]);
+        var result = project.UpdateStrategicThemes([], AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2315,7 +2388,7 @@ public class ProjectTests
             ("Deliver", "Release outcome"));
 
         // Act
-        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2338,7 +2411,7 @@ public class ProjectTests
         var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Stage 1", "Description")]);
 
         // Act
-        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2351,12 +2424,12 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "Description"));
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         var anotherLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage A", "Description"));
 
         // Act
-        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), anotherLifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), anotherLifecycle, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2372,7 +2445,7 @@ public class ProjectTests
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "Description"));
 
         // Act
-        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2652,7 +2725,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2680,7 +2753,7 @@ public class ProjectTests
         var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "First stage"));
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, [], _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2695,7 +2768,7 @@ public class ProjectTests
         var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "First stage"));
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, [], _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2710,7 +2783,7 @@ public class ProjectTests
         var newLifecycle = new ProjectLifecycleFaker().AsProposedWithStages(("Stage 1", "First stage"));
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, [], _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2723,10 +2796,10 @@ public class ProjectTests
         // Arrange
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Planning stage"), ("Execute", "Execution stage"));
         var project = _projectFaker.Generate();
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, [], _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2754,7 +2827,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2776,7 +2849,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2797,7 +2870,7 @@ public class ProjectTests
         var stageMapping = new Dictionary<Guid, Guid>();
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2831,7 +2904,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2886,7 +2959,7 @@ public class ProjectTests
         var ratings = RatingsByToken(model, ("BV", 10m), ("JS", 2m));
 
         // Act
-        var result = project.RecordScore(model, ratings, null, actorId, [], null, now);
+        var result = project.RecordScore(model, ratings, null, actorId.AsActor(), NoProjectAncestry(), now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2917,7 +2990,7 @@ public class ProjectTests
         var ratings = RatingsByToken(model, ("BV", 8m), ("JS", 4m));
 
         // Act
-        var result = project.RecordScore(model, ratings, null, actorId, [], null, now);
+        var result = project.RecordScore(model, ratings, null, actorId.AsActor(), NoProjectAncestry(), now);
 
         // Assert
         var score = result.Value;
@@ -2947,7 +3020,7 @@ public class ProjectTests
             _ => (high.Id, high.Label));
 
         // Act
-        var result = project.RecordScore(model, ratings, levels, actorId, [], null, now);
+        var result = project.RecordScore(model, ratings, levels, actorId.AsActor(), NoProjectAncestry(), now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2968,8 +3041,8 @@ public class ProjectTests
         var model = FreeNumericModel();
 
         // Act
-        var first = project.RecordScore(model, RatingsByToken(model, ("BV", 10m), ("JS", 2m)), null, actorId, [], null, now);
-        var second = project.RecordScore(model, RatingsByToken(model, ("BV", 9m), ("JS", 3m)), null, actorId, [], null, now.Plus(Duration.FromDays(1)));
+        var first = project.RecordScore(model, RatingsByToken(model, ("BV", 10m), ("JS", 2m)), null, actorId.AsActor(), NoProjectAncestry(), now);
+        var second = project.RecordScore(model, RatingsByToken(model, ("BV", 9m), ("JS", 3m)), null, actorId.AsActor(), NoProjectAncestry(), now.Plus(Duration.FromDays(1)));
 
         // Assert
         first.Value.Sequence.Should().Be(1);
@@ -2989,7 +3062,7 @@ public class ProjectTests
         var ratings = RatingsByToken(model, ("BV", 10m), ("JS", 0m)); // division by zero
 
         // Act
-        var result = project.RecordScore(model, ratings, null, actorId, [], null, now);
+        var result = project.RecordScore(model, ratings, null, actorId.AsActor(), NoProjectAncestry(), now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -3008,7 +3081,7 @@ public class ProjectTests
         var unauthorizedActor = Guid.NewGuid();
 
         // Act
-        var result = project.RecordScore(model, ratings, null, unauthorizedActor, [], null, now);
+        var result = project.RecordScore(model, ratings, null, unauthorizedActor.AsActor(), NoProjectAncestry(), now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -3025,13 +3098,10 @@ public class ProjectTests
         var project = _projectFaker.Generate();
         var model = FreeNumericModel();
         var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));
-        var portfolioRoles = new[]
-        {
-            new RoleAssignment<ProjectPortfolioRole>(project.PortfolioId, ProjectPortfolioRole.Owner, actorId),
-        };
+        var ancestry = WithPortfolioRole(project.PortfolioId, actorId, ProjectPortfolioRole.Owner);
 
         // Act
-        var result = project.RecordScore(model, ratings, null, actorId, portfolioRoles, null, now);
+        var result = project.RecordScore(model, ratings, null, actorId.AsActor(), ancestry, now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -3048,13 +3118,10 @@ public class ProjectTests
         var project = _projectFaker.WithProgramId(programId).Generate();
         var model = FreeNumericModel();
         var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));
-        var programRoles = new[]
-        {
-            new RoleAssignment<ProgramRole>(programId, ProgramRole.Manager, actorId),
-        };
+        var ancestry = WithProgramRole(programId, actorId, ProgramRole.Manager);
 
         // Act
-        var result = project.RecordScore(model, ratings, null, actorId, [], programRoles, now);
+        var result = project.RecordScore(model, ratings, null, actorId.AsActor(), ancestry, now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -3073,7 +3140,7 @@ public class ProjectTests
         var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));
 
         // Act
-        var result = project.RecordScore(model, ratings, null, sponsorId, [], null, now);
+        var result = project.RecordScore(model, ratings, null, sponsorId.AsActor(), NoProjectAncestry(), now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

@@ -279,22 +279,6 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     }
 
     /// <summary>
-    /// Assigns an employee to a specific role for this task.
-    /// </summary>
-    public Result AssignRole(TaskRole role, Guid employeeId)
-    {
-        return RoleManager.AssignRole(_roles, Id, role, employeeId);
-    }
-
-    /// <summary>
-    /// Removes an employee from a specific role for this task.
-    /// </summary>
-    public Result RemoveRole(TaskRole role, Guid employeeId)
-    {
-        return RoleManager.RemoveAssignment(_roles, role, employeeId);
-    }
-
-    /// <summary>
     /// Updates all role assignments for this task.
     /// </summary>
     public Result UpdateRoles(Dictionary<TaskRole, HashSet<Guid>> updatedRoles)

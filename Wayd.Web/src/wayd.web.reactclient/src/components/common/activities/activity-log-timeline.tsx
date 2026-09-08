@@ -3,7 +3,6 @@
 import {
   CheckCircleOutlined,
   CheckOutlined,
-  ClockCircleOutlined,
   CopyOutlined,
   DiffOutlined,
   DownloadOutlined,
@@ -111,7 +110,55 @@ const getEventBadge = (
 ) => {
   const lower = eventType.toLowerCase()
 
-  if (lower.includes('created') || lower.includes('added')) {
+  // Ahead of Created and Removed: a health check event also contains 'added' or 'removed', and what a
+  // reader wants from it is the health signal, not which way the record moved.
+  if (lower.includes('health')) {
+    return {
+      icon: <CheckCircleOutlined style={{ color: token.colorInfo }} />,
+      color: 'cyan' as const,
+      label: 'Health',
+    }
+  }
+
+  if (lower.includes('statuschanged')) {
+    return {
+      icon: <SwapOutlined style={{ color: token.colorWarning }} />,
+      color: 'gold' as const,
+      label: 'Status Change',
+    }
+  }
+
+  // Catches deactivation too, which is the point: both directions are the same kind of change, so the
+  // fact that 'deactivated' contains 'activated' stops mattering rather than needing to be ordered around.
+  if (lower.includes('activated')) {
+    return {
+      icon: <SwapOutlined style={{ color: token.colorPrimary }} />,
+      color: 'purple' as const,
+      label: 'State Change',
+    }
+  }
+
+  if (
+    lower.includes('deleted') ||
+    lower.includes('removed') ||
+    lower.includes('withdrawn') ||
+    lower.includes('retired') ||
+    lower.includes('failed')
+  ) {
+    return {
+      icon: <StopOutlined style={{ color: token.colorError }} />,
+      color: 'red' as const,
+      label: 'Removed',
+    }
+  }
+
+  // 'Cut' is matched with its capital so it cannot fire on a word that merely contains those letters —
+  // a future ...ExecutedEvent would otherwise badge as a creation.
+  if (
+    lower.includes('created') ||
+    lower.includes('added') ||
+    eventType.includes('Cut')
+  ) {
     return {
       icon: <PlusCircleOutlined style={{ color: token.colorSuccess }} />,
       color: 'green' as const,
@@ -119,56 +166,10 @@ const getEventBadge = (
     }
   }
 
-  if (lower.includes('activated')) {
-    return {
-      icon: <CheckCircleOutlined style={{ color: token.colorSuccess }} />,
-      color: 'green' as const,
-      label: 'Activated',
-    }
-  }
-
-  if (
-    lower.includes('deactivated') ||
-    lower.includes('deleted') ||
-    lower.includes('removed') ||
-    lower.includes('withdrawn') ||
-    lower.includes('failed')
-  ) {
-    return {
-      icon: <StopOutlined style={{ color: token.colorError }} />,
-      color: 'red' as const,
-      label: 'Deactivated',
-    }
-  }
-
-  if (
-    lower.includes('updated') ||
-    lower.includes('modified') ||
-    lower.includes('changed')
-  ) {
-    return {
-      icon: <EditOutlined style={{ color: token.colorPrimary }} />,
-      color: 'blue' as const,
-      label: 'Updated',
-    }
-  }
-
-  if (
-    lower.includes('assigned') ||
-    lower.includes('reassigned') ||
-    lower.includes('reparented')
-  ) {
-    return {
-      icon: <SwapOutlined style={{ color: token.colorWarning }} />,
-      color: 'gold' as const,
-      label: 'Assigned',
-    }
-  }
-
   return {
-    icon: <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />,
-    color: 'default' as const,
-    label: 'Event',
+    icon: <EditOutlined style={{ color: token.colorPrimary }} />,
+    color: 'blue' as const,
+    label: 'Updated',
   }
 }
 
@@ -797,17 +798,6 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                       <Text>{selectedActivity.aggregateType}</Text>
                     </Tag>
                   </Flex>
-
-                  {previousActivity && (
-                    <Button
-                      size="small"
-                      icon={<DiffOutlined />}
-                      onClick={() => setIsCompareOpen(true)}
-                      style={{ fontSize: token.fontSizeSM }}
-                    >
-                      Compare with previous
-                    </Button>
-                  )}
                 </Flex>
               </Flex>
 

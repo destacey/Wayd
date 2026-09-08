@@ -82,6 +82,33 @@ describe('ActivityLogTimeline', () => {
     expect(screen.getByText('System')).toBeInTheDocument()
   })
 
+  it.each([
+    // Activation and deactivation share a tag, so 'deactivated' containing 'activated' cannot label a
+    // deactivation as its opposite.
+    ['TeamDeactivatedEvent', 'State Change'],
+    ['TeamActivatedEvent', 'State Change'],
+    ['ProjectStatusChangedEvent', 'Status Change'],
+    // A health check event also contains 'added' / 'removed'; the health signal has to win.
+    ['ProjectHealthCheckAddedEvent', 'Health'],
+    ['ProjectHealthCheckRemovedEvent', 'Health'],
+    ['TeamCreatedEvent', 'Created'],
+    ['VersionCutEvent', 'Created'],
+    // Destructive events stay scannable rather than reading like an ordinary edit.
+    ['ProjectDeletedEvent', 'Removed'],
+    ['DeploymentFailedEvent', 'Removed'],
+    ['TeamUpdatedEvent', 'Updated'],
+    ['ProjectTimelineChangedEvent', 'Updated'],
+  ])('badges %s as %s', (eventType, expectedBadge) => {
+    render(
+      <ActivityLogTimeline
+        activities={[createActivity({ id: 'act-1', eventType })]}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.getAllByText(expectedBadge).length).toBeGreaterThanOrEqual(1)
+  })
+
   it('selects the first activity by default and displays its properties in the inspector pane', () => {
     const activities = [
       createActivity({
@@ -368,7 +395,7 @@ describe('ActivityLogTimeline', () => {
     expect(screen.getByText('Export Activity History')).toBeInTheDocument()
   })
 
-  it('shows Compare with previous button when a preceding event exists and opens compare modal on click', async () => {
+  it('shows the compare action when a preceding event exists and opens the compare modal on click', async () => {
     const user = userEvent.setup()
     const activities = [
       createActivity({
@@ -397,15 +424,15 @@ describe('ActivityLogTimeline', () => {
 
     // The first item (act-2) is selected by default and has a preceding item (act-1)
     const compareButtons = screen.getAllByRole('button', {
-      name: /Compare with previous/i,
+      name: /Compare changes/i,
     })
-    expect(compareButtons.length).toBeGreaterThan(0)
+    expect(compareButtons).toHaveLength(1)
 
     await user.click(compareButtons[0])
     expect(screen.getByText('Compare Event Payloads')).toBeInTheDocument()
   })
 
-  it('does not show Compare with previous button when viewing the oldest/initial event', () => {
+  it('does not show the compare action when viewing the oldest/initial event', () => {
     const activities = [
       createActivity({
         id: 'act-1',
@@ -425,7 +452,7 @@ describe('ActivityLogTimeline', () => {
     )
 
     expect(
-      screen.queryByRole('button', { name: /Compare with previous/i }),
+      screen.queryByRole('button', { name: /Compare changes/i }),
     ).not.toBeInTheDocument()
   })
 })

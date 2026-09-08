@@ -94,6 +94,8 @@ public sealed class DomainEventSerializationTests
             dateRange: new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 6, 30)),
             portfolioId: Guid.NewGuid(),
             programId: Guid.NewGuid(),
+            businessCase: "Replaces the manual reconciliation run each month.",
+            expectedBenefits: "Two days of analyst time returned per month.",
             roles: roles,
             strategicThemes: strategicThemes,
             EventActor.System,

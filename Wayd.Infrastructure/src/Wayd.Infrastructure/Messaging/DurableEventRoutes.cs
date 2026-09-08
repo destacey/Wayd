@@ -41,9 +41,11 @@ public static class DurableEventRoutes
     /// </summary>
     private static readonly HashSet<Type> DurableEventTypes =
     [
-        // PPM Project → Work WorkProject.
+        // PPM Project → Work WorkProject. The key change is here for the same reason as the details
+        // change: the projection stores the key, and a rekeyed project would otherwise keep its old one.
         typeof(ProjectCreatedEvent),
         typeof(ProjectDetailsUpdatedEvent),
+        typeof(ProjectKeyChangedEvent),
         typeof(ProjectDeletedEvent),
 
         // Planning Iteration → Work WorkIteration.

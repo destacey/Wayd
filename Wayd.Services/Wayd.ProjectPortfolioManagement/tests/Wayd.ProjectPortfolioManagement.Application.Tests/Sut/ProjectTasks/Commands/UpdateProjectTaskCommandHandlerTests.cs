@@ -71,7 +71,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         var stage = project.Stages.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
@@ -113,7 +113,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         var stage = project.Stages.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
@@ -157,7 +157,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
         var stage = project.Stages.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));

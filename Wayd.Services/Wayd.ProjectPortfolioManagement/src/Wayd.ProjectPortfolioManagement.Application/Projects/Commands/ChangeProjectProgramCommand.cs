@@ -23,6 +23,7 @@ public sealed class ChangeProjectProgramCommandValidator : AbstractValidator<Cha
 }
 
 public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    IDateTimeProvider dateTimeProvider,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser, ILogger<ChangeProjectProgramCommandHandler> logger) : ICommandHandler<ChangeProjectProgramCommand>
 {
@@ -31,6 +32,7 @@ public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManageme
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ChangeProjectProgramCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ChangeProjectProgramCommand request, CancellationToken cancellationToken)
@@ -61,7 +63,7 @@ public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManageme
 
             var portfolio = project.Portfolio;
 
-            var changeResult = portfolio!.ChangeProjectProgram(actor, project.Id, request.ProgramId);
+            var changeResult = portfolio!.ChangeProjectProgram(actor, project.Id, request.ProgramId, _dateTimeProvider.Now);
             if (changeResult.IsFailure)
             {
                 // Reset the entity

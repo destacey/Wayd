@@ -263,16 +263,20 @@ function render() {
   // Stated, not truthy. A zero is a value someone typed, and dropping it from the command while leaving
   // it in the recipe means the command no longer reproduces what is on screen.
   const stated = value => value !== undefined && value !== null && value !== '';
+  // A path with a space in it is the common case on Windows — Program Files, or a name with a space —
+  // and unquoted it would arrive at the shell as two arguments. The command has to survive being pasted,
+  // or showing it is worse than showing nothing.
+  const arg = value => /[\s"]/.test(String(value)) ? `"${String(value).replace(/"/g, '\\"')}"` : value;
 
   const chosen = el('builtin').value;
-  if (chosen) parts.push(`--recipe ${chosen}`);
+  if (chosen) parts.push(`--recipe ${arg(chosen)}`);
   if (seed !== null) parts.push(`--random-seed ${seed}`);
-  if (stated(recipe.timeline?.asOf)) parts.push(`--as-of ${recipe.timeline.asOf}`);
+  if (stated(recipe.timeline?.asOf)) parts.push(`--as-of ${arg(recipe.timeline.asOf)}`);
   if (stated(recipe.organization?.teams)) parts.push(`--teams ${recipe.organization.teams}`);
   if (stated(recipe.organization?.valueStreams)) parts.push(`--value-streams ${recipe.organization.valueStreams}`);
   if (recipe.ppm?.enabled === false) parts.push('--skip-ppm');
   if (recipe.users?.enabled === false) parts.push('--skip-users');
-  if (stated(el('out').value)) parts.push(`--out ${el('out').value}`);
+  if (stated(el('out').value)) parts.push(`--out ${arg(el('out').value)}`);
   el('cli').textContent = parts.join(' ');
 }
 

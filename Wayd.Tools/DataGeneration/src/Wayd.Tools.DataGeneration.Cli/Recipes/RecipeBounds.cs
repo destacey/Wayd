@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Wayd.Tools.DataGeneration.Cli.Recipes;
@@ -24,7 +24,8 @@ public static class RecipeBounds
             ?? throw new RecipeException("The recipe schema could not be read."));
 
     /// <summary>
-    /// Throws when any number the recipe states falls outside the schema's range for it.
+    /// Throws when a number the recipe states falls outside the schema's range for it, whether it sits in
+    /// an area or at the top of the recipe.
     /// </summary>
     /// <remarks>
     /// Compared through the recipe's own JSON rather than property by property, so a knob added to the
@@ -36,22 +37,35 @@ public static class RecipeBounds
         if (stated is null || _schema.Value["properties"] is not JsonObject areas)
             return;
 
-        foreach (var (areaName, areaSchema) in areas)
+        foreach (var (name, propertySchema) in areas)
         {
-            if (areaSchema?["properties"] is not JsonObject fields || stated[areaName] is not JsonObject area)
+            if (propertySchema is null)
                 continue;
 
-            foreach (var (fieldName, fieldSchema) in fields)
+            // An area, whose own properties carry the bounds; or a value at the top of the recipe, which
+            // carries them itself. Both are checked, so a bound is enforced wherever the schema states one
+            // rather than only where the format happens to nest.
+            if (propertySchema["properties"] is JsonObject fields)
             {
-                if (fieldSchema is null || area[fieldName] is not JsonValue value)
+                if (stated[name] is not JsonObject area)
                     continue;
 
-                if (!value.TryGetValue<double>(out var number))
-                    continue;
-
-                Check(number, fieldSchema["minimum"], fieldSchema["maximum"], $"{areaName}.{fieldName}");
+                foreach (var (fieldName, fieldSchema) in fields)
+                    CheckStated(area, fieldName, fieldSchema, $"{name}.{fieldName}");
+            }
+            else
+            {
+                CheckStated(stated, name, propertySchema, name);
             }
         }
+    }
+
+    private static void CheckStated(JsonNode container, string field, JsonNode? schema, string path)
+    {
+        if (schema is null || container[field] is not JsonValue value || !value.TryGetValue<double>(out var number))
+            return;
+
+        Check(number, schema["minimum"], schema["maximum"], path);
     }
 
     private static void Check(double value, JsonNode? minimum, JsonNode? maximum, string field)

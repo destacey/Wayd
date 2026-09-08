@@ -62,6 +62,19 @@ public class RecipeBoundsTests
     }
 
     [Fact]
+    public void Validate_RejectsAValueAtTheTopOfTheRecipe()
+    {
+        // Arrange — version sits beside the areas rather than inside one, and its bound applies the same
+        var recipe = new Recipe { Version = 0 };
+
+        // Act
+        var act = () => RecipeBounds.Validate(recipe);
+
+        // Assert
+        act.Should().Throw<RecipeException>().WithMessage("*version*");
+    }
+
+    [Fact]
     public void Validate_IgnoresAKnobTheRecipeDoesNotState()
     {
         // Arrange — an empty recipe states nothing, and nothing is not out of range
@@ -105,7 +118,12 @@ public class RecipeBoundsTests
         foreach (var (areaName, areaSchema) in schema["properties"]!.AsObject())
         {
             if (areaSchema?["properties"] is not JsonObject fields)
+            {
+                if (areaSchema?["minimum"] is not null || areaSchema?["maximum"] is not null)
+                    bounded.Add(areaName);
+
                 continue;
+            }
 
             foreach (var (fieldName, fieldSchema) in fields)
             {
@@ -115,18 +133,48 @@ public class RecipeBoundsTests
         }
 
         // Act — every bounded field, pushed a long way outside its range at once
+        var offending = new List<string>();
         var wild = JsonNode.Parse("""
             {
+              "version": -9,
               "timeline": { "companyAgeYears": -9, "teamStructureAgeYears": -9, "historyYears": -9, "runwayYears": -9 },
               "organization": { "deliveryRatio": 99, "valueStreams": -9, "teams": -9, "formerEmployeeFraction": 99 },
               "ppm": { "functionPortfolios": -9, "concurrentProjectsPerArt": -9, "concurrentProgramsPerPortfolio": -9 }
             }
-            """)!.Deserialize<Recipe>(RecipeLibrary.SerializerOptions)!;
+            """)!;
 
-        var act = () => RecipeBounds.Validate(wild);
+        // Each bound is reached only once the ones before it pass, so they are peeled off one at a time:
+        // whatever the message names is fixed and the walk repeats, until nothing is left to reject.
+        var remaining = wild.Deserialize<Recipe>(RecipeLibrary.SerializerOptions)!;
+        for (var attempt = 0; attempt < bounded.Count + 1; attempt++)
+        {
+            try
+            {
+                RecipeBounds.Validate(remaining);
+                break;
+            }
+            catch (RecipeException failure)
+            {
+                var named = bounded.FirstOrDefault(field => failure.Message.Contains($"'{field}'"));
+                named.Should().NotBeNull("every rejection has to name the field it is about");
+                offending.Add(named!);
+                Clear(wild, named!);
+                remaining = wild.Deserialize<Recipe>(RecipeLibrary.SerializerOptions)!;
+            }
+        }
 
-        // Assert
+        // Assert — a bound the walker cannot see never rejects, and so never appears here
         bounded.Should().NotBeEmpty("the schema is expected to constrain the counts");
-        act.Should().Throw<RecipeException>();
+        offending.Should().BeEquivalentTo(bounded);
+    }
+
+    /// <summary>Removes one <c>area.field</c> or top-level value from the recipe's JSON.</summary>
+    private static void Clear(JsonNode recipe, string path)
+    {
+        var parts = path.Split('.');
+        if (parts.Length == 1)
+            recipe.AsObject().Remove(parts[0]);
+        else
+            recipe[parts[0]]!.AsObject().Remove(parts[1]);
     }
 }

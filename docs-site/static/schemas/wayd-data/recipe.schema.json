@@ -31,27 +31,32 @@
         "asOf": {
           "type": ["string", "null"],
           "format": "date",
-          "description": "The date the run treats as today. Omit to anchor on the real one, so data straddles now. Pin it alongside --random-seed for byte-identical output."
+          "description": "The date the run treats as today. Omit to anchor on the real one, so data straddles now. Pin it alongside --random-seed for byte-identical output.",
+          "x-cli-flag": "--as-of"
         },
         "companyAgeYears": {
           "type": "integer",
           "description": "How far back the company's history reaches. Nothing is generated before this.",
-          "minimum": 1
+          "minimum": 1,
+          "x-cli-flag": "--company-age-years"
         },
         "teamStructureAgeYears": {
           "type": "integer",
           "description": "How long the current team structure has stood, which is shorter than the company's own age.",
-          "minimum": 1
+          "minimum": 1,
+          "x-cli-flag": "--team-structure-age-years"
         },
         "historyYears": {
           "type": "integer",
           "description": "How much delivery history sits behind asOf.",
-          "minimum": 0
+          "minimum": 0,
+          "x-cli-flag": "--history-years"
         },
         "runwayYears": {
           "type": "integer",
           "description": "How much planned work sits ahead of asOf.",
-          "minimum": 0
+          "minimum": 0,
+          "x-cli-flag": "--runway-years"
         }
       }
     },
@@ -62,33 +67,39 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Whether the area is generated at all."
+          "description": "Whether the area is generated at all.",
+          "x-cli-no-flag": "Cannot be false — every other area is generated over the organization — so there is nothing for a flag to express. Disable the other areas instead."
         },
         "companyType": {
           "enum": ["Tech", "Balanced", "Enterprise"],
-          "description": "Sets the default share of employees inside the delivery structure (tech ~85%, balanced ~50%, enterprise ~20%)."
+          "description": "Sets the default share of employees inside the delivery structure (tech ~85%, balanced ~50%, enterprise ~20%).",
+          "x-cli-flag": "--company-type"
         },
         "deliveryRatio": {
           "type": "number",
           "description": "Override for that share, when the company type's default is not wanted.",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "x-cli-flag": "--delivery-ratio"
         },
         "valueStreams": {
           "type": "integer",
           "description": "Number of value streams (product lines).",
-          "minimum": 1
+          "minimum": 1,
+          "x-cli-flag": "--value-streams"
         },
         "teams": {
           "type": "integer",
           "description": "Number of leaf delivery teams.",
-          "minimum": 1
+          "minimum": 1,
+          "x-cli-flag": "--teams"
         },
         "formerEmployeeFraction": {
           "type": "number",
           "description": "Fraction of non-delivery individual contributors generated as former employees.",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "x-cli-flag": "--former-employees"
         }
       }
     },
@@ -99,12 +110,15 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Whether roles and accounts are created at all."
+          "description": "Whether roles and accounts are created at all.",
+          "x-cli-flag": "--skip-users",
+          "x-cli-flag-negates": true
         },
         "password": {
           "type": "string",
           "description": "The password every generated account is created with. Must satisfy the password rules: at least 8 characters with an uppercase letter, a lowercase letter and a digit.",
-          "minLength": 8
+          "minLength": 8,
+          "x-cli-flag": "--user-password"
         }
       }
     },
@@ -115,22 +129,27 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Whether the area is generated at all."
+          "description": "Whether the area is generated at all.",
+          "x-cli-flag": "--skip-ppm",
+          "x-cli-flag-negates": true
         },
         "functionPortfolios": {
           "type": "integer",
           "description": "Cross-cutting business-function portfolios, in addition to one per value stream.",
-          "minimum": 0
+          "minimum": 0,
+          "x-cli-flag": "--function-portfolios"
         },
         "concurrentProjectsPerArt": {
           "type": "integer",
           "description": "Average number of projects an ART has in flight at once. The total generated is derived from this across the window.",
-          "minimum": 1
+          "minimum": 1,
+          "x-cli-flag": "--concurrent-projects-per-art"
         },
         "concurrentProgramsPerPortfolio": {
           "type": "integer",
           "description": "Average number of thematic programs a portfolio runs at once.",
-          "minimum": 1
+          "minimum": 1,
+          "x-cli-flag": "--concurrent-programs-per-portfolio"
         }
       }
     }

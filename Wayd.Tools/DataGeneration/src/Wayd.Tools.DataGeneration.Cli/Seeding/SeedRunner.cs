@@ -1,4 +1,4 @@
-using Wayd.Tools.DataGeneration.Cli.Generation;
+﻿using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Seeding.Areas;
 
 namespace Wayd.Tools.DataGeneration.Cli.Seeding;
@@ -37,11 +37,24 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new ProjectStagesArea(),
         new StrategicInitiativesArea(),
         new PpmFinalizeArea(),
+        new UserRolesArea(),
+        new UserAccountsArea(),
     ];
 
-    public async Task Run(GeneratedOrg org, GeneratedPpm? ppm, CancellationToken cancellationToken)
+    public async Task Run(
+        GeneratedOrg org,
+        GeneratedPpm? ppm,
+        bool createUsers,
+        string userPassword,
+        CancellationToken cancellationToken)
     {
-        var context = new SeedContext(_client, _log) { Org = org, Ppm = ppm };
+        var context = new SeedContext(_client, _log)
+        {
+            Org = org,
+            Ppm = ppm,
+            CreateUsers = createUsers,
+            UserPassword = userPassword,
+        };
 
         foreach (var area in SeedAreaGraph.Order(Areas))
         {

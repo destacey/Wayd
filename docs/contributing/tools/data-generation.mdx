@@ -65,8 +65,24 @@ No password is ever handled by the tool, and a token is scoped, expiring, and re
 
 :::tip Re-seeding
 The import is **additive** and rejects duplicates, so it expects a clean database. To re-seed, reset the
-database first (Aspire dashboard → the reset command), then run `seed` again. A reset wipes tokens too, so
-you will need a fresh Personal Access Token afterward.
+database first (Aspire dashboard → the reset command), then run `seed` again.
+
+A reset takes **your account with it**, not just your tokens. The application's own database seeder creates
+roles, not users, and `wayd-data`'s accounts cannot help you here — creating them needs a token, which needs
+an account. So the loop back to a working token is:
+
+1. **Reset**, then start the application. With no users in the database it prints a one-time bootstrap token
+   to the log; see [First-Run Setup](../first-run-setup.mdx).
+2. **Create the first admin** at `<your-app-url>/setup`, or `POST /api/auth/setup` with the token. This
+   account is created with no forced password change, so it is usable immediately.
+3. **Create a Personal Access Token** under Settings → Personal Access Tokens, or
+   `POST /api/user-management/personal-access-tokens`.
+4. **Seed** with that token. The seed then creates its own accounts on top of yours — see
+   [Sign-ins and roles](#sign-ins-and-roles) — so after this you can sign in as any of the generated
+   people as well.
+
+Every step has an HTTP endpoint, so the whole loop can be scripted — the bootstrap token is the only value
+that has to come out of the log, and it lasts for the lifetime of that process only.
 :::
 
 ## Recipes
@@ -159,6 +175,52 @@ turns the area off — leaving it out never switches an area back on over a reci
 The organization is the exception: it cannot be disabled, and saying so is an error rather than a silent
 no-op. Every other area is generated *over* it — portfolios and projects name people by employee number,
 and projects are scoped to a team — so a run without it produces nothing at all.
+
+### Sign-ins and roles
+
+A seeded environment used to have hundreds of employees and one account linked to none of them, which made
+every PPM rule unreachable: the account you signed in with either administered everything or led nothing.
+The seed now creates roles and gives accounts to the people whose authorization actually differs.
+
+Six roles are created, chosen to sit on real seams in the authorization model rather than on job titles:
+
+| Role | What it demonstrates |
+|---|---|
+| `Read Only` | The baseline — sees everything, changes nothing. |
+| `Team Member` | Work items gate on the permission **alone**, with no leadership of the project required. |
+| `Project Manager` | The permission reaches every project; **delivery leadership decides which ones actually change**. |
+| `Delivery Manager` | The same, one level up — the portfolios and programs above those projects. |
+| `Product Manager` | The other model: product management has no `Administer` counterpart, so the claim alone is enough. |
+| `PPM Administrator` | The membership bypass. Waives per-record leadership across the whole domain, so it goes to one person. |
+
+Sponsors deliberately get `Read Only`. They are excluded from delivery leadership by design, so an account
+that sponsors a portfolio and still cannot change it is the other half of the same rule.
+
+Wayd ships exactly one role — `Admin` — and it carries `Administer ProjectPortfolioManagement`. Seeding
+every account as `Admin` would switch off the rules the environment exists to exercise, which is why the
+seed creates a spread instead and hands the bypass to almost nobody.
+
+Every account is created with the same password, which the recipe states:
+
+```json
+"users": {
+  "enabled": true,
+  "password": "Test123$"
+}
+```
+
+One password for all of them is deliberate — switching between people to check a rule is the point. Wayd
+prompts each account to change it at first sign-in; that is a client-side prompt rather than something the
+API enforces, so the account works immediately either way.
+
+`--skip-users` turns the area off, and `--user-password` overrides the password for one run.
+
+:::note Which employees get an account
+The people holding a PPM role — sponsors, owners and managers — plus the executives, which is a few dozen
+rather than the whole company. An account that leads nothing behaves like every other account that leads
+nothing, so there is little to learn from hundreds of them. The executives are included so an
+organization-only run still leaves you a way in.
+:::
 
 ### The timeline block
 

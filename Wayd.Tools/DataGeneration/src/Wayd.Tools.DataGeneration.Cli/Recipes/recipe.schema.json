@@ -92,6 +92,22 @@
         }
       }
     },
+    "users": {
+      "type": "object",
+      "description": "The application roles and the sign-ins that hold them. Only people whose authorization differs get an account.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether roles and accounts are created at all."
+        },
+        "password": {
+          "type": "string",
+          "description": "The password every generated account is created with. Must satisfy the password rules: at least 8 characters with an uppercase letter, a lowercase letter and a digit.",
+          "minLength": 8
+        }
+      }
+    },
     "ppm": {
       "type": "object",
       "description": "The portfolios, programs, projects and the work beneath them.",

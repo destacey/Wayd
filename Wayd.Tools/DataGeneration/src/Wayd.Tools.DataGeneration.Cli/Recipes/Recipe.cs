@@ -46,6 +46,9 @@ public sealed class Recipe
 
     /// <summary>The portfolios, programs, projects and the work beneath them.</summary>
     public PpmRecipe? Ppm { get; init; }
+
+    /// <summary>The application roles and the sign-ins that hold them.</summary>
+    public UsersRecipe? Users { get; init; }
 }
 
 /// <summary>An area that can be switched off wholesale rather than tuned.</summary>
@@ -101,6 +104,27 @@ public sealed class OrganizationRecipe : AreaRecipe
 
     /// <summary>Fraction (0..1) of non-delivery individual contributors generated as former employees.</summary>
     public double? FormerEmployeeFraction { get; init; }
+}
+
+/// <summary>
+/// The sign-ins a seeded environment can be explored as.
+/// </summary>
+/// <remarks>
+/// Only the people whose authorization differs get an account — the ones holding a PPM role, plus the
+/// executives — because an account that leads nothing behaves like every other account that leads nothing.
+/// </remarks>
+public sealed class UsersRecipe : AreaRecipe
+{
+    /// <summary>
+    /// The password every generated account is created with.
+    /// </summary>
+    /// <remarks>
+    /// Shared on purpose: these are throwaway sign-ins for a development environment, and one password for
+    /// all of them is what makes switching between people to check a permission rule practical. Wayd will
+    /// still ask each account to change it on first sign-in, which is a client-side prompt rather than
+    /// anything the API enforces.
+    /// </remarks>
+    public string? Password { get; init; }
 }
 
 /// <summary>The PPM dataset layered over the organization.</summary>

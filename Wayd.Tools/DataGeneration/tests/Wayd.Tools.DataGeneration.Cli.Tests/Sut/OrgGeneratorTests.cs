@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Models;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -332,6 +333,25 @@ public class OrgGeneratorTests
 
         // Assert
         a.Employees.Max(e => e.HireDate).Should().BeAfter(b.Employees.Max(e => e.HireDate)!.Value);
+    }
+
+    [Fact]
+    public void Generate_ProducesEmailAddressesThatCanBecomeUsernames()
+    {
+        // Arrange — Wayd signs people in by email, so a generated address has to be one the username rule
+        // accepts. Asserted against the same constant the API validates with rather than a copy of the
+        // grammar, so a name that cannot become an address fails here rather than as a rejected account a
+        // long way downstream.
+        var org = Generate();
+
+        // Act
+        var unusable = org.Employees
+            .Where(e => e.Email.Any(c => !EmailAddress.AllowedCharacters.Contains(c)))
+            .Select(e => e.Email)
+            .ToList();
+
+        // Assert
+        unusable.Should().BeEmpty();
     }
 
     [Fact]

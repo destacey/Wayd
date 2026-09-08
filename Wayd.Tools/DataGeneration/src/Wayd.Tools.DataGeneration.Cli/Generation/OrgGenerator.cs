@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Wayd.Common.Models;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
@@ -61,7 +62,11 @@ public sealed class OrgGenerator
             _teamMemberships,
             _members,
             _roleNames.ToList(),
-            new OrgStructure(_valueStreamNodes));
+            new OrgStructure(
+                _valueStreamNodes,
+                _ceo.EmployeeNumber,
+                _cto.EmployeeNumber,
+                _cpo.EmployeeNumber));
     }
 
     // ---- Executive layer ----------------------------------------------------------------------
@@ -378,9 +383,18 @@ public sealed class OrgGenerator
     private bool StaffedSomewhere(Person person) =>
         _members.Any(m => m.EmployeeNumber == person.EmployeeNumber);
 
+    /// <summary>
+    /// A work address for someone, unique across the company.
+    /// </summary>
+    /// <remarks>
+    /// Characters an address may not contain are dropped from the name; an apostrophe is kept, because an
+    /// address may legitimately contain one and a seeded O'Connell is what proves it. That is not
+    /// hypothetical — a live run produced exactly that name and could not create a sign-in for them, which
+    /// is how the username rule was found to be narrower than the address grammar.
+    /// </remarks>
     private string UniqueEmail(string first, string last)
     {
-        var baseLocal = $"{first}.{last}".ToLowerInvariant().Replace(" ", string.Empty);
+        var baseLocal = new string([.. $"{first}.{last}".ToLowerInvariant().Where(IsAddressCharacter)]);
         var candidate = $"{baseLocal}@acme.example";
         var suffix = 1;
         while (!_usedEmails.Add(candidate))
@@ -390,6 +404,21 @@ public sealed class OrgGenerator
         }
         return candidate;
     }
+
+    /// <summary>
+    /// Whether a character may appear in the local part of an email address.
+    /// </summary>
+    /// <remarks>
+    /// Taken from <see cref="EmailAddress.AllowedCharacters"/> rather than restated, so the generator
+    /// cannot drift from the grammar the API validates against — which is the whole reason that constant
+    /// exists. Everything but the @ separating the parts, since this only filters the local part.
+    /// <para>
+    /// Stricter than a <c>char.IsLetterOrDigit</c> test in one useful way: that accepts letters outside
+    /// ASCII, and an accented name would produce an address the API's own format check rejects.
+    /// </para>
+    /// </remarks>
+    private static bool IsAddressCharacter(char c) =>
+        EmailAddress.AllowedCharacters.Contains(c) && c != '@';
 
     // ---- Teams --------------------------------------------------------------------------------
 

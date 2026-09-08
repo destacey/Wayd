@@ -1,4 +1,4 @@
-namespace Wayd.Tools.DataGeneration.Cli.Recipes;
+﻿namespace Wayd.Tools.DataGeneration.Cli.Recipes;
 
 /// <summary>
 /// Lays one recipe over another: anything the upper one states wins, anything it leaves null shows the
@@ -27,7 +27,23 @@ public static class RecipeLayering
         Timeline = Layer(over.Timeline, under.Timeline),
         Organization = Layer(over.Organization, under.Organization),
         Ppm = Layer(over.Ppm, under.Ppm),
+        Users = Layer(over.Users, under.Users),
     };
+
+    private static UsersRecipe? Layer(UsersRecipe? over, UsersRecipe? under)
+    {
+        if (over is null)
+            return under;
+
+        if (under is null)
+            return over;
+
+        return new UsersRecipe
+        {
+            Enabled = over.Enabled ?? under.Enabled,
+            Password = over.Password ?? under.Password,
+        };
+    }
 
     private static TimelineRecipe? Layer(TimelineRecipe? over, TimelineRecipe? under)
     {

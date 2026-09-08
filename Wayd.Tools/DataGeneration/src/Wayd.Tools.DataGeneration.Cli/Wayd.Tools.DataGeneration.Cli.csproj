@@ -16,6 +16,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      For the local `ui` page. A FrameworkReference rather than a package: the ASP.NET Core shared
+      framework is already on any machine with the SDK, so serving a page costs no new dependency.
+    -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Bogus" />
     <PackageReference Include="CsvHelper" />
     <PackageReference Include="System.CommandLine" />

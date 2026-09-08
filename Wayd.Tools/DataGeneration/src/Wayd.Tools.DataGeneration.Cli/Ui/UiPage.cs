@@ -263,19 +263,39 @@ function render() {
   // Stated, not truthy. A zero is a value someone typed, and dropping it from the command while leaving
   // it in the recipe means the command no longer reproduces what is on screen.
   const stated = value => value !== undefined && value !== null && value !== '';
-  // A path with a space in it is the common case on Windows — Program Files, or a name with a space —
-  // and unquoted it would arrive at the shell as two arguments. The command has to survive being pasted,
-  // or showing it is worse than showing nothing.
-  const arg = value => /[\s"]/.test(String(value)) ? `"${String(value).replace(/"/g, '\\"')}"` : value;
+  // Quoted for whatever shell this is pasted into, because the command has to survive the paste or
+  // showing it is worse than showing nothing. Single quotes are literal in both bash and PowerShell,
+  // so they hold a path with a space and a password containing $ or a backtick alike; double quotes
+  // are the fallback for a value containing a single quote, where they are still literal in both. A
+  // value containing both has no form that works everywhere, and is left for the reader to fix.
+  const arg = value => {
+    const text = String(value);
+    if (!/[\s'"$`\\!&|<>();*?]/.test(text)) return text;
+    return text.includes("'") ? `"${text.replace(/"/g, '\\"')}"` : `'${text}'`;
+  };
 
   const chosen = el('builtin').value;
   if (chosen) parts.push(`--recipe ${arg(chosen)}`);
   if (seed !== null) parts.push(`--random-seed ${seed}`);
-  if (stated(recipe.timeline?.asOf)) parts.push(`--as-of ${arg(recipe.timeline.asOf)}`);
-  if (stated(recipe.organization?.teams)) parts.push(`--teams ${recipe.organization.teams}`);
-  if (stated(recipe.organization?.valueStreams)) parts.push(`--value-streams ${recipe.organization.valueStreams}`);
-  if (recipe.ppm?.enabled === false) parts.push('--skip-ppm');
-  if (recipe.users?.enabled === false) parts.push('--skip-users');
+
+  // Each flag comes from the schema's own x-cli-flag pairing rather than a list kept here. Written out
+  // by hand this fell seven flags behind the CLI, so a recipe composed on the page printed a command
+  // that generated something else; pairing them at the source is what stops that recurring.
+  for (const [area, spec] of Object.entries(schema.properties)) {
+    if (spec.type !== 'object') continue;
+    for (const [field, fieldSpec] of Object.entries(spec.properties)) {
+      const flag = fieldSpec['x-cli-flag'];
+      const value = recipe[area]?.[field];
+      if (!flag || !stated(value)) continue;
+      // --skip-x can only turn an area off, so it is a bare switch and says nothing when the area is on.
+      if (fieldSpec['x-cli-flag-negates']) {
+        if (value === false) parts.push(flag);
+      } else {
+        parts.push(`${flag} ${arg(value)}`);
+      }
+    }
+  }
+
   if (stated(el('out').value)) parts.push(`--out ${arg(el('out').value)}`);
   el('cli').textContent = parts.join(' ');
 }

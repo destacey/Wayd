@@ -13,6 +13,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Messaging;
+using Wayd.Infrastructure.Persistence.Activities;
 using Wayd.Infrastructure.Persistence.Extensions;
 using NodaTime;
 using Wolverine;
@@ -595,7 +596,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             foreach (var domainEvent in domainEvents)
             {
                 // Auto-capture into ActivityLogs table
-                var activityLog = CreateActivityLogEntry(domainEvent, entity, correlationId);
+                var activityLog = ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, entity, correlationId);
                 Set<ActivityLogEntry>().Add(activityLog);
                 enrolledActivity = true;
 
@@ -623,132 +624,5 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         }
 
         return (inlineEvents, enrolledDurable, enrolledActivity);
-    }
-
-    private static readonly JsonSerializerOptions ActivityJsonOptions = CreateActivityJsonOptions();
-
-    private static JsonSerializerOptions CreateActivityJsonOptions()
-    {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
-            Converters =
-            {
-                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-            }
-        };
-        options.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-        return options;
-    }
-
-    private static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IEntity entity, string? correlationId)
-    {
-        var eventType = domainEvent.GetType().Name;
-
-        string aggregateType;
-        Guid aggregateId;
-
-        if (domainEvent is IAggregateEvent aggEvent)
-        {
-            aggregateType = aggEvent.AggregateType;
-            aggregateId = aggEvent.AggregateId;
-        }
-        else
-        {
-            aggregateType = entity.GetType().Name;
-            aggregateId = ResolveAggregateId(entity, domainEvent);
-        }
-
-        var entityNamespace = entity.GetType().Namespace ?? string.Empty;
-        var eventNamespace = domainEvent.GetType().Namespace ?? string.Empty;
-        var domainArea = ResolveDomainArea(entityNamespace, eventNamespace);
-
-        var payload = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), ActivityJsonOptions);
-        var summary = FormatSummary(eventType, aggregateType);
-
-        return new ActivityLogEntry(
-            domainEvent.EventId,
-            eventType,
-            domainArea,
-            aggregateType,
-            aggregateId,
-            domainEvent.Actor,
-            domainEvent.Timestamp,
-            correlationId,
-            payload,
-            summary,
-            domainEvent.EventVersion);
-    }
-
-    private static string ResolveDomainArea(string entityNamespace, string eventNamespace)
-    {
-        if (entityNamespace.Contains("ProjectPortfolioManagement") || eventNamespace.Contains("ProjectPortfolioManagement"))
-            return "Ppm";
-        if (entityNamespace.Contains("Organization") || eventNamespace.Contains("Organization"))
-            return "Organization";
-        if (entityNamespace.Contains("ProductManagement") || eventNamespace.Contains("ProductManagement"))
-            return "ProductManagement";
-        if (entityNamespace.Contains("Planning") || eventNamespace.Contains("Planning"))
-            return "Planning";
-        if (entityNamespace.Contains("Work") || eventNamespace.Contains("Work"))
-            return "Work";
-        if (entityNamespace.Contains("StrategicManagement") || eventNamespace.Contains("StrategicManagement"))
-            return "StrategicManagement";
-        if (entityNamespace.Contains("StatusWorkflow") || eventNamespace.Contains("StatusWorkflow"))
-            return "StatusWorkflows";
-        if (entityNamespace.Contains("Identity") || eventNamespace.Contains("Identity"))
-            return "Identity";
-        if (entityNamespace.Contains("Goals") || eventNamespace.Contains("Goals"))
-            return "Goals";
-        if (entityNamespace.Contains("Links") || eventNamespace.Contains("Links"))
-            return "Links";
-        if (entityNamespace.Contains("AppIntegration") || eventNamespace.Contains("AppIntegration"))
-            return "AppIntegration";
-
-        return "App";
-    }
-
-    private static Guid ResolveAggregateId(IEntity entity, DomainEvent domainEvent)
-    {
-        if (entity is IEntity<Guid> guidEntity && guidEntity.Id != Guid.Empty)
-        {
-            return guidEntity.Id;
-        }
-
-        var idProp = entity.GetType().GetProperty("Id");
-        if (idProp?.GetValue(entity) is Guid gid && gid != Guid.Empty)
-        {
-            return gid;
-        }
-
-        if (idProp?.GetValue(entity) is string sid && Guid.TryParse(sid, out var parsedGuid) && parsedGuid != Guid.Empty)
-        {
-            return parsedGuid;
-        }
-
-        var eventIdProp = domainEvent.GetType().GetProperty("Id");
-        if (eventIdProp?.GetValue(domainEvent) is Guid eventGuid && eventGuid != Guid.Empty)
-        {
-            return eventGuid;
-        }
-
-        return domainEvent.EventId;
-    }
-
-    private static string FormatSummary(string eventType, string aggregateType)
-    {
-        var readableEvent = eventType.EndsWith("Event", StringComparison.Ordinal)
-            ? eventType[..^5]
-            : eventType;
-
-        var words = Regex.Replace(readableEvent, "(\\B[A-Z])", " $1");
-
-        if (words.StartsWith(aggregateType, StringComparison.OrdinalIgnoreCase))
-        {
-            return words;
-        }
-
-        return $"{words} on {aggregateType}";
     }
 }

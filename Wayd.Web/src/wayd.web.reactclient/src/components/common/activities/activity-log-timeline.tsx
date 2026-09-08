@@ -119,14 +119,8 @@ const getEventBadge = (
     }
   }
 
-  if (lower.includes('activated')) {
-    return {
-      icon: <CheckCircleOutlined style={{ color: token.colorSuccess }} />,
-      color: 'green' as const,
-      label: 'Activated',
-    }
-  }
-
+  // Must stay ahead of the 'activated' check: 'deactivated' contains 'activated', so testing for
+  // activation first labels every deactivation as its opposite.
   if (
     lower.includes('deactivated') ||
     lower.includes('deleted') ||
@@ -138,6 +132,14 @@ const getEventBadge = (
       icon: <StopOutlined style={{ color: token.colorError }} />,
       color: 'red' as const,
       label: 'Deactivated',
+    }
+  }
+
+  if (lower.includes('activated')) {
+    return {
+      icon: <CheckCircleOutlined style={{ color: token.colorSuccess }} />,
+      color: 'green' as const,
+      label: 'Activated',
     }
   }
 
@@ -797,17 +799,6 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                       <Text>{selectedActivity.aggregateType}</Text>
                     </Tag>
                   </Flex>
-
-                  {previousActivity && (
-                    <Button
-                      size="small"
-                      icon={<DiffOutlined />}
-                      onClick={() => setIsCompareOpen(true)}
-                      style={{ fontSize: token.fontSizeSM }}
-                    >
-                      Compare with previous
-                    </Button>
-                  )}
                 </Flex>
               </Flex>
 

@@ -42,7 +42,6 @@ public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
         string toStatus,
         LifecycleCategory toCategory,
         bool isBackward,
-        string source,
         string? reason,
         int sequence,
         EventActor actor,
@@ -59,7 +58,6 @@ public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
         ToStatus = toStatus;
         ToCategory = toCategory;
         IsBackward = isBackward;
-        Source = source;
         Reason = reason;
         Sequence = sequence;
 
@@ -91,11 +89,6 @@ public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
     /// table that decides it lives in the PPM domain, out of reach of the consumers that read this event.
     /// </summary>
     public bool IsBackward { get; }
-
-    /// <summary>
-    /// How much fidelity the transition carries — recorded as it happened, or reconstructed afterwards.
-    /// </summary>
-    public string Source { get; }
 
     /// <summary>
     /// Why the project was moved. Required for a backward transition and null for the forward ones,

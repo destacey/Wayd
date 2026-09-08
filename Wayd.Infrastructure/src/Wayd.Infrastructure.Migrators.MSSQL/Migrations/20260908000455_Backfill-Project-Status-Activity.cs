@@ -12,7 +12,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         // they raised an event, so without this a project's activity begins the day the event shipped and
         // its delivery history is missing from the one place that claims to show it. The activity log is
         // intended to supersede ProjectStatusHistory, so every column of that table has to be recoverable
-        // from these entries before it can be retired.
+        // from these entries before it can be retired. Every column but Source, which is deliberately
+        // dropped: it records how a history row came to exist for the benefit of the migration that
+        // reconstructed the old rows, every transition made since then is Recorded, and the status
+        // history UI is tested never to show it.
         //
         // The payload is written by hand rather than by the serializer, which is the point of doing this
         // once in a migration: it is frozen at the shape ProjectStatusChangedEvent had when this shipped
@@ -82,7 +85,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         + N',""toStatus"":""' + h.[ToStatus] + N'""'
                         + N',""toCategory"":""' + toCategory.[Category] + N'""'
                         + N',""isBackward"":' + CASE WHEN backward.[FromStatus] IS NULL THEN N'false' ELSE N'true' END
-                        + N',""source"":""' + h.[Source] + N'""'
                         + N',""reason"":' + CASE WHEN h.[Reason] IS NULL THEN N'null' ELSE N'""' + STRING_ESCAPE(h.[Reason], 'json') + N'""' END
                         + N',""sequence"":' + CONVERT(varchar(11), h.[Sequence])
                         + N',""timestamp"":""' + iso.[Value] + N'""'

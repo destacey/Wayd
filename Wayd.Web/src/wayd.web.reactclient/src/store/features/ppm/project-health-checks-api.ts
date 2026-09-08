@@ -6,7 +6,7 @@ import {
   UpdateProjectHealthCheckRequest,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
-import { projectActivityTag } from './projects-api'
+import { projectActivityTag } from './project-activity-tags'
 
 export interface ProjectHealthCheckScope {
   projectId: string

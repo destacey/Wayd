@@ -21,6 +21,7 @@ import {
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
+import { projectActivityTag } from './project-activity-tags'
 import { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
 
@@ -52,16 +53,6 @@ export const projectStageMutationTags = (
   { type: QueryTags.PortfolioProjects, id: 'LIST' },
   { type: QueryTags.ProgramProjects, id: 'LIST' },
 ]
-
-/**
- * The activity log cache entry a mutation on a project has to refresh.
- *
- * Keyed by the project's id rather than its key, because that is what the page passes to
- * getProjectActivities. Invalidating by key matches no cache entry and fails silently — the log simply
- * keeps serving the entries it had before the change.
- */
-export const projectActivityTag = (projectId: string) =>
-  ({ type: QueryTags.ActivityLog, id: projectId }) as const
 
 export const projectsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({

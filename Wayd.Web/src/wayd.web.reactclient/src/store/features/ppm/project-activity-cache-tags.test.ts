@@ -1,5 +1,5 @@
 import { QueryTags } from '../query-tags'
-import { projectActivityTag } from './projects-api'
+import { projectActivityTag } from './project-activity-tags'
 
 /**
  * Pins the cache entry a change to a project has to refresh.

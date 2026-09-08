@@ -49,10 +49,6 @@ public class ProjectTests
 
     #region Project Create and Update
 
-
-
-
-
     [Fact]
     public void RecordScore_RaisesAScoreRecordedEventNamingTheModelAndTheHeadlineNumber()
     {

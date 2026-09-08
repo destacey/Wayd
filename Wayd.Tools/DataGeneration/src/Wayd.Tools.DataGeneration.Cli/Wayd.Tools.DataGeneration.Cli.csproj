@@ -24,6 +24,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The page is a private detail of the ui verb, but its script carries a rule that has to stay equal
+      to the one ShellArgument applies. Asserting that needs to read the page.
+    -->
+    <InternalsVisibleTo Include="Wayd.Tools.DataGeneration.Cli.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Bogus" />
     <PackageReference Include="CsvHelper" />
     <PackageReference Include="System.CommandLine" />

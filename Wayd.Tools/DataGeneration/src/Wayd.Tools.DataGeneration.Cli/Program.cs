@@ -39,7 +39,11 @@ bool TryResolve(ParseResult parse, int seed, out ResolvedRecipe resolved)
 // on the day it ran.
 void ReportRunInputs(ParseResult parse, GenerationContext context)
 {
-    var recipe = parse.GetValue(GenerationOptions.RecipeName) is { } named ? $" --recipe {named}" : string.Empty;
+    // Quoted for the same reason the page quotes: a recipe named by path can sit under a folder with
+    // a space in it, and an unquoted hint reproduces nothing when pasted.
+    var recipe = parse.GetValue(GenerationOptions.RecipeName) is { } named
+        ? $" --recipe {ShellArgument.Quote(named)}"
+        : string.Empty;
 
     Console.WriteLine(
         $"Using seed {context.Seed} as of {context.AsOf:yyyy-MM-dd} "

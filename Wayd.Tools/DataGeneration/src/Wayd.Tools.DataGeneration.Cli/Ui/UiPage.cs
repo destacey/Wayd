@@ -15,7 +15,7 @@
 /// </remarks>
 internal static class UiPage
 {
-    internal const string Html = """
+    internal const string Html = $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -68,6 +68,8 @@ internal static class UiPage
   td { padding: 4px 0; border-bottom: 1px solid var(--line); }
   td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
   .error { color: var(--error); white-space: pre-wrap; }
+  .warn { color: var(--error); }
+  .warn:empty { display: none; }
 </style>
 </head>
 <body>
@@ -101,6 +103,7 @@ internal static class UiPage
     <div>
       <div class="head"><h3>Command</h3><button data-copy="cli">Copy</button></div>
       <pre id="cli">wayd-data generate</pre>
+      <p class="hint warn" id="cli-note"></p>
     </div>
 
     <div>
@@ -264,18 +267,23 @@ function render() {
   // it in the recipe means the command no longer reproduces what is on screen.
   const stated = value => value !== undefined && value !== null && value !== '';
   // Quoted for whatever shell this is pasted into, because the command has to survive the paste or
-  // showing it is worse than showing nothing. Single quotes are literal in both bash and PowerShell,
-  // so they hold a path with a space and a password containing $ or a backtick alike; double quotes
-  // are the fallback for a value containing a single quote, where they are still literal in both. A
-  // value containing both has no form that works everywhere, and is left for the reader to fix.
-  const arg = value => {
+  // showing it is worse than showing nothing. The same rule ShellArgument applies, over the same set of
+  // characters, handed here at compile time so the two cannot come to disagree about which ones matter.
+  const meta = /[{{ShellArgument.MetaCharacterClass}}]/;
+  const unportable = [];
+  const arg = (value, flag) => {
     const text = String(value);
-    if (!/[\s'"$`\\!&|<>();*?]/.test(text)) return text;
-    return text.includes("'") ? `"${text.replace(/"/g, '\\"')}"` : `'${text}'`;
+    if (!meta.test(text)) return text;
+    if (!text.includes("'")) return `'${text}'`;
+    // Double quotes carry the apostrophe, but bash and PowerShell both expand $ and a backtick inside
+    // them and escape a nested apostrophe differently, so a value holding both cannot be written once for
+    // either shell. Naming it beats printing a command that pastes cleanly and generates something else.
+    if (/[$`]/.test(text)) unportable.push(flag);
+    return `"${text.replace(/"/g, '\\"')}"`;
   };
 
   const chosen = el('builtin').value;
-  if (chosen) parts.push(`--recipe ${arg(chosen)}`);
+  if (chosen) parts.push(`--recipe ${arg(chosen, '--recipe')}`);
   if (seed !== null) parts.push(`--random-seed ${seed}`);
 
   // Each flag comes from the schema's own x-cli-flag pairing rather than a list kept here. Written out
@@ -291,13 +299,17 @@ function render() {
       if (fieldSpec['x-cli-flag-negates']) {
         if (value === false) parts.push(flag);
       } else {
-        parts.push(`${flag} ${arg(value)}`);
+        parts.push(`${flag} ${arg(value, flag)}`);
       }
     }
   }
 
-  if (stated(el('out').value)) parts.push(`--out ${arg(el('out').value)}`);
+  if (stated(el('out').value)) parts.push(`--out ${arg(el('out').value, '--out')}`);
   el('cli').textContent = parts.join(' ');
+  el('cli-note').textContent = unportable.length
+    ? `${unportable.join(' and ')} holds both an apostrophe and a $ or a backtick. No quoting means the `
+      + `same thing in bash and in PowerShell, so fix that argument by hand after pasting.`
+    : '';
 }
 
 // camelCase to words, with the acronyms this domain actually uses left alone.

@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Wayd.Common.Models;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
@@ -405,11 +406,19 @@ public sealed class OrgGenerator
     }
 
     /// <summary>
-    /// Whether a character may appear unquoted in an email address: RFC 5322's <c>atext</c>, plus the dot
-    /// that separates atoms. Kept in step with the username rule the API applies to the same value.
+    /// Whether a character may appear in the local part of an email address.
     /// </summary>
+    /// <remarks>
+    /// Taken from <see cref="EmailAddress.AllowedCharacters"/> rather than restated, so the generator
+    /// cannot drift from the grammar the API validates against — which is the whole reason that constant
+    /// exists. Everything but the @ separating the parts, since this only filters the local part.
+    /// <para>
+    /// Stricter than a <c>char.IsLetterOrDigit</c> test in one useful way: that accepts letters outside
+    /// ASCII, and an accented name would produce an address the API's own format check rejects.
+    /// </para>
+    /// </remarks>
     private static bool IsAddressCharacter(char c) =>
-        char.IsLetterOrDigit(c) || c == '.' || "!#$%&'*+-/=?^_`{|}~".Contains(c);
+        EmailAddress.AllowedCharacters.Contains(c) && c != '@';
 
     // ---- Teams --------------------------------------------------------------------------------
 

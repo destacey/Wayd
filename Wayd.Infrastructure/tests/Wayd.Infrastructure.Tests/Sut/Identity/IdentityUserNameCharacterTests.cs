@@ -8,8 +8,8 @@ using Wayd.Infrastructure.Identity;
 namespace Wayd.Infrastructure.Tests.Sut.Identity;
 
 /// <summary>
-/// A Wayd username is always an email address, so the allowed-character set has to admit everything an
-/// address may legitimately contain.
+/// A username is an address or an address-shaped identifier — the email for a locally created account, the
+/// UPN for an Entra one — so the allowed-character set has to admit everything an address may contain.
 /// </summary>
 /// <remarks>
 /// The two rules are applied a step apart and by different components: the create-user validator checks
@@ -76,6 +76,25 @@ public sealed class IdentityUserNameCharacterTests
 
         // Assert
         rejected.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AllowedCharacters_OmitsNothingTheFormatCheckAccepts()
+    {
+        // Arrange — the other direction. Without this, narrowing the constant goes unnoticed: the set
+        // stays a subset of what the regex allows, so every "is it permitted" test still passes while an
+        // address the system calls valid can no longer become an account. That is the exact shape of the
+        // apostrophe bug this branch fixed.
+        var printableAscii = Enumerable.Range(33, 94).Select(i => (char)i);
+
+        // Act
+        var missing = printableAscii
+            .Where(c => $"a{c}b@example.com".IsValidEmailAddressFormat())
+            .Where(c => !EmailAddress.AllowedCharacters.Contains(c))
+            .ToList();
+
+        // Assert
+        missing.Should().BeEmpty();
     }
 
     [Fact]

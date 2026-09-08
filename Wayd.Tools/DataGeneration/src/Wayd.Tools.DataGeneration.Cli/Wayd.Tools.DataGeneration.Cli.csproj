@@ -31,6 +31,14 @@
       would otherwise be written as a claim that silently grants nothing.
     -->
     <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
+
+    <!--
+      For EmailAddress.AllowedCharacters, so a generated address is built from the same grammar the API
+      validates it against. Reachable transitively through Wayd.Common.Domain, but declared here because
+      it is a direct dependency: relying on the transitive path would break confusingly the day that
+      reference changed.
+    -->
+    <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common\Wayd.Common.csproj" />
   </ItemGroup>
 
   <!--

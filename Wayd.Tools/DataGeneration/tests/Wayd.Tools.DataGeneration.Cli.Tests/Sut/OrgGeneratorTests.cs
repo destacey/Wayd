@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Models;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -338,15 +339,14 @@ public class OrgGeneratorTests
     public void Generate_ProducesEmailAddressesThatCanBecomeUsernames()
     {
         // Arrange — Wayd signs people in by email, so a generated address has to be one the username rule
-        // accepts. That rule follows RFC 5322's unquoted local part, and this asserts the same grammar
-        // from the generator's side: a name that cannot become an address fails here rather than as a
-        // rejected account a long way downstream.
-        const string atext = "!#$%&'*+-/=?^_`{|}~";
+        // accepts. Asserted against the same constant the API validates with rather than a copy of the
+        // grammar, so a name that cannot become an address fails here rather than as a rejected account a
+        // long way downstream.
         var org = Generate();
 
         // Act
         var unusable = org.Employees
-            .Where(e => e.Email.Split('@')[0].Any(c => !char.IsLetterOrDigit(c) && c != '.' && !atext.Contains(c)))
+            .Where(e => e.Email.Any(c => !EmailAddress.AllowedCharacters.Contains(c)))
             .Select(e => e.Email)
             .ToList();
 

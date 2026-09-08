@@ -25,8 +25,12 @@ Aspire dashboard command), not part of this tool.
 
 ## Quick start
 
-The tool has two verbs: **`generate`** (write CSVs to disk to inspect) and **`seed`** (generate and push
-through the API). They share the same generation options.
+The tool has three verbs: **`generate`** (write CSVs to disk to inspect), **`seed`** (generate and push
+through the API), and **`ui`** (build a recipe in a browser). `generate` and `seed` share the same
+generation options.
+
+If you would rather not start from a command line, [`wayd-data ui`](#the-ui) opens a page that builds the
+recipe for you and shows the command it corresponds to.
 
 :::note `generate` writes files to read, not files to post
 The organization files are postable as they stand — every reference in them is a natural key the generator
@@ -243,6 +247,43 @@ which is what lets a demo dataset be reproduced byte for byte when paired with `
 A recipe never pins the seed. A recipe describes a *shape*, and baking a seed into one would make every
 run of it produce the same company — which is what `--random-seed` is for, when you want it.
 
+## The UI
+
+`wayd-data ui` opens a local page for building a recipe: pick a built-in, adjust the knobs, see what it
+would generate, and write the CSVs.
+
+```bash
+wayd-data ui                       # opens a browser
+wayd-data ui --no-browser          # prints the URL instead
+wayd-data ui --out ./seed          # where "Write CSVs" writes by default
+```
+
+It is a second front end over the same resolver, not a second implementation. Three things follow from
+that, and they are the reason it exists in this shape:
+
+- **The form is built from the recipe schema at run time.** Adding an area to the recipe format puts it on
+  the page with no change to the page. Hand-written fields would drift the first time the format grew.
+- **Generation goes through the same code `generate` runs**, so the two cannot produce different data from
+  the same recipe.
+- **It shows you the command.** The page displays the equivalent `wayd-data generate …` line, with a copy
+  button, beside the recipe JSON. The intent is that the page teaches the CLI rather than replacing it —
+  you can stop using the page as soon as you know what to type.
+
+:::note Seeding stays on the command line
+The page generates files; it does not seed an environment. Seeding needs a Personal Access Token, and a
+browser form is a worse place to keep a credential than a shell that already has one in `WAYD_API_KEY`.
+:::
+
+### How it is reached
+
+Bound to a loopback address on a port the operating system picks, and gated by a token generated per run
+and carried in the launch URL — the same shape the [Aspire dashboard](../../getting-started/) is opened
+with. The page takes the token out of the address bar as soon as it loads and sends it as a header, so it
+stops appearing in history or in a screenshot. A request without it gets a 404 rather than a 401, which
+tells something that merely found the port as little as possible.
+
+Nothing is served to the network, and nothing is written outside the folder you name.
+
 ## Options
 
 Flags beat whatever the recipe said. Defaults below are what the shipped `default` recipe states, not
@@ -262,7 +303,8 @@ values baked into the options themselves.
 | `--concurrent-programs-per-portfolio` | `5` | Thematic programs a portfolio runs at once; the total generated is derived from this across the window |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (org **and** PPM) |
 | `--as-of` | today | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
-| `--out`, `-o` | `./seed` | (`generate` only) output directory |
+| `--out`, `-o` | `./seed` | (`generate` and `ui`) output directory |
+| `--no-browser` | off | (`ui` only) print the URL instead of opening a browser |
 | `--api`, `-a` | — | (`seed` only, required) API base URL |
 | `--api-key` | `WAYD_API_KEY` | (`seed` only) Personal Access Token |
 

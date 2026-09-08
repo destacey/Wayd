@@ -4,6 +4,7 @@ using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Recipes;
 using Wayd.Tools.DataGeneration.Cli.Seeding;
+using Wayd.Tools.DataGeneration.Cli.Ui;
 
 // Shared generation options (used by both verbs). Employee count is derived from the hierarchy staffing,
 // so it is not a knob — the number of value streams and teams drives the size of the org. Ordered
@@ -153,31 +154,16 @@ generateCommand.SetAction((parse, _) =>
     var context = resolved.Context;
     ReportRunInputs(parse, context);
 
-    var org = new OrgGenerator(resolved.Organization, context).Generate();
+    var dataset = GeneratedDataset.From(resolved);
+    var org = dataset.Org;
     var outDir = parse.GetValue(outOption)!;
-    outDir.Create();
 
-    CsvFile.Write(Path.Combine(outDir.FullName, "employees.csv"), org.Employees);
-    CsvFile.Write(Path.Combine(outDir.FullName, "teams.csv"), org.Teams);
-    CsvFile.Write(Path.Combine(outDir.FullName, "team-memberships.csv"), org.TeamMemberships);
-    CsvFile.Write(Path.Combine(outDir.FullName, "members.csv"), org.Members);
+    dataset.WriteTo(outDir.FullName);
 
     Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");
 
-    if (resolved.GeneratePpm)
+    if (dataset.Ppm is { } ppm)
     {
-        var ppm = new PpmGenerator(org.Structure, resolved.Ppm, context).Generate();
-
-        CsvFile.Write(Path.Combine(outDir.FullName, "strategic-themes.csv"), ppm.StrategicThemes);
-        CsvFile.Write(Path.Combine(outDir.FullName, "portfolios.csv"), ppm.Portfolios);
-        CsvFile.Write(Path.Combine(outDir.FullName, "programs.csv"), ppm.Programs);
-        CsvFile.Write(Path.Combine(outDir.FullName, "projects.csv"), ppm.Projects);
-        CsvFile.Write(Path.Combine(outDir.FullName, "project-tasks.csv"), ppm.ProjectTasks);
-        CsvFile.Write(Path.Combine(outDir.FullName, "project-stages.csv"), ppm.ProjectStages);
-        CsvFile.Write(Path.Combine(outDir.FullName, "strategic-initiatives.csv"), ppm.StrategicInitiatives);
-        CsvFile.Write(Path.Combine(outDir.FullName, "strategic-initiative-kpis.csv"), ppm.StrategicInitiativeKpis);
-        CsvFile.Write(Path.Combine(outDir.FullName, "ppm-finalizations.csv"), ppm.Finalizations);
-
         Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
         Console.WriteLine("Expenditure categories and the project lifecycle are bootstrapped via the API at seed time (not written as CSV).");
         Console.WriteLine("The PPM files name portfolios, programs and categories rather than referencing them by id, so they are for inspection — `seed` resolves those ids from each run as it goes.");
@@ -296,9 +282,27 @@ recipesSchemaCommand.SetAction((_, _) =>
 });
 recipesCommand.Add(recipesSchemaCommand);
 
+// ---- ui: build a recipe in a browser -----------------------------------------------------------
+//
+// A second front end over the same resolver, not a second implementation: the page builds its form from
+// the published recipe schema, generates through the same code `generate` runs, and shows the command
+// that would have done it. Seeding stays here on the CLI, where the token already lives.
+
+var noBrowserOption = new Option<bool>("--no-browser") { Description = "Print the URL instead of opening a browser." };
+
+var uiCommand = new Command("ui", "Open a local page for building a recipe and previewing what it generates.");
+uiCommand.Add(outOption);
+uiCommand.Add(noBrowserOption);
+uiCommand.SetAction(async (parse, cancellationToken) =>
+    await UiServer.Run(
+        parse.GetValue(outOption) ?? new DirectoryInfo("./seed"),
+        openBrowser: !parse.GetValue(noBrowserOption),
+        cancellationToken));
+
 var root = new RootCommand("wayd-data: generate and seed realistic organization data into a Wayd environment.");
 root.Add(generateCommand);
 root.Add(seedCommand);
 root.Add(recipesCommand);
+root.Add(uiCommand);
 
 return root.Parse(args).Invoke();

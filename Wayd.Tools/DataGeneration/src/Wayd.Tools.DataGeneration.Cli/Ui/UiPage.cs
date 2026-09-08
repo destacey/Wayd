@@ -132,6 +132,7 @@ const api = async (path, options = {}) => {
 };
 
 const el = id => document.getElementById(id);
+const clearError = () => { el('error').textContent = ''; };
 let schema = null, recipe = {}, seed = null;
 
 // Every control on the page comes from the schema. Adding an area to the recipe format puts it here with
@@ -191,10 +192,30 @@ function control(area, field, spec) {
   } else {
     input.type = 'text';
   }
-  input.addEventListener('change', () => { read(); render(); });
+  // The message goes as soon as the form moves. Left standing it outlives the value that caused it, and
+  // a complaint about a number no longer on screen is worse than no complaint at all.
+  input.addEventListener('change', () => { clearError(); read(); syncEnabled(); render(); });
 
   row.append(label, input);
   return row;
+}
+
+// An area switched off says nothing about its own knobs, so they stop accepting input. Without this the
+// only sign is a rejection at Preview, which arrives long after the click that caused it.
+function syncEnabled() {
+  for (const [area, spec] of Object.entries(schema.properties)) {
+    if (spec.type !== 'object' || !('enabled' in spec.properties)) continue;
+    const toggle = el(`${area}.enabled`);
+    if (!toggle) continue;
+
+    for (const field of Object.keys(spec.properties)) {
+      if (field === 'enabled') continue;
+      const input = el(`${area}.${field}`);
+      if (!input) continue;
+      input.disabled = !toggle.checked;
+      input.closest('.row').style.opacity = toggle.checked ? '' : '0.45';
+    }
+  }
 }
 
 // The form to a recipe. A control left empty states nothing, which is what lets the layer beneath show
@@ -270,7 +291,7 @@ function showCounts(result) {
 }
 
 async function run(path) {
-  el('error').textContent = '';
+  clearError();
   read();
   try {
     const result = await api(path, {
@@ -297,13 +318,15 @@ document.addEventListener('click', async event => {
 
 el('generate').addEventListener('click', () => run('/api/generate'));
 el('preview').addEventListener('click', () => run('/api/preview'));
-el('out').addEventListener('change', render);
+el('out').addEventListener('change', () => { clearError(); render(); });
 
 el('builtin').addEventListener('change', async () => {
+  clearError();
   const name = el('builtin').value;
   const resolved = await api(`/api/recipes/${name}`);
   el('builtin-desc').textContent = resolved.description || '';
   fill(resolved);
+  syncEnabled();
   read();
   render();
 });
@@ -314,6 +337,7 @@ el('builtin').addEventListener('change', async () => {
 
   const recipes = await api('/api/recipes');
   for (const { name } of recipes) el('builtin').append(new Option(name, name));
+  syncEnabled();
   el('builtin').value = 'default';
   el('builtin').dispatchEvent(new Event('change'));
 })();

@@ -25,6 +25,10 @@ public sealed record ResolvedRecipe(
     /// <param name="seed">The run's root seed, which is resolved outside a recipe because it is never pinned by one.</param>
     public static ResolvedRecipe From(Recipe recipe, int seed)
     {
+        // Before anything is read: a number outside its range would otherwise be quietly clamped by a
+        // generator and produce a company nobody asked for.
+        RecipeBounds.Validate(recipe);
+
         var timeline = recipe.Timeline ?? new TimelineRecipe();
         var organization = recipe.Organization ?? new OrganizationRecipe();
         var ppm = recipe.Ppm ?? new PpmRecipe();

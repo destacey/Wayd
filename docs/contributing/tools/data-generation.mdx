@@ -1,4 +1,4 @@
----
+﻿---
 title: Data Generation (wayd-data)
 description: The wayd-data CLI generates a realistic organization and seeds it into a Wayd environment through the public HTTP API.
 sidebar_position: 1
@@ -289,14 +289,24 @@ Nothing is served to the network, and nothing is written outside the folder you 
 Flags beat whatever the recipe said. Defaults below are what the shipped `default` recipe states, not
 values baked into the options themselves.
 
+Every knob the recipe format states has a flag here, and a test pairs the two so neither can quietly get
+ahead of the other. That is what lets the [UI](#the-ui) print a command that reproduces what is on screen:
+anything you can compose in the page, you can also say on a command line.
+
 | Option | Default | Purpose |
 |---|---|---|
 | `--recipe` | `default` | A built-in recipe name, or a path to a recipe file |
+| `--company-age-years` | `5` | How far back the company's history reaches; nothing is generated before it |
+| `--team-structure-age-years` | `2` | How long the current team structure has stood — shorter than the company's own age |
+| `--history-years` | `2` | Delivery history behind the as-of date |
+| `--runway-years` | `2` | Planned work ahead of the as-of date |
 | `--company-type`, `-c` | `tech` | `tech` / `balanced` / `enterprise` — sets the share of employees inside the delivery team structure |
 | `--delivery-ratio` | (from type) | Override (0..1) for the inside-teams share |
 | `--value-streams`, `-v` | `3` | Number of value streams (product lines); larger ones become three-tier |
 | `--teams`, `-t` | `18` | Number of leaf delivery teams (overall headcount derives from this) |
 | `--former-employees` | `0.08` | Fraction of non-delivery ICs marked former (inactive) |
+| `--skip-users` | off | Do not create application roles or sign-ins. A shorthand for a recipe that disables the users area |
+| `--user-password` | `Test123$` | The password every generated account is created with |
 | `--skip-ppm` | off | Generate only the organization; skip the PPM dataset. A shorthand for the `org-only` recipe |
 | `--function-portfolios` | `2` | Cross-cutting business-function portfolios, on top of one per value stream |
 | `--concurrent-projects-per-art` | `10` | Projects an ART has *in flight at once*; the total generated is derived from this across the window |

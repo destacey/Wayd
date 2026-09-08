@@ -22,18 +22,20 @@ public sealed class DeleteProjectHealthCheckCommandValidator
 public sealed class DeleteProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<DeleteProjectHealthCheckCommandHandler> logger)
     : ICommandHandler<DeleteProjectHealthCheckCommand>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeleteProjectHealthCheckCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteProjectHealthCheckCommand request, CancellationToken cancellationToken)
     {
-        Guid? employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (employeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
         var project = await _ppmDbContext.Projects
             .AsSplitQuery()
@@ -51,9 +53,9 @@ public sealed class DeleteProjectHealthCheckCommandHandler(
 
         var removeResult = project.RemoveHealthCheck(
             request.HealthCheckId,
-            employeeId.Value,
-            project.Portfolio!.Roles,
-            project.Program?.Roles);
+            actor,
+            project.AncestryRoles(),
+            _dateTimeProvider.Now);
 
         if (removeResult.IsFailure)
         {

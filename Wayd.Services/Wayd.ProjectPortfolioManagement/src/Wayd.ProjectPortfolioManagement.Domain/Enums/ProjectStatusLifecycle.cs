@@ -1,3 +1,5 @@
+using Wayd.Common.Domain.Enums;
+
 namespace Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 /// <summary>
@@ -54,6 +56,27 @@ public static class ProjectStatusLifecycle
         ProjectStatus.Active => hasDateRange,
         _ => true
     };
+
+    /// <summary>
+    /// The lifecycle position <paramref name="status"/> represents. This is what a consumer outside PPM
+    /// branches on, since the status names themselves are display text.
+    /// </summary>
+    /// <remarks>
+    /// Read from each status's <c>Display.GroupName</c> rather than a second table, so the categories the
+    /// status queries already surface and the ones events carry cannot disagree. Built once, so callers
+    /// pay no reflection.
+    /// </remarks>
+    public static LifecycleCategory CategoryOf(ProjectStatus status) =>
+        Categories.TryGetValue(status, out var category)
+            ? category
+            : throw new InvalidOperationException(
+                $"{status} declares no lifecycle category. Every ProjectStatus needs a Display GroupName.");
+
+    private static readonly IReadOnlyDictionary<ProjectStatus, LifecycleCategory> Categories =
+        Enum.GetValues<ProjectStatus>()
+            .Select(status => (status, groupName: status.GetDisplayGroupName()))
+            .Where(x => Enum.IsDefined(typeof(LifecycleCategory), x.groupName ?? string.Empty))
+            .ToDictionary(x => x.status, x => Enum.Parse<LifecycleCategory>(x.groupName!));
 
     /// <summary>
     /// The statuses a project in <paramref name="current"/> can actually be reverted to — the backward

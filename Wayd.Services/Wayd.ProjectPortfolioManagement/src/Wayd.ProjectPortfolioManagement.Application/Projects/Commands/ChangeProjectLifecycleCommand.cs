@@ -26,6 +26,7 @@ public sealed class ChangeProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ChangeProjectLifecycleCommandHandler> logger)
     : ICommandHandler<ChangeProjectLifecycleCommand>
 {
@@ -34,6 +35,7 @@ public sealed class ChangeProjectLifecycleCommandHandler(
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ChangeProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ChangeProjectLifecycleCommand request, CancellationToken cancellationToken)
@@ -67,7 +69,7 @@ public sealed class ChangeProjectLifecycleCommandHandler(
                 return Result.Failure($"Project Lifecycle {request.NewLifecycleId} not found.");
             }
 
-            var result = project.ChangeLifecycle(actor, project.AncestryRoles(), newLifecycle, request.StageMapping);
+            var result = project.ChangeLifecycle(actor, project.AncestryRoles(), newLifecycle, request.StageMapping, _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogWarning("Unable to change lifecycle for project {ProjectId}. Error: {Error}", request.ProjectId, result.Error);

@@ -4,7 +4,7 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
-public sealed record ProgramDeletedEvent : DomainEvent, IAggregateEvent
+public sealed record ProgramDeletedEvent : DomainEvent, IPpmEvent
 {
     public ProgramDeletedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor)

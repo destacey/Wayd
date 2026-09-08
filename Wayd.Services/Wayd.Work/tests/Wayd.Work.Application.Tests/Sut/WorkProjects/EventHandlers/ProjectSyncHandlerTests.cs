@@ -124,6 +124,44 @@ public sealed class ProjectSyncHandlerTests : IDisposable
         _workDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Handle_KeyChanged_WhenProjectExists_UpdatesOnlyTheKeyAndSaves()
+    {
+        // Arrange
+        var id = Guid.CreateVersion7();
+        _workDbContext.AddWorkProject(new WorkProjectFaker()
+            .WithId(id)
+            .WithKey(new ProjectKey("OLDKEY"))
+            .WithName("Atlas")
+            .WithDescription("Consolidates the regional trackers.")
+            .Generate());
+
+        var @event = KeyChangedEvent(id, "NEWKEY", "Atlas");
+
+        // Act
+        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        var replicated = _workDbContext.WorkProjects.Single(p => p.Id == id);
+        replicated.Key.Value.Should().Be("NEWKEY");
+        replicated.Description.Should().Be("Consolidates the regional trackers.",
+            "the key change names only the key, so it must not overwrite fields it never described");
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_KeyChanged_WhenProjectDoesNotExist_IsNoOp()
+    {
+        // Arrange — out-of-order delivery, or the project was already deleted.
+        var @event = KeyChangedEvent(Guid.CreateVersion7(), "GHOST1", "Missing Project");
+
+        // Act
+        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
     private static ProjectCreatedEvent CreatedEvent(Guid id, string key, string name) =>
         new(
             id: id,
@@ -135,6 +173,8 @@ public sealed class ProjectSyncHandlerTests : IDisposable
             dateRange: null,
             portfolioId: Guid.CreateVersion7(),
             programId: null,
+            businessCase: null,
+            expectedBenefits: null,
             roles: null,
             strategicThemes: [],
             actor: EventActor.System,
@@ -147,6 +187,16 @@ public sealed class ProjectSyncHandlerTests : IDisposable
             name: name,
             description: "desc",
             expenditureCategoryId: 1,
+            businessCase: null,
+            expectedBenefits: null,
+            actor: EventActor.System,
+            timestamp: Now);
+
+    private static ProjectKeyChangedEvent KeyChangedEvent(Guid id, string key, string name) =>
+        new(
+            id: id,
+            key: new ProjectKey(key),
+            name: name,
             actor: EventActor.System,
             timestamp: Now);
 }

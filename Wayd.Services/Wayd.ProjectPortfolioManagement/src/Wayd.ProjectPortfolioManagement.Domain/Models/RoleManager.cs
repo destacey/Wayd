@@ -5,7 +5,10 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
 public static class RoleManager
 {
-    public static Result AssignRole<T>(HashSet<RoleAssignment<T>> roles, Guid objectId, T role, Guid employeeId) where T : Enum
+    // Assigning and removing one at a time are the building blocks of a whole-set replacement,
+    // not an API. Every aggregate replaces its role set through UpdateRoles, which is what keeps
+    // role changes to one authorization check and one event describing the net result.
+    private static Result AssignRole<T>(HashSet<RoleAssignment<T>> roles, Guid objectId, T role, Guid employeeId) where T : Enum
     {
         Guard.Against.Null(role, nameof(role));
         Guard.Against.Default(employeeId, nameof(employeeId));
@@ -25,7 +28,7 @@ public static class RoleManager
         return Result.Success();
     }
 
-    public static Result RemoveAssignment<T>(HashSet<RoleAssignment<T>> roles, T role, Guid employeeId) where T : Enum
+    private static Result RemoveAssignment<T>(HashSet<RoleAssignment<T>> roles, T role, Guid employeeId) where T : Enum
     {
         Guard.Against.Null(role, nameof(role));
         Guard.Against.Default(employeeId, nameof(employeeId));

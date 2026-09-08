@@ -9,6 +9,7 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.HealthChecks.Commands
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared.Extensions;
 
@@ -20,6 +21,7 @@ public class DeleteProjectHealthCheckCommandHandlerTests : IDisposable
     private readonly DeleteProjectHealthCheckCommandHandler _handler;
     private readonly Mock<ILogger<DeleteProjectHealthCheckCommandHandler>> _mockLogger = new();
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly Mock<IDateTimeProvider> _mockDateTimeProvider = new();
     private readonly Guid _currentEmployeeId = Guid.NewGuid();
     private readonly Instant _now = Instant.FromUtc(2026, 5, 1, 0, 0);
@@ -30,10 +32,11 @@ public class DeleteProjectHealthCheckCommandHandlerTests : IDisposable
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
         _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_currentEmployeeId);
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
         _mockDateTimeProvider.Setup(d => d.Now).Returns(_now);
 
         _handler = new DeleteProjectHealthCheckCommandHandler(
-            _dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+            _dbContext, _mockCurrentPrincipal.Object, _mockCurrentUser.Object, _mockDateTimeProvider.Object, _mockLogger.Object);
     }
 
     private (Project project, Guid healthCheckId) ProjectWithHealthCheck()
@@ -46,7 +49,7 @@ public class DeleteProjectHealthCheckCommandHandlerTests : IDisposable
         project.SetPrivate(p => p.Portfolio, portfolio);
 
         var addResult = project.AddHealthCheck(
-            HealthStatus.Healthy, _currentEmployeeId, portfolio.Roles, null,
+            HealthStatus.Healthy, new PpmActor(_currentEmployeeId, IsPpmAdministrator: false, Guid.NewGuid().ToString()), ProjectAncestryRoles.None,
             _now.Plus(Duration.FromDays(7)), "initial check", _now);
 
         return (project, addResult.Value.Id);

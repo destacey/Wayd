@@ -37,19 +37,19 @@ public sealed class RecordProjectScoreCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<RecordProjectScoreCommandHandler> logger)
     : ICommandHandler<RecordProjectScoreCommand, Guid>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<RecordProjectScoreCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(RecordProjectScoreCommand request, CancellationToken cancellationToken)
     {
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (employeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
         var project = await _ppmDbContext.Projects
             .AsSplitQuery()
@@ -90,9 +90,8 @@ public sealed class RecordProjectScoreCommandHandler(
             model,
             ratingValues,
             selectedLevels,
-            employeeId.Value,
-            project.Portfolio!.Roles,
-            project.Program?.Roles,
+            actor,
+            project.AncestryRoles(),
             _dateTimeProvider.Now);
 
         if (recordResult.IsFailure)

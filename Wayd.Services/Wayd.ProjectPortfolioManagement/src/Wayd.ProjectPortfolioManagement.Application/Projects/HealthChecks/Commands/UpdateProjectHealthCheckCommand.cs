@@ -41,19 +41,19 @@ public sealed class UpdateProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<UpdateProjectHealthCheckCommandHandler> logger)
     : ICommandHandler<UpdateProjectHealthCheckCommand, ProjectHealthCheckDetailsDto>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateProjectHealthCheckCommandHandler> _logger = logger;
 
     public async Task<Result<ProjectHealthCheckDetailsDto>> Handle(UpdateProjectHealthCheckCommand request, CancellationToken cancellationToken)
     {
-        Guid? employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (employeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
         var project = await _ppmDbContext.Projects
             .AsSplitQuery()
@@ -71,9 +71,8 @@ public sealed class UpdateProjectHealthCheckCommandHandler(
 
         var updateResult = project.UpdateHealthCheck(
             request.HealthCheckId,
-            employeeId.Value,
-            project.Portfolio!.Roles,
-            project.Program?.Roles,
+            actor,
+            project.AncestryRoles(),
             request.Status,
             request.Expiration,
             request.Note,

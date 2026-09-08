@@ -106,21 +106,21 @@ public sealed class UpdateProjectCommandHandler(
                 return await HandleDomainFailure(project, updateResult, cancellationToken);
             }
 
-            var updateTimelineResult = project.UpdateTimeline(actor, ancestry, request.DateRange);
+            var updateTimelineResult = project.UpdateTimeline(actor, ancestry, request.DateRange, _dateTimeProvider.Now);
             if (updateTimelineResult.IsFailure)
             {
                 return await HandleDomainFailure(project, updateTimelineResult, cancellationToken);
             }
 
             var roles = GetRoles(request);
-            var updateRolesResult = project.UpdateRoles(actor, ancestry, roles);
+            var updateRolesResult = project.UpdateRoles(actor, ancestry, roles, _dateTimeProvider.Now);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(project, updateRolesResult, cancellationToken);
             }
 
             var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
-            var updateStrategicThemesResult = project.UpdateStrategicThemes(strategicThemes);
+            var updateStrategicThemesResult = project.UpdateStrategicThemes(strategicThemes, actor, _dateTimeProvider.Now);
             if (updateStrategicThemesResult.IsFailure)
             {
                 return await HandleDomainFailure(project, updateStrategicThemesResult, cancellationToken);

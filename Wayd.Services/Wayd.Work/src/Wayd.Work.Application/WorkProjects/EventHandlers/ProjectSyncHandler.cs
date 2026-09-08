@@ -33,6 +33,13 @@ public sealed class ProjectSyncHandler(IWorkDbContext workDbContext, ILogger<Pro
         await UpdateProject(@event, cancellationToken);
     }
 
+    public async Task Handle(ProjectKeyChangedEvent @event, CancellationToken cancellationToken)
+    {
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Handling Work {SystemActionType} for a rekeyed Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await ChangeProjectKey(@event, cancellationToken);
+    }
+
     public async Task Handle(ProjectDeletedEvent @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
@@ -74,6 +81,23 @@ public sealed class ProjectSyncHandler(IWorkDbContext workDbContext, ILogger<Pro
         await _workDbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} updated action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
+    }
+
+    private async Task ChangeProjectKey(ProjectKeyChangedEvent keyChangedEvent, CancellationToken cancellationToken)
+    {
+        var existingProject = await _workDbContext.WorkProjects
+            .FirstOrDefaultAsync(x => x.Id == keyChangedEvent.Id, cancellationToken);
+        if (existingProject == null)
+        {
+            // Same reasoning as the details path: out-of-order delivery or an already-deleted project.
+            _logger.LogWarning("Work {SystemActionType} for a rekeyed Project skipped: Project {ProjectId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, keyChangedEvent.Id);
+            return;
+        }
+
+        existingProject.ChangeKey(keyChangedEvent.Id, keyChangedEvent.Key);
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} rekeyed action.", SystemActionType.ServiceDataReplication, keyChangedEvent.Id);
     }
 
     private async Task DeleteProject(ProjectDeletedEvent deletedEvent, CancellationToken cancellationToken)

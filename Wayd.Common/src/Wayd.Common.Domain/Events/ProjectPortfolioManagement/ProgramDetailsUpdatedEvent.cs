@@ -5,7 +5,7 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
-public sealed record ProgramDetailsUpdatedEvent : DomainEvent, ISimpleProgram, IAggregateEvent
+public sealed record ProgramDetailsUpdatedEvent : DomainEvent, ISimpleProgram, IPpmEvent
 {
     public ProgramDetailsUpdatedEvent(ISimpleProgram program, EventActor actor, Instant timestamp)
         : this(program.Id, program.Key, program.Name, program.Description, actor, timestamp)

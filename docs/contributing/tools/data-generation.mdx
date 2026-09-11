@@ -513,9 +513,10 @@ whole and rejected rather than split, because a named failure beats a file that 
 
 ### Post, wait, read back, substitute
 
-An import answers `202 Accepted` with the id of a **queued run** — the file was taken, not applied. Each
-area therefore polls that run to completion and reads its row outcomes back before the next area writes
-anything, because those outcomes are where the created ids are.
+An import answers with its **run**, having waited a few seconds for it: a small file comes back finished,
+a large one still queued or running — taken, not applied. Each area therefore polls that run to
+completion and reads its row outcomes back before the next area writes anything, because those outcomes
+are where the created ids are.
 
 Each row is submitted under an `ImportId` set to the generator's own handle for that record — a
 portfolio's name, a project's key — so the ids come back keyed the way the next file already refers to

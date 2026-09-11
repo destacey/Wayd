@@ -29,9 +29,11 @@ A few rules apply to every import:
 - **References are by natural key, not ID.** A CSV cannot carry Wayd's generated IDs, so rows reference each
   other by human-readable keys — an employee by their **employee number**, a team by its **code**, and a role
   by its **name**. A manager, a team parent, or a staffing assignment is expressed with those keys.
-- **A successful post returns `202 Accepted` and the id of the run**, not the records it created. A small
-  file is applied while you wait and a large one is handed to a background worker, so the response means
-  "accepted" rather than "done". Follow the run in [Settings → Imports](../settings/imports.mdx).
+- **A successful post returns the run**, not the records it created. Every file is applied by a
+  background worker, and the post waits a few seconds for it: a small file comes back finished
+  (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
+  `Location` to follow. Either way the body is the same run, and it has its own page under
+  [Settings → Imports](../settings/imports.mdx).
 - **All-or-nothing.** If any reference cannot be resolved — an unknown employee number, team code, or role
   name, or an ambiguous/duplicate value — the **entire import fails** with a message listing the offending
   values, and nothing is saved. This keeps a run safe to fix and re-try.

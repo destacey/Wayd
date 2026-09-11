@@ -27,10 +27,11 @@ A few rules apply to every import:
   Portfolios, programs, themes, categories and lifecycles are referenced by **id**: their names are not
   uniquely indexed, so a name is a display value that may match more than one record. A run reports the id
   of the record each applied row created, so one import's results are what the next file references.
-- **A successful post returns `202 Accepted` and the id of the run**, not the records it created. A small
-  file is applied while you wait and a large one is handed to a background worker, so the response means
-  "accepted" rather than "done". Follow the run in [Settings → Imports](../settings/imports.mdx), which
-  shows what became of each row.
+- **A successful post returns the run**, not the records it created. Every file is applied by a
+  background worker, and the post waits a few seconds for it: a small file comes back finished
+  (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
+  `Location` to follow. Either way the body is the same run, and its page under
+  [Settings → Imports](../settings/imports.mdx) shows what became of each row.
 - **`ImportId` is an optional column, and it is yours.** Any value you like — a row number, a key from
   whatever system the file came out of — provided it is unique within the one file, compared
   case-insensitively. Row outcomes are reported against it, rows reference each other by it (a KPI names

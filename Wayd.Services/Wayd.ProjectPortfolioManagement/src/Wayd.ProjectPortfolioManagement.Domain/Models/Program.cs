@@ -253,10 +253,12 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     {
         Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
 
+        var before = ThemeIds();
+
         var result = StrategicThemeTagManager<Program>.AddStrategicThemeTag(_strategicThemeTags, Id, strategicThemeId, "program");
         if (result.IsSuccess)
         {
-            RaiseStrategicThemesChanged(actor, timestamp);
+            RaiseIfThemesChanged(before, actor, timestamp);
         }
 
         return result;
@@ -269,10 +271,12 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     {
         Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
 
+        var before = ThemeIds();
+
         var result = StrategicThemeTagManager<Program>.RemoveStrategicThemeTag(_strategicThemeTags, strategicThemeId, "program");
         if (result.IsSuccess)
         {
-            RaiseStrategicThemesChanged(actor, timestamp);
+            RaiseIfThemesChanged(before, actor, timestamp);
         }
 
         return result;
@@ -289,27 +293,35 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     {
         Guard.Against.Null(strategicThemeIds, nameof(strategicThemeIds));
 
-        var before = _strategicThemeTags.Select(x => x.StrategicThemeId).ToHashSet();
+        var before = ThemeIds();
 
         var result = StrategicThemeTagManager<Program>.UpdateTags(_strategicThemeTags, Id, strategicThemeIds, "program");
-
-        // The update command replaces the tag set on every save, so raising unconditionally would report
-        // a change on edits that never touched the themes.
-        if (result.IsSuccess && !before.SetEquals(_strategicThemeTags.Select(x => x.StrategicThemeId)))
+        if (result.IsSuccess)
         {
-            RaiseStrategicThemesChanged(actor, timestamp);
+            RaiseIfThemesChanged(before, actor, timestamp);
         }
 
         return result;
     }
 
-    private void RaiseStrategicThemesChanged(PpmActor actor, Instant timestamp) =>
+    private HashSet<Guid> ThemeIds() => [.. _strategicThemeTags.Select(x => x.StrategicThemeId)];
+
+    // The update command replaces the tag set on every save, so most calls change nothing; raising
+    // regardless would report a change on edits that never touched the themes. Sorted so the same
+    // change always produces the same payload.
+    private void RaiseIfThemesChanged(HashSet<Guid> before, PpmActor actor, Instant timestamp)
+    {
+        var after = ThemeIds();
+        Guid[] added = [.. after.Except(before).Order()];
+        Guid[] removed = [.. before.Except(after).Order()];
+        if (added.Length == 0 && removed.Length == 0)
+        {
+            return;
+        }
+
         AddDomainEvent(new ProgramStrategicThemesChangedEvent(
-            Id,
-            Key,
-            [.. _strategicThemeTags.Select(x => x.StrategicThemeId)],
-            actor.ToEventActor(),
-            timestamp));
+            Id, Key, added, removed, [.. after.Order()], actor.ToEventActor(), timestamp));
+    }
 
     #region Lifecycle
 

@@ -239,20 +239,25 @@ public class ProgramTests
     }
 
     [Fact]
-    public void UpdateStrategicThemes_OnAChangedSet_RaisesAnEventCarryingTheWholeSet()
+    public void UpdateStrategicThemes_OnAChangedSet_RaisesWhatWasAddedAndRemovedAlongsideTheWholeSet()
     {
         // Arrange
+        var kept = Guid.CreateVersion7();
+        var dropped = Guid.CreateVersion7();
+        var arriving = Guid.CreateVersion7();
         var program = _programFaker.Generate();
-        var themes = _themeFaker.Generate(2);
+        program.UpdateStrategicThemes([kept, dropped], AnAuthorizedActor(), _dateTimeProvider.Now);
         program.ClearDomainEvents();
 
         // Act
-        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = program.UpdateStrategicThemes([kept, arriving], AnAuthorizedActor(), _dateTimeProvider.Now);
 
-        // Assert
+        // Assert — the theme it kept is in the set but in neither list
         result.IsSuccess.Should().BeTrue();
         var raised = program.DomainEvents.OfType<ProgramStrategicThemesChangedEvent>().Should().ContainSingle().Subject;
-        raised.StrategicThemes.Should().BeEquivalentTo(themes.Select(t => t.Id));
+        raised.Added.Should().Equal(arriving);
+        raised.Removed.Should().Equal(dropped);
+        raised.StrategicThemes.Should().BeEquivalentTo([kept, arriving]);
     }
 
     [Fact]

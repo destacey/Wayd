@@ -7,8 +7,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// The strategic themes a program is tagged with changed.
 /// </summary>
 /// <remarks>
-/// Carries the full set after the change rather than what was added or removed, matching
-/// <see cref="ProgramCreatedEvent.StrategicThemes"/> so the two compare directly.
+/// Carries both the change and its result, like the roles events. <see cref="Added"/> and
+/// <see cref="Removed"/> are the fact, for a consumer that reacts to it. <see cref="StrategicThemes"/>
+/// is the full set afterwards, matching <see cref="ProgramCreatedEvent.StrategicThemes"/>, for a consumer that
+/// keeps a copy: applying the latest set is correct however deliveries were ordered or repeated, and
+/// applying the deltas is not.
 /// </remarks>
 public sealed record ProgramStrategicThemesChangedEvent : DomainEvent, IPpmEvent
 {
@@ -16,6 +19,8 @@ public sealed record ProgramStrategicThemesChangedEvent : DomainEvent, IPpmEvent
     public ProgramStrategicThemesChangedEvent(
         Guid id,
         int key,
+        Guid[] added,
+        Guid[] removed,
         Guid[] strategicThemes,
         EventActor actor,
         Instant timestamp)
@@ -23,6 +28,8 @@ public sealed record ProgramStrategicThemesChangedEvent : DomainEvent, IPpmEvent
     {
         Id = id;
         Key = key;
+        Added = [.. added];
+        Removed = [.. removed];
         StrategicThemes = [.. strategicThemes];
 
         Timestamp = timestamp;
@@ -30,6 +37,12 @@ public sealed record ProgramStrategicThemesChangedEvent : DomainEvent, IPpmEvent
 
     public Guid Id { get; }
     public int Key { get; }
+
+    /// <summary>The strategic theme ids this change tagged the program with.</summary>
+    public Guid[] Added { get; }
+
+    /// <summary>The strategic theme ids this change removed.</summary>
+    public Guid[] Removed { get; }
 
     /// <summary>The strategic theme ids the program carries after the change.</summary>
     public Guid[] StrategicThemes { get; }

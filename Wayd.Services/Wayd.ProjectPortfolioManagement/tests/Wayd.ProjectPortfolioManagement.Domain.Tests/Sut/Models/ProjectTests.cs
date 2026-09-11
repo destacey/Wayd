@@ -285,6 +285,28 @@ public class ProjectTests
     }
 
     [Fact]
+    public void UpdateStrategicThemes_OnAChangedSet_RaisesWhatWasAddedAndRemovedAlongsideTheWholeSet()
+    {
+        // Arrange
+        var kept = Guid.CreateVersion7();
+        var dropped = Guid.CreateVersion7();
+        var arriving = Guid.CreateVersion7();
+        var project = _projectFaker.Generate();
+        project.UpdateStrategicThemes([kept, dropped], AnAuthorizedActor(), _dateTimeProvider.Now);
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateStrategicThemes([kept, arriving], AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert — the theme it kept is in the set but in neither list
+        result.IsSuccess.Should().BeTrue();
+        var raised = project.DomainEvents.OfType<ProjectStrategicThemesChangedEventV2>().Should().ContainSingle().Subject;
+        raised.Added.Should().Equal(arriving);
+        raised.Removed.Should().Equal(dropped);
+        raised.StrategicThemes.Should().BeEquivalentTo([kept, arriving]);
+    }
+
+    [Fact]
     public void UpdateTimeline_OnAnUnchangedRange_RaisesNothing()
     {
         // Arrange

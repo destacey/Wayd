@@ -8,8 +8,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// The strategic themes a project is tagged with changed.
 /// </summary>
 /// <remarks>
-/// Carries the full set after the change rather than what was added or removed, matching
-/// <see cref="ProjectCreatedEvent.StrategicThemes"/> so the two compare directly.
+/// Carries both the change and its result, like the roles events. <see cref="Added"/> and
+/// <see cref="Removed"/> are the fact, for a consumer that reacts to it. <see cref="StrategicThemes"/>
+/// is the full set afterwards, matching <see cref="ProjectCreatedEvent.StrategicThemes"/>, for a consumer that
+/// keeps a copy: applying the latest set is correct however deliveries were ordered or repeated, and
+/// applying the deltas is not.
 /// <para>
 /// Supersedes <see cref="ProjectStrategicThemesChangedEvent"/>, dropping its required <c>Name</c>, which
 /// described the project rather than the change. A new type rather than a new version, because removing a
@@ -22,6 +25,8 @@ public sealed record ProjectStrategicThemesChangedEventV2 : DomainEvent, IPpmEve
     public ProjectStrategicThemesChangedEventV2(
         Guid id,
         ProjectKey key,
+        Guid[] added,
+        Guid[] removed,
         Guid[] strategicThemes,
         EventActor actor,
         Instant timestamp)
@@ -29,6 +34,8 @@ public sealed record ProjectStrategicThemesChangedEventV2 : DomainEvent, IPpmEve
     {
         Id = id;
         Key = key;
+        Added = [.. added];
+        Removed = [.. removed];
         StrategicThemes = [.. strategicThemes];
 
         Timestamp = timestamp;
@@ -36,6 +43,12 @@ public sealed record ProjectStrategicThemesChangedEventV2 : DomainEvent, IPpmEve
 
     public Guid Id { get; }
     public ProjectKey Key { get; }
+
+    /// <summary>The strategic theme ids this change tagged the project with.</summary>
+    public Guid[] Added { get; }
+
+    /// <summary>The strategic theme ids this change removed.</summary>
+    public Guid[] Removed { get; }
 
     /// <summary>The strategic theme ids the project carries after the change.</summary>
     public Guid[] StrategicThemes { get; }

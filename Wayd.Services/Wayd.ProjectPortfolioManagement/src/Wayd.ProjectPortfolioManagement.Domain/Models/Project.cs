@@ -391,9 +391,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Success();
         }
 
+        var previousKey = Key;
         Key = key;
 
-        AddDomainEvent(new ProjectKeyChangedEventV2(Id, Key, actor.ToEventActor(), timestamp));
+        AddDomainEvent(new ProjectKeyChangedEventV2(Id, previousKey, Key, actor.ToEventActor(), timestamp));
 
         foreach (var task in _tasks)
         {

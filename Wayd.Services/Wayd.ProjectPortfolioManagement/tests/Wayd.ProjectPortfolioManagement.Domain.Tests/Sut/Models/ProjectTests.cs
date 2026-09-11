@@ -1971,6 +1971,23 @@ public class ProjectTests
     }
 
     [Fact]
+    public void ChangeKey_RaisesAKeyChangedEventCarryingBothKeys()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var originalKey = project.Key;
+        var newKey = new ProjectKey("NEWPROJ");
+
+        // Act
+        project.ChangeKey(AnAuthorizedActor(), NoProjectAncestry(), newKey, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = project.DomainEvents.OfType<ProjectKeyChangedEventV2>().Should().ContainSingle().Subject;
+        raised.PreviousKey.Should().Be(originalKey);
+        raised.Key.Should().Be(newKey);
+    }
+
+    [Fact]
     public void ChangeKey_ShouldBeNoOp_WhenKeyIsUnchanged()
     {
         // Arrange
@@ -1983,6 +2000,7 @@ public class ProjectTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         project.Key.Should().Be(originalKey);
+        project.DomainEvents.OfType<ProjectKeyChangedEventV2>().Should().BeEmpty();
     }
 
     [Fact]

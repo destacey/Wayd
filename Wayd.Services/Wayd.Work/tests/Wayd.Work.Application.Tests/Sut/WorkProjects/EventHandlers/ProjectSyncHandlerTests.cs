@@ -217,6 +217,7 @@ public sealed class ProjectSyncHandlerTests : IDisposable
     private static ProjectKeyChangedEventV2 KeyChangedEvent(Guid id, string key) =>
         new(
             id: id,
+            previousKey: new ProjectKey("OLDKEY"),
             key: new ProjectKey(key),
             actor: EventActor.System,
             timestamp: Now);

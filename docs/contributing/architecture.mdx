@@ -246,7 +246,7 @@ received. Status changes carry `From*` and `To*`; timeline changes carry `Previo
 and scoring-model changes carry the previous id and name. A ledger entry — a health check added, a score
 recorded — is a new row rather than a value moving, so it has only one end.
 
-`ProjectKeyChangedEventV2`, `ProjectReparentedEventV2`, `ProjectHealthCheckUpdatedEventV2` and the
+`ProjectReparentedEventV2`, `ProjectHealthCheckUpdatedEventV2` and the
 `*DetailsUpdatedEvent`s still carry only the new value. Each can gain its previous value as a compatible
 change (a minor version), since a missing previous value reads as "not recorded".
 

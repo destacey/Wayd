@@ -26,18 +26,26 @@ public sealed record ProjectKeyChangedEventV2 : DomainEvent, IPpmEvent
     [JsonConstructor]
     public ProjectKeyChangedEventV2(
         Guid id,
+        ProjectKey previousKey,
         ProjectKey key,
         EventActor actor,
         Instant timestamp)
         : base(actor, "2.0")
     {
         Id = id;
+        PreviousKey = previousKey;
         Key = key;
 
         Timestamp = timestamp;
     }
 
     public Guid Id { get; }
+
+    /// <summary>
+    /// The key the project was addressed by before the change. Links and imports written against it stop
+    /// resolving, so a consumer holding the old key needs it to know what to rewrite.
+    /// </summary>
+    public ProjectKey PreviousKey { get; }
 
     /// <summary>The project's key after the change.</summary>
     public ProjectKey Key { get; }

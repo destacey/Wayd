@@ -58,7 +58,6 @@ public sealed class GetImportDefinitionsQueryHandlerTests
         // Assert
         var definition = result.Single(d => d.Key == _employees.Key);
         definition.MaxRows.Should().Be(_employees.MaxRows);
-        definition.InlineThreshold.Should().Be(_employees.InlineThreshold);
     }
 
     [Fact]

@@ -18,9 +18,11 @@ namespace Wayd.Infrastructure.Messaging;
 /// at all, and a transient database blip mid-import would end the run for good.
 /// </para>
 /// <para>
-/// Retrying is safe because the runner is idempotent by row status rather than by message: a redelivery
-/// finds the run already claimed (<c>ImportProcess.Start</c> refuses anything but Queued) or finds fewer
-/// Pending rows than last time. Nothing is reapplied.
+/// A retry only does work if the failed attempt released its claim. The runner releases it — back to Queued
+/// — only when the attempt saved nothing, and otherwise ends the run; any other delivery finds the run
+/// already claimed (<c>ImportProcess.Start</c> refuses anything but Queued) and stops. So nothing is ever
+/// reapplied. The retries allowed here must outnumber <c>ImportProcess.MaxAttempts</c>, or the message is
+/// dead-lettered while the run still sits Queued.
 /// </para>
 /// </remarks>
 public sealed class ImportFailurePolicy : IHandlerPolicy

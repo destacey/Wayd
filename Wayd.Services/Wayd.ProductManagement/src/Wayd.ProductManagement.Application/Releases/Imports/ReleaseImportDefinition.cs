@@ -52,7 +52,7 @@ public sealed class ReleaseImportDefinition(
     public override string Key => ImportKey;
     public override string DisplayName => "Releases";
     public override string PermissionAction => ApplicationAction.Import;
-    public override string PermissionResource => ApplicationResource.Delivery;
+    public override string PermissionResource => ApplicationResource.Releases;
 
     public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
 

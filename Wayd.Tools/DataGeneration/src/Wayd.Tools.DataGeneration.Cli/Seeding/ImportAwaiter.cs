@@ -6,9 +6,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 /// Waits for a submitted import to finish, then reads back what each row created.
 /// </summary>
 /// <remarks>
-/// A submission answers <c>202 Accepted</c> with the id of the run, which means the file was taken, not
-/// that anything exists yet — the runner picks it up off a queue. A seed depends on each stage finishing
-/// before the next writes its file, so this is where that ordering is actually enforced.
+/// A submission answers with the run, but only waits a few seconds for it: a large file comes back
+/// <c>202 Accepted</c> still queued or running, which means the file was taken, not that anything exists
+/// yet. A seed depends on each stage finishing before the next writes its file, so this is where that
+/// ordering is actually enforced.
 /// </remarks>
 public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval, TimeSpan timeout)
 {

@@ -3206,7 +3206,7 @@
         "tags": [
           "StrategicThemes"
         ],
-        "summary": "Submit a csv file of strategic themes to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "StrategicThemes_Import",
         "requestBody": {
           "content": {
@@ -3229,15 +3229,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -5397,7 +5404,7 @@
         "tags": [
           "Products"
         ],
-        "summary": "Submit a csv file of products to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Products_Import",
         "requestBody": {
           "content": {
@@ -5420,15 +5427,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -7050,7 +7064,7 @@
         "tags": [
           "ReleasePackages"
         ],
-        "summary": "Submit a csv file of release packages to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.",
         "operationId": "ReleasePackages_Import",
         "requestBody": {
@@ -7080,15 +7094,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -7606,7 +7627,7 @@
         "tags": [
           "Releases"
         ],
-        "summary": "Submit a csv file of releases to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.",
         "operationId": "Releases_Import",
         "requestBody": {
@@ -7635,15 +7656,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -8382,7 +8410,7 @@
         "tags": [
           "Versions"
         ],
-        "summary": "Submit a csv file of versions to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.",
         "operationId": "Versions_Import",
         "requestBody": {
@@ -8406,15 +8434,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -9465,7 +9500,7 @@
         "tags": [
           "Portfolios"
         ],
-        "summary": "Submit a csv file of portfolios to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Portfolios_Import",
         "requestBody": {
           "content": {
@@ -9488,15 +9523,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -9534,7 +9576,7 @@
         "tags": [
           "Portfolios"
         ],
-        "summary": "Submit a csv file of PPM finalizations to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Completes or cancels programs and closes or archives portfolios, after their contents have been imported.",
         "operationId": "Portfolios_FinalizeImport",
         "requestBody": {
@@ -9558,15 +9600,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -10663,7 +10712,7 @@
         "tags": [
           "Programs"
         ],
-        "summary": "Submit a csv file of programs to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Programs_Import",
         "requestBody": {
           "content": {
@@ -10686,15 +10735,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -12452,7 +12508,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Submit a csv file of projects to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Projects_Import",
         "requestBody": {
           "content": {
@@ -12475,15 +12531,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -12521,7 +12584,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Submit a csv file of project tasks to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Each row names the project it belongs to, so one file can cover many projects.",
         "operationId": "Projects_ImportTasks",
         "requestBody": {
@@ -12545,15 +12608,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -12591,7 +12661,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Submit a csv file of project stage statuses to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Each row names the project and stage it sets, so one file can cover many projects.",
         "operationId": "Projects_ImportStages",
         "requestBody": {
@@ -12615,15 +12685,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -15065,7 +15142,7 @@
         "tags": [
           "StrategicInitiatives"
         ],
-        "summary": "Submit a csv file of strategic initiatives to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.",
         "operationId": "StrategicInitiatives_Import",
         "requestBody": {
@@ -15094,15 +15171,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -18499,7 +18583,7 @@
         "tags": [
           "PlanningIntervals"
         ],
-        "summary": "Submit a csv file of objectives for a planning interval. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "PlanningIntervals_ImportObjectives",
         "parameters": [
           {
@@ -18536,15 +18620,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -20092,7 +20183,7 @@
         "tags": [
           "Risks"
         ],
-        "summary": "Submit a csv file of risks to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Risks_Import",
         "requestBody": {
           "content": {
@@ -20115,15 +20206,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -26203,7 +26301,7 @@
         "tags": [
           "Employees"
         ],
-        "summary": "Import employees from a csv file.",
+        "summary": "Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Employees_Import",
         "requestBody": {
           "content": {
@@ -26226,15 +26324,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -27184,7 +27289,7 @@
         "tags": [
           "Teams"
         ],
-        "summary": "Submit a csv file of teams to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Teams_Import",
         "requestBody": {
           "content": {
@@ -27207,15 +27312,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -27253,7 +27365,7 @@
         "tags": [
           "Teams"
         ],
-        "summary": "Submit a csv file of team staffing rows to import. Returns the id of the import to follow.",
+        "summary": "Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Teams_ImportMembers",
         "requestBody": {
           "content": {
@@ -27276,15 +27388,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -27322,7 +27441,7 @@
         "tags": [
           "Teams"
         ],
-        "summary": "Import the team hierarchy (parent/child team memberships) from a csv file.",
+        "summary": "Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Teams_ImportTeamMemberships",
         "requestBody": {
           "content": {
@@ -27345,15 +27464,22 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
           "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "guid",
-                  "nullable": false,
-                  "example": "00000000-0000-0000-0000-000000000000"
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -37362,6 +37488,137 @@
             "nullable": false
           }
         }
+      },
+      "ImportProcessDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "importType",
+          "displayName",
+          "atomicity",
+          "status",
+          "submittedByUserId",
+          "submittedOn",
+          "totalRowCount",
+          "succeededRowCount",
+          "failedRowCount",
+          "canManage",
+          "unappliedRowCount",
+          "isTerminal"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "importType": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "atomicity": {
+            "$ref": "#/components/schemas/ImportAtomicity"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportProcessStatus"
+          },
+          "submissionGroupId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "submittedByUserId": {
+            "type": "string"
+          },
+          "submittedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastProgressOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totalRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "succeededRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "unappliedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isTerminal": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportAtomicity": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "PerRow",
+          "Atomic"
+        ],
+        "enum": [
+          "PerRow",
+          "Atomic"
+        ]
+      },
+      "ImportProcessStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Queued",
+          "Processing",
+          "Cancelling",
+          "Succeeded",
+          "PartiallySucceeded",
+          "Failed",
+          "Cancelled"
+        ],
+        "enum": [
+          "Queued",
+          "Processing",
+          "Cancelling",
+          "Succeeded",
+          "PartiallySucceeded",
+          "Failed",
+          "Cancelled"
+        ]
       },
       "UpdateStrategicThemeRequest": {
         "type": "object",
@@ -51967,133 +52224,6 @@
           }
         }
       },
-      "ImportProcessDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "id",
-          "importType",
-          "displayName",
-          "atomicity",
-          "status",
-          "submittedByUserId",
-          "submittedOn",
-          "totalRowCount",
-          "succeededRowCount",
-          "failedRowCount",
-          "canManage",
-          "unappliedRowCount"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "importType": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "atomicity": {
-            "$ref": "#/components/schemas/ImportAtomicity"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ImportProcessStatus"
-          },
-          "submissionGroupId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "submittedByUserId": {
-            "type": "string"
-          },
-          "submittedByName": {
-            "type": "string",
-            "nullable": true
-          },
-          "submittedOn": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "startedOn": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "completedOn": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "lastProgressOn": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "totalRowCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "succeededRowCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "failedRowCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "error": {
-            "type": "string",
-            "nullable": true
-          },
-          "canManage": {
-            "type": "boolean"
-          },
-          "unappliedRowCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "ImportAtomicity": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "PerRow",
-          "Atomic"
-        ],
-        "enum": [
-          "PerRow",
-          "Atomic"
-        ]
-      },
-      "ImportProcessStatus": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "Queued",
-          "Processing",
-          "Cancelling",
-          "Succeeded",
-          "PartiallySucceeded",
-          "Failed",
-          "Cancelled"
-        ],
-        "enum": [
-          "Queued",
-          "Processing",
-          "Cancelling",
-          "Succeeded",
-          "PartiallySucceeded",
-          "Failed",
-          "Cancelled"
-        ]
-      },
       "ImportDefinitionDto": {
         "type": "object",
         "additionalProperties": false,
@@ -52102,7 +52232,6 @@
           "displayName",
           "atomicity",
           "maxRows",
-          "inlineThreshold",
           "canSubmit"
         ],
         "properties": {
@@ -52116,10 +52245,6 @@
             "$ref": "#/components/schemas/ImportAtomicity"
           },
           "maxRows": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "inlineThreshold": {
             "type": "integer",
             "format": "int32"
           },

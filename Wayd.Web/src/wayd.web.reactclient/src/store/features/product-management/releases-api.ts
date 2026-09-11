@@ -2,6 +2,7 @@ import { getReleasesClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   CorrectReleaseDatesRequest,
+  ImportProcessDto,
   MarkReleaseReleasedRequest,
   MoveReleaseTargetDateRequest,
   ObjectIdAndKey,
@@ -101,7 +102,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     // Two files, the second optional: an empty release is a legitimate state, so a file with no
     // contents is a valid import rather than an incomplete one.
     importReleases: builder.mutation<
-      string,
+      ImportProcessDto,
       { file: File; contentsFile?: File }
     >({
       queryFn: async ({ file, contentsFile }) => {
@@ -118,7 +119,12 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.Release, id: 'LIST' }],
+      // The list only has the rows if the run finished within the wait; one still running refreshes it
+      // from its import page when it lands.
+      invalidatesTags: () => [
+        { type: QueryTags.Release, id: 'LIST' },
+        QueryTags.ImportProcess,
+      ],
     }),
     planRelease: builder.mutation<ObjectIdAndKey, PlanReleaseRequest>({
       queryFn: async (request) => {

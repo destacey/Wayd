@@ -161,4 +161,36 @@ public sealed class ImportProcessRowTests
         row.Error.Should().HaveLength(ImportProcessRow.MaxMessageLength);
         row.Status.Should().Be(ImportRowStatus.Failed);
     }
+
+    [Fact]
+    public void RecordPassCompleted_CountsThePassesDoneAndNeverGoesBack()
+    {
+        // Arrange
+        var row = ImportProcessRow.Create("emp-1", 1, """{"employeeNumber":"E-1"}""");
+        row.RecordPassCompleted(1);
+
+        // Act — a later attempt reporting an earlier pass again
+        row.RecordPassCompleted(0);
+
+        // Assert
+        row.CompletedPassCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void Reset_KeepsTheProgressARetryCarriesOnFrom()
+    {
+        // Arrange — created by the first pass, then rejected by the second
+        var row = ImportProcessRow.Create("emp-1", 1, """{"employeeNumber":"E-1"}""");
+        row.RecordCreatedEntity(_createdId);
+        row.RecordPassCompleted(0);
+        row.MarkFailed("Manager not found.", _attempted);
+
+        // Act
+        row.Reset();
+
+        // Assert — the record the first pass saved is still there, so the retry must not make it again
+        row.Status.Should().Be(ImportRowStatus.Pending);
+        row.CompletedPassCount.Should().Be(1);
+        row.CreatedEntityId.Should().Be(_createdId);
+    }
 }

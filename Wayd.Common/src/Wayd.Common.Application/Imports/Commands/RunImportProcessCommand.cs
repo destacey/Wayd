@@ -51,73 +51,175 @@ public sealed class RunImportProcessCommandHandler(
             return Result.Success();
         }
 
-        await _importDbContext.SaveChangesAsync(cancellationToken);
-
-        var definition = definitionResult.Value;
-        var stoppedEarly = false;
-
-        for (var passIndex = 0; passIndex < definition.Passes.Count && !stoppedEarly; passIndex++)
+        try
         {
-            var pass = definition.Passes[passIndex];
-            var eligible = process.Rows.Where(r => r.Status == ImportRowStatus.Pending).ToList();
-
-            if (eligible.Count == 0)
-                break;
-
-            // An atomic import is never split, whatever its passes declare: discarding staged work only
-            // holds while none of it has been saved, and a second chunk would mean the first already had.
-            List<IReadOnlyList<ImportProcessRow>> chunks =
-                pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
-                    ? [eligible]
-                    : Chunk(eligible, definition.ChunkSize);
-
-            for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
-            {
-                // Read the status back rather than trusting the tracked instance: a cancellation arrives on
-                // a different request, in a different transaction, and would be invisible here otherwise.
-                if (await IsCancellationRequested(process.Id, cancellationToken))
-                {
-                    stoppedEarly = true;
-                    break;
-                }
-
-                var isFinalChunk = chunkIndex == chunks.Count - 1;
-                var passResult = await definition.ExecutePass(
-                    process.Id, passIndex, chunks[chunkIndex], isFinalChunk, cancellationToken);
-
-                if (passResult.IsFailure)
-                    return await FailRun(process, $"Pass '{pass.Name}' could not run: {passResult.Error}", cancellationToken);
-
-                var failedInChunk = ApplyOutcomes(process, chunks[chunkIndex], passResult.Value);
-
-                if (definition.Atomicity == ImportAtomicity.Atomic && failedInChunk > 0)
-                {
-                    DiscardStagedChanges();
-                    return await FailAtomicRun(process, pass.Name, cancellationToken);
-                }
-
-                // One SaveChanges per chunk covers the pass's entity changes and the row state together, so
-                // a crash can never leave records created against rows still marked Pending — which a
-                // redelivery would then apply a second time.
-                process.RecordProgress(succeeded: 0, failed: failedInChunk, _dateTimeProvider.Now);
-                await _importDbContext.SaveChangesAsync(cancellationToken);
-                DetachAppliedEntities();
-            }
+            await _importDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Two deliveries read the run as Queued at once; the status check on the write let only the
+            // other one claim it.
+            _logger.LogInformation("Import {ImportProcessId} was claimed by another delivery; ignoring this one.", process.Id);
+            return Result.Success();
         }
 
-        return stoppedEarly
-            ? await CancelRun(process, cancellationToken)
-            : await CompleteRun(process, cancellationToken);
+        var definition = definitionResult.Value;
+        var lastPassIndex = definition.Passes.Count - 1;
+        var stoppedEarly = false;
+
+        try
+        {
+            for (var passIndex = 0; passIndex <= lastPassIndex && !stoppedEarly; passIndex++)
+            {
+                var pass = definition.Passes[passIndex];
+
+                // Only the rows due this pass. An earlier attempt may have taken some of them further, and
+                // the work it saved is in the database already.
+                var eligible = process.Rows
+                    .Where(r => r.Status == ImportRowStatus.Pending && r.CompletedPassCount == passIndex)
+                    .ToList();
+
+                if (eligible.Count == 0)
+                    continue;
+
+                // An atomic import is never split, whatever its passes declare: discarding staged work only
+                // holds while none of it has been saved, and a second chunk would mean the first already had.
+                List<IReadOnlyList<ImportProcessRow>> chunks =
+                    pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
+                        ? [eligible]
+                        : Chunk(eligible, definition.ChunkSize);
+
+                for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
+                {
+                    // Read the status back rather than trusting the tracked instance: a cancellation arrives on
+                    // a different request, in a different transaction, and would be invisible here otherwise.
+                    if (await IsCancellationRequested(process.Id, cancellationToken))
+                    {
+                        stoppedEarly = true;
+                        break;
+                    }
+
+                    var isFinalChunk = chunkIndex == chunks.Count - 1;
+                    var passResult = await definition.ExecutePass(
+                        process.Id, passIndex, chunks[chunkIndex], isFinalChunk, cancellationToken);
+
+                    if (passResult.IsFailure)
+                    {
+                        // Whatever the pass staged before giving up must not ride along on the save that
+                        // records the failure.
+                        DiscardStagedChanges();
+                        return await FailRun(process, $"Pass '{pass.Name}' could not run: {passResult.Error}", cancellationToken);
+                    }
+
+                    // Checked before any outcome is written: an atomic chunk that rejects a row must record
+                    // neither the progress nor the success of the rows it accepted.
+                    if (definition.Atomicity == ImportAtomicity.Atomic && passResult.Value.Rows.Any(r => r.Failed))
+                    {
+                        DiscardStagedChanges();
+                        var rejected = RecordRejections(chunks[chunkIndex], passResult.Value);
+                        return await FailAtomicRun(process, pass.Name, rejected, cancellationToken);
+                    }
+
+                    var (succeededInChunk, failedInChunk) = ApplyOutcomes(
+                        chunks[chunkIndex], passResult.Value, passIndex, isLastPass: passIndex == lastPassIndex);
+
+                    // One SaveChanges per chunk covers the pass's entity changes and each row's progress
+                    // together. Whether it commits or not, the database then agrees with itself about how far
+                    // every row got — which is what any later attempt reads.
+                    process.RecordProgress(succeededInChunk, failedInChunk, _dateTimeProvider.Now);
+                    await _importDbContext.SaveChangesAsync(cancellationToken);
+                    DetachAppliedEntities();
+                }
+            }
+
+            return stoppedEarly
+                ? await CancelRun(process, cancellationToken)
+                : await CompleteRun(process, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            if (exception is DbUpdateConcurrencyException)
+            {
+                _logger.LogInformation(
+                    "Import {ImportProcessId} was changed by another request mid-run; settling it as it now stands.",
+                    process.Id);
+            }
+            else
+            {
+                _logger.LogError(
+                    exception,
+                    "Import {ImportProcessId} failed unexpectedly on attempt {Attempt} of {MaxAttempts}.",
+                    process.Id, process.AttemptCount, ImportProcess.MaxAttempts);
+            }
+
+            // Rethrown only when released, so the failure policy's retry is what delivers the next attempt.
+            // A run that ends here instead has recorded its outcome, and a retry would find nothing to do.
+            if (await Abandon(process.Id))
+                throw;
+
+            return Result.Success();
+        }
     }
 
     /// <summary>
-    /// Writes each row's outcome and returns how many this call rejected. A row is only marked succeeded
-    /// once every pass has run — an employee created by the first pass is not finished until the manager
-    /// and deactivation passes have had their turn.
+    /// Settles a run whose attempt threw: released for another attempt while it has attempts left, otherwise
+    /// ended. Returns whether it was released.
     /// </summary>
-    private int ApplyOutcomes(ImportProcess process, IReadOnlyList<ImportProcessRow> rows, ImportPassResult result)
+    /// <remarks>
+    /// Without this the run would stay Processing, and every retry of the message would stop at the claim
+    /// as if another worker held it. Releasing is safe however far the attempt got, because each row's
+    /// progress was saved with the work it counts: the next attempt carries on from there.
+    /// <para>
+    /// Nothing the failed attempt tracked can be trusted — its rows may record progress that was never
+    /// saved — so the tracker is cleared and the run read back as the database has it. The writes ignore
+    /// the attempt's cancellation token: that token may be the reason for the failure, during a shutdown,
+    /// and this write is what lets the next boot claim the run again.
+    /// </para>
+    /// </remarks>
+    private async Task<bool> Abandon(Guid importProcessId)
+    {
+        _importDbContext.ChangeTracker.Clear();
+
+        var process = await _importDbContext.ImportProcesses
+            .Include(p => p.Rows)
+            .FirstAsync(p => p.Id == importProcessId, CancellationToken.None);
+
+        if (process.Status == ImportProcessStatus.Cancelling)
+        {
+            await CancelRun(process, CancellationToken.None);
+            return false;
+        }
+
+        // The status is a concurrency token, so if a stop lands between the read above and this write, the
+        // write fails rather than overwriting the stop with Queued.
+        if (process.Release(_dateTimeProvider.Now).IsSuccess)
+        {
+            await _importDbContext.SaveChangesAsync(CancellationToken.None);
+            _logger.LogWarning(
+                "Import {ImportProcessId} released for attempt {NextAttempt} of {MaxAttempts}.",
+                process.Id, process.AttemptCount + 1, ImportProcess.MaxAttempts);
+            return true;
+        }
+
+        var reference = process.LastAttemptCorrelationId is { } traceId ? $" Reference: {traceId}." : string.Empty;
+        process.Fail(
+            $"An unexpected error stopped this import on each of {process.AttemptCount} attempts. Rows it had already applied are unchanged, and the rest can be resumed.{reference}",
+            _dateTimeProvider.Now);
+        await _importDbContext.SaveChangesAsync(CancellationToken.None);
+
+        return false;
+    }
+
+    /// <summary>
+    /// Writes each row's outcome for one pass and returns how many it finished and rejected. A row is only
+    /// marked succeeded when its last pass saves — an employee created by the first pass is not finished
+    /// until the manager and deactivation passes have had their turn.
+    /// </summary>
+    private (int Succeeded, int Failed) ApplyOutcomes(
+        IReadOnlyList<ImportProcessRow> rows, ImportPassResult result, int passIndex, bool isLastPass)
     {
         var byImportId = rows.ToDictionary(r => r.ImportId, StringComparer.Ordinal);
+        var succeeded = 0;
         var failed = 0;
         var now = _dateTimeProvider.Now;
 
@@ -138,9 +240,36 @@ public sealed class RunImportProcessCommandHandler(
 
             if (outcome.Warning is not null)
                 row.RecordWarning(outcome.Warning);
+
+            row.RecordPassCompleted(passIndex);
+
+            if (isLastPass)
+            {
+                row.MarkSucceeded(row.CreatedEntityId, now);
+                succeeded++;
+            }
         }
 
-        return failed;
+        return (succeeded, failed);
+    }
+
+    /// <summary>Marks only the rows the pass rejected, with their reasons, and returns how many.</summary>
+    private int RecordRejections(IReadOnlyList<ImportProcessRow> rows, ImportPassResult result)
+    {
+        var byImportId = rows.ToDictionary(r => r.ImportId, StringComparer.Ordinal);
+        var now = _dateTimeProvider.Now;
+        var rejected = 0;
+
+        foreach (var outcome in result.Rows.Where(o => o.Failed))
+        {
+            if (!byImportId.TryGetValue(outcome.ImportId, out var row))
+                continue;
+
+            row.MarkFailed(outcome.Error ?? "The row was rejected.", now);
+            rejected++;
+        }
+
+        return rejected;
     }
 
     private async Task<bool> IsCancellationRequested(Guid importProcessId, CancellationToken cancellationToken)
@@ -154,19 +283,10 @@ public sealed class RunImportProcessCommandHandler(
         return status == ImportProcessStatus.Cancelling;
     }
 
+    /// <summary>Every row was settled as its last pass saved, so all that is left is the run itself.</summary>
     private async Task<Result> CompleteRun(ImportProcess process, CancellationToken cancellationToken)
     {
-        var now = _dateTimeProvider.Now;
-        var succeeded = 0;
-
-        foreach (var row in process.Rows.Where(r => r.Status == ImportRowStatus.Pending))
-        {
-            row.MarkSucceeded(row.CreatedEntityId, now);
-            succeeded++;
-        }
-
-        process.RecordProgress(succeeded, failed: 0, now);
-        process.Complete(now);
+        process.Complete(_dateTimeProvider.Now);
         await _importDbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
@@ -177,27 +297,19 @@ public sealed class RunImportProcessCommandHandler(
     }
 
     /// <summary>
-    /// Stops on request. Rows already applied stay applied; the ones never reached are marked cancelled so
-    /// they are distinguishable from rows that were tried and rejected, and so Resume can pick them up.
+    /// Stops on request. Rows already applied stay applied; the rest are marked cancelled so they are
+    /// distinguishable from rows that were tried and rejected, and so Resume can pick them up — from the
+    /// pass each one reached, for a row that got partway.
     /// </summary>
     private async Task<Result> CancelRun(ImportProcess process, CancellationToken cancellationToken)
     {
         var now = _dateTimeProvider.Now;
-        var succeeded = 0;
 
         foreach (var row in process.Rows.Where(r => r.Status == ImportRowStatus.Pending))
         {
-            if (row.CreatedEntityId is null)
-            {
-                row.MarkCancelled(now);
-                continue;
-            }
-
-            row.MarkSucceeded(row.CreatedEntityId, now);
-            succeeded++;
+            row.MarkCancelled(now);
         }
 
-        process.RecordProgress(succeeded, failed: 0, now);
         process.Cancel(now);
         await _importDbContext.SaveChangesAsync(cancellationToken);
 
@@ -264,7 +376,8 @@ public sealed class RunImportProcessCommandHandler(
     /// <summary>
     /// An atomic import applies as one unit, so a single rejection keeps the whole file out.
     /// </summary>
-    private async Task<Result> FailAtomicRun(ImportProcess process, string passName, CancellationToken cancellationToken)
+    private async Task<Result> FailAtomicRun(
+        ImportProcess process, string passName, int rejected, CancellationToken cancellationToken)
     {
         var now = _dateTimeProvider.Now;
         var notApplied = 0;
@@ -275,7 +388,7 @@ public sealed class RunImportProcessCommandHandler(
             notApplied++;
         }
 
-        process.RecordProgress(succeeded: 0, failed: notApplied, now);
+        process.RecordProgress(succeeded: 0, failed: rejected + notApplied, now);
         process.Fail($"Pass '{passName}' rejected at least one row, and this import applies as one unit.", now);
         await _importDbContext.SaveChangesAsync(cancellationToken);
 

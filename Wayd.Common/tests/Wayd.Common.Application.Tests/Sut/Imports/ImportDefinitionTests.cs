@@ -136,7 +136,6 @@ public sealed class ImportDefinitionTests
 
         // Assert — the definition overrode the chunk size; the rest fall back to the base
         definition.ChunkSize.Should().Be(2);
-        definition.InlineThreshold.Should().Be(100);
         definition.MaxRows.Should().Be(50_000);
         definition.Atomicity.Should().Be(Common.Domain.Enums.Imports.ImportAtomicity.PerRow);
     }

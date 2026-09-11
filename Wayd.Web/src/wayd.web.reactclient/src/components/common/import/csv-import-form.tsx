@@ -1,9 +1,15 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
+import {
+  ImportProcessDto,
+  ImportProcessStatus,
+} from '@/src/services/wayd-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { InboxOutlined } from '@ant-design/icons'
 import { Alert, Modal, Typography, Upload } from 'antd'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ReactNode, useState } from 'react'
 
 const { Dragger } = Upload
@@ -31,9 +37,9 @@ export interface CsvImportFormProps {
   }
   /** What the file loads, shown above the column list. */
   children?: ReactNode
-  /** Posts the file(s). Rejects with the API error on failure. */
-  onImport: (file: File, secondFile?: File) => Promise<void>
-  /** Success toast, e.g. "Versions imported successfully." */
+  /** Posts the file(s) and answers with the run. Rejects with the API error if it was refused. */
+  onImport: (file: File, secondFile?: File) => Promise<ImportProcessDto>
+  /** Toast for a run that applied every row, e.g. "Versions imported." */
   successMessage: string
   onFormComplete: () => void
   onFormCancel: () => void
@@ -49,7 +55,7 @@ export interface CsvImportFormProps {
  * and fix.
  *
  * A reference that does not resolve is NOT one of these: the run accepts the file and rejects the row,
- * so that failure surfaces in Settings → Imports rather than in this dialog.
+ * so it arrives as a finished run with rejections — see {@link describeRun}.
  */
 const describeFailure = (error: unknown): string => {
   const apiError: ApiError = isApiError(error) ? error : {}
@@ -64,12 +70,33 @@ const describeFailure = (error: unknown): string => {
   return apiError.detail ?? 'The import failed. Check the file and try again.'
 }
 
+/** Sums up a run that finished without applying every row. The row-by-row reasons are on its page. */
+const describeRun = (run: ImportProcessDto) => {
+  const rejected =
+    run.failedRowCount > 0
+      ? `${run.failedRowCount} row${run.failedRowCount === 1 ? ' was' : 's were'} rejected.`
+      : ''
+
+  const title =
+    run.status === ImportProcessStatus.Cancelled
+      ? 'The import was stopped'
+      : run.succeededRowCount === 0
+        ? 'Nothing was imported'
+        : `${run.succeededRowCount} of ${run.totalRowCount} rows were imported`
+
+  return { title, description: [rejected, run.error].filter(Boolean).join(' ') }
+}
+
 /**
  * The shared shape of every CSV import: pick one file, post it, and show what came back.
  *
  * One component rather than one per area because the endpoints behave identically — a multipart file,
- * 202 with the id of the run, and the same two refusal shapes before it starts. Only the wording and
- * the mutation differ, so those are the props.
+ * answered with the run, and the same two refusal shapes before it starts. Only the wording and the
+ * mutation differ, so those are the props.
+ *
+ * The endpoint waits a few seconds for the run, so most files come back finished. One that applied every
+ * row closes the form; one that did not stays open to say so, linking to the rows; one still running
+ * hands over to its page, which follows it to the end.
  */
 const CsvImportForm = ({
   title,
@@ -82,6 +109,7 @@ const CsvImportForm = ({
   onFormCancel,
 }: CsvImportFormProps) => {
   const messageApi = useMessage()
+  const router = useRouter()
 
   // The browser File itself, not antd's UploadFile wrapper: the mutation needs the real thing, and
   // going through the wrapper means unwrapping an originFileObj that may or may not be set.
@@ -89,6 +117,12 @@ const CsvImportForm = ({
   const [second, setSecond] = useState<File | null>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
+  const [finishedRun, setFinishedRun] = useState<ImportProcessDto | null>(null)
+
+  const resetResult = () => {
+    setFailure(null)
+    setFinishedRun(null)
+  }
 
   const requiresSecond = secondFile?.required === true
   const isReady = file !== null && (!requiresSecond || second !== null)
@@ -97,12 +131,25 @@ const CsvImportForm = ({
     if (!file || (requiresSecond && !second)) return
 
     setIsImporting(true)
-    setFailure(null)
+    resetResult()
 
     try {
-      await onImport(file, second ?? undefined)
-      messageApi.success(successMessage)
-      onFormComplete()
+      const run = await onImport(file, second ?? undefined)
+
+      if (!run.isTerminal) {
+        messageApi.info('The import is still running. Opening its page.')
+        onFormComplete()
+        router.push(`/settings/imports/${run.id}`)
+        return
+      }
+
+      if (run.status === ImportProcessStatus.Succeeded) {
+        messageApi.success(successMessage)
+        onFormComplete()
+        return
+      }
+
+      setFinishedRun(run)
     } catch (error) {
       // Shown in the modal rather than as a toast: a batch failure names the value to fix, and a
       // toast disappears before anyone can copy it out.
@@ -148,14 +195,14 @@ const CsvImportForm = ({
         maxCount={1}
         beforeUpload={(selected) => {
           setFile(selected)
-          setFailure(null)
+          resetResult()
           // False keeps antd from uploading on drop: the file is posted by the Import button, so the
           // modal's action stays the thing that performs the import.
           return false
         }}
         onRemove={() => {
           setFile(null)
-          setFailure(null)
+          resetResult()
         }}
         fileList={
           file ? [{ uid: file.name, name: file.name, status: 'done' }] : []
@@ -184,12 +231,12 @@ const CsvImportForm = ({
             maxCount={1}
             beforeUpload={(selected) => {
               setSecond(selected)
-              setFailure(null)
+              resetResult()
               return false
             }}
             onRemove={() => {
               setSecond(null)
-              setFailure(null)
+              resetResult()
             }}
             fileList={
               second
@@ -216,6 +263,20 @@ const CsvImportForm = ({
           showIcon
           title="The import was rejected"
           description={<span style={{ whiteSpace: 'pre-wrap' }}>{failure}</span>}
+          style={{ marginTop: 16 }}
+        />
+      )}
+
+      {finishedRun && (
+        <Alert
+          type={finishedRun.succeededRowCount > 0 ? 'warning' : 'error'}
+          showIcon
+          {...describeRun(finishedRun)}
+          action={
+            <Link href={`/settings/imports/${finishedRun.id}`}>
+              View Details
+            </Link>
+          }
           style={{ marginTop: 16 }}
         />
       )}

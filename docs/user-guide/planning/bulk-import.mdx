@@ -35,9 +35,11 @@ API. Treat these as machine-generated formats rather than something to type out.
 
 A few rules apply to both:
 
-- **A successful post returns `202 Accepted` and the id of the run**, not the records it created. The
-  file is applied by a background worker, so the response means "accepted", not "done". Follow the run
-  in [Settings → Imports](../settings/imports.mdx), or with that id against the import endpoints.
+- **A successful post returns the run**, not the records it created. The file is applied by a
+  background worker, and the post waits a few seconds for it: a small file comes back finished
+  (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
+  `Location` to follow. Either way the body is the same run — follow it in
+  [Settings → Imports](../settings/imports.mdx), or by its id against the import endpoints.
 - **A malformed file is still rejected whole, before anything is queued.** Every row is validated on
   the way in, so a file with a bad row never becomes a run. What differs between the two imports is
   what happens once rows start being *applied* — see

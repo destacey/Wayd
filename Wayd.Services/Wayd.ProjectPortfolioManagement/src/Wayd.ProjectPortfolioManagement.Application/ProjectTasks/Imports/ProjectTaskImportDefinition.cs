@@ -32,7 +32,7 @@ public sealed class ProjectTaskImportDefinition(
 
     public override string Key => ImportKey;
     public override string DisplayName => "Project Tasks";
-    public override string PermissionAction => ApplicationAction.ManageProjectWorkItems;
+    public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Projects;
 
     public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;

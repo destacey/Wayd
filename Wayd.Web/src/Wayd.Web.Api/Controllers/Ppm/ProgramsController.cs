@@ -90,11 +90,12 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Programs)]
-    [OpenApiOperation("Submit a csv file of programs to import. Returns the id of the import to follow.", "")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [OpenApiOperation("Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -120,7 +121,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
             var result = await _dispatcher.Send(new ImportProgramsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

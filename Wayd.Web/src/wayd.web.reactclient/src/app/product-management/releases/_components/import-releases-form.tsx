@@ -21,10 +21,8 @@ const ImportReleasesForm = ({
 }: ImportReleasesFormProps) => {
   const [importReleases] = useImportReleasesMutation()
 
-  const handleImport = async (file: File, contentsFile?: File) => {
-    const response = await importReleases({ file, contentsFile })
-    if (response.error) throw response.error
-  }
+  const handleImport = (file: File, contentsFile?: File) =>
+    importReleases({ file, contentsFile }).unwrap()
 
   return (
     <CsvImportForm
@@ -36,7 +34,7 @@ const ImportReleasesForm = ({
         required: false,
       }}
       onImport={handleImport}
-      successMessage="Releases submitted. Follow the run in Settings → Imports."
+      successMessage="Releases imported."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >

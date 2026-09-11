@@ -4568,10 +4568,10 @@ export class StrategicThemesClient {
     }
 
     /**
-     * Submit a csv file of strategic themes to import. Returns the id of the import to follow.
+     * Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/strategic-management/strategic-themes/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -4602,7 +4602,7 @@ export class StrategicThemesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -4612,12 +4612,19 @@ export class StrategicThemesClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -4637,7 +4644,7 @@ export class StrategicThemesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -7193,10 +7200,10 @@ export class ProductsClient {
     }
 
     /**
-     * Submit a csv file of products to import. Returns the id of the import to follow.
+     * Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/products/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -7227,7 +7234,7 @@ export class ProductsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -7237,12 +7244,19 @@ export class ProductsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -7262,7 +7276,7 @@ export class ProductsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -9058,11 +9072,11 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Submit a csv file of release packages to import. Returns the id of the import to follow.
+     * Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      * @param manifestFile (optional) 
      */
-    import(file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -9097,7 +9111,7 @@ export class ReleasePackagesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9107,12 +9121,19 @@ export class ReleasePackagesClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -9132,7 +9153,7 @@ export class ReleasePackagesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -9669,11 +9690,11 @@ export class ReleasesClient {
     }
 
     /**
-     * Submit a csv file of releases to import. Returns the id of the import to follow.
+     * Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      * @param contentsFile (optional) 
      */
-    import(file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/releases/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -9706,7 +9727,7 @@ export class ReleasesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9716,12 +9737,19 @@ export class ReleasesClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -9741,7 +9769,7 @@ export class ReleasesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -10526,10 +10554,10 @@ export class VersionsClient {
     }
 
     /**
-     * Submit a csv file of versions to import. Returns the id of the import to follow.
+     * Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/versions/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -10560,7 +10588,7 @@ export class VersionsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -10570,12 +10598,19 @@ export class VersionsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -10595,7 +10630,7 @@ export class VersionsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -11818,10 +11853,10 @@ export class PortfoliosClient {
     }
 
     /**
-     * Submit a csv file of portfolios to import. Returns the id of the import to follow.
+     * Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -11852,7 +11887,7 @@ export class PortfoliosClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11862,12 +11897,19 @@ export class PortfoliosClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -11887,14 +11929,14 @@ export class PortfoliosClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
-     * Submit a csv file of PPM finalizations to import. Returns the id of the import to follow.
+     * Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    finalizeImport(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    finalizeImport(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/finalize/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -11925,7 +11967,7 @@ export class PortfoliosClient {
         });
     }
 
-    protected processFinalizeImport(response: AxiosResponse): Promise<string> {
+    protected processFinalizeImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11935,12 +11977,19 @@ export class PortfoliosClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -11960,7 +12009,7 @@ export class PortfoliosClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -13193,10 +13242,10 @@ export class ProgramsClient {
     }
 
     /**
-     * Submit a csv file of programs to import. Returns the id of the import to follow.
+     * Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/programs/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -13227,7 +13276,7 @@ export class ProgramsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -13237,12 +13286,19 @@ export class ProgramsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -13262,7 +13318,7 @@ export class ProgramsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -15220,10 +15276,10 @@ export class ProjectsClient {
     }
 
     /**
-     * Submit a csv file of projects to import. Returns the id of the import to follow.
+     * Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -15254,7 +15310,7 @@ export class ProjectsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -15264,12 +15320,19 @@ export class ProjectsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -15289,14 +15352,14 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
-     * Submit a csv file of project tasks to import. Returns the id of the import to follow.
+     * Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    importTasks(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    importTasks(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/tasks/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -15327,7 +15390,7 @@ export class ProjectsClient {
         });
     }
 
-    protected processImportTasks(response: AxiosResponse): Promise<string> {
+    protected processImportTasks(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -15337,12 +15400,19 @@ export class ProjectsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -15362,14 +15432,14 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
-     * Submit a csv file of project stage statuses to import. Returns the id of the import to follow.
+     * Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    importStages(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    importStages(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/stages/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -15400,7 +15470,7 @@ export class ProjectsClient {
         });
     }
 
-    protected processImportStages(response: AxiosResponse): Promise<string> {
+    protected processImportStages(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -15410,12 +15480,19 @@ export class ProjectsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -15435,7 +15512,7 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -18130,11 +18207,11 @@ export class StrategicInitiativesClient {
     }
 
     /**
-     * Submit a csv file of strategic initiatives to import. Returns the id of the import to follow.
+     * Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      * @param kpiFile (optional) 
      */
-    import(file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -18167,7 +18244,7 @@ export class StrategicInitiativesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -18177,12 +18254,19 @@ export class StrategicInitiativesClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -18202,7 +18286,7 @@ export class StrategicInitiativesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -21941,10 +22025,10 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Submit a csv file of objectives for a planning interval. Returns the id of the import to follow.
+     * Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    importObjectives(id: string, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    importObjectives(id: string, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/import";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -21978,7 +22062,7 @@ export class PlanningIntervalsClient {
         });
     }
 
-    protected processImportObjectives(response: AxiosResponse): Promise<string> {
+    protected processImportObjectives(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -21988,12 +22072,19 @@ export class PlanningIntervalsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -22013,7 +22104,7 @@ export class PlanningIntervalsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -23685,10 +23776,10 @@ export class RisksClient {
     }
 
     /**
-     * Submit a csv file of risks to import. Returns the id of the import to follow.
+     * Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/planning/risks/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -23719,7 +23810,7 @@ export class RisksClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -23729,12 +23820,19 @@ export class RisksClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -23754,7 +23852,7 @@ export class RisksClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -30659,10 +30757,10 @@ export class EmployeesClient {
     }
 
     /**
-     * Import employees from a csv file.
+     * Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/employees/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -30693,7 +30791,7 @@ export class EmployeesClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -30703,12 +30801,19 @@ export class EmployeesClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -30728,7 +30833,7 @@ export class EmployeesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -31856,10 +31961,10 @@ export class TeamsClient {
     }
 
     /**
-     * Submit a csv file of teams to import. Returns the id of the import to follow.
+     * Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/teams/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -31890,7 +31995,7 @@ export class TeamsClient {
         });
     }
 
-    protected processImport(response: AxiosResponse): Promise<string> {
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -31900,12 +32005,19 @@ export class TeamsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -31925,14 +32037,14 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
-     * Submit a csv file of team staffing rows to import. Returns the id of the import to follow.
+     * Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    importMembers(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    importMembers(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/teams/members/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -31963,7 +32075,7 @@ export class TeamsClient {
         });
     }
 
-    protected processImportMembers(response: AxiosResponse): Promise<string> {
+    protected processImportMembers(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -31973,12 +32085,19 @@ export class TeamsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -31998,14 +32117,14 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
-     * Import the team hierarchy (parent/child team memberships) from a csv file.
+     * Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param file (optional) 
      */
-    importTeamMemberships(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<string> {
+    importTeamMemberships(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/teams/team-memberships/import";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -32036,7 +32155,7 @@ export class TeamsClient {
         });
     }
 
-    protected processImportTeamMemberships(response: AxiosResponse): Promise<string> {
+    protected processImportTeamMemberships(response: AxiosResponse): Promise<ImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -32046,12 +32165,19 @@ export class TeamsClient {
                 }
             }
         }
-        if (status === 202) {
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
             const _responseText = response.data;
             let result202: any = null;
             let resultData202  = _responseText;
             result202 = resultData202;
-            return Promise.resolve<string>(result202);
+            return Promise.resolve<ImportProcessDto>(result202);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -32071,7 +32197,7 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<string>(null as any);
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -41505,6 +41631,43 @@ export interface CreateStrategicThemeRequest {
     description: string;
 }
 
+export interface ImportProcessDto {
+    id: string;
+    importType: string;
+    displayName: string;
+    atomicity: ImportAtomicity;
+    status: ImportProcessStatus;
+    submissionGroupId?: string | undefined;
+    submittedByUserId: string;
+    submittedByName?: string | undefined;
+    submittedOn: Date;
+    startedOn?: Date | undefined;
+    completedOn?: Date | undefined;
+    lastProgressOn?: Date | undefined;
+    totalRowCount: number;
+    succeededRowCount: number;
+    failedRowCount: number;
+    error?: string | undefined;
+    canManage: boolean;
+    unappliedRowCount: number;
+    isTerminal: boolean;
+}
+
+export enum ImportAtomicity {
+    PerRow = "PerRow",
+    Atomic = "Atomic",
+}
+
+export enum ImportProcessStatus {
+    Queued = "Queued",
+    Processing = "Processing",
+    Cancelling = "Cancelling",
+    Succeeded = "Succeeded",
+    PartiallySucceeded = "PartiallySucceeded",
+    Failed = "Failed",
+    Cancelled = "Cancelled",
+}
+
 export interface UpdateStrategicThemeRequest {
     /** The unique identifier of the strategic theme. */
     id: string;
@@ -45153,48 +45316,11 @@ export interface ImportProcessPageDto {
     pageSize: number;
 }
 
-export interface ImportProcessDto {
-    id: string;
-    importType: string;
-    displayName: string;
-    atomicity: ImportAtomicity;
-    status: ImportProcessStatus;
-    submissionGroupId?: string | undefined;
-    submittedByUserId: string;
-    submittedByName?: string | undefined;
-    submittedOn: Date;
-    startedOn?: Date | undefined;
-    completedOn?: Date | undefined;
-    lastProgressOn?: Date | undefined;
-    totalRowCount: number;
-    succeededRowCount: number;
-    failedRowCount: number;
-    error?: string | undefined;
-    canManage: boolean;
-    unappliedRowCount: number;
-}
-
-export enum ImportAtomicity {
-    PerRow = "PerRow",
-    Atomic = "Atomic",
-}
-
-export enum ImportProcessStatus {
-    Queued = "Queued",
-    Processing = "Processing",
-    Cancelling = "Cancelling",
-    Succeeded = "Succeeded",
-    PartiallySucceeded = "PartiallySucceeded",
-    Failed = "Failed",
-    Cancelled = "Cancelled",
-}
-
 export interface ImportDefinitionDto {
     key: string;
     displayName: string;
     atomicity: ImportAtomicity;
     maxRows: number;
-    inlineThreshold: number;
     canSubmit: boolean;
 }
 

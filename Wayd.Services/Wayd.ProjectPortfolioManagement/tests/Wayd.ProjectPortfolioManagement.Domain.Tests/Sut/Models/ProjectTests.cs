@@ -2845,6 +2845,48 @@ public class ProjectTests
     }
 
     [Fact]
+    public void ChangeLifecycle_RaisesALifecycleChangedEventNamingBothLifecycles()
+    {
+        // Arrange
+        var (project, _) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var replaced = project.ProjectLifecycle!;
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Discovery", "Discovery stage"));
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, [], _dateTimeProvider.Now);
+
+        // Assert — the move reads as "from one lifecycle to another" without looking anywhere else
+        result.IsSuccess.Should().BeTrue();
+        var raised = project.DomainEvents.OfType<ProjectLifecycleChangedEventV2>().Should().ContainSingle().Subject;
+        raised.PreviousLifecycleId.Should().Be(replaced.Id);
+        raised.PreviousLifecycleName.Should().Be(replaced.Name);
+        raised.LifecycleId.Should().Be(newLifecycle.Id);
+        raised.LifecycleName.Should().Be(newLifecycle.Name);
+        project.ProjectLifecycle.Should().BeSameAs(newLifecycle, "the navigation has to stay in step with the id");
+    }
+
+    [Fact]
+    public void ChangeLifecycle_OfAProjectLoadedWithoutItsLifecycle_FailsLoudlyWithNothingChanged()
+    {
+        // Arrange — the lifecycle is assigned but was never loaded, as when a query omits Include(p => p.ProjectLifecycle)
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var assignedId = project.ProjectLifecycleId;
+        project.SetPrivate(p => p.ProjectLifecycle, null);
+        project.ClearDomainEvents();
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Discovery", "Discovery stage"));
+
+        // Act
+        Action act = () => project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, [], _dateTimeProvider.Now);
+
+        // Assert — thrown before the stages are replaced, so a failed call leaves the project as it was
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Include Project.ProjectLifecycle*");
+        project.ProjectLifecycleId.Should().Be(assignedId);
+        project.Stages.Should().BeEquivalentTo(stages);
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void ChangeLifecycle_ShouldFail_WhenProjectIsClosed()
     {
         // Arrange

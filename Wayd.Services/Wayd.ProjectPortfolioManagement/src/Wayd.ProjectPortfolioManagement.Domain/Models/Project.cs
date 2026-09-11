@@ -566,6 +566,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         }
 
         ProjectLifecycleId = lifecycle.Id;
+        ProjectLifecycle = lifecycle;
 
         foreach (var lifecycleStage in lifecycle.Stages.OrderBy(p => p.Order))
         {
@@ -619,6 +620,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         {
             return Result.Failure("The new lifecycle must be different from the current lifecycle.");
         }
+
+        // Read before anything moves, so a project loaded without its lifecycle fails with nothing changed.
+        var previous = CurrentLifecycle();
 
         // Validate that every stage with tasks is included in the mapping
         var stagesWithTasks = _stages
@@ -689,11 +693,33 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         }
 
         ProjectLifecycleId = newLifecycle.Id;
+        ProjectLifecycle = newLifecycle;
 
         AddDomainEvent(new ProjectLifecycleChangedEventV2(
-            Id, Key, newLifecycle.Id, newLifecycle.Name, _stages.Count, remappedTaskCount, actor.ToEventActor(), timestamp));
+            Id, Key, previous.Id, previous.Name, newLifecycle.Id, newLifecycle.Name, _stages.Count, remappedTaskCount,
+            actor.ToEventActor(), timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// The assigned lifecycle, which the lifecycle-changed event names as the one being replaced.
+    /// </summary>
+    /// <remarks>
+    /// Throws rather than returning null when a lifecycle is assigned but was not loaded: the project has to
+    /// be read with <c>.Include(p =&gt; p.ProjectLifecycle)</c> before its lifecycle changes, and without this
+    /// a missing include would publish the replaced lifecycle with a silently null name.
+    /// </remarks>
+    private ProjectLifecycle CurrentLifecycle()
+    {
+        if (ProjectLifecycle is null || ProjectLifecycle.Id != ProjectLifecycleId)
+        {
+            throw new InvalidOperationException(
+                $"Project {Id} has lifecycle {ProjectLifecycleId} assigned, but it was not loaded. " +
+                "Include Project.ProjectLifecycle before changing it.");
+        }
+
+        return ProjectLifecycle;
     }
 
     /// <summary>

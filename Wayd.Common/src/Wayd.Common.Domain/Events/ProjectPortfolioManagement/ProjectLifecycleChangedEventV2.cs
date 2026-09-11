@@ -13,6 +13,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// re-pointed, with tasks whose stage was not mapped falling to the first stage of the new lifecycle.
 /// Recording how many tasks moved is what makes a surprising result afterwards traceable.
 /// <para>
+/// Carries both ends, each identified and named, so the entry reads as "moved from one lifecycle to another"
+/// on its own — and the lifecycle it replaced is the one most likely to have been renamed or retired by the
+/// time anyone reads the entry.
+/// </para>
+/// <para>
 /// Supersedes <see cref="ProjectLifecycleChangedEvent"/>, dropping its required <c>Name</c>, which described
 /// the project rather than the change. A new type rather than a new version, because removing a required
 /// member breaks every consumer written against the old shape.
@@ -24,6 +29,8 @@ public sealed record ProjectLifecycleChangedEventV2 : DomainEvent, IPpmEvent
     public ProjectLifecycleChangedEventV2(
         Guid id,
         ProjectKey key,
+        Guid previousLifecycleId,
+        string previousLifecycleName,
         Guid lifecycleId,
         string lifecycleName,
         int stageCount,
@@ -34,6 +41,8 @@ public sealed record ProjectLifecycleChangedEventV2 : DomainEvent, IPpmEvent
     {
         Id = id;
         Key = key;
+        PreviousLifecycleId = previousLifecycleId;
+        PreviousLifecycleName = previousLifecycleName;
         LifecycleId = lifecycleId;
         LifecycleName = lifecycleName;
         StageCount = stageCount;
@@ -44,6 +53,11 @@ public sealed record ProjectLifecycleChangedEventV2 : DomainEvent, IPpmEvent
 
     public Guid Id { get; }
     public ProjectKey Key { get; }
+
+    /// <summary>The lifecycle the project followed before the change.</summary>
+    public Guid PreviousLifecycleId { get; }
+
+    public string PreviousLifecycleName { get; }
 
     /// <summary>The lifecycle the project now follows.</summary>
     public Guid LifecycleId { get; }

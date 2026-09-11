@@ -2,6 +2,7 @@ import { getReleasePackagesClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   AssembleReleasePackageRequest,
+  ImportProcessDto,
   MarkReleasePackageReleasedRequest,
   ObjectIdAndKey,
   ReleasePackageDto,
@@ -99,7 +100,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     // Two files: the packages and their manifest lines. Both are required — a package cannot be
     // assembled without a manifest.
     importReleasePackages: builder.mutation<
-      string,
+      ImportProcessDto,
       { file: File; manifestFile: File }
     >({
       queryFn: async ({ file, manifestFile }) => {

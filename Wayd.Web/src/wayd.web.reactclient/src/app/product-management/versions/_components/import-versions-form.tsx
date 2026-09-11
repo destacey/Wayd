@@ -20,17 +20,14 @@ const ImportVersionsForm = ({
 }: ImportVersionsFormProps) => {
   const [importVersions] = useImportVersionsMutation()
 
-  const handleImport = async (file: File) => {
-    const response = await importVersions(file)
-    if (response.error) throw response.error
-  }
+  const handleImport = (file: File) => importVersions(file).unwrap()
 
   return (
     <CsvImportForm
       title="Import Versions"
       columns={COLUMNS}
       onImport={handleImport}
-      successMessage="Versions submitted. Follow the run in Settings → Imports."
+      successMessage="Versions imported."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >

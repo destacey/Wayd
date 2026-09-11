@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   CorrectVersionDatesRequest,
   CutVersionRequest,
+  ImportProcessDto,
   MarkVersionReleasedRequest,
   RevertVersionReleaseRequest,
   MoveVersionTargetDateRequest,
@@ -95,7 +96,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     }),
     // The generated client takes a FileParameter, so the caller hands over the browser File and its
     // name travels with it.
-    importVersions: builder.mutation<string, File>({
+    importVersions: builder.mutation<ImportProcessDto, File>({
       queryFn: async (file) => {
         try {
           const data = await getVersionsClient().import({

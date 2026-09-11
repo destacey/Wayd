@@ -34,13 +34,14 @@ Each run shows the kind of import, who submitted it, when, and four counts:
 | Count | Meaning |
 |---|---|
 | **Rows** | Lines in the submitted file. |
-| **Applied** | Rows that created a record. These are never applied a second time. |
+| **Applied** | Rows the import finished with. These are never applied a second time. |
 | **Rejected** | Rows that changed nothing, each with a reason. |
-| **Not Applied** | Rows the run never reached, because it was stopped or failed partway. |
+| **Not Applied** | Rows the run did not finish, because it was stopped or failed partway. Some may be partly done — an employee created but not yet linked to their manager — and a resume carries them on from there. |
 
-Open a run to go to its page, which shows the outcome of every row and updates while the run is still
-going. It opens on the **rejected** rows when there are any, since that is usually why you came, and each
-carries the reason it was refused and the line it came from. The page has its own address, so a run can be
+Open a run to go to its page, which shows each row's outcome and updates while the run is still going. It
+opens on the **rejected** rows when there are any, since that is usually why you came, and each carries
+the reason it was refused and the line it came from. The page lists up to 500 rows for each filter; a
+larger run says how many more there are. The page has its own address, so a run can be
 bookmarked or shared with someone who may see that kind of import.
 
 :::note "0 of 40 applied" is not always a bug
@@ -80,16 +81,17 @@ Both resume and retry report how many rows were queued, and how many could not b
 ## When a run fails unexpectedly
 
 Rejected rows are expected and are yours to fix. An **unexpected** failure — the database briefly
-unavailable, the server restarting mid-run — is handled for you, as far as it safely can be:
+unavailable, the server restarting mid-run — is handled for you. Wayd saves how far each row has got
+along with the work itself, so whatever picks a run up again carries on from there and never applies a
+row twice.
 
-- **If nothing had been saved yet**, the run goes back to the queue and is tried again automatically, up
-  to three attempts in all. If every attempt fails, the run ends as **Failed** with nothing applied, and
-  its error carries a reference your administrator can find in the logs.
-- **If some rows had already been saved**, it is not retried automatically, since that could apply those
-  rows twice. The run ends as **Failed**, the rows it applied are shown as applied, and **Resume** picks up
-  the rest.
+- **The run is tried again automatically**, up to three attempts in all, each carrying on where the last
+  one stopped. If every attempt fails, the run ends as **Failed**: rows it applied stay applied, its error
+  carries a reference your administrator can find in the logs, and **Resume** picks up the rest once the
+  cause is fixed.
 - **If the worker disappears entirely**, a maintenance job ends the run once it has gone quiet for 30
-  minutes, and republishes any run that has sat queued for 15. That job is scheduled to run every five
+  minutes, and republishes any run that has sat queued for 15. **Resume** carries an ended run on from
+  where it stopped. That job is scheduled to run every five
   minutes by default; it appears in [Settings → Background Jobs](./index.mdx#background-jobs) as
   `import-stall-recovery`, where its schedule can be changed. If it is deleted, it is scheduled again the
   next time the server starts.

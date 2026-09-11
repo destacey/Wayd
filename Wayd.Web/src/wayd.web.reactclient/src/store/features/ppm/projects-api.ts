@@ -21,7 +21,7 @@ import {
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
-import { projectActivityTag } from './project-activity-tags'
+import { ppmActivityTag } from './ppm-activity-tags'
 import { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
 
@@ -133,7 +133,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: cacheKey },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(request.id),
+          ppmActivityTag(request.id),
         ]
       },
     }),
@@ -157,7 +157,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: cacheKey },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(id),
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -181,7 +181,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: 'LIST' },
           // If any screens already cached the *new* key, ensure it's refreshed.
           { type: QueryTags.Project, id: request.key },
-          projectActivityTag(id),
+          ppmActivityTag(id),
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
         ]
@@ -205,7 +205,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(id),
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -227,7 +227,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(id),
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -249,7 +249,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(id),
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -271,7 +271,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(id),
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -299,7 +299,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(id),
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -403,7 +403,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: cacheKey },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
-          projectActivityTag(id),
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -512,7 +512,7 @@ export const projectsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { projectId }) => [
         { type: QueryTags.Project },
         { type: QueryTags.ProjectPlanTree },
-        projectActivityTag(projectId),
+        ppmActivityTag(projectId),
       ],
     }),
 

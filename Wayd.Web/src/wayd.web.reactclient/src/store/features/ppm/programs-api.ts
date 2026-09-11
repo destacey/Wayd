@@ -10,6 +10,7 @@ import {
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
+import { ppmActivityTag } from './ppm-activity-tags'
 import { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
 
@@ -77,11 +78,12 @@ export const programsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { request, cacheKey }) => {
         return [
           { type: QueryTags.Program, id: 'LIST' },
           { type: QueryTags.Program, id: cacheKey },
           { type: QueryTags.PortfolioPrograms, id: 'LIST' },
+          ppmActivityTag(request.id),
         ]
       },
     }),
@@ -95,11 +97,12 @@ export const programsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Program, id: 'LIST' },
           { type: QueryTags.Program, id: cacheKey },
           { type: QueryTags.PortfolioPrograms, id: 'LIST' },
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -113,11 +116,12 @@ export const programsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Program, id: 'LIST' },
           { type: QueryTags.Program, id: cacheKey },
           { type: QueryTags.PortfolioPrograms, id: 'LIST' },
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -131,11 +135,12 @@ export const programsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Program, id: 'LIST' },
           { type: QueryTags.Program, id: cacheKey },
           { type: QueryTags.PortfolioPrograms, id: 'LIST' },
+          ppmActivityTag(id),
         ]
       },
     }),

@@ -14,6 +14,7 @@ import {
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
+import { ppmActivityTag } from './ppm-activity-tags'
 import { BaseOptionType } from 'antd/es/select'
 import { OptionModel } from '@/src/components/types'
 
@@ -75,10 +76,11 @@ export const portfoliosApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { request, cacheKey }) => {
         return [
           { type: QueryTags.Portfolio, id: 'LIST' },
           { type: QueryTags.Portfolio, id: cacheKey },
+          ppmActivityTag(request.id),
         ]
       },
     }),
@@ -93,10 +95,11 @@ export const portfoliosApi = apiSlice.injectEndpoints({
             return { error }
           }
         },
-        invalidatesTags: (result, error, { cacheKey }) => {
+        invalidatesTags: (result, error, { id, cacheKey }) => {
           return [
             { type: QueryTags.Portfolio, id: 'LIST' },
             { type: QueryTags.Portfolio, id: cacheKey },
+            ppmActivityTag(id),
           ]
         },
       },
@@ -111,10 +114,11 @@ export const portfoliosApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Portfolio, id: 'LIST' },
           { type: QueryTags.Portfolio, id: cacheKey },
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -128,10 +132,11 @@ export const portfoliosApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Portfolio, id: 'LIST' },
           { type: QueryTags.Portfolio, id: cacheKey },
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -169,6 +174,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, { cacheKey, id }) => [
         { type: QueryTags.Portfolio, id: cacheKey },
+        ppmActivityTag(id),
         { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },
         { type: QueryTags.PortfolioRankingScoreboard, id },
       ],
@@ -188,6 +194,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, { cacheKey, id }) => [
         { type: QueryTags.Portfolio, id: cacheKey },
+        ppmActivityTag(id),
         { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },
         { type: QueryTags.PortfolioRankingScoreboard, id },
       ],

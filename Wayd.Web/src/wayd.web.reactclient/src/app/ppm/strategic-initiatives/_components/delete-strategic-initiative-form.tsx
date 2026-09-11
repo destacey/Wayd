@@ -26,9 +26,10 @@ const DeleteStrategicInitiativeForm = ({
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {
       try {
-        const response = await deleteStrategicInitiativeMutation(
-          strategicInitiative.id,
-        )
+        const response = await deleteStrategicInitiativeMutation({
+          id: strategicInitiative.id,
+          portfolioId: strategicInitiative.portfolio.id,
+        })
         if (response.error) throw response.error
 
         messageApi.success('Successfully deleted strategic initiative.')

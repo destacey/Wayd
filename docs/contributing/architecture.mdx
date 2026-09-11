@@ -294,14 +294,14 @@ see a role-assignment collection change as a property change at all.
 The comparison runs **after** assignment, never against the arguments:
 
 ```csharp
-var before = (Name, Description);
+var before = new ProgramDetails(Name, Description);
 
 Name = name;              // the setters Guard, then Trim
 Description = description;
 
-if (before != (Name, Description))
+if (before != new ProgramDetails(Name, Description))
 {
-    AddDomainEvent(new ProgramDetailsUpdatedEvent(this, actor.ToEventActor(), timestamp));
+    AddDomainEvent(new ProgramDetailsUpdatedEvent(this, before, actor.ToEventActor(), timestamp));
 }
 ```
 

@@ -723,11 +723,12 @@ public class PlanningIntervalsController : ControllerBase
 
     [HttpPost("{id}/objectives/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Submit a csv file of objectives for a planning interval. Returns the id of the import to follow.", "")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [OpenApiOperation("Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportObjectives(Guid id, [FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportObjectives(Guid id, [FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -762,7 +763,7 @@ public class PlanningIntervalsController : ControllerBase
                 new ImportPlanningIntervalObjectivesCommand(id, rows), cancellationToken);
 
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

@@ -68,11 +68,12 @@ public class EmployeesController(
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Employees)]
-    [OpenApiOperation("Import employees from a csv file.", "")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [OpenApiOperation("Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -99,10 +100,8 @@ public class EmployeesController(
 
             var result = await _dispatcher.Send(new ImportEmployeesCommand(rows), cancellationToken);
 
-            // 202 either way: the run is recorded and identified whether it was applied in this request or
-            // queued, so a caller polls the same resource without branching on which happened.
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

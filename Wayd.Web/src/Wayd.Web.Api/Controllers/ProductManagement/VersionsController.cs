@@ -120,12 +120,13 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Submit a csv file of versions to import. Returns the id of the import to follow.",
+        "Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -154,7 +155,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
             var result = await _dispatcher.Send(new ImportVersionsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

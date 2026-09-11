@@ -87,7 +87,9 @@ public sealed class ImportProcess : BaseEntity
 
     public IReadOnlyCollection<ImportProcessRow> Rows => _rows.AsReadOnly();
 
-    public bool IsTerminal => Status
+    public bool IsTerminal => IsTerminalStatus(Status);
+
+    public static bool IsTerminalStatus(ImportProcessStatus status) => status
         is ImportProcessStatus.Succeeded
         or ImportProcessStatus.PartiallySucceeded
         or ImportProcessStatus.Failed
@@ -126,7 +128,7 @@ public sealed class ImportProcess : BaseEntity
     /// </summary>
     /// <remarks>
     /// Only valid when the attempt committed nothing. The runner re-applies every Pending row from the
-    /// first pass, and a row keeps Pending until the run completes â so releasing a run that had saved a
+    /// first pass, and a row keeps Pending until the run completes — so releasing a run that had saved a
     /// chunk would apply that chunk twice.
     /// </remarks>
     public Result Release(Instant timestamp)

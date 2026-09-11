@@ -9,8 +9,8 @@ namespace Wayd.Common.Application.Imports;
 /// </summary>
 /// <remarks>
 /// Declared per import type rather than inferred, because the values genuinely differ: a strategic-theme
-/// row is trivial while a project row resolves six references, so one global chunk size or inline threshold
-/// would be wrong for most of them.
+/// row is trivial while a project row resolves six references, so one global chunk size would be wrong for
+/// most of them.
 /// </remarks>
 public interface IImportDefinition
 {
@@ -25,9 +25,6 @@ public interface IImportDefinition
     /// import is all-or-nothing on purpose, because half an imported hierarchy is worse than none.
     /// </summary>
     ImportAtomicity Atomicity { get; }
-
-    /// <summary>At or below this many rows the file is applied in the request instead of queued.</summary>
-    int InlineThreshold { get; }
 
     /// <summary>Above this many rows the submission is rejected outright, before anything is persisted.</summary>
     int MaxRows { get; }

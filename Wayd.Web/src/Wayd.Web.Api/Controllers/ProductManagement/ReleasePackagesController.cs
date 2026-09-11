@@ -124,14 +124,16 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Submit a csv file of release packages to import. Returns the id of the import to follow.",
+        "Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Import(
         [FromForm] IFormFile file,
         [FromForm] IFormFile manifestFile,
+        [FromServices] ImportSubmissionResponder responder,
         CancellationToken cancellationToken)
     {
         try
@@ -211,7 +213,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
             var result = await _dispatcher.Send(new ImportReleasePackagesCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

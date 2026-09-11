@@ -86,6 +86,8 @@ try
 
     builder.Services.AddScoped<ICsvService, CsvService>();
     builder.Services.AddScoped<IJobManager, JobManager>();
+    builder.Services.AddSingleton(ImportResponseTiming.FromConfiguration(builder.Configuration));
+    builder.Services.AddScoped<ImportSubmissionResponder>();
 
     // Wolverine is the command/query/event mediator (replacing MediatR), configured in Infrastructure
     // alongside the other host plumbing. IDispatcher — the only dispatch seam call sites use — is

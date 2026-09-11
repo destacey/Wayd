@@ -322,6 +322,7 @@ public sealed class DomainEventSerializationTests
         var original = new ProgramTimelineChangedEvent(
             id: Guid.NewGuid(),
             key: 7,
+            previousDateRange: null,
             dateRange: new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 9, 30)),
             EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 5, 10, 15, 0));
@@ -335,6 +336,7 @@ public sealed class DomainEventSerializationTests
         roundTripped.DateRange.Should().NotBeNull();
         roundTripped.DateRange!.Start.Should().Be(original.DateRange!.Start);
         roundTripped.DateRange.End.Should().Be(original.DateRange.End);
+        roundTripped.PreviousDateRange.Should().BeNull();
         roundTripped.Timestamp.Should().Be(original.Timestamp);
     }
 

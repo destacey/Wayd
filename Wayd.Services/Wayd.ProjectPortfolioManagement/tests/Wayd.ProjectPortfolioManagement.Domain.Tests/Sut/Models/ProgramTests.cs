@@ -143,11 +143,30 @@ public class ProgramTests
     }
 
     [Fact]
-    public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingTheNewRange()
+    public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingBothEnds()
     {
         // Arrange
-        var program = _programFaker.Generate();
+        var oldRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
         var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var program = _programFaker.WithDateRange(oldRange).Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), newRange, _dateTimeProvider.Now);
+
+        // Assert — slipping fifteen days is the fact, so both ends travel with it
+        result.IsSuccess.Should().BeTrue();
+        var raised = program.DomainEvents.OfType<ProgramTimelineChangedEvent>().Should().ContainSingle().Subject;
+        raised.PreviousDateRange.Should().Be(oldRange);
+        raised.DateRange.Should().Be(newRange);
+    }
+
+    [Fact]
+    public void UpdateTimeline_SettingTheFirstRange_RaisesATimelineChangedEventWithNoPreviousRange()
+    {
+        // Arrange
+        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var program = _programFaker.WithDateRange(null).Generate();
         program.ClearDomainEvents();
 
         // Act
@@ -156,6 +175,7 @@ public class ProgramTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         var raised = program.DomainEvents.OfType<ProgramTimelineChangedEvent>().Should().ContainSingle().Subject;
+        raised.PreviousDateRange.Should().BeNull();
         raised.DateRange.Should().Be(newRange);
     }
 

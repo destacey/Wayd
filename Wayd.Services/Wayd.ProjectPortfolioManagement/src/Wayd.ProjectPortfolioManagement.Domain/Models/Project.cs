@@ -361,9 +361,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Success();
         }
 
+        var previousDateRange = DateRange;
         DateRange = dateRange;
 
-        AddDomainEvent(new ProjectTimelineChangedEventV2(Id, Key, DateRange, actor.ToEventActor(), timestamp));
+        AddDomainEvent(new ProjectTimelineChangedEventV2(Id, Key, previousDateRange, DateRange, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }

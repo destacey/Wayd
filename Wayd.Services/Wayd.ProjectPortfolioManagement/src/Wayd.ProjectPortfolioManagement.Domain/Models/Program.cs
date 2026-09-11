@@ -204,9 +204,10 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Success();
         }
 
+        var previousDateRange = DateRange;
         DateRange = dateRange;
 
-        AddDomainEvent(new ProgramTimelineChangedEvent(Id, Key, DateRange, actor.ToEventActor(), timestamp));
+        AddDomainEvent(new ProgramTimelineChangedEvent(Id, Key, previousDateRange, DateRange, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }

@@ -13,8 +13,8 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// the timeline is what lifecycle guards read, so moving it changes which transitions are legal, and a
 /// consumer watching for slippage should not have to inspect a general update to find out.
 /// <para>
-/// Carries the new timeline only. Comparing an entry against the previous one of the same kind is how a
-/// reader sees the movement, so repeating the old value in the payload would duplicate that.
+/// Carries both ends, because the move is the fact: a consumer watching for slippage needs where the dates
+/// were as well as where they went, and cannot recover the earlier range from this entry alone.
 /// </para>
 /// <para>
 /// Supersedes <see cref="ProjectTimelineChangedEvent"/>, dropping its required <c>Name</c>, which described
@@ -28,6 +28,7 @@ public sealed record ProjectTimelineChangedEventV2 : DomainEvent, IPpmEvent
     public ProjectTimelineChangedEventV2(
         Guid id,
         ProjectKey key,
+        LocalDateRange? previousDateRange,
         LocalDateRange? dateRange,
         EventActor actor,
         Instant timestamp)
@@ -35,6 +36,7 @@ public sealed record ProjectTimelineChangedEventV2 : DomainEvent, IPpmEvent
     {
         Id = id;
         Key = key;
+        PreviousDateRange = previousDateRange;
         DateRange = dateRange;
 
         Timestamp = timestamp;
@@ -42,6 +44,9 @@ public sealed record ProjectTimelineChangedEventV2 : DomainEvent, IPpmEvent
 
     public Guid Id { get; }
     public ProjectKey Key { get; }
+
+    /// <summary>The project's timeline before the change, or null when it had none.</summary>
+    public LocalDateRange? PreviousDateRange { get; }
 
     /// <summary>
     /// The project's timeline after the change, or null when it was cleared.

@@ -248,11 +248,30 @@ public class ProjectTests
     }
 
     [Fact]
-    public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingTheNewRange()
+    public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingBothEnds()
     {
         // Arrange
-        var project = _projectFaker.Generate();
+        var oldRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
         var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var project = _projectFaker.WithDateRange(oldRange).Generate();
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), newRange, _dateTimeProvider.Now);
+
+        // Assert — slipping fifteen days is the fact, so both ends travel with it
+        result.IsSuccess.Should().BeTrue();
+        var raised = project.DomainEvents.OfType<ProjectTimelineChangedEventV2>().Should().ContainSingle().Subject;
+        raised.PreviousDateRange.Should().Be(oldRange);
+        raised.DateRange.Should().Be(newRange);
+    }
+
+    [Fact]
+    public void UpdateTimeline_SettingTheFirstRange_RaisesATimelineChangedEventWithNoPreviousRange()
+    {
+        // Arrange
+        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var project = _projectFaker.WithDateRange(null).Generate();
         project.ClearDomainEvents();
 
         // Act
@@ -261,6 +280,7 @@ public class ProjectTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         var raised = project.DomainEvents.OfType<ProjectTimelineChangedEventV2>().Should().ContainSingle().Subject;
+        raised.PreviousDateRange.Should().BeNull();
         raised.DateRange.Should().Be(newRange);
     }
 

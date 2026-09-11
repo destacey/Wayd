@@ -1691,12 +1691,21 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (healthCheck is null)
             return Result.Failure<ProjectHealthCheck>($"Health check {healthCheckId} not found on project {Id}.");
 
+        // Compared after the update, never against the arguments: the note is trimmed on the way in.
+        var before = (healthCheck.Status, healthCheck.Note, healthCheck.Expiration);
+
         var updateResult = healthCheck.Update(status, expiration, note, now);
         if (updateResult.IsFailure)
             return Result.Failure<ProjectHealthCheck>(updateResult.Error);
 
-        AddDomainEvent(new ProjectHealthCheckUpdatedEventV2(
-            Id, Key, healthCheck.Id, status, note, expiration, actor.ToEventActor(), now));
+        if (before != (healthCheck.Status, healthCheck.Note, healthCheck.Expiration))
+        {
+            AddDomainEvent(new ProjectHealthCheckUpdatedEventV2(
+                Id, Key, healthCheck.Id,
+                before.Status, before.Note, before.Expiration,
+                healthCheck.Status, healthCheck.Note, healthCheck.Expiration,
+                actor.ToEventActor(), now));
+        }
 
         return Result.Success(healthCheck);
     }

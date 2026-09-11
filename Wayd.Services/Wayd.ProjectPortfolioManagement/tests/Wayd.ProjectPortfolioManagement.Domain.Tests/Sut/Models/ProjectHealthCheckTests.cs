@@ -493,25 +493,46 @@ public sealed class ProjectHealthCheckTests
     }
 
     [Fact]
-    public void UpdateHealthCheck_RaisesAnUpdatedEventCarryingTheCorrectedValues()
+    public void UpdateHealthCheck_RaisesAnUpdatedEventCarryingBothTheOriginalAndTheCorrectedValues()
     {
         // Arrange
         var (project, actorId) = ProjectWithOwner();
-        var added = project.AddHealthCheck(HealthStatus.Healthy, actorId.AsActor(), NoProjectAncestry(), _now.Plus(Duration.FromDays(7)), "old", _now);
+        var originalExpiration = _now.Plus(Duration.FromDays(7));
+        var added = project.AddHealthCheck(HealthStatus.Healthy, actorId.AsActor(), NoProjectAncestry(), originalExpiration, "old", _now);
         project.ClearDomainEvents();
 
         var newExpiration = _now.Plus(Duration.FromDays(14));
 
         // Act
-        var result = project.UpdateHealthCheck(added.Value.Id, actorId.AsActor(), NoProjectAncestry(), HealthStatus.AtRisk, newExpiration, "new", _now);
+        var result = project.UpdateHealthCheck(added.Value.Id, actorId.AsActor(), NoProjectAncestry(), HealthStatus.AtRisk, newExpiration, " new ", _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         var raised = project.DomainEvents.OfType<ProjectHealthCheckUpdatedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(added.Value.Id);
+        raised.PreviousStatus.Should().Be(HealthStatus.Healthy);
+        raised.PreviousNote.Should().Be("old");
+        raised.PreviousExpiration.Should().Be(originalExpiration);
         raised.Status.Should().Be(HealthStatus.AtRisk);
-        raised.Note.Should().Be("new");
+        raised.Note.Should().Be("new", "the payload carries the stored note, which is trimmed");
         raised.Expiration.Should().Be(newExpiration);
+    }
+
+    [Fact]
+    public void UpdateHealthCheck_ThatChangesNothing_RaisesNoEvent()
+    {
+        // Arrange — the note differs from the stored one only by whitespace the setter trims away
+        var (project, actorId) = ProjectWithOwner();
+        var expiration = _now.Plus(Duration.FromDays(7));
+        var added = project.AddHealthCheck(HealthStatus.Healthy, actorId.AsActor(), NoProjectAncestry(), expiration, "steady", _now);
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateHealthCheck(added.Value.Id, actorId.AsActor(), NoProjectAncestry(), HealthStatus.Healthy, expiration, "steady ", _now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.DomainEvents.OfType<ProjectHealthCheckUpdatedEventV2>().Should().BeEmpty();
     }
 
     [Fact]

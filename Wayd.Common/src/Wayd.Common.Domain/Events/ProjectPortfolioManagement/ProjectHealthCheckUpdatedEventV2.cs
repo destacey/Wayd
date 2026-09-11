@@ -10,7 +10,9 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// </summary>
 /// <remarks>
 /// A correction to a record that has already been read and acted on, which is why it is worth
-/// distinguishing from the original report rather than restating it.
+/// distinguishing from the original report rather than restating it. It carries what the check said before
+/// as well as after, because the correction is the fact: a consumer that acted on "Healthy" needs to know
+/// that is what was withdrawn.
 /// <para>
 /// Supersedes <see cref="ProjectHealthCheckUpdatedEvent"/>, dropping its required <c>Name</c>, which
 /// described the project rather than the change. A new type rather than a new version, because removing a
@@ -24,6 +26,9 @@ public sealed record ProjectHealthCheckUpdatedEventV2 : DomainEvent, IPpmEvent
         Guid id,
         ProjectKey key,
         Guid healthCheckId,
+        HealthStatus previousStatus,
+        string? previousNote,
+        Instant previousExpiration,
         HealthStatus status,
         string? note,
         Instant expiration,
@@ -34,6 +39,9 @@ public sealed record ProjectHealthCheckUpdatedEventV2 : DomainEvent, IPpmEvent
         Id = id;
         Key = key;
         HealthCheckId = healthCheckId;
+        PreviousStatus = previousStatus;
+        PreviousNote = previousNote;
+        PreviousExpiration = previousExpiration;
         Status = status;
         Note = note;
         Expiration = expiration;
@@ -46,6 +54,10 @@ public sealed record ProjectHealthCheckUpdatedEventV2 : DomainEvent, IPpmEvent
 
     /// <summary>The health check this event is about.</summary>
     public Guid HealthCheckId { get; }
+
+    public HealthStatus PreviousStatus { get; }
+    public string? PreviousNote { get; }
+    public Instant PreviousExpiration { get; }
 
     public HealthStatus Status { get; }
     public string? Note { get; }

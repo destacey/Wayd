@@ -107,6 +107,7 @@ try
     {
         await app.Services.InitializeDatabases();
         await app.Services.RunBootstrapCheck();
+        app.Services.EnsureDefaultRecurringJobs();
     }
 
     app.UseInfrastructure(builder.Configuration);

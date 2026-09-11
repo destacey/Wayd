@@ -32,12 +32,16 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
     }
 
     /// <summary>Queues a run of <paramref name="rowCount"/> rows, failing the rows named in <paramref name="failing"/>.</summary>
-    private ImportProcess QueueRun(int rowCount, params string[] failing)
+    private ImportProcess QueueRun(int rowCount, params string[] failing) =>
+        QueueRun(rowCount, failing, failingInLink: []);
+
+    private ImportProcess QueueRun(int rowCount, string[] failing, string[] failingInLink)
     {
         var rows = Enumerable.Range(1, rowCount).Select(i =>
         {
             var importId = $"r{i}";
-            var payload = _definition.SerializeRow(new TestImportRow($"Row {i}", failing.Contains(importId)));
+            var payload = _definition.SerializeRow(
+                new TestImportRow($"Row {i}", failing.Contains(importId), failingInLink.Contains(importId)));
             return ImportProcessRow.Create(importId, i, payload);
         });
 
@@ -149,11 +153,12 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
         // Act
         await Run(process);
 
-        // Assert — the chunk in flight finished; nothing further was started
+        // Assert — the chunk in flight finished its pass; nothing further was started. Its rows are not
+        // applied, since the Link pass never reached them, but they keep the progress a resume carries on from
         _definition.Calls.Should().ContainSingle();
         process.Status.Should().Be(ImportProcessStatus.Cancelled);
-        process.Rows.Count(r => r.Status == ImportRowStatus.Succeeded).Should().Be(2);
-        process.Rows.Count(r => r.Status == ImportRowStatus.Cancelled).Should().Be(4);
+        process.Rows.Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Cancelled));
+        process.Rows.Where(r => r.ImportId is "r1" or "r2").Should().AllSatisfy(r => r.CompletedPassCount.Should().Be(1));
     }
 
     [Fact]
@@ -170,6 +175,25 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
         process.Status.Should().Be(ImportProcessStatus.Failed);
         process.Rows.Should().NotContain(r => r.Status == ImportRowStatus.Succeeded);
         process.Rows.Should().Contain(r => r.Error!.Contains("all-or-nothing"));
+    }
+
+    [Fact]
+    public async Task Handle_RecordsNothingForTheAcceptedRowsWhenAnAtomicImportRejectsOneInItsLastPass()
+    {
+        // Arrange — the rejection comes in the pass that would otherwise settle the accepted rows
+        var process = QueueRun(4, failing: [], failingInLink: ["r3"]);
+        _definition.AtomicityOverride = ImportAtomicity.Atomic;
+
+        // Act
+        await Run(process);
+
+        // Assert — every row counted as failed, none as applied, and none advanced past the saved pass
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        process.Rows.Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Failed));
+        process.Rows.Single(r => r.ImportId == "r3").Error.Should().Contain("last pass");
+        process.FailedRowCount.Should().Be(4);
+        process.SucceededRowCount.Should().Be(0);
+        process.Rows.Should().AllSatisfy(r => r.CompletedPassCount.Should().Be(1));
     }
 
     [Fact]
@@ -269,13 +293,13 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         process.Status.Should().Be(ImportProcessStatus.Failed);
         process.AttemptCount.Should().Be(ImportProcess.MaxAttempts);
-        process.Error.Should().Contain($"{ImportProcess.MaxAttempts} attempts").And.Contain("Nothing was applied");
+        process.Error.Should().Contain($"{ImportProcess.MaxAttempts} attempts");
     }
 
     [Fact]
-    public async Task Handle_EndsARunThatThrewAfterSavingAChunkAndSettlesTheRowsItApplied()
+    public async Task Handle_RetriesARunThatThrewAfterSavingAChunkWithoutReapplyingIt()
     {
-        // Arrange — chunk one (r1, r2) saves; chunk two throws
+        // Arrange — chunk one (r1, r2) saves its Create pass; chunk two throws
         var process = QueueRun(4);
         var calls = 0;
         _definition.BeforePass = () =>
@@ -283,17 +307,47 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
             if (++calls == 2)
                 throw new InvalidOperationException("Failure after a save.");
         };
+        await FluentActions.Awaiting(() => Run(process)).Should().ThrowAsync<InvalidOperationException>();
+        process.Status.Should().Be(ImportProcessStatus.Queued);
+        _definition.Calls.Clear();
+        _definition.BeforePass = null;
 
-        // Act
-        var result = await Run(process);
+        // Act — the failure policy's next delivery
+        await Run(process);
 
-        // Assert — not released, since a retry would apply r1 and r2 a second time
-        result.IsSuccess.Should().BeTrue();
+        // Assert — Create runs only for the rows it had not reached; Link for all of them
+        _definition.Calls.Select(c => (c.Pass, string.Join(",", c.ImportIds)))
+            .Should().Equal(("Create", "r3,r4"), ("Link", "r1,r2,r3,r4"));
+        process.Status.Should().Be(ImportProcessStatus.Succeeded);
+        process.SucceededRowCount.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task Handle_ResumesAFailedPassFromEachRowsProgress()
+    {
+        // Arrange — the second Create chunk cannot run, after the first has saved
+        var process = QueueRun(4);
+        var calls = 0;
+        _definition.BeforePass = () =>
+        {
+            if (++calls == 2)
+                _definition.PassFailure = "The lookup table is missing.";
+        };
+        await Run(process);
         process.Status.Should().Be(ImportProcessStatus.Failed);
-        process.Error.Should().Contain("partway through");
-        process.Rows.Where(r => r.ImportId is "r1" or "r2").Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Succeeded));
-        process.Rows.Where(r => r.ImportId is "r3" or "r4").Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Pending));
-        process.SucceededRowCount.Should().Be(2);
+
+        process.Requeue(_now);
+        _definition.Calls.Clear();
+        _definition.BeforePass = null;
+        _definition.PassFailure = null;
+
+        // Act — a person resumes it once the cause is fixed
+        await Run(process);
+
+        // Assert — r1 and r2 are not created a second time
+        _definition.Calls.Select(c => (c.Pass, string.Join(",", c.ImportIds)))
+            .Should().Equal(("Create", "r3,r4"), ("Link", "r1,r2,r3,r4"));
+        process.Status.Should().Be(ImportProcessStatus.Succeeded);
     }
 
     [Fact]

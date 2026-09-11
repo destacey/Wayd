@@ -50,7 +50,8 @@ public sealed class CancelImportProcessCommandHandler(
         var now = _dateTimeProvider.Now;
 
         // A run no worker has claimed has nobody to act on a request, and asking would strand it in
-        // Cancelling. Nothing has been applied either, so it can be ended here and now.
+        // Cancelling. No worker is applying anything either, so it can be ended here and now; rows an earlier
+        // attempt applied stay applied.
         var result = process.Status == ImportProcessStatus.Queued
             ? CancelOutright(process, now)
             : process.RequestCancellation(now);
@@ -58,7 +59,16 @@ public sealed class CancelImportProcessCommandHandler(
         if (result.IsFailure)
             return result;
 
-        await _importDbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _importDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The worker moved the run on — claimed it, finished it or released it — between the read and
+            // this write. What to do about a stop depends on which, so the caller decides again.
+            return Result.Failure("The import changed while it was being stopped. Refresh it and try again.");
+        }
 
         _logger.LogInformation("Import {ImportProcessId} is now {Status} at the caller's request.", process.Id, process.Status);
 

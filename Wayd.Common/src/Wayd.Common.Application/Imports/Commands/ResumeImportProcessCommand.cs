@@ -74,7 +74,16 @@ public sealed class ResumeImportProcessCommandHandler(
         if (requeue.IsFailure)
             return Result.Failure<ResumedImport>(requeue.Error);
 
-        await _importDbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _importDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Someone else resumed it first. Publishing anyway would be harmless — only one delivery can
+            // claim it — but the caller would be told their resume queued rows it did not.
+            return Result.Failure<ResumedImport>("The import changed while it was being resumed. Refresh it and try again.");
+        }
         // Attributed to whoever submitted the file, not whoever pressed the button. The rows this run
         // applies are their import; an admin retrying it should not end up as the author of the records.
         await _dispatcher.Publish(

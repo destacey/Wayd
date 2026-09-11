@@ -105,7 +105,17 @@ public sealed class RecoverStalledImportsCommandHandler(
                 process.Id, process.SucceededRowCount, process.TotalRowCount, process.LastProgressOn);
         }
 
-        await _importDbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _importDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // A run in this batch moved on between the read and the write — its worker was alive after all.
+            // Nothing is saved; the next sweep reads them all again.
+            _logger.LogInformation("A stalled import changed during the sweep; leaving the batch for the next one.");
+            return 0;
+        }
 
         return stalled.Count;
     }

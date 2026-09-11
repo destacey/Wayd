@@ -7,7 +7,7 @@ using Wayd.Common.Domain.Enums.Imports;
 namespace Wayd.Common.Application.Tests.Infrastructure;
 
 /// <summary>Row shape for the definition below.</summary>
-public sealed record TestImportRow(string Name, bool ShouldFail = false);
+public sealed record TestImportRow(string Name, bool ShouldFail = false, bool ShouldFailInLink = false);
 
 /// <summary>
 /// A two-pass definition standing in for a real one, so the base class and the registry can be exercised
@@ -71,6 +71,10 @@ public sealed class TestImportDefinition(IImportPayloadSerializer serializer) : 
     private Task<Result> Link(ImportPassContext<TestImportRow> context, CancellationToken cancellationToken)
     {
         Calls.Add(("Link", [.. context.Rows.Select(r => r.ImportId)], context.IsFinalChunk));
+
+        foreach (var row in context.Rows.Where(r => r.Data.ShouldFailInLink))
+            row.Failed($"Row '{row.ImportId}' was marked to fail in the last pass.");
+
         return Task.FromResult(Result.Success());
     }
 }

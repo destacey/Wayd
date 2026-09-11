@@ -8328,10 +8328,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of strategic themes to import. Returns the id of the import to follow.
+        /// Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -8791,10 +8791,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of strategic themes to import. Returns the id of the import to follow.
+        /// Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -8848,9 +8848,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -13236,10 +13246,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of products to import. Returns the id of the import to follow.
+        /// Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -13905,10 +13915,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of products to import. Returns the id of the import to follow.
+        /// Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -13962,9 +13972,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -16739,13 +16759,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of release packages to import. Returns the id of the import to follow.
+        /// Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -17311,13 +17331,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of release packages to import. Returns the id of the import to follow.
+        /// Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -17381,9 +17401,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -17898,13 +17928,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of releases to import. Returns the id of the import to follow.
+        /// Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -18504,13 +18534,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of releases to import. Returns the id of the import to follow.
+        /// Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -18572,9 +18602,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -19460,13 +19500,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of versions to import. Returns the id of the import to follow.
+        /// Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -20065,13 +20105,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of versions to import. Returns the id of the import to follow.
+        /// Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -20125,9 +20165,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -21950,20 +22000,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of portfolios to import. Returns the id of the import to follow.
+        /// Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of PPM finalizations to import. Returns the id of the import to follow.
+        /// Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Completes or cancels programs and closes or archives portfolios, after their contents have been imported.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> FinalizeImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> FinalizeImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -22486,10 +22536,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of portfolios to import. Returns the id of the import to follow.
+        /// Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -22543,9 +22593,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -22594,13 +22654,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of PPM finalizations to import. Returns the id of the import to follow.
+        /// Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Completes or cancels programs and closes or archives portfolios, after their contents have been imported.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> FinalizeImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> FinalizeImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -22654,9 +22714,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -24243,10 +24313,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of programs to import. Returns the id of the import to follow.
+        /// Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -24727,10 +24797,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of programs to import. Returns the id of the import to follow.
+        /// Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -24784,9 +24854,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -27634,30 +27714,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of projects to import. Returns the id of the import to follow.
+        /// Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of project tasks to import. Returns the id of the import to follow.
+        /// Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Each row names the project it belongs to, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportTasksAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportTasksAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of project stage statuses to import. Returns the id of the import to follow.
+        /// Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportStagesAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportStagesAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -28483,10 +28563,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of projects to import. Returns the id of the import to follow.
+        /// Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -28540,9 +28620,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -28591,13 +28681,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of project tasks to import. Returns the id of the import to follow.
+        /// Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Each row names the project it belongs to, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportTasksAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportTasksAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -28651,9 +28741,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -28702,13 +28802,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of project stage statuses to import. Returns the id of the import to follow.
+        /// Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportStagesAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportStagesAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -28762,9 +28862,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -33041,13 +33151,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of strategic initiatives to import. Returns the id of the import to follow.
+        /// Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -33518,13 +33628,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of strategic initiatives to import. Returns the id of the import to follow.
+        /// Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
         /// Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -33586,9 +33696,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -36730,10 +36850,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of objectives for a planning interval. Returns the id of the import to follow.
+        /// Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportObjectivesAsync(System.Guid id, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid id, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -39677,10 +39797,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of objectives for a planning interval. Returns the id of the import to follow.
+        /// Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportObjectivesAsync(System.Guid id, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid id, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -39739,9 +39859,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -42169,10 +42299,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of risks to import. Returns the id of the import to follow.
+        /// Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -42694,10 +42824,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of risks to import. Returns the id of the import to follow.
+        /// Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -42751,9 +42881,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -55139,10 +55279,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import employees from a csv file.
+        /// Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -55514,10 +55654,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import employees from a csv file.
+        /// Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -55571,9 +55711,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -57133,24 +57283,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of teams to import. Returns the id of the import to follow.
+        /// Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of team staffing rows to import. Returns the id of the import to follow.
+        /// Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportMembersAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportMembersAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import the team hierarchy (parent/child team memberships) from a csv file.
+        /// Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ImportTeamMembershipsAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportTeamMembershipsAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -57855,10 +58005,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of teams to import. Returns the id of the import to follow.
+        /// Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -57912,9 +58062,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -57963,10 +58123,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of team staffing rows to import. Returns the id of the import to follow.
+        /// Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportMembersAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportMembersAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -58020,9 +58180,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -58071,10 +58241,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import the team hierarchy (parent/child team memberships) from a csv file.
+        /// Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ImportTeamMembershipsAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportTeamMembershipsAsync(FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -58128,9 +58298,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
                         if (status_ == 202)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -75420,6 +75600,117 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportProcessDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("importType")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ImportType { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("displayName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string DisplayName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("atomicity")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportAtomicity>))]
+        public ImportAtomicity Atomicity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportProcessStatus>))]
+        public ImportProcessStatus Status { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("submissionGroupId")]
+        public System.Guid? SubmissionGroupId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("submittedByUserId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string SubmittedByUserId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("submittedByName")]
+        public string? SubmittedByName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("submittedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset SubmittedOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("startedOn")]
+        public System.DateTimeOffset? StartedOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("completedOn")]
+        public System.DateTimeOffset? CompletedOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastProgressOn")]
+        public System.DateTimeOffset? LastProgressOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalRowCount")]
+        public int TotalRowCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("succeededRowCount")]
+        public int SucceededRowCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("failedRowCount")]
+        public int FailedRowCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public string? Error { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("unappliedRowCount")]
+        public int UnappliedRowCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isTerminal")]
+        public bool IsTerminal { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ImportAtomicity
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"PerRow")]
+        PerRow = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Atomic")]
+        Atomic = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ImportProcessStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Queued")]
+        Queued = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Processing")]
+        Processing = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Cancelling")]
+        Cancelling = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Succeeded")]
+        Succeeded = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"PartiallySucceeded")]
+        PartiallySucceeded = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Failed")]
+        Failed = 5,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Cancelled")]
+        Cancelled = 6,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateStrategicThemeRequest
     {
 
@@ -86508,114 +86799,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ImportProcessDto
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid Id { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("importType")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ImportType { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("displayName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string DisplayName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("atomicity")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportAtomicity>))]
-        public ImportAtomicity Atomicity { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("status")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportProcessStatus>))]
-        public ImportProcessStatus Status { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("submissionGroupId")]
-        public System.Guid? SubmissionGroupId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("submittedByUserId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string SubmittedByUserId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("submittedByName")]
-        public string? SubmittedByName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("submittedOn")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset SubmittedOn { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("startedOn")]
-        public System.DateTimeOffset? StartedOn { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("completedOn")]
-        public System.DateTimeOffset? CompletedOn { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("lastProgressOn")]
-        public System.DateTimeOffset? LastProgressOn { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("totalRowCount")]
-        public int TotalRowCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("succeededRowCount")]
-        public int SucceededRowCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("failedRowCount")]
-        public int FailedRowCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("error")]
-        public string? Error { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
-        public bool CanManage { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("unappliedRowCount")]
-        public int UnappliedRowCount { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum ImportAtomicity
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"PerRow")]
-        PerRow = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Atomic")]
-        Atomic = 1,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum ImportProcessStatus
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Queued")]
-        Queued = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Processing")]
-        Processing = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Cancelling")]
-        Cancelling = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Succeeded")]
-        Succeeded = 3,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"PartiallySucceeded")]
-        PartiallySucceeded = 4,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Failed")]
-        Failed = 5,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Cancelled")]
-        Cancelled = 6,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportDefinitionDto
     {
 
@@ -86634,9 +86817,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("maxRows")]
         public int MaxRows { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("inlineThreshold")]
-        public int InlineThreshold { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("canSubmit")]
         public bool CanSubmit { get; set; } = default!;

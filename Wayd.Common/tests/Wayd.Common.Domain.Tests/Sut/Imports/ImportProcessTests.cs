@@ -317,4 +317,84 @@ public sealed class ImportProcessTests
         result.IsFailure.Should().BeTrue();
         process.Status.Should().Be(ImportProcessStatus.Processing);
     }
+
+    [Fact]
+    public void Start_CountsEachClaim()
+    {
+        // Arrange
+        var process = new ImportProcessFaker().AsProcessingWith(rowCount: 2, _started);
+        process.Release(_later);
+
+        // Act
+        process.Start("trace-0002", _later);
+
+        // Assert
+        process.AttemptCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void Release_ReturnsAClaimedRunToTheQueue()
+    {
+        // Arrange
+        var process = new ImportProcessFaker().AsProcessingWith(rowCount: 2, _started);
+
+        // Act
+        var result = process.Release(_later);
+
+        // Assert — claimable by the next delivery, which Start alone would refuse
+        result.IsSuccess.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Queued);
+        process.LastProgressOn.Should().Be(_later);
+        process.Start("trace-0002", _later).IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Release_RefusesARunThatHasUsedItsAttempts()
+    {
+        // Arrange
+        var process = new ImportProcessFaker().AsProcessingWith(rowCount: 2, _started);
+        for (var attempt = 1; attempt < ImportProcess.MaxAttempts; attempt++)
+        {
+            process.Release(_later);
+            process.Start($"trace-{attempt}", _later);
+        }
+
+        // Act
+        var result = process.Release(_later);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        process.CanReleaseForRetry.Should().BeFalse();
+        process.Status.Should().Be(ImportProcessStatus.Processing);
+    }
+
+    [Fact]
+    public void Release_RefusesARunThatIsNotRunning()
+    {
+        // Arrange — a stop was requested; releasing would lose it
+        var process = new ImportProcessFaker().AsProcessingWith(rowCount: 2, _started);
+        process.RequestCancellation(_later);
+
+        // Act
+        var result = process.Release(_later);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Cancelling);
+    }
+
+    [Fact]
+    public void Requeue_GivesTheRunAFreshSetOfAttempts()
+    {
+        // Arrange — a person resuming a run the runner gave up on
+        var process = new ImportProcessFaker().AsProcessingWith(rowCount: 2, _started);
+        process.Fail("Gave up.", _later);
+
+        // Act
+        process.Requeue(_later);
+
+        // Assert
+        process.AttemptCount.Should().Be(0);
+        process.CanReleaseForRetry.Should().BeTrue();
+    }
 }

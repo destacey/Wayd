@@ -801,6 +801,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("CompletedOn")
                         .HasColumnType("datetime2");
 
@@ -827,6 +830,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
@@ -869,6 +873,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Property<DateTime?>("AttemptedOn")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("CompletedPassCount")
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("CreatedEntityId")
                         .HasColumnType("uniqueidentifier");

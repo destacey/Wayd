@@ -48,12 +48,13 @@ public sealed record SubmittedImportRow(string? ImportId, string Payload)
 public sealed record SubmittedImportRow<TRow>(string? ImportId, TRow Data);
 
 /// <summary>
-/// Accepts a parsed file and either applies it now or queues it.
+/// Records a parsed file as a run and queues it.
 /// </summary>
 /// <remarks>
-/// Small files run inline so a person importing forty rows gets their answer in the response rather than a
-/// job, a poll and a page. Either way the run is recorded and the caller gets an id, so there is one
-/// contract and no branch in the client — the only difference is whether the status is already terminal.
+/// Every run is queued, however small: an atomic import stages its whole file before a single save, so there
+/// is no point partway through at which work done in the request could be handed to a worker. A caller who
+/// wants the outcome in the response waits on the run after this returns — not inside it, where the queued
+/// message is held back until the handler completes.
 /// </remarks>
 public sealed record SubmitImportCommand(
     string ImportType,
@@ -112,22 +113,11 @@ public sealed class SubmitImportCommandHandler(
         await _importDbContext.ImportProcesses.AddAsync(process, cancellationToken);
         await _importDbContext.SaveChangesAsync(cancellationToken);
 
-        var run = new RunImportProcessCommand(process.Id);
-
-        if (rows.Count <= definition.InlineThreshold)
-        {
-            // Small enough to answer in the request. Any failure is already recorded on the run, so the
-            // result is discarded here rather than turned into an error the caller cannot act on.
-            await _dispatcher.Send(run, cancellationToken);
-        }
-        else
-        {
-            // Passed explicitly even though the caller is the submitter here, so every path that queues a
-            // run attributes it the same way rather than two of them relying on ambient identity.
-            await _dispatcher.Publish(run, process.SubmittedByUserId, cancellationToken);
-            _logger.LogInformation(
-                "Queued import {ImportProcessId} ({ImportType}, {RowCount} rows).", process.Id, definition.Key, rows.Count);
-        }
+        // Passed explicitly even though the caller is the submitter here, so every path that queues a run
+        // attributes it the same way rather than some of them relying on ambient identity.
+        await _dispatcher.Publish(new RunImportProcessCommand(process.Id), process.SubmittedByUserId, cancellationToken);
+        _logger.LogInformation(
+            "Queued import {ImportProcessId} ({ImportType}, {RowCount} rows).", process.Id, definition.Key, rows.Count);
 
         return Result.Success(process.Id);
     }

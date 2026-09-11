@@ -88,11 +88,12 @@ public class TeamsController(
 
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Teams)]
-    [OpenApiOperation("Submit a csv file of teams to import. Returns the id of the import to follow.", "")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [OpenApiOperation("Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -119,7 +120,7 @@ public class TeamsController(
             var result = await _dispatcher.Send(new ImportTeamsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)
@@ -130,11 +131,12 @@ public class TeamsController(
 
     [HttpPost("members/import")]
     [MustHavePermission(ApplicationAction.ManageTeamMemberships, ApplicationResource.Teams)]
-    [OpenApiOperation("Submit a csv file of team staffing rows to import. Returns the id of the import to follow.", "")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [OpenApiOperation("Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportMembers([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportMembers([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -162,7 +164,7 @@ public class TeamsController(
             var result = await _dispatcher.Send(new ImportTeamMembersCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)
@@ -173,11 +175,12 @@ public class TeamsController(
 
     [HttpPost("team-memberships/import")]
     [MustHavePermission(ApplicationAction.ManageTeamMemberships, ApplicationResource.Teams)]
-    [OpenApiOperation("Import the team hierarchy (parent/child team memberships) from a csv file.", "")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status202Accepted)]
+    [OpenApiOperation("Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -205,7 +208,7 @@ public class TeamsController(
             var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(rows), cancellationToken);
 
             return result.IsSuccess
-                ? Accepted(result.Value)
+                ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
         catch (CsvHelperException ex)

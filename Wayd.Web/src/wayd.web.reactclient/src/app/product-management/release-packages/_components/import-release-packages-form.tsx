@@ -20,12 +20,9 @@ const ImportReleasePackagesForm = ({
 }: ImportReleasePackagesFormProps) => {
   const [importReleasePackages] = useImportReleasePackagesMutation()
 
-  const handleImport = async (file: File, manifestFile?: File) => {
-    if (!manifestFile) return
-
-    const response = await importReleasePackages({ file, manifestFile })
-    if (response.error) throw response.error
-  }
+  // The form will not submit without the manifest, since it is marked required below.
+  const handleImport = (file: File, manifestFile?: File) =>
+    importReleasePackages({ file, manifestFile: manifestFile! }).unwrap()
 
   return (
     <CsvImportForm
@@ -33,7 +30,7 @@ const ImportReleasePackagesForm = ({
       columns={PACKAGE_COLUMNS}
       secondFile={{ label: 'Manifest', columns: MANIFEST_COLUMNS, required: true }}
       onImport={handleImport}
-      successMessage="Release packages submitted. Follow the run in Settings → Imports."
+      successMessage="Release packages imported."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >

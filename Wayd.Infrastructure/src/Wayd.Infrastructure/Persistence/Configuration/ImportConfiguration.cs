@@ -15,7 +15,10 @@ public class ImportProcessConfig : IEntityTypeConfiguration<ImportProcess>
 
         builder.Property(p => p.ImportType).HasMaxLength(64).IsRequired();
         builder.Property(p => p.SubmittedByUserId).HasMaxLength(128).IsRequired();
-        builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+        // A concurrency token: the runner, a person stopping or resuming the run, and the stall sweep all
+        // write it from different requests. Without the check the last write wins — a worker releasing a
+        // failed attempt would overwrite a stop, and two deliveries could both claim the same run.
+        builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(32).IsRequired().IsConcurrencyToken();
         builder.Property(p => p.Error).HasMaxLength(2048);
         builder.Property(p => p.LastAttemptCorrelationId).HasMaxLength(128);
 

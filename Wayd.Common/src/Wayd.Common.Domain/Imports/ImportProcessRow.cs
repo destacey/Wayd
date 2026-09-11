@@ -10,9 +10,10 @@ namespace Wayd.Common.Domain.Imports;
 /// One row of a submitted file, and what became of it.
 /// </summary>
 /// <remarks>
-/// The runner claims rows by <see cref="Status"/> rather than reading the file again, which is what makes a
-/// redelivered message, a resumed cancellation and a retry of the failures all the same operation over a
-/// different filter — and what keeps an at-least-once redelivery from reapplying work.
+/// The runner claims rows by <see cref="Status"/> and <see cref="CompletedPassCount"/> rather than reading
+/// the file again, which is what makes a redelivered message, a retried attempt, a resumed cancellation and
+/// a retry of the failures all the same operation over a different filter — and what keeps any of them from
+/// reapplying work.
 /// </remarks>
 public sealed class ImportProcessRow : BaseEntity
 {
@@ -73,6 +74,16 @@ public sealed class ImportProcessRow : BaseEntity
     public Guid? CreatedEntityId { get; private set; }
 
     /// <summary>
+    /// How many of the import's passes this row has been through, saved with the work each one did.
+    /// </summary>
+    /// <remarks>
+    /// What lets any later attempt — a retry, a resume, a redelivery — carry on where this row got to. A
+    /// created record does not say it: an employee made by the first pass still needs its manager linked.
+    /// Kept by a reset, because the work it counts is still in the database.
+    /// </remarks>
+    public int CompletedPassCount { get; private set; }
+
+    /// <summary>
     /// Truncated to what the column holds rather than rejected: a pass can produce a long message, and a
     /// clipped explanation of why a row failed beats losing the whole save to it.
     /// </summary>
@@ -96,6 +107,10 @@ public sealed class ImportProcessRow : BaseEntity
     /// so the id is held until <see cref="MarkSucceeded"/> carries it forward.
     /// </summary>
     public void RecordCreatedEntity(Guid createdEntityId) => CreatedEntityId = createdEntityId;
+
+    /// <summary>Records that the pass at <paramref name="passIndex"/> is done for this row.</summary>
+    public void RecordPassCompleted(int passIndex) =>
+        CompletedPassCount = Math.Max(CompletedPassCount, passIndex + 1);
 
     /// <summary>Notes something the person should see about a row that still applied.</summary>
     public void RecordWarning(string warning) => Warning = warning;

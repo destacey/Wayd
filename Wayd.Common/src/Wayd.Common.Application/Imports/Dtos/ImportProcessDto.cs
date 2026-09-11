@@ -1,5 +1,6 @@
 using NodaTime;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Common.Application.Imports.Dtos;
 
@@ -36,6 +37,9 @@ public sealed record ImportProcessDto(
 {
     /// <summary>Rows neither applied nor rejected — what a resume would pick up.</summary>
     public int UnappliedRowCount => TotalRowCount - SucceededRowCount - FailedRowCount;
+
+    /// <summary>Whether the run has finished, so a caller polling it knows when to stop.</summary>
+    public bool IsTerminal => ImportProcess.IsTerminalStatus(Status);
 }
 
 /// <summary>A page of runs, with the total so a UI can page without a second call.</summary>

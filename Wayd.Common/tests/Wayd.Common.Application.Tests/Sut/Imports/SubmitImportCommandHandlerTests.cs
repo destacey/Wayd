@@ -62,30 +62,20 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
         process.Status.Should().Be(ImportProcessStatus.Queued);
     }
 
-    [Fact]
-    public async Task Handle_AppliesASmallFileInTheRequest()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(5_000)]
+    public async Task Handle_QueuesTheRunWhateverItsSize(int rowCount)
     {
-        // Arrange — the definition's inline threshold is the base default of 100
+        // Arrange & Act
+        var result = await Submit(Rows(rowCount));
 
-        // Act
-        await Submit(Rows(3));
-
-        // Assert — invoked, not queued, so the caller has an answer in the response
-        _dispatcher.Verify(d => d.Send(It.IsAny<RunImportProcessCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+        // Assert — never applied in the request, and attributed to the submitter
         _dispatcher.Verify(
-            d => d.Publish(It.IsAny<RunImportProcessCommand>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_QueuesAFileTooLargeToApplyInline()
-    {
-        // Arrange & Act — past the inline threshold
-        await Submit(Rows(101));
-
-        // Assert
-        _dispatcher.Verify(
-            d => d.Publish(It.IsAny<RunImportProcessCommand>(), "user-1", It.IsAny<CancellationToken>()),
+            d => d.Publish(
+                It.Is<RunImportProcessCommand>(c => c.ImportProcessId == result.Value),
+                "user-1",
+                It.IsAny<CancellationToken>()),
             Times.Once);
         _dispatcher.Verify(d => d.Send(It.IsAny<RunImportProcessCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }

@@ -23,7 +23,6 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
     public abstract string PermissionResource { get; }
 
     public virtual ImportAtomicity Atomicity => ImportAtomicity.PerRow;
-    public virtual int InlineThreshold => 100;
     public virtual int MaxRows => 50_000;
     public virtual int ChunkSize => 500;
 

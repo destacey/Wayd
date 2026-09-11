@@ -17,10 +17,15 @@ is where a submitted file goes afterwards.
 
 ## Why a run exists at all
 
-A small file is applied while you wait. A large one is handed to a background worker, so the response
-tells you the import was **accepted** rather than finished. Either way you get an import id and a row in
-this list, so there is one place to look and one thing to poll — the only difference is whether the run
-is already finished by the time you look.
+Every file is handed to a background worker, and submitting waits a few seconds for it. A small file is
+usually finished by then, so you get its outcome straight away; a large one is still queued or running,
+so you are told it was **accepted** rather than finished. Either way the file becomes a run with its own
+page and a row in this list, so there is one place to look — the only difference is whether the run is
+already finished by the time you look.
+
+Importing from within the app shows the outcome in the import dialog. A file that is still running takes
+you to its page, which follows it to the end; one that finished with rejected rows links there so you can
+see which and why.
 
 ## What you see
 
@@ -29,12 +34,15 @@ Each run shows the kind of import, who submitted it, when, and four counts:
 | Count | Meaning |
 |---|---|
 | **Rows** | Lines in the submitted file. |
-| **Applied** | Rows that created a record. These are never applied a second time. |
+| **Applied** | Rows the import finished with. These are never applied a second time. |
 | **Rejected** | Rows that changed nothing, each with a reason. |
-| **Not Applied** | Rows the run never reached, because it was stopped or failed partway. |
+| **Not Applied** | Rows the run did not finish, because it was stopped or failed partway. Some may be partly done — an employee created but not yet linked to their manager — and a resume carries them on from there. |
 
-Open a run to see the outcome of every row. It opens on the **rejected** rows when there are any, since
-that is usually why you came, and each carries the reason it was refused and the line it came from.
+Open a run to go to its page, which shows each row's outcome and updates while the run is still going. It
+opens on the **rejected** rows when there are any, since that is usually why you came, and each carries
+the reason it was refused and the line it came from. The page lists up to 500 rows for each filter; a
+larger run says how many more there are. The page has its own address, so a run can be
+bookmarked or shared with someone who may see that kind of import.
 
 :::note "0 of 40 applied" is not always a bug
 Some imports are **all-or-nothing** — a team hierarchy, for instance, because half an imported hierarchy
@@ -69,6 +77,24 @@ that did not resolve. Only the rejected rows are reattempted; successful ones ar
 this cannot duplicate them.
 
 Both resume and retry report how many rows were queued, and how many could not be.
+
+## When a run fails unexpectedly
+
+Rejected rows are expected and are yours to fix. An **unexpected** failure — the database briefly
+unavailable, the server restarting mid-run — is handled for you. Wayd saves how far each row has got
+along with the work itself, so whatever picks a run up again carries on from there and never applies a
+row twice.
+
+- **The run is tried again automatically**, up to three attempts in all, each carrying on where the last
+  one stopped. If every attempt fails, the run ends as **Failed**: rows it applied stay applied, its error
+  carries a reference your administrator can find in the logs, and **Resume** picks up the rest once the
+  cause is fixed.
+- **If the worker disappears entirely**, a maintenance job ends the run once it has gone quiet for 30
+  minutes, and republishes any run that has sat queued for 15. **Resume** carries an ended run on from
+  where it stopped. That job is scheduled to run every five
+  minutes by default; it appears in [Settings → Background Jobs](./index.mdx#background-jobs) as
+  `import-stall-recovery`, where its schedule can be changed. If it is deleted, it is scheduled again the
+  next time the server starts.
 
 :::warning Row data is kept for 30 days
 Retrying re-applies the data you submitted, which is held for 30 days after a run finishes and then

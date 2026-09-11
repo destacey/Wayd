@@ -283,7 +283,7 @@ public sealed class WaydSeedClient : IDisposable
         return await _awaiter.Await(processId, label, cancellationToken);
     }
 
-    /// <summary>Posts the multipart file(s) and reads the run id out of the 202.</summary>
+    /// <summary>Posts the multipart file(s) and reads the run id out of the run the endpoint answers with.</summary>
     private async Task<Guid> PostCsv(string path, byte[] csv, string fileName, CancellationToken cancellationToken,
         string? secondFieldName = null, byte[]? secondCsv = null, string? secondFileName = null)
     {
@@ -308,13 +308,32 @@ public sealed class WaydSeedClient : IDisposable
         if (!response.IsSuccessStatusCode)
             throw new SeedException($"POST {path} failed ({(int)response.StatusCode} {response.ReasonPhrase}): {body}");
 
-        // The body is the run id as a bare JSON string. A submission that answered anything else means the
-        // endpoint is not the async one this tool expects, which is worth saying rather than parsing past.
-        var processId = JsonSerializer.Deserialize<Guid?>(body);
+        // The body is the run — finished (200) or still in flight (202). Only its id is read here: the awaiter
+        // reads the run back either way, so a run that already finished simply ends on the first poll. A body
+        // without one means the endpoint is not the kind this tool expects, which is worth saying rather than
+        // parsing past.
+        var processId = TryReadRunId(body);
         if (processId is null || processId == Guid.Empty)
-            throw new SeedException($"POST {path} did not answer with an import id. Body: {body}");
+            throw new SeedException($"POST {path} did not answer with an import run. Body: {body}");
 
         return processId.Value;
+    }
+
+    private static Guid? TryReadRunId(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("id", out var id)
+                && id.TryGetGuid(out var runId)
+                    ? runId
+                    : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public void Dispose() => _httpClient.Dispose();

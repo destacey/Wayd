@@ -20,17 +20,14 @@ const ImportProductsForm = ({
 }: ImportProductsFormProps) => {
   const [importProducts] = useImportProductsMutation()
 
-  const handleImport = async (file: File) => {
-    const response = await importProducts(file)
-    if (response.error) throw response.error
-  }
+  const handleImport = (file: File) => importProducts(file).unwrap()
 
   return (
     <CsvImportForm
       title="Import Products"
       columns={COLUMNS}
       onImport={handleImport}
-      successMessage="Products submitted. Follow the run in Settings → Imports."
+      successMessage="Products imported."
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     >

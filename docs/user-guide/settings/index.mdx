@@ -281,7 +281,7 @@ Tags themselves carry no order — they display alphabetically wherever they app
 
 ## Imports
 
-**Imports** shows every CSV import file that has been submitted, what became of each row, and what you can still do about a run that did not finish — stop one that is going, resume one that stopped partway, or retry the rows it rejected once the underlying problem is fixed. A large file is applied by a background worker, so submitting returns an import id rather than waiting; this is where that run is followed. You see the import types you are allowed to submit, and **View Imports** additionally grants read-only oversight of every type. See [Imports](./imports.mdx) for the full guide. Found in **Settings → Imports**.
+**Imports** shows every CSV import file that has been submitted, what became of each row, and what you can still do about a run that did not finish — stop one that is going, resume one that stopped partway, or retry the rows it rejected once the underlying problem is fixed. Every file is applied by a background worker; submitting waits a few seconds for it, so a small file comes back finished while a large one comes back still running, and each run has its own page here where it is followed. You see the import types you are allowed to submit, and **View Imports** additionally grants read-only oversight of every type. See [Imports](./imports.mdx) for the full guide. Found in **Settings → Imports**.
 
 ## Integrations
 
@@ -404,6 +404,8 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 - **Team Graph Sync** — Refreshes the team graph tables.
 - **Projects, Teams, Iterations, and Strategic Themes Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
+- **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).
+- **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window.
 
 **Create Recurring Job** schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule.
 

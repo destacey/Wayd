@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   ChangeProductStatusRequest,
   CreateProductRequest,
+  ImportProcessDto,
   ObjectIdAndKey,
   ProductDto,
   ReparentProductRequest,
@@ -101,7 +102,7 @@ export const productsApi = apiSlice.injectEndpoints({
     }),
     // The generated client takes a FileParameter, so the caller hands over the browser File and
     // its name travels with it.
-    importProducts: builder.mutation<string, File>({
+    importProducts: builder.mutation<ImportProcessDto, File>({
       queryFn: async (file) => {
         try {
           const data = await getProductsClient().import({
@@ -127,7 +128,12 @@ export const productsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.Product, id: 'LIST' }],
+      // The list only has the rows if the run finished within the wait; one still running refreshes it
+      // from its import page when it lands.
+      invalidatesTags: () => [
+        { type: QueryTags.Product, id: 'LIST' },
+        QueryTags.ImportProcess,
+      ],
     }),
     updateProduct: builder.mutation<
       void,

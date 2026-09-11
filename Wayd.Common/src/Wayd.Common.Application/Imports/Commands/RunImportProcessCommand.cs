@@ -55,59 +55,139 @@ public sealed class RunImportProcessCommandHandler(
 
         var definition = definitionResult.Value;
         var stoppedEarly = false;
+        var committedWork = false;
 
-        for (var passIndex = 0; passIndex < definition.Passes.Count && !stoppedEarly; passIndex++)
+        try
         {
-            var pass = definition.Passes[passIndex];
-            var eligible = process.Rows.Where(r => r.Status == ImportRowStatus.Pending).ToList();
-
-            if (eligible.Count == 0)
-                break;
-
-            // An atomic import is never split, whatever its passes declare: discarding staged work only
-            // holds while none of it has been saved, and a second chunk would mean the first already had.
-            List<IReadOnlyList<ImportProcessRow>> chunks =
-                pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
-                    ? [eligible]
-                    : Chunk(eligible, definition.ChunkSize);
-
-            for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
+            for (var passIndex = 0; passIndex < definition.Passes.Count && !stoppedEarly; passIndex++)
             {
-                // Read the status back rather than trusting the tracked instance: a cancellation arrives on
-                // a different request, in a different transaction, and would be invisible here otherwise.
-                if (await IsCancellationRequested(process.Id, cancellationToken))
-                {
-                    stoppedEarly = true;
+                var pass = definition.Passes[passIndex];
+                var eligible = process.Rows.Where(r => r.Status == ImportRowStatus.Pending).ToList();
+
+                if (eligible.Count == 0)
                     break;
-                }
 
-                var isFinalChunk = chunkIndex == chunks.Count - 1;
-                var passResult = await definition.ExecutePass(
-                    process.Id, passIndex, chunks[chunkIndex], isFinalChunk, cancellationToken);
+                // An atomic import is never split, whatever its passes declare: discarding staged work only
+                // holds while none of it has been saved, and a second chunk would mean the first already had.
+                List<IReadOnlyList<ImportProcessRow>> chunks =
+                    pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
+                        ? [eligible]
+                        : Chunk(eligible, definition.ChunkSize);
 
-                if (passResult.IsFailure)
-                    return await FailRun(process, $"Pass '{pass.Name}' could not run: {passResult.Error}", cancellationToken);
-
-                var failedInChunk = ApplyOutcomes(process, chunks[chunkIndex], passResult.Value);
-
-                if (definition.Atomicity == ImportAtomicity.Atomic && failedInChunk > 0)
+                for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
                 {
-                    DiscardStagedChanges();
-                    return await FailAtomicRun(process, pass.Name, cancellationToken);
-                }
+                    // Read the status back rather than trusting the tracked instance: a cancellation arrives on
+                    // a different request, in a different transaction, and would be invisible here otherwise.
+                    if (await IsCancellationRequested(process.Id, cancellationToken))
+                    {
+                        stoppedEarly = true;
+                        break;
+                    }
 
-                // One SaveChanges per chunk covers the pass's entity changes and the row state together, so
-                // a crash can never leave records created against rows still marked Pending — which a
-                // redelivery would then apply a second time.
-                process.RecordProgress(succeeded: 0, failed: failedInChunk, _dateTimeProvider.Now);
-                await _importDbContext.SaveChangesAsync(cancellationToken);
-                DetachAppliedEntities();
+                    var isFinalChunk = chunkIndex == chunks.Count - 1;
+                    var passResult = await definition.ExecutePass(
+                        process.Id, passIndex, chunks[chunkIndex], isFinalChunk, cancellationToken);
+
+                    if (passResult.IsFailure)
+                        return await FailRun(process, $"Pass '{pass.Name}' could not run: {passResult.Error}", cancellationToken);
+
+                    var failedInChunk = ApplyOutcomes(process, chunks[chunkIndex], passResult.Value);
+
+                    if (definition.Atomicity == ImportAtomicity.Atomic && failedInChunk > 0)
+                    {
+                        DiscardStagedChanges();
+                        return await FailAtomicRun(process, pass.Name, cancellationToken);
+                    }
+
+                    // One SaveChanges per chunk covers the pass's entity changes and the row state together, so
+                    // a row never names a record that was not saved. The rows stay Pending until the run
+                    // completes, though, so from here on a failed attempt can no longer be released to retry.
+                    process.RecordProgress(succeeded: 0, failed: failedInChunk, _dateTimeProvider.Now);
+                    await _importDbContext.SaveChangesAsync(cancellationToken);
+                    committedWork = true;
+                    DetachAppliedEntities();
+                }
             }
+
+            return stoppedEarly
+                ? await CancelRun(process, cancellationToken)
+                : await CompleteRun(process, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Import {ImportProcessId} failed unexpectedly on attempt {Attempt} of {MaxAttempts}.",
+                process.Id, process.AttemptCount, ImportProcess.MaxAttempts);
+
+            // Rethrown only when released, so the failure policy's retry is what delivers the next attempt.
+            // A run that ends here instead has recorded its outcome, and a retry would find nothing to do.
+            if (await Abandon(process.Id, committedWork))
+                throw;
+
+            return Result.Success();
+        }
+    }
+
+    /// <summary>
+    /// Settles a run whose attempt threw: released for another attempt if it saved nothing and has attempts
+    /// left, otherwise ended. Returns whether it was released.
+    /// </summary>
+    /// <remarks>
+    /// Without this the run would stay Processing, and every retry of the message would stop at the claim
+    /// as if another worker held it.
+    /// <para>
+    /// Nothing the failed attempt tracked can be trusted — its rows may name records that were never saved
+    /// — so the tracker is cleared and the run read back as the database has it. The writes ignore the
+    /// attempt's cancellation token: that token may be the reason for the failure, during a shutdown, and
+    /// this write is what lets the next boot claim the run again.
+    /// </para>
+    /// </remarks>
+    private async Task<bool> Abandon(Guid importProcessId, bool committedWork)
+    {
+        _importDbContext.ChangeTracker.Clear();
+
+        var process = await _importDbContext.ImportProcesses
+            .Include(p => p.Rows)
+            .FirstAsync(p => p.Id == importProcessId, CancellationToken.None);
+
+        if (process.Status == ImportProcessStatus.Cancelling)
+        {
+            await CancelRun(process, CancellationToken.None);
+            return false;
         }
 
-        return stoppedEarly
-            ? await CancelRun(process, cancellationToken)
-            : await CompleteRun(process, cancellationToken);
+        if (!committedWork && process.Release(_dateTimeProvider.Now).IsSuccess)
+        {
+            await _importDbContext.SaveChangesAsync(CancellationToken.None);
+            _logger.LogWarning(
+                "Import {ImportProcessId} saved nothing before failing; released for attempt {NextAttempt} of {MaxAttempts}.",
+                process.Id, process.AttemptCount + 1, ImportProcess.MaxAttempts);
+            return true;
+        }
+
+        var now = _dateTimeProvider.Now;
+
+        // As a cancellation does: a row that saved its record is settled as applied, so a resume picks up
+        // only the rows never reached instead of creating the rest a second time.
+        var applied = 0;
+        foreach (var row in process.Rows.Where(r => r.Status == ImportRowStatus.Pending && r.CreatedEntityId is not null))
+        {
+            row.MarkSucceeded(row.CreatedEntityId, now);
+            applied++;
+        }
+
+        process.RecordProgress(applied, failed: 0, now);
+
+        var reference = process.LastAttemptCorrelationId is { } traceId ? $" Reference: {traceId}." : string.Empty;
+        process.Fail(
+            committedWork
+                ? $"An unexpected error stopped this import partway through. Rows it had already applied are unchanged, and the rest can be resumed.{reference}"
+                : $"An unexpected error stopped this import on each of {process.AttemptCount} attempts. Nothing was applied.{reference}",
+            now);
+        await _importDbContext.SaveChangesAsync(CancellationToken.None);
+
+        return false;
     }
 
     /// <summary>

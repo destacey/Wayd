@@ -214,4 +214,104 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
         _db.SaveChangesCallCount.Should().BeGreaterThanOrEqualTo(6);
     }
 
+    [Fact]
+    public async Task Handle_ReleasesARunThatThrewBeforeSavingAnythingAndRethrows()
+    {
+        // Arrange — the first chunk throws before its save, as a database blip would
+        var process = QueueRun(4);
+        _definition.BeforePass = () => throw new InvalidOperationException("Transient failure.");
+
+        // Act
+        var act = () => Run(process);
+
+        // Assert — rethrown so the failure policy retries, and claimable again when it does
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        process.Status.Should().Be(ImportProcessStatus.Queued);
+        process.AttemptCount.Should().Be(1);
+        process.Rows.Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Pending));
+    }
+
+    [Fact]
+    public async Task Handle_CompletesARunOnTheDeliveryAfterItWasReleased()
+    {
+        // Arrange — one failed attempt, then the retry
+        var process = QueueRun(2);
+        _definition.BeforePass = () =>
+        {
+            _definition.BeforePass = null;
+            throw new InvalidOperationException("Transient failure.");
+        };
+        await FluentActions.Awaiting(() => Run(process)).Should().ThrowAsync<InvalidOperationException>();
+
+        // Act
+        var result = await Run(process);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Succeeded);
+        process.AttemptCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_EndsTheRunOnItsFinalAttemptInsteadOfReleasingIt()
+    {
+        // Arrange — a failure that never clears
+        var process = QueueRun(2);
+        _definition.BeforePass = () => throw new InvalidOperationException("Permanent failure.");
+
+        for (var attempt = 1; attempt < ImportProcess.MaxAttempts; attempt++)
+            await FluentActions.Awaiting(() => Run(process)).Should().ThrowAsync<InvalidOperationException>();
+
+        // Act
+        var result = await Run(process);
+
+        // Assert — settled here, not handed back to a retry that would find it claimed
+        result.IsSuccess.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        process.AttemptCount.Should().Be(ImportProcess.MaxAttempts);
+        process.Error.Should().Contain($"{ImportProcess.MaxAttempts} attempts").And.Contain("Nothing was applied");
+    }
+
+    [Fact]
+    public async Task Handle_EndsARunThatThrewAfterSavingAChunkAndSettlesTheRowsItApplied()
+    {
+        // Arrange — chunk one (r1, r2) saves; chunk two throws
+        var process = QueueRun(4);
+        var calls = 0;
+        _definition.BeforePass = () =>
+        {
+            if (++calls == 2)
+                throw new InvalidOperationException("Failure after a save.");
+        };
+
+        // Act
+        var result = await Run(process);
+
+        // Assert — not released, since a retry would apply r1 and r2 a second time
+        result.IsSuccess.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        process.Error.Should().Contain("partway through");
+        process.Rows.Where(r => r.ImportId is "r1" or "r2").Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Succeeded));
+        process.Rows.Where(r => r.ImportId is "r3" or "r4").Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Pending));
+        process.SucceededRowCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_CancelsARunThatThrewWhileAStopWasRequested()
+    {
+        // Arrange — the stop arrives, then the attempt fails
+        var process = QueueRun(2);
+        _definition.BeforePass = () =>
+        {
+            process.RequestCancellation(_now);
+            throw new InvalidOperationException("Failure while stopping.");
+        };
+
+        // Act
+        var result = await Run(process);
+
+        // Assert — the person asked for it to stop, so it is not retried
+        result.IsSuccess.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Cancelled);
+    }
 }

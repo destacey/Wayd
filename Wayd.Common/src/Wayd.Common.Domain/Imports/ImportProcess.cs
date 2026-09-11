@@ -15,6 +15,16 @@ namespace Wayd.Common.Domain.Imports;
 /// </remarks>
 public sealed class ImportProcess : BaseEntity
 {
+    /// <summary>
+    /// How many times a run may be claimed before an unexpected failure ends it instead of releasing it.
+    /// </summary>
+    /// <remarks>
+    /// Must stay below the number of deliveries <c>ImportFailurePolicy</c> allows the run message, so the
+    /// run reaches a terminal state while Wolverine is still retrying. Above it, the message is
+    /// dead-lettered with the run still Queued, and the stall sweep republishes it every time it runs.
+    /// </remarks>
+    public const int MaxAttempts = 3;
+
     private readonly List<ImportProcessRow> _rows = [];
 
     private ImportProcess() { }
@@ -62,6 +72,12 @@ public sealed class ImportProcess : BaseEntity
     /// </summary>
     public Instant? LastProgressOn { get; private set; }
 
+    /// <summary>Claims since the run was submitted or last requeued by a person.</summary>
+    public int AttemptCount { get; private set; }
+
+    /// <summary>Whether another claim is allowed after this one fails unexpectedly.</summary>
+    public bool CanReleaseForRetry => AttemptCount < MaxAttempts;
+
     public int TotalRowCount { get; private set; }
     public int SucceededRowCount { get; private set; }
     public int FailedRowCount { get; private set; }
@@ -99,6 +115,30 @@ public sealed class ImportProcess : BaseEntity
         StartedOn = timestamp;
         LastProgressOn = timestamp;
         LastAttemptCorrelationId = attemptCorrelationId;
+        AttemptCount++;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Returns a claimed run to the queue after an attempt that failed before it saved any work, so the
+    /// next delivery can claim it again.
+    /// </summary>
+    /// <remarks>
+    /// Only valid when the attempt committed nothing. The runner re-applies every Pending row from the
+    /// first pass, and a row keeps Pending until the run completes â so releasing a run that had saved a
+    /// chunk would apply that chunk twice.
+    /// </remarks>
+    public Result Release(Instant timestamp)
+    {
+        if (Status != ImportProcessStatus.Processing)
+            return Result.Failure($"Only a running import can be released, but this one is {Status}.");
+
+        if (!CanReleaseForRetry)
+            return Result.Failure($"This import has already been attempted {AttemptCount} times.");
+
+        Status = ImportProcessStatus.Queued;
+        LastProgressOn = timestamp;
 
         return Result.Success();
     }
@@ -188,6 +228,8 @@ public sealed class ImportProcess : BaseEntity
         CompletedOn = null;
         Error = null;
         LastProgressOn = timestamp;
+        // A person chose to try again, so the run gets a fresh set of attempts.
+        AttemptCount = 0;
         SucceededRowCount = _rows.Count(r => r.Status == ImportRowStatus.Succeeded);
         FailedRowCount = _rows.Count(r => r.Status == ImportRowStatus.Failed);
 

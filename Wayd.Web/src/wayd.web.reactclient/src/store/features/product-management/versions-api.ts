@@ -109,8 +109,12 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // An import writes many versions at once, so the list is refetched rather than patched.
-      invalidatesTags: () => [{ type: QueryTags.Version, id: 'LIST' }],
+      // An import writes many versions at once, so the list is refetched rather than patched. It only has
+      // them if the run finished within the wait; one still running refreshes it from its import page.
+      invalidatesTags: () => [
+        { type: QueryTags.Version, id: 'LIST' },
+        QueryTags.ImportProcess,
+      ],
     }),
     planVersion: builder.mutation<ObjectIdAndKey, PlanVersionRequest>({
       queryFn: async (request) => {

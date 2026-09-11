@@ -31,6 +31,24 @@ export interface GetImportProcessRowsRequest {
   runStatus?: ImportProcessStatus
 }
 
+/**
+ * The cached lists each import type writes to. An import's own mutation refreshes its list when the
+ * submission answers, which is enough for a run that finished within the wait. One that answered while
+ * still running lands later, so whatever watches it finish refreshes these instead.
+ */
+const IMPORTED_RECORD_TAGS: Record<string, { type: QueryTags; id: string }[]> =
+  {
+    'product-management.products': [{ type: QueryTags.Product, id: 'LIST' }],
+    'product-management.versions': [{ type: QueryTags.Version, id: 'LIST' }],
+    'product-management.releases': [{ type: QueryTags.Release, id: 'LIST' }],
+    'product-management.release-packages': [
+      { type: QueryTags.ReleasePackage, id: 'LIST' },
+    ],
+  }
+
+export const importedRecordTags = (importType: string) =>
+  IMPORTED_RECORD_TAGS[importType] ?? []
+
 export const importsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getImportProcesses: builder.query<

@@ -3,8 +3,12 @@
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import { formatDateTime } from '@/src/components/common/wayd-grid'
-import { useDocumentTitle } from '@/src/hooks'
-import { useGetImportProcessByIdQuery } from '@/src/store/features/admin/imports-api'
+import { useAppDispatch, useDocumentTitle } from '@/src/hooks'
+import {
+  importedRecordTags,
+  useGetImportProcessByIdQuery,
+} from '@/src/store/features/admin/imports-api'
+import { apiSlice } from '@/src/store/features/apiSlice'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
@@ -43,6 +47,22 @@ const ImportDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   if (isPolling !== running) {
     setIsPolling(running)
   }
+
+  // A run that answered its submission while still running lands after the submission refreshed the
+  // records it imports, so a page that watched it finish refreshes them again.
+  const dispatch = useAppDispatch()
+  const [sawRunning, setSawRunning] = useState(false)
+  if (running && !sawRunning) {
+    setSawRunning(true)
+  }
+  const finishedWhileWatched = sawRunning && !!importProcess && !running
+  const importType = importProcess?.importType
+
+  useEffect(() => {
+    if (finishedWhileWatched && importType) {
+      dispatch(apiSlice.util.invalidateTags(importedRecordTags(importType)))
+    }
+  }, [finishedWhileWatched, importType, dispatch])
 
   const { handleCancel, handleResume, handleRetryFailed } = useImportActions()
 

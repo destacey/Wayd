@@ -115,7 +115,12 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ReleasePackage, id: 'LIST' }],
+      // The list only has the rows if the run finished within the wait; one still running refreshes it
+      // from its import page when it lands.
+      invalidatesTags: () => [
+        { type: QueryTags.ReleasePackage, id: 'LIST' },
+        QueryTags.ImportProcess,
+      ],
     }),
     assembleReleasePackage: builder.mutation<
       ObjectIdAndKey,

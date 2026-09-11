@@ -49,7 +49,10 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
       pageSize: ROW_PAGE_SIZE,
       runStatus: importProcess.status,
     },
-    { pollingInterval: running ? POLLING_INTERVAL_MS : 0 },
+    {
+      pollingInterval: running ? POLLING_INTERVAL_MS : 0,
+      skipPollingIfUnfocused: true,
+    },
   )
 
   const columns = useMemo<ColumnDef<ImportProcessRowDto, any>[]>(

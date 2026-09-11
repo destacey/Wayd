@@ -270,16 +270,22 @@ events are drained by `SaveChanges`, so it made the recorded history depend on w
 
 **A method raises only when it actually changed something.** A whole-record update sends every field on
 every save, so compare before against after and raise on a real difference — `RoleManager.Diff` for
-role sets (raise when it gained or lost anything), `SetEquals` for theme tags, a value tuple for scalar fields. **Compare after assignment, never
+role sets (raise when it gained or lost anything), a set difference for theme tags, a value tuple for scalar
+fields. **Compare after assignment, never
 against the arguments**: `Name` and `Description` normalise in their setters, so `if (Name == name)` reports
 a change for a caller who passed `"Atlas "` over a stored `"Atlas"`.
 
-**Payload shape still follows the snapshot/movement split.** A state snapshot (timeline, details) carries
-only the new value; movement and ledger entries (status transitions, health checks, scores) carry both ends,
-because the delta is the fact. Role changes carry both: `Added`/`Removed` as `RoleAssignmentChange` entries
-for consumers that react to who moved, and `Roles`, the roster afterwards in the `Created` events' encoding,
-for consumers that keep a copy — applying the latest roster is correct however deliveries were ordered or
-repeated, and applying deltas is not.
+**A change carries both ends.** The before value is part of the fact, and a consumer must not need an
+earlier event to learn what moved: status changes carry `From*`/`To*`, timeline changes `PreviousDateRange`,
+lifecycle and scoring-model changes the previous id and name. Ledger entries (a health check added, a score
+recorded) are new rows, so they have one end. Collections carry the change and the result: `Added`/`Removed`
+(`RoleAssignmentChange` entries for roles, ids for themes) for consumers that react to what moved, and
+`Roles`/`StrategicThemes`, the set afterwards in the `Created` events' encoding, for consumers that keep a
+copy — applying the latest set is correct however deliveries were ordered or repeated, and applying deltas
+is not. When the previous value lives on a navigation, `.Include` it and have the aggregate throw if it was
+not loaded, rather than record an empty name. Load the incoming record tracked and set the id and navigation
+together: an untracked instance reached through a navigation on a `ValueGeneratedNever` key is inserted on
+save. Both need a Testcontainers test (`SavedEntityRecorder`), because the fakes model neither.
 
 Where an aggregate writes a durable record *and* an event about the same occurrence, give the event that
 record's id as its `EventId` (`ProjectStatusChangedEventV2` takes the `ProjectStatusHistory` row's). That is

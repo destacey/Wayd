@@ -237,17 +237,26 @@ state was never committed" is a persistence claim about a state the aggregate ge
 What keeps the log clean is not collapsing events after the fact but not raising them in the first place —
 see below.
 
-The snapshot/movement distinction survives, but it is now purely about **payload shape**: an event that
-records a new state carries only that state and leaves deltas to the Activity section's compare, while one
-that records movement carries both ends, because "reverted from Active" cannot be recovered from the new
-status alone.
+#### A change carries both ends
 
-Role changes carry both, because they serve two kinds of consumer. `Added` and `Removed` are the fact — who
-gained and who lost which role — and are what a consumer reacting to the change needs ("tell the new Owner").
-`Roles` is the roster afterwards, in the encoding the `Created` events use, and is what a consumer keeping a
-copy needs: applying the latest roster is correct however deliveries were ordered or repeated, whereas
-applying deltas in the wrong order produces the wrong roster. The two are redundant by design; the roster
-is what makes a replica self-healing.
+An event that records a change carries the value before as well as the value after. The change is the
+fact, and a consumer should not have to find an earlier event to learn what moved: "reverted from Active"
+cannot be recovered from the new status alone, and the earlier event may be one the consumer never
+received. Status changes carry `From*` and `To*`; timeline changes carry `PreviousDateRange`; lifecycle
+and scoring-model changes carry the previous id and name. A ledger entry — a health check added, a score
+recorded — is a new row rather than a value moving, so it has only one end.
+
+`ProjectKeyChangedEventV2`, `ProjectReparentedEventV2`, `ProjectHealthCheckUpdatedEventV2` and the
+`*DetailsUpdatedEvent`s still carry only the new value. Each can gain its previous value as a compatible
+change (a minor version), since a missing previous value reads as "not recorded".
+
+Collections carry both the change and its result, because they serve two kinds of consumer. `Added` and
+`Removed` are the fact — who gained and who lost which role, which themes were tagged and untagged — and
+are what a consumer reacting to the change needs ("tell the new Owner"). `Roles` and `StrategicThemes` are
+the set afterwards, in the encoding the `Created` events use, and are what a consumer keeping a copy needs:
+applying the latest set is correct however deliveries were ordered or repeated, whereas applying deltas in
+the wrong order produces the wrong set. The two are redundant by design; the full set is what makes a
+replica self-healing.
 
 #### A payload carries the change and the identity, not a description of the record
 
@@ -299,7 +308,7 @@ passes `"Atlas "` and `"Atlas"` is stored — raising an event whose payload is 
 it. Comparing the stored values on both sides is what makes the guard correct rather than merely present.
 
 Collections compare the same way, ignoring order: `RoleManager.Diff` for role assignments (the event is
-raised when it gained or lost anything, and carries both lists), `SetEquals` for strategic themes.
+raised when it gained or lost anything, and carries both lists), a set difference for strategic themes.
 
 #### Versioning an event
 

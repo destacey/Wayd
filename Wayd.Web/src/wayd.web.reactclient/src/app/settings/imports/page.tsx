@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Button, Flex, Typography } from 'antd'
+import { Flex, Typography } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
+import Link from 'next/link'
 import PageTitle from '@/src/components/common/page-title'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import {
@@ -13,7 +14,6 @@ import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useDocumentTitle } from '@/src/hooks'
 import { ImportProcessDto, ImportProcessStatus } from '@/src/services/wayd-api'
 import { useGetImportProcessesQuery } from '@/src/store/features/admin/imports-api'
-import ImportDetailsDrawer from './_components/import-details-drawer'
 import {
   ImportStatusTag,
   importStatusLabel,
@@ -32,8 +32,6 @@ const POLLING_INTERVAL_MS = 5000
 
 const ImportsPage = () => {
   useDocumentTitle('Imports')
-  const [viewingImportId, setViewingImportId] = useState<string | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Whether to keep polling is decided by the query's own result, which cannot be expressed in the
   // same call. Held as state and adjusted during render — React's pattern for deriving state from a
@@ -69,17 +67,7 @@ const ImportsPage = () => {
   const rejectedRowCount =
     imports?.reduce((total, i) => total + i.failedRowCount, 0) ?? 0
 
-  const closeDetailsDrawer = () => {
-    setDrawerOpen(false)
-    setViewingImportId(null)
-  }
-
   const columns = useMemo<ColumnDef<ImportProcessDto, any>[]>(() => {
-    const openDetailsDrawer = (id: string) => {
-      setViewingImportId(id)
-      setDrawerOpen(true)
-    }
-
     return [
       createActionsColumn<ImportProcessDto>({
         ariaLabel: 'Import actions',
@@ -128,13 +116,9 @@ const ImportsPage = () => {
         size: 200,
         meta: { filterType: 'set' },
         cell: ({ row }) => (
-          <Button
-            type="link"
-            style={{ padding: 0, height: 'auto', fontSize: 'inherit' }}
-            onClick={() => openDetailsDrawer(row.original.id)}
-          >
+          <Link href={`/settings/imports/${row.original.id}`}>
             {row.original.displayName}
-          </Button>
+          </Link>
         ),
       },
       {
@@ -247,13 +231,6 @@ const ImportsPage = () => {
           ) : undefined
         }
       />
-      {viewingImportId !== null && (
-        <ImportDetailsDrawer
-          importProcessId={viewingImportId}
-          drawerOpen={drawerOpen}
-          onDrawerClose={closeDetailsDrawer}
-        />
-      )}
     </div>
   )
 }

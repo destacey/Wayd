@@ -24,6 +24,11 @@ export interface GetImportProcessRowsRequest {
   status?: ImportRowStatus
   pageNumber?: number
   pageSize?: number
+  /**
+   * Never sent — part of the cache key only, so the rows are read again each time the run moves on. The
+   * last poll while a run is going can land just before it finishes, and nothing else would refetch them.
+   */
+  runStatus?: ImportProcessStatus
 }
 
 export const importsApi = apiSlice.injectEndpoints({

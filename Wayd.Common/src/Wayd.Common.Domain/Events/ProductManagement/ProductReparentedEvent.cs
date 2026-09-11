@@ -15,7 +15,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record ProductReparentedEvent : DomainEvent, IProductManagementEvent
 {
     public ProductReparentedEvent(Guid id, int key, string name, Guid? fromParentId, Guid? toParentId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

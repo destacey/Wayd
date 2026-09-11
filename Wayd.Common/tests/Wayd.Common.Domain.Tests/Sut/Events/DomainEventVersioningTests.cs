@@ -11,8 +11,9 @@ namespace Wayd.Common.Domain.Tests.Sut.Events;
 /// carries only the compatible revisions within that generation.
 /// </summary>
 /// <remarks>
-/// The compiler checks none of this. A type that forgets to pass a version silently takes the "1.0" default,
-/// and deleting a superseded type compiles fine while stranding every payload written as it.
+/// The compiler requires a version, since <see cref="DomainEvent"/> has no default for it, but not that the
+/// version agrees with the type's generation. Nor does it notice a superseded type being deleted, which
+/// compiles fine while stranding every payload written as it.
 /// </remarks>
 public sealed partial class DomainEventVersioningTests
 {

@@ -37,7 +37,7 @@ public sealed record ProductLifecycleChangedEvent : DomainEvent, IProductManagem
         ProductStatusAlias toAlias,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

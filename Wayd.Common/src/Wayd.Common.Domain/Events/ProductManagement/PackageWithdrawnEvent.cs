@@ -9,7 +9,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record PackageWithdrawnEvent : DomainEvent, IProductManagementEvent
 {
     public PackageWithdrawnEvent(Guid id, int key, string version, string? reason, Guid statusId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

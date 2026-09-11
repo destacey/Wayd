@@ -14,7 +14,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record ProductTagsChangedEvent : DomainEvent, IProductManagementEvent
 {
     public ProductTagsChangedEvent(Guid id, int key, string name, Guid[] tagIds, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

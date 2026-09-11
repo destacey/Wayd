@@ -24,7 +24,7 @@ public sealed record ReleaseReleasedEvent : DomainEvent, IProductManagementEvent
         Guid statusId,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

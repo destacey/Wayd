@@ -292,7 +292,8 @@ record's id as its `EventId` (`ProjectStatusChangedEventV2` takes the `ProjectSt
 what makes a backfill replaying old records idempotent forever.
 
 **An event's published shape is a contract — version it explicitly.** Every event passes its version
-(`base(actor, "1.0")`); the default hides the one number a change has to bump deliberately.
+(`base(actor, "1.0")`). `DomainEvent` has no default for it, so the compiler enforces that; a default would
+hide the one number a change has to bump deliberately.
 
 - **Compatible change** — a new field whose `default` is a valid value — keeps the type and bumps the minor
   (1.0 → 1.1). A property missing from an older payload binds to `default` through `[JsonConstructor]`

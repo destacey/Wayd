@@ -14,7 +14,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record PackageManifestAmendedEvent : DomainEvent, IProductManagementEvent
 {
     public PackageManifestAmendedEvent(Guid id, int key, string version, int componentCount, int changedCount, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

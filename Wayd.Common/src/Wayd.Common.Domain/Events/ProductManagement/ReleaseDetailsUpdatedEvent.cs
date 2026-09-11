@@ -12,7 +12,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record ReleaseDetailsUpdatedEvent : DomainEvent, IProductManagementEvent
 {
     public ReleaseDetailsUpdatedEvent(Guid id, int key, Guid? productId, string version, string? name, long? sequence, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

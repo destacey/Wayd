@@ -7,7 +7,7 @@ namespace Wayd.Common.Domain.Events.StrategicManagement;
 public sealed record StrategicThemeDeletedEvent : DomainEvent, IAggregateEvent
 {
     public StrategicThemeDeletedEvent(Guid id, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
 

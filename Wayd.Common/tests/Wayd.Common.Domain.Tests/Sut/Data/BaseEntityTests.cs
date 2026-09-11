@@ -18,7 +18,7 @@ public sealed class BaseEntityTests
         public string Name { get; }
 
         public TestDomainEvent(string name)
-            : base(EventActor.System)
+            : base(EventActor.System, "1.0")
         {
             Name = name;
             Timestamp = NodaTime.SystemClock.Instance.GetCurrentInstant();

@@ -9,7 +9,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record ProductRemovedEvent : DomainEvent, IProductManagementEvent
 {
     public ProductRemovedEvent(Guid id, int key, string name, Guid? parentId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

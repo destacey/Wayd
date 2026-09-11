@@ -8,7 +8,7 @@ public abstract record ApplicationRoleEvent : DomainEvent
     public string RoleId { get; set; } = default!;
     public string RoleName { get; set; } = default!;
     protected ApplicationRoleEvent(string roleId, string roleName, EventActor actor, Instant timestamp)
-        : base(actor) =>
+        : base(actor, "1.0") =>
         (RoleId, RoleName, Timestamp) = (roleId, roleName, timestamp);
 }
 

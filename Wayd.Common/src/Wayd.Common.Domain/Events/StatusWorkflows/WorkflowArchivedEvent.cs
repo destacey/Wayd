@@ -15,7 +15,7 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 public sealed record WorkflowArchivedEvent : DomainEvent, IAggregateEvent
 {
     public WorkflowArchivedEvent(Guid id, int key, string name, string ownerType, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

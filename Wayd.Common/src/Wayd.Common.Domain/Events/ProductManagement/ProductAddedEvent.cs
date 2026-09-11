@@ -19,7 +19,7 @@ public sealed record ProductAddedEvent : DomainEvent, IProductManagementEvent, I
     // name; the primary constructor's `product` parameter cannot be bound).
     [JsonConstructor]
     public ProductAddedEvent(Guid id, int key, string name, string? description, Guid productTypeId, Guid? parentId, Guid statusId, StatusCategory statusCategory, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

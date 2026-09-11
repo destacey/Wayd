@@ -322,7 +322,8 @@ An event's published shape is a contract with two kinds of reader, and each forc
   every event has such a consumer, whether or not one is subscribed today — the routing table is a
   deployment detail, not the contract.
 
-Every event declares its version explicitly (`base(actor, "1.0")`). What a change does to it:
+Every event declares its version explicitly (`base(actor, "1.0")`); `DomainEvent`'s constructor has no
+default, so an event that omits it does not compile. What a change does to it:
 
 | Change | Result |
 |---|---|

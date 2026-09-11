@@ -14,7 +14,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record ProductRetypedEvent : DomainEvent, IProductManagementEvent
 {
     public ProductRetypedEvent(Guid id, int key, string name, Guid fromProductTypeId, Guid toProductTypeId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

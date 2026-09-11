@@ -8,7 +8,7 @@ public abstract record ApplicationUserEvent : DomainEvent
     public string UserId { get; set; } = default!;
 
     protected ApplicationUserEvent(string userId, EventActor actor, Instant timestamp)
-        : base(actor) =>
+        : base(actor, "1.0") =>
         (UserId, Timestamp) = (userId, timestamp);
 }
 

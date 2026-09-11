@@ -68,11 +68,11 @@ public sealed class ActivityLogEntryFactoryTests
     }
 
     private sealed record ProjectPortfolioStubEventV2(string AggregateType, Guid AggregateId)
-        : DomainEvent(EventActor.System), IAggregateEvent;
+        : DomainEvent(EventActor.System, "2.0"), IAggregateEvent;
 
     private sealed record ProjectPortfolioStubEvent(string AggregateType, Guid AggregateId)
-        : DomainEvent(EventActor.System), IAggregateEvent;
+        : DomainEvent(EventActor.System, "1.0"), IAggregateEvent;
 
     private sealed record StrategicInitiativeStubEvent(string AggregateType, Guid AggregateId)
-        : DomainEvent(EventActor.System), IAggregateEvent;
+        : DomainEvent(EventActor.System, "1.0"), IAggregateEvent;
 }

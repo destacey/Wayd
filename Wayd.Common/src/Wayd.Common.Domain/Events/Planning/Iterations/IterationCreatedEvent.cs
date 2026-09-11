@@ -18,7 +18,7 @@ public sealed record IterationCreatedEvent : DomainEvent, ISimpleIteration, IAgg
     // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
     public IterationCreatedEvent(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

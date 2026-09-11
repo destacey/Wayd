@@ -1041,13 +1041,20 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     {
         var portfolio = new ProjectPortfolio(name, description, ProjectPortfolioStatus.Proposed, roles);
 
+        // Captured now, not when the action runs: the event records the portfolio as created, and an
+        // import activates or pauses it before the first save. Only Key waits for the save that assigns it.
+        var createdName = portfolio.Name;
+        var createdDescription = portfolio.Description;
+        var createdStatus = (int)portfolio.Status;
+        var createdRoles = portfolio.RoleMap();
+
         portfolio.AddPostPersistenceAction(() => portfolio.AddDomainEvent(new ProjectPortfolioCreatedEvent(
             portfolio.Id,
             portfolio.Key,
-            portfolio.Name,
-            portfolio.Description,
-            (int)portfolio.Status,
-            portfolio.RoleMap(),
+            createdName,
+            createdDescription,
+            createdStatus,
+            createdRoles,
             actor,
             timestamp)));
 

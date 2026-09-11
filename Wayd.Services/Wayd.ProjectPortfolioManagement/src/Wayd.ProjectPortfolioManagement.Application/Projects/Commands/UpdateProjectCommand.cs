@@ -112,18 +112,20 @@ public sealed class UpdateProjectCommandHandler(
                 return await HandleDomainFailure(project, updateTimelineResult, cancellationToken);
             }
 
+            var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
+            var updateStrategicThemesResult = project.UpdateStrategicThemes(actor, ancestry, strategicThemes, _dateTimeProvider.Now);
+            if (updateStrategicThemesResult.IsFailure)
+            {
+                return await HandleDomainFailure(project, updateStrategicThemesResult, cancellationToken);
+            }
+
+            // Last: roles decide who may manage the project, so an edit that removes the actor's own role
+            // would otherwise refuse the rest of the actor's changes in the same request.
             var roles = GetRoles(request);
             var updateRolesResult = project.UpdateRoles(actor, ancestry, roles, _dateTimeProvider.Now);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(project, updateRolesResult, cancellationToken);
-            }
-
-            var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
-            var updateStrategicThemesResult = project.UpdateStrategicThemes(strategicThemes, actor, _dateTimeProvider.Now);
-            if (updateStrategicThemesResult.IsFailure)
-            {
-                return await HandleDomainFailure(project, updateStrategicThemesResult, cancellationToken);
             }
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);

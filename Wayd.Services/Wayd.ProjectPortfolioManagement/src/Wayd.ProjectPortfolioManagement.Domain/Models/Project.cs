@@ -464,48 +464,17 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     internal void ClearProgramForDeletion() => ProgramId = null;
 
     /// <summary>
-    /// Associates a strategic theme with this project.
-    /// </summary>
-    public Result AddStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        var before = ThemeIds();
-
-        var result = StrategicThemeTagManager<Project>.AddStrategicThemeTag(_strategicThemeTags, Id, strategicThemeId, "project");
-        if (result.IsSuccess)
-        {
-            RaiseIfThemesChanged(before, actor, timestamp);
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Removes a strategic theme from this project.
-    /// </summary>
-    public Result RemoveStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        var before = ThemeIds();
-
-        var result = StrategicThemeTagManager<Project>.RemoveStrategicThemeTag(_strategicThemeTags, strategicThemeId, "project");
-        if (result.IsSuccess)
-        {
-            RaiseIfThemesChanged(before, actor, timestamp);
-        }
-
-        return result;
-    }
-
-    /// <summary>
     /// Updates the strategic themes associated with this project.
     /// </summary>
     /// <param name="strategicThemeIds"></param>
     /// <returns></returns>
-    public Result UpdateStrategicThemes(HashSet<Guid> strategicThemeIds, PpmActor actor, Instant timestamp)
+    public Result UpdateStrategicThemes(PpmActor actor, ProjectAncestryRoles ancestry, HashSet<Guid> strategicThemeIds, Instant timestamp)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(strategicThemeIds, nameof(strategicThemeIds));
 
         var before = ThemeIds();
@@ -1647,8 +1616,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         _healthChecks.Add(newCheck);
 
+        // From the stored check, not the arguments: the note is trimmed on the way in.
         AddDomainEvent(new ProjectHealthCheckAddedEventV2(
-            Id, Key, newCheck.Id, status, note, expiration, actor.EmployeeId, actor.ToEventActor(), now));
+            Id, Key, newCheck.Id, newCheck.Status, newCheck.Note, newCheck.Expiration, actor.EmployeeId, actor.ToEventActor(), now));
 
         return Result.Success(newCheck);
     }
@@ -1836,29 +1806,29 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         // it explicitly.
         project.StatusTransitionCount = 1;
 
-        project.AddPostPersistenceAction(() => project.AddDomainEvent(
-            new ProjectCreatedEvent
-            (
-                project,
-                project.ExpenditureCategoryId,
-                (int)project.Status,
-                project.DateRange,
-                project.PortfolioId,
-                project.ProgramId,
-                project.BusinessCase,
-                project.ExpectedBenefits,
-                project.Roles
-                    .GroupBy(x => (int)x.Role)
-                    .ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray()),
-                [.. project.StrategicThemeTags.Select(x => x.StrategicThemeId)],
-                actor.ToEventActor(),
-                timestamp
-            )));
+        // Built now, not when the action runs: the event records the project as created, and an import
+        // walks it to a later status before the first save. Every value is known here, Key included.
+        var created = new ProjectCreatedEvent
+        (
+            project,
+            project.ExpenditureCategoryId,
+            (int)project.Status,
+            project.DateRange,
+            project.PortfolioId,
+            project.ProgramId,
+            project.BusinessCase,
+            project.ExpectedBenefits,
+            project.RoleMap(),
+            [.. project.ThemeIds().Order()],
+            actor.ToEventActor(),
+            timestamp
+        );
+        project.AddPostPersistenceAction(() => project.AddDomainEvent(created));
 
         // Raised here rather than by ChangeStatus, which the origin row deliberately bypasses. Without
         // it a created project would record no transition while an existing one has its origin row
         // replayed into the log, so the two would disagree about how a project's history starts.
-        // Post-persistence for the same reason the created event is: Key is assigned on insert.
+        // Post-persistence so it follows the created event rather than preceding it.
         project.AddPostPersistenceAction(() => project.AddDomainEvent(
             new ProjectStatusChangedEventV2(
                 originEntry.Id,

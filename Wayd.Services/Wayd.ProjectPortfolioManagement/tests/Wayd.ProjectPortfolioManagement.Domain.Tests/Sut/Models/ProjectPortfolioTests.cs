@@ -88,6 +88,24 @@ public class ProjectPortfolioTests
     }
 
     [Fact]
+    public void Create_ThenActivatedBeforeTheFirstSave_RecordsThePortfolioAsCreated()
+    {
+        // Arrange — what the portfolio import does: create Proposed, then move it to the imported status,
+        // all before one save
+        var portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio", null, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        portfolio.Activate(AnAuthorizedActor(), _dateTimeProvider.Today, _dateTimeProvider.Now);
+        portfolio.ExecutePostPersistenceActions();
+
+        // Assert
+        portfolio.DomainEvents.OfType<ProjectPortfolioCreatedEvent>().Should().ContainSingle()
+            .Which.StatusId.Should().Be((int)ProjectPortfolioStatus.Proposed, "the activation is its own event");
+        portfolio.DomainEvents.OfType<ProjectPortfolioStatusChangedEvent>().Should().ContainSingle()
+            .Which.ToStatus.Should().Be(nameof(ProjectPortfolioStatus.Active));
+    }
+
+    [Fact]
     public void UpdateDetails_RaisesADetailsUpdatedEventCarryingThePreviousAndNewValues()
     {
         // Arrange

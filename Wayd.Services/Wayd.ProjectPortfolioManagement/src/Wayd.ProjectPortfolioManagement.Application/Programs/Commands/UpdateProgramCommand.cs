@@ -93,18 +93,20 @@ public sealed class UpdateProgramCommandHandler(
                 return await HandleDomainFailure(program, updateTimelineResult, cancellationToken);
             }
 
+            var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
+            var updateStrategicThemesResult = program.UpdateStrategicThemes(actor, ancestry, strategicThemes, _dateTimeProvider.Now);
+            if (updateStrategicThemesResult.IsFailure)
+            {
+                return await HandleDomainFailure(program, updateStrategicThemesResult, cancellationToken);
+            }
+
+            // Last: roles decide who may manage the program, so an edit that removes the actor's own role
+            // would otherwise refuse the rest of the actor's changes in the same request.
             var roles = GetRoles(request);
             var updateRolesResult = program.UpdateRoles(actor, ancestry, roles, _dateTimeProvider.Now);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(program, updateRolesResult, cancellationToken);
-            }
-
-            var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
-            var updateStrategicThemesResult = program.UpdateStrategicThemes(strategicThemes, actor, _dateTimeProvider.Now);
-            if (updateStrategicThemesResult.IsFailure)
-            {
-                return await HandleDomainFailure(program, updateStrategicThemesResult, cancellationToken);
             }
 
             await _ppmDbContext.SaveChangesAsync(cancellationToken);

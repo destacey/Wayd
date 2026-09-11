@@ -247,50 +247,19 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     private Dictionary<int, Guid[]> RoleMap() => RoleManager.ToRoleMap(_roles);
 
     /// <summary>
-    /// Associates a strategic theme with this program.
-    /// </summary>
-    public Result AddStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        var before = ThemeIds();
-
-        var result = StrategicThemeTagManager<Program>.AddStrategicThemeTag(_strategicThemeTags, Id, strategicThemeId, "program");
-        if (result.IsSuccess)
-        {
-            RaiseIfThemesChanged(before, actor, timestamp);
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Removes a strategic theme from this program.
-    /// </summary>
-    public Result RemoveStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        var before = ThemeIds();
-
-        var result = StrategicThemeTagManager<Program>.RemoveStrategicThemeTag(_strategicThemeTags, strategicThemeId, "program");
-        if (result.IsSuccess)
-        {
-            RaiseIfThemesChanged(before, actor, timestamp);
-        }
-
-        return result;
-    }
-
-    /// <summary>
     /// Updates the strategic themes associated with this program.
     /// </summary>
     /// <param name="strategicThemeIds"></param>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
     /// <returns></returns>
-    public Result UpdateStrategicThemes(HashSet<Guid> strategicThemeIds, PpmActor actor, Instant timestamp)
+    public Result UpdateStrategicThemes(PpmActor actor, ProgramAncestryRoles ancestry, HashSet<Guid> strategicThemeIds, Instant timestamp)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(strategicThemeIds, nameof(strategicThemeIds));
 
         var before = ThemeIds();
@@ -556,15 +525,25 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     {
         var program = new Program(name, description, ProgramStatus.Proposed, dateRange, portfolioId, roles, strategicThemes);
 
+        // Captured now, not when the action runs: the event records the program as created, and an import
+        // activates it before the first save. Only Key waits for the save that assigns it.
+        var createdName = program.Name;
+        var createdDescription = program.Description;
+        var createdStatus = (int)program.Status;
+        var createdDateRange = program.DateRange;
+        var createdRoles = program.RoleMap();
+        Guid[] createdThemes = [.. program.ThemeIds().Order()];
+
         program.AddPostPersistenceAction(() => program.AddDomainEvent(new ProgramCreatedEvent(
-                program,
-                (int)program.Status,
-                program.DateRange,
-                program.PortfolioId,
-                program.Roles
-                    .GroupBy(x => (int)x.Role)
-                    .ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray()),
-                [.. program.StrategicThemeTags.Select(x => x.StrategicThemeId)],
+                program.Id,
+                program.Key,
+                createdName,
+                createdDescription,
+                createdStatus,
+                createdDateRange,
+                portfolioId,
+                createdRoles,
+                createdThemes,
                 actor,
                 timestamp
             )));

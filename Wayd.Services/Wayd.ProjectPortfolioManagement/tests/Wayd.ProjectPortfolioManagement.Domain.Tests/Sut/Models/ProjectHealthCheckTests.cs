@@ -462,14 +462,14 @@ public sealed class ProjectHealthCheckTests
         project.ClearDomainEvents();
 
         // Act
-        var result = project.AddHealthCheck(HealthStatus.AtRisk, actorId.AsActor(), NoProjectAncestry(), expiration, "Vendor slipped", _now);
+        var result = project.AddHealthCheck(HealthStatus.AtRisk, actorId.AsActor(), NoProjectAncestry(), expiration, "  Vendor slipped ", _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(result.Value.Id);
         raised.Status.Should().Be(HealthStatus.AtRisk);
-        raised.Note.Should().Be("Vendor slipped");
+        raised.Note.Should().Be("Vendor slipped", "the payload carries the stored note, which is trimmed");
         raised.Expiration.Should().Be(expiration);
         raised.ReportedById.Should().Be(actorId);
     }

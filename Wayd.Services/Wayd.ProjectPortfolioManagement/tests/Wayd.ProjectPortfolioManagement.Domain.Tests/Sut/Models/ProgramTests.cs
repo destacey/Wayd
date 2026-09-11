@@ -249,11 +249,11 @@ public class ProgramTests
         var dropped = Guid.CreateVersion7();
         var arriving = Guid.CreateVersion7();
         var program = _programFaker.Generate();
-        program.UpdateStrategicThemes([kept, dropped], AnAuthorizedActor(), _dateTimeProvider.Now);
+        program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), [kept, dropped], _dateTimeProvider.Now);
         program.ClearDomainEvents();
 
         // Act
-        var result = program.UpdateStrategicThemes([kept, arriving], AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), [kept, arriving], _dateTimeProvider.Now);
 
         // Assert — the theme it kept is in the set but in neither list
         result.IsSuccess.Should().BeTrue();
@@ -269,11 +269,11 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.Generate();
         var themes = _themeFaker.Generate(2).Select(t => t.Id).ToHashSet();
-        program.UpdateStrategicThemes(themes, AnAuthorizedActor(), _dateTimeProvider.Now);
+        program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), themes, _dateTimeProvider.Now);
         program.ClearDomainEvents();
 
         // Act
-        var result = program.UpdateStrategicThemes(themes, AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), themes, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -303,6 +303,25 @@ public class ProgramTests
         program.PortfolioId.Should().Be(portfolioId);
         program.DateRange.Should().BeNull();
         program.Projects.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Create_ThenActivatedBeforeTheFirstSave_RecordsTheProgramAsCreated()
+    {
+        // Arrange — what the program import does: create Proposed, then activate it so projects can be
+        // imported into it, all before one save
+        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
+        var program = Program.Create("Atlas", "Atlas program", dateRange, Guid.NewGuid(), null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
+        program.ExecutePostPersistenceActions();
+
+        // Assert
+        program.DomainEvents.OfType<ProgramCreatedEvent>().Should().ContainSingle()
+            .Which.StatusId.Should().Be((int)ProgramStatus.Proposed, "the activation is its own event");
+        program.DomainEvents.OfType<ProgramStatusChangedEvent>().Should().ContainSingle()
+            .Which.ToStatus.Should().Be(nameof(ProgramStatus.Active));
     }
 
     [Fact]
@@ -636,6 +655,24 @@ public class ProgramTests
     }
 
     [Fact]
+    public void UpdateStrategicThemes_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var program = _programFaker.Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateStrategicThemes(
+            AnUnauthorizedActor(), NoProgramAncestry(), [Guid.NewGuid()], _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        program.StrategicThemeTags.Should().BeEmpty();
+        program.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Cancel_ShouldSucceed_WhenActorIsPortfolioOwner()
     {
         // Arrange — leadership inherits downward from the parent portfolio.
@@ -874,7 +911,7 @@ public class ProgramTests
         var themes = _themeFaker.Generate(3); // Generate 3 unique themes
 
         // Act
-        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), themes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -888,12 +925,12 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        program.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), initialThemes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         var newThemes = _themeFaker.Generate(3); // Replace with different themes
 
         // Act
-        var result = program.UpdateStrategicThemes(newThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), newThemes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -907,10 +944,10 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.Generate();
         var themes = _themeFaker.Generate(2);
-        program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), themes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Act
-        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now); // Same themes
+        var result = program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), themes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now); // Same themes
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -923,10 +960,10 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        program.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), initialThemes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Act
-        var result = program.UpdateStrategicThemes([], AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = program.UpdateStrategicThemes(AnAuthorizedActor(), NoProgramAncestry(), [], _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

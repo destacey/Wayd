@@ -151,6 +151,8 @@ public class ProjectTests
 
         // Assert
         var raised = project.DomainEvents.OfType<ProjectStatusChangedEventV2>().ToList();
+        project.DomainEvents.OfType<ProjectCreatedEvent>().Should().ContainSingle()
+            .Which.StatusId.Should().Be((int)ProjectStatus.Proposed, "the created event records the project as it was created, not as it was saved");
         raised.Should().HaveCount(3, "a fast-forwarded project reaches its status through real transitions, and each is its own fact");
         raised.Select(e => e.ToStatus).Should().BeEquivalentTo(
             [nameof(ProjectStatus.Proposed), nameof(ProjectStatus.Active), nameof(ProjectStatus.Completed)]);
@@ -296,11 +298,11 @@ public class ProjectTests
         var dropped = Guid.CreateVersion7();
         var arriving = Guid.CreateVersion7();
         var project = _projectFaker.Generate();
-        project.UpdateStrategicThemes([kept, dropped], AnAuthorizedActor(), _dateTimeProvider.Now);
+        project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), [kept, dropped], _dateTimeProvider.Now);
         project.ClearDomainEvents();
 
         // Act
-        var result = project.UpdateStrategicThemes([kept, arriving], AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), [kept, arriving], _dateTimeProvider.Now);
 
         // Assert — the theme it kept is in the set but in neither list
         result.IsSuccess.Should().BeTrue();
@@ -1692,6 +1694,24 @@ public class ProjectTests
     // once — a future edit could drop the guard from any one of them without failing another test.
 
     [Fact]
+    public void UpdateStrategicThemes_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateStrategicThemes(
+            AnUnauthorizedActor(), NoProjectAncestry(), [Guid.NewGuid()], _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        project.StrategicThemeTags.Should().BeEmpty();
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void ChangeKey_ShouldFail_WhenActorHoldsNoRole()
     {
         // Arrange
@@ -1927,7 +1947,7 @@ public class ProjectTests
         var themes = _themeFaker.Generate(3); // Generate 3 unique themes
 
         // Act
-        var result = project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), themes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1941,12 +1961,12 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        project.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), initialThemes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         var newThemes = _themeFaker.Generate(3); // Replace with different themes
 
         // Act
-        var result = project.UpdateStrategicThemes(newThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), newThemes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1960,10 +1980,10 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var themes = _themeFaker.Generate(2);
-        project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), themes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Act
-        var result = project.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now); // Same themes
+        var result = project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), themes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now); // Same themes
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1976,10 +1996,10 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        project.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+        project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), initialThemes.Select(t => t.Id).ToHashSet(), _dateTimeProvider.Now);
 
         // Act
-        var result = project.UpdateStrategicThemes([], AnAuthorizedActor(), _dateTimeProvider.Now);
+        var result = project.UpdateStrategicThemes(AnAuthorizedActor(), NoProjectAncestry(), [], _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

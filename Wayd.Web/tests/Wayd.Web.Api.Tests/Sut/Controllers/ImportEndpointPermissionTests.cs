@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
@@ -64,11 +65,15 @@ public sealed class ImportEndpointPermissionTests
     public static TheoryData<Type, string, Type> Endpoints =>
         new(_endpoints.Select(e => (e.Controller, e.Method, e.Definition)));
 
+    /// <summary>
+    /// Every action that takes an uploaded file. Found by the file rather than the responder, so an import
+    /// endpoint that forgot the responder is still found — and then fails the check that it has one.
+    /// </summary>
     private static IEnumerable<MethodInfo> ImportEndpoints() =>
         typeof(ImportSubmissionResponder).Assembly.GetTypes()
             .Where(t => typeof(ControllerBase).IsAssignableFrom(t))
             .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            .Where(m => m.GetParameters().Any(p => p.ParameterType == typeof(ImportSubmissionResponder)));
+            .Where(m => m.GetParameters().Any(p => p.ParameterType == typeof(IFormFile)));
 
     [Theory]
     [MemberData(nameof(Endpoints))]
@@ -96,5 +101,17 @@ public sealed class ImportEndpointPermissionTests
 
         // Assert — a new import endpoint has to be added above, or its permission goes unchecked
         actual.Should().BeEquivalentTo(listed);
+    }
+
+    [Fact]
+    public void Endpoints_AnswerWithTheRunThroughTheResponder()
+    {
+        // Arrange & Act
+        var withoutResponder = ImportEndpoints()
+            .Where(m => m.GetParameters().All(p => p.ParameterType != typeof(ImportSubmissionResponder)))
+            .Select(m => $"{m.DeclaringType!.Name}.{m.Name}");
+
+        // Assert — without it an endpoint answers with a bare id, and its submitter gets no outcome
+        withoutResponder.Should().BeEmpty();
     }
 }

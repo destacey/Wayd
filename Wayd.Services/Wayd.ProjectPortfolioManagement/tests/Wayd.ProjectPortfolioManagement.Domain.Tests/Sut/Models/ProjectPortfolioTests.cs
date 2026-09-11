@@ -88,10 +88,11 @@ public class ProjectPortfolioTests
     }
 
     [Fact]
-    public void UpdateDetails_RaisesADetailsUpdatedEventCarryingTheNewValues()
+    public void UpdateDetails_RaisesADetailsUpdatedEventCarryingThePreviousAndNewValues()
     {
         // Arrange
         var portfolio = _portfolioFaker.AsProposed();
+        var previous = new ProjectPortfolioDetails(portfolio.Name, portfolio.Description);
         portfolio.ClearDomainEvents();
 
         // Act
@@ -102,6 +103,7 @@ public class ProjectPortfolioTests
         var raised = portfolio.DomainEvents.OfType<ProjectPortfolioDetailsUpdatedEvent>().Should().ContainSingle().Subject;
         raised.Name.Should().Be("Renamed");
         raised.Description.Should().Be("New description");
+        raised.Previous.Should().Be(previous);
     }
 
     [Fact]

@@ -54,6 +54,8 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
+        var previous = new ProjectDetails(
+            project.Name, project.Description, project.ExpenditureCategoryId, project.BusinessCase, project.ExpectedBenefits);
         project.ClearDomainEvents();
 
         // Act
@@ -63,7 +65,9 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.DomainEvents.OfType<ProjectDetailsUpdatedEvent>().Should().ContainSingle();
+        var raised = project.DomainEvents.OfType<ProjectDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        raised.Name.Should().Be("Renamed");
+        raised.Previous.Should().Be(previous);
     }
 
     [Fact]

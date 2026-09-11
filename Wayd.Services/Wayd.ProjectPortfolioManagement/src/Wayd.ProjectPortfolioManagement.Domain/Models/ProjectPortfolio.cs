@@ -172,15 +172,15 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 
         // Compared after assignment, never against the arguments: the setters normalise, so a caller
         // passing "Growth " where "Growth" is stored has changed nothing.
-        var before = (Name, Description);
+        var before = new ProjectPortfolioDetails(Name, Description);
 
         Name = name;
         Description = description;
 
-        if (before != (Name, Description))
+        if (before != new ProjectPortfolioDetails(Name, Description))
         {
             AddDomainEvent(new ProjectPortfolioDetailsUpdatedEvent(
-                Id, Key, Name, Description, actor.ToEventActor(), timestamp));
+                Id, Key, Name, Description, before, actor.ToEventActor(), timestamp));
         }
 
         return Result.Success();

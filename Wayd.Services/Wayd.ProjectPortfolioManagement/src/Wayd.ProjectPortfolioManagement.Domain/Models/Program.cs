@@ -166,14 +166,14 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
 
         // Compared after assignment, never against the arguments: the setters normalise, so a caller
         // passing "Platform " where "Platform" is stored has changed nothing.
-        var before = (Name, Description);
+        var before = new ProgramDetails(Name, Description);
 
         Name = name;
         Description = description;
 
-        if (before != (Name, Description))
+        if (before != new ProgramDetails(Name, Description))
         {
-            AddDomainEvent(new ProgramDetailsUpdatedEvent(this, actor.ToEventActor(), timestamp));
+            AddDomainEvent(new ProgramDetailsUpdatedEvent(this, before, actor.ToEventActor(), timestamp));
         }
 
         return Result.Success();

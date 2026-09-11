@@ -285,7 +285,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         // Compared after assignment, never against the arguments: the setters normalise, so a caller
         // passing "Atlas " where "Atlas" is stored has changed nothing.
-        var before = (Name, Description, BusinessCase, ExpectedBenefits, ExpenditureCategoryId);
+        var before = CurrentDetails();
 
         Name = name;
         Description = description;
@@ -293,13 +293,16 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         ExpectedBenefits = expectedBenefits?.Trim();
         ExpenditureCategoryId = expenditureCategoryId;
 
-        if (before != (Name, Description, BusinessCase, ExpectedBenefits, ExpenditureCategoryId))
+        if (before != CurrentDetails())
         {
-            AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, BusinessCase, ExpectedBenefits, actor.ToEventActor(), timestamp));
+            AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, BusinessCase, ExpectedBenefits, before, actor.ToEventActor(), timestamp));
         }
 
         return Result.Success();
     }
+
+    private ProjectDetails CurrentDetails() =>
+        new(Name, Description, ExpenditureCategoryId, BusinessCase, ExpectedBenefits);
 
     /// <summary>
     /// Replaces the project's role assignments on behalf of an actor who must be authorized to manage it.

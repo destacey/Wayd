@@ -37,6 +37,7 @@ public class ProgramTests
     {
         // Arrange
         var program = _programFaker.Generate();
+        var previous = new ProgramDetails(program.Name, program.Description);
         program.ClearDomainEvents();
 
         // Act
@@ -45,7 +46,9 @@ public class ProgramTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        program.DomainEvents.OfType<ProgramDetailsUpdatedEvent>().Should().ContainSingle();
+        var raised = program.DomainEvents.OfType<ProgramDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        raised.Name.Should().Be("Renamed");
+        raised.Previous.Should().Be(previous);
     }
 
     [Fact]

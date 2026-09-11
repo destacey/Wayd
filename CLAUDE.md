@@ -297,6 +297,8 @@ what makes a backfill replaying old records idempotent forever.
 - **Compatible change** — a new field whose `default` is a valid value — keeps the type and bumps the minor
   (1.0 → 1.1). A property missing from an older payload binds to `default` through `[JsonConstructor]`
   with no error, so a new non-nullable field silently arrives as `null` from every row written before it.
+  `default` must also be unambiguous: where a real value can be null, group the new fields in a nullable
+  record (the details events' `Previous`) so null can only mean "not recorded".
 - **Breaking change** — removing, retyping, or repurposing a field — is a **new type** named for its
   generation, at that major (`ProjectReparentedEventV2`, `"2.0"`). Consumers dispatch on the type, so a
   same-type payload would reach every consumer of the old shape; only a new type keeps it away from them.

@@ -211,6 +211,7 @@ public sealed class ProjectSyncHandlerTests : IDisposable
             expenditureCategoryId: 1,
             businessCase: null,
             expectedBenefits: null,
+            previous: null,
             actor: EventActor.System,
             timestamp: Now);
 

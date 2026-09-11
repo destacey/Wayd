@@ -401,6 +401,61 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void ProjectDetailsUpdatedEvent_PayloadWrittenBeforePreviousWasAdded_ReadsAsNotRecorded()
+    {
+        // Arrange - a 1.1 payload, written before the event carried the details it replaced
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": "ATLAS",
+              "Name": "Atlas",
+              "Description": "Atlas description",
+              "ExpenditureCategoryId": 3,
+              "BusinessCase": null,
+              "ExpectedBenefits": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.1"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<ProjectDetailsUpdatedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Atlas");
+        restored.Previous.Should().BeNull("a 1.1 payload did not record the details it replaced");
+        restored.EventVersion.Should().Be("1.1", "the stored version says which shape the payload was written in");
+    }
+
+    [Fact]
+    public void ProjectDetailsUpdatedEvent_RoundTripsAPreviousBusinessCaseThatWasEmpty()
+    {
+        // Arrange - the case the grouped Previous exists for: a null inside it is a real value
+        var original = new ProjectDetailsUpdatedEvent(
+            id: Guid.NewGuid(),
+            key: new ProjectKey("ATLAS"),
+            name: "Atlas",
+            description: "Atlas description",
+            expenditureCategoryId: 3,
+            businessCase: "Consolidates three regional trackers.",
+            expectedBenefits: null,
+            previous: new ProjectDetails("Atlas", "Atlas description", 3, null, null),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 9, 10, 9, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Previous.Should().Be(original.Previous);
+        roundTripped.BusinessCase.Should().Be(original.BusinessCase);
+        roundTripped.EventVersion.Should().Be("1.2");
+    }
+
+    [Fact]
     public void ProjectReparentedEventV2_RoundTripsThroughDurableSerializer()
     {
         // Arrange

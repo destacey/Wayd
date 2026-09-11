@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using NodaTime.Testing;
 using NodaTime.Extensions;
@@ -34,10 +34,11 @@ public sealed class PpmFinalizationImportDefinitionTests : IDisposable
     public PpmFinalizationImportDefinitionTests()
     {
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _definition = new PpmFinalizationImportDefinition(_dbContext, new ImportPayloadSerializer());
+        _definition = new PpmFinalizationImportDefinition(_dbContext, _dateTimeProvider, new ImportPayloadSerializer());
 
-        _portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
-        _portfolio.Activate(PpmActor.System, _start);
+        _portfolio = ProjectPortfolio.Create(
+            "Growth", "Growth portfolio", null, EventActor.System, _dateTimeProvider.Now);
+        _portfolio.Activate(PpmActor.System, _start, _dateTimeProvider.Now);
         _dbContext.AddPortfolio(_portfolio);
     }
 
@@ -193,7 +194,7 @@ public sealed class PpmFinalizationImportDefinitionTests : IDisposable
         var program = _portfolio.CreateProgram(
             name, $"{name} program", new LocalDateRange(_start, _end), null, null,
             EventActor.System, _dateTimeProvider.Now).Value;
-        program.Activate(PpmActor.System, ProgramAncestryRoles.None);
+        program.Activate(PpmActor.System, ProgramAncestryRoles.None, _dateTimeProvider.Now);
 
         return program;
     }

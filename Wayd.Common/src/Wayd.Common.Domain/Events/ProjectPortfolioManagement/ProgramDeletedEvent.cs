@@ -7,7 +7,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 public sealed record ProgramDeletedEvent : DomainEvent, IPpmEvent
 {
     public ProgramDeletedEvent(Guid id, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
 

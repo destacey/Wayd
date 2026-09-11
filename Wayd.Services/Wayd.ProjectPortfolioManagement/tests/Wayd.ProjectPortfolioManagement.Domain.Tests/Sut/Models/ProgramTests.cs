@@ -8,7 +8,9 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using static Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions.PpmActorDataExtensions;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
@@ -27,6 +29,230 @@ public class ProgramTests
         _projectFaker = new ProjectFaker();
         _themeFaker = new StrategicThemeFaker();
     }
+
+    #region Domain Events
+
+    [Fact]
+    public void UpdateDetails_OnAChangedField_RaisesADetailsUpdatedEvent()
+    {
+        // Arrange
+        var program = _programFaker.Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateDetails(
+            AnAuthorizedActor(), NoProgramAncestry(), "Renamed", program.Description, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.DomainEvents.OfType<ProgramDetailsUpdatedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void UpdateDetails_WithTheValuesItAlreadyHas_RaisesNothing()
+    {
+        // Arrange - the update command sends every field on every save, so most calls change nothing
+        var program = _programFaker.Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateDetails(
+            AnAuthorizedActor(), NoProgramAncestry(), program.Name, program.Description, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.DomainEvents.Should().BeEmpty("a write that changes nothing is not a business event");
+    }
+
+    [Fact]
+    public void UpdateDetails_WithOnlyWhitespaceAddedToAValue_RaisesNothing()
+    {
+        // Arrange - the setters trim, so a guard comparing the arguments rather than the stored values
+        // would report a change here and record an event describing no difference at all.
+        var program = _programFaker.Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateDetails(
+            AnAuthorizedActor(), NoProgramAncestry(), $"  {program.Name} ", $" {program.Description}  ", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.DomainEvents.Should().BeEmpty();
+    }
+
+
+    [Fact]
+    public void Activate_RaisesAStatusChangedEventCarryingBothEnds()
+    {
+        // Arrange
+        var program = _programFaker
+            .WithStatus(ProgramStatus.Proposed)
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)))
+            .Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = program.DomainEvents.OfType<ProgramStatusChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromStatus.Should().Be(nameof(ProgramStatus.Proposed));
+        raised.FromCategory.Should().Be(LifecycleCategory.NotStarted);
+        raised.ToStatus.Should().Be(nameof(ProgramStatus.Active));
+        raised.ToCategory.Should().Be(LifecycleCategory.Active);
+    }
+
+    [Fact]
+    public void StatusTransitions_MadeInOneTransaction_EachRaiseTheirOwnEvent()
+    {
+        // Arrange - what the program and finalization imports do between them: a program is created
+        // Proposed, activated so projects can be imported into it, then completed.
+        var program = _programFaker
+            .WithStatus(ProgramStatus.Proposed)
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)))
+            .Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
+        program.Complete(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        var raised = program.DomainEvents.OfType<ProgramStatusChangedEvent>().ToList();
+        raised.Should().HaveCount(2, "a transition is movement, not state, so two moves are two facts");
+        raised.Select(e => e.ToStatus).Should().Equal(nameof(ProgramStatus.Active), nameof(ProgramStatus.Completed));
+    }
+
+    [Fact]
+    public void Cancel_FromProposed_RaisesAStatusChangedEventInTheCanceledCategory()
+    {
+        // Arrange
+        var program = _programFaker.WithStatus(ProgramStatus.Proposed).Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = program.DomainEvents.OfType<ProgramStatusChangedEvent>().Should().ContainSingle().Subject;
+        raised.ToStatus.Should().Be(nameof(ProgramStatus.Canceled));
+        raised.ToCategory.Should().Be(LifecycleCategory.Canceled);
+    }
+
+    [Fact]
+    public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingTheNewRange()
+    {
+        // Arrange
+        var program = _programFaker.Generate();
+        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), newRange, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = program.DomainEvents.OfType<ProgramTimelineChangedEvent>().Should().ContainSingle().Subject;
+        raised.DateRange.Should().Be(newRange);
+    }
+
+    [Fact]
+    public void UpdateTimeline_OnAnUnchangedRange_RaisesNothing()
+    {
+        // Arrange
+        var range = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var program = _programFaker.WithDateRange(range).Generate();
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), range, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.DomainEvents.OfType<ProgramTimelineChangedEvent>().Should().BeEmpty("a write that changes nothing is not a business event");
+    }
+
+    [Fact]
+    public void RoleChanges_MadeInOneTransaction_EachRaiseTheirOwnEvent()
+    {
+        // Arrange
+        var program = _programFaker.Generate();
+        var leaving = Guid.CreateVersion7();
+        var arriving = Guid.CreateVersion7();
+        program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), new Dictionary<ProgramRole, HashSet<Guid>> { { ProgramRole.Owner, [leaving] } }, _dateTimeProvider.Now);
+        program.ClearDomainEvents();
+
+        // Act - two replacements before a single save
+        program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), new Dictionary<ProgramRole, HashSet<Guid>> { { ProgramRole.Owner, [] } }, _dateTimeProvider.Now);
+        program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), new Dictionary<ProgramRole, HashSet<Guid>> { { ProgramRole.Owner, [arriving] } }, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = program.DomainEvents.OfType<ProgramRolesChangedEvent>().ToList();
+        raised.Should().HaveCount(2, "two calls that each changed the roles are two facts");
+        raised[0].Removed.Should().Equal(new RoleAssignmentChange((int)ProgramRole.Owner, leaving));
+        raised[0].Added.Should().BeEmpty();
+        raised[0].Roles.Should().BeEmpty();
+        raised[1].Added.Should().Equal(new RoleAssignmentChange((int)ProgramRole.Owner, arriving));
+        raised[1].Removed.Should().BeEmpty();
+        raised[1].Roles[(int)ProgramRole.Owner].Should().BeEquivalentTo([arriving]);
+    }
+
+    [Fact]
+    public void UpdateRoles_WithTheRolesItAlreadyHas_RaisesNothing()
+    {
+        // Arrange - the update command replaces the role lists on every save, so most calls change nothing
+        var employeeId = Guid.CreateVersion7();
+        var roles = new Dictionary<ProgramRole, HashSet<Guid>> { { ProgramRole.Owner, [employeeId] } };
+        var program = _programFaker.Generate();
+        program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), roles, _dateTimeProvider.Now);
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), roles, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.DomainEvents.OfType<ProgramRolesChangedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateStrategicThemes_OnAChangedSet_RaisesAnEventCarryingTheWholeSet()
+    {
+        // Arrange
+        var program = _programFaker.Generate();
+        var themes = _themeFaker.Generate(2);
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = program.DomainEvents.OfType<ProgramStrategicThemesChangedEvent>().Should().ContainSingle().Subject;
+        raised.StrategicThemes.Should().BeEquivalentTo(themes.Select(t => t.Id));
+    }
+
+    [Fact]
+    public void UpdateStrategicThemes_WithTheThemesItAlreadyHas_RaisesNothing()
+    {
+        // Arrange
+        var program = _programFaker.Generate();
+        var themes = _themeFaker.Generate(2).Select(t => t.Id).ToHashSet();
+        program.UpdateStrategicThemes(themes, AnAuthorizedActor(), _dateTimeProvider.Now);
+        program.ClearDomainEvents();
+
+        // Act
+        var result = program.UpdateStrategicThemes(themes, AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.DomainEvents.OfType<ProgramStrategicThemesChangedEvent>().Should().BeEmpty();
+    }
+
+    #endregion Domain Events
 
     #region Program Create and Update
 
@@ -91,7 +317,7 @@ public class ProgramTests
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
-        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), dateRange);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), dateRange, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -107,7 +333,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), null);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), null, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -121,7 +347,7 @@ public class ProgramTests
         var program = _programFaker.AsCompleted(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), null);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), null, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -138,7 +364,7 @@ public class ProgramTests
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
-        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), dateRange);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), dateRange, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -164,7 +390,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -188,7 +414,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -212,7 +438,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -232,7 +458,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -251,7 +477,7 @@ public class ProgramTests
         var program = _programFaker.WithDateRange(dateRange).Generate();
 
         // Act
-        var result = program.Activate(AnAuthorizedActor(), NoProgramAncestry());
+        var result = program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -265,7 +491,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = program.Activate(AnAuthorizedActor(), NoProgramAncestry());
+        var result = program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -279,7 +505,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = program.Complete(AnAuthorizedActor(), NoProgramAncestry());
+        var result = program.Complete(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -293,7 +519,7 @@ public class ProgramTests
         var program = _programFaker.AsCompleted(_dateTimeProvider);
 
         // Act
-        var result = program.Complete(AnAuthorizedActor(), NoProgramAncestry());
+        var result = program.Complete(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -307,7 +533,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
+        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -323,7 +549,7 @@ public class ProgramTests
         program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
+        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -337,7 +563,7 @@ public class ProgramTests
         var program = _programFaker.AsCanceled(_dateTimeProvider);
 
         // Act
-        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
+        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -359,7 +585,7 @@ public class ProgramTests
         var program = _programFaker.WithStatus(ProgramStatus.Proposed).WithOwner(employeeId).Generate();
 
         // Act
-        var result = program.Cancel(employeeId.AsActor(), NoProgramAncestry());
+        var result = program.Cancel(employeeId.AsActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -373,7 +599,7 @@ public class ProgramTests
         var program = _programFaker.WithStatus(ProgramStatus.Proposed).Generate();
 
         // Act
-        var result = program.Cancel(AnUnauthorizedActor(), NoProgramAncestry());
+        var result = program.Cancel(AnUnauthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -391,7 +617,7 @@ public class ProgramTests
         var ancestry = PpmActorDataExtensions.WithPortfolioRoleForProgram(portfolioId, employeeId, ProjectPortfolioRole.Owner);
 
         // Act
-        var result = program.Cancel(employeeId.AsActor(), ancestry);
+        var result = program.Cancel(employeeId.AsActor(), ancestry, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -408,7 +634,7 @@ public class ProgramTests
         var ancestry = PpmActorDataExtensions.WithPortfolioRoleForProgram(portfolioId, employeeId, ProjectPortfolioRole.Sponsor);
 
         // Act
-        var result = program.Cancel(employeeId.AsActor(), ancestry);
+        var result = program.Cancel(employeeId.AsActor(), ancestry, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -422,7 +648,7 @@ public class ProgramTests
         var program = _programFaker.WithStatus(ProgramStatus.Proposed).Generate();
 
         // Act
-        var result = program.Cancel(Guid.NewGuid().AsPpmAdministrator(), NoProgramAncestry());
+        var result = program.Cancel(Guid.NewGuid().AsPpmAdministrator(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -436,7 +662,7 @@ public class ProgramTests
         var program = _programFaker.WithStatus(ProgramStatus.Proposed).WithDateRange(dateRange).Generate();
 
         // Act
-        var result = program.Activate(AnUnauthorizedActor(), NoProgramAncestry());
+        var result = program.Activate(AnUnauthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -451,7 +677,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = program.Complete(AnUnauthorizedActor(), NoProgramAncestry());
+        var result = program.Complete(AnUnauthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -468,7 +694,7 @@ public class ProgramTests
         var grabOwnership = new Dictionary<ProgramRole, HashSet<Guid>> { [ProgramRole.Owner] = [attackerId] };
 
         // Act
-        var result = program.UpdateRoles(attackerId.AsActor(), NoProgramAncestry(), grabOwnership);
+        var result = program.UpdateRoles(attackerId.AsActor(), NoProgramAncestry(), grabOwnership, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -500,7 +726,7 @@ public class ProgramTests
         var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(1));
 
         // Act
-        var result = program.UpdateTimeline(AnUnauthorizedActor(), NoProgramAncestry(), newRange);
+        var result = program.UpdateTimeline(AnUnauthorizedActor(), NoProgramAncestry(), newRange, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -620,7 +846,7 @@ public class ProgramTests
         var themes = _themeFaker.Generate(3); // Generate 3 unique themes
 
         // Act
-        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet());
+        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -634,12 +860,12 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        program.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet());
+        program.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         var newThemes = _themeFaker.Generate(3); // Replace with different themes
 
         // Act
-        var result = program.UpdateStrategicThemes(newThemes.Select(t => t.Id).ToHashSet());
+        var result = program.UpdateStrategicThemes(newThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -653,10 +879,10 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.Generate();
         var themes = _themeFaker.Generate(2);
-        program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet());
+        program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Act
-        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet()); // Same themes
+        var result = program.UpdateStrategicThemes(themes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now); // Same themes
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -669,10 +895,10 @@ public class ProgramTests
         // Arrange
         var program = _programFaker.Generate();
         var initialThemes = _themeFaker.Generate(2);
-        program.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet());
+        program.UpdateStrategicThemes(initialThemes.Select(t => t.Id).ToHashSet(), AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Act
-        var result = program.UpdateStrategicThemes([]);
+        var result = program.UpdateStrategicThemes([], AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

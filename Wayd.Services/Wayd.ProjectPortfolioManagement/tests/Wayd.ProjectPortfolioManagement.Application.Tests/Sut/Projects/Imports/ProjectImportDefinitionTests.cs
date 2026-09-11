@@ -46,8 +46,9 @@ public sealed class ProjectImportDefinitionTests : IDisposable
         _definition = new ProjectImportDefinition(_dbContext, new ImportPayloadSerializer());
 
         // A project can only be created inside an active portfolio, so every case starts from one.
-        _portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
-        _portfolio.Activate(PpmActor.System, _start);
+        _portfolio = ProjectPortfolio.Create(
+            "Growth", "Growth portfolio", null, EventActor.System, _dateTimeProvider.Now);
+        _portfolio.Activate(PpmActor.System, _start, _dateTimeProvider.Now);
         _dbContext.AddPortfolio(_portfolio);
 
         var category = new ExpenditureCategoryFaker().WithName("Capex").Generate();
@@ -147,7 +148,7 @@ public sealed class ProjectImportDefinitionTests : IDisposable
         var program = _portfolio.CreateProgram(
             "Platform", "Platform program", new LocalDateRange(_start, _end), null, null,
             EventActor.System, _dateTimeProvider.Now).Value;
-        program.Activate(PpmActor.System, ProgramAncestryRoles.None);
+        program.Activate(PpmActor.System, ProgramAncestryRoles.None, _dateTimeProvider.Now);
 
         // Act
         var result = await Run(Row("APOLLO", ProjectStatus.Proposed, start: null) with { ProgramId = program.Id });
@@ -247,8 +248,9 @@ public sealed class ProjectImportDefinitionTests : IDisposable
     {
         // Arrange — programs are scoped to their portfolio, so one from elsewhere is as wrong as one that
         // does not exist
-        var elsewhere = ProjectPortfolio.Create("Elsewhere", "Another portfolio");
-        elsewhere.Activate(PpmActor.System, _start);
+        var elsewhere = ProjectPortfolio.Create(
+            "Elsewhere", "Another portfolio", null, EventActor.System, _dateTimeProvider.Now);
+        elsewhere.Activate(PpmActor.System, _start, _dateTimeProvider.Now);
         var program = elsewhere.CreateProgram(
             "Platform", "Platform program", new LocalDateRange(_start, _end), null, null,
             EventActor.System, _dateTimeProvider.Now).Value;

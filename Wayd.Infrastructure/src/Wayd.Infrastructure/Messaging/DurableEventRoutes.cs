@@ -45,8 +45,14 @@ public static class DurableEventRoutes
         // change: the projection stores the key, and a rekeyed project would otherwise keep its old one.
         typeof(ProjectCreatedEvent),
         typeof(ProjectDetailsUpdatedEvent),
-        typeof(ProjectKeyChangedEvent),
+        typeof(ProjectKeyChangedEventV2),
         typeof(ProjectDeletedEvent),
+
+        // Superseded, but an envelope written as it before the switch may still be in the outbox; routed
+        // durably so it is delivered to the handler that still accepts it.
+#pragma warning disable CS0618
+        typeof(ProjectKeyChangedEvent),
+#pragma warning restore CS0618
 
         // Planning Iteration → Work WorkIteration.
         typeof(IterationCreatedEvent),

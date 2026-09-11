@@ -8,10 +8,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A lifecycle was assigned to a project that had none, creating its stages.
 /// </summary>
 /// <remarks>
-/// Distinct from <see cref="ProjectLifecycleChangedEvent"/> because the two are not the same fact: this
-/// gives a project its stages for the first time and is a precondition of approval, while a replacement
-/// discards existing stages and re-points the work sitting in them.
+/// Frozen at its published shape and never raised; <see cref="ProjectLifecycleAssignedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectLifecycleAssignedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectLifecycleAssignedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -24,7 +25,7 @@ public sealed record ProjectLifecycleAssignedEvent : DomainEvent, IPpmEvent
         int stageCount,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

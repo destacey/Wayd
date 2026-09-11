@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 
 public sealed record DeleteStrategicInitiativeCommand(Guid Id) : ICommand;
 
@@ -13,12 +15,16 @@ public sealed class DeleteStrategicInitiativeCommandValidator : AbstractValidato
 
 public sealed class DeleteStrategicInitiativeCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<DeleteStrategicInitiativeCommandHandler> logger)
+    ICurrentUser currentUser,
+    ILogger<DeleteStrategicInitiativeCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(DeleteStrategicInitiativeCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteStrategicInitiativeCommandHandler> _logger = logger;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(DeleteStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
@@ -48,7 +54,10 @@ public sealed class DeleteStrategicInitiativeCommandHandler(
                 return Result.Failure("Portfolio not found.");
             }
 
-            var deleteResult = portfolio.DeleteStrategicInitiative(strategicInitiative.Id);
+            var deleteResult = portfolio.DeleteStrategicInitiative(
+                strategicInitiative.Id,
+                EventActor.User(_currentUser.GetUserId()),
+                _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Error deleting Strategic Initiative {StrategicInitiativeId}. Error message: {Error}", request.Id, deleteResult.Error);

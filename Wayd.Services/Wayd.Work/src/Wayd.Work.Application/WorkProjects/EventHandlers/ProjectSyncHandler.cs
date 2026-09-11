@@ -1,5 +1,6 @@
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkProjects.EventHandlers;
@@ -33,11 +34,22 @@ public sealed class ProjectSyncHandler(IWorkDbContext workDbContext, ILogger<Pro
         await UpdateProject(@event, cancellationToken);
     }
 
-    public async Task Handle(ProjectKeyChangedEvent @event, CancellationToken cancellationToken)
+    public async Task Handle(ProjectKeyChangedEventV2 @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
             _logger.LogDebug("Handling Work {SystemActionType} for a rekeyed Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await ChangeProjectKey(@event, cancellationToken);
+        await ChangeProjectKey(@event.Id, @event.Key, cancellationToken);
+    }
+
+    // Nothing raises the superseded type, but an envelope written as it before the switch can still be
+    // waiting in the durable outbox; without this it would dead-letter rather than rekey the projection.
+#pragma warning disable CS0618
+    public async Task Handle(ProjectKeyChangedEvent @event, CancellationToken cancellationToken)
+#pragma warning restore CS0618
+    {
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Handling Work {SystemActionType} for a rekeyed Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await ChangeProjectKey(@event.Id, @event.Key, cancellationToken);
     }
 
     public async Task Handle(ProjectDeletedEvent @event, CancellationToken cancellationToken)
@@ -83,21 +95,21 @@ public sealed class ProjectSyncHandler(IWorkDbContext workDbContext, ILogger<Pro
         _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} updated action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
     }
 
-    private async Task ChangeProjectKey(ProjectKeyChangedEvent keyChangedEvent, CancellationToken cancellationToken)
+    private async Task ChangeProjectKey(Guid projectId, ProjectKey key, CancellationToken cancellationToken)
     {
         var existingProject = await _workDbContext.WorkProjects
-            .FirstOrDefaultAsync(x => x.Id == keyChangedEvent.Id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken);
         if (existingProject == null)
         {
             // Same reasoning as the details path: out-of-order delivery or an already-deleted project.
-            _logger.LogWarning("Work {SystemActionType} for a rekeyed Project skipped: Project {ProjectId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, keyChangedEvent.Id);
+            _logger.LogWarning("Work {SystemActionType} for a rekeyed Project skipped: Project {ProjectId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, projectId);
             return;
         }
 
-        existingProject.ChangeKey(keyChangedEvent.Id, keyChangedEvent.Key);
+        existingProject.ChangeKey(projectId, key);
         await _workDbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} rekeyed action.", SystemActionType.ServiceDataReplication, keyChangedEvent.Id);
+        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} rekeyed action.", SystemActionType.ServiceDataReplication, projectId);
     }
 
     private async Task DeleteProject(ProjectDeletedEvent deletedEvent, CancellationToken cancellationToken)

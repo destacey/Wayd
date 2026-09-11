@@ -466,7 +466,7 @@ public sealed class ProjectHealthCheckTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(result.Value.Id);
         raised.Status.Should().Be(HealthStatus.AtRisk);
         raised.Note.Should().Be("Vendor slipped");
@@ -477,8 +477,7 @@ public sealed class ProjectHealthCheckTests
     [Fact]
     public void HealthChecks_RecordedInOneTransaction_EachRaiseTheirOwnEvent()
     {
-        // Arrange — a health check is a ledger entry, so two of them are two facts and neither may
-        // supersede the other. Superseding by event type would also collapse events about different checks.
+        // Arrange — a health check is a ledger entry, so two of them are two facts.
         var (project, actorId) = ProjectWithOwner();
         project.ClearDomainEvents();
 
@@ -488,7 +487,7 @@ public sealed class ProjectHealthCheckTests
         var second = project.AddHealthCheck(HealthStatus.Unhealthy, actorId.AsActor(), NoProjectAncestry(), later.Plus(Duration.FromDays(7)), null, later);
 
         // Assert
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEvent>().ToList();
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEventV2>().ToList();
         raised.Should().HaveCount(2);
         raised.Select(e => e.HealthCheckId).Should().Equal(first.Value.Id, second.Value.Id);
     }
@@ -508,7 +507,7 @@ public sealed class ProjectHealthCheckTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckUpdatedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckUpdatedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(added.Value.Id);
         raised.Status.Should().Be(HealthStatus.AtRisk);
         raised.Note.Should().Be("new");
@@ -528,7 +527,7 @@ public sealed class ProjectHealthCheckTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckRemovedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckRemovedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(added.Value.Id);
         raised.Status.Should().Be(HealthStatus.Unhealthy, "the entry has to say what the project lost, not merely that it lost something");
     }

@@ -1,8 +1,9 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -23,11 +24,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Impor
 /// </remarks>
 public sealed class StrategicInitiativeImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportStrategicInitiativeDto>(serializer)
 {
     public const string ImportKey = "ppm.strategic-initiatives";
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Strategic Initiatives";
@@ -54,6 +59,12 @@ public sealed class StrategicInitiativeImportDefinition(
         var employeeIdsByNumber = await ResolveEmployees(context, cancellationToken);
 
         var takenNames = await ResolveTakenNames(context, cancellationToken);
+
+        var timestamp = _dateTimeProvider.Now;
+
+        // One import run is one actor: the events say "the import", not "this person created every row by
+        // hand", while still recording who set it running.
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         foreach (var row in context.Accepted)
         {
@@ -94,7 +105,9 @@ public sealed class StrategicInitiativeImportDefinition(
                 name,
                 data.Description.Trim(),
                 new LocalDateRange(data.Start, data.End),
-                BuildRoles(data, employeeIdsByNumber));
+                BuildRoles(data, employeeIdsByNumber),
+                actor,
+                timestamp);
             if (created.IsFailure)
             {
                 row.Failed($"Could not create strategic initiative '{name}': {created.Error}");

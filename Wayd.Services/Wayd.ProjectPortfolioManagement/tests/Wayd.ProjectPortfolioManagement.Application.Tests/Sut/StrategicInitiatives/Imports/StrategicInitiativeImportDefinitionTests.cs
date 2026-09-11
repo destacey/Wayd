@@ -1,9 +1,13 @@
-using FluentAssertions;
+﻿using FluentAssertions;
+using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using NodaTime.Extensions;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -36,11 +40,17 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
     public StrategicInitiativeImportDefinitionTests()
     {
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _definition = new StrategicInitiativeImportDefinition(_dbContext, new ImportPayloadSerializer());
+
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        _definition = new StrategicInitiativeImportDefinition(
+            _dbContext, _dateTimeProvider, currentUser.Object, new ImportPayloadSerializer());
 
         // Initiatives can only be created inside an active portfolio.
-        _portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
-        _portfolio.Activate(PpmActor.System, _start);
+        _portfolio = ProjectPortfolio.Create(
+            "Growth", "Growth portfolio", null, EventActor.System, _dateTimeProvider.Now);
+        _portfolio.Activate(PpmActor.System, _start, _dateTimeProvider.Now);
         _dbContext.AddPortfolio(_portfolio);
     }
 
@@ -282,10 +292,12 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
     /// <summary>An initiative that already exists, created through a portfolio the import never sees.</summary>
     private StrategicInitiative SeedExistingInitiative(string name)
     {
-        var portfolio = ProjectPortfolio.Create("Legacy", "Legacy portfolio");
-        portfolio.Activate(PpmActor.System, _start);
+        var portfolio = ProjectPortfolio.Create(
+            "Legacy", "Legacy portfolio", null, EventActor.System, _dateTimeProvider.Now);
+        portfolio.Activate(PpmActor.System, _start, _dateTimeProvider.Now);
 
-        return portfolio.CreateStrategicInitiative(name, $"{name} initiative", new LocalDateRange(_start, _end), []).Value;
+        return portfolio.CreateStrategicInitiative(
+            name, $"{name} initiative", new LocalDateRange(_start, _end), [], EventActor.System, _dateTimeProvider.Now).Value;
     }
 
     private ImportStrategicInitiativeDto Row(string name, StrategicInitiativeStatus status) =>

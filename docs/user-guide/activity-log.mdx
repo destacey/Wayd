@@ -63,4 +63,6 @@ The log records **business events** — a project's details being updated, a ver
 
 A project's status changes appear here **and** in its own [status history](./ppm/projects.mdx#project-status-history) section. The two agree: both are written from the same transition, so neither can show a move the other does not. Status history shows transitions alone, in lifecycle order; the Activity section shows them alongside everything else that happened to the project. Projects whose status changed before the Activity section existed still appear in full — that history was carried across.
 
+Programs and portfolios keep no status history of their own, so their Activity sections start from the release that began recording them. A program activated or a portfolio closed before then leaves no entry, and there is nothing to carry across.
+
 Where an edit changes several things at once, you see one entry per kind of change rather than one per field: replacing a project's team records a single entry holding the team as it stands afterwards, not one entry per person added or removed. Status changes are the exception, because each transition is its own step — a project imported as Completed shows the moves through Active and into Completed separately, exactly as they happened.

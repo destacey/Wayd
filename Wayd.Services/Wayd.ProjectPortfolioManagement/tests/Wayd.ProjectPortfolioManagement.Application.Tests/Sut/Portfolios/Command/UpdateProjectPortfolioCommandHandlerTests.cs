@@ -1,12 +1,15 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.Tests.Shared;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Portfolios.Command;
@@ -38,7 +41,8 @@ public class UpdateProjectPortfolioCommandHandlerTests : IDisposable
 
         _handler = new UpdateProjectPortfolioCommandHandler(
             _dbContext, _mockCurrentPrincipal.Object,
-            _mockCurrentUser.Object, _mockLogger.Object);
+            _mockCurrentUser.Object, _mockLogger.Object,
+            new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 5, 1, 0, 0))));
     }
 
     private ProjectPortfolio PortfolioWith(ProjectPortfolioRole? actorRole = null)

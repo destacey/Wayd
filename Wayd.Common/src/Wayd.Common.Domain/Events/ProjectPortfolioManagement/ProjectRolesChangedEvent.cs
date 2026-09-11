@@ -8,14 +8,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A project's role assignments changed.
 /// </summary>
 /// <remarks>
-/// Role assignment is the path by which delivery leadership itself is granted, so it earns its own event
-/// rather than riding on a general update: emptying the Owner and Manager lists can leave a project
-/// nobody is authorized to manage, and that must be traceable to whoever did it.
-/// <para>
-/// Carries the whole role map after the change, in the shape <see cref="ProjectCreatedEvent"/> uses,
-/// rather than a diff. Comparing two entries is how a reader sees who moved.
-/// </para>
+/// Frozen at its published shape and never raised; <see cref="ProjectRolesChangedEventV2"/> replaced it. Kept
+/// so every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectRolesChangedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectRolesChangedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -26,7 +23,7 @@ public sealed record ProjectRolesChangedEvent : DomainEvent, IPpmEvent
         Dictionary<int, Guid[]>? roles,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

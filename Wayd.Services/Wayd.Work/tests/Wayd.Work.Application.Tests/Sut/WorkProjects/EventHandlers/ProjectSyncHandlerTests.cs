@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using NodaTime;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
@@ -136,7 +136,7 @@ public sealed class ProjectSyncHandlerTests : IDisposable
             .WithDescription("Consolidates the regional trackers.")
             .Generate());
 
-        var @event = KeyChangedEvent(id, "NEWKEY", "Atlas");
+        var @event = KeyChangedEvent(id, "NEWKEY");
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -150,10 +150,32 @@ public sealed class ProjectSyncHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_SupersededKeyChanged_StillInTheOutbox_StillRekeysTheProjection()
+    {
+        // Arrange — an envelope written as the superseded type before the switch to V2
+        var id = Guid.CreateVersion7();
+        _workDbContext.AddWorkProject(new WorkProjectFaker()
+            .WithId(id)
+            .WithKey(new ProjectKey("OLDKEY"))
+            .Generate());
+
+#pragma warning disable CS0618 // the superseded type is exactly what is under test
+        var @event = new ProjectKeyChangedEvent(id, new ProjectKey("NEWKEY"), "Atlas", EventActor.System, Now);
+#pragma warning restore CS0618
+
+        // Act
+        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.WorkProjects.Single(p => p.Id == id).Key.Value.Should().Be("NEWKEY");
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Handle_KeyChanged_WhenProjectDoesNotExist_IsNoOp()
     {
         // Arrange — out-of-order delivery, or the project was already deleted.
-        var @event = KeyChangedEvent(Guid.CreateVersion7(), "GHOST1", "Missing Project");
+        var @event = KeyChangedEvent(Guid.CreateVersion7(), "GHOST1");
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -192,11 +214,10 @@ public sealed class ProjectSyncHandlerTests : IDisposable
             actor: EventActor.System,
             timestamp: Now);
 
-    private static ProjectKeyChangedEvent KeyChangedEvent(Guid id, string key, string name) =>
+    private static ProjectKeyChangedEventV2 KeyChangedEvent(Guid id, string key) =>
         new(
             id: id,
             key: new ProjectKey(key),
-            name: name,
             actor: EventActor.System,
             timestamp: Now);
 }

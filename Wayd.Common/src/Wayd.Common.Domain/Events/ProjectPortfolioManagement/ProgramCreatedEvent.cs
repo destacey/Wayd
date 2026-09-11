@@ -18,7 +18,7 @@ public sealed record ProgramCreatedEvent : DomainEvent, ISimpleProgram, IPpmEven
     // which constructor a caller uses.
     [JsonConstructor]
     public ProgramCreatedEvent(Guid id, int key, string name, string description, int statusId, LocalDateRange? dateRange, Guid portfolioId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

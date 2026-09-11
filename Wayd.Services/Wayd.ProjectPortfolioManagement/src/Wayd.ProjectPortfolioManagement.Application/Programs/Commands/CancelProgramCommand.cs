@@ -17,7 +17,8 @@ public sealed class CancelProgramCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
-    ILogger<CancelProgramCommandHandler> logger) : ICommandHandler<CancelProgramCommand>
+    ILogger<CancelProgramCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<CancelProgramCommand>
 {
     private const string AppRequestName = nameof(CancelProgramCommand);
 
@@ -25,6 +26,7 @@ public sealed class CancelProgramCommandHandler(
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CancelProgramCommandHandler> _logger = logger;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(CancelProgramCommand request, CancellationToken cancellationToken)
     {
@@ -43,7 +45,7 @@ public sealed class CancelProgramCommandHandler(
                 return Result.Failure("Program not found.");
             }
 
-            var cancelResult = program.Cancel(actor, program.AncestryRoles());
+            var cancelResult = program.Cancel(actor, program.AncestryRoles(), _dateTimeProvider.Now);
             if (cancelResult.IsFailure)
             {
                 // Reset the entity

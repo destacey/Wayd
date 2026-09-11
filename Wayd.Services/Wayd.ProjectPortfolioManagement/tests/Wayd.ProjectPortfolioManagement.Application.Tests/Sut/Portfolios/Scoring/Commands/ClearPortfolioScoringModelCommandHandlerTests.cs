@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
+using Wayd.Common.Application.Interfaces;
+using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Scoring.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -15,13 +17,25 @@ public class ClearPortfolioScoringModelCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
     private readonly ClearPortfolioScoringModelCommandHandler _handler;
     private readonly Mock<ILogger<ClearPortfolioScoringModelCommandHandler>> _mockLogger = new();
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new NodaTime.Testing.FakeClock(Instant.FromUtc(2026, 5, 1, 0, 0)));
     private readonly ProjectPortfolioFaker _portfolioFaker = new();
 
     public ClearPortfolioScoringModelCommandHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
-        _handler = new ClearPortfolioScoringModelCommandHandler(_dbContext, _mockLogger.Object);
+        _mockCurrentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
+        _mockCurrentPrincipal
+            .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
+
+        _handler = new ClearPortfolioScoringModelCommandHandler(
+            _dbContext, _mockCurrentPrincipal.Object, _mockCurrentUser.Object,
+            _mockLogger.Object, _dateTimeProvider);
     }
 
     [Fact]

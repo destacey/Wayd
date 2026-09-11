@@ -9,14 +9,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A project's start and end dates were set, moved, or cleared.
 /// </summary>
 /// <remarks>
-/// Raised separately from <see cref="ProjectDetailsUpdatedEvent"/> even though one command changes both:
-/// the timeline is what lifecycle guards read, so moving it changes which transitions are legal, and a
-/// consumer watching for slippage should not have to inspect a general update to find out.
-/// <para>
-/// Carries the new timeline only. Comparing an entry against the previous one of the same kind is how a
-/// reader sees the movement, so repeating the old value in the payload would duplicate that.
-/// </para>
+/// Frozen at its published shape and never raised; <see cref="ProjectTimelineChangedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectTimelineChangedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectTimelineChangedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -27,7 +24,7 @@ public sealed record ProjectTimelineChangedEvent : DomainEvent, IPpmEvent
         LocalDateRange? dateRange,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

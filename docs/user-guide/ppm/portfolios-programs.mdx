@@ -63,7 +63,7 @@ stateDiagram-v2
 
 A portfolio can be assigned one active [scoring model](../settings/scoring-models.mdx). Assigning a model enables **Priority Score** on every project in the portfolio; clearing the assignment disables new scoring but does not delete existing project score history.
 
-Use **Actions → Set Scoring Model** on the portfolio detail page to assign or clear the model. Only active scoring models can be assigned. If the assigned model is later archived, existing project scores stay intact and users can still see the recorded history.
+Use **Actions → Set Scoring Model** on the portfolio detail page to assign or clear the model. Assigning and clearing take portfolio Owner or Manager (or [PPM administrator](../settings/permissions.mdx#ppm-administrator)), the same delivery leadership every other portfolio change takes. Only active scoring models can be assigned. If the assigned model is later archived, existing project scores stay intact and users can still see the recorded history.
 
 Project scoring uses immutable snapshots: every recorded score stores the model name, each criterion rating, and every output value at the time it was recorded. This keeps prior scores meaningful even if the portfolio later switches to a different model.
 

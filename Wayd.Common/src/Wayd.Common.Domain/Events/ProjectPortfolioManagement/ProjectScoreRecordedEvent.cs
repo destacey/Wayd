@@ -9,14 +9,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A project was scored against its portfolio's scoring model.
 /// </summary>
 /// <remarks>
-/// A score is an immutable snapshot taken at a point in time, never edited, so recording one is always an
-/// addition to a series. The model is named as well as identified because a score outlives the model
-/// version that produced it, and a reader needs to know what it was scored against.
-/// <para>
-/// Appended rather than superseding, for the same reason as a health check: each score is its own record,
-/// and <see cref="Sequence"/> is what orders the series.
-/// </para>
+/// Frozen at its published shape and never raised; <see cref="ProjectScoreRecordedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectScoreRecordedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectScoreRecordedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -32,7 +29,7 @@ public sealed record ProjectScoreRecordedEvent : DomainEvent, IPpmEvent
         Guid scoredById,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

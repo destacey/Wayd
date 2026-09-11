@@ -16,7 +16,7 @@ public sealed record ProgramDetailsUpdatedEvent : DomainEvent, ISimpleProgram, I
     // name; the primary constructor's `program` parameter cannot be bound).
     [JsonConstructor]
     public ProgramDetailsUpdatedEvent(Guid id, int key, string name, string description, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

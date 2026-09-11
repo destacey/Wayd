@@ -8,9 +8,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// The strategic themes a project is tagged with changed.
 /// </summary>
 /// <remarks>
-/// Carries the full set after the change rather than what was added or removed, matching
-/// <see cref="ProjectCreatedEvent.StrategicThemes"/> so the two compare directly.
+/// Frozen at its published shape and never raised; <see cref="ProjectStrategicThemesChangedEventV2"/>
+/// replaced it. Kept so every payload written as this type still deserializes into it — its name and members
+/// are the contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectStrategicThemesChangedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectStrategicThemesChangedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -21,7 +23,7 @@ public sealed record ProjectStrategicThemesChangedEvent : DomainEvent, IPpmEvent
         Guid[] strategicThemes,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

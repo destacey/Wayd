@@ -17,7 +17,8 @@ public sealed class ActivateProgramCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
-    ILogger<ActivateProgramCommandHandler> logger) : ICommandHandler<ActivateProgramCommand>
+    ILogger<ActivateProgramCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateProgramCommand>
 {
     private const string AppRequestName = nameof(ActivateProgramCommand);
 
@@ -25,6 +26,7 @@ public sealed class ActivateProgramCommandHandler(
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ActivateProgramCommandHandler> _logger = logger;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(ActivateProgramCommand request, CancellationToken cancellationToken)
     {
@@ -43,7 +45,7 @@ public sealed class ActivateProgramCommandHandler(
                 return Result.Failure("Program not found.");
             }
 
-            var activateResult = program.Activate(actor, program.AncestryRoles());
+            var activateResult = program.Activate(actor, program.AncestryRoles(), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

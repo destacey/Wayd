@@ -43,7 +43,7 @@ public sealed class ArchiveProjectPortfolioCommandHandler(
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var archiveResult = portfolio.Archive(actor);
+            var archiveResult = portfolio.Archive(actor, _dateTimeProvider.Now);
             if (archiveResult.IsFailure)
             {
                 // Reset the entity

@@ -9,10 +9,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// the new set.
 /// </summary>
 /// <remarks>
-/// The most destructive operation on the aggregate: the old stages are discarded outright and each task is
-/// re-pointed, with tasks whose stage was not mapped falling to the first stage of the new lifecycle.
-/// Recording how many tasks moved is what makes a surprising result afterwards traceable.
+/// Frozen at its published shape and never raised; <see cref="ProjectLifecycleChangedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectLifecycleChangedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectLifecycleChangedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -26,7 +27,7 @@ public sealed record ProjectLifecycleChangedEvent : DomainEvent, IPpmEvent
         int remappedTaskCount,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

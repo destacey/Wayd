@@ -37,7 +37,8 @@ public sealed class UpdateProjectPortfolioCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
-    ILogger<UpdateProjectPortfolioCommandHandler> logger)
+    ILogger<UpdateProjectPortfolioCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(UpdateProjectPortfolioCommand);
@@ -46,6 +47,7 @@ public sealed class UpdateProjectPortfolioCommandHandler(
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateProjectPortfolioCommandHandler> _logger = logger;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(UpdateProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
@@ -66,7 +68,8 @@ public sealed class UpdateProjectPortfolioCommandHandler(
             var updateResult = portfolio.UpdateDetails(
                 actor,
                 request.Name,
-                request.Description
+                request.Description,
+                _dateTimeProvider.Now
                 );
             if (updateResult.IsFailure)
             {
@@ -74,7 +77,7 @@ public sealed class UpdateProjectPortfolioCommandHandler(
             }
 
             var roles = GetRoles(request);
-            var updateRolesResult = portfolio.UpdateRoles(actor, roles);
+            var updateRolesResult = portfolio.UpdateRoles(actor, roles, _dateTimeProvider.Now);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(portfolio, updateRolesResult, cancellationToken);

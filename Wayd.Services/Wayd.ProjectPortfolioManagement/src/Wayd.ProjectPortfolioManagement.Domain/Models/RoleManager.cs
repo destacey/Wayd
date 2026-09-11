@@ -1,10 +1,44 @@
-﻿using Ardalis.GuardClauses;
+﻿using System.Globalization;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
 public static class RoleManager
 {
+    /// <summary>
+    /// A role set in the shape every role-carrying event publishes it: role type id to the employees
+    /// holding it.
+    /// </summary>
+    public static Dictionary<int, Guid[]> ToRoleMap<T>(IEnumerable<RoleAssignment<T>> roles) where T : Enum =>
+        roles
+            .GroupBy(r => Convert.ToInt32(r.Role, CultureInfo.InvariantCulture))
+            .ToDictionary(g => g.Key, g => g.Select(r => r.EmployeeId).ToArray());
+
+    /// <summary>
+    /// The assignments gained and lost between two role maps.
+    /// </summary>
+    /// <remarks>
+    /// A whole-record update replaces the role lists on every save, so most calls change nothing; the
+    /// aggregates raise only when either side is non-empty, or they would bury the calls that did change
+    /// leadership. Sorted so the same change always produces the same payload.
+    /// </remarks>
+    public static (RoleAssignmentChange[] Added, RoleAssignmentChange[] Removed) Diff(
+        Dictionary<int, Guid[]> before, Dictionary<int, Guid[]> after)
+    {
+        var beforeSet = Flatten(before);
+        var afterSet = Flatten(after);
+
+        return (Ordered(afterSet.Except(beforeSet)), Ordered(beforeSet.Except(afterSet)));
+
+        static HashSet<RoleAssignmentChange> Flatten(Dictionary<int, Guid[]> map) =>
+            [.. map.SelectMany(entry => entry.Value.Select(employeeId => new RoleAssignmentChange(entry.Key, employeeId)))];
+
+        static RoleAssignmentChange[] Ordered(IEnumerable<RoleAssignmentChange> changes) =>
+            [.. changes.OrderBy(c => c.Role).ThenBy(c => c.EmployeeId)];
+    }
+
     // Assigning and removing one at a time are the building blocks of a whole-set replacement,
     // not an API. Every aggregate replaces its role set through UpdateRoles, which is what keeps
     // role changes to one authorization check and one event describing the net result.

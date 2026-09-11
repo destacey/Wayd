@@ -50,6 +50,59 @@ public class ProjectTests
     #region Project Create and Update
 
     [Fact]
+    public void UpdateDetails_OnAChangedField_RaisesADetailsUpdatedEvent()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateDetails(
+            AnAuthorizedActor(), NoProjectAncestry(), "Renamed", project.Description,
+            project.BusinessCase, project.ExpectedBenefits, project.ExpenditureCategoryId, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.DomainEvents.OfType<ProjectDetailsUpdatedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void UpdateDetails_WithTheValuesItAlreadyHas_RaisesNothing()
+    {
+        // Arrange - the update command sends every field on every save, so most calls change nothing
+        var project = _projectFaker.Generate();
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateDetails(
+            AnAuthorizedActor(), NoProjectAncestry(), project.Name, project.Description,
+            project.BusinessCase, project.ExpectedBenefits, project.ExpenditureCategoryId, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.DomainEvents.Should().BeEmpty("a write that changes nothing is not a business event");
+    }
+
+    [Fact]
+    public void UpdateDetails_WithOnlyWhitespaceAddedToAValue_RaisesNothing()
+    {
+        // Arrange - the setters trim, so a guard comparing the arguments rather than the stored values
+        // would report a change here and record an event describing no difference at all.
+        var project = _projectFaker.Generate();
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateDetails(
+            AnAuthorizedActor(), NoProjectAncestry(), $"  {project.Name} ", $" {project.Description}  ",
+            project.BusinessCase, project.ExpectedBenefits, project.ExpenditureCategoryId, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+
+    [Fact]
     public void RecordScore_RaisesAScoreRecordedEventNamingTheModelAndTheHeadlineNumber()
     {
         // Arrange
@@ -64,7 +117,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectScoreRecordedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectScoreRecordedEventV2>().Should().ContainSingle().Subject;
         raised.ScoreId.Should().Be(result.Value.Id);
         raised.ScoringModelId.Should().Be(model.Id);
         raised.ScoringModelName.Should().Be(model.Name, "a score outlives the model version that produced it");
@@ -93,8 +146,8 @@ public class ProjectTests
         project.ExecutePostPersistenceActions();
 
         // Assert
-        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().ToList();
-        raised.Should().HaveCount(3, "a fast-forwarded project reaches its status through real transitions, and none of them may be superseded");
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEventV2>().ToList();
+        raised.Should().HaveCount(3, "a fast-forwarded project reaches its status through real transitions, and each is its own fact");
         raised.Select(e => e.ToStatus).Should().BeEquivalentTo(
             [nameof(ProjectStatus.Proposed), nameof(ProjectStatus.Active), nameof(ProjectStatus.Completed)]);
 
@@ -102,12 +155,11 @@ public class ProjectTests
         raised.Select(e => e.EventId).Should().BeEquivalentTo(project.StatusHistory.Select(h => h.Id));
         raised.Select(e => e.Sequence).Should().BeEquivalentTo(project.StatusHistory.Select(h => h.Sequence));
 
-        // The lifecycle assignment supersedes, but the import only ever makes one, so it survives too.
-        project.DomainEvents.OfType<ProjectLifecycleAssignedEvent>().Should().ContainSingle();
+        project.DomainEvents.OfType<ProjectLifecycleAssignedEventV2>().Should().ContainSingle();
     }
 
     [Fact]
-    public void RoleChanges_MadeInOneTransaction_RaiseASingleEventCarryingTheNetResult()
+    public void RoleChanges_MadeInOneTransaction_EachRaiseTheirOwnEvent()
     {
         // Arrange
         var project = _projectFaker.Generate();
@@ -116,15 +168,20 @@ public class ProjectTests
         project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [leaving] } }, _dateTimeProvider.Now);
         project.ClearDomainEvents();
 
-        // Act — two replacements in one transaction, the second superseding the first
+        // Act — two replacements before a single save
         project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [] } }, _dateTimeProvider.Now);
         project.UpdateRoles(AnAuthorizedActor(), NoProjectAncestry(), new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [arriving] } }, _dateTimeProvider.Now);
 
-        // Assert
-        var raised = project.DomainEvents.OfType<ProjectRolesChangedEvent>().Should().ContainSingle(
-            "a snapshot event describes the state after the change, so only the last one in a transaction is a fact").Subject;
-        raised.Roles.Should().NotBeNull();
-        raised.Roles![(int)ProjectRole.Owner].Should().BeEquivalentTo([arriving]);
+        // Assert — the aggregate records what it was asked to do, and cannot see the save boundary that
+        // would decide how many of these end up in one transaction
+        var raised = project.DomainEvents.OfType<ProjectRolesChangedEventV2>().ToList();
+        raised.Should().HaveCount(2, "two calls that each changed the roles are two facts");
+        raised[0].Removed.Should().Equal(new RoleAssignmentChange((int)ProjectRole.Owner, leaving));
+        raised[0].Added.Should().BeEmpty();
+        raised[0].Roles.Should().BeEmpty();
+        raised[1].Added.Should().Equal(new RoleAssignmentChange((int)ProjectRole.Owner, arriving));
+        raised[1].Removed.Should().BeEmpty();
+        raised[1].Roles[(int)ProjectRole.Owner].Should().BeEquivalentTo([arriving]);
     }
 
     [Fact]
@@ -141,7 +198,7 @@ public class ProjectTests
         project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
-        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().ToList();
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEventV2>().ToList();
         raised.Should().HaveCount(2, "a transition is movement, not state, so walking a project through two statuses is two facts");
         raised.Select(e => e.ToStatus).Should().Equal(nameof(ProjectStatus.Approved), nameof(ProjectStatus.Active));
         raised.Select(e => e.Sequence).Should().OnlyHaveUniqueItems();
@@ -160,7 +217,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEventV2>().Should().ContainSingle().Subject;
         raised.FromStatus.Should().Be(nameof(ProjectStatus.Proposed));
         raised.ToStatus.Should().Be(nameof(ProjectStatus.Approved));
         raised.IsBackward.Should().BeFalse();
@@ -184,7 +241,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEventV2>().Should().ContainSingle().Subject;
         raised.IsBackward.Should().BeTrue();
         raised.Reason.Should().Be("Approved by the wrong committee.");
         raised.ToCategory.Should().Be(LifecycleCategory.NotStarted);
@@ -203,7 +260,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectTimelineChangedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectTimelineChangedEventV2>().Should().ContainSingle().Subject;
         raised.DateRange.Should().Be(newRange);
     }
 
@@ -221,7 +278,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.DomainEvents.OfType<ProjectTimelineChangedEvent>().Should().BeEmpty("a write that changes nothing is not a business event");
+        project.DomainEvents.OfType<ProjectTimelineChangedEventV2>().Should().BeEmpty("a write that changes nothing is not a business event");
     }
 
     [Fact]
@@ -235,7 +292,7 @@ public class ProjectTests
         project.ExecutePostPersistenceActions();
 
         // Assert
-        var raised = project.DomainEvents.OfType<ProjectStatusChangedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectStatusChangedEventV2>().Should().ContainSingle().Subject;
         raised.FromStatus.Should().BeNull("the origin row records the project entering its initial state");
         raised.ToStatus.Should().Be(nameof(ProjectStatus.Proposed));
         raised.Sequence.Should().Be(1);

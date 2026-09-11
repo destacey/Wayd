@@ -1,8 +1,9 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using NodaTime.Testing;
 using NodaTime.Extensions;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -38,8 +39,9 @@ public sealed class ProjectStageImportDefinitionTests : IDisposable
         _definition = new ProjectStageImportDefinition(_dbContext, new ImportPayloadSerializer());
 
         // A project with an assigned lifecycle, which is where its stages come from.
-        var portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
-        portfolio.Activate(PpmActor.System, _start);
+        var portfolio = ProjectPortfolio.Create(
+            "Growth", "Growth portfolio", null, EventActor.System, clock.Now);
+        portfolio.Activate(PpmActor.System, _start, clock.Now);
 
         _project = portfolio.CreateProject(
             "Project Apollo",

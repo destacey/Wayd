@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
@@ -28,6 +29,330 @@ public class ProjectPortfolioTests
 
     private readonly Guid _ownerId = Guid.NewGuid();
 
+    #region Domain Events
+
+    [Fact]
+    public void UpdateDetails_WithTheValuesItAlreadyHas_RaisesNothing()
+    {
+        // Arrange - the update command sends every field on every save, so most calls change nothing
+        var portfolio = _portfolioFaker.AsProposed();
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.UpdateDetails(
+            AnAuthorizedActor(), portfolio.Name, portfolio.Description, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.DomainEvents.Should().BeEmpty("a write that changes nothing is not a business event");
+    }
+
+    [Fact]
+    public void UpdateDetails_WithOnlyWhitespaceAddedToAValue_RaisesNothing()
+    {
+        // Arrange - the setters trim, so a guard comparing the arguments rather than the stored values
+        // would report a change here and record an event describing no difference at all.
+        var portfolio = _portfolioFaker.AsProposed();
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.UpdateDetails(
+            AnAuthorizedActor(), $"  {portfolio.Name} ", $" {portfolio.Description}  ", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.DomainEvents.Should().BeEmpty();
+    }
+
+
+    [Fact]
+    public void Create_RaisesACreatedEventOnceTheKeyIsAssigned()
+    {
+        // Arrange
+        var roles = new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { { ProjectPortfolioRole.Owner, [_ownerId] } };
+
+        // Act
+        var portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio", roles, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        portfolio.DomainEvents.Should().BeEmpty("Key is assigned by the database, so the event cannot be raised before the insert");
+
+        portfolio.ExecutePostPersistenceActions();
+
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioCreatedEvent>().Should().ContainSingle().Subject;
+        raised.Name.Should().Be("Growth");
+        raised.StatusId.Should().Be((int)ProjectPortfolioStatus.Proposed);
+        raised.Roles.Should().NotBeNull();
+        raised.Roles![(int)ProjectPortfolioRole.Owner].Should().BeEquivalentTo([_ownerId]);
+    }
+
+    [Fact]
+    public void UpdateDetails_RaisesADetailsUpdatedEventCarryingTheNewValues()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsProposed();
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.UpdateDetails(AnAuthorizedActor(), "Renamed", "New description", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        raised.Name.Should().Be("Renamed");
+        raised.Description.Should().Be("New description");
+    }
+
+    [Fact]
+    public void Activate_RaisesAStatusChangedEventCarryingTheDatesTheTransitionSet()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsProposed();
+        var startDate = _dateTimeProvider.Today;
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.Activate(AnAuthorizedActor(), startDate, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioStatusChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromStatus.Should().Be(nameof(ProjectPortfolioStatus.Proposed));
+        raised.ToStatus.Should().Be(nameof(ProjectPortfolioStatus.Active));
+        raised.ToCategory.Should().Be(LifecycleCategory.Active);
+        raised.DateRange.Should().NotBeNull();
+        raised.DateRange!.Start.Should().Be(startDate, "activating is what sets the start date, so the event has to carry it");
+    }
+
+    [Fact]
+    public void PauseThenResume_EachRaiseTheirOwnEvent_DistinguishedByStatusRatherThanCategory()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        portfolio.ClearDomainEvents();
+
+        // Act
+        portfolio.Pause(AnAuthorizedActor(), _dateTimeProvider.Now);
+        portfolio.Resume(AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioStatusChangedEvent>().ToList();
+        raised.Should().HaveCount(2, "a transition is movement, not state, so pausing and resuming are two facts");
+        raised.Select(e => e.ToStatus).Should().Equal(nameof(ProjectPortfolioStatus.OnHold), nameof(ProjectPortfolioStatus.Active));
+        raised.Select(e => e.ToCategory).Should().AllBeEquivalentTo(LifecycleCategory.Active,
+            "a paused portfolio is still running work, so only the status name separates the two");
+    }
+
+    [Fact]
+    public void Pause_ByAnActorWithNoLeadership_IsDeniedAndRaisesNothing()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.Pause(AnUnauthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        portfolio.Status.Should().Be(ProjectPortfolioStatus.Active);
+        portfolio.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Close_RaisesAStatusChangedEventCarryingTheEndDate()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var endDate = _dateTimeProvider.Today;
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.Close(AnAuthorizedActor(), endDate, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioStatusChangedEvent>().Should().ContainSingle().Subject;
+        raised.ToStatus.Should().Be(nameof(ProjectPortfolioStatus.Closed));
+        raised.DateRange!.End.Should().Be(endDate);
+    }
+
+    [Fact]
+    public void RoleChanges_MadeInOneTransaction_EachRaiseTheirOwnEvent()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsProposed();
+        var leaving = Guid.CreateVersion7();
+        var arriving = Guid.CreateVersion7();
+        portfolio.UpdateRoles(AnAuthorizedActor(), new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { { ProjectPortfolioRole.Owner, [leaving] } }, _dateTimeProvider.Now);
+        portfolio.ClearDomainEvents();
+
+        // Act - two replacements before a single save
+        portfolio.UpdateRoles(AnAuthorizedActor(), new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { { ProjectPortfolioRole.Owner, [] } }, _dateTimeProvider.Now);
+        portfolio.UpdateRoles(AnAuthorizedActor(), new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { { ProjectPortfolioRole.Owner, [arriving] } }, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioRolesChangedEvent>().ToList();
+        raised.Should().HaveCount(2, "two calls that each changed the roles are two facts");
+        raised[0].Removed.Should().Equal(new RoleAssignmentChange((int)ProjectPortfolioRole.Owner, leaving));
+        raised[0].Added.Should().BeEmpty();
+        raised[0].Roles.Should().BeEmpty();
+        raised[1].Added.Should().Equal(new RoleAssignmentChange((int)ProjectPortfolioRole.Owner, arriving));
+        raised[1].Removed.Should().BeEmpty();
+        raised[1].Roles[(int)ProjectPortfolioRole.Owner].Should().BeEquivalentTo([arriving]);
+    }
+
+    [Fact]
+    public void UpdateRoles_WithTheRolesItAlreadyHas_RaisesNothing()
+    {
+        // Arrange - the update command replaces the role lists on every save, so most calls change nothing
+        var roles = new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { { ProjectPortfolioRole.Owner, [_ownerId] } };
+        var portfolio = _portfolioFaker.AsProposed();
+        portfolio.UpdateRoles(AnAuthorizedActor(), roles, _dateTimeProvider.Now);
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), roles, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.DomainEvents.OfType<ProjectPortfolioRolesChangedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AssignScoringModel_RaisesAScoringModelChangedEventNamingTheModel()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var model = _scoringModelFaker.AsActiveWsjf();
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.AssignScoringModel(model, AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioScoringModelChangedEvent>().Should().ContainSingle().Subject;
+        raised.ScoringModelId.Should().Be(model.Id);
+        raised.ScoringModelName.Should().Be(model.Name, "an entry has to stay readable after the model is renamed");
+    }
+
+    [Fact]
+    public void AssignScoringModel_ByAnActorWithNoLeadership_IsDeniedAndRaisesNothing()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var model = _scoringModelFaker.AsActiveWsjf();
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.AssignScoringModel(model, AnUnauthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        portfolio.ScoringModelId.Should().BeNull();
+        portfolio.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ClearScoringModel_RaisesAScoringModelChangedEventCarryingTheClearedState()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var model = _scoringModelFaker.AsActiveWsjf();
+        portfolio.AssignScoringModel(model, AnAuthorizedActor(), _dateTimeProvider.Now);
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.ClearScoringModel(AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioScoringModelChangedEvent>().Should().ContainSingle().Subject;
+        raised.ScoringModelId.Should().BeNull("null is the cleared state, and the model it replaced is the previous entry");
+        raised.ScoringModelName.Should().BeNull();
+    }
+
+    [Fact]
+    public void AssigningThenClearingInOneTransaction_RaisesBothChanges()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var model = _scoringModelFaker.AsActiveWsjf();
+        portfolio.ClearDomainEvents();
+
+        // Act
+        portfolio.AssignScoringModel(model, AnAuthorizedActor(), _dateTimeProvider.Now);
+        portfolio.ClearScoringModel(AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        // Assigning and then clearing are two decisions, and the aggregate has no business deciding
+        // that the first stops counting because a save has not happened yet.
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioScoringModelChangedEvent>().ToList();
+        raised.Should().HaveCount(2);
+        raised[0].ScoringModelId.Should().Be(model.Id);
+        raised[1].ScoringModelId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ClearScoringModel_WhenNoneIsAssigned_RaisesNothing()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.ClearScoringModel(AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.DomainEvents.Should().BeEmpty("a write that changes nothing is not a business event");
+    }
+
+    [Fact]
+    public void CreateStrategicInitiative_RaisesAnEventAgainstThePortfolio()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90));
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.CreateStrategicInitiative(
+            "Cloud Migration", "Move the estate", dateRange, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<StrategicInitiativeCreatedEvent>().Should().ContainSingle().Subject;
+        raised.StrategicInitiativeId.Should().Be(result.Value.Id);
+        raised.Name.Should().Be("Cloud Migration");
+        raised.AggregateId.Should().Be(portfolio.Id, "an initiative has no activity log of its own, so the fact belongs to its portfolio");
+        raised.AggregateType.Should().Be("ProjectPortfolio");
+    }
+
+    [Fact]
+    public void DeleteStrategicInitiative_RaisesAnEventCarryingTheNameOfTheRemovedRecord()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90));
+        var initiative = portfolio.CreateStrategicInitiative(
+            "Cloud Migration", "Move the estate", dateRange, null, EventActor.System, _dateTimeProvider.Now).Value;
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.DeleteStrategicInitiative(initiative.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<StrategicInitiativeDeletedEvent>().Should().ContainSingle().Subject;
+        raised.StrategicInitiativeId.Should().Be(initiative.Id);
+        raised.Name.Should().Be("Cloud Migration", "the row it describes is gone by the time anyone reads the entry");
+        raised.AggregateId.Should().Be(portfolio.Id);
+    }
+
+    #endregion Domain Events
+
     #region Portfolio Create and Update
 
     [Fact]
@@ -38,7 +363,7 @@ public class ProjectPortfolioTests
         var description = "Test Description";
 
         // Act
-        var portfolio = ProjectPortfolio.Create(name, description);
+        var portfolio = ProjectPortfolio.Create(name, description, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         portfolio.Should().NotBeNull();
@@ -59,7 +384,7 @@ public class ProjectPortfolioTests
         var updatedDescription = "Updated Description";
 
         // Act
-        var result = portfolio.UpdateDetails(AnAuthorizedActor(), updatedName, updatedDescription);
+        var result = portfolio.UpdateDetails(AnAuthorizedActor(), updatedName, updatedDescription, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -76,7 +401,7 @@ public class ProjectPortfolioTests
         var updatedDescription = "Updated Description";
 
         // Act
-        var result = portfolio.UpdateDetails(AnAuthorizedActor(), updatedName, updatedDescription);
+        var result = portfolio.UpdateDetails(AnAuthorizedActor(), updatedName, updatedDescription, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -100,7 +425,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -124,7 +449,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -148,7 +473,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -168,7 +493,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -187,7 +512,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -206,7 +531,7 @@ public class ProjectPortfolioTests
         var startDate = _dateTimeProvider.Today;
 
         // Act
-        var result = portfolio.Activate(AnAuthorizedActor(), startDate);
+        var result = portfolio.Activate(AnAuthorizedActor(), startDate, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -226,7 +551,7 @@ public class ProjectPortfolioTests
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
         // Act
-        var result = portfolio.Close(AnAuthorizedActor(), endDate);
+        var result = portfolio.Close(AnAuthorizedActor(), endDate, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -252,7 +577,7 @@ public class ProjectPortfolioTests
         completeProjectResult.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.Close(AnAuthorizedActor(), endDate);
+        var result = portfolio.Close(AnAuthorizedActor(), endDate, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -268,7 +593,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = portfolio.Archive(AnAuthorizedActor());
+        var result = portfolio.Archive(AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -282,7 +607,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsClosed(_dateTimeProvider);
 
         // Act
-        var result = portfolio.Archive(AnAuthorizedActor());
+        var result = portfolio.Archive(AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -307,7 +632,7 @@ public class ProjectPortfolioTests
             .Generate();
 
         // Act
-        var result = portfolio.Archive(employeeId.AsActor());
+        var result = portfolio.Archive(employeeId.AsActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -321,7 +646,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.WithStatus(ProjectPortfolioStatus.Closed).Generate();
 
         // Act
-        var result = portfolio.Archive(AnUnauthorizedActor());
+        var result = portfolio.Archive(AnUnauthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -340,7 +665,7 @@ public class ProjectPortfolioTests
             .Generate();
 
         // Act
-        var result = portfolio.Archive(employeeId.AsActor());
+        var result = portfolio.Archive(employeeId.AsActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -354,7 +679,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.WithStatus(ProjectPortfolioStatus.Closed).Generate();
 
         // Act
-        var result = portfolio.Archive(Guid.NewGuid().AsPpmAdministrator());
+        var result = portfolio.Archive(Guid.NewGuid().AsPpmAdministrator(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -367,7 +692,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.Generate();
 
         // Act
-        var result = portfolio.Activate(AnUnauthorizedActor(), _dateTimeProvider.Today);
+        var result = portfolio.Activate(AnUnauthorizedActor(), _dateTimeProvider.Today, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -382,7 +707,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = portfolio.Close(AnUnauthorizedActor(), _dateTimeProvider.Today.PlusDays(10));
+        var result = portfolio.Close(AnUnauthorizedActor(), _dateTimeProvider.Today.PlusDays(10), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -400,7 +725,7 @@ public class ProjectPortfolioTests
         var grabOwnership = new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { [ProjectPortfolioRole.Owner] = [attackerId] };
 
         // Act
-        var result = portfolio.UpdateRoles(attackerId.AsActor(), grabOwnership);
+        var result = portfolio.UpdateRoles(attackerId.AsActor(), grabOwnership, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -417,7 +742,7 @@ public class ProjectPortfolioTests
         var seedOwnership = new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { [ProjectPortfolioRole.Owner] = [newOwnerId] };
 
         // Act
-        var result = portfolio.UpdateRoles(Guid.NewGuid().AsPpmAdministrator(), seedOwnership);
+        var result = portfolio.UpdateRoles(Guid.NewGuid().AsPpmAdministrator(), seedOwnership, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -431,7 +756,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.WithName("Original").Generate();
 
         // Act
-        var result = portfolio.UpdateDetails(AnUnauthorizedActor(), "Renamed", "New description");
+        var result = portfolio.UpdateDetails(AnUnauthorizedActor(), "Renamed", "New description", _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -465,7 +790,7 @@ public class ProjectPortfolioTests
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
-        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
         var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var project = portfolio.CreateProject(
             seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
@@ -493,7 +818,7 @@ public class ProjectPortfolioTests
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
-        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
         var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var project = portfolio.CreateProject(
             seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
@@ -517,7 +842,7 @@ public class ProjectPortfolioTests
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
-        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
         var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var project = portfolio.CreateProject(
             seed.Name,
@@ -549,7 +874,7 @@ public class ProjectPortfolioTests
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
-        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
         var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var project = portfolio.CreateProject(
             seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
@@ -609,7 +934,7 @@ public class ProjectPortfolioTests
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
         // Act
-        var result = portfolio.Close(AnAuthorizedActor(), endDate);
+        var result = portfolio.Close(AnAuthorizedActor(), endDate, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -934,7 +1259,7 @@ public class ProjectPortfolioTests
         var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
 
         // Act
-        var result = portfolio.CreateStrategicInitiative("Test Initiative", "Test Description", dateRange);
+        var result = portfolio.CreateStrategicInitiative("Test Initiative", "Test Description", dateRange, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -954,7 +1279,7 @@ public class ProjectPortfolioTests
         var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
 
         // Act
-        var result = portfolio.CreateStrategicInitiative("Test Initiative", "Test Description", dateRange);
+        var result = portfolio.CreateStrategicInitiative("Test Initiative", "Test Description", dateRange, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -970,7 +1295,7 @@ public class ProjectPortfolioTests
         var initiative = portfolio.StrategicInitiatives.First(i => i.Status == StrategicInitiativeStatus.Proposed);
 
         // Act
-        var result = portfolio.DeleteStrategicInitiative(initiative.Id);
+        var result = portfolio.DeleteStrategicInitiative(initiative.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -985,7 +1310,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.Generate();
 
         // Act
-        var result = portfolio.DeleteStrategicInitiative(Guid.NewGuid());
+        var result = portfolio.DeleteStrategicInitiative(Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1000,7 +1325,7 @@ public class ProjectPortfolioTests
         var initiative = portfolio.StrategicInitiatives.First();
 
         // Act
-        var result = portfolio.DeleteStrategicInitiative(initiative.Id);
+        var result = portfolio.DeleteStrategicInitiative(initiative.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1019,7 +1344,7 @@ public class ProjectPortfolioTests
         var model = _scoringModelFaker.AsActiveWsjf();
 
         // Act
-        var result = portfolio.AssignScoringModel(model);
+        var result = portfolio.AssignScoringModel(model, AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1034,7 +1359,7 @@ public class ProjectPortfolioTests
         var proposedModel = ScoringModel.Create("Proposed", "Not yet active.");
 
         // Act
-        var result = portfolio.AssignScoringModel(proposedModel);
+        var result = portfolio.AssignScoringModel(proposedModel, AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1050,7 +1375,7 @@ public class ProjectPortfolioTests
         var model = _scoringModelFaker.AsActiveWsjf();
 
         // Act
-        var result = portfolio.AssignScoringModel(model);
+        var result = portfolio.AssignScoringModel(model, AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1063,10 +1388,10 @@ public class ProjectPortfolioTests
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
         var model = _scoringModelFaker.AsActiveWsjf();
-        portfolio.AssignScoringModel(model);
+        portfolio.AssignScoringModel(model, AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Act
-        var result = portfolio.ClearScoringModel();
+        var result = portfolio.ClearScoringModel(AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1080,7 +1405,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsArchived(_dateTimeProvider);
 
         // Act
-        var result = portfolio.ClearScoringModel();
+        var result = portfolio.ClearScoringModel(AnAuthorizedActor(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

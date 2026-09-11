@@ -157,7 +157,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="name">The new name.</param>
     /// <param name="description">The new description.</param>
-    public Result UpdateDetails(PpmActor actor, string name, string description)
+    /// <param name="timestamp">The timestamp indicating when the update occurred.</param>
+    public Result UpdateDetails(PpmActor actor, string name, string description, Instant timestamp)
     {
         if (!CanManagePortfolio(actor))
         {
@@ -169,8 +170,18 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(ReadOnlyErrorMessage);
         }
 
+        // Compared after assignment, never against the arguments: the setters normalise, so a caller
+        // passing "Growth " where "Growth" is stored has changed nothing.
+        var before = (Name, Description);
+
         Name = name;
         Description = description;
+
+        if (before != (Name, Description))
+        {
+            AddDomainEvent(new ProjectPortfolioDetailsUpdatedEvent(
+                Id, Key, Name, Description, actor.ToEventActor(), timestamp));
+        }
 
         return Result.Success();
     }
@@ -180,7 +191,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="updatedRoles">The replacement role assignments.</param>
-    public Result UpdateRoles(PpmActor actor, Dictionary<ProjectPortfolioRole, HashSet<Guid>> updatedRoles)
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result UpdateRoles(PpmActor actor, Dictionary<ProjectPortfolioRole, HashSet<Guid>> updatedRoles, Instant timestamp)
     {
         if (!CanManagePortfolio(actor))
         {
@@ -192,8 +204,25 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(ReadOnlyErrorMessage);
         }
 
-        return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        var before = RoleMap();
+
+        var result = RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        var after = RoleMap();
+        var (added, removed) = RoleManager.Diff(before, after);
+        if (added.Length > 0 || removed.Length > 0)
+        {
+            AddDomainEvent(new ProjectPortfolioRolesChangedEvent(Id, Key, added, removed, after, actor.ToEventActor(), timestamp));
+        }
+
+        return result;
     }
+
+    private Dictionary<int, Guid[]> RoleMap() => RoleManager.ToRoleMap(_roles);
 
     #region Scoring
 
@@ -202,9 +231,16 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// project scores are unaffected — they retain their own frozen model reference.
     /// </summary>
     /// <param name="model">The scoring model to assign. Must be in the Active state.</param>
-    public Result AssignScoringModel(ScoringModel model)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="timestamp">The timestamp indicating when the assignment occurred.</param>
+    public Result AssignScoringModel(ScoringModel model, PpmActor actor, Instant timestamp)
     {
         Guard.Against.Null(model, nameof(model));
+
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
 
         if (IsReadOnly)
         {
@@ -216,7 +252,14 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Only active scoring models can be assigned to a portfolio.");
         }
 
+        if (ScoringModelId == model.Id)
+        {
+            return Result.Success();
+        }
+
         ScoringModelId = model.Id;
+
+        RaiseScoringModelChanged(model.Id, model.Name, actor, timestamp);
 
         return Result.Success();
     }
@@ -225,17 +268,38 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// Clears the portfolio's assigned scoring model, disabling new project scoring. Existing project
     /// scores are unaffected.
     /// </summary>
-    public Result ClearScoringModel()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="timestamp">The timestamp indicating when the model was cleared.</param>
+    public Result ClearScoringModel(PpmActor actor, Instant timestamp)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (IsReadOnly)
         {
             return Result.Failure(ReadOnlyErrorMessage);
         }
 
+        if (ScoringModelId is null)
+        {
+            return Result.Success();
+        }
+
         ScoringModelId = null;
+
+        RaiseScoringModelChanged(null, null, actor, timestamp);
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Records what the portfolio scores against after the change, with nulls for the cleared state.
+    /// </summary>
+    private void RaiseScoringModelChanged(Guid? modelId, string? modelName, PpmActor actor, Instant timestamp) =>
+        AddDomainEvent(new ProjectPortfolioScoringModelChangedEvent(
+            Id, Key, modelId, modelName, actor.ToEventActor(), timestamp));
 
     #endregion Scoring
 
@@ -444,7 +508,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="startDate">The date the portfolio becomes active.</param>
-    public Result Activate(PpmActor actor, LocalDate startDate)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Activate(PpmActor actor, LocalDate startDate, Instant timestamp)
     {
         if (!CanManagePortfolio(actor))
         {
@@ -458,38 +523,52 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Only proposed portfolios can be activated.");
         }
 
-        Status = ProjectPortfolioStatus.Active;
         DateRange = new FlexibleDateRange(startDate);
+        ChangeStatus(ProjectPortfolioStatus.Active, actor, timestamp);
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Puts the portfolio on hold.
+    /// Puts the portfolio on hold on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Pause()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Pause(PpmActor actor, Instant timestamp)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status != ProjectPortfolioStatus.Active)
         {
             return Result.Failure("Only active portfolios can be put on hold.");
         }
 
-        Status = ProjectPortfolioStatus.OnHold;
+        ChangeStatus(ProjectPortfolioStatus.OnHold, actor, timestamp);
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Resumes an on-hold portfolio.
+    /// Resumes an on-hold portfolio on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Resume()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Resume(PpmActor actor, Instant timestamp)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status != ProjectPortfolioStatus.OnHold)
         {
             return Result.Failure("Only portfolios on hold can be resumed.");
         }
 
-        Status = ProjectPortfolioStatus.Active;
+        ChangeStatus(ProjectPortfolioStatus.Active, actor, timestamp);
 
         return Result.Success();
     }
@@ -499,7 +578,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="endDate">The date the portfolio closes.</param>
-    public Result Close(PpmActor actor, LocalDate endDate)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Close(PpmActor actor, LocalDate endDate, Instant timestamp)
     {
         if (!CanManagePortfolio(actor))
         {
@@ -533,8 +613,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("All projects must be completed or canceled before the portfolio can be closed.");
         }
 
-        Status = ProjectPortfolioStatus.Closed;
         DateRange = new FlexibleDateRange(DateRange.Start, endDate);
+        ChangeStatus(ProjectPortfolioStatus.Closed, actor, timestamp);
 
         return Result.Success();
     }
@@ -543,7 +623,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// Archives the portfolio on behalf of an actor who must be authorized to manage it.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
-    public Result Archive(PpmActor actor)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Archive(PpmActor actor, Instant timestamp)
     {
         if (!CanManagePortfolio(actor))
         {
@@ -555,9 +636,34 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Only closed portfolios can be archived.");
         }
 
-        Status = ProjectPortfolioStatus.Archived;
+        ChangeStatus(ProjectPortfolioStatus.Archived, actor, timestamp);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Moves the portfolio to <paramref name="toStatus"/> and records the transition. Callers set
+    /// <see cref="DateRange"/> before calling, so the event carries the dates the transition left behind.
+    /// </summary>
+    /// <remarks>
+    /// A portfolio keeps no status history, so this event is the whole record of the move.
+    /// </remarks>
+    private void ChangeStatus(ProjectPortfolioStatus toStatus, PpmActor actor, Instant timestamp)
+    {
+        var fromStatus = Status;
+
+        Status = toStatus;
+
+        AddDomainEvent(new ProjectPortfolioStatusChangedEvent(
+            Id,
+            Key,
+            fromStatus.ToString(),
+            LifecycleCategories<ProjectPortfolioStatus>.Of(fromStatus),
+            toStatus.ToString(),
+            LifecycleCategories<ProjectPortfolioStatus>.Of(toStatus),
+            DateRange,
+            actor.ToEventActor(),
+            timestamp));
     }
 
     #endregion Lifecycle
@@ -825,8 +931,10 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// <param name="description">The description of the strategic initiative.</param>
     /// <param name="dateRange">The date range of the strategic initiative.</param>
     /// <param name="roles">The roles associated with the strategic initiative (optional).</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the initiative was created.</param>
     /// <returns>A result containing the created strategic initiative or an error.</returns>
-    public Result<StrategicInitiative> CreateStrategicInitiative(string name, string description, LocalDateRange dateRange, Dictionary<StrategicInitiativeRole, HashSet<Guid>>? roles = null)
+    public Result<StrategicInitiative> CreateStrategicInitiative(string name, string description, LocalDateRange dateRange, Dictionary<StrategicInitiativeRole, HashSet<Guid>>? roles, EventActor actor, Instant timestamp)
     {
         if (!IsActive)
         {
@@ -836,6 +944,15 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         var initiative = StrategicInitiative.Create(name, description, dateRange, Id, roles);
         _strategicInitiatives.Add(initiative);
 
+        AddDomainEvent(new StrategicInitiativeCreatedEvent(
+            Id,
+            initiative.Id,
+            initiative.Name,
+            dateRange,
+            RoleManager.ToRoleMap(initiative.Roles),
+            actor,
+            timestamp));
+
         return Result.Success(initiative);
     }
 
@@ -843,8 +960,10 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// Deletes the specified strategic initiative from the portfolio.
     /// </summary>
     /// <param name="strategicInitiativeId"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the initiative was deleted.</param>
     /// <returns></returns>
-    public Result DeleteStrategicInitiative(Guid strategicInitiativeId)
+    public Result DeleteStrategicInitiative(Guid strategicInitiativeId, EventActor actor, Instant timestamp)
     {
         var strategicInitiative = _strategicInitiatives.SingleOrDefault(p => p.Id == strategicInitiativeId);
         if (strategicInitiative is null)
@@ -864,6 +983,9 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 
         _strategicInitiatives.Remove(strategicInitiative);
 
+        AddDomainEvent(new StrategicInitiativeDeletedEvent(
+            Id, strategicInitiative.Id, strategicInitiative.Name, actor, timestamp));
+
         return Result.Success();
     }
 
@@ -880,8 +1002,26 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Creates a new portfolio in the proposed status.
     /// </summary>
-    public static ProjectPortfolio Create(string name, string description, Dictionary<ProjectPortfolioRole, HashSet<Guid>>? roles = null)
+    /// <remarks>
+    /// The creation event is raised after persistence because <see cref="Key"/> is assigned by the
+    /// database — raised at construction it would carry zero.
+    /// </remarks>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the portfolio was created.</param>
+    public static ProjectPortfolio Create(string name, string description, Dictionary<ProjectPortfolioRole, HashSet<Guid>>? roles, EventActor actor, Instant timestamp)
     {
-        return new ProjectPortfolio(name, description, ProjectPortfolioStatus.Proposed, roles);
+        var portfolio = new ProjectPortfolio(name, description, ProjectPortfolioStatus.Proposed, roles);
+
+        portfolio.AddPostPersistenceAction(() => portfolio.AddDomainEvent(new ProjectPortfolioCreatedEvent(
+            portfolio.Id,
+            portfolio.Key,
+            portfolio.Name,
+            portfolio.Description,
+            (int)portfolio.Status,
+            portfolio.RoleMap(),
+            actor,
+            timestamp)));
+
+        return portfolio;
     }
 }

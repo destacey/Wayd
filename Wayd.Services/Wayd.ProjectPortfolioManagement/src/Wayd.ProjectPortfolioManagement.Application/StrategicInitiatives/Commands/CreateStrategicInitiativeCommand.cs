@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
@@ -35,13 +36,17 @@ public sealed class CreateStrategicInitiativeCommandValidator : AbstractValidato
 
 public sealed class CreateStrategicInitiativeCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<CreateStrategicInitiativeCommandHandler> logger)
+    ICurrentUser currentUser,
+    ILogger<CreateStrategicInitiativeCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateStrategicInitiativeCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateStrategicInitiativeCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateStrategicInitiativeCommandHandler> _logger = logger;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
@@ -62,7 +67,9 @@ public sealed class CreateStrategicInitiativeCommandHandler(
                 request.Name,
                 request.Description,
                 request.DateRange,
-                roles);
+                roles,
+                EventActor.User(_currentUser.GetUserId()),
+                _dateTimeProvider.Now);
             if (createResult.IsFailure)
             {
                 _logger.LogError("Error creating strategic initiative {StrategicInitiativeName} for Portfolio {PortfolioId}. Error message: {Error}", request.Name, request.PortfolioId, createResult.Error);

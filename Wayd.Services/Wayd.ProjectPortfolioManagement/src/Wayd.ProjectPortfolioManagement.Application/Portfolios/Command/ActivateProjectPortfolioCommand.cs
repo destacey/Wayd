@@ -43,7 +43,7 @@ public sealed class ActivateProjectPortfolioCommandHandler(
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var activateResult = portfolio.Activate(actor, _dateTimeProvider.Today);
+            var activateResult = portfolio.Activate(actor, _dateTimeProvider.Today, _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

@@ -17,7 +17,7 @@ namespace Wayd.Infrastructure.Persistence.Activities;
 /// ones a live event writes. A second serializer configuration or a second summary format would surface
 /// as payloads that will not compare and summaries that read differently for the same event type.
 /// </remarks>
-internal static class ActivityLogEntryFactory
+internal static partial class ActivityLogEntryFactory
 {
     internal static readonly JsonSerializerOptions ActivityJsonOptions = CreateActivityJsonOptions();
 
@@ -132,19 +132,29 @@ internal static class ActivityLogEntryFactory
 
     private static string FormatSummary(string eventType, string aggregateType)
     {
-        var readableEvent = eventType.EndsWith("Event", StringComparison.Ordinal)
-            ? eventType[..^5]
-            : eventType;
+        // The generation suffix of a superseding type ("ProjectReparentedEventV2") marks a contract break
+        // for consumers; a reader of the log is looking at the same fact either way.
+        var unversioned = TypeGenerationSuffix().Replace(eventType, string.Empty);
 
-        var words = Regex.Replace(readableEvent, "(\\B[A-Z])", " $1");
+        var readableEvent = unversioned.EndsWith("Event", StringComparison.Ordinal)
+            ? unversioned[..^5]
+            : unversioned;
 
-        if (words.StartsWith(aggregateType, StringComparison.OrdinalIgnoreCase))
+        // Matched before the words are spaced out, so a multi-word aggregate still recognizes its own
+        // events: "ProjectPortfolioCreated" starts with "ProjectPortfolio", while "Project Portfolio
+        // Created" does not, and appending "on ProjectPortfolio" to it would say the same thing twice.
+        if (readableEvent.StartsWith(aggregateType, StringComparison.OrdinalIgnoreCase))
         {
-            return words;
+            return SpaceWords(readableEvent);
         }
 
-        return $"{words} on {aggregateType}";
+        return $"{SpaceWords(readableEvent)} on {SpaceWords(aggregateType)}";
     }
+
+    private static string SpaceWords(string pascalCase) => Regex.Replace(pascalCase, "(\\B[A-Z])", " $1");
+
+    [GeneratedRegex(@"V\d+$")]
+    private static partial Regex TypeGenerationSuffix();
 
     /// <summary>
     /// Builds an entry for an event that names its own aggregate, with no entity in hand.

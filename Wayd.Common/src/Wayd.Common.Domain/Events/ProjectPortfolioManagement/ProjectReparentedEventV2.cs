@@ -23,6 +23,7 @@ public sealed record ProjectReparentedEventV2 : DomainEvent, IPpmEvent
         Guid id,
         ProjectKey key,
         Guid portfolioId,
+        Guid? previousProgramId,
         Guid? programId,
         EventActor actor,
         Instant timestamp)
@@ -31,6 +32,7 @@ public sealed record ProjectReparentedEventV2 : DomainEvent, IPpmEvent
         Id = id;
         Key = key;
         PortfolioId = portfolioId;
+        PreviousProgramId = previousProgramId;
         ProgramId = programId;
 
         Timestamp = timestamp;
@@ -38,7 +40,17 @@ public sealed record ProjectReparentedEventV2 : DomainEvent, IPpmEvent
 
     public Guid Id { get; }
     public ProjectKey Key { get; }
+
+    /// <summary>
+    /// The portfolio the project belongs to. A move never leaves it, so there is no previous portfolio.
+    /// </summary>
     public Guid PortfolioId { get; }
+
+    /// <summary>
+    /// The program the project was under before the move, or null when it sat directly in the portfolio.
+    /// The program it left loses a child from its rollups, so a consumer needs this as much as the new one.
+    /// </summary>
+    public Guid? PreviousProgramId { get; }
 
     /// <summary>The program the project now belongs to, or null when it was detached.</summary>
     public Guid? ProgramId { get; }

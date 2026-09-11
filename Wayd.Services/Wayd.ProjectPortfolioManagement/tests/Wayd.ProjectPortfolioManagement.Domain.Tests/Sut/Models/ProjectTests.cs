@@ -1878,6 +1878,39 @@ public class ProjectTests
         project.ProgramId.Should().BeNull();
     }
 
+    [Fact]
+    public void UpdateProgram_MovingToAnotherProgram_RaisesAReparentedEventNamingBothPrograms()
+    {
+        // Arrange
+        var previousProgramId = Guid.NewGuid();
+        var project = _projectFaker.WithProgramId(previousProgramId).Generate();
+        var program = Program.Create("Test Program", "Description", null, project.PortfolioId, null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        project.UpdateProgram(program, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = project.DomainEvents.OfType<ProjectReparentedEventV2>().Should().ContainSingle().Subject;
+        raised.PreviousProgramId.Should().Be(previousProgramId);
+        raised.ProgramId.Should().Be(program.Id);
+    }
+
+    [Fact]
+    public void UpdateProgram_DetachingFromAProgram_RaisesAReparentedEventNamingTheProgramLeft()
+    {
+        // Arrange
+        var previousProgramId = Guid.NewGuid();
+        var project = _projectFaker.WithProgramId(previousProgramId).Generate();
+
+        // Act
+        project.UpdateProgram(null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = project.DomainEvents.OfType<ProjectReparentedEventV2>().Should().ContainSingle().Subject;
+        raised.PreviousProgramId.Should().Be(previousProgramId);
+        raised.ProgramId.Should().BeNull();
+    }
+
     #endregion Program Association Tests
 
     #region Strategic Theme Management

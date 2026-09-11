@@ -408,6 +408,7 @@ public sealed class DomainEventSerializationTests
             id: Guid.NewGuid(),
             key: new ProjectKey("ATLAS"),
             portfolioId: Guid.NewGuid(),
+            previousProgramId: Guid.NewGuid(),
             programId: Guid.NewGuid(),
             EventActor.System,
             timestamp: Instant.FromUtc(2026, 9, 10, 9, 0, 0));
@@ -419,6 +420,7 @@ public sealed class DomainEventSerializationTests
         roundTripped.Id.Should().Be(original.Id);
         roundTripped.Key.Value.Should().Be(original.Key.Value);
         roundTripped.PortfolioId.Should().Be(original.PortfolioId);
+        roundTripped.PreviousProgramId.Should().Be(original.PreviousProgramId);
         roundTripped.ProgramId.Should().Be(original.ProgramId);
         roundTripped.Timestamp.Should().Be(original.Timestamp);
         roundTripped.EventVersion.Should().Be("2.0", "a type's generation and its version's major must agree");

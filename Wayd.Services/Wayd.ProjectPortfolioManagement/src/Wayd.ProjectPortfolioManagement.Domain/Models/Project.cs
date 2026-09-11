@@ -426,10 +426,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     {
         if (program is null)
         {
-            if (ProgramId is not null)
+            if (ProgramId is { } previousProgramId)
             {
                 ProgramId = null;
-                AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, null, actor, timestamp));
+                AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, previousProgramId, null, actor, timestamp));
             }
 
             return Result.Success();
@@ -445,9 +445,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Success();
         }
 
+        var previous = ProgramId;
         ProgramId = program.Id;
 
-        AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, ProgramId, actor, timestamp));
+        AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, previous, ProgramId, actor, timestamp));
 
         return Result.Success();
     }

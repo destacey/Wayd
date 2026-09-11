@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Scoring.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
@@ -21,6 +22,7 @@ public class ClearPortfolioScoringModelCommandHandlerTests : IDisposable
     private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new NodaTime.Testing.FakeClock(Instant.FromUtc(2026, 5, 1, 0, 0)));
     private readonly ProjectPortfolioFaker _portfolioFaker = new();
+    private readonly ScoringModelFaker _scoringModelFaker = new();
 
     public ClearPortfolioScoringModelCommandHandlerTests()
     {
@@ -42,8 +44,11 @@ public class ClearPortfolioScoringModelCommandHandlerTests : IDisposable
     public async Task Handle_WhenAssigned_ClearsModelAndSaves()
     {
         // Arrange
+        // Both halves of the assignment, as the handler's Include(p => p.ScoringModel) loads them
+        var model = _scoringModelFaker.AsActiveWsjf();
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        portfolio.SetPrivate(p => p.ScoringModelId, (Guid?)Guid.NewGuid());
+        portfolio.SetPrivate(p => p.ScoringModelId, (Guid?)model.Id);
+        portfolio.SetPrivate(p => p.ScoringModel, model);
         _dbContext.AddPortfolio(portfolio);
 
         var command = new ClearPortfolioScoringModelCommand(portfolio.Id);

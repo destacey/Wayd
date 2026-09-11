@@ -32,8 +32,10 @@ public sealed class AssignPortfolioScoringModelCommandHandler(
         var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
         // A portfolio has no ancestor, so its own roles are the whole leadership picture.
+        // The assigned model is loaded because the event names the model being replaced.
         var portfolio = await _ppmDbContext.Portfolios
             .Include(p => p.Roles)
+            .Include(p => p.ScoringModel)
             .FirstOrDefaultAsync(p => p.Id == request.PortfolioId, cancellationToken);
         if (portfolio is null)
         {
@@ -41,8 +43,9 @@ public sealed class AssignPortfolioScoringModelCommandHandler(
             return Result.Failure("Project Portfolio not found.");
         }
 
+        // Tracked, because the portfolio holds it as its navigation; an untracked instance there would be
+        // inserted as a new model on save.
         var model = await _ppmDbContext.ScoringModels
-            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == request.ScoringModelId, cancellationToken);
         if (model is null)
         {

@@ -31,8 +31,10 @@ public sealed class ClearPortfolioScoringModelCommandHandler(
         var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
         // A portfolio has no ancestor, so its own roles are the whole leadership picture.
+        // The assigned model is loaded because the event names the model being cleared.
         var portfolio = await _ppmDbContext.Portfolios
             .Include(p => p.Roles)
+            .Include(p => p.ScoringModel)
             .FirstOrDefaultAsync(p => p.Id == request.PortfolioId, cancellationToken);
         if (portfolio is null)
         {

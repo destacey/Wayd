@@ -257,9 +257,11 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Success();
         }
 
+        var previous = CurrentScoringModel();
         ScoringModelId = model.Id;
+        ScoringModel = model;
 
-        RaiseScoringModelChanged(model.Id, model.Name, actor, timestamp);
+        RaiseScoringModelChanged(previous, model, actor, timestamp);
 
         return Result.Success();
     }
@@ -287,19 +289,46 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Success();
         }
 
+        var previous = CurrentScoringModel();
         ScoringModelId = null;
+        ScoringModel = null;
 
-        RaiseScoringModelChanged(null, null, actor, timestamp);
+        RaiseScoringModelChanged(previous, null, actor, timestamp);
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Records what the portfolio scores against after the change, with nulls for the cleared state.
+    /// The assigned scoring model, which the scoring-model event names as the one being replaced.
     /// </summary>
-    private void RaiseScoringModelChanged(Guid? modelId, string? modelName, PpmActor actor, Instant timestamp) =>
+    /// <remarks>
+    /// Throws rather than returning null when a model is assigned but was not loaded: the portfolio has to
+    /// be read with <c>.Include(p =&gt; p.ScoringModel)</c> before its model changes, and without this a
+    /// missing include would publish the replaced model with a silently null name.
+    /// </remarks>
+    private ScoringModel? CurrentScoringModel()
+    {
+        if (ScoringModelId is null)
+        {
+            return null;
+        }
+
+        if (ScoringModel is null || ScoringModel.Id != ScoringModelId)
+        {
+            throw new InvalidOperationException(
+                $"Portfolio {Id} has scoring model {ScoringModelId} assigned, but it was not loaded. " +
+                "Include ProjectPortfolio.ScoringModel before changing it.");
+        }
+
+        return ScoringModel;
+    }
+
+    /// <summary>
+    /// Records the move between models; a null on either side means the portfolio had, or now has, none.
+    /// </summary>
+    private void RaiseScoringModelChanged(ScoringModel? previous, ScoringModel? current, PpmActor actor, Instant timestamp) =>
         AddDomainEvent(new ProjectPortfolioScoringModelChangedEvent(
-            Id, Key, modelId, modelName, actor.ToEventActor(), timestamp));
+            Id, Key, previous?.Id, previous?.Name, current?.Id, current?.Name, actor.ToEventActor(), timestamp));
 
     #endregion Scoring
 

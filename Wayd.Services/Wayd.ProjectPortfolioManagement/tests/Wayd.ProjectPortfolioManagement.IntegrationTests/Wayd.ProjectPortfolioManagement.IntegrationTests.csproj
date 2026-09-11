@@ -30,6 +30,7 @@
         <ProjectReference Include="..\..\..\..\Wayd.Infrastructure\src\Wayd.Infrastructure.Migrators.MSSQL\Wayd.Infrastructure.Migrators.MSSQL.csproj" />
         <ProjectReference Include="..\..\src\Wayd.ProjectPortfolioManagement.Application\Wayd.ProjectPortfolioManagement.Application.csproj" />
         <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
+        <ProjectReference Include="..\..\..\..\Wayd.Common\tests\Wayd.Common.Domain.Tests\Wayd.Common.Domain.Tests.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -13,6 +13,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Extensions;
 using Wayd.Common.Domain.Events;
 using static Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions.PpmActorDataExtensions;
 
@@ -233,8 +234,51 @@ public class ProjectPortfolioTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         var raised = portfolio.DomainEvents.OfType<ProjectPortfolioScoringModelChangedEvent>().Should().ContainSingle().Subject;
+        raised.PreviousScoringModelId.Should().BeNull();
+        raised.PreviousScoringModelName.Should().BeNull();
         raised.ScoringModelId.Should().Be(model.Id);
         raised.ScoringModelName.Should().Be(model.Name, "an entry has to stay readable after the model is renamed");
+    }
+
+    [Fact]
+    public void AssignScoringModel_ReplacingAnotherModel_RaisesAScoringModelChangedEventCarryingBothModels()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var current = _scoringModelFaker.AsActiveWsjf();
+        var replacement = _scoringModelFaker.AsActiveWsjf();
+        portfolio.AssignScoringModel(current, AnAuthorizedActor(), _dateTimeProvider.Now);
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.AssignScoringModel(replacement, AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert — a swap reads as a move from one model to the other without looking elsewhere
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.OfType<ProjectPortfolioScoringModelChangedEvent>().Should().ContainSingle().Subject;
+        raised.PreviousScoringModelId.Should().Be(current.Id);
+        raised.PreviousScoringModelName.Should().Be(current.Name);
+        raised.ScoringModelId.Should().Be(replacement.Id);
+        raised.ScoringModelName.Should().Be(replacement.Name);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ChangingTheScoringModel_OfAPortfolioLoadedWithoutIt_FailsLoudly(bool replacing)
+    {
+        // Arrange — the model is assigned but was never loaded, as when a query omits Include(p => p.ScoringModel)
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        portfolio.SetPrivate(p => p.ScoringModelId, (Guid?)Guid.NewGuid());
+
+        // Act
+        Action act = replacing
+            ? () => portfolio.AssignScoringModel(_scoringModelFaker.AsActiveWsjf(), AnAuthorizedActor(), _dateTimeProvider.Now)
+            : () => portfolio.ClearScoringModel(AnAuthorizedActor(), _dateTimeProvider.Now);
+
+        // Assert — the event names the model being replaced, and a silently null name is the failure this prevents
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Include ProjectPortfolio.ScoringModel*");
+        portfolio.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
@@ -269,7 +313,9 @@ public class ProjectPortfolioTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         var raised = portfolio.DomainEvents.OfType<ProjectPortfolioScoringModelChangedEvent>().Should().ContainSingle().Subject;
-        raised.ScoringModelId.Should().BeNull("null is the cleared state, and the model it replaced is the previous entry");
+        raised.PreviousScoringModelId.Should().Be(model.Id);
+        raised.PreviousScoringModelName.Should().Be(model.Name);
+        raised.ScoringModelId.Should().BeNull("null is the cleared state");
         raised.ScoringModelName.Should().BeNull();
     }
 
@@ -290,7 +336,9 @@ public class ProjectPortfolioTests
         // that the first stops counting because a save has not happened yet.
         var raised = portfolio.DomainEvents.OfType<ProjectPortfolioScoringModelChangedEvent>().ToList();
         raised.Should().HaveCount(2);
+        raised[0].PreviousScoringModelId.Should().BeNull();
         raised[0].ScoringModelId.Should().Be(model.Id);
+        raised[1].PreviousScoringModelId.Should().Be(model.Id);
         raised[1].ScoringModelId.Should().BeNull();
     }
 

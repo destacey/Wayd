@@ -18,7 +18,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record ProductLinkedExternallyEvent : DomainEvent, IProductManagementEvent, ISimpleProduct
 {
     public ProductLinkedExternallyEvent(Guid id, int key, string name, string? description, string? externalId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

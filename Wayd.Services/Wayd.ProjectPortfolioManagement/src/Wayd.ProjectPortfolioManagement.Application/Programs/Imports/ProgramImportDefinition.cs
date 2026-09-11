@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
@@ -118,7 +118,7 @@ public sealed class ProgramImportDefinition(
                 continue;
             }
 
-            var transition = ApplyStatus(created.Value, data.Status);
+            var transition = ApplyStatus(created.Value, data.Status, timestamp);
             if (transition.IsFailure)
             {
                 row.Failed($"Could not set program '{name}' to {data.Status}: {transition.Error}");
@@ -148,10 +148,10 @@ public sealed class ProgramImportDefinition(
     /// created by this same run, so nobody holds a role on it yet.
     /// </para>
     /// </remarks>
-    private static Result ApplyStatus(Program program, ProgramStatus status) =>
+    private static Result ApplyStatus(Program program, ProgramStatus status, Instant timestamp) =>
         status is ProgramStatus.Proposed
             ? Result.Success()
-            : program.Activate(PpmActor.System, ProgramAncestryRoles.None);
+            : program.Activate(PpmActor.System, ProgramAncestryRoles.None, timestamp);
 
     private async Task<HashSet<string>> ResolveTakenNames(
         ImportPassContext<ImportProgramDto> context, CancellationToken cancellationToken)

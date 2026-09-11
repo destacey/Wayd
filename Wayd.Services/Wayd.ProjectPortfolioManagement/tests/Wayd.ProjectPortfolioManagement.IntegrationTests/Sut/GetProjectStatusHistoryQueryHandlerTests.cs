@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
@@ -57,13 +58,14 @@ public sealed class GetProjectStatusHistoryQueryHandlerTests
         await context.ExpenditureCategories.AddAsync(category, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        var portfolio = ProjectPortfolio.Create("Delivery", "Delivery portfolio");
+        var portfolio = ProjectPortfolio.Create(
+            "Delivery", "Delivery portfolio", null, EventActor.System, SqlServerDbContextFixture.FixedNow);
         await context.Portfolios.AddAsync(portfolio, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
         var actor = new PpmActor(employee.Id, IsPpmAdministrator: true, "integration-test-user");
 
-        portfolio.Activate(actor, SqlServerDbContextFixture.FixedNow.InUtc().Date);
+        portfolio.Activate(actor, SqlServerDbContextFixture.FixedNow.InUtc().Date, SqlServerDbContextFixture.FixedNow);
 
         var today = SqlServerDbContextFixture.FixedNow.InUtc().Date;
         var createResult = portfolio.CreateProject(

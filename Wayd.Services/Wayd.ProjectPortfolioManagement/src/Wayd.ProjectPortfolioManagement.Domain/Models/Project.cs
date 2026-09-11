@@ -283,16 +283,26 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure(UnauthorizedManageActorError);
         }
 
+        // Compared after assignment, never against the arguments: the setters normalise, so a caller
+        // passing "Atlas " where "Atlas" is stored has changed nothing.
+        var before = CurrentDetails();
+
         Name = name;
         Description = description;
         BusinessCase = businessCase?.Trim();
         ExpectedBenefits = expectedBenefits?.Trim();
         ExpenditureCategoryId = expenditureCategoryId;
 
-        AddSupersedingDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, BusinessCase, ExpectedBenefits, actor.ToEventActor(), timestamp));
+        if (before != CurrentDetails())
+        {
+            AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, BusinessCase, ExpectedBenefits, before, actor.ToEventActor(), timestamp));
+        }
 
         return Result.Success();
     }
+
+    private ProjectDetails CurrentDetails() =>
+        new(Name, Description, ExpenditureCategoryId, BusinessCase, ExpectedBenefits);
 
     /// <summary>
     /// Replaces the project's role assignments on behalf of an actor who must be authorized to manage it.
@@ -319,23 +329,15 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return result;
         }
 
-        // A whole-record update replaces the role lists on every save, so most calls change nothing.
-        // Raising regardless would bury the calls that did change leadership.
         var after = RoleMap();
-        if (!SameRoleMap(before, after))
+        var (added, removed) = RoleManager.Diff(before, after);
+        if (added.Length > 0 || removed.Length > 0)
         {
-            AddSupersedingDomainEvent(new ProjectRolesChangedEvent(Id, Key, Name, after, actor.ToEventActor(), timestamp));
+            AddDomainEvent(new ProjectRolesChangedEventV2(Id, Key, added, removed, after, actor.ToEventActor(), timestamp));
         }
 
         return result;
     }
-
-    private static bool SameRoleMap(Dictionary<int, Guid[]> before, Dictionary<int, Guid[]> after) =>
-        before.Count == after.Count
-        && before.All(entry =>
-            after.TryGetValue(entry.Key, out var employees)
-            && entry.Value.Length == employees.Length
-            && entry.Value.OrderBy(x => x).SequenceEqual(employees.OrderBy(x => x)));
 
     /// <summary>
     /// Updates the project's timeline on behalf of an actor who must be authorized to manage it. Dates
@@ -362,9 +364,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Success();
         }
 
+        var previousDateRange = DateRange;
         DateRange = dateRange;
 
-        AddSupersedingDomainEvent(new ProjectTimelineChangedEvent(Id, Key, Name, DateRange, actor.ToEventActor(), timestamp));
+        AddDomainEvent(new ProjectTimelineChangedEventV2(Id, Key, previousDateRange, DateRange, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -391,9 +394,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Success();
         }
 
+        var previousKey = Key;
         Key = key;
 
-        AddSupersedingDomainEvent(new ProjectKeyChangedEvent(Id, Key, Name, actor.ToEventActor(), timestamp));
+        AddDomainEvent(new ProjectKeyChangedEventV2(Id, previousKey, Key, actor.ToEventActor(), timestamp));
 
         foreach (var task in _tasks)
         {
@@ -407,11 +411,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         return Result.Success();
     }
 
-    /// <summary>
-    /// The project's role assignments in the shape every role-carrying event publishes them.
-    /// </summary>
-    private Dictionary<int, Guid[]> RoleMap() =>
-        _roles.GroupBy(x => (int)x.Role).ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray());
+    private Dictionary<int, Guid[]> RoleMap() => RoleManager.ToRoleMap(_roles);
 
     /// <summary>
     /// Repositions this project within its portfolio's ranking. Internal so only the owning
@@ -429,10 +429,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     {
         if (program is null)
         {
-            if (ProgramId is not null)
+            if (ProgramId is { } previousProgramId)
             {
                 ProgramId = null;
-                AddSupersedingDomainEvent(new ProjectReparentedEvent(Id, Key, Name, PortfolioId, null, actor, timestamp));
+                AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, previousProgramId, null, actor, timestamp));
             }
 
             return Result.Success();
@@ -448,9 +448,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Success();
         }
 
+        var previous = ProgramId;
         ProgramId = program.Id;
 
-        AddSupersedingDomainEvent(new ProjectReparentedEvent(Id, Key, Name, PortfolioId, ProgramId, actor, timestamp));
+        AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, previous, ProgramId, actor, timestamp));
 
         return Result.Success();
     }
@@ -463,68 +464,48 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     internal void ClearProgramForDeletion() => ProgramId = null;
 
     /// <summary>
-    /// Associates a strategic theme with this project.
-    /// </summary>
-    public Result AddStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        var result = StrategicThemeTagManager<Project>.AddStrategicThemeTag(_strategicThemeTags, Id, strategicThemeId, "project");
-        if (result.IsSuccess)
-        {
-            RaiseStrategicThemesChanged(actor, timestamp);
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Removes a strategic theme from this project.
-    /// </summary>
-    public Result RemoveStrategicTheme(Guid strategicThemeId, PpmActor actor, Instant timestamp)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        var result = StrategicThemeTagManager<Project>.RemoveStrategicThemeTag(_strategicThemeTags, strategicThemeId, "project");
-        if (result.IsSuccess)
-        {
-            RaiseStrategicThemesChanged(actor, timestamp);
-        }
-
-        return result;
-    }
-
-    /// <summary>
     /// Updates the strategic themes associated with this project.
     /// </summary>
     /// <param name="strategicThemeIds"></param>
     /// <returns></returns>
-    public Result UpdateStrategicThemes(HashSet<Guid> strategicThemeIds, PpmActor actor, Instant timestamp)
+    public Result UpdateStrategicThemes(PpmActor actor, ProjectAncestryRoles ancestry, HashSet<Guid> strategicThemeIds, Instant timestamp)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(strategicThemeIds, nameof(strategicThemeIds));
 
-        var before = _strategicThemeTags.Select(x => x.StrategicThemeId).ToHashSet();
+        var before = ThemeIds();
 
         var result = StrategicThemeTagManager<Project>.UpdateTags(_strategicThemeTags, Id, strategicThemeIds, "project");
-
-        // The update command replaces the tag set on every save, so raising unconditionally would report
-        // a change on edits that never touched the themes.
-        if (result.IsSuccess && !before.SetEquals(_strategicThemeTags.Select(x => x.StrategicThemeId)))
+        if (result.IsSuccess)
         {
-            RaiseStrategicThemesChanged(actor, timestamp);
+            RaiseIfThemesChanged(before, actor, timestamp);
         }
 
         return result;
     }
 
-    private void RaiseStrategicThemesChanged(PpmActor actor, Instant timestamp) =>
-        AddSupersedingDomainEvent(new ProjectStrategicThemesChangedEvent(
-            Id,
-            Key,
-            Name,
-            [.. _strategicThemeTags.Select(x => x.StrategicThemeId)],
-            actor.ToEventActor(),
-            timestamp));
+    private HashSet<Guid> ThemeIds() => [.. _strategicThemeTags.Select(x => x.StrategicThemeId)];
+
+    // The update command replaces the tag set on every save, so most calls change nothing; raising
+    // regardless would report a change on edits that never touched the themes. Sorted so the same
+    // change always produces the same payload.
+    private void RaiseIfThemesChanged(HashSet<Guid> before, PpmActor actor, Instant timestamp)
+    {
+        var after = ThemeIds();
+        Guid[] added = [.. after.Except(before).Order()];
+        Guid[] removed = [.. before.Except(after).Order()];
+        if (added.Length == 0 && removed.Length == 0)
+        {
+            return;
+        }
+
+        AddDomainEvent(new ProjectStrategicThemesChangedEventV2(
+            Id, Key, added, removed, [.. after.Order()], actor.ToEventActor(), timestamp));
+    }
 
     #region Lifecycle
 
@@ -559,14 +540,15 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         }
 
         ProjectLifecycleId = lifecycle.Id;
+        ProjectLifecycle = lifecycle;
 
         foreach (var lifecycleStage in lifecycle.Stages.OrderBy(p => p.Order))
         {
             _stages.Add(ProjectStage.Create(Id, lifecycleStage));
         }
 
-        AddSupersedingDomainEvent(new ProjectLifecycleAssignedEvent(
-            Id, Key, Name, lifecycle.Id, lifecycle.Name, _stages.Count, actor.ToEventActor(), timestamp));
+        AddDomainEvent(new ProjectLifecycleAssignedEventV2(
+            Id, Key, lifecycle.Id, lifecycle.Name, _stages.Count, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -612,6 +594,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         {
             return Result.Failure("The new lifecycle must be different from the current lifecycle.");
         }
+
+        // Read before anything moves, so a project loaded without its lifecycle fails with nothing changed.
+        var previous = CurrentLifecycle();
 
         // Validate that every stage with tasks is included in the mapping
         var stagesWithTasks = _stages
@@ -682,11 +667,33 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         }
 
         ProjectLifecycleId = newLifecycle.Id;
+        ProjectLifecycle = newLifecycle;
 
-        AddSupersedingDomainEvent(new ProjectLifecycleChangedEvent(
-            Id, Key, Name, newLifecycle.Id, newLifecycle.Name, _stages.Count, remappedTaskCount, actor.ToEventActor(), timestamp));
+        AddDomainEvent(new ProjectLifecycleChangedEventV2(
+            Id, Key, previous.Id, previous.Name, newLifecycle.Id, newLifecycle.Name, _stages.Count, remappedTaskCount,
+            actor.ToEventActor(), timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// The assigned lifecycle, which the lifecycle-changed event names as the one being replaced.
+    /// </summary>
+    /// <remarks>
+    /// Throws rather than returning null when a lifecycle is assigned but was not loaded: the project has to
+    /// be read with <c>.Include(p =&gt; p.ProjectLifecycle)</c> before its lifecycle changes, and without this
+    /// a missing include would publish the replaced lifecycle with a silently null name.
+    /// </remarks>
+    private ProjectLifecycle CurrentLifecycle()
+    {
+        if (ProjectLifecycle is null || ProjectLifecycle.Id != ProjectLifecycleId)
+        {
+            throw new InvalidOperationException(
+                $"Project {Id} has lifecycle {ProjectLifecycleId} assigned, but it was not loaded. " +
+                "Include Project.ProjectLifecycle before changing it.");
+        }
+
+        return ProjectLifecycle;
     }
 
     /// <summary>
@@ -934,11 +941,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         // The event carries the history row's id as its own, so the transition and its record share one
         // identity. That is what lets history written before this event existed be replayed into the
         // activity log without duplicating a transition that already raised one.
-        AddDomainEvent(new ProjectStatusChangedEvent(
+        AddDomainEvent(new ProjectStatusChangedEventV2(
             entry.Id,
             Id,
             Key,
-            Name,
             fromStatus.ToString(),
             ProjectStatusLifecycle.CategoryOf(fromStatus),
             toStatus.ToString(),
@@ -1544,10 +1550,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             model.Id,
             model.Name);
 
-        AddDomainEvent(new ProjectScoreRecordedEvent(
+        AddDomainEvent(new ProjectScoreRecordedEventV2(
             Id,
             Key,
-            Name,
             score.Id,
             model.Id,
             model.Name,
@@ -1611,8 +1616,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         _healthChecks.Add(newCheck);
 
-        AddDomainEvent(new ProjectHealthCheckAddedEvent(
-            Id, Key, Name, newCheck.Id, status, note, expiration, actor.EmployeeId, actor.ToEventActor(), now));
+        // From the stored check, not the arguments: the note is trimmed on the way in.
+        AddDomainEvent(new ProjectHealthCheckAddedEventV2(
+            Id, Key, newCheck.Id, newCheck.Status, newCheck.Note, newCheck.Expiration, actor.EmployeeId, actor.ToEventActor(), now));
 
         return Result.Success(newCheck);
     }
@@ -1658,12 +1664,21 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (healthCheck is null)
             return Result.Failure<ProjectHealthCheck>($"Health check {healthCheckId} not found on project {Id}.");
 
+        // Compared after the update, never against the arguments: the note is trimmed on the way in.
+        var before = (healthCheck.Status, healthCheck.Note, healthCheck.Expiration);
+
         var updateResult = healthCheck.Update(status, expiration, note, now);
         if (updateResult.IsFailure)
             return Result.Failure<ProjectHealthCheck>(updateResult.Error);
 
-        AddDomainEvent(new ProjectHealthCheckUpdatedEvent(
-            Id, Key, Name, healthCheck.Id, status, note, expiration, actor.ToEventActor(), now));
+        if (before != (healthCheck.Status, healthCheck.Note, healthCheck.Expiration))
+        {
+            AddDomainEvent(new ProjectHealthCheckUpdatedEventV2(
+                Id, Key, healthCheck.Id,
+                before.Status, before.Note, before.Expiration,
+                healthCheck.Status, healthCheck.Note, healthCheck.Expiration,
+                actor.ToEventActor(), now));
+        }
 
         return Result.Success(healthCheck);
     }
@@ -1699,8 +1714,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         _healthChecks.Remove(healthCheck);
 
-        AddDomainEvent(new ProjectHealthCheckRemovedEvent(
-            Id, Key, Name, healthCheck.Id, healthCheck.Status, actor.ToEventActor(), now));
+        AddDomainEvent(new ProjectHealthCheckRemovedEventV2(
+            Id, Key, healthCheck.Id, healthCheck.Status, actor.ToEventActor(), now));
 
         return Result.Success(healthCheck);
     }
@@ -1791,35 +1806,34 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         // it explicitly.
         project.StatusTransitionCount = 1;
 
-        project.AddPostPersistenceAction(() => project.AddDomainEvent(
-            new ProjectCreatedEvent
-            (
-                project,
-                project.ExpenditureCategoryId,
-                (int)project.Status,
-                project.DateRange,
-                project.PortfolioId,
-                project.ProgramId,
-                project.BusinessCase,
-                project.ExpectedBenefits,
-                project.Roles
-                    .GroupBy(x => (int)x.Role)
-                    .ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray()),
-                [.. project.StrategicThemeTags.Select(x => x.StrategicThemeId)],
-                actor.ToEventActor(),
-                timestamp
-            )));
+        // Built now, not when the action runs: the event records the project as created, and an import
+        // walks it to a later status before the first save. Every value is known here, Key included.
+        var created = new ProjectCreatedEvent
+        (
+            project,
+            project.ExpenditureCategoryId,
+            (int)project.Status,
+            project.DateRange,
+            project.PortfolioId,
+            project.ProgramId,
+            project.BusinessCase,
+            project.ExpectedBenefits,
+            project.RoleMap(),
+            [.. project.ThemeIds().Order()],
+            actor.ToEventActor(),
+            timestamp
+        );
+        project.AddPostPersistenceAction(() => project.AddDomainEvent(created));
 
         // Raised here rather than by ChangeStatus, which the origin row deliberately bypasses. Without
         // it a created project would record no transition while an existing one has its origin row
         // replayed into the log, so the two would disagree about how a project's history starts.
-        // Post-persistence for the same reason the created event is: Key is assigned on insert.
+        // Post-persistence so it follows the created event rather than preceding it.
         project.AddPostPersistenceAction(() => project.AddDomainEvent(
-            new ProjectStatusChangedEvent(
+            new ProjectStatusChangedEventV2(
                 originEntry.Id,
                 project.Id,
                 project.Key,
-                project.Name,
                 fromStatus: null,
                 fromCategory: null,
                 ProjectStatus.Proposed.ToString(),

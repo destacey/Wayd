@@ -7,7 +7,7 @@ namespace Wayd.Common.Domain.Events.Organization;
 public sealed record TeamUpdatedEvent : DomainEvent, IAggregateEvent
 {
     public TeamUpdatedEvent(Guid id, TeamCode code, string name, string? description, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Code = code;

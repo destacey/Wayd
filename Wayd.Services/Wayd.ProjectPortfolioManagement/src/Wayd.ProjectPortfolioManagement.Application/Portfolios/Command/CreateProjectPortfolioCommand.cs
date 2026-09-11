@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -33,13 +34,17 @@ public sealed class CreateProjectPortfolioCommandValidator : AbstractValidator<C
 
 public sealed class CreateProjectPortfolioCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<CreateProjectPortfolioCommandHandler> logger)
+    ICurrentUser currentUser,
+    ILogger<CreateProjectPortfolioCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateProjectPortfolioCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateProjectPortfolioCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateProjectPortfolioCommandHandler> _logger = logger;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
@@ -50,7 +55,9 @@ public sealed class CreateProjectPortfolioCommandHandler(
             var portfolio = ProjectPortfolio.Create(
                 request.Name,
                 request.Description,
-                roles
+                roles,
+                EventActor.User(_currentUser.GetUserId()),
+                _dateTimeProvider.Now
                 );
 
             await _projectPortfolioManagementDbContext.Portfolios.AddAsync(portfolio, cancellationToken);

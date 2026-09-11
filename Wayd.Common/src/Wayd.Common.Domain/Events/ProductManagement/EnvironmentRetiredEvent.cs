@@ -13,7 +13,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record EnvironmentRetiredEvent : DomainEvent, IProductManagementEvent
 {
     public EnvironmentRetiredEvent(Guid id, int key, string name, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

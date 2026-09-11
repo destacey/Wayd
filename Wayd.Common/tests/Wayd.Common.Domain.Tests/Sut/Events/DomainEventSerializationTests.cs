@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
@@ -226,6 +226,283 @@ public sealed class DomainEventSerializationTests
         roundTripped.Name.Should().Be(original.Name);
         roundTripped.Description.Should().Be(original.Description);
         roundTripped.State.Should().Be(original.State);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void ProjectPortfolioCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - the Dictionary<int, Guid[]> roles collection alongside NodaTime members.
+        var roles = new Dictionary<int, Guid[]>
+        {
+            [1] = [Guid.NewGuid()],
+            [2] = [Guid.NewGuid(), Guid.NewGuid()],
+        };
+
+        var original = new ProjectPortfolioCreatedEvent(
+            id: Guid.NewGuid(),
+            key: 12,
+            name: "Growth",
+            description: "Growth portfolio",
+            statusId: 1,
+            roles: roles,
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 2, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.Key.Should().Be(original.Key);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.StatusId.Should().Be(original.StatusId);
+        roundTripped.Roles.Should().BeEquivalentTo(original.Roles);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void ProjectPortfolioStatusChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - FlexibleDateRange is the only value object with an optional end date, so it is the
+        // one whose round-trip is not already covered by LocalDateRange.
+        var original = new ProjectPortfolioStatusChangedEvent(
+            id: Guid.NewGuid(),
+            key: 12,
+            fromStatus: "Active",
+            fromCategory: LifecycleCategory.Active,
+            toStatus: "Closed",
+            toCategory: LifecycleCategory.Completed,
+            dateRange: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2026, 6, 30)),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 6, 30, 17, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.FromStatus.Should().Be(original.FromStatus);
+        roundTripped.FromCategory.Should().Be(original.FromCategory);
+        roundTripped.ToStatus.Should().Be(original.ToStatus);
+        roundTripped.ToCategory.Should().Be(original.ToCategory);
+        roundTripped.DateRange.Should().NotBeNull();
+        roundTripped.DateRange!.Start.Should().Be(original.DateRange!.Start);
+        roundTripped.DateRange.End.Should().Be(original.DateRange.End);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void ProjectPortfolioStatusChangedEvent_WithAnOpenEndedRange_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - an activated portfolio has a start date and no end date yet.
+        var original = new ProjectPortfolioStatusChangedEvent(
+            id: Guid.NewGuid(),
+            key: 12,
+            fromStatus: "Proposed",
+            fromCategory: LifecycleCategory.NotStarted,
+            toStatus: "Active",
+            toCategory: LifecycleCategory.Active,
+            dateRange: new FlexibleDateRange(new LocalDate(2025, 1, 1)),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2025, 1, 1, 9, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.DateRange.Should().NotBeNull();
+        roundTripped.DateRange!.Start.Should().Be(original.DateRange!.Start);
+        roundTripped.DateRange.End.Should().BeNull();
+    }
+
+    [Fact]
+    public void ProgramTimelineChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - LocalDateRange value object, nullable so a cleared timeline round-trips too.
+        var original = new ProgramTimelineChangedEvent(
+            id: Guid.NewGuid(),
+            key: 7,
+            previousDateRange: null,
+            dateRange: new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 9, 30)),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 5, 10, 15, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.Key.Should().Be(original.Key);
+        roundTripped.DateRange.Should().NotBeNull();
+        roundTripped.DateRange!.Start.Should().Be(original.DateRange!.Start);
+        roundTripped.DateRange.End.Should().Be(original.DateRange.End);
+        roundTripped.PreviousDateRange.Should().BeNull();
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void StrategicInitiativeCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a LocalDateRange and the roles collection, on an event whose aggregate is the
+        // portfolio rather than the record it names.
+        var portfolioId = Guid.NewGuid();
+        var original = new StrategicInitiativeCreatedEvent(
+            portfolioId: portfolioId,
+            strategicInitiativeId: Guid.NewGuid(),
+            name: "Cloud Migration",
+            dateRange: new LocalDateRange(new LocalDate(2026, 3, 1), new LocalDate(2026, 12, 31)),
+            roles: new Dictionary<int, Guid[]> { [1] = [Guid.NewGuid()] },
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.PortfolioId.Should().Be(original.PortfolioId);
+        roundTripped.StrategicInitiativeId.Should().Be(original.StrategicInitiativeId);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.DateRange.Start.Should().Be(original.DateRange.Start);
+        roundTripped.Roles.Should().BeEquivalentTo(original.Roles);
+        roundTripped.AggregateId.Should().Be(portfolioId);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void ProjectReparentedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen V1 contract, as it was written before V2 replaced it. Nothing raises V1 any
+        // more, so only a stored payload can prove the retired type still reads what it once wrote.
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": "ATLAS",
+              "Name": "Atlas",
+              "PortfolioId": "019f2a10-0000-7000-8000-000000000002",
+              "ProgramId": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<ProjectReparentedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Atlas");
+        restored.Key.Value.Should().Be("ATLAS");
+        restored.ProgramId.Should().BeNull();
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void ProjectDetailsUpdatedEvent_PayloadWrittenBeforePreviousWasAdded_ReadsAsNotRecorded()
+    {
+        // Arrange - a 1.1 payload, written before the event carried the details it replaced
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": "ATLAS",
+              "Name": "Atlas",
+              "Description": "Atlas description",
+              "ExpenditureCategoryId": 3,
+              "BusinessCase": null,
+              "ExpectedBenefits": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.1"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<ProjectDetailsUpdatedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Atlas");
+        restored.Previous.Should().BeNull("a 1.1 payload did not record the details it replaced");
+        restored.EventVersion.Should().Be("1.1", "the stored version says which shape the payload was written in");
+    }
+
+    [Fact]
+    public void ProjectDetailsUpdatedEvent_RoundTripsAPreviousBusinessCaseThatWasEmpty()
+    {
+        // Arrange - the case the grouped Previous exists for: a null inside it is a real value
+        var original = new ProjectDetailsUpdatedEvent(
+            id: Guid.NewGuid(),
+            key: new ProjectKey("ATLAS"),
+            name: "Atlas",
+            description: "Atlas description",
+            expenditureCategoryId: 3,
+            businessCase: "Consolidates three regional trackers.",
+            expectedBenefits: null,
+            previous: new ProjectDetails("Atlas", "Atlas description", 3, null, null),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 9, 10, 9, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Previous.Should().Be(original.Previous);
+        roundTripped.BusinessCase.Should().Be(original.BusinessCase);
+        roundTripped.EventVersion.Should().Be("1.2");
+    }
+
+    [Fact]
+    public void ProjectReparentedEventV2_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new ProjectReparentedEventV2(
+            id: Guid.NewGuid(),
+            key: new ProjectKey("ATLAS"),
+            portfolioId: Guid.NewGuid(),
+            previousProgramId: Guid.NewGuid(),
+            programId: Guid.NewGuid(),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 9, 10, 9, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.Key.Value.Should().Be(original.Key.Value);
+        roundTripped.PortfolioId.Should().Be(original.PortfolioId);
+        roundTripped.PreviousProgramId.Should().Be(original.PreviousProgramId);
+        roundTripped.ProgramId.Should().Be(original.ProgramId);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+        roundTripped.EventVersion.Should().Be("2.0", "a type's generation and its version's major must agree");
+    }
+
+    [Fact]
+    public void ProjectRolesChangedEventV2_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - the change as positional records, alongside the roster in the Created events' encoding.
+        var arriving = Guid.NewGuid();
+        var leaving = Guid.NewGuid();
+        var original = new ProjectRolesChangedEventV2(
+            id: Guid.NewGuid(),
+            key: new ProjectKey("ATLAS"),
+            added: [new RoleAssignmentChange(2, arriving)],
+            removed: [new RoleAssignmentChange(3, leaving)],
+            roles: new Dictionary<int, Guid[]> { [2] = [arriving] },
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 9, 10, 9, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Added.Should().Equal(original.Added);
+        roundTripped.Removed.Should().Equal(original.Removed);
+        roundTripped.Roles.Should().BeEquivalentTo(original.Roles);
         roundTripped.Timestamp.Should().Be(original.Timestamp);
     }
 

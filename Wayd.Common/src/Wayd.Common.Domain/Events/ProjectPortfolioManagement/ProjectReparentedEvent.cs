@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using NodaTime;
 
@@ -8,9 +8,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A project was moved under a different program, or detached from the one it was under.
 /// </summary>
 /// <remarks>
-/// Earns its own event because the move changes every rollup the project feeds: a program's timeline, the
-/// status rules a closed parent imposes, and the ancestry that decides who may manage the project at all.
+/// Frozen at its published shape and never raised; <see cref="ProjectReparentedEventV2"/> replaced it. Kept
+/// so every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectReparentedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectReparentedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -22,7 +24,7 @@ public sealed record ProjectReparentedEvent : DomainEvent, IPpmEvent
         Guid? programId,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

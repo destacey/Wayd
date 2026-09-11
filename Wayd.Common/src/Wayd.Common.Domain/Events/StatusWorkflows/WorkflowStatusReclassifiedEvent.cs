@@ -34,7 +34,7 @@ public sealed record WorkflowStatusReclassifiedEvent : DomainEvent, IAggregateEv
         StatusCategory toCategory,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         WorkflowId = workflowId;
         StatusId = statusId;

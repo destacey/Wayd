@@ -1,13 +1,19 @@
 ﻿using FluentAssertions;
+using Moq;
 using NodaTime;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.Tests.Shared;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Portfolios.Imports;
@@ -24,7 +30,13 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
 
     public ProjectPortfolioImportDefinitionTests()
     {
-        _definition = new ProjectPortfolioImportDefinition(_dbContext, new ImportPayloadSerializer());
+        var clock = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
+
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        _definition = new ProjectPortfolioImportDefinition(
+            _dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
     }
 
     public void Dispose() => _dbContext.Dispose();

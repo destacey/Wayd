@@ -5,6 +5,7 @@ using NodaTime.Testing;
 using NodaTime.Extensions;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Identity;
@@ -45,8 +46,9 @@ public sealed class ProgramImportDefinitionTests : IDisposable
             _dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
 
         // Programs can only be created inside an active portfolio.
-        _portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
-        _portfolio.Activate(PpmActor.System, _start);
+        _portfolio = ProjectPortfolio.Create(
+            "Growth", "Growth portfolio", null, EventActor.System, clock.Now);
+        _portfolio.Activate(PpmActor.System, _start, clock.Now);
         _dbContext.AddPortfolio(_portfolio);
     }
 

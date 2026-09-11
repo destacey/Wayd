@@ -159,7 +159,7 @@ public sealed class ActivityLogPersistenceTests
     {
         public string Details { get; }
 
-        public TestBusinessEvent(string details, EventActor actor, Instant timestamp) : base(actor)
+        public TestBusinessEvent(string details, EventActor actor, Instant timestamp) : base(actor, "1.0")
         {
             Details = details;
             Timestamp = timestamp;

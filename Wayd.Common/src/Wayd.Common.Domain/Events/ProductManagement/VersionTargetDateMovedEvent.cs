@@ -22,7 +22,7 @@ public sealed record VersionTargetDateMovedEvent : DomainEvent, IProductManageme
         LocalDate? toTargetDate,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

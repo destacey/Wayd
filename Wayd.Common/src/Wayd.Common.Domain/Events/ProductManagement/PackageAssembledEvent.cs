@@ -10,7 +10,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record PackageAssembledEvent : DomainEvent, IProductManagementEvent
 {
     public PackageAssembledEvent(Guid id, int key, string version, string? name, int componentCount, int changedCount, Guid statusId, StatusCategory statusCategory, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

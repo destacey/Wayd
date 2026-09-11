@@ -28,7 +28,7 @@ public sealed record DeploymentRolledBackEvent : DomainEvent, IProductManagement
         Guid statusId,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

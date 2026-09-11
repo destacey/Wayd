@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
@@ -26,11 +26,13 @@ namespace Wayd.ProjectPortfolioManagement.Application.Finalization.Imports;
 /// </remarks>
 public sealed class PpmFinalizationImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    IDateTimeProvider dateTimeProvider,
     IImportPayloadSerializer serializer) : ImportDefinition<FinalizePpmItemDto>(serializer)
 {
     public const string ImportKey = "ppm.finalizations";
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public override string Key => ImportKey;
     public override string DisplayName => "PPM Finalizations";
@@ -49,6 +51,8 @@ public sealed class PpmFinalizationImportDefinition(
 
     private async Task<Result> Finalize(ImportPassContext<FinalizePpmItemDto> context, CancellationToken cancellationToken)
     {
+        var timestamp = _dateTimeProvider.Now;
+
         var portfoliosById = await ResolvePortfolios(context, cancellationToken);
         var programsById = portfoliosById.Values
             .SelectMany(p => p.Programs)
@@ -64,7 +68,7 @@ public sealed class PpmFinalizationImportDefinition(
                 continue;
             }
 
-            var result = FinalizeProgram(program, row.Data);
+            var result = FinalizeProgram(program, row.Data, timestamp);
             if (result.IsFailure)
             {
                 row.Failed(result.Error);
@@ -82,7 +86,7 @@ public sealed class PpmFinalizationImportDefinition(
                 continue;
             }
 
-            var result = FinalizePortfolio(portfolio, row.Data);
+            var result = FinalizePortfolio(portfolio, row.Data, timestamp);
             if (result.IsFailure)
             {
                 row.Failed(result.Error);
@@ -99,11 +103,11 @@ public sealed class PpmFinalizationImportDefinition(
     /// Runs as <see cref="PpmActor.System"/>: finalization is a bulk administrative operation authorized
     /// by the caller's Permissions.ProjectPortfolios.Import claim, not by delivery-leadership membership.
     /// </remarks>
-    private static Result FinalizeProgram(Program program, FinalizePpmItemDto data)
+    private static Result FinalizeProgram(Program program, FinalizePpmItemDto data, Instant timestamp)
     {
         var result = data.Status is FinalizePpmItemStatus.Canceled
-            ? program.Cancel(PpmActor.System, ProgramAncestryRoles.None)
-            : program.Complete(PpmActor.System, ProgramAncestryRoles.None);
+            ? program.Cancel(PpmActor.System, ProgramAncestryRoles.None, timestamp)
+            : program.Complete(PpmActor.System, ProgramAncestryRoles.None, timestamp);
 
         return result.IsFailure
             ? Result.Failure($"Could not finalize program '{program.Name}' as {data.Status}: {result.Error}")
@@ -111,16 +115,16 @@ public sealed class PpmFinalizationImportDefinition(
     }
 
     /// <remarks>Runs as <see cref="PpmActor.System"/> — see <see cref="FinalizeProgram"/>.</remarks>
-    private static Result FinalizePortfolio(ProjectPortfolio portfolio, FinalizePpmItemDto data)
+    private static Result FinalizePortfolio(ProjectPortfolio portfolio, FinalizePpmItemDto data, Instant timestamp)
     {
-        var close = portfolio.Close(PpmActor.System, data.EndDate!.Value);
+        var close = portfolio.Close(PpmActor.System, data.EndDate!.Value, timestamp);
         if (close.IsFailure)
             return Result.Failure($"Could not close portfolio '{portfolio.Name}': {close.Error}");
 
         if (data.Status is not FinalizePpmItemStatus.Archived)
             return Result.Success();
 
-        var archive = portfolio.Archive(PpmActor.System);
+        var archive = portfolio.Archive(PpmActor.System, timestamp);
 
         return archive.IsFailure
             ? Result.Failure($"Could not archive portfolio '{portfolio.Name}': {archive.Error}")

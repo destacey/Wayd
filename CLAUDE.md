@@ -263,22 +263,54 @@ Name events for **what happened**, never a generic `Updated`, and match the doma
 `IProductManagementEvent`) so projections handle the marker rather than a hand-listed set that goes stale
 the day someone forgets to register a new type.
 
-**Pick the raise method by payload shape** — the rule is in `BaseEntity`'s remarks and
-[architecture.mdx](docs/contributing/architecture.mdx#snapshot-events-supersede-movement-events-append):
+**`AddDomainEvent` is the only way to raise, and nothing collapses events afterwards.** Two calls that each
+changed something are two facts. Never reintroduce a "supersede the pending event of this type" mechanism:
+events are drained by `SaveChanges`, so it made the recorded history depend on where a handler put its save
+— see [architecture.mdx](docs/contributing/architecture.mdx#every-raise-is-a-fact-nothing-collapses-them).
 
-- `AddSupersedingDomainEvent` for **state snapshots** (roles, timeline, details). The last raise in a
-  transaction is the net result; earlier ones describe states never committed. Carry only the new value.
-- `AddDomainEvent` for **movement and ledger entries** (status transitions, health checks, scores). Each
-  occurrence is its own fact. `ProjectImportDefinition` fast-forwards a project through several statuses
-  before one save, and superseding would erase the path. Movement events carry both ends, because the
-  delta is the fact.
+**A method raises only when it actually changed something.** A whole-record update sends every field on
+every save, so compare before against after and raise on a real difference — `RoleManager.Diff` for
+role sets (raise when it gained or lost anything), a set difference for theme tags, a value tuple for scalar
+fields. **Compare after assignment, never
+against the arguments**: `Name` and `Description` normalise in their setters, so `if (Name == name)` reports
+a change for a caller who passed `"Atlas "` over a stored `"Atlas"`.
 
-Superseding matches on event **type**, so never use it for a child-entity event — it would collapse events
-about different health checks.
+**A change carries both ends.** The before value is part of the fact, and a consumer must not need an
+earlier event to learn what moved: status changes carry `From*`/`To*`, timeline changes `PreviousDateRange`,
+lifecycle and scoring-model changes the previous id and name. Ledger entries (a health check added, a score
+recorded) are new rows, so they have one end. Collections carry the change and the result: `Added`/`Removed`
+(`RoleAssignmentChange` entries for roles, ids for themes) for consumers that react to what moved, and
+`Roles`/`StrategicThemes`, the set afterwards in the `Created` events' encoding, for consumers that keep a
+copy — applying the latest set is correct however deliveries were ordered or repeated, and applying deltas
+is not. When the previous value lives on a navigation, `.Include` it and have the aggregate throw if it was
+not loaded, rather than record an empty name. Load the incoming record tracked and set the id and navigation
+together: an untracked instance reached through a navigation on a `ValueGeneratedNever` key is inserted on
+save. Both need a Testcontainers test (`SavedEntityRecorder`), because the fakes model neither.
 
 Where an aggregate writes a durable record *and* an event about the same occurrence, give the event that
-record's id as its `EventId` (`ProjectStatusChangedEvent` takes the `ProjectStatusHistory` row's). That is
+record's id as its `EventId` (`ProjectStatusChangedEventV2` takes the `ProjectStatusHistory` row's). That is
 what makes a backfill replaying old records idempotent forever.
+
+**An event's published shape is a contract — version it explicitly.** Every event passes its version
+(`base(actor, "1.0")`). `DomainEvent` has no default for it, so the compiler enforces that; a default would
+hide the one number a change has to bump deliberately.
+
+- **Compatible change** — a new field whose `default` is a valid value — keeps the type and bumps the minor
+  (1.0 → 1.1). A property missing from an older payload binds to `default` through `[JsonConstructor]`
+  with no error, so a new non-nullable field silently arrives as `null` from every row written before it.
+  `default` must also be unambiguous: where a real value can be null, group the new fields in a nullable
+  record (the details events' `Previous`) so null can only mean "not recorded".
+- **Breaking change** — removing, retyping, or repurposing a field — is a **new type** named for its
+  generation, at that major (`ProjectReparentedEventV2`, `"2.0"`). Consumers dispatch on the type, so a
+  same-type payload would reach every consumer of the old shape; only a new type keeps it away from them.
+  Raise only the new type, and have consumers handle both until nothing can still deliver the old one.
+- **The superseded type is frozen, never deleted.** Mark it `[Obsolete]` and leave its published shape and
+  class name untouched: payloads written as it must still deserialize, and the log stores the class name as
+  `EventType`, so renaming one orphans its history.
+
+`DomainEventVersioningTests` fails when a type's generation and its version's major disagree, or when a
+superseded generation is deleted or left un-obsoleted — see
+[architecture.mdx](docs/contributing/architecture.mdx#versioning-an-event).
 
 ### Database
 

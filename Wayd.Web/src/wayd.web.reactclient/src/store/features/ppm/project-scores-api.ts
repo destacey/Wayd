@@ -7,7 +7,7 @@ import {
   RecordProjectScoreRequest,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
-import { projectActivityTag } from './project-activity-tags'
+import { ppmActivityTag } from './ppm-activity-tags'
 
 export interface ProjectScoreScope {
   projectId: string
@@ -29,7 +29,8 @@ export const projectScoresApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId }) => {
         try {
-          const data = await getProjectScoresClient().getScoringContext(projectId)
+          const data =
+            await getProjectScoresClient().getScoringContext(projectId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -41,7 +42,10 @@ export const projectScoresApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    getProjectScores: builder.query<ProjectScoreSummaryDto[], ProjectScoreScope>({
+    getProjectScores: builder.query<
+      ProjectScoreSummaryDto[],
+      ProjectScoreScope
+    >({
       queryFn: async ({ projectId }) => {
         try {
           const data = await getProjectScoresClient().getScores(projectId)
@@ -60,7 +64,10 @@ export const projectScoresApi = apiSlice.injectEndpoints({
     getProjectScore: builder.query<ProjectScoreDetailsDto, ProjectScoreRef>({
       queryFn: async ({ projectId, scoreId }) => {
         try {
-          const data = await getProjectScoresClient().getScore(projectId, scoreId)
+          const data = await getProjectScoresClient().getScore(
+            projectId,
+            scoreId,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -75,7 +82,10 @@ export const projectScoresApi = apiSlice.injectEndpoints({
     recordProjectScore: builder.mutation<string, RecordProjectScoreArgs>({
       queryFn: async ({ projectId, request }) => {
         try {
-          const data = await getProjectScoresClient().recordScore(projectId, request)
+          const data = await getProjectScoresClient().recordScore(
+            projectId,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -88,7 +98,7 @@ export const projectScoresApi = apiSlice.injectEndpoints({
         // The project's denormalized currentScore appears on the detail DTO and every ProjectListDto
         // view, so refresh the detail (by id) and the project lists it can appear in.
         { type: QueryTags.Project, id: projectId },
-        projectActivityTag(projectId),
+        ppmActivityTag(projectId),
         { type: QueryTags.Project, id: 'LIST' },
         { type: QueryTags.PortfolioProjects, id: 'LIST' },
         { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },

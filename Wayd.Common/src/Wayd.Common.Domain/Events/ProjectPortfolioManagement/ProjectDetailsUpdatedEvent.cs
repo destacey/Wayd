@@ -7,16 +7,16 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
 public sealed record ProjectDetailsUpdatedEvent : DomainEvent, ISimpleProject, IPpmEvent
 {
-    public ProjectDetailsUpdatedEvent(ISimpleProject project, int expenditureCategoryId, string? businessCase, string? expectedBenefits, EventActor actor, Instant timestamp)
-        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, businessCase, expectedBenefits, actor, timestamp)
+    public ProjectDetailsUpdatedEvent(ISimpleProject project, int expenditureCategoryId, string? businessCase, string? expectedBenefits, ProjectDetails? previous, EventActor actor, Instant timestamp)
+        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, businessCase, expectedBenefits, previous, actor, timestamp)
     {
     }
 
     // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
     // name; the primary constructor's `project` parameter cannot be bound).
     [JsonConstructor]
-    public ProjectDetailsUpdatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, string? businessCase, string? expectedBenefits, EventActor actor, Instant timestamp)
-        : base(actor, "1.1")
+    public ProjectDetailsUpdatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, string? businessCase, string? expectedBenefits, ProjectDetails? previous, EventActor actor, Instant timestamp)
+        : base(actor, "1.2")
     {
         Id = id;
         Key = key;
@@ -25,6 +25,7 @@ public sealed record ProjectDetailsUpdatedEvent : DomainEvent, ISimpleProject, I
         ExpenditureCategoryId = expenditureCategoryId;
         BusinessCase = businessCase;
         ExpectedBenefits = expectedBenefits;
+        Previous = previous;
 
         Timestamp = timestamp;
     }
@@ -43,6 +44,13 @@ public sealed record ProjectDetailsUpdatedEvent : DomainEvent, ISimpleProject, I
     public string? BusinessCase { get; }
 
     public string? ExpectedBenefits { get; }
+
+    /// <summary>
+    /// Added in 1.1 -> 1.2: the details this edit replaced. Null on a payload written before 1.2, which did
+    /// not record them. Grouped rather than flat because a previous business case can genuinely be null,
+    /// and a flat field could not tell that apart from "not recorded".
+    /// </summary>
+    public ProjectDetails? Previous { get; }
 
     [JsonIgnore]
     public string AggregateType => "Project";

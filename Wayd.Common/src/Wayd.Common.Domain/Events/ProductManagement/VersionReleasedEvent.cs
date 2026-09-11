@@ -14,7 +14,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record VersionReleasedEvent : DomainEvent, IProductManagementEvent
 {
     public VersionReleasedEvent(Guid id, int key, Guid productId, string productName, string number, LocalDate releasedDate, Guid statusId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

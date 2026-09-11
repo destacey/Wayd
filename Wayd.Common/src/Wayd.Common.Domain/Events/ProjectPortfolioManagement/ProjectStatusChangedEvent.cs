@@ -9,26 +9,15 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A project moved to a different status.
 /// </summary>
 /// <remarks>
+/// Frozen at its published shape and never raised; <see cref="ProjectStatusChangedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// <para>
-/// One event covers every transition — approval, activation, completion, cancellation and reversal —
-/// rather than a type per verb. A fixed set of verbs presumes fixed statuses, and PPM statuses are on
-/// their way to being workflow-configurable; a project moving to a status an organization invented would
-/// then raise nothing at all, which is worse than a shared type. <see cref="ToCategory"/> answers the
-/// coarse question without knowing the workflow, so a consumer that only cares whether work started or
-/// finished need not learn every status.
-/// </para>
-/// <para>
-/// This event carries both ends because a transition <em>is</em> the pair: the history it mirrors is
-/// keyed on movement, and "reverted from Active" cannot be recovered from the new status alone. Events
-/// that record a new state rather than a movement carry only the new value and leave deltas to comparison.
-/// </para>
-/// <para>
-/// <see cref="DomainEvent.EventId"/> is the id of the <c>ProjectStatusHistory</c> row this transition
-/// wrote, not a fresh value. The two records describe one fact, so sharing an identity is what lets
-/// history recorded before this event existed be replayed into the activity log exactly once, and lets
-/// that replay run again without duplicating anything.
+/// The <c>Backfill-Project-Status-Activity</c> migration writes its rows as this type, so this is the
+/// shape those rows must keep deserializing into.
 /// </para>
 /// </remarks>
+[Obsolete("Superseded by ProjectStatusChangedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -46,7 +35,7 @@ public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
         int sequence,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         EventId = statusHistoryId;
 

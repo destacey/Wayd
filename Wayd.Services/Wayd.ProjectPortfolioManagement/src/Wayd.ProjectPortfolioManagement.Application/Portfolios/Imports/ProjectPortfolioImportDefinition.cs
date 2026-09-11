@@ -1,8 +1,9 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -21,11 +22,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Imports;
 /// </remarks>
 public sealed class ProjectPortfolioImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportProjectPortfolioDto>(serializer)
 {
     public const string ImportKey = "ppm.portfolios";
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Portfolios";
@@ -50,6 +55,12 @@ public sealed class ProjectPortfolioImportDefinition(
         var takenNames = await ResolveTakenNames(context, cancellationToken);
         var employeeIdsByNumber = await ResolveEmployees(context, cancellationToken);
 
+        var timestamp = _dateTimeProvider.Now;
+
+        // One import run is one actor: the events say "the import", not "this person created every row by
+        // hand", while still recording who set it running.
+        var actor = EventActor.Import(_currentUser.GetUserId());
+
         foreach (var row in context.Accepted)
         {
             var data = row.Data;
@@ -73,9 +84,9 @@ public sealed class ProjectPortfolioImportDefinition(
             }
 
             var portfolio = ProjectPortfolio.Create(
-                name, data.Description.Trim(), BuildRoles(data, employeeIdsByNumber));
+                name, data.Description.Trim(), BuildRoles(data, employeeIdsByNumber), actor, timestamp);
 
-            var transition = ApplyStatus(portfolio, data);
+            var transition = ApplyStatus(portfolio, data, timestamp);
             if (transition.IsFailure)
             {
                 row.Failed($"Could not set portfolio '{name}' to {data.Status}: {transition.Error}");
@@ -112,18 +123,18 @@ public sealed class ProjectPortfolioImportDefinition(
     /// portfolio is created by this same run, so nobody holds a role on it yet.
     /// </para>
     /// </remarks>
-    private static Result ApplyStatus(ProjectPortfolio portfolio, ImportProjectPortfolioDto row)
+    private static Result ApplyStatus(ProjectPortfolio portfolio, ImportProjectPortfolioDto row, Instant timestamp)
     {
         if (row.Status is ProjectPortfolioStatus.Proposed)
             return Result.Success();
 
         // Guaranteed present by ImportProjectPortfolioDtoValidator for any status past Proposed.
-        var activate = portfolio.Activate(PpmActor.System, row.ActivatedOn!.Value);
+        var activate = portfolio.Activate(PpmActor.System, row.ActivatedOn!.Value, timestamp);
         if (activate.IsFailure)
             return activate;
 
         return row.Status is ProjectPortfolioStatus.OnHold
-            ? portfolio.Pause()
+            ? portfolio.Pause(PpmActor.System, timestamp)
             : Result.Success();
     }
 

@@ -6,7 +6,7 @@ import {
   UpdateProjectHealthCheckRequest,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
-import { projectActivityTag } from './project-activity-tags'
+import { ppmActivityTag } from './ppm-activity-tags'
 
 export interface ProjectHealthCheckScope {
   projectId: string
@@ -32,7 +32,8 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId }) => {
         try {
-          const data = await getProjectHealthChecksClient().getHealthChecks(projectId)
+          const data =
+            await getProjectHealthChecksClient().getHealthChecks(projectId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -89,7 +90,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProjectHealthChecksHealthReport, id: projectId },
         { type: QueryTags.Project, id: 'LIST' },
         { type: QueryTags.Project, id: projectId },
-        projectActivityTag(projectId),
+        ppmActivityTag(projectId),
       ],
     }),
 
@@ -115,18 +116,23 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProjectHealthChecksHealthReport, id: projectId },
         { type: QueryTags.Project, id: 'LIST' },
         { type: QueryTags.Project, id: projectId },
-        projectActivityTag(projectId),
+        ppmActivityTag(projectId),
       ],
     }),
 
     deleteProjectHealthCheck: builder.mutation<void, ProjectHealthCheckRef>({
       queryFn: async ({ projectId, healthCheckId }) => {
         try {
-          await getProjectHealthChecksClient().deleteHealthCheck(projectId, healthCheckId)
+          await getProjectHealthChecksClient().deleteHealthCheck(
+            projectId,
+            healthCheckId,
+          )
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error: error ?? new Error('Unknown error deleting health check') }
+          return {
+            error: error ?? new Error('Unknown error deleting health check'),
+          }
         }
       },
       invalidatesTags: (_result, _error, { projectId, healthCheckId }) => [
@@ -134,7 +140,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProjectHealthChecksHealthReport, id: projectId },
         { type: QueryTags.Project, id: 'LIST' },
         { type: QueryTags.Project, id: projectId },
-        projectActivityTag(projectId),
+        ppmActivityTag(projectId),
       ],
     }),
   }),

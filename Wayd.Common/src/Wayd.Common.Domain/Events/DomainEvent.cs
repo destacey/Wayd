@@ -38,13 +38,15 @@ public abstract record DomainEvent : IEvent
     /// parameter rather than something stamped later.
     /// </param>
     /// <param name="eventVersion">
-    /// The schema version of this domain event. Defaults to "1.0".
+    /// The schema version of this event's published shape, e.g. "1.0". Required rather than defaulted: a
+    /// default hides the one number a contract change has to bump deliberately.
     /// </param>
-    protected DomainEvent(EventActor actor, string eventVersion = "1.0")
+    protected DomainEvent(EventActor actor, string eventVersion)
     {
         ArgumentNullException.ThrowIfNull(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventVersion);
         Actor = actor;
-        EventVersion = string.IsNullOrWhiteSpace(eventVersion) ? "1.0" : eventVersion.Trim();
+        EventVersion = eventVersion.Trim();
     }
 
     /// <summary>

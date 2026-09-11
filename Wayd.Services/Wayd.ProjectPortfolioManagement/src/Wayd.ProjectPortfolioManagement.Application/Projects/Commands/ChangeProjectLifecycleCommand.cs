@@ -44,8 +44,10 @@ public sealed class ChangeProjectLifecycleCommandHandler(
         {
             var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
+            // The assigned lifecycle is loaded because the event names the lifecycle being replaced.
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()
+                .Include(p => p.ProjectLifecycle)
                 .Include(p => p.Stages)
                 .Include(p => p.Tasks)
                 .Include(p => p.Roles)

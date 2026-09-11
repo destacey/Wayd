@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
@@ -250,9 +250,12 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
 
         var portfolio = ProjectPortfolio.Create(
             name: $"Portfolio {Guid.NewGuid():N}"[..16],
-            description: "Durable routing test portfolio");
+            description: "Durable routing test portfolio",
+            roles: null,
+            actor: EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 1, 0, 0));
         // A project can only be created in an active (or on-hold) portfolio.
-        var activatePortfolio = portfolio.Activate(PpmActor.System, new LocalDate(2026, 1, 1));
+        var activatePortfolio = portfolio.Activate(PpmActor.System, new LocalDate(2026, 1, 1), Instant.FromUtc(2026, 1, 1, 0, 0));
         Assert.True(activatePortfolio.IsSuccess, activatePortfolio.IsFailure ? activatePortfolio.Error : null);
 
         ppm.ExpenditureCategories.Add(expenditureCategory);

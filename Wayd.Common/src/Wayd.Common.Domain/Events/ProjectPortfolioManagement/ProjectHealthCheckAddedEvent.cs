@@ -9,14 +9,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A health check was recorded against a project.
 /// </summary>
 /// <remarks>
-/// The recurring signal on a live project, and the one a watcher is most likely to want told to them:
-/// a project turning red is the fact that prompts someone to act.
-/// <para>
-/// Appended rather than superseding: each check is its own record, so two recorded in one request are two
-/// facts. Superseding by event type would also be wrong here for a second reason — it would collapse
-/// events about <em>different</em> health checks, which are unrelated.
-/// </para>
+/// Frozen at its published shape and never raised; <see cref="ProjectHealthCheckAddedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectHealthCheckAddedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectHealthCheckAddedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -31,7 +28,7 @@ public sealed record ProjectHealthCheckAddedEvent : DomainEvent, IPpmEvent
         Guid reportedById,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

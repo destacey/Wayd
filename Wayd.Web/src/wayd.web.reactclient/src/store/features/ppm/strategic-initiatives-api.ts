@@ -14,6 +14,7 @@ import {
 } from './../../../services/wayd-api'
 import { apiSlice } from './../apiSlice'
 import { QueryTags } from '../query-tags'
+import { ppmActivityTag } from './ppm-activity-tags'
 import { getStrategicInitiativesClient } from '@/src/services/clients'
 import {
   CreateStrategicInitiativeRequest,
@@ -82,6 +83,9 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
+          // The initiative has no activity log of its own; creating one is a change to its portfolio,
+          // which is the aggregate the event names.
+          ppmActivityTag(arg.portfolioId),
         ]
       },
     }),
@@ -193,8 +197,11 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
         ]
       },
     }),
-    deleteStrategicInitiative: builder.mutation<void, string>({
-      queryFn: async (id) => {
+    deleteStrategicInitiative: builder.mutation<
+      void,
+      { id: string; portfolioId: string }
+    >({
+      queryFn: async ({ id }) => {
         try {
           const data = await getStrategicInitiativesClient().delete(id)
           return { data }
@@ -203,14 +210,20 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => {
+      // The portfolio id is carried alongside the initiative's own id purely so the portfolio's
+      // activity log can be refreshed — the deletion is recorded against the portfolio.
+      invalidatesTags: (result, error, { portfolioId }) => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
+          ppmActivityTag(portfolioId),
         ]
       },
     }),
-    getStrategicInitiativeStatusOptions: builder.query<StatusOptionModel[], void>({
+    getStrategicInitiativeStatusOptions: builder.query<
+      StatusOptionModel[],
+      void
+    >({
       queryFn: async () => {
         try {
           const statuses =

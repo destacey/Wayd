@@ -14,7 +14,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record ReleaseWithdrawnEvent : DomainEvent, IProductManagementEvent
 {
     public ReleaseWithdrawnEvent(Guid id, int key, Guid? productId, string version, string? reason, Guid statusId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

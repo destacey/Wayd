@@ -53,7 +53,7 @@ public sealed class DomainEventEnvelopeTests
     private sealed record TestEvent : DomainEvent
     {
         public TestEvent(EventActor actor, Instant timestamp)
-            : base(actor) =>
+            : base(actor, "1.0") =>
             Timestamp = timestamp;
     }
 }

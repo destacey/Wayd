@@ -29,7 +29,7 @@ public sealed record WorkflowAssignedEvent : DomainEvent, IAggregateEvent
         string toWorkflowName,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         OwnerType = ownerType;
         ScopeId = scopeId;

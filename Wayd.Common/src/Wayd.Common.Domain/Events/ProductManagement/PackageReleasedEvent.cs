@@ -9,7 +9,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record PackageReleasedEvent : DomainEvent, IProductManagementEvent
 {
     public PackageReleasedEvent(Guid id, int key, string version, LocalDate releasedDate, int componentCount, Guid statusId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

@@ -27,7 +27,7 @@ public sealed record VersionDatesCorrectedEvent : DomainEvent, IProductManagemen
         LocalDate? toReleasedDate,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

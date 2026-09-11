@@ -164,10 +164,17 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Failure(UnauthorizedManageActorError);
         }
 
+        // Compared after assignment, never against the arguments: the setters normalise, so a caller
+        // passing "Platform " where "Platform" is stored has changed nothing.
+        var before = new ProgramDetails(Name, Description);
+
         Name = name;
         Description = description;
 
-        AddDomainEvent(new ProgramDetailsUpdatedEvent(this, actor.ToEventActor(), timestamp));
+        if (before != new ProgramDetails(Name, Description))
+        {
+            AddDomainEvent(new ProgramDetailsUpdatedEvent(this, before, actor.ToEventActor(), timestamp));
+        }
 
         return Result.Success();
     }
@@ -179,7 +186,8 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio.</param>
     /// <param name="dateRange">The new date range to assign to the program.</param>
-    public Result UpdateTimeline(PpmActor actor, ProgramAncestryRoles ancestry, LocalDateRange? dateRange)
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result UpdateTimeline(PpmActor actor, ProgramAncestryRoles ancestry, LocalDateRange? dateRange, Instant timestamp)
     {
         if (!CanManageProgram(actor, ancestry))
         {
@@ -191,7 +199,15 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Failure("An active and completed program must have a start and end date.");
         }
 
+        if (Equals(DateRange, dateRange))
+        {
+            return Result.Success();
+        }
+
+        var previousDateRange = DateRange;
         DateRange = dateRange;
+
+        AddDomainEvent(new ProgramTimelineChangedEvent(Id, Key, previousDateRange, DateRange, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -202,46 +218,78 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio.</param>
     /// <param name="updatedRoles">The replacement role assignments.</param>
-    public Result UpdateRoles(PpmActor actor, ProgramAncestryRoles ancestry, Dictionary<ProgramRole, HashSet<Guid>> updatedRoles)
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result UpdateRoles(PpmActor actor, ProgramAncestryRoles ancestry, Dictionary<ProgramRole, HashSet<Guid>> updatedRoles, Instant timestamp)
     {
         if (!CanManageProgram(actor, ancestry))
         {
             return Result.Failure(UnauthorizedManageActorError);
         }
 
-        return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        var before = RoleMap();
+
+        var result = RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        var after = RoleMap();
+        var (added, removed) = RoleManager.Diff(before, after);
+        if (added.Length > 0 || removed.Length > 0)
+        {
+            AddDomainEvent(new ProgramRolesChangedEvent(Id, Key, added, removed, after, actor.ToEventActor(), timestamp));
+        }
+
+        return result;
     }
 
-    /// <summary>
-    /// Associates a strategic theme with this program.
-    /// </summary>
-    public Result AddStrategicTheme(Guid strategicThemeId)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        return StrategicThemeTagManager<Program>.AddStrategicThemeTag(_strategicThemeTags, Id, strategicThemeId, "program");
-    }
-
-    /// <summary>
-    /// Removes a strategic theme from this program.
-    /// </summary>
-    public Result RemoveStrategicTheme(Guid strategicThemeId)
-    {
-        Guard.Against.NullOrEmpty(strategicThemeId, nameof(strategicThemeId));
-
-        return StrategicThemeTagManager<Program>.RemoveStrategicThemeTag(_strategicThemeTags, strategicThemeId, "program");
-    }
+    private Dictionary<int, Guid[]> RoleMap() => RoleManager.ToRoleMap(_roles);
 
     /// <summary>
     /// Updates the strategic themes associated with this program.
     /// </summary>
     /// <param name="strategicThemeIds"></param>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
     /// <returns></returns>
-    public Result UpdateStrategicThemes(HashSet<Guid> strategicThemeIds)
+    public Result UpdateStrategicThemes(PpmActor actor, ProgramAncestryRoles ancestry, HashSet<Guid> strategicThemeIds, Instant timestamp)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(strategicThemeIds, nameof(strategicThemeIds));
 
-        return StrategicThemeTagManager<Program>.UpdateTags(_strategicThemeTags, Id, strategicThemeIds, "program");
+        var before = ThemeIds();
+
+        var result = StrategicThemeTagManager<Program>.UpdateTags(_strategicThemeTags, Id, strategicThemeIds, "program");
+        if (result.IsSuccess)
+        {
+            RaiseIfThemesChanged(before, actor, timestamp);
+        }
+
+        return result;
+    }
+
+    private HashSet<Guid> ThemeIds() => [.. _strategicThemeTags.Select(x => x.StrategicThemeId)];
+
+    // The update command replaces the tag set on every save, so most calls change nothing; raising
+    // regardless would report a change on edits that never touched the themes. Sorted so the same
+    // change always produces the same payload.
+    private void RaiseIfThemesChanged(HashSet<Guid> before, PpmActor actor, Instant timestamp)
+    {
+        var after = ThemeIds();
+        Guid[] added = [.. after.Except(before).Order()];
+        Guid[] removed = [.. before.Except(after).Order()];
+        if (added.Length == 0 && removed.Length == 0)
+        {
+            return;
+        }
+
+        AddDomainEvent(new ProgramStrategicThemesChangedEvent(
+            Id, Key, added, removed, [.. after.Order()], actor.ToEventActor(), timestamp));
     }
 
     #region Lifecycle
@@ -251,7 +299,8 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio.</param>
-    public Result Activate(PpmActor actor, ProgramAncestryRoles ancestry)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Activate(PpmActor actor, ProgramAncestryRoles ancestry, Instant timestamp)
     {
         if (!CanManageProgram(actor, ancestry))
         {
@@ -268,7 +317,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Failure("The program must have a start and end date before it can be activated.");
         }
 
-        Status = ProgramStatus.Active;
+        ChangeStatus(ProgramStatus.Active, actor, timestamp);
 
         return Result.Success();
     }
@@ -278,7 +327,8 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio.</param>
-    public Result Complete(PpmActor actor, ProgramAncestryRoles ancestry)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Complete(PpmActor actor, ProgramAncestryRoles ancestry, Instant timestamp)
     {
         if (!CanManageProgram(actor, ancestry))
         {
@@ -300,7 +350,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Failure("All projects must be completed or canceled before the program can be completed.");
         }
 
-        Status = ProgramStatus.Completed;
+        ChangeStatus(ProgramStatus.Completed, actor, timestamp);
 
         return Result.Success();
     }
@@ -310,7 +360,8 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio.</param>
-    public Result Cancel(PpmActor actor, ProgramAncestryRoles ancestry)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result Cancel(PpmActor actor, ProgramAncestryRoles ancestry, Instant timestamp)
     {
         if (!CanManageProgram(actor, ancestry))
         {
@@ -331,9 +382,32 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
         }
 
         // Directly allow Proposed → Canceled without setting DateRange
-        Status = ProgramStatus.Canceled;
+        ChangeStatus(ProgramStatus.Canceled, actor, timestamp);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Moves the program to <paramref name="toStatus"/> and records the transition.
+    /// </summary>
+    /// <remarks>
+    /// A program keeps no status history, so this event is the whole record of the move.
+    /// </remarks>
+    private void ChangeStatus(ProgramStatus toStatus, PpmActor actor, Instant timestamp)
+    {
+        var fromStatus = Status;
+
+        Status = toStatus;
+
+        AddDomainEvent(new ProgramStatusChangedEvent(
+            Id,
+            Key,
+            fromStatus.ToString(),
+            LifecycleCategories<ProgramStatus>.Of(fromStatus),
+            toStatus.ToString(),
+            LifecycleCategories<ProgramStatus>.Of(toStatus),
+            actor.ToEventActor(),
+            timestamp));
     }
 
     #endregion Lifecycle
@@ -451,15 +525,25 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     {
         var program = new Program(name, description, ProgramStatus.Proposed, dateRange, portfolioId, roles, strategicThemes);
 
+        // Captured now, not when the action runs: the event records the program as created, and an import
+        // activates it before the first save. Only Key waits for the save that assigns it.
+        var createdName = program.Name;
+        var createdDescription = program.Description;
+        var createdStatus = (int)program.Status;
+        var createdDateRange = program.DateRange;
+        var createdRoles = program.RoleMap();
+        Guid[] createdThemes = [.. program.ThemeIds().Order()];
+
         program.AddPostPersistenceAction(() => program.AddDomainEvent(new ProgramCreatedEvent(
-                program,
-                (int)program.Status,
-                program.DateRange,
-                program.PortfolioId,
-                program.Roles
-                    .GroupBy(x => (int)x.Role)
-                    .ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray()),
-                [.. program.StrategicThemeTags.Select(x => x.StrategicThemeId)],
+                program.Id,
+                program.Key,
+                createdName,
+                createdDescription,
+                createdStatus,
+                createdDateRange,
+                portfolioId,
+                createdRoles,
+                createdThemes,
                 actor,
                 timestamp
             )));

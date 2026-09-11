@@ -13,7 +13,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record VersionCutEvent : DomainEvent, IProductManagementEvent
 {
     public VersionCutEvent(Guid id, int key, Guid productId, string productName, string number, LocalDate cutDate, Guid statusId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

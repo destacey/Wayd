@@ -10,7 +10,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 public sealed record EnvironmentAddedEvent : DomainEvent, IProductManagementEvent
 {
     public EnvironmentAddedEvent(Guid id, int key, string name, EnvironmentCategory category, int ringOrder, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

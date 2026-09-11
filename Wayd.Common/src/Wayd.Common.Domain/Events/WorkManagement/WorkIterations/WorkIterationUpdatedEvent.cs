@@ -18,7 +18,7 @@ public sealed record WorkIterationUpdatedEvent : DomainEvent, IAggregateEvent
     // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
     public WorkIterationUpdatedEvent(Guid id, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Name = name;

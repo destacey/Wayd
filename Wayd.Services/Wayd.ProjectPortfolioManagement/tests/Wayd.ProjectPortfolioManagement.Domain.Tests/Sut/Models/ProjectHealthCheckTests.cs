@@ -462,14 +462,14 @@ public sealed class ProjectHealthCheckTests
         project.ClearDomainEvents();
 
         // Act
-        var result = project.AddHealthCheck(HealthStatus.AtRisk, actorId.AsActor(), NoProjectAncestry(), expiration, "Vendor slipped", _now);
+        var result = project.AddHealthCheck(HealthStatus.AtRisk, actorId.AsActor(), NoProjectAncestry(), expiration, "  Vendor slipped ", _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(result.Value.Id);
         raised.Status.Should().Be(HealthStatus.AtRisk);
-        raised.Note.Should().Be("Vendor slipped");
+        raised.Note.Should().Be("Vendor slipped", "the payload carries the stored note, which is trimmed");
         raised.Expiration.Should().Be(expiration);
         raised.ReportedById.Should().Be(actorId);
     }
@@ -477,8 +477,7 @@ public sealed class ProjectHealthCheckTests
     [Fact]
     public void HealthChecks_RecordedInOneTransaction_EachRaiseTheirOwnEvent()
     {
-        // Arrange — a health check is a ledger entry, so two of them are two facts and neither may
-        // supersede the other. Superseding by event type would also collapse events about different checks.
+        // Arrange — a health check is a ledger entry, so two of them are two facts.
         var (project, actorId) = ProjectWithOwner();
         project.ClearDomainEvents();
 
@@ -488,31 +487,52 @@ public sealed class ProjectHealthCheckTests
         var second = project.AddHealthCheck(HealthStatus.Unhealthy, actorId.AsActor(), NoProjectAncestry(), later.Plus(Duration.FromDays(7)), null, later);
 
         // Assert
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEvent>().ToList();
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckAddedEventV2>().ToList();
         raised.Should().HaveCount(2);
         raised.Select(e => e.HealthCheckId).Should().Equal(first.Value.Id, second.Value.Id);
     }
 
     [Fact]
-    public void UpdateHealthCheck_RaisesAnUpdatedEventCarryingTheCorrectedValues()
+    public void UpdateHealthCheck_RaisesAnUpdatedEventCarryingBothTheOriginalAndTheCorrectedValues()
     {
         // Arrange
         var (project, actorId) = ProjectWithOwner();
-        var added = project.AddHealthCheck(HealthStatus.Healthy, actorId.AsActor(), NoProjectAncestry(), _now.Plus(Duration.FromDays(7)), "old", _now);
+        var originalExpiration = _now.Plus(Duration.FromDays(7));
+        var added = project.AddHealthCheck(HealthStatus.Healthy, actorId.AsActor(), NoProjectAncestry(), originalExpiration, "old", _now);
         project.ClearDomainEvents();
 
         var newExpiration = _now.Plus(Duration.FromDays(14));
 
         // Act
-        var result = project.UpdateHealthCheck(added.Value.Id, actorId.AsActor(), NoProjectAncestry(), HealthStatus.AtRisk, newExpiration, "new", _now);
+        var result = project.UpdateHealthCheck(added.Value.Id, actorId.AsActor(), NoProjectAncestry(), HealthStatus.AtRisk, newExpiration, " new ", _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckUpdatedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckUpdatedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(added.Value.Id);
+        raised.PreviousStatus.Should().Be(HealthStatus.Healthy);
+        raised.PreviousNote.Should().Be("old");
+        raised.PreviousExpiration.Should().Be(originalExpiration);
         raised.Status.Should().Be(HealthStatus.AtRisk);
-        raised.Note.Should().Be("new");
+        raised.Note.Should().Be("new", "the payload carries the stored note, which is trimmed");
         raised.Expiration.Should().Be(newExpiration);
+    }
+
+    [Fact]
+    public void UpdateHealthCheck_ThatChangesNothing_RaisesNoEvent()
+    {
+        // Arrange — the note differs from the stored one only by whitespace the setter trims away
+        var (project, actorId) = ProjectWithOwner();
+        var expiration = _now.Plus(Duration.FromDays(7));
+        var added = project.AddHealthCheck(HealthStatus.Healthy, actorId.AsActor(), NoProjectAncestry(), expiration, "steady", _now);
+        project.ClearDomainEvents();
+
+        // Act
+        var result = project.UpdateHealthCheck(added.Value.Id, actorId.AsActor(), NoProjectAncestry(), HealthStatus.Healthy, expiration, "steady ", _now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.DomainEvents.OfType<ProjectHealthCheckUpdatedEventV2>().Should().BeEmpty();
     }
 
     [Fact]
@@ -528,7 +548,7 @@ public sealed class ProjectHealthCheckTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = project.DomainEvents.OfType<ProjectHealthCheckRemovedEvent>().Should().ContainSingle().Subject;
+        var raised = project.DomainEvents.OfType<ProjectHealthCheckRemovedEventV2>().Should().ContainSingle().Subject;
         raised.HealthCheckId.Should().Be(added.Value.Id);
         raised.Status.Should().Be(HealthStatus.Unhealthy, "the entry has to say what the project lost, not merely that it lost something");
     }

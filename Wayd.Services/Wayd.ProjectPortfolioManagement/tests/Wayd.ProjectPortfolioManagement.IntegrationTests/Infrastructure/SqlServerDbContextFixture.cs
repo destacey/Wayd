@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
 using Testcontainers.MsSql;
@@ -85,8 +86,13 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     }
 
     /// <summary>Creates a fresh <see cref="WaydDbContext"/> against the container, with no-op collaborators.</summary>
-    public WaydDbContext CreateContext()
+    /// <param name="interceptors">EF interceptors to observe what the context sends, such as the rows a save writes.</param>
+    public WaydDbContext CreateContext(params IInterceptor[] interceptors)
     {
+        var options = interceptors.Length == 0
+            ? _options
+            : new DbContextOptionsBuilder<WaydDbContext>(_options).AddInterceptors(interceptors).Options;
+
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("integration-test-user");
 
@@ -104,7 +110,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         correlationId.SetupGet(c => c.CorrelationId).Returns("integration-test-correlation");
 
         return new WaydDbContext(
-            _options,
+            options,
             currentUser.Object,
             dateTimeProvider.Object,
             _databaseSettings,
@@ -124,6 +130,13 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectStatusHistory];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[Projects];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[Portfolios];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectLifecycleStages];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectLifecycles];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [App].[ScoringModelCriteria];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [App].[ScoringRatingLevels];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [App].[ScoringScales];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [App].[ScoringModelOutputs];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [App].[ScoringModels];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ExpenditureCategories];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[Employees];", cancellationToken);
     }

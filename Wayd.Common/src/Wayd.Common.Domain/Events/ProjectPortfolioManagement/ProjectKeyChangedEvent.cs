@@ -8,14 +8,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A project's key changed, cascading to the key of every task under it.
 /// </summary>
 /// <remarks>
-/// Split out of <see cref="ProjectDetailsUpdatedEvent"/> because the key is an external identifier rather
-/// than a detail: imports, links and agent tools address a project by it, so a consumer needs to see this
-/// as a change of identity rather than as one of several fields that might have moved.
-/// <para>
-/// Delivered durably alongside the other <c>Project*</c> events, because the Work module's projection
-/// stores the key and would go stale the moment this stopped riding on the details event.
-/// </para>
+/// Frozen at its published shape and never raised; <see cref="ProjectKeyChangedEventV2"/> replaced it. Kept
+/// so every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectKeyChangedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectKeyChangedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -25,7 +22,7 @@ public sealed record ProjectKeyChangedEvent : DomainEvent, IPpmEvent
         string name,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

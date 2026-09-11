@@ -20,7 +20,7 @@ public sealed record DeploymentStartedEvent : DomainEvent, IProductManagementEve
         Guid statusId,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

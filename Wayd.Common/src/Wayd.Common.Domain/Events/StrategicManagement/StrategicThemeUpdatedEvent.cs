@@ -17,7 +17,7 @@ public sealed record StrategicThemeUpdatedEvent : DomainEvent, IAggregateEvent
     // name; the primary constructor's `strategicTheme` parameter cannot be bound).
     [JsonConstructor]
     public StrategicThemeUpdatedEvent(Guid id, string name, string description, StrategicThemeState state, EventActor actor, Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Name = name;

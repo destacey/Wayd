@@ -9,14 +9,11 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A health check was removed from a project.
 /// </summary>
 /// <remarks>
-/// Removing a check can change the project's reported health, by uncovering an older one or leaving none
-/// at all, so it is a fact in its own right rather than the mere absence of one.
-/// <para>
-/// Appended rather than superseding: each check is its own record, so two recorded in one request are two
-/// facts. Superseding by event type would also be wrong here for a second reason — it would collapse
-/// events about <em>different</em> health checks, which are unrelated.
-/// </para>
+/// Frozen at its published shape and never raised; <see cref="ProjectHealthCheckRemovedEventV2"/> replaced
+/// it. Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProjectHealthCheckRemovedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProjectHealthCheckRemovedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
@@ -28,7 +25,7 @@ public sealed record ProjectHealthCheckRemovedEvent : DomainEvent, IPpmEvent
         HealthStatus status,
         EventActor actor,
         Instant timestamp)
-        : base(actor)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

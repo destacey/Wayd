@@ -8,12 +8,14 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// A workflow was withdrawn and can no longer be assigned.
 /// </summary>
 /// <remarks>
-/// Only reachable once nothing assigns it, so this reports a workflow leaving the assignable set — not
-/// records losing their statuses. Those keep resolving through it permanently, which is why archiving
-/// retains the row rather than deleting it.
+/// Frozen at its published shape and never raised; <see cref="WorkflowArchivedEventV2"/> replaced it. Kept
+/// so every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by WorkflowArchivedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record WorkflowArchivedEvent : DomainEvent, IAggregateEvent
 {
+    [JsonConstructor]
     public WorkflowArchivedEvent(Guid id, int key, string name, string ownerType, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

@@ -110,7 +110,7 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
         var fromCategory = Category;
         Category = category;
 
-        AddDomainEvent(new EnvironmentReclassifiedEvent(Id, Key, Name, fromCategory, category, actor, timestamp));
+        AddDomainEvent(new EnvironmentReclassifiedEventV2(Id, Key, fromCategory, category, actor, timestamp));
 
         return Result.Success();
     }
@@ -133,11 +133,11 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
 
         if (Key == 0)
         {
-            AddPostPersistenceAction(() => AddDomainEvent(new EnvironmentRetiredEvent(Id, Key, Name, actor, timestamp)));
+            AddPostPersistenceAction(() => AddDomainEvent(new EnvironmentRetiredEventV2(Id, Key, actor, timestamp)));
         }
         else
         {
-            AddDomainEvent(new EnvironmentRetiredEvent(Id, Key, Name, actor, timestamp));
+            AddDomainEvent(new EnvironmentRetiredEventV2(Id, Key, actor, timestamp));
         }
 
         return Result.Success();

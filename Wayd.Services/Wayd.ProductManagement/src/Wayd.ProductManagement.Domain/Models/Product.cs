@@ -134,14 +134,16 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         // A single-value axis holds one tag: applying another replaces it rather than failing, since
         // "this is a mobile app, not a web app" is a correction, not an error.
+        Guid[] removed = [];
         if (!category.AllowsMany)
         {
+            removed = [.. _tags.Where(t => t.CategoryId == category.Id).Select(t => t.TagId)];
             _tags.RemoveAll(t => t.CategoryId == category.Id);
         }
 
         _tags.Add(new ProductTagAssignment(Id, tag.Id, category.Id));
 
-        AddDomainEvent(new ProductTagsChangedEvent(Id, Key, Name, [.. _tags.Select(t => t.TagId)], actor, timestamp));
+        AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, [tag.Id], removed, [.. _tags.Select(t => t.TagId)], actor, timestamp));
 
         return Result.Success();
     }
@@ -156,7 +158,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
             return Result.Success();
         }
 
-        AddDomainEvent(new ProductTagsChangedEvent(Id, Key, Name, [.. _tags.Select(t => t.TagId)], actor, timestamp));
+        AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, [], [tagId], [.. _tags.Select(t => t.TagId)], actor, timestamp));
 
         return Result.Success();
     }
@@ -201,9 +203,10 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         if (string.Equals(ExternalId, newExternalId, StringComparison.Ordinal))
             return Result.Success();
 
+        var previousExternalId = ExternalId;
         ExternalId = newExternalId;
 
-        AddDomainEvent(new ProductLinkedExternallyEvent(Id, Key, Name, Description, ExternalId, actor, timestamp));
+        AddDomainEvent(new ProductLinkedExternallyEventV2(Id, Key, previousExternalId, ExternalId, actor, timestamp));
 
         return Result.Success();
     }
@@ -243,7 +246,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         var fromParentId = ParentId;
         ParentId = parentId;
 
-        AddDomainEvent(new ProductReparentedEvent(Id, Key, Name, fromParentId, parentId, actor, timestamp));
+        AddDomainEvent(new ProductReparentedEventV2(Id, Key, fromParentId, parentId, actor, timestamp));
 
         return Result.Success();
     }
@@ -272,7 +275,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         var fromProductTypeId = ProductTypeId;
         ProductTypeId = productTypeId;
 
-        AddDomainEvent(new ProductRetypedEvent(Id, Key, Name, fromProductTypeId, productTypeId, actor, timestamp));
+        AddDomainEvent(new ProductRetypedEventV2(Id, Key, fromProductTypeId, productTypeId, actor, timestamp));
 
         return Result.Success();
     }
@@ -299,8 +302,8 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         ApplyStatus(status, actor, timestamp);
 
-        AddDomainEvent(new ProductLifecycleChangedEvent(
-            Id, Key, Name,
+        AddDomainEvent(new ProductLifecycleChangedEventV2(
+            Id, Key,
             fromStatusId, fromCategory, fromAlias,
             status.StatusId, status.Category, (ProductStatusAlias)status.Alias,
             actor, timestamp));

@@ -3,12 +3,15 @@ using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
+using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Interfaces.StrategicManagement;
@@ -398,6 +401,90 @@ public sealed class DomainEventSerializationTests
         restored.Key.Value.Should().Be("ATLAS");
         restored.ProgramId.Should().BeNull();
         restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void ProductLinkedExternallyEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen V1 contract, including the Description V2 dropped and an unlink's null link
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 42,
+              "Name": "Checkout",
+              "Description": null,
+              "ExternalId": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<ProductLinkedExternallyEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Checkout");
+        restored.Key.Should().Be(42);
+        restored.Description.Should().BeNull();
+        restored.ExternalId.Should().BeNull();
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void ProductLifecycleChangedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen V1 contract; its enums were written as numbers, so a renumbering would misread it
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 42,
+              "Name": "Checkout",
+              "FromStatusId": "019f2a10-0000-7000-8000-000000000004",
+              "FromCategory": 1,
+              "FromAlias": 1,
+              "ToStatusId": "019f2a10-0000-7000-8000-000000000005",
+              "ToCategory": 2,
+              "ToAlias": 3,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<ProductLifecycleChangedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Checkout");
+        restored.FromCategory.Should().Be(StatusCategory.Active);
+        restored.FromAlias.Should().Be(ProductStatusAlias.Active);
+        restored.ToCategory.Should().Be(StatusCategory.Done);
+        restored.ToAlias.Should().Be(ProductStatusAlias.Retired);
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void StrategicThemeArchivedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new StrategicThemeArchivedEvent(Guid.NewGuid(), EventActor.System, Instant.FromUtc(2026, 9, 12, 9, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+        roundTripped.EventVersion.Should().Be("1.0");
     }
 
     [Fact]

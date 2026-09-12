@@ -28,7 +28,7 @@ public sealed class LinkProductExternallyCommandHandlerTests : ProductCommandTes
         // Assert
         result.IsSuccess.Should().BeTrue();
         product.ExternalId.Should().Be("acme/checkout");
-        product.DomainEvents.OfType<ProductLinkedExternallyEvent>().Should().ContainSingle();
+        product.DomainEvents.OfType<ProductLinkedExternallyEventV2>().Should().ContainSingle();
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -48,7 +48,7 @@ public sealed class LinkProductExternallyCommandHandlerTests : ProductCommandTes
         // Unlinking is the point of sending no value, not an omission to ignore.
         result.IsSuccess.Should().BeTrue();
         product.ExternalId.Should().BeNull();
-        product.DomainEvents.OfType<ProductLinkedExternallyEvent>().Should().ContainSingle();
+        product.DomainEvents.OfType<ProductLinkedExternallyEventV2>().Should().ContainSingle();
     }
 
     [Fact]

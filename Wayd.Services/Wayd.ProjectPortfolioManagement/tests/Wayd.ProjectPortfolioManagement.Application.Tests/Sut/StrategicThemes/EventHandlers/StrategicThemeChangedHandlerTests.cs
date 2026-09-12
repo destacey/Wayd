@@ -95,6 +95,72 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_Activated_WhenThemeExists_SetsActiveAndSaves()
+    {
+        // Arrange
+        var id = Guid.CreateVersion7();
+        _ppmContext.AddPpmStrategicTheme(new StrategicThemeFaker().WithId(id).WithName("Cloud Migration").WithState(StrategicThemeState.Proposed).Generate());
+
+        var @event = new StrategicThemeActivatedEvent(id, EventActor.System, Now);
+
+        // Act
+        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        var theme = _ppmContext.PpmStrategicThemes.Single(t => t.Id == id);
+        theme.State.Should().Be(StrategicThemeState.Active);
+        theme.Name.Should().Be("Cloud Migration");
+        _ppmContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_Activated_WhenAlreadyActive_IsIdempotentNoOp()
+    {
+        // Arrange — a redelivery of an activation that already ran.
+        var id = Guid.CreateVersion7();
+        _ppmContext.AddPpmStrategicTheme(new StrategicThemeFaker().WithId(id).WithState(StrategicThemeState.Active).Generate());
+
+        var @event = new StrategicThemeActivatedEvent(id, EventActor.System, Now);
+
+        // Act
+        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _ppmContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_Archived_WhenThemeExists_SetsArchivedAndSaves()
+    {
+        // Arrange
+        var id = Guid.CreateVersion7();
+        _ppmContext.AddPpmStrategicTheme(new StrategicThemeFaker().WithId(id).WithState(StrategicThemeState.Active).Generate());
+
+        var @event = new StrategicThemeArchivedEvent(id, EventActor.System, Now);
+
+        // Act
+        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _ppmContext.PpmStrategicThemes.Single(t => t.Id == id).State.Should().Be(StrategicThemeState.Archived);
+        _ppmContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_Archived_WhenThemeMissing_IsNoOp()
+    {
+        // Arrange — out-of-order delivery: the archive arrives before the create was applied.
+        var @event = new StrategicThemeArchivedEvent(Guid.CreateVersion7(), EventActor.System, Now);
+
+        // Act
+        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _ppmContext.PpmStrategicThemes.Should().BeEmpty();
+        _ppmContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_Deleted_WhenThemeExists_RemovesAndSaves()
     {
         // Arrange

@@ -88,7 +88,7 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
         }
 
         State = StrategicThemeState.Active;
-        AddDomainEvent(new StrategicThemeUpdatedEvent(this, actor, timestamp));
+        AddDomainEvent(new StrategicThemeActivatedEvent(Id, actor, timestamp));
 
         return Result.Success();
     }
@@ -107,7 +107,7 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
         }
 
         State = StrategicThemeState.Archived;
-        AddDomainEvent(new StrategicThemeUpdatedEvent(this, actor, timestamp));
+        AddDomainEvent(new StrategicThemeArchivedEvent(Id, actor, timestamp));
 
         return Result.Success();
     }

@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -30,6 +31,18 @@ public sealed class StrategicThemeChangedHandler(IProjectPortfolioManagementDbCo
     {
         _logger.LogDebug("Handling PPM {SystemActionType} for an updated Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
         await UpdateStrategicTheme(@event, cancellationToken);
+    }
+
+    public async Task Handle(StrategicThemeActivatedEvent @event, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Handling PPM {SystemActionType} for an activated Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await ChangeStrategicThemeState(@event.Id, StrategicThemeState.Active, cancellationToken);
+    }
+
+    public async Task Handle(StrategicThemeArchivedEvent @event, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Handling PPM {SystemActionType} for an archived Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await ChangeStrategicThemeState(@event.Id, StrategicThemeState.Archived, cancellationToken);
     }
 
     public async Task Handle(StrategicThemeDeletedEvent @event, CancellationToken cancellationToken)
@@ -71,6 +84,28 @@ public sealed class StrategicThemeChangedHandler(IProjectPortfolioManagementDbCo
         await _ppmContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} update action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
+    }
+
+    private async Task ChangeStrategicThemeState(Guid id, StrategicThemeState state, CancellationToken cancellationToken)
+    {
+        var existingStrategicTheme = await _ppmContext.PpmStrategicThemes
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (existingStrategicTheme is null)
+        {
+            // Same convergence as an update: a create redelivery or the Hangfire bulk sync carries the state.
+            _logger.LogWarning("PPM {SystemActionType} for a Strategic Theme state change skipped: Strategic Theme {StrategicThemeId} does not exist in the PPM system.", SystemActionType.ServiceDataReplication, id);
+            return;
+        }
+
+        if (existingStrategicTheme.State == state)
+        {
+            return;
+        }
+
+        existingStrategicTheme.ChangeState(state);
+        await _ppmContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} state change to {StrategicThemeState}.", SystemActionType.ServiceDataReplication, id, state);
     }
 
     private async Task DeleteStrategicTheme(StrategicThemeDeletedEvent deletedEvent, CancellationToken cancellationToken)

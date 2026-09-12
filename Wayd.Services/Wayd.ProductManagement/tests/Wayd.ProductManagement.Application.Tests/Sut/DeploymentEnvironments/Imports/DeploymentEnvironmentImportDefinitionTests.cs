@@ -119,7 +119,7 @@ public sealed class DeploymentEnvironmentImportDefinitionTests
         var events = environment.DomainEvents.ToList();
         events.Should().HaveCount(2);
         events[0].Should().BeOfType<EnvironmentAddedEvent>();
-        var retired = events[1].Should().BeOfType<EnvironmentRetiredEvent>().Subject;
+        var retired = events[1].Should().BeOfType<EnvironmentRetiredEventV2>().Subject;
         retired.Actor.Kind.Should().Be(EventActorKind.Import);
         retired.Actor.UserId.Should().Be(_userId);
     }

@@ -49,7 +49,7 @@ public sealed class UpdateDeploymentEnvironmentCommandHandlerTests : ProductComm
         // Moving an environment into Production changes what every past deployment to it counts toward,
         // so the change is announced rather than buried in a rename.
         environment.Category.Should().Be(EnvironmentCategory.Production);
-        environment.DomainEvents.OfType<EnvironmentReclassifiedEvent>().Should().ContainSingle();
+        environment.DomainEvents.OfType<EnvironmentReclassifiedEventV2>().Should().ContainSingle();
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class UpdateDeploymentEnvironmentCommandHandlerTests : ProductComm
             TestContext.Current.CancellationToken);
 
         // Assert
-        environment.DomainEvents.OfType<EnvironmentReclassifiedEvent>().Should().BeEmpty();
+        environment.DomainEvents.OfType<EnvironmentReclassifiedEventV2>().Should().BeEmpty();
     }
 
     [Fact]

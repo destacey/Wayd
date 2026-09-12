@@ -49,14 +49,10 @@ var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
     //   inherits the DB dependency, and it reads the connection string exactly as the API does — from
     //   database.json's DatabaseSettings:ConnectionString, mirrored into ConnectionStrings:WaydDb above.
     //
-    // NOTE: a `codegen write` gate is deliberately NOT run here. The committed handler tree is regenerated
-    // by the Debug pre-build target and verified fresh by CI (see Wayd.Web.Api.csproj), both from a plain
-    // no-OTLP process. Running `codegen write` from THIS gate would run it under Aspire's injected
-    // OTEL_EXPORTER_OTLP_ENDPOINT, which flips the DI-container service-registration order and so reorders
-    // the emitted service-locator locals (behaviourally identical, textually different) — dirtying ~400
-    // committed files on every AppHost launch. The tree's canonical form is the no-OTLP output; keep gate
-    // codegen out of the loop. (Static type-load correctness is already guarded by the integration dispatch
-    // suite, so the gate added no coverage the tests don't.)
+    // NOTE: a `codegen write` gate is deliberately NOT run here. Local runs compile handlers at runtime (Auto),
+    // and Wayd.Web.Api.csproj leaves any generated tree out of a local compile, so a gate would produce files
+    // nothing loads. The Static tree is generated once per CI run and tested there by the integration dispatch
+    // suite.
     //
     // ConfigureGate strips the gate's HTTP/HTTPS endpoints. JasperFx.Aspire builds a gate as a second
     // AddProject on the SAME csproj, so it inherits the API's launch-profile endpoints — but it is a

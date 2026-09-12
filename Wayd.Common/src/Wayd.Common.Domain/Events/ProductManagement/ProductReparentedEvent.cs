@@ -7,13 +7,14 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// A product node was moved to a different parent, or to the root.
 /// </summary>
 /// <remarks>
-/// Its own type rather than part of a details change, because reparenting invalidates every rollup that
-/// walks the tree — release scope, ownership inheritance, anything grouped by ancestor. A consumer that
-/// ignores a rename cannot ignore this. Carries both ends: where a node moved from is as much of the
-/// story as where it landed.
+/// Frozen at its published shape and never raised; <see cref="ProductReparentedEventV2"/> replaced it. Kept
+/// so every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProductReparentedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProductReparentedEvent : DomainEvent, IProductManagementEvent
 {
+    [JsonConstructor]
     public ProductReparentedEvent(Guid id, int key, string name, Guid? fromParentId, Guid? toParentId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
@@ -29,10 +30,6 @@ public sealed record ProductReparentedEvent : DomainEvent, IProductManagementEve
     public Guid Id { get; }
     public int Key { get; }
 
-    /// <summary>
-    /// The product's name at the time it moved. Captured so a notification renders without a query, and
-    /// stays accurate after a later rename — an event is a historical record.
-    /// </summary>
     public string Name { get; }
 
     /// <summary>The parent it moved from, or <c>null</c> when it was a root node.</summary>

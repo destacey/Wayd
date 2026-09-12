@@ -52,4 +52,9 @@ public sealed class StrategicTheme : IStrategicThemeData, IHasIdAndKey
         Description = description;
         State = state;
     }
+
+    public void ChangeState(StrategicThemeState state)
+    {
+        State = state;
+    }
 }

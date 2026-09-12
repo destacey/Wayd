@@ -252,7 +252,7 @@ public sealed class ProductTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.ExternalId.Should().Be("acme/checkout-web");
-        sut.DomainEvents.Should().ContainSingle(e => e is ProductLinkedExternallyEvent);
+        sut.DomainEvents.Should().ContainSingle(e => e is ProductLinkedExternallyEventV2);
     }
 
     [Fact]
@@ -269,7 +269,25 @@ public sealed class ProductTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.ExternalId.Should().BeNull();
-        sut.DomainEvents.Should().ContainSingle(e => e is ProductLinkedExternallyEvent);
+        var linked = sut.DomainEvents.OfType<ProductLinkedExternallyEventV2>().Should().ContainSingle().Subject;
+        linked.PreviousExternalId.Should().Be("acme/checkout-web");
+        linked.ExternalId.Should().BeNull();
+    }
+
+    [Fact]
+    public void LinkExternally_ToADifferentValue_ShouldCarryBothEnds()
+    {
+        // Arrange
+        var sut = _faker.WithExternalId("acme/checkout-web").Generate();
+
+        // Act
+        var result = sut.LinkExternally("acme/checkout-app", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var linked = sut.DomainEvents.OfType<ProductLinkedExternallyEventV2>().Should().ContainSingle().Subject;
+        linked.PreviousExternalId.Should().Be("acme/checkout-web");
+        linked.ExternalId.Should().Be("acme/checkout-app");
     }
 
     [Fact]
@@ -321,7 +339,7 @@ public sealed class ProductTests
         result.IsSuccess.Should().BeTrue();
         sut.ParentId.Should().Be(newParentId);
 
-        var reparented = sut.DomainEvents.OfType<ProductReparentedEvent>().Single();
+        var reparented = sut.DomainEvents.OfType<ProductReparentedEventV2>().Single();
         reparented.FromParentId.Should().Be(oldParentId);
         reparented.ToParentId.Should().Be(newParentId);
     }
@@ -338,7 +356,7 @@ public sealed class ProductTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.ParentId.Should().BeNull();
-        sut.DomainEvents.OfType<ProductReparentedEvent>().Single().ToParentId.Should().BeNull();
+        sut.DomainEvents.OfType<ProductReparentedEventV2>().Single().ToParentId.Should().BeNull();
     }
 
     [Fact]
@@ -406,7 +424,7 @@ public sealed class ProductTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.ProductTypeId.Should().Be(toTypeId);
-        sut.DomainEvents.Should().ContainSingle(e => e is ProductRetypedEvent);
+        sut.DomainEvents.Should().ContainSingle(e => e is ProductRetypedEventV2);
     }
 
     [Fact]
@@ -469,7 +487,7 @@ public sealed class ProductTests
 
         // Assert
         // A consumer branches on the alias, never on a status name an administrator can rename.
-        var changed = sut.DomainEvents.OfType<ProductLifecycleChangedEvent>().Single();
+        var changed = sut.DomainEvents.OfType<ProductLifecycleChangedEventV2>().Single();
         changed.ToAlias.Should().Be(ProductStatusAlias.Retired);
         changed.ToCategory.Should().Be(StatusCategory.Done);
         changed.FromCategory.Should().Be(StatusCategory.Active);
@@ -487,7 +505,7 @@ public sealed class ProductTests
         // Assert
         // FromAlias is a real payload field, so a consumer asking "did this leave Active?" gets an
         // answer rather than a constant None.
-        var changed = sut.DomainEvents.OfType<ProductLifecycleChangedEvent>().Single();
+        var changed = sut.DomainEvents.OfType<ProductLifecycleChangedEventV2>().Single();
         changed.FromAlias.Should().Be(ProductStatusAlias.Active);
         sut.StatusAlias.Should().Be(ProductStatusAlias.Retired);
     }

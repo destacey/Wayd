@@ -44,7 +44,7 @@ public class GetStatusWorkflowActivitiesQueryHandlerTests : StatusWorkflowHandle
             new()
             {
                 Id = Guid.NewGuid(),
-                EventType = "WorkflowPublishedEvent",
+                EventType = "WorkflowPublishedEventV2",
                 DomainArea = "StatusWorkflows",
                 AggregateType = "Workflow",
                 AggregateId = workflow.Id,

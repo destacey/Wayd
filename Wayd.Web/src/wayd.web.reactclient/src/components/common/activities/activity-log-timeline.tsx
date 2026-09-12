@@ -130,7 +130,8 @@ const getEventBadge = (
 
   // Catches deactivation too, which is the point: both directions are the same kind of change, so the
   // fact that 'deactivated' contains 'activated' stops mattering rather than needing to be ordered around.
-  if (lower.includes('activated')) {
+  // Archiving keeps the record, so it is a state change rather than a removal.
+  if (lower.includes('activated') || lower.includes('archived')) {
     return {
       icon: <SwapOutlined style={{ color: token.colorPrimary }} />,
       color: 'purple' as const,

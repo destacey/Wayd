@@ -86,6 +86,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", null);
         Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", null);
         Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", null);
+        HandlerCodegenMode.Clear();
 
         await base.DisposeAsync();
         await _container.DisposeAsync();
@@ -109,5 +110,6 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", _connectionString);
         Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", _connectionString);
         Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", "integration-test-secret-key-please-ignore-0123456789");
+        HandlerCodegenMode.Apply();
     }
 }

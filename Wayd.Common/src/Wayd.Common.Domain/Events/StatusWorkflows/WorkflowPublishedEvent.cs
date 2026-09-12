@@ -8,15 +8,14 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// A workflow became available to assign.
 /// </summary>
 /// <remarks>
-/// The end of the build-and-review flow: someone drafted it, others looked at it, and this is the
-/// moment it can be put into use. Whoever asked for it is waiting on exactly this.
-/// <para>
-/// Says nothing about anything using it — several workflows for one owner type are published at once
-/// by design, each scope picking its own. <c>WorkflowAssignedEvent</c> is what reports use.
-/// </para>
+/// Frozen at its published shape and never raised; <see cref="WorkflowPublishedEventV2"/> replaced it. Kept
+/// so every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by WorkflowPublishedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record WorkflowPublishedEvent : DomainEvent, IAggregateEvent
 {
+    [JsonConstructor]
     public WorkflowPublishedEvent(Guid id, int key, string name, string ownerType, int statusCount, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
@@ -31,14 +30,8 @@ public sealed record WorkflowPublishedEvent : DomainEvent, IAggregateEvent
 
     public Guid Id { get; }
     public int Key { get; }
-
-    /// <summary>Its name at the time, so a notification renders without a query.</summary>
     public string Name { get; }
-
-    /// <summary>The kind of record it governs.</summary>
     public string OwnerType { get; }
-
-    /// <summary>How many statuses it carries, for a notification that summarises without a query.</summary>
     public int StatusCount { get; }
 
     [JsonIgnore]

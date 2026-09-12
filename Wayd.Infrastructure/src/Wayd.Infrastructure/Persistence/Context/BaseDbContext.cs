@@ -30,6 +30,15 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     private readonly IDbContextOutbox _outbox;
     private readonly IRequestCorrelationIdProvider _requestCorrelationIdProvider;
 
+    /// <summary>
+    /// Numbers the activity log entries this context writes, so their recorded order is the order the events
+    /// were raised in. It has to be counted here: the events of one command are stamped microseconds apart or
+    /// share a timestamp outright, and EF sorts the inserts of a save by primary key — a Guid — so the order
+    /// the rows reach the table says nothing about the order they were raised. Runs across saves rather than
+    /// resetting per drain, so that two batches of one command cannot both start at zero.
+    /// </summary>
+    private int _activityOrdinal;
+
     protected BaseDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IDbContextOutbox outbox, IRequestCorrelationIdProvider requestCorrelationIdProvider)
         : base(options)
     {
@@ -575,6 +584,12 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     /// </returns>
     private async Task<(List<IEvent> InlineEvents, bool EnrolledDurableEvents, bool EnrolledActivityLogs)> EnlistDomainEvents()
     {
+        // Each entity's events are drained in the order they were raised and numbered in that order below, so
+        // one aggregate's history reads back the way it happened. Between entities there is no such order:
+        // ChangeTracker.Entries is in EF's own tracking order, and the drain cannot see when in the handler
+        // each aggregate was touched. That is invisible today — every activity view reads one AggregateId —
+        // and only becomes a question if a feed ever spans records, which would need the order captured where
+        // the events are raised rather than here.
         var entitiesWithEvents = ChangeTracker.Entries<IEntity>()
             .Select(e => e.Entity)
             .Where(e => e.DomainEvents.Count > 0)
@@ -596,7 +611,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             foreach (var domainEvent in domainEvents)
             {
                 // Auto-capture into ActivityLogs table
-                var activityLog = ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, entity, correlationId);
+                var activityLog = ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, entity, _activityOrdinal++, correlationId);
                 Set<ActivityLogEntry>().Add(activityLog);
                 enrolledActivity = true;
 

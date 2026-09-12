@@ -47,12 +47,40 @@ public sealed class ActivityLogPersistenceTests
         savedLog.UserId.Should().Be("user-42");
         savedLog.EmployeeId.Should().Be(domainEvent.Actor.EmployeeId);
         savedLog.Timestamp.Should().Be(Instant.FromUnixTimeSeconds(100));
+        savedLog.Ordinal.Should().Be(0);
         savedLog.CorrelationId.Should().Be("corr-123");
         savedLog.EventVersion.Should().Be("1.0");
         savedLog.Payload.Should().Contain("Sample Details");
         savedLog.Payload.Should().NotContain("corr-123");
         savedLog.Payload.Should().Contain("1.0");
         savedLog.Summary.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_NumbersEntriesAcrossSaves_SoASecondBatchDoesNotRestartAtZero()
+    {
+        // Arrange — two saves of one command, stamped at the same instant. Their batches would collide on both
+        // Timestamp and Ordinal if the counter reset per drain rather than living on the context.
+        var harness = new Harness(correlationId: "corr-multi-save");
+        var entity = new ActivityTestEntity();
+        var first = new TestBusinessEvent("First", EventActor.System, Instant.FromUnixTimeSeconds(100));
+        var second = new TestBusinessEvent("Second", EventActor.System, Instant.FromUnixTimeSeconds(100));
+
+        entity.Raise(first);
+        harness.Context.Entities.Add(entity);
+        await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        entity.Raise(second);
+        await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var entries = await harness.Context.ActivityLogs
+            .Where(a => a.AggregateId == entity.Id)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        entries.Single(a => a.Id == first.EventId).Ordinal.Should().Be(0);
+        entries.Single(a => a.Id == second.EventId).Ordinal.Should().Be(1);
     }
 
     [Fact]

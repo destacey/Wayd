@@ -10,6 +10,7 @@ using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Planning.Application.PlanningIntervals.Imports;
 using Wayd.Planning.Application.Risks.Imports;
+using Wayd.ProductManagement.Application.DeploymentEnvironments.Imports;
 using Wayd.ProductManagement.Application.Products.Imports;
 using Wayd.ProductManagement.Application.ReleasePackages.Imports;
 using Wayd.ProductManagement.Application.Releases.Imports;
@@ -55,6 +56,7 @@ public sealed class ImportEndpointPermissionTests
         (typeof(ProjectsController), nameof(ProjectsController.ImportTasks), typeof(ProjectTaskImportDefinition)),
         (typeof(ProjectsController), nameof(ProjectsController.ImportStages), typeof(ProjectStageImportDefinition)),
         (typeof(StrategicInitiativesController), nameof(StrategicInitiativesController.Import), typeof(StrategicInitiativeImportDefinition)),
+        (typeof(DeploymentEnvironmentsController), nameof(DeploymentEnvironmentsController.Import), typeof(DeploymentEnvironmentImportDefinition)),
         (typeof(ProductsController), nameof(ProductsController.Import), typeof(ProductImportDefinition)),
         (typeof(ReleasePackagesController), nameof(ReleasePackagesController.Import), typeof(ReleasePackageImportDefinition)),
         (typeof(ReleasesController), nameof(ReleasesController.Import), typeof(ReleaseImportDefinition)),

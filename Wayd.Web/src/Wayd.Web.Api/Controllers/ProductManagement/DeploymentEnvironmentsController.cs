@@ -1,4 +1,6 @@
-﻿using Microsoft.FeatureManagement.Mvc;
+﻿using CsvHelper;
+using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.FeatureManagement;
@@ -21,9 +23,10 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-public class DeploymentEnvironmentsController(IDispatcher dispatcher) : ControllerBase
+public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.DeploymentEnvironments)]
@@ -53,6 +56,52 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher) : Controll
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetDeploymentEnvironments), null, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.DeploymentEnvironments)]
+    [OpenApiOperation(
+        "Submit a csv file of deployment environments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "Each row is created active unless IsActive is false, in which case it is created and then retired — for the environments a historical backfill's deployments still point at.")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedEnvironments = _csvService.ReadCsv<ImportDeploymentEnvironmentRequest>(file.OpenReadStream());
+
+            List<SubmittedImportRow<ImportDeploymentEnvironmentDto>> rows = [];
+            var validator = new ImportDeploymentEnvironmentRequestValidator();
+            foreach (var environment in importedEnvironments)
+            {
+                var validationResults = await validator.ValidateAsync(environment, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Environment: {environment.Name})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportDeploymentEnvironmentDto>(
+                    environment.ImportId, environment.ToImportDeploymentEnvironmentDto()));
+            }
+
+            var result = await _dispatcher.Send(new ImportDeploymentEnvironmentsCommand(rows, submissionGroupId), cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

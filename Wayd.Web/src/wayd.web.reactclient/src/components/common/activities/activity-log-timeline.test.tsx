@@ -87,6 +87,8 @@ describe('ActivityLogTimeline', () => {
     // deactivation as its opposite.
     ['TeamDeactivatedEvent', 'State Change'],
     ['TeamActivatedEvent', 'State Change'],
+    ['StrategicThemeArchivedEvent', 'State Change'],
+    ['WorkflowArchivedEventV2', 'State Change'],
     ['ProjectStatusChangedEvent', 'Status Change'],
     // A health check event also contains 'added' / 'removed'; the health signal has to win.
     ['ProjectHealthCheckAddedEvent', 'Health'],

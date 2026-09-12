@@ -128,7 +128,25 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     {
         var iteration = new Iteration(name, type, state, dateRange, teamId, ownershipInfo, externalMetadata);
 
-        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEvent(iteration, actor, timestamp)));
+        // Captured now, not when the action runs: the event records the iteration as created, so a caller
+        // that changes it before the first save cannot rewrite the creation. Only Key waits for the save
+        // that assigns it.
+        var createdName = iteration.Name;
+        var createdType = iteration.Type;
+        var createdState = iteration.State;
+        var createdDateRange = iteration.DateRange;
+        var createdTeamId = iteration.TeamId;
+
+        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEvent(
+            iteration.Id,
+            iteration.Key,
+            createdName,
+            createdType,
+            createdState,
+            createdDateRange,
+            createdTeamId,
+            actor,
+            timestamp)));
 
         return iteration;
     }

@@ -109,6 +109,26 @@ public sealed class ReleasePackageTests
         assembled.ChangedCount.Should().Be(2);
     }
 
+    [Fact]
+    public void Create_ThenReleasedBeforeTheFirstSave_RecordsThePackageAsAssembled()
+    {
+        // Arrange — what the package import does: assemble the package, then release it from the same
+        // row, all before one save
+        var proposed = StatusRefFactory.For(StatusCategory.Proposed);
+        var sut = ReleasePackage.Create("2026.35", null, null, Manifest(changed: 2, carriedForward: 3), proposed, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        sut.MarkReleased(new LocalDate(2026, 8, 31), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        var assembled = sut.DomainEvents.OfType<PackageAssembledEvent>().Should().ContainSingle().Subject;
+        assembled.StatusId.Should().Be(proposed.StatusId, "the release is its own event");
+        assembled.StatusCategory.Should().Be(StatusCategory.Proposed);
+        assembled.ComponentCount.Should().Be(5);
+        assembled.ChangedCount.Should().Be(2);
+    }
+
     #endregion Create
 
     #region SetManifest

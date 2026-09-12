@@ -338,6 +338,46 @@ it. Comparing the stored values on both sides is what makes the guard correct ra
 Collections compare the same way, ignoring order: `RoleManager.Diff` for role assignments (the event is
 raised when it gained or lost anything, and carries both lists), a set difference for strategic themes.
 
+#### A creation event records the record as created
+
+Most creation events are deferred with `AddPostPersistenceAction`, because `Key` is assigned by the
+database and an event raised at construction would carry zero. The action runs when `SaveChanges`
+completes, so **anything it reads off the aggregate is the aggregate as saved, not as created** — and a
+caller that creates a record and moves it on before the first save is ordinary: every import does it. The
+portfolio import creates a Proposed portfolio and activates it, the version import walks a new version to
+the status its row describes, the team import creates a team active (the only way the domain allows) and
+then deactivates an already-retired one.
+
+Read at execution time, the creation event then records the later state as the creation and duplicates a
+transition that already has its own event. So capture every value in a local when the aggregate is
+created, and read only `Key` inside the action:
+
+```csharp
+var portfolio = new ProjectPortfolio(name, description, ProjectPortfolioStatus.Proposed, roles);
+
+// Captured now, not when the action runs.
+var createdName = portfolio.Name;
+var createdDescription = portfolio.Description;
+var createdStatus = (int)portfolio.Status;
+var createdRoles = portfolio.RoleMap();
+
+portfolio.AddPostPersistenceAction(() => portfolio.AddDomainEvent(new ProjectPortfolioCreatedEvent(
+    portfolio.Id, portfolio.Key, createdName, createdDescription, createdStatus, createdRoles,
+    actor, timestamp)));
+```
+
+Where the key is not database-assigned — `Project` supplies its own — build the event outright and defer
+only the raise. Where nothing mutates a new record before its first save today, capture anyway: it costs
+nothing and the next caller does not have to know the rule to stay correct. The pattern has a test per
+aggregate that has such a caller, which creates the record, mutates it, executes the post-persistence
+actions and asserts the creation event still describes the creation.
+
+Events raised by a **mutation** before the first save are the other half of this, and the mirror-image
+problem: their values are already the ones the caller just set, but `Key` is still zero. `Deployment` and
+`DeploymentEnvironment` defer those raises for that reason (`if (Key == 0)`); the release, version and
+package transitions do not yet, so an import that ships a record in the same pass records those events
+with `Key` 0.
+
 #### Versioning an event
 
 An event's published shape is a contract with two kinds of reader, and each forces a rule:

@@ -408,17 +408,27 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
         var version = new Version(productId, number, name, targetDate, sequence);
         version.ApplyStatus(initialStatus, actor, timestamp);
 
-        // Deferred because Key is database-generated: an event raised here would carry Key 0.
+        // Deferred because Key is database-generated: an event raised here would carry Key 0. Every
+        // other value is captured now rather than read when the action runs, so the event records the
+        // version as planned even where a caller — the import, walking a version to its shipped status —
+        // moves it on before the first save.
+        var createdProductId = version.ProductId;
+        var createdNumber = version.Number;
+        var createdName = version.Name;
+        var createdTargetDate = version.TargetDate;
+        var createdStatusId = version.StatusId;
+        var createdStatusCategory = version.StatusCategory;
+
         version.AddPostPersistenceAction(() => version.AddDomainEvent(new VersionPlannedEvent(
             version.Id,
             version.Key,
-            version.ProductId,
+            createdProductId,
             productName,
-            version.Number,
-            version.Name,
-            version.TargetDate,
-            version.StatusId,
-            version.StatusCategory,
+            createdNumber,
+            createdName,
+            createdTargetDate,
+            createdStatusId,
+            createdStatusCategory,
             actor,
             timestamp)));
 

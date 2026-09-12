@@ -92,6 +92,25 @@ public sealed class VersionTests
         planned.ProductName.Should().Be(ProductName);
     }
 
+    [Fact]
+    public void Create_ThenWalkedToShippedBeforeTheFirstSave_RecordsTheVersionAsPlanned()
+    {
+        // Arrange — what the version import does: plan the version, then walk it to the status its row
+        // describes, all before one save
+        var proposed = StatusRefFactory.For(StatusCategory.Proposed);
+        var sut = Version.Create(Guid.CreateVersion7(), "4.8.2", null, null, null, true, proposed, ProductName, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        sut.Cut(new LocalDate(2026, 9, 1), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        sut.MarkReleased(new LocalDate(2026, 9, 30), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        var planned = sut.DomainEvents.OfType<VersionPlannedEvent>().Should().ContainSingle().Subject;
+        planned.StatusId.Should().Be(proposed.StatusId, "each transition is its own event");
+        planned.StatusCategory.Should().Be(StatusCategory.Proposed);
+    }
+
     #endregion Create
 
     #region Sequence

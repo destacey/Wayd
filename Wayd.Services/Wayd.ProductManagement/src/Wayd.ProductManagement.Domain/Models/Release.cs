@@ -492,16 +492,26 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
         var release = new Release(productId, version, name, targetDate, sequence);
         release.ApplyStatus(initialStatus, actor, timestamp);
 
-        // Deferred because Key is database-generated: an event raised here would carry Key 0.
+        // Deferred because Key is database-generated: an event raised here would carry Key 0. Every
+        // other value is captured now rather than read when the action runs, so the event records the
+        // release as planned even where a caller — the import, announcing a release in the same pass —
+        // moves it on before the first save.
+        var createdProductId = release.ProductId;
+        var createdVersion = release.Version;
+        var createdName = release.Name;
+        var createdTargetDate = release.TargetDate;
+        var createdStatusId = release.StatusId;
+        var createdStatusCategory = release.StatusCategory;
+
         release.AddPostPersistenceAction(() => release.AddDomainEvent(new ReleasePlannedEvent(
             release.Id,
             release.Key,
-            release.ProductId,
-            release.Version,
-            release.Name,
-            release.TargetDate,
-            release.StatusId,
-            release.StatusCategory,
+            createdProductId,
+            createdVersion,
+            createdName,
+            createdTargetDate,
+            createdStatusId,
+            createdStatusCategory,
             actor,
             timestamp)));
 

@@ -170,9 +170,22 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
     {
         var environment = new DeploymentEnvironment(name, category, ringOrder);
 
-        // Deferred because Key is database-generated: an event raised here would carry Key 0.
-        environment.AddPostPersistenceAction(() => environment.AddDomainEvent(
-            new EnvironmentAddedEvent(environment.Id, environment.Key, environment.Name, environment.Category, environment.RingOrder, actor, timestamp)));
+        // Deferred because Key is database-generated: an event raised here would carry Key 0. Every
+        // other value is captured now rather than read when the action runs, so the event records the
+        // environment as added even where a caller — the import, retiring an environment in the same
+        // pass — changes it before the first save.
+        var createdName = environment.Name;
+        var createdCategory = environment.Category;
+        var createdRingOrder = environment.RingOrder;
+
+        environment.AddPostPersistenceAction(() => environment.AddDomainEvent(new EnvironmentAddedEvent(
+            environment.Id,
+            environment.Key,
+            createdName,
+            createdCategory,
+            createdRingOrder,
+            actor,
+            timestamp)));
 
         return environment;
     }

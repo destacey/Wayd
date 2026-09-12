@@ -363,13 +363,25 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         var product = new Product(name, description, productTypeId, parentId, externalId);
         product.ApplyStatus(initialStatus, actor, timestamp);
 
-        // Deferred because Key is database-generated: an event raised here would carry Key 0.
+        // Deferred because Key is database-generated: an event raised here would carry Key 0. Every
+        // other value is captured now rather than read when the action runs, so the event records the
+        // product as created even where a caller — the import, tagging a new row — changes it first.
+        var createdName = product.Name;
+        var createdDescription = product.Description;
+        var createdProductTypeId = product.ProductTypeId;
+        var createdParentId = product.ParentId;
+        var createdStatusId = product.StatusId;
+        var createdStatusCategory = product.StatusCategory;
+
         product.AddPostPersistenceAction(() => product.AddDomainEvent(new ProductAddedEvent(
-            product,
-            product.ProductTypeId,
-            product.ParentId,
-            product.StatusId,
-            product.StatusCategory,
+            product.Id,
+            product.Key,
+            createdName,
+            createdDescription,
+            createdProductTypeId,
+            createdParentId,
+            createdStatusId,
+            createdStatusCategory,
             actor,
             timestamp)));
 

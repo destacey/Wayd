@@ -66,6 +66,26 @@ public class TeamOfTeamsTests
     }
 
     [Fact]
+    public void Create_ThenDeactivatedBeforeTheFirstSave_RecordsTheTeamAsCreated()
+    {
+        // Arrange — what the team import does for an already-retired row: create the team active, the
+        // only way the domain allows, then deactivate it, all before one save
+        var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
+        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        var inactiveDate = fakeTeamOfTeams.ActiveDate.PlusDays(30);
+
+        // Act
+        sut.Deactivate(TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now));
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        var createdEvent = sut.DomainEvents.OfType<TeamCreatedEvent>().Should().ContainSingle().Subject;
+        createdEvent.IsActive.Should().BeTrue("the deactivation is its own event");
+        createdEvent.InactiveDate.Should().BeNull();
+        sut.DomainEvents.Should().ContainSingle(e => e is TeamDeactivatedEvent);
+    }
+
+    [Fact]
     public void Create_WithNullName_Throws()
     {
         // Arrange

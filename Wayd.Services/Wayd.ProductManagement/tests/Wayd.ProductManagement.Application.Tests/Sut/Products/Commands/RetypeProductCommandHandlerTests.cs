@@ -45,7 +45,7 @@ public sealed class RetypeProductCommandHandlerTests : ProductCommandTestBase
         await sut.Handle(new RetypeProductCommand(product.Id, to.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        product.DomainEvents.OfType<ProductRetypedEvent>().Should().ContainSingle();
+        product.DomainEvents.OfType<ProductRetypedEventV2>().Should().ContainSingle();
     }
 
     [Fact]

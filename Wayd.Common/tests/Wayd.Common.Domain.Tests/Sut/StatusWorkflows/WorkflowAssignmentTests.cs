@@ -260,7 +260,7 @@ public sealed class WorkflowAssignmentTests
 
         // Assert
         // Someone is waiting on this: it is the moment a reviewed draft becomes assignable.
-        var published = workflow.DomainEvents.OfType<WorkflowPublishedEvent>().Single();
+        var published = workflow.DomainEvents.OfType<WorkflowPublishedEventV2>().Single();
         published.OwnerType.Should().Be(Widget.Key);
         published.StatusCount.Should().Be(2);
     }
@@ -275,7 +275,7 @@ public sealed class WorkflowAssignmentTests
         workflow.Archive(isAssigned: false, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
-        workflow.DomainEvents.Should().ContainSingle(e => e is WorkflowArchivedEvent);
+        workflow.DomainEvents.Should().ContainSingle(e => e is WorkflowArchivedEventV2);
     }
 
     [Fact]

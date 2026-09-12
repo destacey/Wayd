@@ -75,7 +75,7 @@ public sealed class DeploymentEnvironmentTests
         added.Name.Should().Be("Production");
         added.Category.Should().Be(EnvironmentCategory.Production);
         added.RingOrder.Should().Be(4);
-        sut.DomainEvents.Should().ContainSingle(e => e is EnvironmentRetiredEvent);
+        sut.DomainEvents.Should().ContainSingle(e => e is EnvironmentRetiredEventV2);
     }
 
     #endregion Create
@@ -97,7 +97,7 @@ public sealed class DeploymentEnvironmentTests
         result.IsSuccess.Should().BeTrue();
         sut.Category.Should().Be(EnvironmentCategory.Production);
 
-        var reclassified = sut.DomainEvents.OfType<EnvironmentReclassifiedEvent>().Single();
+        var reclassified = sut.DomainEvents.OfType<EnvironmentReclassifiedEventV2>().Single();
         reclassified.FromCategory.Should().Be(EnvironmentCategory.Staging);
         reclassified.ToCategory.Should().Be(EnvironmentCategory.Production);
     }
@@ -146,7 +146,7 @@ public sealed class DeploymentEnvironmentTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.IsActive.Should().BeFalse();
-        sut.DomainEvents.Should().ContainSingle(e => e is EnvironmentRetiredEvent);
+        sut.DomainEvents.Should().ContainSingle(e => e is EnvironmentRetiredEventV2);
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public sealed class DeploymentEnvironmentTests
         var events = sut.DomainEvents.ToList();
         events.Should().HaveCount(2);
         events[0].Should().BeOfType<EnvironmentAddedEvent>();
-        events[1].Should().BeOfType<EnvironmentRetiredEvent>();
+        events[1].Should().BeOfType<EnvironmentRetiredEventV2>();
     }
 
     #endregion Deactivate

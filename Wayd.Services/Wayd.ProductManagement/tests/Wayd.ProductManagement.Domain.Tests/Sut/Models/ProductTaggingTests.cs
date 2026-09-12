@@ -344,7 +344,7 @@ public sealed class ProductTaggingTests
     #region Events
 
     [Fact]
-    public void Tag_ShouldRaiseAnEventCarryingTheWholeResultingSet()
+    public void Tag_ShouldRaiseAnEventCarryingTheChangeAndTheWholeResultingSet()
     {
         // Arrange
         var sut = _faker.Generate();
@@ -355,9 +355,47 @@ public sealed class ProductTaggingTests
         sut.Tag(android, platform, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        // The current state, not a diff — a projection should not have to work out what changed.
-        var changed = sut.DomainEvents.OfType<ProductTagsChangedEvent>().Last();
+        var changed = sut.DomainEvents.OfType<ProductTagsChangedEventV2>().Last();
+        changed.Added.Should().BeEquivalentTo([android.Id]);
+        changed.Removed.Should().BeEmpty();
         changed.TagIds.Should().BeEquivalentTo([ios.Id, android.Id]);
+    }
+
+    [Fact]
+    public void Tag_WhenTheAxisAllowsOne_ShouldReportTheReplacedTagAsRemoved()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var (platform, ios, android) = Axis(allowsMany: false);
+        sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        sut.Tag(android, platform, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var changed = sut.DomainEvents.OfType<ProductTagsChangedEventV2>().Last();
+        changed.Added.Should().BeEquivalentTo([android.Id]);
+        changed.Removed.Should().BeEquivalentTo([ios.Id]);
+        changed.TagIds.Should().BeEquivalentTo([android.Id]);
+    }
+
+    [Fact]
+    public void Untag_ShouldRaiseAnEventCarryingTheRemovedTag()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var (platform, ios, android) = Axis(allowsMany: true);
+        sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
+        sut.Tag(android, platform, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        sut.Untag(ios.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var changed = sut.DomainEvents.OfType<ProductTagsChangedEventV2>().Last();
+        changed.Added.Should().BeEmpty();
+        changed.Removed.Should().BeEquivalentTo([ios.Id]);
+        changed.TagIds.Should().BeEquivalentTo([android.Id]);
     }
 
     #endregion Events

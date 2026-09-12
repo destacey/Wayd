@@ -93,7 +93,7 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
         await sut.Handle(new ChangeProductStatusCommand(product.Id, _retired.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        var raised = product.DomainEvents.OfType<ProductLifecycleChangedEvent>().Should().ContainSingle().Subject;
+        var raised = product.DomainEvents.OfType<ProductLifecycleChangedEventV2>().Should().ContainSingle().Subject;
         raised.ToAlias.Should().Be(ProductStatusAlias.Retired);
     }
 

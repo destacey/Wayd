@@ -376,7 +376,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         State = StatusWorkflowState.Published;
 
-        AddDomainEvent(new WorkflowPublishedEvent(Id, Key, Name, OwnerType, _statuses.Count, actor, timestamp));
+        AddDomainEvent(new WorkflowPublishedEventV2(Id, Key, OwnerType, _statuses.Count, actor, timestamp));
 
         return Result.Success();
     }
@@ -413,7 +413,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         State = StatusWorkflowState.Archived;
 
-        AddDomainEvent(new WorkflowArchivedEvent(Id, Key, Name, OwnerType, actor, timestamp));
+        AddDomainEvent(new WorkflowArchivedEventV2(Id, Key, OwnerType, actor, timestamp));
 
         return Result.Success();
     }

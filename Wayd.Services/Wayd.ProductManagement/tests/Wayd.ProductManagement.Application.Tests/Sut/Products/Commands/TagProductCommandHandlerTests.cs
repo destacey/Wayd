@@ -82,7 +82,7 @@ public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
         await sut.Handle(new TagProductCommand(product.Id, tag.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        var raised = product.DomainEvents.OfType<ProductTagsChangedEvent>().Should().ContainSingle().Subject;
+        var raised = product.DomainEvents.OfType<ProductTagsChangedEventV2>().Should().ContainSingle().Subject;
         raised.TagIds.Should().BeEquivalentTo([tag.Id]);
     }
 

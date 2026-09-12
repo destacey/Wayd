@@ -8,13 +8,14 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// An environment's category changed.
 /// </summary>
 /// <remarks>
-/// This looks like ordinary configuration and is not. Marking an environment as production
-/// retroactively changes deployment frequency and every measure scoped to production — a number
-/// somebody reported last week can move without any deployment having happened. That makes it a fact
-/// worth a name and its own event, rather than a field on a generic update.
+/// Frozen at its published shape and never raised; <see cref="EnvironmentReclassifiedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by EnvironmentReclassifiedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record EnvironmentReclassifiedEvent : DomainEvent, IProductManagementEvent
 {
+    [JsonConstructor]
     public EnvironmentReclassifiedEvent(Guid id, int key, string name, EnvironmentCategory fromCategory, EnvironmentCategory toCategory, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

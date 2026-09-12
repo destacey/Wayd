@@ -7,12 +7,14 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// The tags on a product node changed.
 /// </summary>
 /// <remarks>
-/// Carries the whole resulting set rather than what was added or removed, because a consumer keeping a
-/// projection wants the current state and diffing to discover it is work it should not have to do.
-/// One event for both directions: adding and removing a label lead to identical handling.
+/// Frozen at its published shape and never raised; <see cref="ProductTagsChangedEventV2"/> replaced it. Kept
+/// so every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by ProductTagsChangedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record ProductTagsChangedEvent : DomainEvent, IProductManagementEvent
 {
+    [JsonConstructor]
     public ProductTagsChangedEvent(Guid id, int key, string name, Guid[] tagIds, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

@@ -8,7 +8,7 @@ namespace Wayd.Common.Domain.Events;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The three envelope fields are assigned in three different places, by design:
+/// The envelope fields are assigned in different places, by design:
 /// </para>
 /// <list type="bullet">
 /// <item>
@@ -25,11 +25,32 @@ namespace Wayd.Common.Domain.Events;
 /// happened to start it.
 /// </item>
 /// <item>
-/// <see cref="CorrelationId"/> is stamped by <c>BaseDbContext</c> where events are drained. It is the one
-/// genuinely infrastructural field — the domain has no idea what request it is running inside.
-/// <see cref="EventVersion"/> identifies the schema version of the event occurrence (e.g. "1.0").
+/// <see cref="EventVersion"/> is a <strong>required constructor parameter</strong> naming the schema version
+/// of this event's published shape (e.g. "1.0"), for the reason given on that parameter.
 /// </item>
 /// </list>
+/// <para>
+/// The correlation id that ties an event back to the request that caused it is deliberately <em>not</em> here.
+/// The domain has no idea what request it is running inside, so it is stamped where events are drained, onto
+/// the <c>ActivityLogEntry</c> row and onto the outbox envelope's <c>DeliveryOptions</c>.
+/// </para>
+/// <para>
+/// <strong>The envelope carries no ordering, and must not grow one.</strong> The events of one command land
+/// microseconds apart at best, and share a <see cref="Timestamp"/> exactly wherever the caller reads the clock
+/// once for a whole batch, so the timestamp does not order them. Two things stop a sequence
+/// number from being the answer. Durable delivery is at-least-once through the outbox with no guarantee of
+/// order between messages, so a field saying where an event sits would advertise a promise the transport does
+/// not keep and invite a consumer to depend on it — which is why payloads carry the set after a change rather
+/// than a delta, so that applying them in any order and more than once is still correct. And the only place
+/// that knows the true order events were raised in is <c>AddDomainEvent</c>, where numbering across aggregates
+/// would need an ambient counter, in a layer that has no dependencies and resolves nothing for itself.
+/// </para>
+/// <para>
+/// Order is a property of <em>recording</em> a fact, not of the fact, so it lives on the ledger: the
+/// <c>ActivityLogs</c> row carries an <c>Ordinal</c> counted as the events are drained, and reads sort by
+/// timestamp then by it. Within one aggregate that order is faithful — events are drained from an ordered list
+/// in the order they were raised — and every activity view reads a single aggregate.
+/// </para>
 /// </remarks>
 public abstract record DomainEvent : IEvent
 {

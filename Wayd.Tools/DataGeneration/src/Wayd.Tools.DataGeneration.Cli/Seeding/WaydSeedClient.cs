@@ -15,6 +15,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 /// Every import posts and then waits: a submission answers with the id of a queued run, and the ids it
 /// created are what the next stage's file references. <see cref="ImportAwaiter"/> owns that wait.
 /// </para>
+/// <para>
+/// One client is one seed: every file it posts is submitted under the same group, so the fifteen or so
+/// runs a seed produces can be found together afterwards rather than picked out of everything else the
+/// environment has imported.
+/// </para>
 /// </summary>
 public sealed class WaydSeedClient : IDisposable
 {
@@ -34,8 +39,13 @@ public sealed class WaydSeedClient : IDisposable
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(500);
 
-    public WaydSeedClient(string baseUrl, string apiKey)
+    public WaydSeedClient(string baseUrl, string apiKey, Guid submissionGroupId)
     {
+        if (submissionGroupId == Guid.Empty)
+            throw new ArgumentException("A seed needs a group of its own to submit under.", nameof(submissionGroupId));
+
+        SubmissionGroupId = submissionGroupId;
+
         var root = baseUrl.TrimEnd('/') + "/";
         _httpClient = new HttpClient { BaseAddress = new Uri(root) };
         _httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
@@ -47,6 +57,9 @@ public sealed class WaydSeedClient : IDisposable
         _usersClient = new UsersClient(root, _httpClient);
         _awaiter = new ImportAwaiter(new ImportsClient(root, _httpClient), PollInterval, ImportTimeout);
     }
+
+    /// <summary>The group every run this client submits is filed under; each run carries it.</summary>
+    public Guid SubmissionGroupId { get; }
 
     /// <summary>
     /// Ensures each application role exists with exactly the permissions given, creating what is missing.
@@ -302,7 +315,10 @@ public sealed class WaydSeedClient : IDisposable
             content.Add(secondContent, secondFieldName, secondFileName ?? "second.csv");
         }
 
-        using var response = await _httpClient.PostAsync(path, content, cancellationToken);
+        // The group rides on the query string: the endpoints take it there so the multipart body stays
+        // the one "file" field their generated clients describe.
+        using var response = await _httpClient.PostAsync(
+            $"{path}?submissionGroupId={SubmissionGroupId}", content, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)

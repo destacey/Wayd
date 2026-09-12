@@ -263,10 +263,25 @@ Name events for **what happened**, never a generic `Updated`, and match the doma
 `IProductManagementEvent`) so projections handle the marker rather than a hand-listed set that goes stale
 the day someone forgets to register a new type.
 
+**Designing an event or adding a field follows the steps in
+[domain-events.mdx](docs/contributing/domain-events.mdx#designing-an-event).** Name the part of the record that
+changed: edits to descriptive fields are a `DetailsUpdated` event, a transition is its own event, and a bare
+`XxxUpdatedEvent` is never right. Every consumer is served from those same events, including another module
+keeping a copy of the record (`WorkProject` is built from Created, DetailsUpdated, KeyChanged and Deleted).
+Never add an event that ships the whole record to a copy. The existing `TeamUpdatedEvent`,
+`IterationUpdatedEvent`, `StrategicThemeUpdatedEvent` and `WorkIterationUpdatedEvent` are legacy, to be
+superseded — don't copy them. A payload starts as `Id`/`Key`, and a field must pass four ordered tests.
+People are ids, never names or emails, because the log can't be corrected. A field goes in only when a kind
+of consumer (not a current subscriber) can't do without it. A change carries both ends. Another aggregate
+goes in by id, unless the value is frozen at the moment, like `ScoringModelName` on a recorded score. The
+page's wiring checklist covers the mechanics. `DomainEventConventionTests` fails three things: an event named
+only for its record, a constructor the durable serializer can't bind, and a payload property that looks
+like personal data.
+
 **`AddDomainEvent` is the only way to raise, and nothing collapses events afterwards.** Two calls that each
 changed something are two facts. Never reintroduce a "supersede the pending event of this type" mechanism:
 events are drained by `SaveChanges`, so it made the recorded history depend on where a handler put its save
-— see [architecture.mdx](docs/contributing/architecture.mdx#every-raise-is-a-fact-nothing-collapses-them).
+— see [domain-events.mdx](docs/contributing/domain-events.mdx#every-raise-is-a-fact-nothing-collapses-them).
 
 **A method raises only when it actually changed something.** A whole-record update sends every field on
 every save, so compare before against after and raise on a real difference — `RoleManager.Diff` for
@@ -294,7 +309,7 @@ save, which would otherwise make the creation event record the later state and d
 already has its own event. Capture each value in a local at creation and read only `Key` inside the action;
 where the key is supplied rather than generated (`Project`), build the event outright and defer only the
 raise. Each aggregate with such a caller has a create-then-mutate test —
-see [architecture.mdx](docs/contributing/architecture.mdx#a-creation-event-records-the-record-as-created).
+see [domain-events.mdx](docs/contributing/domain-events.mdx#a-creation-event-records-the-record-as-created).
 
 Where an aggregate writes a durable record *and* an event about the same occurrence, give the event that
 record's id as its `EventId` (`ProjectStatusChangedEventV2` takes the `ProjectStatusHistory` row's). That is
@@ -319,7 +334,7 @@ hide the one number a change has to bump deliberately.
 
 `DomainEventVersioningTests` fails when a type's generation and its version's major disagree, or when a
 superseded generation is deleted or left un-obsoleted — see
-[architecture.mdx](docs/contributing/architecture.mdx#versioning-an-event).
+[domain-events.mdx](docs/contributing/domain-events.mdx#versioning-an-event).
 
 ### Database
 

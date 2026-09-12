@@ -111,6 +111,7 @@ const sidebars: SidebarsConfig = {
           label: 'Development Guide',
           items: [
             'contributing/architecture',
+            'contributing/domain-events',
             'contributing/coding-standards',
             'contributing/testing',
             'contributing/adding-a-feature',

@@ -58,6 +58,9 @@ A few rules apply to every import:
   value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
 - **Multi-value columns are semicolon-separated.** A comma would collide with the CSV field delimiter.
+- **Dates are ISO `yyyy-MM-dd`.** A date column takes a date, not a timestamp: a cell carrying a time
+  is rejected rather than truncated. The deployment columns that are genuine timestamps say so, and
+  carry their offset — see [timestamps](#timestamps-carry-their-offset).
 - **Names are matched case-insensitively** and surrounding whitespace is ignored, so `Application` and
   ` application ` resolve to the same type.
 - **A missing file returns 422**, not 400 — the file is a validation failure like any other.

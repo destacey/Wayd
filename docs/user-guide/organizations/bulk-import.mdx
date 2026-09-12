@@ -54,7 +54,8 @@ A few rules apply to every import:
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
   needs a value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
-- **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
+- **Dates are ISO `yyyy-MM-dd`.** A date column takes a date, not a timestamp: a cell carrying a time
+  is rejected rather than truncated.
 - **A missing file returns 422**, not 400 — the file is a validation failure like any other.
 - **Boolean and status columns are case-insensitive** and, where a column is optional, have a sensible
   default (noted per column below).

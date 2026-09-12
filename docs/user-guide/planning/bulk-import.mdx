@@ -1,14 +1,15 @@
 ---
 title: Bulk Import
-description: Loading planning interval objectives and risks into Wayd from CSV via the import API.
+description: Loading planning intervals, objectives and risks into Wayd from CSV via the import API.
 sidebar_position: 8
 audience: [user, agent]
 ---
 
 # Bulk Import
 
-Wayd can load planning data in bulk from CSV files through two **import endpoints** — one for
-[planning interval objectives](./planning-intervals.mdx) and one for [risks](./risks.mdx). Each is a
+Wayd can load planning data in bulk from CSV files through three **import endpoints** — one for
+[planning intervals](./planning-intervals.mdx), one for the
+[objectives](./planning-intervals.mdx#objectives) on them, and one for [risks](./risks.mdx). Each is a
 single `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a
 permission.
 
@@ -21,11 +22,10 @@ Once submitted, the run itself is visible in **Settings → Imports**, where you
 each row and act on a run that did not finish. See [Imports](../settings/imports.mdx).
 :::
 
-:::warning These two imports take IDs, not names
+:::warning These imports take IDs, not names
 Unlike the [PPM](../ppm/bulk-import.mdx) and [Organization](../organizations/bulk-import.mdx) imports,
-which resolve everything by human-readable natural key, **these two reference records by GUID** —
-teams, people and planning intervals — and use **numeric ids** for status, category, impact and
-likelihood.
+which resolve everything by human-readable natural key, **these reference records by GUID** — teams,
+people and planning intervals — and use **numeric ids** for status, category, impact and likelihood.
 
 A file therefore cannot be authored by hand without first looking those values up, typically from the
 API. Treat these as machine-generated formats rather than something to type out.
@@ -33,22 +33,21 @@ API. Treat these as machine-generated formats rather than something to type out.
 
 ## How imports work
 
-A few rules apply to both:
+A few rules apply to all three:
 
 - **A successful post returns the run**, not the records it created. The file is applied by a
   background worker, and the post waits a few seconds for it: a small file comes back finished
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run — follow it in
   [Settings → Imports](../settings/imports.mdx), or by its id against the import endpoints.
-- **Files posted together can be grouped.** Both endpoints take an optional `submissionGroupId` query
+- **Files posted together can be grouped.** Every endpoint takes an optional `submissionGroupId` query
   parameter — any GUID you choose — and record it on the run, so a set of files posted under one value
   shows as one batch in [Settings → Imports](../settings/imports.mdx#what-you-see), with summed counts
   and each run's page linking to the others. Leave it out to submit a file on its own. An empty GUID is
   rejected rather than treated as a group.
 - **A malformed file is still rejected whole, before anything is queued.** Every row is validated on
-  the way in, so a file with a bad row never becomes a run. What differs between the two imports is
-  what happens once rows start being *applied* — see
-  [what a failed run leaves behind](#what-a-failed-run-leaves-behind).
+  the way in, so a file with a bad row never becomes a run. What happens once rows start being
+  *applied* is covered under [what a failed run leaves behind](#what-a-failed-run-leaves-behind).
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the
   cell needs a value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
@@ -59,14 +58,14 @@ A few rules apply to both:
 - **`ImportId` is not written onto what the import creates.** It identifies a row of your file, not a
   record in Wayd. The durable link runs the other way: each applied row reports the id of the record it
   created.
-- **Instant columns are UTC** and use ISO 8601 (`2026-01-15T00:00:00Z`). Date-only columns use
-  `yyyy-MM-dd`.
+- **Instant columns are UTC** and use ISO 8601 (`2026-01-15T00:00:00Z`). Date-only columns take
+  `yyyy-MM-dd` — a date, not a timestamp: a cell carrying a time is rejected rather than truncated.
 - **A missing file returns 422**, not 400 — the file is a validation failure like any other.
 
 ### What a failed run leaves behind
 
-**Both imports are all-or-nothing.** The file is applied as one unit, so a rejected row means none of it
-is written. Correct the file and submit it again.
+**All three imports are all-or-nothing.** The file is applied as one unit, so a rejected row means none of
+it is written. Correct the file and submit it again.
 
 You do not need to work out what happened by re-posting. Open the run in
 [Settings → Imports](../settings/imports.mdx) to see each row's outcome, then:
@@ -85,6 +84,7 @@ then discarded. After that a row can no longer be retried and the file must be s
 
 | Import | Permission |
 |---|---|
+| Planning intervals | Import Planning Intervals |
 | Planning interval objectives | Import Planning Interval Objectives |
 | Risks | Import Risks |
 
@@ -92,6 +92,7 @@ then discarded. After that a row can no longer be retried and the file must be s
 
 | Import | Rows per file | Applied |
 |---|---|---|
+| Planning intervals | 10,000 | All-or-nothing |
 | Planning interval objectives | 10,000 | All-or-nothing |
 | Risks | 10,000 | All-or-nothing |
 
@@ -104,12 +105,58 @@ waits, retries, stalls and retention — are in [Settings → Imports → Limits
 
 ---
 
+## Planning intervals import
+
+`POST /api/planning/planning-intervals/import`
+
+Loads [planning intervals](./planning-intervals.mdx) together with the teams that ran them. Planning
+intervals belong to an agile release train rather than to the organization, so a customer arriving with
+history brings dozens of them — one row each, with no second file for the teams.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | No | Your key for the row; outcomes are reported against it. Unique within the file. Defaults to the row's position when blank. |
+| `Name` | Yes | Max 128 chars. Unique within the file, and rejected if an interval already has it. |
+| `Description` | No | Max 2048 chars. |
+| `Start` | Yes | `yyyy-MM-dd`. |
+| `End` | Yes | `yyyy-MM-dd`. On or after `Start`. |
+| `IterationWeeks` | Yes | Length of each generated iteration, in whole weeks. Greater than `0`. |
+| `IterationPrefix` | No | Prefixes each generated iteration's name. Max 32 chars. |
+| `TeamIds` | No | Semicolon-separated GUIDs of the teams that ran the interval. See below — blank means no teams. |
+
+### This import only creates, so `TeamIds` never replaces a roster
+
+A row whose `Name` already exists is **rejected**, and since the file is all-or-nothing that rejects the
+whole file. Nothing is ever updated. That is what makes `TeamIds` safe to put on the same row: it can
+only be the roster a brand-new interval starts with.
+
+So a blank `TeamIds` **leaves the new interval with no teams**. It does not clear anything, because there
+is nothing there to clear. Add the teams afterwards with **Manage Teams** on the interval, or fix the
+column and submit the file again.
+
+A row naming a team Wayd has not finished replicating out of
+[Organization](../organizations/bulk-import.mdx) is rejected rather than dropped, and names the ids it
+could not find. Import teams before intervals, and give a team created moments earlier a few seconds to
+land.
+
+### Iterations are generated from the cadence, not imported
+
+There is no column for iterations. Each interval's are generated from `IterationWeeks` and
+`IterationPrefix` the way a hand-created interval's are: iterations of that length running from `Start`,
+named `{IterationPrefix}{number}`, with the last one truncated to `End` and categorized Innovation and
+Planning.
+
+An interval whose real iterations ran to irregular lengths, or were named something else entirely, will
+therefore not import faithfully. Correct it afterwards with **Manage Dates** on that interval, which is
+the only place iteration names, categories and date ranges are editable.
+
 ## Planning interval objectives import
 
 `POST /api/planning/planning-intervals/{id}/objectives/import`
 
-Loads [objectives](./planning-intervals.mdx#objectives) into one planning interval. The interval is
-named in the **route**, and every row must repeat it in `PlanningIntervalId`. A file must belong to a
+Loads [objectives](./planning-intervals.mdx#objectives) into one planning interval, which must already
+exist — created by hand or by the [planning intervals import](#planning-intervals-import) above. The
+interval is named in the **route**, and every row must repeat it in `PlanningIntervalId`. A file must belong to a
 single planning interval: a row naming a different one is rejected as a mistake in the file rather than
 applied elsewhere.
 
@@ -153,7 +200,7 @@ Loads [risks](./risks.mdx).
 
 ## Related
 
-- **[Planning Intervals](./planning-intervals.mdx)** — the objectives this import populates.
+- **[Planning Intervals](./planning-intervals.mdx)** — the intervals and objectives these imports populate.
 - **[Risks](./risks.mdx)** — the risk register this import populates.
 - **[PPM Bulk Import](../ppm/bulk-import.mdx)** — portfolios, programs, projects and initiatives.
 - **[Organization Bulk Import](../organizations/bulk-import.mdx)** — employees, teams and staffing.

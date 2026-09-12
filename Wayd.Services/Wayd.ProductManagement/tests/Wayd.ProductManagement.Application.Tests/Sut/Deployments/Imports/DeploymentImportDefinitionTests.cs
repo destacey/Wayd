@@ -9,6 +9,7 @@ using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -257,6 +258,44 @@ public sealed class DeploymentImportDefinitionTests
 
         var transitions = deployment.StatusTransitions.ToList();
         transitions.Select(t => t.ToStatusId).Should().ContainInOrder(_inProgress.Id, _succeeded.Id, _rolledBack.Id);
+        transitions.Select(t => t.ChangedOn).Should().ContainInOrder(Started, Completed, RolledBack);
+    }
+
+    [Fact]
+    public async Task CreateDeployments_DefersEventsInChronologicalOrderWithRowTimestamps()
+    {
+        // Arrange
+        SeedEnvironment();
+        var version = SeedVersion();
+
+        // Act
+        var result = await Run(Row(
+            version.Id, outcome: ImportDeploymentOutcome.RolledBack, completedAt: Completed, rolledBackAt: RolledBack,
+            reason: "Error rate spiked"));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        var deployment = _dbContext.Deployments.Single();
+        deployment.DomainEvents.Should().BeEmpty();
+        deployment.PostPersistenceActions.Should().HaveCount(3);
+
+        deployment.ExecutePostPersistenceActions();
+
+        var events = deployment.DomainEvents.ToList();
+        events.Should().HaveCount(3);
+
+        var started = events[0].Should().BeOfType<DeploymentStartedEvent>().Subject;
+        started.StatusId.Should().Be(_inProgress.Id);
+        started.StartedAt.Should().Be(Started);
+
+        var succeeded = events[1].Should().BeOfType<DeploymentSucceededEvent>().Subject;
+        succeeded.StatusId.Should().Be(_succeeded.Id);
+        succeeded.CompletedAt.Should().Be(Completed);
+
+        var rolledBack = events[2].Should().BeOfType<DeploymentRolledBackEvent>().Subject;
+        rolledBack.StatusId.Should().Be(_rolledBack.Id);
+        rolledBack.RolledBackAt.Should().Be(RolledBack);
+        rolledBack.Reason.Should().Be("Error rate spiked");
     }
 
     [Fact]
@@ -273,6 +312,7 @@ public sealed class DeploymentImportDefinitionTests
         var transition = _dbContext.Deployments.Single().StatusTransitions.Single();
         transition.ActorKind.Should().Be(EventActorKind.Import);
         transition.ActorUserId.Should().Be(_userId);
+        transition.ChangedOn.Should().Be(Started);
     }
 
     [Fact]

@@ -46,6 +46,13 @@ const IMPORTED_RECORD_TAGS: Record<string, { type: QueryTags; id: string }[]> =
     'product-management.release-packages': [
       { type: QueryTags.ReleasePackage, id: 'LIST' },
     ],
+    'product-management.deployment-environments': [
+      { type: QueryTags.DeploymentEnvironment, id: 'LIST' },
+    ],
+    'product-management.deployments': [
+      { type: QueryTags.Deployment, id: 'LIST' },
+      { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+    ],
   }
 
 export const importedRecordTags = (importType: string) =>

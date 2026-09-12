@@ -61,8 +61,6 @@ public sealed class DeploymentImportDefinition(
 
     private async Task<Result> CreateDeployments(ImportPassContext<ImportDeploymentDto> context, CancellationToken cancellationToken)
     {
-        var timestamp = _dateTimeProvider.Now;
-
         // One import run is one actor: the events say "the import", not "this person recorded every
         // deployment by hand", while still recording who set it running.
         var actor = EventActor.Import(_currentUser.GetUserId());
@@ -119,14 +117,14 @@ public sealed class DeploymentImportDefinition(
                 statuses.Value.InProgress,
                 environment.Name,
                 actor,
-                timestamp);
+                data.StartedAt);
             if (created.IsFailure)
             {
                 row.Failed($"Could not start the deployment into '{environment.Name}': {created.Error}");
                 continue;
             }
 
-            var walked = Walk(created.Value, data, statuses.Value, environment.Name, actor, timestamp);
+            var walked = Walk(created.Value, data, statuses.Value, environment.Name, actor);
             if (walked.IsFailure)
             {
                 row.Failed(walked.Error);
@@ -154,8 +152,7 @@ public sealed class DeploymentImportDefinition(
         ImportDeploymentDto data,
         DeploymentStatuses statuses,
         string environmentName,
-        EventActor actor,
-        Instant timestamp)
+        EventActor actor)
     {
         switch (data.Outcome)
         {
@@ -164,23 +161,23 @@ public sealed class DeploymentImportDefinition(
 
             case ImportDeploymentOutcome.Succeeded:
                 return Describe(
-                    deployment.Succeed(data.CompletedAt!.Value, statuses.Succeeded, environmentName, actor, timestamp),
+                    deployment.Succeed(data.CompletedAt!.Value, statuses.Succeeded, environmentName, actor, data.CompletedAt!.Value),
                     "succeed", environmentName);
 
             case ImportDeploymentOutcome.Failed:
                 return Describe(
-                    deployment.Fail(data.CompletedAt!.Value, data.Reason, statuses.Failed, environmentName, actor, timestamp),
+                    deployment.Fail(data.CompletedAt!.Value, data.Reason, statuses.Failed, environmentName, actor, data.CompletedAt!.Value),
                     "fail", environmentName);
 
             case ImportDeploymentOutcome.RolledBack:
                 var succeeded = Describe(
-                    deployment.Succeed(data.CompletedAt!.Value, statuses.Succeeded, environmentName, actor, timestamp),
+                    deployment.Succeed(data.CompletedAt!.Value, statuses.Succeeded, environmentName, actor, data.CompletedAt!.Value),
                     "succeed", environmentName);
                 if (succeeded.IsFailure)
                     return succeeded;
 
                 return Describe(
-                    deployment.RollBack(data.RolledBackAt!.Value, data.Reason, statuses.RolledBack, environmentName, actor, timestamp),
+                    deployment.RollBack(data.RolledBackAt!.Value, data.Reason, statuses.RolledBack, environmentName, actor, data.RolledBackAt!.Value),
                     "roll back", environmentName);
 
             default:

@@ -1,4 +1,4 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -131,7 +131,14 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
 
         IsActive = false;
 
-        AddDomainEvent(new EnvironmentRetiredEvent(Id, Key, Name, actor, timestamp));
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(new EnvironmentRetiredEvent(Id, Key, Name, actor, timestamp)));
+        }
+        else
+        {
+            AddDomainEvent(new EnvironmentRetiredEvent(Id, Key, Name, actor, timestamp));
+        }
 
         return Result.Success();
     }

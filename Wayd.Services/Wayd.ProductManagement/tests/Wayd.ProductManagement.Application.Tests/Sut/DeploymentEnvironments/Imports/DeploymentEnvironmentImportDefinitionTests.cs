@@ -113,7 +113,13 @@ public sealed class DeploymentEnvironmentImportDefinitionTests
         var environment = _dbContext.DeploymentEnvironments.Single();
         environment.IsActive.Should().BeFalse();
 
-        var retired = environment.DomainEvents.OfType<EnvironmentRetiredEvent>().Single();
+        // Both creation and retirement are deferred until persistence so Key is assigned
+        environment.ExecutePostPersistenceActions();
+
+        var events = environment.DomainEvents.ToList();
+        events.Should().HaveCount(2);
+        events[0].Should().BeOfType<EnvironmentAddedEvent>();
+        var retired = events[1].Should().BeOfType<EnvironmentRetiredEvent>().Subject;
         retired.Actor.Kind.Should().Be(EventActorKind.Import);
         retired.Actor.UserId.Should().Be(_userId);
     }

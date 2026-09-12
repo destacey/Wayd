@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
@@ -81,9 +81,63 @@ public sealed class DeploymentTests
         result.Value.ArtifactId.Should().Be("4.8.2.008");
     }
 
+    [Fact]
+    public void Create_ShouldRaiseDeploymentStartedEvent_AfterPersistence()
+    {
+        // Arrange & Act
+        var inProgress = StatusRefFactory.InProgress();
+        var result = Deployment.Create(
+            Guid.CreateVersion7(), null, Guid.CreateVersion7(), EnvironmentCategory.Production,
+            "4.8.2.008", _dateTimeProvider.Now, inProgress, EnvironmentName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var sut = result.Value;
+        sut.DomainEvents.Should().BeEmpty();
+        sut.PostPersistenceActions.Should().ContainSingle();
+
+        sut.ExecutePostPersistenceActions();
+
+        var started = sut.DomainEvents.OfType<DeploymentStartedEvent>().Single();
+        started.StatusId.Should().Be(inProgress.StatusId);
+    }
+
     #endregion Create
 
     #region Succeed
+
+    [Fact]
+    public void Succeed_BeforePersistence_DefersEventAndPreservesInitialStatusOnStarted()
+    {
+        // Arrange
+        var inProgress = StatusRefFactory.InProgress();
+        var succeeded = StatusRefFactory.Succeeded();
+        var deployment = Deployment.Create(
+            Guid.CreateVersion7(), null, Guid.CreateVersion7(), EnvironmentCategory.Production,
+            "4.8.2.008", _dateTimeProvider.Now, inProgress, EnvironmentName, EventActor.System, _dateTimeProvider.Now).Value;
+
+        var completedAt = _dateTimeProvider.Now.Plus(Duration.FromMinutes(10));
+
+        // Act
+        var result = deployment.Succeed(completedAt, succeeded, EnvironmentName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — before persistence Key is 0, so both events are deferred to post-persistence
+        result.IsSuccess.Should().BeTrue();
+        deployment.DomainEvents.Should().BeEmpty();
+        deployment.PostPersistenceActions.Should().HaveCount(2);
+
+        deployment.ExecutePostPersistenceActions();
+
+        var events = deployment.DomainEvents.ToList();
+        events.Should().HaveCount(2);
+
+        var startedEvent = events[0].Should().BeOfType<DeploymentStartedEvent>().Subject;
+        startedEvent.StatusId.Should().Be(inProgress.StatusId, "Started event must carry initial In Progress status even after succeeding");
+
+        var succeededEvent = events[1].Should().BeOfType<DeploymentSucceededEvent>().Subject;
+        succeededEvent.StatusId.Should().Be(succeeded.StatusId);
+        succeededEvent.CompletedAt.Should().Be(completedAt);
+    }
 
     [Fact]
     public void Succeed_ShouldCompleteAndRaiseEventCarryingTheEnvironmentCategory()
@@ -267,6 +321,47 @@ public sealed class DeploymentTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This deployment has already been rolled back.");
+    }
+
+    [Fact]
+    public void RollBack_BeforePersistence_DefersAllEventsInChronologicalOrder()
+    {
+        // Arrange
+        var inProgress = StatusRefFactory.InProgress();
+        var succeeded = StatusRefFactory.Succeeded();
+        var rolledBack = StatusRefFactory.RolledBack();
+        var deployment = Deployment.Create(
+            Guid.CreateVersion7(), null, Guid.CreateVersion7(), EnvironmentCategory.Production,
+            "4.8.2.008", _dateTimeProvider.Now, inProgress, EnvironmentName, EventActor.System, _dateTimeProvider.Now).Value;
+
+        var completedAt = _dateTimeProvider.Now.Plus(Duration.FromMinutes(10));
+        var rolledBackAt = _dateTimeProvider.Now.Plus(Duration.FromMinutes(30));
+
+        // Act
+        deployment.Succeed(completedAt, succeeded, EnvironmentName, EventActor.System, _dateTimeProvider.Now);
+        var result = deployment.RollBack(rolledBackAt, "Reverted", rolledBack, EnvironmentName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deployment.DomainEvents.Should().BeEmpty();
+        deployment.PostPersistenceActions.Should().HaveCount(3);
+
+        deployment.ExecutePostPersistenceActions();
+
+        var events = deployment.DomainEvents.ToList();
+        events.Should().HaveCount(3);
+
+        var startedEvent = events[0].Should().BeOfType<DeploymentStartedEvent>().Subject;
+        startedEvent.StatusId.Should().Be(inProgress.StatusId);
+
+        var succeededEvent = events[1].Should().BeOfType<DeploymentSucceededEvent>().Subject;
+        succeededEvent.StatusId.Should().Be(succeeded.StatusId);
+        succeededEvent.CompletedAt.Should().Be(completedAt);
+
+        var rolledBackEvent = events[2].Should().BeOfType<DeploymentRolledBackEvent>().Subject;
+        rolledBackEvent.StatusId.Should().Be(rolledBack.StatusId);
+        rolledBackEvent.RolledBackAt.Should().Be(rolledBackAt);
+        rolledBackEvent.Reason.Should().Be("Reverted");
     }
 
     #endregion RollBack

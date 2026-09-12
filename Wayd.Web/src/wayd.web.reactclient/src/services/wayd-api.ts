@@ -4569,10 +4569,13 @@ export class StrategicThemesClient {
 
     /**
      * Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/strategic-management/strategic-themes/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/strategic-management/strategic-themes/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -7201,10 +7204,13 @@ export class ProductsClient {
 
     /**
      * Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/product-management/products/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/product-management/products/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -9073,11 +9079,14 @@ export class ReleasePackagesClient {
 
     /**
      * Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      * @param manifestFile (optional) 
      */
-    import(file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/product-management/release-packages/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -9691,11 +9700,14 @@ export class ReleasesClient {
 
     /**
      * Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      * @param contentsFile (optional) 
      */
-    import(file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/product-management/releases/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/product-management/releases/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -10555,10 +10567,13 @@ export class VersionsClient {
 
     /**
      * Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/product-management/versions/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/product-management/versions/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -11854,10 +11869,13 @@ export class PortfoliosClient {
 
     /**
      * Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/ppm/portfolios/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -11934,10 +11952,13 @@ export class PortfoliosClient {
 
     /**
      * Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    finalizeImport(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/ppm/portfolios/finalize/import";
+    finalizeImport(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/finalize/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -13243,10 +13264,13 @@ export class ProgramsClient {
 
     /**
      * Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/ppm/programs/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/programs/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -15277,10 +15301,13 @@ export class ProjectsClient {
 
     /**
      * Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/ppm/projects/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -15357,10 +15384,13 @@ export class ProjectsClient {
 
     /**
      * Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    importTasks(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/ppm/projects/tasks/import";
+    importTasks(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/tasks/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -15437,10 +15467,13 @@ export class ProjectsClient {
 
     /**
      * Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    importStages(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/ppm/projects/stages/import";
+    importStages(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/stages/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -18208,11 +18241,14 @@ export class StrategicInitiativesClient {
 
     /**
      * Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      * @param kpiFile (optional) 
      */
-    import(file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -22026,13 +22062,16 @@ export class PlanningIntervalsClient {
 
     /**
      * Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    importObjectives(id: string, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/import";
+    importObjectives(id: string, submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/import?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -23777,10 +23816,13 @@ export class RisksClient {
 
     /**
      * Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/planning/risks/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/planning/risks/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -30758,10 +30800,13 @@ export class EmployeesClient {
 
     /**
      * Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/organization/employees/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/organization/employees/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -31962,10 +32007,13 @@ export class TeamsClient {
 
     /**
      * Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    import(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/organization/teams/import";
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -32042,10 +32090,13 @@ export class TeamsClient {
 
     /**
      * Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    importMembers(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/organization/teams/members/import";
+    importMembers(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/members/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -32122,10 +32173,13 @@ export class TeamsClient {
 
     /**
      * Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    importTeamMemberships(file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/organization/teams/team-memberships/import";
+    importTeamMemberships(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/team-memberships/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -35522,10 +35576,11 @@ export class ImportsClient {
      * @param status (optional) 
      * @param importType (optional) 
      * @param submittedByUserId (optional) 
+     * @param submissionGroupId (optional) 
      * @param pageNumber (optional) 
      * @param pageSize (optional) 
      */
-    getList(status?: ImportProcessStatus | null | undefined, importType?: string | null | undefined, submittedByUserId?: string | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<ImportProcessPageDto> {
+    getList(status?: ImportProcessStatus | null | undefined, importType?: string | null | undefined, submittedByUserId?: string | null | undefined, submissionGroupId?: string | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<ImportProcessPageDto> {
         let url_ = this.baseUrl + "/api/imports?";
         if (status !== undefined && status !== null)
             url_ += "status=" + encodeURIComponent("" + status) + "&";
@@ -35533,6 +35588,8 @@ export class ImportsClient {
             url_ += "importType=" + encodeURIComponent("" + importType) + "&";
         if (submittedByUserId !== undefined && submittedByUserId !== null)
             url_ += "submittedByUserId=" + encodeURIComponent("" + submittedByUserId) + "&";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         if (pageNumber === null)
             throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)

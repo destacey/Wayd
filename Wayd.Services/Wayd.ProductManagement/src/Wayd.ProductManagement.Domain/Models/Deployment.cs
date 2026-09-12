@@ -318,16 +318,25 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
 
         var initialStatusId = inProgressStatus.StatusId;
 
-        // Deferred because Key is database-generated: an event raised here would carry Key 0.
+        // Deferred because Key is database-generated: an event raised here would carry Key 0. Every
+        // other value is captured now rather than read when the action runs, so the event records the
+        // deployment as started even where a caller — the import, walking a deployment to its outcome —
+        // completes it before the first save.
+        var createdVersionId = deployment.VersionId;
+        var createdPackageId = deployment.PackageId;
+        var createdEnvironmentId = deployment.EnvironmentId;
+        var createdArtifactId = deployment.ArtifactId;
+        var createdStartedAt = deployment.StartedAt;
+
         deployment.AddPostPersistenceAction(() => deployment.AddDomainEvent(new DeploymentStartedEvent(
             deployment.Id,
             deployment.Key,
-            deployment.VersionId,
-            deployment.PackageId,
-            deployment.EnvironmentId,
+            createdVersionId,
+            createdPackageId,
+            createdEnvironmentId,
             environmentName,
-            deployment.ArtifactId,
-            deployment.StartedAt,
+            createdArtifactId,
+            createdStartedAt,
             initialStatusId,
             actor,
             timestamp)));

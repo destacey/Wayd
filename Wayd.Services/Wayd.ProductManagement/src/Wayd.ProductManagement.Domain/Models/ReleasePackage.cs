@@ -227,16 +227,26 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
             package._components.Add(new ReleasePackageComponent(package.Id, component.ProductId, component.VersionId, component.Version, component.Kind));
         }
 
-        // Deferred because Key is database-generated: an event raised here would carry Key 0.
+        // Deferred because Key is database-generated: an event raised here would carry Key 0. Every
+        // other value is captured now rather than read when the action runs, so the event records the
+        // package as assembled even where a caller — the import, releasing a package in the same pass —
+        // moves it on before the first save.
+        var createdVersion = package.Version;
+        var createdName = package.Name;
+        var createdComponentCount = package._components.Count;
+        var createdChangedComponentCount = package.ChangedComponents.Count;
+        var createdStatusId = package.StatusId;
+        var createdStatusCategory = package.StatusCategory;
+
         package.AddPostPersistenceAction(() => package.AddDomainEvent(new PackageAssembledEvent(
             package.Id,
             package.Key,
-            package.Version,
-            package.Name,
-            package._components.Count,
-            package.ChangedComponents.Count,
-            package.StatusId,
-            package.StatusCategory,
+            createdVersion,
+            createdName,
+            createdComponentCount,
+            createdChangedComponentCount,
+            createdStatusId,
+            createdStatusCategory,
             actor,
             timestamp)));
 

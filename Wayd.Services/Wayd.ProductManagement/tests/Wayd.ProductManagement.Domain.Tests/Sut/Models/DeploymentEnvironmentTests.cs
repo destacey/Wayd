@@ -59,6 +59,25 @@ public sealed class DeploymentEnvironmentTests
         act.Should().Throw<ArgumentException>().WithMessage("Required input Name was empty. (Parameter 'Name')");
     }
 
+    [Fact]
+    public void Create_ThenRetiredBeforeTheFirstSave_RecordsTheEnvironmentAsAdded()
+    {
+        // Arrange — what the environment import does for an already-retired row: define the environment,
+        // then retire it through the real transition, all before one save
+        var sut = DeploymentEnvironment.Create("Production", EnvironmentCategory.Production, 4, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        sut.Deactivate(EventActor.System, _dateTimeProvider.Now);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        var added = sut.DomainEvents.OfType<EnvironmentAddedEvent>().Should().ContainSingle().Subject;
+        added.Name.Should().Be("Production");
+        added.Category.Should().Be(EnvironmentCategory.Production);
+        added.RingOrder.Should().Be(4);
+        sut.DomainEvents.Should().ContainSingle(e => e is EnvironmentRetiredEvent);
+    }
+
     #endregion Create
 
     #region Reclassify

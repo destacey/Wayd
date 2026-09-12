@@ -125,7 +125,21 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     {
         var theme = new StrategicTheme(name, description, state);
 
-        theme.AddPostPersistenceAction(() => theme.AddDomainEvent(new StrategicThemeCreatedEvent(theme, actor, timestamp)));
+        // Captured now, not when the action runs: the event records the theme as created, so a caller
+        // that changes it before the first save cannot rewrite the creation. Only Key waits for the save
+        // that assigns it.
+        var createdName = theme.Name;
+        var createdDescription = theme.Description;
+        var createdState = theme.State;
+
+        theme.AddPostPersistenceAction(() => theme.AddDomainEvent(new StrategicThemeCreatedEvent(
+            theme.Id,
+            theme.Key,
+            createdName,
+            createdDescription,
+            createdState,
+            actor,
+            timestamp)));
 
         return theme;
     }

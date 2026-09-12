@@ -189,8 +189,30 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     {
         var team = new Team(name, code, description, activeDate);
 
+        // Captured now, not when the action runs: the event records the team as created, and the team
+        // import deactivates a retired team before the first save. Only Key waits for the save that
+        // assigns it.
+        var createdCode = team.Code;
+        var createdName = team.Name;
+        var createdDescription = team.Description;
+        var createdType = team.Type;
+        var createdActiveDate = team.ActiveDate;
+        var createdInactiveDate = team.InactiveDate;
+        var createdIsActive = team.IsActive;
+
         team.AddPostPersistenceAction(() =>
-            team.AddDomainEvent(new TeamCreatedEvent(team.Id, team.Key, team.Code, team.Name, team.Description, team.Type, team.ActiveDate, team.InactiveDate, team.IsActive, actor, timestamp))
+            team.AddDomainEvent(new TeamCreatedEvent(
+                team.Id,
+                team.Key,
+                createdCode,
+                createdName,
+                createdDescription,
+                createdType,
+                createdActiveDate,
+                createdInactiveDate,
+                createdIsActive,
+                actor,
+                timestamp))
         );
 
         team.SetOperatingModel(activeDate, methodology, sizingMethod);

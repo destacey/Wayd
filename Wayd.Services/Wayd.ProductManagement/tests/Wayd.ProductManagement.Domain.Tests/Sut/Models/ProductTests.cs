@@ -118,6 +118,28 @@ public sealed class ProductTests
         sut.ExternalId.Should().BeNull();
     }
 
+    [Fact]
+    public void Create_ThenChangedBeforeTheFirstSave_RecordsTheProductAsCreated()
+    {
+        // Arrange — the product import mutates a new product in the same pass, so the added event must
+        // record the product as created rather than as it stood at the save
+        var productTypeId = Guid.CreateVersion7();
+        var initialStatus = StatusRefFactory.For(StatusCategory.Proposed);
+        var sut = Product.Create("Checkout", "The checkout product.", productTypeId, null, null, initialStatus, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        sut.UpdateDetails("Payments", "The payments product.", EventActor.System, _dateTimeProvider.Now);
+        sut.ChangeStatus(StatusRefFactory.For(StatusCategory.Active), EventActor.System, _dateTimeProvider.Now);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        var added = sut.DomainEvents.OfType<ProductAddedEvent>().Should().ContainSingle().Subject;
+        added.Name.Should().Be("Checkout", "each later change is its own event");
+        added.Description.Should().Be("The checkout product.");
+        added.StatusId.Should().Be(initialStatus.StatusId);
+        added.StatusCategory.Should().Be(StatusCategory.Proposed);
+    }
+
     #endregion Create
 
     #region UpdateDetails

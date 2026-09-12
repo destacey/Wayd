@@ -91,6 +91,27 @@ public sealed class ReleaseTests
         planned.Version.Should().Be("2026.07");
     }
 
+    [Fact]
+    public void Create_ThenReleasedBeforeTheFirstSave_RecordsTheReleaseAsPlanned()
+    {
+        // Arrange — what the release import does: plan the release, then announce it from the same row,
+        // all before one save
+        var proposed = StatusRefFactory.For(StatusCategory.Proposed);
+        var sut = Release.Create(
+            null, "2026.07", null, null, null,
+            proposed, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        sut.MarkReleased(new LocalDate(2026, 7, 31), hasUnreleasedContents: false, StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        var planned = sut.DomainEvents.OfType<ReleasePlannedEvent>().Should().ContainSingle().Subject;
+        planned.StatusId.Should().Be(proposed.StatusId, "the announcement is its own event");
+        planned.StatusCategory.Should().Be(StatusCategory.Proposed);
+        sut.DomainEvents.Should().ContainSingle(e => e is ReleaseReleasedEvent);
+    }
+
     #endregion Create
 
     #region SetContents

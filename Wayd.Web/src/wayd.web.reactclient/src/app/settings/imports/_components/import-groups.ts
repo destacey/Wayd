@@ -66,7 +66,9 @@ const rollup = (groupId: string, runs: ImportProcessDto[]): ImportListRow => {
   const allFinished = runs.every((r) => r.isTerminal)
 
   return {
-    id: groupId,
+    // Namespaced: the group id is the caller's to choose, so nothing stops it from equalling a
+    // run's id, and two rows with one key would corrupt expansion and selection.
+    id: `group:${groupId}`,
     importType: 'group',
     displayName: groupLabel(runs.length),
     atomicity: ImportAtomicity.PerRow,
@@ -75,7 +77,9 @@ const rollup = (groupId: string, runs: ImportProcessDto[]): ImportListRow => {
     // Files submitted together are submitted by one caller; the first run's is the batch's.
     submittedByUserId: runs[0].submittedByUserId,
     submittedByName: runs[0].submittedByName,
-    submittedOn: earliest(runs.map((r) => r.submittedOn))!,
+    // The newest file's, so the batch sorts where that file would in a newest-first list rather
+    // than sinking behind runs submitted after its first file but before its last.
+    submittedOn: latest(runs.map((r) => r.submittedOn))!,
     startedOn: earliest(runs.map((r) => r.startedOn)),
     // A batch has finished only once its last run has; until then it has no finish to show.
     completedOn: allFinished ? latest(runs.map((r) => r.completedOn)) : undefined,

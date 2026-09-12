@@ -54,7 +54,8 @@ describe('buildImportRows', () => {
     const rows = buildImportRows([newest, lone, oldest])
 
     // Assert
-    expect(rows.map((r) => r.id)).toEqual([GROUP, lone.id])
+    expect(rows.map((r) => r.id)).toEqual([`group:${GROUP}`, lone.id])
+    expect(rows[0].submissionGroupId).toBe(GROUP)
     expect(rows[0].isGroup).toBe(true)
     expect(rows[0].children).toEqual([newest, oldest])
     expect(rows[0].displayName).toBe(groupLabel(2))
@@ -99,7 +100,8 @@ describe('buildImportRows', () => {
     expect(rollup.succeededRowCount).toBe(31)
     expect(rollup.failedRowCount).toBe(1)
     expect(rollup.unappliedRowCount).toBe(1)
-    expect(rollup.submittedOn).toEqual(first.submittedOn)
+    // Sorted by its newest file, so a batch never sinks behind runs posted mid-batch
+    expect(rollup.submittedOn).toEqual(second.submittedOn)
     expect(rollup.completedOn).toEqual(second.completedOn)
     expect(rollup.submittedByName).toBe('Dana Reyes')
   })
@@ -110,11 +112,13 @@ describe('buildImportRows', () => {
     const first = run({
       submissionGroupId: GROUP,
       submittedOn: asString('2026-09-11T23:38:00Z'),
+      startedOn: asString('2026-09-11T23:38:01Z'),
       completedOn: asString('2026-09-11T23:38:05Z'),
     })
     const second = run({
       submissionGroupId: GROUP,
       submittedOn: asString('2026-09-11T23:38:10Z'),
+      startedOn: asString('2026-09-11T23:38:11Z'),
       completedOn: asString('2026-09-11T23:38:40Z'),
     })
 
@@ -122,7 +126,8 @@ describe('buildImportRows', () => {
     const [rollup] = buildImportRows([second, first])
 
     // Assert
-    expect(rollup.submittedOn).toBe(first.submittedOn)
+    expect(rollup.submittedOn).toBe(second.submittedOn)
+    expect(rollup.startedOn).toBe(first.startedOn)
     expect(rollup.completedOn).toBe(second.completedOn)
   })
 

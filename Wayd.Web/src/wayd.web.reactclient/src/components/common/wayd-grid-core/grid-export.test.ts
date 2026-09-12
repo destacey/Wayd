@@ -161,6 +161,31 @@ describe('grid-export', () => {
     })
   })
 
+  describe('tree rows', () => {
+    type Node = { name: string; children?: Node[] }
+
+    it('exports the descendants of a collapsed node, in depth-first order', () => {
+      // Arrange — nothing expanded, as a grid of rollups starts
+      const tree: Node[] = [
+        { name: 'Batch', children: [{ name: 'Employees' }, { name: 'Teams' }] },
+        { name: 'Lone run' },
+      ]
+      const table = buildHeadlessTable<Node>(
+        tree,
+        [{ accessorKey: 'name', header: 'Name' }],
+        { expanded: {} },
+        { getSubRows: (row) => row.children },
+      )
+
+      // Act
+      exportGridToCsv(table, 'test-export')
+      const csv = mockDownloadCsv.mock.calls.at(-1)?.[0] as string
+
+      // Assert — collapsing tidies the view; it does not decide which rows exist
+      expect(csv).toBe('Name\nBatch\nEmployees\nTeams\nLone run')
+    })
+  })
+
   describe('grouped headers', () => {
     it('writes a band row above the leaf headers: label at the first column of each group, blanks across the span', () => {
       // Arrange — two bands plus an ungrouped column

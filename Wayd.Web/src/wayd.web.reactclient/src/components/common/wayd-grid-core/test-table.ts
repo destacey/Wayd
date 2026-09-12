@@ -17,12 +17,14 @@ export function buildHeadlessTable<T extends RowData>(
   data: T[],
   columns: ColumnDef<T, any>[],
   state: Partial<TableState> = {},
+  options: { getSubRows?: (row: T) => T[] | undefined } = {},
 ): Table<T> {
   const { result } = renderHook(() =>
     useTable<typeof waydGridFeatures, T>({
       features: waydGridFeatures,
       data,
       columns,
+      ...options,
       state: {
         columnSizing: {},
         columnVisibility: {},

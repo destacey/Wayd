@@ -13,15 +13,17 @@ export interface ImportFactsProps {
   importProcess: ImportProcessDto
 }
 
-// A batch is a seed's fifteen files or a split export's handful; the list cap is well past either.
-const GROUP_PAGE_SIZE = 100
+// The server's cap. A batch is a seed's fifteen files or a split export's handful, so one page holds
+// it; a caller who posts more under one id is told how many are not listed rather than shown a
+// list that looks complete.
+const GROUP_PAGE_SIZE = 500
 
 /**
  * The other runs of the batch this one was submitted in, so a reader can step through a seed or a
  * split export from any of its files without going back to the list.
  */
 const SubmittedWith = ({ importProcess }: ImportFactsProps) => {
-  const { data } = useGetImportProcessesQuery(
+  const { data, isLoading, isError } = useGetImportProcessesQuery(
     {
       submissionGroupId: importProcess.submissionGroupId,
       pageSize: GROUP_PAGE_SIZE,
@@ -31,24 +33,42 @@ const SubmittedWith = ({ importProcess }: ImportFactsProps) => {
 
   if (!importProcess.submissionGroupId) return null
 
-  const others = data?.processes?.filter((p) => p.id !== importProcess.id) ?? []
+  const listed = data?.processes ?? []
+  const others = listed.filter((p) => p.id !== importProcess.id)
+  // Beyond the page: whatever the server counted that the page did not carry, less this run if it
+  // was one of the listed ones.
+  const unlisted = data ? data.totalCount - listed.length : 0
+
+  // Empty means "the server said so", never "not answered yet" or "could not ask".
+  const body = isLoading ? (
+    <Typography.Text type="secondary">Loading…</Typography.Text>
+  ) : isError || !data ? (
+    <Typography.Text type="danger">
+      Could not load the rest of this batch.
+    </Typography.Text>
+  ) : others.length === 0 && unlisted === 0 ? (
+    <Typography.Text type="secondary">
+      No other imports in this batch.
+    </Typography.Text>
+  ) : (
+    <>
+      {others.map((other) => (
+        <Flex key={other.id} gap={8} align="center" wrap>
+          <Link href={`/settings/imports/${other.id}`}>{other.displayName}</Link>
+          <ImportStatusTag status={other.status} />
+        </Flex>
+      ))}
+      {unlisted > 0 && (
+        <Typography.Text type="secondary">
+          {`and ${unlisted} more not listed`}
+        </Typography.Text>
+      )}
+    </>
+  )
 
   return (
     <RecordFactsGroup label="Submitted With">
-      <Flex vertical gap={6}>
-        {others.length === 0 ? (
-          <Typography.Text type="secondary">
-            No other imports in this batch.
-          </Typography.Text>
-        ) : (
-          others.map((other) => (
-            <Flex key={other.id} gap={8} align="center" wrap>
-              <Link href={`/settings/imports/${other.id}`}>{other.displayName}</Link>
-              <ImportStatusTag status={other.status} />
-            </Flex>
-          ))
-        )}
-      </Flex>
+      <Flex vertical gap={6}>{body}</Flex>
     </RecordFactsGroup>
   )
 }

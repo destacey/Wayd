@@ -282,7 +282,7 @@ const ImportsPage = () => {
         leftSlot={
           overflow ? (
             <Typography.Text type="warning">
-              {`Showing the first ${imports?.length} of ${data.totalCount} imports.`}
+              {`Showing the first ${imports?.length} of ${data.totalCount} imports. A batch that straddles the cut shows only the files here.`}
             </Typography.Text>
           ) : undefined
         }

@@ -1,4 +1,4 @@
-﻿using NodaTime.Extensions;
+﻿using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
@@ -27,22 +27,22 @@ public sealed class ImportProgramRequest
     public string Status { get; set; } = nameof(ProgramStatus.Active);
 
     /// <summary>The timeline the program plans to run over.</summary>
-    public DateTime? Start { get; set; }
-    public DateTime? End { get; set; }
+    public DateOnly? Start { get; set; }
+    public DateOnly? End { get; set; }
 
     /// <summary>
     /// The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps
     /// no transition dates beyond the audit stamp, which records when the file was uploaded — but the
     /// column is required now so that no file has to change on the day one is kept.
     /// </summary>
-    public DateTime? CreatedOn { get; set; }
+    public DateOnly? CreatedOn { get; set; }
 
     /// <summary>
     /// The date the program became active. Required once the status is Active or Completed, optional on a
     /// canceled program, and rejected on one that never got that far. There is no closing date here: an
     /// import cannot complete or cancel a program, so the finalize import carries that one.
     /// </summary>
-    public DateTime? ActivatedOn { get; set; }
+    public DateOnly? ActivatedOn { get; set; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
@@ -59,11 +59,11 @@ public sealed class ImportProgramRequest
             Description,
             status,
             PortfolioId,
-            Start?.ToLocalDateTime().Date,
-            End?.ToLocalDateTime().Date,
+            Start?.ToLocalDate(),
+            End?.ToLocalDate(),
             // Required by the validator that runs before this mapping.
-            CreatedOn!.Value.ToLocalDateTime().Date,
-            ActivatedOn?.ToLocalDateTime().Date,
+            CreatedOn!.Value.ToLocalDate(),
+            ActivatedOn?.ToLocalDate(),
             CsvList.SplitIds(StrategicThemes),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),

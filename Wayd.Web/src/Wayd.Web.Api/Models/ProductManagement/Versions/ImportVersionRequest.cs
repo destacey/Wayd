@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+using Wayd.Common.Extensions;
 using Wayd.ProductManagement.Application.Versions.Dtos;
 
 namespace Wayd.Web.Api.Models.ProductManagement.Versions;
@@ -34,13 +34,13 @@ public sealed class ImportVersionRequest
 
     public string? Name { get; set; }
 
-    public DateTime? TargetDate { get; set; }
+    public DateOnly? TargetDate { get; set; }
 
     /// <summary>When scope froze. Supplying it makes the version Ready.</summary>
-    public DateTime? CutDate { get; set; }
+    public DateOnly? CutDate { get; set; }
 
     /// <summary>When it shipped. Supplying it makes the version Released.</summary>
-    public DateTime? ReleasedDate { get; set; }
+    public DateOnly? ReleasedDate { get; set; }
 
     /// <summary>A manual ordering override, for the rare case where chronology misleads.</summary>
     public long? Sequence { get; set; }
@@ -52,9 +52,9 @@ public sealed class ImportVersionRequest
         new(ProductId,
             Number,
             Name,
-            TargetDate?.ToLocalDateTime().Date,
-            CutDate?.ToLocalDateTime().Date,
-            ReleasedDate?.ToLocalDateTime().Date,
+            TargetDate?.ToLocalDate(),
+            CutDate?.ToLocalDate(),
+            ReleasedDate?.ToLocalDate(),
             Sequence,
             Notes);
 }

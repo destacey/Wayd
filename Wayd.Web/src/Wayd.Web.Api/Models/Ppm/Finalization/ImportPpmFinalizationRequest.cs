@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
 
 namespace Wayd.Web.Api.Models.Ppm.Finalization;
@@ -26,14 +26,14 @@ public sealed class ImportPpmFinalizationRequest
     public string Status { get; set; } = default!;
 
     /// <summary>The portfolio's end date. Required for portfolio rows, ignored for program rows.</summary>
-    public DateTime? EndDate { get; set; }
+    public DateOnly? EndDate { get; set; }
 
     public FinalizePpmItemDto ToFinalizePpmItemDto()
     {
         var type = Enum.Parse<FinalizePpmItemType>(Type.Trim(), ignoreCase: true);
         var status = Enum.Parse<FinalizePpmItemStatus>(Status.Trim(), ignoreCase: true);
 
-        return new FinalizePpmItemDto(type, Id, status, EndDate?.ToLocalDateTime().Date);
+        return new FinalizePpmItemDto(type, Id, status, EndDate?.ToLocalDate());
     }
 }
 

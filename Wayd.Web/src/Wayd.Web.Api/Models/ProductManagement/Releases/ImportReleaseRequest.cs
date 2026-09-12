@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+using Wayd.Common.Extensions;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 
 namespace Wayd.Web.Api.Models.ProductManagement.Releases;
@@ -28,13 +28,13 @@ public sealed class ImportReleaseRequest
     /// <summary>The product this release is announced under, if any, by id. Usually a product line.</summary>
     public Guid? ProductId { get; set; }
 
-    public DateTime? TargetDate { get; set; }
+    public DateOnly? TargetDate { get; set; }
 
     /// <summary>
     /// When it was announced. Supplying it makes the release Released — and is refused while anything
     /// it carries has not shipped.
     /// </summary>
-    public DateTime? ReleasedDate { get; set; }
+    public DateOnly? ReleasedDate { get; set; }
 
     public long? Sequence { get; set; }
 
@@ -45,8 +45,8 @@ public sealed class ImportReleaseRequest
         new(Version,
             Name,
             ProductId,
-            TargetDate?.ToLocalDateTime().Date,
-            ReleasedDate?.ToLocalDateTime().Date,
+            TargetDate?.ToLocalDate(),
+            ReleasedDate?.ToLocalDate(),
             Sequence,
             Notes,
             contents);

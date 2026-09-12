@@ -1,5 +1,5 @@
+using Wayd.Common.Extensions;
 using Wayd.Organization.Application.Teams.Dtos;
-using NodaTime.Extensions;
 
 namespace Wayd.Web.Api.Models.Organizations.Teams;
 
@@ -18,13 +18,13 @@ public sealed class ImportTeamMembershipRequest
 
     public string ChildCode { get; set; } = default!;
     public string ParentCode { get; set; } = default!;
-    public DateTime Start { get; set; }
-    public DateTime? End { get; set; }
+    public DateOnly Start { get; set; }
+    public DateOnly? End { get; set; }
 
     public ImportTeamMembershipDto ToImportTeamMembershipDto()
     {
-        var start = Start.ToLocalDateTime().Date;
-        var end = End?.ToLocalDateTime().Date;
+        var start = Start.ToLocalDate();
+        var end = End?.ToLocalDate();
 
         return new ImportTeamMembershipDto(ChildCode.Trim(), ParentCode.Trim(), start, end);
     }

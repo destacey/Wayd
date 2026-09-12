@@ -101,6 +101,14 @@
          To generate it locally (e.g. to reproduce a Static-mode issue), run `dotnet run` with the `codegen write`
          verb from this directory (WAYD_SKIP_DB_INIT=true plus any placeholder DatabaseSettings connection string);
          see .github/workflows/docker.yml for the exact command CI uses. -->
+    <!-- The tree is compiled in only where it is generated fresh: CI (GitHub Actions sets CI=true) and the Docker
+         build (WAYD_STATIC_HANDLERS=true). Auto mode loads a compiled handler type in preference to compiling
+         one, and writes what it compiles back into this folder, so compiling a local tree freezes every handler
+         at the moment it was written: a later change to a handler's dependencies silently keeps the old code.
+         Set WAYD_STATIC_HANDLERS=true for both the build and the test run to exercise the Static path locally. -->
+    <ItemGroup Condition=" '$(CI)' != 'true' And '$(WAYD_STATIC_HANDLERS)' != 'true' ">
+        <Compile Remove="Internal\Generated\WolverineHandlers\**" />
+    </ItemGroup>
     <!-- <Target Name="OpenAPIMCPGenerator" AfterTargets="PostBuildEvent"
         Condition=" '$(Configuration)' == 'Debug' ">
         <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"

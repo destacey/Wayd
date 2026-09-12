@@ -27,12 +27,7 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("WAYD_SKIP_DB_INIT", "true");
 
-        // Force Static codegen so the integration suite boots the SAME pre-generated handler tree the shipped
-        // artifact runs — the whole point of this guard is to exercise prod's dispatch path, not the Auto/Roslyn
-        // path only local dev uses. Development environment otherwise picks up appsettings.Development.json's
-        // Wolverine:CodegenMode=Auto; this override wins. The freshly generated tree must exist on disk (CI runs
-        // `codegen write` before `dotnet test`); a plain local `dotnet test` needs it regenerated first too.
-        builder.UseSetting("Wolverine:CodegenMode", "Static");
+        HandlerCodegenMode.Apply();
 
         // Disable Wolverine's SQL durable outbox for this in-memory factory. With it registered,
         // WolverineRuntime.StartAsync → tryMigrateStorage() opens a SqlConnection and migrates the message store
@@ -114,6 +109,7 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", null);
         Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", null);
         Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", null);
+        HandlerCodegenMode.Clear();
 
         await base.DisposeAsync();
     }

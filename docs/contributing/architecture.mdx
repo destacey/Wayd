@@ -76,7 +76,7 @@ Wayd/
 
 All business operations are modeled as commands (writes) or queries (reads), dispatched through `IDispatcher` (backed by Wolverine). Controllers are thin and contain no business logic. Handlers must be `public` — Wolverine generates the code that invokes them and cannot call internal types.
 
-Handler **dependencies** are constructor-inlined by Wolverine's codegen, and service location is disabled (`ServiceLocationPolicy.NotAllowed`). A dependency whose registered implementation is `internal` (public interface, internal class) cannot be inlined; it must be added to the `AlwaysUseServiceLocationFor<T>()` allow-list in `WolverineConfiguration` — or the implementation made public. Getting this wrong is caught early: `codegen write` (run by the Debug post-build target and the CI staleness check) fails with an `InvalidServiceLocationException` naming the offending type.
+Handler **dependencies** are constructor-inlined by Wolverine's codegen, and service location is disabled (`ServiceLocationPolicy.NotAllowed`). A dependency whose registered implementation is `internal` (public interface, internal class) cannot be inlined; it must be added to the `AlwaysUseServiceLocationFor<T>()` allow-list in `WolverineConfiguration` — or the implementation made public. Getting this wrong fails with an `InvalidServiceLocationException` naming the offending type: in CI when `codegen write` generates the handler tree, and locally the first time the handler is dispatched, since local runs compile handlers at runtime.
 
 ```csharp
 // Command

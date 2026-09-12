@@ -27,6 +27,8 @@ WORKDIR "/src/Wayd.Web/src/Wayd.Web.Api"
 # purpose; generate the tree first (see Wayd.Web.Api.csproj) or build the image through the pipeline.
 RUN test -n "$(ls -A Internal/Generated/WolverineHandlers/*.cs 2>/dev/null)" \
     || (echo 'ERROR: Wolverine handler tree missing. It must be generated (codegen write) and present in the build context before building this image. See .github/workflows/docker.yml.' && exit 1)
+# Without it Wayd.Web.Api.csproj leaves the tree out of the compile, and the image would ship no handlers.
+ENV WAYD_STATIC_HANDLERS=true
 RUN dotnet build "Wayd.Web.Api.csproj" -c Release -o /app/build
 
 FROM build AS publish

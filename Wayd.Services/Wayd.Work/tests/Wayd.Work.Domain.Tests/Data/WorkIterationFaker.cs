@@ -19,7 +19,7 @@ public class WorkIterationFaker : PrivateConstructorFaker<WorkIteration>
         RuleFor(x => x.State, f => IterationState.Future);
         RuleFor(x => x.DateRange, f =>
         {
-            var startDate = f.Date.Future().ToInstant();
+            var startDate = f.Date.Future().ToUniversalTime().ToInstant();
             var endDate = startDate.Plus(Duration.FromDays(14));
             return new IterationDateRange(startDate, endDate);
         });

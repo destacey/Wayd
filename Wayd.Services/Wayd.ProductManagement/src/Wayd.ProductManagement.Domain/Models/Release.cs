@@ -259,29 +259,23 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     /// Updates the release's own version label, name, notes or ordering sequence.
     /// </summary>
     /// <remarks>
-    /// Raises nothing when every value already matches. Compares trimmed input because the setters trim.
+    /// Raises nothing when every value already matches. Compares after assignment because the setters trim.
     /// </remarks>
     public Result UpdateDetails(
         string version, string? name, string? notes, Guid? productId, long? sequence, EventActor actor, Instant timestamp)
     {
-        var newVersion = Guard.Against.NullOrWhiteSpace(version, nameof(version)).Trim();
-        var newName = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
-        var newNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        var previous = (Version, Name, Notes, ProductId, Sequence);
 
-        if (string.Equals(Version, newVersion, StringComparison.Ordinal)
-            && string.Equals(Name, newName, StringComparison.Ordinal)
-            && string.Equals(Notes, newNotes, StringComparison.Ordinal)
-            && ProductId == productId
-            && Sequence == sequence)
+        Version = version;
+        Name = name;
+        Notes = notes;
+        ProductId = productId;
+        Sequence = sequence;
+
+        if ((Version, Name, Notes, ProductId, Sequence) == previous)
         {
             return Result.Success();
         }
-
-        Version = newVersion;
-        Name = newName;
-        Notes = newNotes;
-        ProductId = productId;
-        Sequence = sequence;
 
         AddDomainEvent(new ReleaseDetailsUpdatedEvent(Id, Key, ProductId, Version, Name, Sequence, actor, timestamp));
 

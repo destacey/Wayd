@@ -89,15 +89,17 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
 
     public Result Update(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
     {
-        if (!ValuesChanged(name, type, state, dateRange, teamId))
-            return Result.Success();
+        var previous = (Name, Type, State, DateRange, TeamId);
 
-        // Apply changes
         Name = name;
         Type = type;
         State = state;
         DateRange = dateRange;
         TeamId = teamId;
+
+        // Compared after assignment because the Name setter trims.
+        if ((Name, Type, State, DateRange, TeamId) == previous)
+            return Result.Success();
 
         AddDomainEvent(new IterationUpdatedEvent(this, actor, timestamp));
 
@@ -149,18 +151,5 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
             timestamp)));
 
         return iteration;
-    }
-
-    private bool ValuesChanged(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId)
-    {
-        // Normalize and validate incoming values before comparing to current state
-        var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
-
-        if (Type != type) return true;
-        if (!EqualityComparer<IterationDateRange>.Default.Equals(DateRange, dateRange)) return true;
-        if (!string.Equals(Name, newName, StringComparison.Ordinal)) return true;
-        if (State != state) return true;
-        if (TeamId != teamId) return true;
-        return false;
     }
 }

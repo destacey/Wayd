@@ -1,0 +1,430 @@
+---
+title: Domain Events
+description: How to design, wire and version domain events, and how the activity log records them.
+sidebar_position: 1.5
+audience: [developer, agent]
+---
+
+# Domain Events
+
+A domain event records something that happened to an aggregate. Every event is written to the activity log
+automatically, and any event may be published to consumers in other modules, so its name and payload are a
+contract from the moment it is first raised. This page is the convention every module follows: how to design
+an event, how to wire it, the rules behind both, and how the activity log records and reads them.
+
+## Designing an event
+
+Work through these steps in order when adding an event, or adding a field to one. They are what keeps
+events the same shape in every module; [The rules in detail](#the-rules-in-detail) hold the reasoning for
+the rules that recur, and the [wiring checklist](#wiring-checklist) covers the mechanics.
+
+**1. Name what happened.** One event per occurrence, named for it and matching the domain method that
+raises it (`ChangeLifecycle` → `ProjectLifecycleChangedEvent`). Name the part of the record that changed,
+never the record alone:
+
+- An edit to the record's descriptive fields — name, description and the like, saved together from one
+  form — is a `DetailsUpdated` event (`ProjectDetailsUpdatedEvent`). The name bounds what it may carry.
+- A transition is its own event, never an update carrying the new state: activating a strategic theme
+  raises `StrategicThemeActivatedEvent`, because "archived from active" cannot be read off an update.
+- Changes that happen for different reasons are different events even when one form saves them together —
+  a rename, a role change and a timeline change each have their own, so a consumer of one is never woken
+  by the others and each can be versioned alone.
+
+A bare `XxxUpdatedEvent` names no occurrence. It says only that something about the record is different,
+and every field added to the record later has nowhere else to go.
+
+Raise only when the call changed something — see
+[The aggregate decides whether anything changed](#the-aggregate-decides-whether-anything-changed).
+
+**2. Serve every consumer from the same events.** An event records an occurrence, and every consumer reads
+that record: the activity log, a handler reacting to the change, a notification, and another module keeping
+its own copy of the record. A copy is built from the creation event, the details, the transitions and the
+deletion. The Work module keeps `WorkProject` from exactly that: `ProjectCreatedEvent`,
+`ProjectDetailsUpdatedEvent`, `ProjectKeyChangedEventV2` and `ProjectDeletedEvent`. Never add an event whose purpose is to ship the whole record to a copy.
+Assume every event is published, whatever `DurableEventRoutes` says today — the routing table is a
+deployment detail, not the contract.
+
+**3. Make each field earn its place.** A payload starts as identity alone — `Id`, and
+`Key` where the record has one. A field goes in only when it passes all four tests, and where the tests
+disagree, the earlier one wins.
+
+1. **Is it a person?** Then carry the id — `EmployeeId`, `UserId` — and never a name, email address or other
+   personal detail, even one that was true at the time. The activity log is append-only and nothing
+   migrates a payload once written, so personal data in an event cannot be corrected or erased; the reader
+   resolves the person when it displays the entry. `EventActor` and `RoleAssignmentChange` are shaped this
+   way.
+2. **What could a consumer not do without it?** Name the kind of consumer and what it would lose: the
+   activity log rendering the entry, a handler reacting to the change ("tell the new Owner"), a replica
+   keeping its copy. A kind of consumer, not a current subscriber — whether anything handles the event
+   today does not decide its shape. "It is true right now", "it makes the event look complete" and "we
+   might want it later" are not answers. This test is what keeps the record's `Name` off events that did
+   not change it; see
+   [A payload carries the change and the identity](#a-payload-carries-the-change-and-the-identity-not-a-description-of-the-record).
+3. **Is it the whole change?** Carry both ends, the value before as well as after. A collection carries
+   `Added` and `Removed` and the set afterwards, because a consumer reacting to the change and a replica
+   keeping a copy need different things — see [A change carries both ends](#a-change-carries-both-ends).
+4. **Is it this aggregate's own state?** Carry another aggregate by its id. Its owner is the source of
+   truth, and a copy in a payload is a second answer that stops agreeing with it. The exception is a value
+   frozen at the moment of the event, below.
+
+**4. Check that it will survive.** Every field is a contract — current code reads stored payloads forever,
+and consumers read published ones in the shape they were written against.
+
+- Prefer a representation that survives the changes you can already see coming: `ProjectStatusChangedEventV2`
+  carries a status as a name plus a `LifecycleCategory` rather than an enum value, so workflow-configurable
+  statuses will not break it.
+- Make sure `default` can only mean "not recorded", because a payload written before a field existed reads
+  it as `default`. Where a real value can be null, group the fields in a nullable record, as the
+  `*DetailsUpdatedEvent`s do with `Previous`.
+- Then declare the version, and know which change needs a new type — see
+  [Versioning an event](#versioning-an-event).
+
+**5. Keep the recording out of the fact.** Anything about *recording* an occurrence rather than the
+occurrence itself belongs on the `ActivityLogEntry`, not in the payload: its order (see
+[Order lives on the ledger, not on the event](#order-lives-on-the-ledger-not-on-the-event)), and a display
+label for the record when one is added.
+
+### When another aggregate's state belongs in the payload
+
+Test 4 has one exception: a value **frozen at the moment of the event** belongs in the payload even though
+another aggregate owns it. `ProjectScoreRecordedEventV2.ScoringModelName` is the case that set the rule. The
+score was recorded against the model *as it was named then*, and a reader of that score needs that name;
+looking the model up by `ScoringModelId` later answers a different question — what it is called now. The
+`ProjectScore` row freezes the name for the same reason, and the event carries the fact the record keeps.
+
+Test 4 guards against a **reference**: a copy standing in for another aggregate's current state, which goes
+stale as that aggregate moves on. A frozen value never claimed to be current, so it cannot go stale. One
+question separates the two, and it is the same question behind every name a payload carries — **would
+looking it up by id, whenever the payload is read, give the consumer what it needs?**
+
+| Field | Lookup by id at read time | Belongs in the payload? |
+|---|---|---|
+| The record's `Name` on a role change | Returns the name, and the name is not part of the change | No — carry the id |
+| `Name` on a `*CreatedEvent` or `*DetailsUpdatedEvent` | Returns today's name, not the one created or renamed to | Yes — it is the change |
+| `Name` on `StrategicInitiativeDeletedEvent` | Finds nothing; the record is gone | Yes |
+| `ScoringModelName` on a recorded score | Returns the model's current name, not the one scored against | Yes — frozen |
+| Previous and new lifecycle names on a lifecycle change | Returns current names, not the ones that applied | Yes — frozen |
+| An employee's name on a role change | Returns the current name | No — test 1 wins; carry the id |
+
+The last row is why the tests are ordered. A person's name at the time is a frozen value too, and it still
+stays out, because personal data must remain correctable and erasable.
+
+## Wiring checklist
+
+Once the shape is decided, these are the mechanics. Most are enforced somewhere — by the compiler, by a
+convention test, or by a Testcontainers test you add — and the list says which, so it is clear what nothing
+will catch for you.
+
+**The type**
+
+- [ ] It lives in `Wayd.Common.Domain/Events/{Module}/`, is a `sealed record` deriving from `DomainEvent`,
+  and is named `{Aggregate}{WhatHappened}Event` in the past tense.
+- [ ] It implements the module's marker (`IPpmEvent`, `IProductManagementEvent`) or `IAggregateEvent`, with
+  `AggregateType` and `AggregateId` marked `[JsonIgnore]`. `AggregateType` is the value the record's Activity
+  section reads by — use the one the aggregate's other events already declare.
+- [ ] It passes its version explicitly, `base(actor, "1.0")`. *Compiler.*
+- [ ] Its deserialization constructor takes the event's own fields, each parameter named and typed exactly
+  like the property it sets — including one that sets `EventId`, which must be called `eventId`. Where a
+  convenience constructor takes a model, add a `[JsonConstructor]` alongside it. *Convention test.*
+
+**Raising it**
+
+- [ ] The domain method raises it with `AddDomainEvent`, only when something changed, comparing after
+  assignment. *Domain test — assert both that it raises and that a no-op call does not.*
+- [ ] A creation event whose `Key` is database-assigned is raised in `AddPostPersistenceAction`, with every
+  other value captured in a local at creation. *Create-then-mutate domain test.*
+- [ ] An event raised by a mutation before the record's first save defers itself while `Key == 0`, if its
+  payload carries `Key`.
+- [ ] A previous value read from a navigation has an `.Include` in the handler and a guard in the aggregate
+  that throws when it was not loaded. *Testcontainers test with `SavedEntityRecorder` — the fakes do not model
+  `.Include`.*
+
+**Recording and delivering it**
+
+- [ ] Nothing to register for the activity log; capture is automatic. Check the badge the entry will get:
+  the Activity section currently picks it from words in the type name (`StatusChanged`, `Activated`,
+  `Archived`, `Deleted`, `Removed`, `Created`, `Added`, …), and anything else shows as **Updated**.
+- [ ] Add the type to `DurableEventRoutes` only when a consumer needs asynchronous delivery. A durable
+  handler is delivered at least once and in no guaranteed order, so it must be idempotent — `EventId` is the
+  value to deduplicate on.
+- [ ] A member type the serializer may not handle — a NodaTime type, a value object, a collection of records
+  — gets a round-trip test in `DomainEventSerializationTests`.
+
+**Superseding one**
+
+- [ ] The new type is `…EventV{n}` at `"{n}.0"`, and the old one is marked `[Obsolete]` with its shape and
+  name untouched. *`DomainEventVersioningTests`.*
+- [ ] Every consumer handles both generations.
+- [ ] A payload written as the old type is stored in a test and still deserializes —
+  `ProjectReparentedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes` is the pattern.
+
+`DomainEventConventionTests` also fails a new event named only for its record (`TeamUpdatedEvent`) and a
+payload property that looks like personal data (`Email`, `FirstName`, `DisplayName`, …).
+
+## The rules in detail
+
+### Every raise is a fact; nothing collapses them
+
+`BaseEntity` offers one way to raise. A domain method that changed something raises an event, and that
+event survives — two calls that each changed something are two facts, and the aggregate does not try to
+work out that only the last one "really" counts.
+
+It once had a second method that dropped any pending event of the same type, so that replacing a project's
+role list twice in one request recorded a single net change. That was wrong for a reason worth
+remembering: **the aggregate cannot see the save boundary.** Events are drained and cleared by
+`SaveChanges`, so the same two domain calls recorded one entry or two depending on where the handler
+happened to put its save — a persistence detail deciding what the business record says. And "the earlier
+state was never committed" is a persistence claim about a state the aggregate genuinely held.
+
+What keeps the log clean is not collapsing events after the fact but not raising them in the first place —
+see [The aggregate decides whether anything changed](#the-aggregate-decides-whether-anything-changed).
+
+### The aggregate decides whether anything changed
+
+An event is raised only when the call actually changed something. A whole-record update sends every field
+on every save, so a method that raises because its code path ran records "the roles changed" on an edit
+that touched only the description — and the entries that did change something get buried.
+
+That decision belongs to the **aggregate**, not to `SaveChanges`. EF's change tracker knows which columns
+are dirty and could drive it, but that would put a persistence mechanism in charge of what counts as a
+business fact — the same objection that applies to inferring events from the change tracker at commit
+time. It also cannot express "these five properties together mean one `DetailsUpdated`", and it does not
+see a role-assignment collection change as a property change at all.
+
+The comparison runs **after** assignment, never against the arguments:
+
+```csharp
+var before = new ProgramDetails(Name, Description);
+
+Name = name;              // the setters Guard, then Trim
+Description = description;
+
+if (before != new ProgramDetails(Name, Description))
+{
+    AddDomainEvent(new ProgramDetailsUpdatedEvent(this, before, actor.ToEventActor(), timestamp));
+}
+```
+
+`Name` and `Description` normalise in their setters, so `if (Name == name)` reports a change when a caller
+passes `"Atlas "` and `"Atlas"` is stored — raising an event whose payload is identical to the one before
+it. Comparing the stored values on both sides is what makes the guard correct rather than merely present.
+
+Collections compare the same way, ignoring order: `RoleManager.Diff` for role assignments (the event is
+raised when it gained or lost anything, and carries both lists), a set difference for strategic themes.
+
+### A change carries both ends
+
+An event that records a change carries the value before as well as the value after. The change is the
+fact, and a consumer should not have to find an earlier event to learn what moved: "reverted from Active"
+cannot be recovered from the new status alone, and the earlier event may be one the consumer never
+received. Status changes carry `From*` and `To*`; timeline changes carry `PreviousDateRange`; lifecycle
+and scoring-model changes carry the previous id and name. A ledger entry — a health check added, a score
+recorded — is a new row rather than a value moving, so it has only one end.
+
+Adding the previous value to a published event is a compatible change, a minor version, and a payload
+written before it reads the new field as `default`. Make sure `default` can only mean "not recorded". A
+flat `PreviousBusinessCase` could not: a business case may genuinely have been empty. So the
+`*DetailsUpdatedEvent`s group what they replaced as one `Previous` record, which is null only on an older
+payload, and the nulls inside it are real.
+
+Collections carry both the change and its result, because they serve two kinds of consumer. `Added` and
+`Removed` are the fact — who gained and who lost which role, which themes were tagged and untagged — and
+are what a consumer reacting to the change needs ("tell the new Owner"). `Roles` and `StrategicThemes` are
+the set afterwards, in the encoding the `Created` events use, and are what a consumer keeping a copy needs:
+applying the latest set is correct however deliveries were ordered or repeated, whereas applying deltas in
+the wrong order produces the wrong set. The two are redundant by design; the full set is what makes a
+replica self-healing.
+
+### A payload carries the change and the identity, not a description of the record
+
+A payload holds what changed plus the identity needed to locate the aggregate — `Id`, and `Key` where the
+record has one, since that is how the UI and the importers address it. It does **not** carry the record's
+`Name`. A name is a reference to the aggregate rather than a fact of the event, it goes stale against the
+record, and because the Activity section diffs an entry against the previous one, a rename otherwise shows
+up inside the diff of an unrelated change.
+
+The exception is where the name *is* the change: `*CreatedEvent` and `*DetailsUpdatedEvent` carry it,
+because "created as X" and "renamed to X" are the facts those events record — and the Work module builds
+its `WorkProject` projection straight off those two payloads. The same reasoning keeps a name on
+`StrategicInitiativeDeletedEvent`: the record is gone, so the payload is the only remaining description of
+what stopped existing.
+
+A record's display label for the activity log is a separate, unsolved concern. The conventional home for
+it is the envelope — `ActivityLogEntry` already carries `AggregateType` and `AggregateId` and would gain a
+label alongside them, the way CloudEvents uses `subject` — rather than a `Name` repeated through every
+payload.
+
+### A creation event records the record as created
+
+Most creation events are deferred with `AddPostPersistenceAction`, because `Key` is assigned by the
+database and an event raised at construction would carry zero. The action runs when `SaveChanges`
+completes, so **anything it reads off the aggregate is the aggregate as saved, not as created** — and a
+caller that creates a record and moves it on before the first save is ordinary: every import does it. The
+portfolio import creates a Proposed portfolio and activates it, the version import walks a new version to
+the status its row describes, the team import creates a team active (the only way the domain allows) and
+then deactivates an already-retired one.
+
+Read at execution time, the creation event then records the later state as the creation and duplicates a
+transition that already has its own event. So capture every value in a local when the aggregate is
+created, and read only `Key` inside the action:
+
+```csharp
+var portfolio = new ProjectPortfolio(name, description, ProjectPortfolioStatus.Proposed, roles);
+
+// Captured now, not when the action runs.
+var createdName = portfolio.Name;
+var createdDescription = portfolio.Description;
+var createdStatus = (int)portfolio.Status;
+var createdRoles = portfolio.RoleMap();
+
+portfolio.AddPostPersistenceAction(() => portfolio.AddDomainEvent(new ProjectPortfolioCreatedEvent(
+    portfolio.Id, portfolio.Key, createdName, createdDescription, createdStatus, createdRoles,
+    actor, timestamp)));
+```
+
+Where the key is not database-assigned — `Project` supplies its own — build the event outright and defer
+only the raise. Where nothing mutates a new record before its first save today, capture anyway: it costs
+nothing and the next caller does not have to know the rule to stay correct. The pattern has a test per
+aggregate that has such a caller, which creates the record, mutates it, executes the post-persistence
+actions and asserts the creation event still describes the creation.
+
+Events raised by a **mutation** before the first save are the other half of this, and the mirror-image
+problem: their values are already the ones the caller just set, but `Key` is still zero. `Deployment` and
+`DeploymentEnvironment` defer those raises for that reason (`if (Key == 0)`); the release, version and
+package transitions do not yet, so an import that ships a record in the same pass records those events
+with `Key` 0.
+
+### Versioning an event
+
+An event's published shape is a contract with two kinds of reader, and each forces a rule:
+
+- **Stored payloads are read by current code, forever.** The activity log is append-only and nothing
+  migrates a payload once written, so every event must stay readable by every later version of itself.
+- **Published events are read by consumers written against the shape they were published with.** Assume
+  every event has such a consumer, whether or not one is subscribed today — the routing table is a
+  deployment detail, not the contract.
+
+Every event declares its version explicitly (`base(actor, "1.0")`); `DomainEvent`'s constructor has no
+default, so an event that omits it does not compile. What a change does to it:
+
+| Change | Result |
+|---|---|
+| Add a field whose `default` is a valid value | Same type, minor bump: 1.0 → 1.1 |
+| Add a field whose `default` is not a valid value | Not compatible — see the next row |
+| Remove, retype, or repurpose a field | New type at the next generation: `XxxEventV2`, `"2.0"` |
+
+**Why a breaking change is a new type rather than a major bump on the same one.** Consumers dispatch on the
+type. A `"2.0"` payload of the same type still reaches every consumer written against `"1.0"`, and with
+System.Text.Json a member the payload no longer carries binds to `default` without error — so the
+consumer receives a `null` where its type promised a value. The version number labels that break but
+protects nobody unless every consumer checks it before deserializing. A new type is the only thing that
+keeps an old consumer from receiving a shape it cannot read. The type suffix carries the major version;
+`EventVersion` carries it too, so the log reads correctly on its own, and its minor carries the compatible
+revisions within that generation.
+
+**The superseded type is frozen, never deleted.** It is marked `[Obsolete]` so nothing raises it, and its
+published shape and class name stay exactly as they were — payloads written as it must still deserialize,
+and `ActivityLogEntry.EventType` stores the class name, so renaming it would orphan every existing row. A
+consumer handles both generations until nothing can still deliver the old one: `ProjectSyncHandler` keeps
+its `ProjectKeyChangedEvent` handler for envelopes written before the switch and still in the outbox.
+
+The activity log's summary drops the generation suffix, so `ProjectReparentedEventV2` still reads
+"Project Reparented"; `EventType` keeps it, because that is what consumers dispatch on.
+
+**Avoid needing a new generation.** Most breaking changes can be made compatible by adding before removing:
+add the replacement field, move consumers onto it, and retire the old field in a later generation only if
+you still need to. Design payloads so they survive the changes you can see coming —
+`ProjectStatusChangedEventV2` carries a status as a name plus a `LifecycleCategory` rather than an enum
+value, so workflow-configurable statuses will not break it.
+
+`DomainEventVersioningTests` enforces two of these rules across every event: the type's generation and its
+version's major must agree, and every superseded generation must still exist and be `[Obsolete]`. The rest —
+that a new field's `default` is valid, that a frozen type's shape never moves — only a stored golden payload
+can prove; `ProjectReparentedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes` is the pattern.
+
+### Sharing an id with the record a transition writes
+
+`ProjectStatusChangedEventV2` takes its `EventId` from the `ProjectStatusHistory` row that recorded the
+transition, rather than a fresh value. The two describe one fact, and sharing an identity is what lets
+history written before the event existed be replayed into the log exactly once — the
+`Backfill-Project-Status-Activity` migration inserts `WHERE NOT EXISTS (… WHERE Id = h.Id)`, so it can
+never duplicate a transition that already raised its own event. The identity holds across generations:
+the backfill writes its rows as the frozen `ProjectStatusChangedEvent` and live transitions raise V2, and
+both take the row's id. Reach for this wherever an aggregate writes both a durable record and an event
+about the same occurrence.
+
+Only `Project` has such a record. `Program` and `ProjectPortfolio` assign their status directly, so
+`ProgramStatusChangedEvent` and `ProjectPortfolioStatusChangedEvent` take fresh ids and their Activity
+sections start from the release that introduced them — there is no row to share an id with and nothing to
+backfill from. Adding a history table to either is a separate decision, not a gap in this one.
+
+## Activity log
+
+Every domain event drained by `SaveChanges` is also captured as an `ActivityLogEntry` row — automatically,
+in `BaseDbContext` via `ActivityLogEntryFactory`, with no per-aggregate wiring. An event implementing
+`IAggregateEvent` declares the aggregate type and id the entry belongs to; anything else falls back to the
+raising entity's type name and id. That is what the record pages' **Activity** section reads.
+
+Capture happens whether the event is routed durably or inline, and `EventPublisher` treats a
+subscriber-less event as a no-op. **A new event therefore earns a full audit trail without a handler and
+without a `DurableEventRoutes` entry** — add it to that allow-list only when a real consumer needs it
+delivered asynchronously.
+
+### Order lives on the ledger, not on the event
+
+The events of one command land microseconds apart where each domain call reads `IDateTimeProvider.Now`
+separately, and share a `Timestamp` exactly where the caller reads it once for a whole batch — the import
+definitions and the sync handlers. Either way the timestamp does not order them, and at the granularity the
+Activity section displays they are simply simultaneous.
+Each `ActivityLogEntry` therefore also carries an `Ordinal`, counted as the events are drained, and reads
+sort by `Timestamp`, then `Ordinal`, then `Id`. All three are needed: `Ordinal` puts one command's entries
+in the order they were raised, and `Id` settles two commands that collide on an instant — arbitrarily, but
+identically on every read, which is what stops `Skip`/`Take` returning an entry on two pages or on neither.
+
+The ordinal is **counted in the drain, not generated by the database**. EF sorts the inserts of a save by
+primary key, and `ActivityLogs` is keyed on a Guid, so the order rows reach the table is unrelated to the
+order the events were raised in; an identity column records that shuffle faithfully and is useless.
+
+**The event envelope carries no ordering, and must not grow one.** Durable delivery is at-least-once
+through the outbox with no guarantee of order between messages, so a sequence number on the published
+shape would promise something the transport does not keep — which is also why payloads carry the set after
+a change rather than a delta. And the only place that knows the true order is `AddDomainEvent`, where
+numbering across aggregates needs an ambient counter, in a layer that resolves nothing for itself. Order is
+a property of recording a fact, not of the fact.
+
+Within one aggregate that order is faithful, because its events are drained from an ordered list in the
+order they were raised, and every activity view reads a single aggregate. Between aggregates in one command
+there is no defined order — `ChangeTracker` is in EF's own tracking order — which only becomes a question
+if a feed ever spans records.
+
+### Reading the activity log
+
+Reading is an `IActivityLogReader` **service**, not a standalone query. Each module writes its own thin
+query handler that resolves and authorizes its record first, then reads the history inside that record's
+security boundary:
+
+```csharp
+var projectId = await _ppmDbContext.Projects
+    .Where(request.IdOrKeyFilter)
+    .Select(p => (Guid?)p.Id)
+    .FirstOrDefaultAsync(cancellationToken);
+
+if (projectId is null)
+{
+    return Result.Success<PagedResponse<ActivityLogDto>?>(null);
+}
+
+var activities = await _activityLogReader.Read(
+    projectId.Value, aggregateType: "Project", page: request.Page, pageSize: request.PageSize,
+    cancellationToken: cancellationToken);
+```
+
+A generic `/api/activities?aggregateId=` endpoint would have to re-derive which permission guards which
+aggregate type; this way the module that already knows answers it, and the controller carries the same
+`[MustHavePermission]` as the record's own GET.
+
+**The aggregate type is the event's, not the entity's.** Two cases differ today and both are load-bearing:
+a `TeamOfTeams` raises the same `Team*` events, so its entries carry `"Team"` and only the id separates
+them; and `StatusWorkflow`'s events name the aggregate `"Workflow"`. Reading with the entity's own class
+name would silently return nothing. Adding an Activity section to a new record means checking what its
+events actually declare — `grep 'AggregateType =>'` lists every value in use.

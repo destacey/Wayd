@@ -42,6 +42,7 @@ Wayd supports:
 - [Status Workflows](docs/user-guide/settings/status-workflows.mdx): Statuses, categories, aliases, publish/clone lifecycle, reassignment
 - [Administration](docs/user-guide/settings/index.mdx): Users, roles, feature flags, integrations, background jobs
 - [Architecture](docs/contributing/architecture.mdx): Clean Architecture, DDD, CQRS, vertical slices
+- [Domain Events](docs/contributing/domain-events.mdx): Designing, wiring, and versioning events; activity log
 - [Coding Standards](docs/contributing/coding-standards.mdx): Naming, NodaTime, Result pattern, theming
 - [Testing](docs/contributing/testing.mdx): xUnit, FluentAssertions, Moq, architecture tests
 - [Adding a Feature](docs/contributing/adding-a-feature.mdx): Step-by-step feature implementation guide

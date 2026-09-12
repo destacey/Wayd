@@ -11,13 +11,10 @@ namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 /// Submits a file of planning interval objectives to import, and answers with the id of the run.
 /// </summary>
 /// <remarks>
-/// The application boundary for this import, and the first one with a rule of its own: a file must belong
-/// to a single planning interval. That was previously enforced in the controller by comparing each row
-/// against the route id and answering with a route-parameter mismatch, which described the HTTP shape of
-/// the request rather than the rule.
+/// Each row names its own planning interval, so one file can cover many — an onboarding customer arrives
+/// with dozens of intervals, and one file per interval would make them split their history to fit.
 /// </remarks>
 public sealed record ImportPlanningIntervalObjectivesCommand(
-    Guid PlanningIntervalId,
     IReadOnlyList<SubmittedImportRow<ImportPlanningIntervalObjectiveDto>> Rows,
     Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
@@ -35,9 +32,6 @@ public sealed class ImportPlanningIntervalObjectivesCommandValidator
     public ImportPlanningIntervalObjectivesCommandValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
-
-        RuleFor(c => c.PlanningIntervalId)
-            .NotEmpty();
 
         RuleFor(c => c.Rows)
             .NotEmpty();
@@ -61,22 +55,6 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandler(
     {
         if (command.Rows.Count == 0)
             return Result.Failure<Guid>("The file contains no objectives.");
-
-        // One file, one planning interval. The definition resolves each row's interval independently and
-        // would happily apply a mixed file, so this is the rule rather than a limitation: an import of
-        // objectives is submitted against an interval, and a row naming a different one is a mistake in
-        // the file, not an instruction to spread the import across two.
-        var foreign = command.Rows
-            .Select((row, index) => (Row: row, Number: index + 1))
-            .FirstOrDefault(r => r.Row.Data.PlanningIntervalId != command.PlanningIntervalId);
-
-        if (foreign.Row is not null)
-        {
-            var key = SubmittedImportRow.KeyFor(foreign.Row.ImportId, foreign.Number);
-
-            return Result.Failure<Guid>(
-                $"Row '{key}' names planning interval '{foreign.Row.Data.PlanningIntervalId}', but this import is for '{command.PlanningIntervalId}'. A file must belong to one planning interval.");
-        }
 
         var definition = _registry.Find(PlanningIntervalObjectiveImportDefinition.ImportKey);
         if (definition.IsFailure)

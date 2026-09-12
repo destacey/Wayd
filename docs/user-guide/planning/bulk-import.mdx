@@ -152,18 +152,20 @@ the only place iteration names, categories and date ranges are editable.
 
 ## Planning interval objectives import
 
-`POST /api/planning/planning-intervals/{id}/objectives/import`
+`POST /api/planning/planning-intervals/objectives/import`
 
-Loads [objectives](./planning-intervals.mdx#objectives) into one planning interval, which must already
-exist — created by hand or by the [planning intervals import](#planning-intervals-import) above. The
-interval is named in the **route**, and every row must repeat it in `PlanningIntervalId`. A file must belong to a
-single planning interval: a row naming a different one is rejected as a mistake in the file rather than
-applied elsewhere.
+Loads [objectives](./planning-intervals.mdx#objectives) onto planning intervals that already exist —
+created by hand or by the [planning intervals import](#planning-intervals-import) above. **Each row names
+its own interval** in `PlanningIntervalId`, so one file can carry objectives for as many intervals as you
+have: an organization's whole planning history goes in a single file rather than one per interval.
+
+Because the file is all-or-nothing, a row naming an interval that does not exist, or one whose objectives
+are locked, rejects the whole file — including the rows for every other interval in it.
 
 | Column | Required | Notes |
 |---|---|---|
 | `ImportId` | No | Your key for the row; outcomes are reported against it. Unique within the file. Defaults to the row's position when blank. |
-| `PlanningIntervalId` | Yes | GUID. Must match the `{id}` in the route. |
+| `PlanningIntervalId` | Yes | GUID of the planning interval the objective belongs to. Rows may name different intervals. |
 | `TeamId` | Yes | GUID of the team the objective belongs to. |
 | `Name` | Yes | Max 256 chars. |
 | `Description` | No | Max 1024 chars. |

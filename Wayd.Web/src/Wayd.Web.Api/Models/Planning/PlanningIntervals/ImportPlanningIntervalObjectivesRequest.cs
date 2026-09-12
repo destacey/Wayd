@@ -40,6 +40,10 @@ public sealed class ImportPlanningIntervalObjectivesRequestValidator : CustomVal
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
+        RuleFor(o => o.PlanningIntervalId)
+            .NotEmpty()
+            .WithMessage("A planning interval must be selected.");
+
         RuleFor(o => o.TeamId)
             .NotEmpty()
             .WithMessage("A plan must be selected.");

@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.FeatureManagement;
-using Wayd.Goals.Application.Persistence;
 using Wayd.Links;
 using Wayd.Planning.Application.Persistence;
 using Wayd.ProductManagement.Application;
@@ -125,7 +124,6 @@ internal static class ConfigureServices
         services.AddScoped<IWaydDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IAppIntegrationDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IFeatureManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
-        services.AddScoped<IGoalsDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IImportDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<ILinksDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IOrganizationDbContext>(sp => sp.GetRequiredService<WaydDbContext>());

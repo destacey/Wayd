@@ -44,15 +44,6 @@
     <Project Path="Wayd.Services/Wayd.AppIntegration/tests/Wayd.AppIntegration.Application.Tests/Wayd.AppIntegration.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.AppIntegration/tests/Wayd.AppIntegration.Domain.Tests/Wayd.AppIntegration.Domain.Tests.csproj" />
   </Folder>
-  <Folder Name="/Wayd.Services/Wayd.Goals/" />
-  <Folder Name="/Wayd.Services/Wayd.Goals/src/">
-    <Project Path="Wayd.Services/Wayd.Goals/src/Wayd.Goals.Application/Wayd.Goals.Application.csproj" />
-    <Project Path="Wayd.Services/Wayd.Goals/src/Wayd.Goals.Domain/Wayd.Goals.Domain.csproj" />
-  </Folder>
-  <Folder Name="/Wayd.Services/Wayd.Goals/tests/">
-    <Project Path="Wayd.Services/Wayd.Goals/tests/Wayd.Goals.Application.Tests/Wayd.Goals.Application.Tests.csproj" />
-    <Project Path="Wayd.Services/Wayd.Goals/tests/Wayd.Goals.Domain.Tests/Wayd.Goals.Domain.Tests.csproj" />
-  </Folder>
   <Folder Name="/Wayd.Services/Wayd.Links/" />
   <Folder Name="/Wayd.Services/Wayd.Links/src/">
     <Project Path="Wayd.Services/Wayd.Links/src/Wayd.Links/Wayd.Links.csproj" />

@@ -8,7 +8,6 @@ internal static class SchemaNames
     public static string Auditing = "Auditing";
     public static string Delivery = "Delivery";
     public static string FeatureManagement = "FeatureManagement";
-    public static string Goals = "Goals";
     public static string Health = "Health";
     public static string Identity = "Identity";
     public static string Imports = "Imports";

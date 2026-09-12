@@ -35,14 +35,20 @@ public class ActivityLogConfiguration : IEntityTypeConfiguration<ActivityLogEntr
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.Property(x => x.Timestamp).IsRequired();
+        builder.Property(x => x.Ordinal).IsRequired();
         builder.Property(x => x.CorrelationId).HasMaxLength(128);
         builder.Property(x => x.Payload).IsRequired();
         builder.Property(x => x.Summary).HasMaxLength(512);
 
-        // Indexes for querying activity
-        builder.HasIndex(x => new { x.AggregateType, x.AggregateId, x.Timestamp });
-        builder.HasIndex(x => x.Timestamp);
-        builder.HasIndex(x => new { x.UserId, x.Timestamp });
+        // Indexes for querying activity. Each ends in Ordinal because reads sort by Timestamp then Ordinal,
+        // and the primary key lands on the end of a non-unique index anyway, so the whole sort is covered.
+        //
+        // AggregateId leads the record index, ahead of AggregateType: a read always filters on the id and only
+        // optionally on the type, so leading with the type would force a scan across every type whenever it is
+        // omitted. The id is a Guid and the type one of a dozen strings, so it is also the selective half.
+        builder.HasIndex(x => new { x.AggregateId, x.AggregateType, x.Timestamp, x.Ordinal });
+        builder.HasIndex(x => new { x.Timestamp, x.Ordinal });
+        builder.HasIndex(x => new { x.UserId, x.Timestamp, x.Ordinal });
         builder.HasIndex(x => x.CorrelationId);
     }
 }

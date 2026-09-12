@@ -18,7 +18,7 @@ public sealed class ActivityLogEntryFactoryTests
         var raised = new ProjectPortfolioStubEvent("ProjectPortfolio", Guid.CreateVersion7());
 
         // Act
-        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, correlationId: null);
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
 
         // Assert
         entry.Summary.Should().Be("Project Portfolio Stub");
@@ -31,7 +31,7 @@ public sealed class ActivityLogEntryFactoryTests
         var raised = new StrategicInitiativeStubEvent("ProjectPortfolio", Guid.CreateVersion7());
 
         // Act
-        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, correlationId: null);
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
 
         // Assert
         entry.Summary.Should().Be("Strategic Initiative Stub on Project Portfolio");
@@ -45,7 +45,7 @@ public sealed class ActivityLogEntryFactoryTests
         var raised = new StrategicInitiativeStubEvent("ProjectPortfolio", portfolioId);
 
         // Act
-        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, correlationId: null);
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
 
         // Assert
         entry.AggregateType.Should().Be("ProjectPortfolio");
@@ -60,7 +60,7 @@ public sealed class ActivityLogEntryFactoryTests
         var raised = new ProjectPortfolioStubEventV2("ProjectPortfolio", Guid.CreateVersion7());
 
         // Act
-        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, correlationId: null);
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
 
         // Assert — the type name keeps the suffix, because consumers dispatch on it
         entry.Summary.Should().Be("Project Portfolio Stub");

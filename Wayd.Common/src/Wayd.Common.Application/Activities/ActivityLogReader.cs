@@ -31,9 +31,17 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
 
         var totalCount = await query.CountAsync(cancellationToken);
 
+        // The tiebreaks are not a display preference. The events of one command land microseconds apart at
+        // best and on the same Timestamp where the caller reads the clock once for a batch, so ordering on it
+        // alone leaves rows tied, and Skip/Take over a sort the database is free to break differently per
+        // query can return one entry on two pages or on neither.
+        // Ordinal settles entries from the same unit of work in the order they were raised; Id settles the
+        // rest, arbitrarily but identically on every read, which is all paging needs.
         var items = await query
             .Include(a => a.Employee)
             .OrderByDescending(a => a.Timestamp)
+            .ThenByDescending(a => a.Ordinal)
+            .ThenByDescending(a => a.Id)
             .Skip(skip)
             .Take(take)
             .ToListAsync(cancellationToken);

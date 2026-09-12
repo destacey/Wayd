@@ -36,7 +36,7 @@ internal static partial class ActivityLogEntryFactory
         return options;
     }
 
-    internal static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IEntity entity, string? correlationId)
+    internal static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IEntity entity, int ordinal, string? correlationId)
     {
         var eventType = domainEvent.GetType().Name;
 
@@ -69,6 +69,7 @@ internal static partial class ActivityLogEntryFactory
             aggregateId,
             domainEvent.Actor,
             domainEvent.Timestamp,
+            ordinal,
             correlationId,
             payload,
             summary,
@@ -162,7 +163,7 @@ internal static partial class ActivityLogEntryFactory
     /// declare and to help resolve the domain area. An <see cref="IAggregateEvent"/> answers both from
     /// its own type, which is what lets a backfill construct an entry from a database row.
     /// </remarks>
-    internal static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IAggregateEvent aggregateEvent, string? correlationId)
+    internal static ActivityLogEntry CreateActivityLogEntry(DomainEvent domainEvent, IAggregateEvent aggregateEvent, int ordinal, string? correlationId)
     {
         var eventType = domainEvent.GetType().Name;
         var domainArea = ResolveDomainArea(string.Empty, domainEvent.GetType().Namespace ?? string.Empty);
@@ -175,6 +176,7 @@ internal static partial class ActivityLogEntryFactory
             aggregateEvent.AggregateId,
             domainEvent.Actor,
             domainEvent.Timestamp,
+            ordinal,
             correlationId,
             JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), ActivityJsonOptions),
             FormatSummary(eventType, aggregateEvent.AggregateType),

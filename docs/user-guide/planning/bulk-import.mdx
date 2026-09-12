@@ -65,15 +65,10 @@ A few rules apply to both:
 
 ### What a failed run leaves behind
 
-The two imports differ once rows start being applied.
+**Both imports are all-or-nothing.** The file is applied as one unit, so a rejected row means none of it
+is written. Correct the file and submit it again.
 
-**Risks are all-or-nothing.** The file is applied as one unit, so a rejected row means none of it is
-written. Correct the file and submit it again.
-
-**Objectives are applied row by row.** A rejected row is reported as rejected and the rest still apply,
-so a run can finish **partially applied** — some objectives created, some rows rejected with a reason.
-
-Either way, you do not need to work out what happened by re-posting. Open the run in
+You do not need to work out what happened by re-posting. Open the run in
 [Settings → Imports](../settings/imports.mdx) to see each row's outcome, then:
 
 - **Retry rejected rows** once the underlying problem is fixed. Rows that already succeeded are never
@@ -97,13 +92,12 @@ then discarded. After that a row can no longer be retried and the file must be s
 
 | Import | Rows per file | Applied |
 |---|---|---|
-| Planning interval objectives | 50,000 | Row by row |
+| Planning interval objectives | 10,000 | All-or-nothing |
 | Risks | 10,000 | All-or-nothing |
 
 A file over its cap is rejected before anything is queued, with a message naming the cap. Split a larger
 file and post the parts one at a time, waiting for each run; one `submissionGroupId` across them keeps the
-runs findable as one import. The caps differ because an all-or-nothing file is one database transaction,
-and 10,000 rows bounds it.
+runs findable as one import. An all-or-nothing file is one database transaction, and 10,000 rows bounds it.
 
 The rules every file shares — request size, `ImportId` length, how rows are chunked, how long the post
 waits, retries, stalls and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).

@@ -124,7 +124,7 @@ kind it is.
 
 | Rule | Value |
 |---|---|
-| Rows per file | 50,000 for an import applied row by row (employees, planning interval objectives); 10,000 for an all-or-nothing import, which is one database transaction. Over the cap, the file is rejected before anything is queued. |
+| Rows per file | 50,000 for an import applied row by row (employees); 10,000 for an all-or-nothing import, which is one database transaction. Over the cap, the file is rejected before anything is queued. |
 | Request size | About 30 MB, the web server's default. A 50,000-row file is a few megabytes. |
 | Empty file | Rejected: a file with no rows never becomes a run. A missing file returns 422. |
 | `ImportId` | Optional. At most 128 characters, trimmed, and unique within the file compared **case-insensitively** (`abc` and `ABC` collide). Blank uses the row's position, counting from one. |

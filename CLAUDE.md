@@ -316,7 +316,7 @@ superseded generation is deleted or left un-obsoleted — see
 
 Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistence/Configuration/`. Migrations in `Wayd.Infrastructure.Migrators.MSSQL`. Auto-applied on startup via `app.Services.InitializeDatabases()`.
 
-**The thirteen `IXxxDbContext` interfaces are views over that one context, not separate contexts.** They constrain what each module can see; they are not persistence boundaries, and they overlap by design (`IPlanningDbContext : IWaydDbContext`). Keeping that true takes two things working together, and either alone leaves it broken:
+**The twelve `IXxxDbContext` interfaces are views over that one context, not separate contexts.** They constrain what each module can see; they are not persistence boundaries, and they overlap by design (`IPlanningDbContext : IWaydDbContext`). Keeping that true takes two things working together, and either alone leaves it broken:
 
 1. `AddDomainDbContexts` registers each as a **factory** (`sp => sp.GetRequiredService<WaydDbContext>()`). `AddScoped<IFoo, WaydDbContext>()` reads as an alias but is a distinct service descriptor, so it hands out a separate context per interface.
 2. Each is **allow-listed for service location** in `WolverineConfiguration`, or codegen inline-constructs its own and never consults the container at all.

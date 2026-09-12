@@ -41,7 +41,8 @@ Each run shows the kind of import, who submitted it, when, and four counts:
 **Files submitted together show as one batch.** A caller that posts several files under one
 `submissionGroupId` — the `wayd-data` seed does, and so does an export split to fit the row cap — gets a
 single collapsed row for the batch: "11 imports submitted together", with the rows, applied, rejected and
-not-applied counts summed across its files, and a status that is Succeeded only when every file's is.
+not-applied counts summed across its files, and a status that is Succeeded only when every file's
+status is. The batch is dated by its newest file, so it sits where that file would in the list.
 Expand it to see the files themselves, each with its own actions. The **Batch** column carries the short
 form of the group id and filters like any other column; a file submitted on its own has none.
 

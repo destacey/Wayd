@@ -287,6 +287,15 @@ not loaded, rather than record an empty name. Load the incoming record tracked a
 together: an untracked instance reached through a navigation on a `ValueGeneratedNever` key is inserted on
 save. Both need a Testcontainers test (`SavedEntityRecorder`), because the fakes model neither.
 
+**A creation event raised post-persistence must capture its payload at creation.** Those events are
+deferred because `Key` is database-assigned, and the action runs at `SaveChanges` — so anything it reads
+off the aggregate is the record *as saved*. Every import creates a record and moves it on before the first
+save, which would otherwise make the creation event record the later state and duplicate a transition that
+already has its own event. Capture each value in a local at creation and read only `Key` inside the action;
+where the key is supplied rather than generated (`Project`), build the event outright and defer only the
+raise. Each aggregate with such a caller has a create-then-mutate test —
+see [architecture.mdx](docs/contributing/architecture.mdx#a-creation-event-records-the-record-as-created).
+
 Where an aggregate writes a durable record *and* an event about the same occurrence, give the event that
 record's id as its `EventId` (`ProjectStatusChangedEventV2` takes the `ProjectStatusHistory` row's). That is
 what makes a backfill replaying old records idempotent forever.

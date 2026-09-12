@@ -1,7 +1,9 @@
-﻿using CSharpFunctionalExtensions;
+using Ardalis.GuardClauses;
+using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Interfaces;
 using Wayd.Common.Domain.Models.HealthChecks;
+using Wayd.Common.Extensions;
 using Wayd.Planning.Domain.Enums;
 using NodaTime;
 
@@ -13,15 +15,20 @@ public sealed class PlanningIntervalObjective : BaseSoftDeletableEntity, IHasIdA
 
     private PlanningIntervalObjective() { }
 
-    internal PlanningIntervalObjective(Guid planningIntervalId, Guid teamId, Guid objectiveId, PlanningIntervalObjectiveType type, bool isStretch)
+    internal PlanningIntervalObjective(Guid planningIntervalId, Guid teamId, string name, string? description, PlanningIntervalObjectiveType type, bool isStretch, LocalDate? startDate, LocalDate? targetDate, int? order)
     {
         Status = ObjectiveStatus.NotStarted;
+        Progress = 0.0d;
 
         PlanningIntervalId = planningIntervalId;
         TeamId = teamId;
-        ObjectiveId = objectiveId;
+        Name = name;
+        Description = description;
         Type = type;
         IsStretch = isStretch;
+        StartDate = startDate;
+        TargetDate = targetDate;
+        Order = order;
     }
 
     /// <summary>Gets the key.</summary>
@@ -40,9 +47,23 @@ public sealed class PlanningIntervalObjective : BaseSoftDeletableEntity, IHasIdA
     /// <value>The team.</value>
     public PlanningTeam Team { get; private set; } = default!;
 
-    /// <summary>Gets the objective identifier.</summary>
-    /// <value>The objective identifier.</value>
-    public Guid ObjectiveId { get; init; }
+    /// <summary>
+    /// The name of the objective.
+    /// </summary>
+    public string Name
+    {
+        get;
+        private set => field = Guard.Against.NullOrWhiteSpace(value, nameof(Name)).Trim();
+    } = default!;
+
+    /// <summary>
+    /// The description of the objective.
+    /// </summary>
+    public string? Description
+    {
+        get;
+        private set => field = value.NullIfWhiteSpacePlusTrim();
+    }
 
     /// <summary>Gets or sets the type.</summary>
     /// <value>The PI objective type.</value>
@@ -51,6 +72,35 @@ public sealed class PlanningIntervalObjective : BaseSoftDeletableEntity, IHasIdA
     /// <summary>Gets or sets the status.</summary>
     /// <value>The status.</value>
     public ObjectiveStatus Status { get; private set; }
+
+    /// <summary>Gets the progress percentage.</summary>
+    /// <value>The progress percentage.</value>
+    public double Progress
+    {
+        get;
+        private set => field = value < 0
+            ? 0.0d
+            : value > 100
+                ? 100.0d
+                : value;
+    }
+
+    /// <summary>Gets or sets the start date.</summary>
+    /// <value>The start date.</value>
+    public LocalDate? StartDate { get; private set; }
+
+    /// <summary>Gets or sets the target date.</summary>
+    /// <value>The target date.</value>
+    public LocalDate? TargetDate { get; private set; }
+
+    /// <summary>Gets the closed date.</summary>
+    /// <value>The closed date.</value>
+    public Instant? ClosedDate { get; private set; }
+
+    /// <summary>
+    /// The order of the objective compared to other objectives in the same planning interval.
+    /// </summary>
+    public int? Order { get; private set; }
 
     /// <summary>Gets a value indicating whether this instance is stretch.</summary>
     /// <value><c>true</c> if this instance is stretch; otherwise, <c>false</c>.</value>
@@ -62,16 +112,63 @@ public sealed class PlanningIntervalObjective : BaseSoftDeletableEntity, IHasIdA
     /// </summary>
     public IReadOnlyCollection<PlanningIntervalObjectiveHealthCheck> HealthChecks => _healthChecks.AsReadOnly();
 
-    /// <summary>Updates the specified PI objective.</summary>
-    /// <param name="status">The status.</param>
-    /// <param name="isStretch">if set to <c>true</c> [is stretch].</param>
-    /// <returns></returns>
-    internal Result Update(ObjectiveStatus status, bool isStretch)
+    internal Result Update(string name, string? description, ObjectiveStatus status, double progress, LocalDate? startDate, LocalDate? targetDate, bool isStretch, Instant timestamp)
     {
-        Status = status;
-        IsStretch = isStretch;
+        try
+        {
+            ChangeStatus(status, timestamp);
 
-        return Result.Success();
+            Name = name;
+            Description = description;
+            Progress = progress;
+            StartDate = startDate;
+            TargetDate = targetDate;
+            IsStretch = isStretch;
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.ToString());
+        }
+    }
+
+    internal void UpdateOrder(int? order)
+    {
+        Order = order;
+    }
+
+    private void ChangeStatus(ObjectiveStatus status, Instant timestamp)
+    {
+        if (Status == status) return;
+
+        if (IsClosed(Status) && !IsClosed(status))
+        {
+            ClosedDate = null;
+        }
+        else if (IsClosed(status))
+        {
+            ClosedDate = timestamp;
+        }
+
+        Status = status;
+    }
+
+    private static bool IsClosed(ObjectiveStatus status)
+        => status is ObjectiveStatus.Completed or ObjectiveStatus.Canceled or ObjectiveStatus.Missed;
+
+    /// <summary>
+    /// Creates an objective from an external source, with its status, progress and closed date already
+    /// known. The caller is responsible for the closed date agreeing with the status.
+    /// </summary>
+    internal static PlanningIntervalObjective Import(Guid planningIntervalId, Guid teamId, string name, string? description, PlanningIntervalObjectiveType type, ObjectiveStatus status, double progress, bool isStretch, LocalDate? startDate, LocalDate? targetDate, Instant? closedDate, int? order)
+    {
+        return new PlanningIntervalObjective(planningIntervalId, teamId, name, description, type, isStretch, startDate, targetDate, order)
+        {
+            Status = status,
+            Progress = progress,
+            ClosedDate = closedDate
+        };
     }
 
     public Result<PlanningIntervalObjectiveHealthCheck> AddHealthCheck(HealthStatus status, Guid reportedById, Instant expiration, string? note, Instant now)

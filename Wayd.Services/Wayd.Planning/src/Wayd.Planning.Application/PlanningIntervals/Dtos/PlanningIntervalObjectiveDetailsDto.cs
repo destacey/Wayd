@@ -1,5 +1,4 @@
-﻿using Wayd.Common.Application.Dtos;
-using Wayd.Common.Application.Requests.Goals.Dtos;
+using Wayd.Common.Application.Dtos;
 using Wayd.Planning.Application.Models;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
@@ -58,23 +57,23 @@ public sealed record PlanningIntervalObjectiveDetailsDto
     /// <value><c>true</c> if this instance is stretch; otherwise, <c>false</c>.</value>
     public bool IsStretch { get; set; }
 
-    public static PlanningIntervalObjectiveDetailsDto Create(PlanningIntervalObjective piObjective, ObjectiveDetailsDto objective, NavigationDto piNavigationDto, Instant now)
+    public static PlanningIntervalObjectiveDetailsDto Create(PlanningIntervalObjective piObjective, NavigationDto piNavigationDto, Instant now)
     {
         return new PlanningIntervalObjectiveDetailsDto()
         {
             Id = piObjective.Id,
             Key = piObjective.Key,
-            Name = objective.Name,
-            Description = objective.Description,
+            Name = piObjective.Name,
+            Description = piObjective.Description,
             PlanningInterval = piNavigationDto,
             Status = SimpleNavigationDto.FromEnum(piObjective.Status),
             HealthCheck = PlanningHealthCheckDto.FromCurrent(piObjective.HealthChecks, now),
-            Progress = objective.Progress,
+            Progress = piObjective.Progress,
             Team = PlanningTeamNavigationDto.FromPlanningTeam(piObjective.Team),
             Type = SimpleNavigationDto.FromEnum(piObjective.Type),
-            StartDate = objective.StartDate,
-            TargetDate = objective.TargetDate,
-            ClosedDate = objective.ClosedDate,
+            StartDate = piObjective.StartDate,
+            TargetDate = piObjective.TargetDate,
+            ClosedDate = piObjective.ClosedDate,
             IsStretch = piObjective.IsStretch
         };
     }

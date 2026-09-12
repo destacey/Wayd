@@ -1,6 +1,4 @@
-﻿using Wayd.Common.Application.Models;
-using Wayd.Common.Application.Requests.Goals.Commands;
-using Wayd.Common.Domain.Enums.Goals;
+using Wayd.Common.Application.Models;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
@@ -54,12 +52,11 @@ public sealed class CreatePlanningIntervalObjectiveCommandValidator : CustomVali
     }
 }
 
-public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
+public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreatePlanningIntervalCommand);
+    private const string AppRequestName = nameof(CreatePlanningIntervalObjectiveCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<CreatePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreatePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
@@ -89,36 +86,16 @@ public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
                 return Result.Failure<ObjectIdAndKey>("Team not found.");
             }
 
-            var objectiveResult = await _dispatcher.Send(new CreateObjectiveCommand(
-                request.Name,
-                request.Description,
-                ObjectiveType.PlanningInterval,
-                request.TeamId,
-                request.PlanningIntervalId,
-                request.StartDate,
-                request.TargetDate,
-                request.Order), cancellationToken);
-            if (objectiveResult.IsFailure)
-            {
-                _logger.LogError("Unable to create objective.  Error: {Error}", objectiveResult.Error);
-                return Result.Failure<ObjectIdAndKey>($"Unable to create objective.  Error: {objectiveResult.Error}");
-            }
-
-            var result = planningInterval.CreateObjective(team, objectiveResult.Value, request.IsStretch);
+            var result = planningInterval.CreateObjective(team, request.Name, request.Description, request.IsStretch, request.StartDate, request.TargetDate, request.Order);
             if (result.IsFailure)
             {
-                var deleteResult = await _dispatcher.Send(new DeleteObjectiveCommand(objectiveResult.Value), cancellationToken);
-                if (deleteResult.IsFailure)
-                    _logger.LogError("Unable to delete objective.  Error: {Error}", deleteResult.Error);
-
-                _logger.LogError("Unable to create PI objective.  Error: {Error}", result.Error);
-                return Result.Failure<ObjectIdAndKey>($"Unable to PI create objective.  Error: {result.Error}");
+                _logger.LogError("Unable to create PI objective for Planning Interval {PlanningIntervalId}.  Error: {Error}", request.PlanningIntervalId, result.Error);
+                return Result.Failure<ObjectIdAndKey>($"Unable to create PI objective.  Error: {result.Error}");
             }
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            var piObjective = planningInterval.Objectives
-                .First(o => o.ObjectiveId == objectiveResult.Value);
+            var piObjective = result.Value;
 
             _logger.LogInformation("Planning Interval Objective {PlanningIntervalObjectiveId} created with Key {PlanningIntervalObjectiveKey}.", piObjective.Id, piObjective.Key);
 

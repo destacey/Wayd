@@ -472,34 +472,51 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
 
     #region Objectives
 
-    /// <summary>Creates a PI objective.</summary>
-    /// <param name="team">The team.</param>
-    /// <param name="objectiveId">The objective identifier.</param>
-    /// <param name="isStretch">if set to <c>true</c> [is stretch].</param>
-    /// <returns></returns>
-    public Result CreateObjective(PlanningTeam team, Guid objectiveId, bool isStretch)
+    /// <summary>Creates a PI objective for a team.</summary>
+    public Result<PlanningIntervalObjective> CreateObjective(PlanningTeam team, string name, string? description, bool isStretch, LocalDate? startDate, LocalDate? targetDate, int? order)
     {
         try
         {
             if (!CanCreateObjectives())
-                return Result.Failure("Objectives are locked for this Planning Interval.");
+                return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
 
-            var objectiveType = team.Type == TeamType.Team
-                ? PlanningIntervalObjectiveType.Team
-                : PlanningIntervalObjectiveType.TeamOfTeams;
-
-            var objective = new PlanningIntervalObjective(Id, team.Id, objectiveId, objectiveType, isStretch);
+            var objective = new PlanningIntervalObjective(Id, team.Id, name, description, ObjectiveTypeFor(team), isStretch, startDate, targetDate, order);
             _objectives.Add(objective);
 
-            return Result.Success();
+            return Result.Success(objective);
         }
         catch (Exception ex)
         {
-            return Result.Failure(ex.ToString());
+            return Result.Failure<PlanningIntervalObjective>(ex.ToString());
         }
     }
 
-    public Result<PlanningIntervalObjective> UpdateObjective(Guid piObjectiveId, ObjectiveStatus status, bool isStretch)
+    /// <summary>
+    /// Adds an objective whose status, progress and closed date are already known, as an import does.
+    /// </summary>
+    public Result<PlanningIntervalObjective> ImportObjective(PlanningTeam team, string name, string? description, ObjectiveStatus status, double progress, bool isStretch, LocalDate? startDate, LocalDate? targetDate, Instant? closedDate, int? order)
+    {
+        try
+        {
+            if (!CanCreateObjectives())
+                return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
+
+            var objective = PlanningIntervalObjective.Import(Id, team.Id, name, description, ObjectiveTypeFor(team), status, progress, isStretch, startDate, targetDate, closedDate, order);
+            _objectives.Add(objective);
+
+            return Result.Success(objective);
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<PlanningIntervalObjective>(ex.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Updates an objective. Once objectives are locked the name and stretch flag are frozen; the rest
+    /// stays editable so progress can still be reported against the committed plan.
+    /// </summary>
+    public Result<PlanningIntervalObjective> UpdateObjective(Guid piObjectiveId, string name, string? description, ObjectiveStatus status, double progress, LocalDate? startDate, LocalDate? targetDate, bool isStretch, Instant timestamp)
     {
         try
         {
@@ -508,9 +525,12 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
                 return Result.Failure<PlanningIntervalObjective>($"Objective {piObjectiveId} not found.");
 
             if (ObjectivesLocked)
+            {
+                name = existingObjective.Name;
                 isStretch = existingObjective.IsStretch;
+            }
 
-            var updateResult = existingObjective.Update(status, isStretch);
+            var updateResult = existingObjective.Update(name, description, status, progress, startDate, targetDate, isStretch, timestamp);
             if (updateResult.IsFailure)
                 return Result.Failure<PlanningIntervalObjective>(updateResult.Error);
 
@@ -521,6 +541,26 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
             return Result.Failure<PlanningIntervalObjective>(ex.ToString());
         }
     }
+
+    /// <summary>
+    /// Reorders objectives. Every id must belong to this planning interval, or nothing changes.
+    /// </summary>
+    public Result UpdateObjectivesOrder(IReadOnlyDictionary<Guid, int?> orders)
+    {
+        var missing = orders.Keys.Where(id => _objectives.All(o => o.Id != id)).ToList();
+        if (missing.Count > 0)
+            return Result.Failure($"Objectives not found in this Planning Interval: {string.Join(", ", missing)}.");
+
+        foreach (var (id, order) in orders)
+            _objectives.First(o => o.Id == id).UpdateOrder(order);
+
+        return Result.Success();
+    }
+
+    private static PlanningIntervalObjectiveType ObjectiveTypeFor(PlanningTeam team)
+        => team.Type == TeamType.Team
+            ? PlanningIntervalObjectiveType.Team
+            : PlanningIntervalObjectiveType.TeamOfTeams;
 
     public Result DeleteObjective(Guid piObjectiveId)
     {

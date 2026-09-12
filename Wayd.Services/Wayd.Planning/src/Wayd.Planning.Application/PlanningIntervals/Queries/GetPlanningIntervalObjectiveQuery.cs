@@ -1,7 +1,6 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Application.Requests.Goals.Queries;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Queries;
@@ -21,11 +20,9 @@ public sealed record GetPlanningIntervalObjectiveQuery : IQuery<PlanningInterval
     public IdOrKey ObjectiveIdOrKey { get; }
 }
 
-public sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectiveQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectiveQuery, PlanningIntervalObjectiveDetailsDto?>
+public sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectiveQuery, PlanningIntervalObjectiveDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly ILogger<GetPlanningIntervalObjectiveQueryHandler> _logger = logger;
-    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<PlanningIntervalObjectiveDetailsDto?> Handle(GetPlanningIntervalObjectiveQuery request, CancellationToken cancellationToken)
@@ -51,17 +48,11 @@ public sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContext 
             || planningInterval.Objectives.First().Id != objectiveId.Value)
             return null;
 
-        // call the objective query handler
-        var objective = await _dispatcher.Send(new GetObjectiveForPlanningIntervalQuery(planningInterval.Objectives.First().ObjectiveId, planningInterval.Id), cancellationToken);
-        if (objective is null)
-            return null;
-
         var piNavigation = NavigationDto.Create(planningInterval.Id, planningInterval.Key, planningInterval.Name);
 
-        return PlanningIntervalObjectiveDetailsDto.Create(planningInterval.Objectives.First(), objective, piNavigation, _dateTimeProvider.Now);
+        return PlanningIntervalObjectiveDetailsDto.Create(planningInterval.Objectives.First(), piNavigation, _dateTimeProvider.Now);
     }
 
-    // TODO: move this to a repository
     private async Task<Guid?> GetObjectiveId(GetPlanningIntervalObjectiveQuery request, CancellationToken cancellationToken)
     {
         return await _planningDbContext.PlanningIntervals

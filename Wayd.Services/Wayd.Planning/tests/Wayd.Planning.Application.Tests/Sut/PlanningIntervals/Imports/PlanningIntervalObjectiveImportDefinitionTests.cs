@@ -1,11 +1,7 @@
 using CSharpFunctionalExtensions;
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using NodaTime;
 using Wayd.Common.Application.Imports;
-using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Application.Requests.Goals.Commands;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Imports;
@@ -23,20 +19,15 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
     private const int CreatePass = 0;
 
     private readonly FakePlanningDbContext _dbContext = new();
-    private readonly Mock<IDispatcher> _dispatcher = new();
     private readonly PlanningIntervalObjectiveImportDefinition _definition;
 
     private readonly PlanningInterval _interval;
     private readonly PlanningTeam _team;
 
-    private Guid _createdObjectiveId = Guid.CreateVersion7();
-
     public PlanningIntervalObjectiveImportDefinitionTests()
     {
         _definition = new PlanningIntervalObjectiveImportDefinition(
             _dbContext,
-            _dispatcher.Object,
-            NullLogger<PlanningIntervalObjectiveImportDefinition>.Instance,
             new ImportPayloadSerializer());
 
         _interval = new PlanningIntervalFaker().Generate();
@@ -44,30 +35,23 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
 
         _dbContext.AddPlanningInterval(_interval);
         _dbContext.AddPlanningTeam(_team);
-
-        _dispatcher
-            .Setup(d => d.Send(It.IsAny<ImportObjectiveCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => Result.Success(_createdObjectiveId));
-        _dispatcher
-            .Setup(d => d.Send(It.IsAny<DeleteObjectiveCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
     }
 
     public void Dispose() => _dbContext.Dispose();
 
-    private ImportPlanningIntervalObjectiveDto Row(Guid? intervalId = null, Guid? teamId = null) =>
+    private ImportPlanningIntervalObjectiveDto Row(Guid? intervalId = null, Guid? teamId = null, ObjectiveStatus status = ObjectiveStatus.NotStarted, double progress = 0, Instant? closedDate = null) =>
         new(
             intervalId ?? _interval.Id,
             teamId ?? _team.Id,
             "Ship the thing",
-            null,
-            ObjectiveStatus.NotStarted,
-            0,
+            "  With a description  ",
+            status,
+            progress,
             null,
             null,
             false,
-            null,
-            null);
+            closedDate,
+            3);
 
     private Task<Result<ImportPassResult>> Run(params ImportPlanningIntervalObjectiveDto[] objectives) =>
         _definition.ExecutePass(
@@ -78,23 +62,47 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
             TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsPerRowBecauseTheObjectiveIsCommittedElsewhere()
+    public void Definition_IsAtomicBecauseTheObjectiveIsSavedWithTheRun()
     {
-        // Arrange & Act & Assert — the objective is created by dispatching into Goals, which commits in
-        // its own scope, so the runner's discard could never take it back
-        _definition.Atomicity.Should().Be(ImportAtomicity.PerRow);
+        // Arrange & Act & Assert — the objective is a row on the planning interval, so the runner's
+        // single save either keeps every row or none
+        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        _definition.MaxRows.Should().Be(10_000);
     }
 
     [Fact]
-    public async Task CreateObjectives_AttachesTheObjectiveToThePlanningInterval()
+    public async Task CreateObjectives_AddsTheObjectiveToThePlanningInterval()
     {
         // Arrange & Act
         var result = await Run(Row());
 
         // Assert
+        var row = result.Value.Rows.Single();
+        row.Failed.Should().BeFalse();
+        var objective = _interval.Objectives.Should().ContainSingle().Subject;
+        row.CreatedEntityId.Should().Be(objective.Id);
+        objective.Name.Should().Be("Ship the thing");
+        objective.Description.Should().Be("With a description");
+        objective.TeamId.Should().Be(_team.Id);
+        objective.Type.Should().Be(PlanningIntervalObjectiveType.Team);
+        objective.Order.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task CreateObjectives_KeepsTheImportedStatusProgressAndClosedDate()
+    {
+        // Arrange
+        var closed = Instant.FromUtc(2026, 3, 1, 12, 0);
+
+        // Act
+        var result = await Run(Row(status: ObjectiveStatus.Completed, progress: 100, closedDate: closed));
+
+        // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();
-        result.Value.Rows.Single().CreatedEntityId.Should().Be(_createdObjectiveId);
-        _interval.Objectives.Should().ContainSingle();
+        var objective = _interval.Objectives.Single();
+        objective.Status.Should().Be(ObjectiveStatus.Completed);
+        objective.Progress.Should().Be(100);
+        objective.ClosedDate.Should().Be(closed);
     }
 
     [Fact]
@@ -103,10 +111,9 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
         // Arrange & Act
         var result = await Run(Row(intervalId: Guid.CreateVersion7()));
 
-        // Assert — rejected before anything is created in Goals
+        // Assert
         result.Value.Rows.Single().Failed.Should().BeTrue();
-        _dispatcher.Verify(
-            d => d.Send(It.IsAny<ImportObjectiveCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        _interval.Objectives.Should().BeEmpty();
     }
 
     [Fact]
@@ -117,15 +124,13 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
 
         // Assert
         result.Value.Rows.Single().Failed.Should().BeTrue();
-        _dispatcher.Verify(
-            d => d.Send(It.IsAny<ImportObjectiveCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        _interval.Objectives.Should().BeEmpty();
     }
 
     [Fact]
     public async Task CreateObjectives_RejectsEveryRowWhenObjectivesAreLocked()
     {
-        // Arrange — a locked interval refuses new objectives, and the row should say so rather than
-        // create one in Goals and fail attaching it
+        // Arrange
         var locked = new PlanningIntervalFaker().WithObjectivesLocked(true).Generate();
         _dbContext.AddPlanningInterval(locked);
 
@@ -135,28 +140,14 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
         // Assert
         result.Value.Rows.Single().Failed.Should().BeTrue();
         result.Value.Rows.Single().Error.Should().Contain("locked");
-    }
-
-    [Fact]
-    public async Task CreateObjectives_WhenTheObjectiveCannotBeCreated_RejectsTheRow()
-    {
-        // Arrange
-        _dispatcher
-            .Setup(d => d.Send(It.IsAny<ImportObjectiveCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Failure<Guid>("Goals said no."));
-
-        // Act
-        var result = await Run(Row());
-
-        // Assert
-        result.Value.Rows.Single().Failed.Should().BeTrue();
-        result.Value.Rows.Single().Error.Should().Contain("Goals said no.");
+        locked.Objectives.Should().BeEmpty();
     }
 
     [Fact]
     public async Task CreateObjectives_KeepsTheGoodRowsWhenOneIsRejected()
     {
-        // Arrange — per row, so one bad row does not take the file down with it
+        // Arrange — the runner decides what an atomic run does with a rejected row; the pass itself
+        // still reports each row on its own
         var good = Row();
         var bad = Row(teamId: Guid.CreateVersion7());
 

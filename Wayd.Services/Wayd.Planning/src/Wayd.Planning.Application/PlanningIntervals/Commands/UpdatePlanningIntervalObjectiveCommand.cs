@@ -1,6 +1,3 @@
-﻿using Wayd.Common.Application.Requests.Goals.Commands;
-using Wayd.Common.Application.Requests.Goals.Queries;
-using Wayd.Planning.Application.PlanningIntervals.Extensions;
 using Wayd.Planning.Domain.Enums;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Commands;
@@ -62,18 +59,11 @@ public sealed class UpdatePlanningIntervalObjectiveCommandValidator : CustomVali
     }
 }
 
-public sealed class UpdatePlanningIntervalObjectiveCommandHandler : ICommandHandler<UpdatePlanningIntervalObjectiveCommand, int>
+public sealed class UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectiveCommand, int>
 {
-    private readonly IPlanningDbContext _planningDbContext;
-    private readonly IDispatcher _dispatcher;
-    private readonly ILogger<UpdatePlanningIntervalObjectiveCommandHandler> _logger;
-
-    public UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<UpdatePlanningIntervalObjectiveCommandHandler> logger)
-    {
-        _planningDbContext = planningDbContext;
-        _dispatcher = dispatcher;
-        _logger = logger;
-    }
+    private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ILogger<UpdatePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
     public async Task<Result<int>> Handle(UpdatePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
     {
@@ -89,41 +79,25 @@ public sealed class UpdatePlanningIntervalObjectiveCommandHandler : ICommandHand
                 return Result.Failure<int>($"Planning Interval {request.PlanningIntervalId} not found.");
             }
 
-            var updatePiObjectiveResult = planningInterval.UpdateObjective(request.PlanningIntervalObjectiveId, request.Status, request.IsStretch);
-            if (updatePiObjectiveResult.IsFailure)
+            var updateResult = planningInterval.UpdateObjective(
+                request.PlanningIntervalObjectiveId,
+                request.Name,
+                request.Description,
+                request.Status,
+                request.Progress,
+                request.StartDate,
+                request.TargetDate,
+                request.IsStretch,
+                _dateTimeProvider.Now);
+            if (updateResult.IsFailure)
             {
-                _logger.LogError("Unable to update PI objective.  Error: {Error}", updatePiObjectiveResult.Error);
-                return Result.Failure<int>($"Unable to PI create objective.  Error: {updatePiObjectiveResult.Error}");
+                _logger.LogError("Unable to update PI objective {PlanningIntervalObjectiveId}.  Error: {Error}", request.PlanningIntervalObjectiveId, updateResult.Error);
+                return Result.Failure<int>($"Unable to update PI objective.  Error: {updateResult.Error}");
             }
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            var objectiveName = request.Name;
-            if (planningInterval.ObjectivesLocked)
-            {
-                var currentObjective = await _dispatcher.Send(new GetObjectiveForPlanningIntervalQuery(updatePiObjectiveResult.Value.ObjectiveId, planningInterval.Id), cancellationToken);
-                if (currentObjective is null)
-                    return Result.Failure<int>($"Objective {request.PlanningIntervalObjectiveId} not found.");
-
-                objectiveName = currentObjective.Name;
-            }
-
-            var mappedStatus = request.Status.ToGoalObjectiveStatus();
-
-            var objectiveResult = await _dispatcher.Send(new UpdateObjectiveCommand(
-                updatePiObjectiveResult.Value.ObjectiveId,
-                objectiveName,
-                request.Description,
-                mappedStatus,
-                request.Progress,
-                updatePiObjectiveResult.Value.TeamId,
-                request.StartDate,
-                request.TargetDate), cancellationToken);
-            if (objectiveResult.IsFailure)
-                return Result.Failure<int>($"Unable to update the underlying objective.  Error: {objectiveResult.Error}");
-            // TODO: isStretch is still updated in this scenario.
-
-            return Result.Success(updatePiObjectiveResult.Value.Key);
+            return Result.Success(updateResult.Value.Key);
         }
         catch (Exception ex)
         {

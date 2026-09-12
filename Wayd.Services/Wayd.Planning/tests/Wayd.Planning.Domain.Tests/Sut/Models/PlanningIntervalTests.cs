@@ -20,6 +20,12 @@ public class PlanningIntervalTests
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
     }
 
+    private void SetObjectiveStatus(PlanningInterval planningInterval, Guid objectiveId, ObjectiveStatus status, bool isStretch)
+    {
+        var objective = planningInterval.Objectives.Single(o => o.Id == objectiveId);
+        planningInterval.UpdateObjective(objectiveId, objective.Name, objective.Description, status, objective.Progress, objective.StartDate, objective.TargetDate, isStretch, _dateTimeProvider.Now);
+    }
+
     #region StateOn
 
     [Fact]
@@ -122,7 +128,7 @@ public class PlanningIntervalTests
         var objectiveIds = sut.Objectives.Select(o => o.Id).ToArray();
         for (int i = 0; i < 3; i++)
         {
-            sut.UpdateObjective(objectiveIds[i], Enums.ObjectiveStatus.Completed, false);
+            SetObjectiveStatus(sut, objectiveIds[i], ObjectiveStatus.Completed, false);
         }
 
         // Act
@@ -144,7 +150,7 @@ public class PlanningIntervalTests
         for (int i = 0; i < objectiveCount; i++)
         {
             var isStretch = i >= objectiveCount - 2;
-            sut.UpdateObjective(objectiveIds[i], Enums.ObjectiveStatus.Completed, isStretch);
+            SetObjectiveStatus(sut, objectiveIds[i], ObjectiveStatus.Completed, isStretch);
         }
 
         // Act
@@ -166,7 +172,7 @@ public class PlanningIntervalTests
         for (int i = 1; i < objectiveCount; i++) // skip the first one so it is still open
         {
             var isStretch = i >= objectiveCount - 2;
-            sut.UpdateObjective(objectiveIds[i], Enums.ObjectiveStatus.Completed, isStretch);
+            SetObjectiveStatus(sut, objectiveIds[i], ObjectiveStatus.Completed, isStretch);
         }
 
         // Act
@@ -189,7 +195,7 @@ public class PlanningIntervalTests
         {
             var isStretch = i >= objectiveCount - 2;
             var status = isStretch ? Enums.ObjectiveStatus.InProgress : Enums.ObjectiveStatus.Completed;
-            sut.UpdateObjective(objectiveIds[i], status, isStretch);
+            SetObjectiveStatus(sut, objectiveIds[i], status, isStretch);
         }
 
         // Act
@@ -213,7 +219,7 @@ public class PlanningIntervalTests
             var isStretch = i >= objectiveCount - 2;
             var isComplete = i < 3;
             var status = isComplete ? Enums.ObjectiveStatus.Completed : Enums.ObjectiveStatus.InProgress;
-            sut.UpdateObjective(objectiveIds[i], status, isStretch);
+            SetObjectiveStatus(sut, objectiveIds[i], status, isStretch);
         }
 
         // Act
@@ -238,7 +244,7 @@ public class PlanningIntervalTests
             var isStretch = i >= objectiveCount - 2;
             var isComplete = i < 3;
             var status = isStretch ? Enums.ObjectiveStatus.Completed : Enums.ObjectiveStatus.InProgress;
-            sut.UpdateObjective(objectiveIds[i], status, isStretch);
+            SetObjectiveStatus(sut, objectiveIds[i], status, isStretch);
         }
 
         // Act
@@ -981,6 +987,263 @@ public class PlanningIntervalTests
     }
 
     #endregion Sprint Mappings
+
+    #region Objectives
+
+    [Fact]
+    public void CreateObjective_WhenUnlocked_AddsObjectiveWithTheTeamsType()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.TeamOfTeams).Generate();
+        var sut = _planningIntervalFaker.Generate();
+        var start = sut.DateRange.Start;
+        var target = sut.DateRange.End;
+
+        // Act
+        var result = sut.CreateObjective(team, "  Ship it  ", "  ", true, start, target, 2);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var objective = sut.Objectives.Should().ContainSingle().Subject;
+        objective.Should().BeSameAs(result.Value);
+        objective.PlanningIntervalId.Should().Be(sut.Id);
+        objective.TeamId.Should().Be(team.Id);
+        objective.Name.Should().Be("Ship it");
+        objective.Description.Should().BeNull();
+        objective.Type.Should().Be(PlanningIntervalObjectiveType.TeamOfTeams);
+        objective.Status.Should().Be(ObjectiveStatus.NotStarted);
+        objective.Progress.Should().Be(0);
+        objective.IsStretch.Should().BeTrue();
+        objective.StartDate.Should().Be(start);
+        objective.TargetDate.Should().Be(target);
+        objective.ClosedDate.Should().BeNull();
+        objective.Order.Should().Be(2);
+    }
+
+    [Fact]
+    public void CreateObjective_WhenLocked_Fails()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectivesLocked(true).Generate();
+
+        // Act
+        var result = sut.CreateObjective(team, "Ship it", null, false, null, null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("locked");
+        sut.Objectives.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateObjective_WhenNameIsBlank_Fails()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.Generate();
+
+        // Act
+        var result = sut.CreateObjective(team, "   ", null, false, null, null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sut.Objectives.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ImportObjective_KeepsTheGivenStatusProgressAndClosedDate()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.Generate();
+        var closed = _dateTimeProvider.Now;
+
+        // Act
+        var result = sut.ImportObjective(team, "Imported", "From a file", ObjectiveStatus.Completed, 100, false, null, null, closed, 7);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var objective = sut.Objectives.Single();
+        objective.Status.Should().Be(ObjectiveStatus.Completed);
+        objective.Progress.Should().Be(100);
+        objective.ClosedDate.Should().Be(closed);
+        objective.Order.Should().Be(7);
+        objective.Type.Should().Be(PlanningIntervalObjectiveType.Team);
+    }
+
+    [Fact]
+    public void ImportObjective_ClampsProgressToTheValidRange()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.Generate();
+
+        // Act
+        var result = sut.ImportObjective(team, "Imported", null, ObjectiveStatus.InProgress, 150, false, null, null, null, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Objectives.Single().Progress.Should().Be(100);
+    }
+
+    [Fact]
+    public void UpdateObjective_WhenUnlocked_UpdatesEveryField()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
+        var objective = sut.Objectives.Single();
+        var start = sut.DateRange.Start;
+        var target = sut.DateRange.End;
+
+        // Act
+        var result = sut.UpdateObjective(objective.Id, "Renamed", "Described", ObjectiveStatus.InProgress, 40, start, target, true, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        objective.Name.Should().Be("Renamed");
+        objective.Description.Should().Be("Described");
+        objective.Status.Should().Be(ObjectiveStatus.InProgress);
+        objective.Progress.Should().Be(40);
+        objective.StartDate.Should().Be(start);
+        objective.TargetDate.Should().Be(target);
+        objective.IsStretch.Should().BeTrue();
+        objective.ClosedDate.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateObjective_WhenLocked_FreezesNameAndStretchButUpdatesTheRest()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 1).WithObjectivesLocked(true).Generate();
+        var objective = sut.Objectives.Single();
+        var originalName = objective.Name;
+        var originalStretch = objective.IsStretch;
+
+        // Act
+        var result = sut.UpdateObjective(objective.Id, "Renamed", "Described", ObjectiveStatus.InProgress, 40, null, null, !originalStretch, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        objective.Name.Should().Be(originalName);
+        objective.IsStretch.Should().Be(originalStretch);
+        objective.Description.Should().Be("Described");
+        objective.Status.Should().Be(ObjectiveStatus.InProgress);
+        objective.Progress.Should().Be(40);
+    }
+
+    [Theory]
+    [InlineData(ObjectiveStatus.Completed)]
+    [InlineData(ObjectiveStatus.Canceled)]
+    [InlineData(ObjectiveStatus.Missed)]
+    public void UpdateObjective_WhenClosing_SetsClosedDate(ObjectiveStatus closedStatus)
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
+        var objective = sut.Objectives.Single();
+        var now = _dateTimeProvider.Now;
+
+        // Act
+        var result = sut.UpdateObjective(objective.Id, objective.Name, null, closedStatus, 100, null, null, false, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        objective.Status.Should().Be(closedStatus);
+        objective.ClosedDate.Should().Be(now);
+    }
+
+    [Fact]
+    public void UpdateObjective_WhenReopening_ClearsClosedDate()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
+        var objective = sut.Objectives.Single();
+        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Completed, 100, null, null, false, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.InProgress, 60, null, null, false, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        objective.Status.Should().Be(ObjectiveStatus.InProgress);
+        objective.ClosedDate.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateObjective_WhenMovingBetweenClosedStatuses_RestampsClosedDate()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
+        var objective = sut.Objectives.Single();
+        var firstClose = _dateTimeProvider.Now;
+        var secondClose = firstClose.Plus(Duration.FromDays(1));
+        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Missed, 0, null, null, false, firstClose);
+
+        // Act
+        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Canceled, 0, null, null, false, secondClose);
+
+        // Assert
+        objective.ClosedDate.Should().Be(secondClose);
+    }
+
+    [Fact]
+    public void UpdateObjective_WhenNotFound_Fails()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
+
+        // Act
+        var result = sut.UpdateObjective(Guid.NewGuid(), "Renamed", null, ObjectiveStatus.InProgress, 0, null, null, false, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
+    }
+
+    [Fact]
+    public void UpdateObjectivesOrder_SetsEachObjectivesOrder()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 3).Generate();
+        var ids = sut.Objectives.Select(o => o.Id).ToArray();
+        var orders = new Dictionary<Guid, int?> { [ids[0]] = 3, [ids[1]] = null, [ids[2]] = 1 };
+
+        // Act
+        var result = sut.UpdateObjectivesOrder(orders);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Objectives.Single(o => o.Id == ids[0]).Order.Should().Be(3);
+        sut.Objectives.Single(o => o.Id == ids[1]).Order.Should().BeNull();
+        sut.Objectives.Single(o => o.Id == ids[2]).Order.Should().Be(1);
+    }
+
+    [Fact]
+    public void UpdateObjectivesOrder_WhenAnIdIsNotOnThisInterval_ChangesNothing()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 2).Generate();
+        var known = sut.Objectives.First();
+        var orders = new Dictionary<Guid, int?> { [known.Id] = 5, [Guid.NewGuid()] = 1 };
+
+        // Act
+        var result = sut.UpdateObjectivesOrder(orders);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
+        known.Order.Should().BeNull();
+    }
+
+    #endregion Objectives
 }
 
 

@@ -155,22 +155,25 @@ public class PlanningIntervalObjectiveConfig : IEntityTypeConfiguration<Planning
         builder.HasAlternateKey(o => o.Key);
 
         builder.HasIndex(o => new { o.Id, o.IsDeleted })
-            .IncludeProperties(o => new { o.Key, o.PlanningIntervalId, o.ObjectiveId, o.Type, o.IsStretch })
+            .IncludeProperties(o => new { o.Key, o.PlanningIntervalId, o.Name, o.Type, o.Status, o.IsStretch, o.Order })
             .HasFilter("[IsDeleted] = 0");
         builder.HasIndex(o => new { o.Key, o.IsDeleted })
-            .IncludeProperties(o => new { o.Id, o.PlanningIntervalId, o.ObjectiveId, o.Type, o.IsStretch })
+            .IncludeProperties(o => new { o.Id, o.PlanningIntervalId, o.Name, o.Type, o.Status, o.IsStretch, o.Order })
             .HasFilter("[IsDeleted] = 0");
         builder.HasIndex(o => new { o.PlanningIntervalId, o.IsDeleted })
-            .IncludeProperties(o => new { o.Id, o.Key, o.ObjectiveId, o.Type, o.IsStretch })
-            .HasFilter("[IsDeleted] = 0");
-        builder.HasIndex(o => new { o.ObjectiveId, o.IsDeleted })
-            .IncludeProperties(o => new { o.Id, o.Key, o.PlanningIntervalId, o.Type, o.IsStretch })
+            .IncludeProperties(o => new { o.Id, o.Key, o.Name, o.Type, o.Status, o.IsStretch, o.Order })
             .HasFilter("[IsDeleted] = 0");
 
         builder.Property(o => o.Id).ValueGeneratedNever();
         builder.Property(o => o.Key).ValueGeneratedOnAdd();
 
-        builder.Property(o => o.ObjectiveId).IsRequired();
+        builder.Property(o => o.Name).IsRequired().HasMaxLength(256);
+        builder.Property(o => o.Description).HasMaxLength(1024);
+        builder.Property(o => o.Progress).IsRequired();
+        builder.Property(o => o.StartDate);
+        builder.Property(o => o.TargetDate);
+        builder.Property(o => o.ClosedDate);
+        builder.Property(o => o.Order);
         builder.Property(o => o.Type).IsRequired()
             .HasConversion<EnumConverter<PlanningIntervalObjectiveType>>()
             .HasMaxLength(32)

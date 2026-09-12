@@ -89,6 +89,24 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateObjectives_AddsEachObjectiveToThePlanningIntervalItsRowNames()
+    {
+        // Arrange
+        var other = new PlanningIntervalFaker().Generate();
+        _dbContext.AddPlanningInterval(other);
+
+        // Act
+        var result = await Run(Row(), Row(intervalId: other.Id));
+
+        // Assert
+        result.Value.Rows.Should().OnlyContain(r => !r.Failed);
+        result.Value.Rows.Single(r => r.ImportId == "r1").CreatedEntityId
+            .Should().Be(_interval.Objectives.Should().ContainSingle().Subject.Id);
+        result.Value.Rows.Single(r => r.ImportId == "r2").CreatedEntityId
+            .Should().Be(other.Objectives.Should().ContainSingle().Subject.Id);
+    }
+
+    [Fact]
     public async Task CreateObjectives_KeepsTheImportedStatusProgressAndClosedDate()
     {
         // Arrange

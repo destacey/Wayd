@@ -771,14 +771,14 @@ public class PlanningIntervalsController : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/objectives/import")]
+    [HttpPost("objectives/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [OpenApiOperation("Submit a csv file of planning interval objectives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportObjectives(Guid id, [FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportObjectives([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -807,10 +807,8 @@ public class PlanningIntervalsController : ControllerBase
                     objective.ImportId, objective.ToImportPlanningIntervalObjectiveDto()));
             }
 
-            // Whether the file belongs to this planning interval is the command's rule, not a route
-            // concern — it is about the import, and it holds for callers that never saw a route.
             var result = await _dispatcher.Send(
-                new ImportPlanningIntervalObjectivesCommand(id, rows, submissionGroupId), cancellationToken);
+                new ImportPlanningIntervalObjectivesCommand(rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

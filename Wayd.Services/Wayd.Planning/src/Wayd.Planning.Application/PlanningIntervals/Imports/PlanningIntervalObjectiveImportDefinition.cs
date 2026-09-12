@@ -10,7 +10,7 @@ using Wayd.Planning.Domain.Models;
 namespace Wayd.Planning.Application.PlanningIntervals.Imports;
 
 /// <summary>
-/// Imports objectives onto a planning interval.
+/// Imports objectives onto the planning intervals each row names.
 /// </summary>
 public sealed class PlanningIntervalObjectiveImportDefinition(
     IPlanningDbContext planningDbContext,

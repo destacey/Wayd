@@ -53,7 +53,7 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
 
     private Task<Result<Guid>> Handle(params SubmittedImportRow<ImportPlanningIntervalObjectiveDto>[] rows) =>
         CreateHandler().Handle(
-            new ImportPlanningIntervalObjectivesCommand(PlanningIntervalId, rows),
+            new ImportPlanningIntervalObjectivesCommand(rows),
             TestContext.Current.CancellationToken);
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
 
         // Act
         await CreateHandler().Handle(
-            new ImportPlanningIntervalObjectivesCommand(PlanningIntervalId, [Row()], groupId),
+            new ImportPlanningIntervalObjectivesCommand([Row()], groupId),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -92,30 +92,21 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
     }
 
     [Fact]
-    public async Task Handle_RefusesAFileSpanningMorePlanningIntervalsThanOne()
+    public async Task Handle_SubmitsAFileSpanningManyPlanningIntervalsAsOneRun()
     {
-        // Arrange — the rule this import has of its own. It used to be a route parameter mismatch in the
-        // controller, which described the request rather than the rule.
+        // Arrange — an onboarding file carrying the history of several intervals at once
         var elsewhere = Guid.CreateVersion7();
 
         // Act
         var result = await Handle(Row("r1"), Row("r2", intervalId: elsewhere));
 
-        // Assert — named per row, so the person knows which line to fix
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("r2").And.Contain(elsewhere.ToString());
-        _dispatcher.VerifyNoOtherCalls();
-    }
-
-    [Fact]
-    public async Task Handle_RefusesBeforeSubmittingAnything()
-    {
-        // Arrange & Act — a mixed file is rejected outright rather than queued and half applied
-        await Handle(Row("r1"), Row("r2", intervalId: Guid.CreateVersion7()));
-
         // Assert
+        result.IsSuccess.Should().BeTrue();
         _dispatcher.Verify(
-            d => d.Send(It.IsAny<SubmitImportCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+            d => d.Send(
+                It.Is<SubmitImportCommand>(c => c.Rows.Count == 2),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -137,7 +128,21 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
 
         // Act
         var result = new ImportPlanningIntervalObjectivesCommandValidator()
-            .Validate(new ImportPlanningIntervalObjectivesCommand(PlanningIntervalId, [bad]));
+            .Validate(new ImportPlanningIntervalObjectivesCommand([bad]));
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validator_RejectsARowWithoutAPlanningInterval()
+    {
+        // Arrange — the row is the only place the interval is named, so a blank cell is a malformed file
+        var bad = Row(intervalId: Guid.Empty);
+
+        // Act
+        var result = new ImportPlanningIntervalObjectivesCommandValidator()
+            .Validate(new ImportPlanningIntervalObjectivesCommand([bad]));
 
         // Assert
         result.IsValid.Should().BeFalse();
@@ -148,30 +153,9 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
     {
         // Arrange & Act
         var result = new ImportPlanningIntervalObjectivesCommandValidator()
-            .Validate(new ImportPlanningIntervalObjectivesCommand(PlanningIntervalId, [Row()]));
+            .Validate(new ImportPlanningIntervalObjectivesCommand([Row()]));
 
         // Assert
         result.IsValid.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Handle_NamesTheOffendingRowByPositionWhenItHasNoImportId()
-    {
-        // Arrange — the column is optional, so the message must not read "Row ''"
-        var elsewhere = Guid.CreateVersion7();
-        var rows = new[]
-        {
-            Row(importId: null),
-            Row(importId: null!, intervalId: elsewhere),
-        };
-
-        // Act
-        var result = await CreateHandler().Handle(
-            new ImportPlanningIntervalObjectivesCommand(PlanningIntervalId, rows),
-            TestContext.Current.CancellationToken);
-
-        // Assert — the same key the run would give it, so the two agree
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("Row '2'");
     }
 }

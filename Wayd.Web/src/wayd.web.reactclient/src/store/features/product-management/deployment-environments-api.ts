@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   CreateDeploymentEnvironmentRequest,
   DeploymentEnvironmentDto,
+  ImportProcessDto,
   ObjectIdAndKey,
   SetDeploymentEnvironmentActiveRequest,
   UpdateDeploymentEnvironmentRequest,
@@ -60,6 +61,30 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
         { type: QueryTags.DeploymentEnvironment, id: 'LIST' },
       ],
     }),
+    // The generated client takes a FileParameter, so the caller hands over the browser File and its
+    // name travels with it.
+    importDeploymentEnvironments: builder.mutation<ImportProcessDto, File>({
+      queryFn: async (file) => {
+        try {
+          // A file uploaded from the app is submitted on its own, under no group.
+          const data = await getDeploymentEnvironmentsClient().import(
+            undefined,
+            { data: file, fileName: file.name },
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // An import writes many environments at once, so the list is refetched rather than patched. It
+      // only has them if the run finished within the wait; one still running refreshes it from its
+      // import page.
+      invalidatesTags: () => [
+        { type: QueryTags.DeploymentEnvironment, id: 'LIST' },
+        QueryTags.ImportProcess,
+      ],
+    }),
     updateDeploymentEnvironment: builder.mutation<
       void,
       { id: string; request: UpdateDeploymentEnvironmentRequest }
@@ -109,6 +134,7 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
 export const {
   useGetDeploymentEnvironmentsQuery,
   useCreateDeploymentEnvironmentMutation,
+  useImportDeploymentEnvironmentsMutation,
   useUpdateDeploymentEnvironmentMutation,
   useSetDeploymentEnvironmentActiveMutation,
 } = deploymentEnvironmentsApi

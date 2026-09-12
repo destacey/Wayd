@@ -164,8 +164,11 @@ rewrite what past entries read as.
 The history is append-only, and records only status changes. Correcting a date leaves it untouched,
 which is the point of having a separate action for it.
 
-A change made by a background process shows as **System**. A change whose author is no longer linked
-to an employee record shows as **Unknown**.
+A change made by a [bulk import](./bulk-import.mdx) names the account that ran the import, and the
+version's Activity labels the actor **Import** — the import did this, rather than that person having
+recorded each version by hand. A change whose author is no longer linked to an employee record shows
+as **Unknown**. Nothing in delivery is attributed to **System**: that label is reserved for the platform
+acting on its own behalf, and no version, package or deployment action is made that way.
 
 Viewing history needs only view access to the version.
 
@@ -364,7 +367,9 @@ Each deployment freezes the category of the environment it went into, so reclass
 
 Environments are managed under **Settings → Product Management → Environments**. Delivery names the
 schema and the concept rather than a separate area of the app, so environments sit under the same
-section as the catalog.
+section as the catalog. They can also be loaded from a file — see
+[Bulk Import](./bulk-import.mdx#environments-import) — which is the quick way to define every environment
+a historical set of deployments ever reached.
 
 ### Retiring an Environment
 
@@ -407,6 +412,9 @@ The **artifact** is the build that actually shipped — `4.8.2.008` where the ve
 
 Leaving **Started At** empty records the deployment as starting now, which is what a pipeline
 reporting in real time would do.
+
+Deployments recorded elsewhere — a pipeline's history, a spreadsheet — can be loaded in bulk with their
+real timestamps and outcomes; see [Bulk Import](./bulk-import.mdx#deployments-import).
 
 ### Recording an Outcome
 
@@ -563,9 +571,9 @@ drafting an announcement is not the person recording that the pipeline ran.
 
 | Record | Permission | Actions |
 | --- | --- | --- |
-| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update, [Import](./bulk-import.mdx#versions-import) (versions and packages) |
+| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update, [Import](./bulk-import.mdx#versions-import) |
 | Releases | `Permissions.Releases.*` | View, Create, Update, [Import](./bulk-import.mdx#releases-import) |
-| Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update |
+| Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update, [Import](./bulk-import.mdx#environments-import) |
 | Delivery metrics | `Permissions.DeliveryMetrics.*` | View |
 
 **No record in delivery carries a Delete permission**, because nothing here is deletable. A version,

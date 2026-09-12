@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -142,6 +142,30 @@ public sealed class DeploymentEnvironmentTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This environment is already inactive.");
+    }
+
+    [Fact]
+    public void Deactivate_BeforePersistence_DefersEventUntilPostPersistence()
+    {
+        // Arrange
+        var sut = DeploymentEnvironment.Create("QA2", EnvironmentCategory.Testing, 1, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.Deactivate(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — before persistence Key is 0, so the retirement event must be deferred to post-persistence
+        result.IsSuccess.Should().BeTrue();
+        sut.IsActive.Should().BeFalse();
+        sut.DomainEvents.Should().BeEmpty();
+        sut.PostPersistenceActions.Should().HaveCount(2);
+
+        // When EF assigns the key on save and drains post-persistence actions:
+        sut.ExecutePostPersistenceActions();
+
+        var events = sut.DomainEvents.ToList();
+        events.Should().HaveCount(2);
+        events[0].Should().BeOfType<EnvironmentAddedEvent>();
+        events[1].Should().BeOfType<EnvironmentRetiredEvent>();
     }
 
     #endregion Deactivate

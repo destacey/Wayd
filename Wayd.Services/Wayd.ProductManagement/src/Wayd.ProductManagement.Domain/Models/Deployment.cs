@@ -1,4 +1,4 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -143,9 +143,19 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
 
         Apply(completedAt, succeededStatus, reason: null, actor, timestamp);
 
-        AddDomainEvent(new DeploymentSucceededEvent(
-            Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
-            ArtifactId, completedAt, StatusId, actor, timestamp));
+        var statusId = succeededStatus.StatusId;
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(new DeploymentSucceededEvent(
+                Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+                ArtifactId, completedAt, statusId, actor, timestamp)));
+        }
+        else
+        {
+            AddDomainEvent(new DeploymentSucceededEvent(
+                Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+                ArtifactId, completedAt, statusId, actor, timestamp));
+        }
 
         return Result.Success();
     }
@@ -168,9 +178,20 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
 
         Apply(completedAt, failedStatus, reason, actor, timestamp);
 
-        AddDomainEvent(new DeploymentFailedEvent(
-            Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
-            ArtifactId, Reason, completedAt, StatusId, actor, timestamp));
+        var statusId = failedStatus.StatusId;
+        var failureReason = Reason;
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(new DeploymentFailedEvent(
+                Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+                ArtifactId, failureReason, completedAt, statusId, actor, timestamp)));
+        }
+        else
+        {
+            AddDomainEvent(new DeploymentFailedEvent(
+                Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+                ArtifactId, failureReason, completedAt, statusId, actor, timestamp));
+        }
 
         return Result.Success();
     }
@@ -211,9 +232,20 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
 
         Apply(rolledBackAt, rolledBackStatus, reason, actor, timestamp);
 
-        AddDomainEvent(new DeploymentRolledBackEvent(
-            Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
-            ArtifactId, Reason, rolledBackAt, StatusId, actor, timestamp));
+        var statusId = rolledBackStatus.StatusId;
+        var rollbackReason = Reason;
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(new DeploymentRolledBackEvent(
+                Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+                ArtifactId, rollbackReason, rolledBackAt, statusId, actor, timestamp)));
+        }
+        else
+        {
+            AddDomainEvent(new DeploymentRolledBackEvent(
+                Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+                ArtifactId, rollbackReason, rolledBackAt, statusId, actor, timestamp));
+        }
 
         return Result.Success();
     }
@@ -284,6 +316,8 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
         var deployment = new Deployment(versionId, packageId, environmentId, environmentCategory, artifactId, startedAt);
         deployment.ApplyStatus(inProgressStatus, actor, timestamp);
 
+        var initialStatusId = inProgressStatus.StatusId;
+
         // Deferred because Key is database-generated: an event raised here would carry Key 0.
         deployment.AddPostPersistenceAction(() => deployment.AddDomainEvent(new DeploymentStartedEvent(
             deployment.Id,
@@ -294,7 +328,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
             environmentName,
             deployment.ArtifactId,
             deployment.StartedAt,
-            deployment.StatusId,
+            initialStatusId,
             actor,
             timestamp)));
 

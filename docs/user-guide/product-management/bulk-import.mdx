@@ -13,7 +13,8 @@ is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), a
 permission.
 
 :::info Screen or API
-Products, versions, release packages and releases each have an **Import** button on their list page,
+Products, versions, release packages, releases and deployments each have an **Import** button on their
+list page, and environments have one under **Settings → Product Management → Environments**, each
 taking the same CSV described here. The endpoints can also be called directly — with `curl`, a script, or anything else — and their
 exact request/response shapes are in the OpenAPI/Swagger spec served by the API.
 :::
@@ -22,11 +23,18 @@ exact request/response shapes are in the OpenAPI/Swagger spec served by the API.
 
 A few rules apply to every import:
 
-- **References are by name where a name identifies one record, otherwise by id.** Product types, statuses
-  and tags are referenced by name — each is unique within its own scope. Products, versions and packages
-  are referenced by **id**: their names and version strings are not uniquely indexed, so a label may match
-  more than one record. A run reports the id of the record each applied row created, so one import's
-  results are what the next file references.
+- **References are by name where a name identifies one record, otherwise by id.** Product types, statuses,
+  tags and environments are referenced by name — each is unique within its own scope. Products, versions
+  and packages are referenced by **id**: their names and version strings are not uniquely indexed, so a
+  label may match more than one record. A run reports the id of the record each applied row created, so
+  one import's results are what the next file references.
+- **Every record an import creates is attributed to the import.** The record carries the account that ran
+  it as the origin, with the mechanism recorded as *Import* rather than as that person editing each row
+  by hand. In a record's Status History the entry names the account that ran the import; in its Activity
+  the actor is labelled **Import**. A change made by a signed-in person names their linked employee
+  instead, and one whose author is no longer linked to an employee record shows as **Unknown**. Nothing
+  here is attributed to **System**: that label is reserved for the platform acting on its own behalf,
+  which no import or product management action does.
 - **A successful post returns the run**, not the records it created. Every file is applied by a
   background worker, and the post waits a few seconds for it: a small file comes back finished
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
@@ -67,13 +75,19 @@ Product types and tag categories (created in Settings)
     → Versions
       → Release packages
         → Releases
+
+Environments (created in Settings, or imported)
+  → Deployments (after versions and packages)
 ```
 
-Reference data comes first and is **not** imported. [Product types](./products.mdx#product-types) are
-seeded and managed under **Settings → Product Management**, and
-[tag categories and tags](./products.mdx#tags) under **Settings → Product Management → Product Tags**.
-Create anything the file references there first — a type or tag that does not exist, or that has been
-deactivated, fails the batch rather than being created on the fly.
+Reference data comes first. [Product types](./products.mdx#product-types) are seeded and managed under
+**Settings → Product Management**, and [tag categories and tags](./products.mdx#tags) under
+**Settings → Product Management → Product Tags**; neither is imported. Create anything the file
+references there first — a type or tag that does not exist, or that has been deactivated, fails the
+batch rather than being created on the fly. [Environments](./delivery.mdx#environments) are reference
+data too, but they *can* be [imported](#environments-import), because a historical backfill of
+deployments routinely names environments that have since been retired, and defining those by hand one
+at a time is the tedious part.
 
 Each step then needs the one above it:
 
@@ -83,6 +97,8 @@ Each step then needs the one above it:
 | Versions | Products | A version is cut against a product, named by id. |
 | Release packages | Products, versions | A manifest line names a product by id; where a version record matches its version string, the line is linked to it. |
 | Releases | Packages, versions | A release announces them, and cannot announce what does not exist. |
+| Environments | — | Names must not already exist. |
+| Deployments | Environments, versions, packages | A deployment names its environment by name and the version or package it deployed by id. |
 
 :::warning Releases are last, and their contents must have shipped
 A release marked with a `ReleasedDate` is **refused while anything it carries has not shipped**. This
@@ -96,8 +112,9 @@ See [announcing a release](#announcing-a-release).
 Unlike [PPM](../ppm/bulk-import.mdx#import-order), there is **no finalize pass**. PPM imports historical
 programs active and closes them afterwards, because a program only accepts projects while active.
 Nothing here works that way: a version can be
-[marked released without ever being cut](#the-dates-decide-the-status), and a package or release simply
-carries its released date. Every record reaches its final state in one pass.
+[marked released without ever being cut](#the-dates-decide-the-status), a package or release simply
+carries its released date, and a deployment is [walked to its outcome](#the-outcome-decides-the-status)
+with the timestamps its row carries. Every record reaches its final state in one pass.
 
 ## Permissions
 
@@ -107,6 +124,8 @@ carries its released date. Every record reaches its final state in one pass.
 | Versions | Import Delivery |
 | Release packages | Import Delivery |
 | Releases | Import Releases |
+| Environments | Import Deployment Environments |
+| Deployments | Import Delivery |
 
 ## Limits
 
@@ -210,10 +229,11 @@ starts in. The column itself still has to be there.
 
 ### Attribution
 
-Every product an import creates is attributed to **Import**, carrying the account that ran it. That is
-distinct from a person creating products one at a time, so a status history reads as *the import did this*
-rather than naming someone who never touched those rows individually. See
-[status history](./products.mdx#status-history).
+Every product an import creates is attributed to the import, carrying the account that ran it — see
+[how imports work](#how-imports-work). That is distinct from a person creating products one at a time:
+the product's [status history](./products.mdx#status-history) names the account that ran the import,
+and its Activity labels the actor **Import** rather than presenting that person as having edited each
+row by hand.
 
 ### Running it twice
 
@@ -387,6 +407,117 @@ ReleasedDate empty.
 
 That is the practical reason releases come [last](#import-order), and why the versions and packages
 they carry need their own released dates in the same run.
+
+## Environments import
+
+`POST /api/product-management/deployment-environments/import`
+
+Loads [environments](./delivery.mdx#environments), the targets deployments are recorded against. This is
+the one piece of reference data with an import, because a historical backfill of deployments names every
+environment that ever existed — including the ones long since decommissioned — and defining those by
+hand is the tedious part. In the app the button is under **Settings → Product Management → Environments**.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | No | The row's key **within this file only**. Never stored. |
+| `Name` | Yes | What the organization calls it — `Production`, `prod-eu`, `QA2`. Max 64 chars. Must not already exist. |
+| `Category` | Yes | `Development`, `Testing`, `Staging` or `Production` (case-insensitive). What every production-scoped measure counts on. |
+| `RingOrder` | Yes | Position in a progressive rollout, lowest first. Zero or more. |
+| `IsActive` | No | Blank or `true` leaves the environment in use. `false` creates it and then **retires** it — see below. |
+
+### A name is the key
+
+Environment names are unique across the organization, which is what lets a deployment row name its
+environment rather than carry an id. A name repeated within the file, or one that already exists, fails
+the batch. There is no update path: an environment that exists is edited in Settings.
+
+### Retired environments are importable
+
+An environment marked `false` is created and then retired through the same transition **Retire** in
+Settings would make, so the retirement is recorded as an event the way one made by hand would be. It is
+not offered as a deployment target, but a [deployments import](#deployments-import) can still record
+finished deployments against it — which is the reason to import it at all.
+
+## Deployments import
+
+`POST /api/product-management/deployments/import`
+
+Loads [deployments](./delivery.mdx#deployments) — one version or package reaching one environment, with
+its start, its outcome and when it got there. Import the [environments](#environments-import),
+[versions](#versions-import) and [release packages](#release-packages-import) first: a deployment names
+all three, and an unknown one fails the run.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | No | The row's key **within this file only**. Never stored. |
+| `VersionId` | Conditional | The version deployed, by id. Exactly one of this and `PackageId`. |
+| `PackageId` | Conditional | The package deployed, by id. Exactly one of this and `VersionId`. |
+| `EnvironmentName` | Yes | The environment reached, by name. A retired environment is accepted only for a row that has an outcome. |
+| `ArtifactId` | No | The build that actually shipped — `4.8.2.008` where the version number is `4.8.2`. Free text, never parsed. Max 128 chars. |
+| `StartedAt` | Yes | When the deployment began. An ISO-8601 timestamp **with its offset** — see [timestamps](#timestamps-carry-their-offset). |
+| `Outcome` | No | `Succeeded`, `Failed` or `RolledBack` (case-insensitive). Blank leaves the deployment in flight. |
+| `CompletedAt` | Conditional | Required with an outcome, refused without one. When it succeeded or failed; for a rollback, when it **succeeded**. Cannot be before `StartedAt`. |
+| `RolledBackAt` | Conditional | Required for `RolledBack`, refused for anything else. Cannot be before `CompletedAt`. |
+| `Reason` | No | Why it failed or was rolled back. Max 1024 chars. |
+
+### The outcome decides the status
+
+There is no status column. `Outcome` says what happened, and Wayd applies the same steps, in the same
+order, that recording it as it happened would have:
+
+| Outcome | Steps replayed | Resulting status |
+|---|---|---|
+| Blank | Started | In Progress |
+| `Succeeded` | Started, succeeded at `CompletedAt` | Succeeded |
+| `Failed` | Started, failed at `CompletedAt` | Failed |
+| `RolledBack` | Started, succeeded at `CompletedAt`, rolled back at `RolledBackAt` | Rolled Back |
+
+A rollback goes through success first because the domain permits a rollback from nowhere else: a failed
+deployment never reached its environment, so there is nothing to revert. That is why a rolled-back row
+carries both timestamps — the completion is when it went live, and the rollback is when it was pulled.
+
+Because the transitions are replayed rather than a final status assigned, an imported deployment has the
+same [status history](./delivery.mdx#recording-an-outcome) a hand-recorded one would, and counts toward
+[deployment frequency and change failure rate](./delivery.mdx#delivery-metrics) exactly as it would
+have. The statuses come from the [deployment workflow](../settings/status-workflows.mdx) by meaning, so
+renaming an outcome does not break the import.
+
+### Timestamps carry their offset
+
+`StartedAt`, `CompletedAt` and `RolledBackAt` are instants, not dates, and each must say what zone it
+is in: `2026-03-01T14:30:00Z`, or `2026-03-01T09:30:00-05:00`. A value with no offset is refused with a
+`422` naming the row, rather than read in the server's zone — which would shift every historical
+deployment by whatever that zone happens to be, and by a different amount on a different host.
+
+### A version or a package, never both
+
+A deployment carries either a version or a package, for the reason given in
+[Release Packages](./delivery.mdx#release-packages): where a package exists it is the unit that shipped,
+so one pipeline run counts once rather than once per component. A row naming both, or neither, is
+refused before the run starts.
+
+Rows name their version or package **by id**. A build number is never resolved to a version: `4.8.2.005`
+belongs to `4.8.2` by a convention that differs between organizations and between products, and that
+rule lives in adapter configuration rather than in this import. Put the build in `ArtifactId`, where it
+is kept as text.
+
+### Retired environments
+
+A row with an outcome may name a [retired environment](#retired-environments-are-importable), because a
+backfill routinely records deployments into environments that no longer exist. A row still in flight
+may not — nothing can be deploying into a target that is no longer deployed into — and meets the same
+refusal starting one by hand would.
+
+Each deployment freezes the environment's category **as it stands when the file is imported**. What the
+environment counted as when a historical deployment actually ran is not recoverable, so an environment
+reclassified since then will have its past deployments counted under today's category. Import
+deployments before reclassifying, where that matters.
+
+### Running it twice
+
+A deployment has no natural key — two builds of one version reaching one environment are two
+deployments — so the import is **additive** and cannot tell a re-run from a second shipment. Running the
+same file twice records everything in it again.
 
 ## Related
 

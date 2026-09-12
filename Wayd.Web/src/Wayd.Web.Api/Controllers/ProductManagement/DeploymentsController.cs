@@ -1,5 +1,7 @@
-﻿using Microsoft.FeatureManagement.Mvc;
+﻿using CsvHelper;
+using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -27,9 +29,10 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
+public class DeploymentsController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
@@ -119,6 +122,57 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetDeployment), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Delivery)]
+    [OpenApiOperation(
+        "Submit a csv file of deployments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "Each row names its version or package by id and its environment by name, and is walked to the outcome it describes with the timestamps it carries: no outcome leaves it in flight, Succeeded and Failed complete it, and RolledBack records a success and then the rollback. A build number is never resolved to a version.")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedDeployments = _csvService.ReadCsv<ImportDeploymentRequest>(file.OpenReadStream()).ToList();
+
+            List<SubmittedImportRow<ImportDeploymentDto>> rows = [];
+            var validator = new ImportDeploymentRequestValidator();
+            for (var i = 0; i < importedDeployments.Count; i++)
+            {
+                var deployment = importedDeployments[i];
+
+                var validationResults = await validator.ValidateAsync(deployment, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        // The row's own key rather than what it deployed: a deployment has no natural
+                        // key, so nothing else on the row says which line failed. This is the same key
+                        // the run reports outcomes against.
+                        error.ErrorMessage =
+                            $"{error.ErrorMessage} (Row: {SubmittedImportRow.KeyFor(deployment.ImportId, i + 1)})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportDeploymentDto>(deployment.ImportId, deployment.ToImportDeploymentDto()));
+            }
+
+            var result = await _dispatcher.Send(new ImportDeploymentsCommand(rows, submissionGroupId), cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPost("{id}/succeed")]

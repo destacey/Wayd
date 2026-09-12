@@ -6145,6 +6145,89 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
+     * Submit a csv file of deployment environments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     * @param file (optional) 
+     */
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/product-management/deployment-environments/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
+    }
+
+    /**
      * Update a deployment environment.
      */
     update(id: string, request: UpdateDeploymentEnvironmentRequest, cancelToken?: CancelToken): Promise<void> {
@@ -6620,6 +6703,89 @@ export class DeploymentsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Submit a csv file of deployments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     * @param file (optional) 
+     */
+    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/product-management/deployments/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**

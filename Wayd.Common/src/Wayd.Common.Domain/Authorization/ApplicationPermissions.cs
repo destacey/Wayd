@@ -425,6 +425,7 @@ public static class ApplicationPermissions
         new ("View Deployment Environments", ApplicationAction.View, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Create Deployment Environments", ApplicationAction.Create, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Update Deployment Environments", ApplicationAction.Update, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
+        new ("Import Deployment Environments", ApplicationAction.Import, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
 
         new ("View Delivery Metrics", ApplicationAction.View, ApplicationResource.DeliveryMetrics, DeliveryCategory),
 

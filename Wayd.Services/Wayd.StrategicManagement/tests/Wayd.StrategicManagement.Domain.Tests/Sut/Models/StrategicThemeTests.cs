@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.StrategicManagement.Domain.Tests.Data;
@@ -48,6 +49,68 @@ public class StrategicThemeTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
+        theme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Activate_WhenProposed_RaisesActivatedEvent()
+    {
+        // Arrange
+        var theme = _faker.AsProposed().Generate();
+
+        // Act
+        var result = theme.Activate(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        theme.State.Should().Be(StrategicThemeState.Active);
+        theme.DomainEvents.OfType<StrategicThemeActivatedEvent>().Should().ContainSingle()
+            .Which.Id.Should().Be(theme.Id);
+        theme.DomainEvents.OfType<StrategicThemeUpdatedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Activate_WhenNotProposed_FailsAndRaisesNoEvent()
+    {
+        // Arrange
+        var theme = _faker.AsActive().Generate();
+
+        // Act
+        var result = theme.Activate(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        theme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Archive_WhenActive_RaisesArchivedEvent()
+    {
+        // Arrange
+        var theme = _faker.AsActive().Generate();
+
+        // Act
+        var result = theme.Archive(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        theme.State.Should().Be(StrategicThemeState.Archived);
+        theme.DomainEvents.OfType<StrategicThemeArchivedEvent>().Should().ContainSingle()
+            .Which.Id.Should().Be(theme.Id);
+        theme.DomainEvents.OfType<StrategicThemeUpdatedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Archive_WhenNotActive_FailsAndRaisesNoEvent()
+    {
+        // Arrange
+        var theme = _faker.AsProposed().Generate();
+
+        // Act
+        var result = theme.Archive(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
         theme.DomainEvents.Should().BeEmpty();
     }
 }

@@ -62,6 +62,8 @@ public static class DurableEventRoutes
         // StrategicManagement StrategicTheme → PPM PpmStrategicThemes.
         typeof(StrategicThemeCreatedEvent),
         typeof(StrategicThemeUpdatedEvent),
+        typeof(StrategicThemeActivatedEvent),
+        typeof(StrategicThemeArchivedEvent),
         typeof(StrategicThemeDeletedEvent),
 
         // Work WorkProcess integration-state flip → AppIntegration connection config (no projection, no FK,

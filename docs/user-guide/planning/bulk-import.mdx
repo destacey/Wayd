@@ -40,6 +40,11 @@ A few rules apply to both:
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run — follow it in
   [Settings → Imports](../settings/imports.mdx), or by its id against the import endpoints.
+- **Files posted together can be grouped.** Both endpoints take an optional `submissionGroupId` query
+  parameter — any GUID you choose — and record it on the run, so a set of files posted under one value
+  shows as one batch in [Settings → Imports](../settings/imports.mdx#what-you-see), with summed counts
+  and each run's page linking to the others. Leave it out to submit a file on its own. An empty GUID is
+  rejected rather than treated as a group.
 - **A malformed file is still rejected whole, before anything is queued.** Every row is validated on
   the way in, so a file with a bad row never becomes a run. What differs between the two imports is
   what happens once rows start being *applied* — see
@@ -87,6 +92,21 @@ then discarded. After that a row can no longer be retried and the file must be s
 |---|---|
 | Planning interval objectives | Import Planning Interval Objectives |
 | Risks | Import Risks |
+
+## Limits
+
+| Import | Rows per file | Applied |
+|---|---|---|
+| Planning interval objectives | 50,000 | Row by row |
+| Risks | 10,000 | All-or-nothing |
+
+A file over its cap is rejected before anything is queued, with a message naming the cap. Split a larger
+file and post the parts one at a time, waiting for each run; one `submissionGroupId` across them keeps the
+runs findable as one import. The caps differ because an all-or-nothing file is one database transaction,
+and 10,000 rows bounds it.
+
+The rules every file shares — request size, `ImportId` length, how rows are chunked, how long the post
+waits, retries, stalls and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
 
 ---
 

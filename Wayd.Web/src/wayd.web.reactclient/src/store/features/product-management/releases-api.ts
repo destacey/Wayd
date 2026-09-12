@@ -107,7 +107,9 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ file, contentsFile }) => {
         try {
+          // Files uploaded from the app are submitted on their own, under no group.
           const data = await getReleasesClient().import(
+            undefined,
             { data: file, fileName: file.name },
             contentsFile
               ? { data: contentsFile, fileName: contentsFile.name }

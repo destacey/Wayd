@@ -13,7 +13,8 @@ namespace Wayd.ProjectPortfolioManagement.Application.Finalization.Commands;
 /// validates each row's shape, then hands the parsed rows here.
 /// </remarks>
 public sealed record ImportPpmFinalizationsCommand(
-    IReadOnlyList<SubmittedImportRow<FinalizePpmItemDto>> Rows) : ICommand<Guid>;
+    IReadOnlyList<SubmittedImportRow<FinalizePpmItemDto>> Rows,
+    Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -61,6 +62,6 @@ public sealed class ImportPpmFinalizationsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(PpmFinalizationImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(PpmFinalizationImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

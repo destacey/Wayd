@@ -728,7 +728,7 @@ public class PlanningIntervalsController : ControllerBase
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportObjectives(Guid id, [FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportObjectives(Guid id, [FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -760,7 +760,7 @@ public class PlanningIntervalsController : ControllerBase
             // Whether the file belongs to this planning interval is the command's rule, not a route
             // concern — it is about the import, and it holds for callers that never saw a route.
             var result = await _dispatcher.Send(
-                new ImportPlanningIntervalObjectivesCommand(id, rows), cancellationToken);
+                new ImportPlanningIntervalObjectivesCommand(id, rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

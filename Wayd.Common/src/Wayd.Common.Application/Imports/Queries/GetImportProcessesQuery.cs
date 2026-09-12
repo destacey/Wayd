@@ -15,6 +15,7 @@ public sealed record GetImportProcessesQuery(
     ImportProcessStatus? Status = null,
     string? ImportType = null,
     string? SubmittedByUserId = null,
+    Guid? SubmissionGroupId = null,
     int PageNumber = 1,
     int PageSize = 25) : IQuery<Result<ImportProcessPageDto>>;
 
@@ -67,7 +68,8 @@ public sealed class GetImportProcessesQueryHandler(
             .AsNoTracking()
             .Where(p => keys.Contains(p.ImportType))
             .Where(p => query.Status == null || p.Status == query.Status)
-            .Where(p => query.SubmittedByUserId == null || p.SubmittedByUserId == query.SubmittedByUserId);
+            .Where(p => query.SubmittedByUserId == null || p.SubmittedByUserId == query.SubmittedByUserId)
+            .Where(p => query.SubmissionGroupId == null || p.SubmissionGroupId == query.SubmissionGroupId);
 
         var totalCount = await runs.CountAsync(cancellationToken);
 

@@ -87,6 +87,11 @@ public sealed class SubmitImportCommandHandler(
         if (command.Rows.Count == 0)
             return Result.Failure<Guid>("The file contains no rows.");
 
+        // An empty guid is what a caller sends when it meant to send nothing, and letting it through
+        // would file every such run under one group.
+        if (command.SubmissionGroupId == Guid.Empty)
+            return Result.Failure<Guid>("The submission group id cannot be empty. Omit it to submit the file on its own.");
+
         // Rejected before anything is persisted, so an absurd file never reaches the queue at all.
         if (command.Rows.Count > definition.MaxRows)
             return Result.Failure<Guid>(

@@ -71,6 +71,24 @@ public sealed class ImportRisksCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_CarriesTheSubmissionGroupThroughToTheRun()
+    {
+        // Arrange — a seed submitting this file alongside others
+        var groupId = Guid.CreateVersion7();
+
+        // Act
+        await CreateHandler().Handle(
+            new ImportRisksCommand([Row()], groupId), TestContext.Current.CancellationToken);
+
+        // Assert
+        _dispatcher.Verify(
+            d => d.Send(
+                It.Is<SubmitImportCommand>(c => c.SubmissionGroupId == groupId),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_SerializesEachRowThroughTheDefinition()
     {
         // Arrange — the controller hands over typed rows and never learns how a payload is stored

@@ -126,7 +126,8 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
     }
 
     var apiUrl = parse.GetValue(apiOption)!;
-    using var client = new WaydSeedClient(apiUrl, apiKey);
+    // One group per seed run, so the files it posts can be found together afterwards.
+    using var client = new WaydSeedClient(apiUrl, apiKey, submissionGroupId: Guid.NewGuid());
     var runner = new SeedRunner(client, Console.WriteLine);
 
     try

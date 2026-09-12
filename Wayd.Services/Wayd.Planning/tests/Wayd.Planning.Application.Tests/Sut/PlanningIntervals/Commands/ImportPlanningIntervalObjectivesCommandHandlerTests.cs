@@ -76,6 +76,25 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
     }
 
     [Fact]
+    public async Task Handle_CarriesTheSubmissionGroupThroughToTheRun()
+    {
+        // Arrange — a seed submitting this file alongside others
+        var groupId = Guid.CreateVersion7();
+
+        // Act
+        await CreateHandler().Handle(
+            new ImportPlanningIntervalObjectivesCommand(PlanningIntervalId, [Row()], groupId),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        _dispatcher.Verify(
+            d => d.Send(
+                It.Is<SubmitImportCommand>(c => c.SubmissionGroupId == groupId),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_RefusesAFileSpanningMorePlanningIntervalsThanOne()
     {
         // Arrange — the rule this import has of its own. It used to be a route parameter mismatch in the

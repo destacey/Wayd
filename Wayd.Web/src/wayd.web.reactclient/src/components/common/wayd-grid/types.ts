@@ -272,6 +272,12 @@ export interface WaydGridProps<T extends RowData> {
   // -- Tree mode (turned on by providing getSubRows) --
   /** How to extract child rows. Presence of this prop enables tree mode. */
   getSubRows?: (row: T) => T[] | undefined
+  /**
+   * Whether every node starts expanded. On by default — a hierarchy is usually the point of the
+   * grid. Off for a list whose parents are rollups of their children, where the children are
+   * the detail and the parent row already says what the reader came for.
+   */
+  initialExpanded?: boolean
 
   // -- DnD (tree mode; enabled when onNodeMove is provided) --
   enableDragAndDrop?: boolean

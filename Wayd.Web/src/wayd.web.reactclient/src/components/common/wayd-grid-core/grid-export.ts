@@ -35,8 +35,12 @@ const ancestorAtDepth = <T extends RowData>(
  *
  * Exports only what's on screen: the currently *visible* leaf columns in their
  * displayed order (so hidden columns are excluded and reordered/pinned columns
- * export in the order the user sees) and the *filtered/sorted* rows
- * (getRowModel). Values come from TanStack's own accessors (row.getValue), so nested
+ * export in the order the user sees) and the *filtered/sorted* rows. Tree rows
+ * are the one exception to "on screen": a collapsed node's descendants are still
+ * exported (the pre-expanded model, flattened depth-first), because collapsing is
+ * how a reader tidies the view, not a statement about which rows exist — a batch
+ * of imports collapsed to its rollup would otherwise export as one line.
+ * Values come from TanStack's own accessors (row.getValue), so nested
  * accessorKeys like `status.name` resolve correctly and column-type
  * transforms (e.g. yesNo's boolean → "Yes"/"No") are reflected.
  *
@@ -81,7 +85,7 @@ export function exportGridToCsv<T extends RowData>(table: Table<T>, csvFileName:
     )
   }
 
-  const exportRows = table.getRowModel().rows.map((row) =>
+  const exportRows = table.getPreExpandedRowModel().flatRows.map((row) =>
     exportableColumns.map((column) => {
       const meta = column.columnDef.meta
       const value = row.getValue(column.id)

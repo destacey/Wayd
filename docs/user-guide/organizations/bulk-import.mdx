@@ -34,9 +34,18 @@ A few rules apply to every import:
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run, and it has its own page under
   [Settings → Imports](../settings/imports.mdx).
-- **All-or-nothing.** If any reference cannot be resolved — an unknown employee number, team code, or role
-  name, or an ambiguous/duplicate value — the **entire import fails** with a message listing the offending
-  values, and nothing is saved. This keeps a run safe to fix and re-try.
+- **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
+  query parameter — any GUID you choose — and records it on the run. Post a set of files under one value
+  and [Settings → Imports](../settings/imports.mdx#what-you-see) shows them as one batch with summed
+  counts, and each run's page links to the others; the
+  [`wayd-data` seed](../../contributing/tools/data-generation.mdx) does this for each run. Leave it out
+  to submit a file on its own. An empty GUID is rejected rather than treated as a group.
+- **Teams, hierarchy and staffing are all-or-nothing; employees are applied row by row.** For the three
+  team imports, any reference that cannot be resolved — an unknown employee number, team code, or role
+  name, or an ambiguous/duplicate value — fails the **entire import** with a message listing the offending
+  values, and nothing is saved. The employee import instead rejects the offending row (a duplicate
+  employee number or email, say) and keeps the rest, so a run can finish **partially succeeded**; the run
+  shows which rows were rejected and why, and they can be retried once fixed. See [Limits](#limits).
 - **`ImportId` is an optional column, and it is yours.** Any value you like — a row number, a key from
   whatever system the file came out of — provided it is unique within the one file, compared
   case-insensitively. Row outcomes are reported against it, and leaving it blank uses the row's position
@@ -86,6 +95,23 @@ Employees
 | Teams | Import Teams and Teams of Teams |
 | Team staffing · Team hierarchy | Manage Team Memberships |
 
+## Limits
+
+| Import | Rows per file | Applied |
+|---|---|---|
+| Employees | 50,000 | Row by row |
+| Teams | 10,000 | All-or-nothing |
+| Team hierarchy | 10,000 | All-or-nothing |
+| Team staffing | 10,000 | All-or-nothing |
+
+A file over its cap is rejected before anything is queued, with a message naming the cap. Split a larger
+export into several files and post them one at a time, waiting for each run; one `submissionGroupId`
+across the parts keeps them findable as one import. The caps differ because an all-or-nothing file is one
+database transaction, and 10,000 rows bounds it.
+
+The rules every file shares — request size, `ImportId` length, how rows are chunked, how long the post
+waits, retries, stalls and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
+
 ---
 
 ## Employees import
@@ -96,6 +122,14 @@ Loads [employees](./index.mdx#team-members) and their management chain. A manage
 number and may appear **anywhere in the same file** or already exist — the import resolves managers after
 creating everyone, so order within the file does not matter. An employee whose manager cannot be resolved is
 still created (without a manager) rather than failing the batch.
+
+:::note Splitting a large export
+A file holds at most 50,000 employees, so a larger export goes in several files, posted **one at a time
+and each waited for**. A manager resolves only if they are in the same file or already exist: a report
+whose manager arrives in a *later* file is created without one, and the link is not made afterwards.
+Order the files so managers precede their reports where you can, and post them under one
+`submissionGroupId` so the runs read as one import.
+:::
 
 | Column | Required | Notes |
 |---|---|---|

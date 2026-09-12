@@ -56,6 +56,8 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
             UserPassword = userPassword,
         };
 
+        _log($"Submitting every file under import group {_client.SubmissionGroupId}.");
+
         foreach (var area in SeedAreaGraph.Order(Areas))
         {
             if (!area.ShouldRun(context))

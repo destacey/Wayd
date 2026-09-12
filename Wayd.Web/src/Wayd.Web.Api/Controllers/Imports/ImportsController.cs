@@ -45,11 +45,12 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
         ImportProcessStatus? status = null,
         string? importType = null,
         string? submittedByUserId = null,
+        Guid? submissionGroupId = null,
         int pageNumber = 1,
         int pageSize = 100)
     {
         var result = await _dispatcher.Send(
-            new GetImportProcessesQuery(status, importType, submittedByUserId, pageNumber, pageSize),
+            new GetImportProcessesQuery(status, importType, submittedByUserId, submissionGroupId, pageNumber, pageSize),
             cancellationToken);
 
         return result.IsSuccess

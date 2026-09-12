@@ -522,8 +522,14 @@ Each row is submitted under an `ImportId` set to the generator's own handle for 
 portfolio's name, a project's key — so the ids come back keyed the way the next file already refers to
 them, with no second mapping to keep in step.
 
-Each import is all-or-nothing, and the seed aborts on anything short of a clean run, naming the rows that
-were rejected by their import id. References resolve by natural key where a record has one — employee
+Every file in a seed is also posted under the same **submission group** — a GUID the seed draws once per
+run and prints at the start (`Submitting every file under import group …`). Each run the API answers with
+carries it as `submissionGroupId`, so the fifteen or so runs one seed produces can be found together
+afterwards rather than picked out of everything else the environment has imported.
+
+Each import applies as its definition says — the employee file row by row, every other file the seed
+posts all-or-nothing — and the seed aborts on anything short of a clean run either way, naming the rows
+that were rejected by their import id. References resolve by natural key where a record has one — employee
 number, team code, project key — and by id otherwise. Pass `--skip-ppm` to stop after the organization;
 nothing in the organization depends on a resolved id, so that path is unaffected by any of this.
 

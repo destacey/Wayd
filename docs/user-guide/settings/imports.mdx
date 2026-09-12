@@ -38,11 +38,21 @@ Each run shows the kind of import, who submitted it, when, and four counts:
 | **Rejected** | Rows that changed nothing, each with a reason. |
 | **Not Applied** | Rows the run did not finish, because it was stopped or failed partway. Some may be partly done — an employee created but not yet linked to their manager — and a resume carries them on from there. |
 
+**Files submitted together show as one batch.** A caller that posts several files under one
+`submissionGroupId` — the `wayd-data` seed does, and so does an export split to fit the row cap — gets a
+single collapsed row for the batch: "11 imports submitted together", with the rows, applied, rejected and
+not-applied counts summed across its files, and a status that is Succeeded only when every file's
+status is. The batch is dated by its newest file, so it sits where that file would in the list.
+Expand it to see the files themselves, each with its own actions. The **Batch** column carries the short
+form of the group id and filters like any other column; a file submitted on its own has none.
+
 Open a run to go to its page, which shows each row's outcome and updates while the run is still going. It
 opens on the **rejected** rows when there are any, since that is usually why you came, and each carries
 the reason it was refused and the line it came from. The page lists up to 500 rows for each filter; a
 larger run says how many more there are. The page has its own address, so a run can be
-bookmarked or shared with someone who may see that kind of import.
+bookmarked or shared with someone who may see that kind of import. A run that was submitted as part of
+a batch lists the batch's other files under **Submitted With**, each with its status, so a seed or a
+split export can be walked file by file from any of them.
 
 :::note "0 of 40 applied" is not always a bug
 Some imports are **all-or-nothing** — a team hierarchy, for instance, because half an imported hierarchy
@@ -100,8 +110,36 @@ row twice.
 Retrying re-applies the data you submitted, which is held for 30 days after a run finishes and then
 discarded — it is a copy of your file, and keeping it forever would mean holding that data forever.
 After that the run's history remains, but its rows can no longer be retried and the file must be
-submitted again.
+submitted again. The job that discards them runs once a night by default; it appears in
+[Settings → Background Jobs](./index.mdx#background-jobs) as `import-retention-sweep`, and like the
+recovery job above it is scheduled again on the next start if it is deleted.
 :::
+
+## Limits and rules
+
+The per-import row caps live in each area's bulk import guide. These rules apply to every file, whatever
+kind it is.
+
+**Submitting a file**
+
+| Rule | Value |
+|---|---|
+| Rows per file | 50,000 for an import applied row by row (employees, planning interval objectives); 10,000 for an all-or-nothing import, which is one database transaction. Over the cap, the file is rejected before anything is queued. |
+| Request size | About 30 MB, the web server's default. A 50,000-row file is a few megabytes. |
+| Empty file | Rejected: a file with no rows never becomes a run. A missing file returns 422. |
+| `ImportId` | Optional. At most 128 characters, trimmed, and unique within the file compared **case-insensitively** (`abc` and `ABC` collide). Blank uses the row's position, counting from one. |
+| `submissionGroupId` | Optional query parameter, any GUID you choose, recorded on the run. An empty GUID is rejected rather than filed as a group. |
+| The post's wait | 5 seconds by default (`Imports:ResponseWaitSeconds`). A run that finishes within it comes back `200`; otherwise `202` with the run still queued or running and a `Location` to follow. |
+
+**While a run is applied**
+
+| Rule | Value |
+|---|---|
+| Chunking | A row-by-row import saves every 500 rows and records progress after each chunk; a stop takes effect at the next chunk boundary. An all-or-nothing import saves once, at the end. |
+| Automatic attempts | 3. An attempt that fails unexpectedly hands the run back to the queue, and the next carries on from the saved progress. After the third the run ends as **Failed**, and **Resume** takes it on from there. |
+| Stalled runs | A run queued for 15 minutes with no worker is republished; one with no progress for 30 minutes is failed so it can be resumed. Checked every five minutes by `import-stall-recovery`. |
+| Retention | Submitted row data is discarded 30 days after a run finishes, nightly, by `import-retention-sweep`. The run and its per-row outcomes stay; the rows can no longer be retried. |
+| Listing | The imports list and a run's row list each return at most 500 entries per request; a larger run says how many more there are. |
 
 ## Who sees what
 
@@ -126,5 +164,5 @@ records that run created, so those still require the permission that gates submi
 Two scheduled maintenance jobs act on runs listed here. **Import Stall Recovery** reclaims runs no worker
 will finish — re-queueing one whose message never arrived, and failing one that stopped reporting progress
 so its remaining rows can be resumed. **Import Retention Sweep** discards submitted row data once a run is
-more than 30 days old, keeping the run and its per-row outcomes. Both are configured under
-**Settings → Background Jobs**.
+more than 30 days old, keeping the run and its per-row outcomes. Both are scheduled by default — every
+five minutes and nightly — and both are configured under **Settings → Background Jobs**.

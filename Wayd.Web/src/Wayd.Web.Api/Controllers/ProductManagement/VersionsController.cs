@@ -126,7 +126,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -152,7 +152,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
                 rows.Add(new SubmittedImportRow<ImportVersionDto>(version.ImportId, version.ToImportVersionDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportVersionsCommand(rows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportVersionsCommand(rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

@@ -3208,6 +3208,19 @@
         ],
         "summary": "Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "StrategicThemes_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -5406,6 +5419,19 @@
         ],
         "summary": "Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Products_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -7067,6 +7093,19 @@
         "summary": "Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.",
         "operationId": "ReleasePackages_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -7630,6 +7669,19 @@
         "summary": "Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.",
         "operationId": "Releases_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -8413,6 +8465,19 @@
         "summary": "Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.",
         "operationId": "Versions_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -9502,6 +9567,19 @@
         ],
         "summary": "Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Portfolios_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -9579,6 +9657,19 @@
         "summary": "Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Completes or cancels programs and closes or archives portfolios, after their contents have been imported.",
         "operationId": "Portfolios_FinalizeImport",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -10714,6 +10805,19 @@
         ],
         "summary": "Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Programs_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -12510,6 +12614,19 @@
         ],
         "summary": "Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Projects_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -12587,6 +12704,19 @@
         "summary": "Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Each row names the project it belongs to, so one file can cover many projects.",
         "operationId": "Projects_ImportTasks",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -12664,6 +12794,19 @@
         "summary": "Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Each row names the project and stage it sets, so one file can cover many projects.",
         "operationId": "Projects_ImportStages",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -15145,6 +15288,19 @@
         "summary": "Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "description": "Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.",
         "operationId": "StrategicInitiatives_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -18597,6 +18753,17 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -20185,6 +20352,19 @@
         ],
         "summary": "Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Risks_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -26303,6 +26483,19 @@
         ],
         "summary": "Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Employees_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -27291,6 +27484,19 @@
         ],
         "summary": "Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Teams_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -27367,6 +27573,19 @@
         ],
         "summary": "Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Teams_ImportMembers",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -27443,6 +27662,19 @@
         ],
         "summary": "Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
         "operationId": "Teams_ImportTeamMemberships",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -30612,6 +30844,16 @@
             "x-position": 3
           },
           {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
             "name": "pageNumber",
             "in": "query",
             "schema": {
@@ -30619,7 +30861,7 @@
               "format": "int32",
               "default": 1
             },
-            "x-position": 4
+            "x-position": 5
           },
           {
             "name": "pageSize",
@@ -30629,7 +30871,7 @@
               "format": "int32",
               "default": 100
             },
-            "x-position": 5
+            "x-position": 6
           }
         ],
         "responses": {

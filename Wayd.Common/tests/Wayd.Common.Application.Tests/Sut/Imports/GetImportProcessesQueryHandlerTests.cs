@@ -51,10 +51,11 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
     private GetImportProcessesQueryHandler CreateHandler() =>
         new(_db, _waydDb, new ImportDefinitionRegistry([_employees, _teams]), _principal.Object);
 
-    private ImportProcess AddRun(TestImportDefinition definition, Instant submittedOn, string userId = "user-1")
+    private ImportProcess AddRun(
+        TestImportDefinition definition, Instant submittedOn, string userId = "user-1", Guid? groupId = null)
     {
         var rows = new[] { ImportProcessRow.Create("r1", 1, definition.SerializeRow(new TestImportRow("Row 1"))) };
-        var process = ImportProcess.Create(definition.Key, userId, null, rows, submittedOn);
+        var process = ImportProcess.Create(definition.Key, userId, groupId, rows, submittedOn);
         _db.AddImportProcess(process);
         return process;
     }
@@ -149,6 +150,22 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
 
         // Assert
         result.Value.Processes.Single().Id.Should().Be(mine.Id);
+    }
+
+    [Fact]
+    public async Task Handle_NarrowsToOneSubmissionGroup()
+    {
+        // Arrange — a seed's files, alongside a run submitted on its own
+        var groupId = Guid.CreateVersion7();
+        var first = AddRun(_employees, _now, groupId: groupId);
+        var second = AddRun(_employees, _now.Plus(Duration.FromMinutes(1)), groupId: groupId);
+        AddRun(_employees, _now.Plus(Duration.FromMinutes(2)));
+
+        // Act
+        var result = await Get(new GetImportProcessesQuery(SubmissionGroupId: groupId));
+
+        // Assert
+        result.Value.Processes.Select(p => p.Id).Should().BeEquivalentTo([first.Id, second.Id]);
     }
 
     [Fact]

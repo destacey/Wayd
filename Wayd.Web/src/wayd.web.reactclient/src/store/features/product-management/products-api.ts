@@ -105,7 +105,8 @@ export const productsApi = apiSlice.injectEndpoints({
     importProducts: builder.mutation<ImportProcessDto, File>({
       queryFn: async (file) => {
         try {
-          const data = await getProductsClient().import({
+          // A file uploaded from the app is submitted on its own, under no group.
+          const data = await getProductsClient().import(undefined, {
             data: file,
             fileName: file.name,
           })

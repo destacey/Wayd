@@ -81,7 +81,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromForm] IFormFile? kpiFile, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromForm] IFormFile? kpiFile, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -154,7 +154,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
                 return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
             }
 
-            var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(rows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

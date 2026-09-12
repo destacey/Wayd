@@ -114,4 +114,22 @@ public sealed class ImportEndpointPermissionTests
         // Assert — without it an endpoint answers with a bare id, and its submitter gets no outcome
         withoutResponder.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Endpoints_TakeTheSubmissionGroupFromTheQueryString()
+    {
+        // Arrange & Act — the same parameter on every endpoint, so a tool posting a set of files can
+        // group them without knowing which endpoint it is talking to. From the query, not the form: a
+        // second [FromForm] beside the IFormFile makes the OpenAPI description expand the file into its
+        // own properties, and every generated client loses the "file" field.
+        var withoutGroup = ImportEndpoints()
+            .Where(m => !m.GetParameters().Any(p =>
+                p.Name == "submissionGroupId"
+                && p.ParameterType == typeof(Guid?)
+                && p.GetCustomAttribute<FromQueryAttribute>() is not null))
+            .Select(m => $"{m.DeclaringType!.Name}.{m.Name}");
+
+        // Assert
+        withoutGroup.Should().BeEmpty();
+    }
 }

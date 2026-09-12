@@ -451,6 +451,17 @@ Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not a
 
 `Wayd.Web/tests/Wayd.Web.Api.IntegrationTests/Sut/SecurityHeadersTests.cs` asserts these headers on a **real response** from the booted host, against literal header-name strings rather than the production constants. This is deliberate: the middleware previously shipped reading a settings shape the config file did not have, so every value bound null and no header was sent while the config still looked complete. A test asserting on the bound settings object, or reusing the same constants the middleware uses, would have passed the entire time. Keep both properties if you extend the suite.
 
+## Imports
+
+| Key | Default | Purpose |
+|---|---|---|
+| `Imports:ResponseWaitSeconds` | `5` | How long an import submission waits for its run before answering `202` with the run still in flight. `0` answers immediately. The wait is in time rather than rows because a row's cost differs by an order of magnitude between imports. |
+
+Row caps, chunk size, retry count, stall grace periods and the retention window are fixed in code, not
+configuration — see [Settings → Imports → Limits and rules](../user-guide/settings/imports.mdx#limits-and-rules)
+for the values. The two maintenance jobs (`import-stall-recovery`, `import-retention-sweep`) are scheduled
+on first start and can be re-timed under **Settings → Background Jobs**.
+
 ## Environment Variables
 
 | Variable                                | Purpose                                       |

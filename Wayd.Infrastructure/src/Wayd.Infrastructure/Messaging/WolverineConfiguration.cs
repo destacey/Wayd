@@ -37,7 +37,6 @@ public static class WolverineConfiguration
     [
         typeof(Wayd.Common.Application.ConfigureServices),
         typeof(Wayd.AppIntegration.Application.ConfigureServices),
-        typeof(Wayd.Goals.Application.ConfigureServices),
         typeof(Wayd.Organization.Application.ConfigureServices),
         typeof(Wayd.Planning.Application.ConfigureServices),
         typeof(Wayd.ProductManagement.Application.ConfigureServices),
@@ -287,7 +286,6 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IWaydDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.AppIntegration.Application.Persistence.IAppIntegrationDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.FeatureManagement.IFeatureManagementDbContext>();
-        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Goals.Application.Persistence.IGoalsDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IImportDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Links.ILinksDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Organization.Application.Persistence.IOrganizationDbContext>();

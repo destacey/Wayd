@@ -102,8 +102,6 @@
         <ProjectReference Include="..\..\..\Wayd.Services\Wayd.AppIntegration\src\Wayd.AppIntegration.Domain\Wayd.AppIntegration.Domain.csproj" />
         <ProjectReference Include="..\..\..\Wayd.Common\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
         <ProjectReference Include="..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
-        <ProjectReference Include="..\..\..\Wayd.Services\Wayd.Goals\src\Wayd.Goals.Application\Wayd.Goals.Application.csproj" />
-        <ProjectReference Include="..\..\..\Wayd.Services\Wayd.Goals\src\Wayd.Goals.Domain\Wayd.Goals.Domain.csproj" />
         <ProjectReference Include="..\..\..\Wayd.Integrations\src\Wayd.Integrations.Abstractions\Wayd.Integrations.Abstractions.csproj" />
         <ProjectReference Include="..\..\..\Wayd.Integrations\src\Wayd.Integrations.AzureDevOps\Wayd.Integrations.AzureDevOps.csproj" />
         <ProjectReference Include="..\..\..\Wayd.Integrations\src\Wayd.Integrations.MicrosoftGraph\Wayd.Integrations.MicrosoftGraph.csproj" />

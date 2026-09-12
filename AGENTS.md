@@ -26,7 +26,6 @@ Wayd/
     Wayd.Work/                    # Work items, workspaces, processes, workflows
     Wayd.Organization/            # Teams, employees, memberships
     Wayd.Planning/                # PIs, sprints, objectives, risks, roadmaps
-    Wayd.Goals/                   # Objectives and key results (skeleton)
     Wayd.ProjectPortfolioManagement/  # Portfolios, programs, projects, tasks
     Wayd.StrategicManagement/     # Visions, strategies, themes
     Wayd.AppIntegration/          # Integration configuration

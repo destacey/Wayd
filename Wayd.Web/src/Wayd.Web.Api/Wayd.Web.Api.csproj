@@ -39,8 +39,6 @@
         <ProjectReference
             Include="..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
         <ProjectReference
-            Include="..\..\..\Wayd.Services\Wayd.Goals\src\Wayd.Goals.Application\Wayd.Goals.Application.csproj" />
-        <ProjectReference
             Include="..\..\..\Wayd.Infrastructure\src\Wayd.Infrastructure.Migrators.MSSQL\Wayd.Infrastructure.Migrators.MSSQL.csproj" />
         <ProjectReference
             Include="..\..\..\Wayd.Infrastructure\src\Wayd.Infrastructure\Wayd.Infrastructure.csproj" />

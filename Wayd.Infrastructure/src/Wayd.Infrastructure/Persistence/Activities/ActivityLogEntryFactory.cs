@@ -93,8 +93,6 @@ internal static partial class ActivityLogEntryFactory
             return "StatusWorkflows";
         if (entityNamespace.Contains("Identity") || eventNamespace.Contains("Identity"))
             return "Identity";
-        if (entityNamespace.Contains("Goals") || eventNamespace.Contains("Goals"))
-            return "Goals";
         if (entityNamespace.Contains("Links") || eventNamespace.Contains("Links"))
             return "Links";
         if (entityNamespace.Contains("AppIntegration") || eventNamespace.Contains("AppIntegration"))

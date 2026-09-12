@@ -15,9 +15,11 @@ public class PlanningIntervalObjectiveFaker : PrivateConstructorFaker<PlanningIn
         RuleFor(x => x.PlanningIntervalId, planningIntervalId);
         RuleFor(x => x.TeamId, team.Id);
         RuleFor(x => x.Team, team);
-        RuleFor(x => x.ObjectiveId, f => f.Random.Guid());
+        RuleFor(x => x.Name, f => f.Lorem.Sentence(4));
+        RuleFor(x => x.Description, f => f.Lorem.Sentence(10));
         RuleFor(x => x.Type, SetType(team));
         RuleFor(x => x.Status, status);
+        RuleFor(x => x.Progress, SetProgress(status));
         RuleFor(x => x.IsStretch, isStretch);
     }
 
@@ -29,5 +31,40 @@ public class PlanningIntervalObjectiveFaker : PrivateConstructorFaker<PlanningIn
             TeamType.TeamOfTeams => PlanningIntervalObjectiveType.TeamOfTeams,
             _ => throw new ArgumentOutOfRangeException(nameof(team.Type), team.Type, null)
         };
+    }
+
+    private static double SetProgress(ObjectiveStatus status)
+    {
+        return status switch
+        {
+            ObjectiveStatus.NotStarted => 0,
+            ObjectiveStatus.InProgress => 50,
+            ObjectiveStatus.Completed => 100,
+            ObjectiveStatus.Canceled => 0,
+            ObjectiveStatus.Missed => 50,
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
+        };
+    }
+}
+
+public static class PlanningIntervalObjectiveFakerExtensions
+{
+    public static PlanningIntervalObjectiveFaker WithName(this PlanningIntervalObjectiveFaker faker, string name)
+    {
+        faker.RuleFor(x => x.Name, name);
+        return faker;
+    }
+
+    public static PlanningIntervalObjectiveFaker WithDates(this PlanningIntervalObjectiveFaker faker, LocalDate? startDate, LocalDate? targetDate)
+    {
+        faker.RuleFor(x => x.StartDate, startDate);
+        faker.RuleFor(x => x.TargetDate, targetDate);
+        return faker;
+    }
+
+    public static PlanningIntervalObjectiveFaker WithOrder(this PlanningIntervalObjectiveFaker faker, int? order)
+    {
+        faker.RuleFor(x => x.Order, order);
+        return faker;
     }
 }

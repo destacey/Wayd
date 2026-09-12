@@ -35,7 +35,6 @@ All services share a single `WaydDbContext` (no repository pattern).
 | Work                       | `Wayd.Work`                       | Work items, workspaces, work processes, workflows |
 | Organization               | `Wayd.Organization`               | Teams, employees, team memberships                |
 | Planning                   | `Wayd.Planning`                   | Planning intervals, iterations                    |
-| Goals                      | `Wayd.Goals`                      | Objectives, key results                           |
 | ProjectPortfolioManagement | `Wayd.ProjectPortfolioManagement` | Projects, portfolios                              |
 | StrategicManagement        | `Wayd.StrategicManagement`        | Strategic themes                                  |
 | AppIntegration             | `Wayd.AppIntegration`             | External system connections                       |

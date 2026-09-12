@@ -5,7 +5,6 @@ using JasperFx;
 using Wayd.AppIntegration.Application;
 using Wayd.Common.Application;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Goals.Application;
 using Wayd.Infrastructure;
 using Wayd.Infrastructure.Auth;
 using Wayd.Infrastructure.Common;
@@ -75,7 +74,6 @@ try
     builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 
     builder.Services.AddAppIntegrationApplication();
-    builder.Services.AddGoalsApplication();
     builder.Services.AddLinksApplication();
     builder.Services.AddOrganizationApplication();
     builder.Services.AddPlanningApplication();

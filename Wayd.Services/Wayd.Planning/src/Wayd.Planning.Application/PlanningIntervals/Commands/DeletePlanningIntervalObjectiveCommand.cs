@@ -1,14 +1,10 @@
-﻿using Wayd.Common.Application.Requests.Goals.Commands;
-using Wayd.Common.Application.Requests.Goals.Queries;
-
 namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
 public sealed record DeletePlanningIntervalObjectiveCommand(Guid PlanningIntervalId, Guid PlanningIntervalObjectiveId) : ICommand;
 
-public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
+public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<DeletePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeletePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
@@ -31,10 +27,6 @@ public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
                 return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
             }
 
-            var currentObjective = await _dispatcher.Send(new GetObjectiveForPlanningIntervalQuery(piObjective.ObjectiveId, planningInterval.Id), cancellationToken);
-            if (currentObjective is null)
-                return Result.Failure<int>($"Objective {request.PlanningIntervalObjectiveId} not found.");
-
             var deleteResult = planningInterval.DeleteObjective(request.PlanningIntervalObjectiveId);
             if (deleteResult.IsFailure)
             {
@@ -45,14 +37,6 @@ public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
             // TODO: this is a hack to ensure the PI objective is soft deleted.  We should be able to just remove it from the collection and save changes.
             _planningDbContext.Entry(piObjective).State = EntityState.Deleted;
             await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            // TODO: this the correct order?  pi objective first, then objective?
-            var deleteObjectiveResult = await _dispatcher.Send(new DeleteObjectiveCommand(currentObjective.Id), cancellationToken);
-            if (deleteObjectiveResult.IsFailure)
-            {
-                _logger.LogError("Unable to delete objective {ObjectiveId}.  Error: {Error}", currentObjective.Id, deleteObjectiveResult.Error);
-                // don't return anything because we already deleted the PI objective
-            }
 
             return Result.Success();
         }

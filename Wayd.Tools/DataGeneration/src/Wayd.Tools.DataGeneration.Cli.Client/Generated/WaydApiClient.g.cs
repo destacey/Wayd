@@ -63854,7 +63854,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a page of import runs, newest first.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -63953,7 +63953,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a page of import runs, newest first.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -63980,6 +63980,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submittedByUserId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submittedByUserId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submittedByUserId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (pageNumber != null)
                     {

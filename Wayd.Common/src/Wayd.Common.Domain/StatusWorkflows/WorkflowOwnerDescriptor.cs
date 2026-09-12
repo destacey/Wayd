@@ -10,7 +10,7 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// <remarks>
 /// The seam that keeps the engine free of any module's vocabulary. A module declares its descriptors in
 /// its own domain project and registers them with <see cref="WorkflowOwners"/>, so adding Project
-/// Portfolio Management or Goals to the engine is a new file in that module and no change here.
+/// Portfolio Management or Planning to the engine is a new file in that module and no change here.
 /// <para>
 /// <see cref="Key"/> is a string rather than an enum value, so a typo is a startup failure rather than
 /// a build error. Registration is validated eagerly for that reason, and modules expose their

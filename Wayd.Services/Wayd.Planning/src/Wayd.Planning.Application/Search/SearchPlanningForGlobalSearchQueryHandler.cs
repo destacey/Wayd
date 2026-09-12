@@ -1,5 +1,4 @@
-﻿using Wayd.Common.Application.Requests.Goals.Queries;
-using Wayd.Common.Application.Search;
+﻿using Wayd.Common.Application.Search;
 using Wayd.Common.Application.Search.Dtos;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Planning;
@@ -8,7 +7,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Search;
 
-public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider, ICurrentPrincipal currentPrincipal)
+public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ICurrentPrincipal currentPrincipal)
     : IQueryHandler<SearchPlanningForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchPlanningForGlobalSearchQuery request, CancellationToken cancellationToken)
@@ -161,75 +160,33 @@ public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext
             TotalCount = roadmapCount
         });
 
-        // PI Team Objectives (names come from Goals service)
-        var objectiveResults = await SearchObjectives(term, max, cancellationToken);
-        categories.Add(objectiveResults);
+        // PI Objectives
+        var objectiveQuery = planningDbContext.PlanningIntervals
+            .SelectMany(pi => pi.Objectives, (pi, o) => new { pi, o })
+            .Where(x => x.o.Name.Contains(term));
 
-        return new ServiceSearchResponse { Categories = categories };
-    }
-
-    private async Task<GlobalSearchCategoryDto> SearchObjectives(string term, int max, CancellationToken cancellationToken)
-    {
-        // Search objective names via Goals service
-        var matchingObjectives = await dispatcher.Send(
-            new SearchObjectivesByNameQuery(term, max), cancellationToken);
-
-        if (matchingObjectives.Count == 0)
-        {
-            return new GlobalSearchCategoryDto
+        var objectiveCount = await objectiveQuery.CountAsync(cancellationToken);
+        var objectives = await objectiveQuery
+            .OrderBy(x => x.o.Name)
+            .Select(x => new GlobalSearchResultItemDto
             {
-                Name = "PI Objectives",
-                Slug = "pi-objectives",
-                Items = [],
-                TotalCount = 0
-            };
-        }
-
-        // Get PI objective records for the matching objectives to build URLs
-        var objectiveIds = matchingObjectives.Select(o => o.Id).ToList();
-        var piObjectives = await planningDbContext.PlanningIntervalObjectives
-            .Include(po => po.Team)
-            .Where(po => objectiveIds.Contains(po.ObjectiveId))
-            .Select(po => new
-            {
-                po.ObjectiveId,
-                po.Key,
-                po.PlanningIntervalId,
-                TeamName = po.Team.Name,
+                Title = x.o.Name,
+                Subtitle = x.o.Team.Name,
+                Key = x.o.Key.ToString(),
+                EntityType = nameof(PlanningIntervalObjective),
+                AuxKey = x.pi.Key.ToString()
             })
+            .Take(max)
             .ToListAsync(cancellationToken);
 
-        // Get PI keys for URL building
-        var piIds = piObjectives.Select(po => po.PlanningIntervalId).Distinct().ToList();
-        var piKeys = await planningDbContext.PlanningIntervals
-            .Where(pi => piIds.Contains(pi.Id))
-            .Select(pi => new { pi.Id, pi.Key })
-            .ToDictionaryAsync(pi => pi.Id, pi => pi.Key, cancellationToken);
-
-        var items = new List<GlobalSearchResultItemDto>();
-        foreach (var objective in matchingObjectives)
-        {
-            var piObjective = piObjectives.FirstOrDefault(po => po.ObjectiveId == objective.Id);
-            if (piObjective is null) continue;
-
-            if (!piKeys.TryGetValue(piObjective.PlanningIntervalId, out var piKey)) continue;
-
-            items.Add(new GlobalSearchResultItemDto
-            {
-                Title = objective.Name,
-                Subtitle = piObjective.TeamName,
-                Key = piObjective.Key.ToString(),
-                EntityType = nameof(PlanningIntervalObjective),
-                AuxKey = piKey.ToString()
-            });
-        }
-
-        return new GlobalSearchCategoryDto
+        categories.Add(new GlobalSearchCategoryDto
         {
             Name = "PI Objectives",
             Slug = "pi-objectives",
-            Items = items,
-            TotalCount = matchingObjectives.Count
-        };
+            Items = objectives,
+            TotalCount = objectiveCount
+        });
+
+        return new ServiceSearchResponse { Categories = categories };
     }
 }

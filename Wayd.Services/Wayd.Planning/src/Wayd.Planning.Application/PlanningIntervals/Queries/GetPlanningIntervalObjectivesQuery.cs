@@ -1,7 +1,6 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Application.Requests.Goals.Queries;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Queries;
@@ -18,11 +17,10 @@ public sealed record GetPlanningIntervalObjectivesQuery : IQuery<IReadOnlyList<P
     public Guid? TeamId { get; set; }
 }
 
-public sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectivesQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectivesQuery, IReadOnlyList<PlanningIntervalObjectiveListDto>>
+public sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectivesQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectivesQuery, IReadOnlyList<PlanningIntervalObjectiveListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<GetPlanningIntervalObjectivesQueryHandler> _logger = logger;
-    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<IReadOnlyList<PlanningIntervalObjectiveListDto>> Handle(GetPlanningIntervalObjectivesQuery request, CancellationToken cancellationToken)
@@ -63,21 +61,12 @@ public sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext
         if (planningInterval is null || planningInterval.Objectives.Count == 0)
             return [];
 
-        // call the objective query handler
-        var teamIds = request.TeamId.HasValue ? new Guid[] { request.TeamId.Value } : null;
-        var objectives = await _dispatcher.Send(new GetObjectivesForPlanningIntervalsQuery([planningInterval.Id], teamIds), cancellationToken);
-        if (!objectives.Any() || planningInterval.Objectives.Count != objectives.Count)
-            ThrowAndLogException(request, $"Error mapping objectives for planning interval {planningInterval.Id}.");
-
-        // map the list of objectives
         var piNavigation = NavigationDto.Create(planningInterval.Id, planningInterval.Key, planningInterval.Name);
-        List<PlanningIntervalObjectiveListDto> piObjectives = new(objectives.Count);
-        foreach (var piObjective in planningInterval.Objectives)
-        {
-            piObjectives.Add(PlanningIntervalObjectiveListDto.Create(piObjective, objectives.Single(o => o.Id == piObjective.ObjectiveId), piNavigation, _dateTimeProvider.Now));
-        }
+        var now = _dateTimeProvider.Now;
 
-        return piObjectives;
+        return planningInterval.Objectives
+            .Select(o => PlanningIntervalObjectiveListDto.Create(o, piNavigation, now))
+            .ToList();
     }
 
     private void ThrowAndLogException(GetPlanningIntervalObjectivesQuery request, string message)

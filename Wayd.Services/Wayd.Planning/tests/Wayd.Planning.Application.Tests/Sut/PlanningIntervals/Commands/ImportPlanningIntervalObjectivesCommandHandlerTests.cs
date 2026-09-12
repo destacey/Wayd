@@ -1,6 +1,5 @@
 using CSharpFunctionalExtensions;
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
@@ -25,8 +24,6 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
     {
         _definition = new PlanningIntervalObjectiveImportDefinition(
             _dbContext,
-            _dispatcher.Object,
-            NullLogger<PlanningIntervalObjectiveImportDefinition>.Instance,
             new ImportPayloadSerializer());
 
         _dispatcher

@@ -1,5 +1,4 @@
-﻿using Wayd.Common.Application.Dtos;
-using Wayd.Common.Application.Requests.Goals.Dtos;
+using Wayd.Common.Application.Dtos;
 using Wayd.Planning.Application.Models;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
@@ -54,23 +53,23 @@ public sealed record PlanningIntervalObjectiveListDto
     /// </summary>
     public int? Order { get; set; }
 
-    public static PlanningIntervalObjectiveListDto Create(PlanningIntervalObjective piObjective, ObjectiveListDto objective, NavigationDto piNavigationDto, Instant now)
+    public static PlanningIntervalObjectiveListDto Create(PlanningIntervalObjective piObjective, NavigationDto piNavigationDto, Instant now)
     {
         return new PlanningIntervalObjectiveListDto()
         {
             Id = piObjective.Id,
             Key = piObjective.Key,
-            Name = objective.Name,
+            Name = piObjective.Name,
             PlanningInterval = piNavigationDto,
             Status = SimpleNavigationDto.FromEnum(piObjective.Status),
             HealthCheck = PlanningHealthCheckDto.FromCurrent(piObjective.HealthChecks, now),
-            Progress = objective.Progress,
+            Progress = piObjective.Progress,
             Team = PlanningTeamNavigationDto.FromPlanningTeam(piObjective.Team),
             Type = SimpleNavigationDto.FromEnum(piObjective.Type),
-            StartDate = objective.StartDate,
-            TargetDate = objective.TargetDate,
+            StartDate = piObjective.StartDate,
+            TargetDate = piObjective.TargetDate,
             IsStretch = piObjective.IsStretch,
-            Order = objective.Order
+            Order = piObjective.Order
         };
     }
 }

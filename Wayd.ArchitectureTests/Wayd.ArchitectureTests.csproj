@@ -51,8 +51,6 @@
         <ProjectReference Include="..\Wayd.Services\Wayd.Organization\src\Wayd.Organization.Application\Wayd.Organization.Application.csproj" />
         <ProjectReference Include="..\Wayd.Services\Wayd.Planning\src\Wayd.Planning.Domain\Wayd.Planning.Domain.csproj" />
         <ProjectReference Include="..\Wayd.Services\Wayd.Planning\src\Wayd.Planning.Application\Wayd.Planning.Application.csproj" />
-        <ProjectReference Include="..\Wayd.Services\Wayd.Goals\src\Wayd.Goals.Domain\Wayd.Goals.Domain.csproj" />
-        <ProjectReference Include="..\Wayd.Services\Wayd.Goals\src\Wayd.Goals.Application\Wayd.Goals.Application.csproj" />
         <ProjectReference Include="..\Wayd.Services\Wayd.AppIntegration\src\Wayd.AppIntegration.Domain\Wayd.AppIntegration.Domain.csproj" />
         <ProjectReference Include="..\Wayd.Services\Wayd.AppIntegration\src\Wayd.AppIntegration.Application\Wayd.AppIntegration.Application.csproj" />
         <ProjectReference Include="..\Wayd.Services\Wayd.StrategicManagement\src\Wayd.StrategicManagement.Domain\Wayd.StrategicManagement.Domain.csproj" />

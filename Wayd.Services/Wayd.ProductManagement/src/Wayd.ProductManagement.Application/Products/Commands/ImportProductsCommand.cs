@@ -13,7 +13,8 @@ namespace Wayd.ProductManagement.Application.Products.Commands;
 /// validates each row's shape, then hands the parsed rows here.
 /// </remarks>
 public sealed record ImportProductsCommand(
-    IReadOnlyList<SubmittedImportRow<ImportProductDto>> Rows) : ICommand<Guid>;
+    IReadOnlyList<SubmittedImportRow<ImportProductDto>> Rows,
+    Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the two things that are true of a file rather than of any row.
@@ -114,6 +115,6 @@ public sealed class ImportProductsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(ProductImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(ProductImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

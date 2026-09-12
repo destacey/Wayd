@@ -14,7 +14,8 @@ namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Comma
 /// they name, then hands the parsed rows here.
 /// </remarks>
 public sealed record ImportStrategicInitiativesCommand(
-    IReadOnlyList<SubmittedImportRow<ImportStrategicInitiativeDto>> Rows) : ICommand<Guid>;
+    IReadOnlyList<SubmittedImportRow<ImportStrategicInitiativeDto>> Rows,
+    Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -62,6 +63,6 @@ public sealed class ImportStrategicInitiativesCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(StrategicInitiativeImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(StrategicInitiativeImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

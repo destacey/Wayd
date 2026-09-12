@@ -14,7 +14,8 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
 /// name, then hands the parsed rows here.
 /// </remarks>
 public sealed record ImportReleasePackagesCommand(
-    IReadOnlyList<SubmittedImportRow<ImportReleasePackageDto>> Rows) : ICommand<Guid>;
+    IReadOnlyList<SubmittedImportRow<ImportReleasePackageDto>> Rows,
+    Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the two things that are true of a file rather than of any row.
@@ -66,6 +67,6 @@ public sealed class ImportReleasePackagesCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(ReleasePackageImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(ReleasePackageImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

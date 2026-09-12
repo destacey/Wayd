@@ -20,7 +20,7 @@ namespace Wayd.Common.Application.Employees.Commands;
 /// none today, which is why this handler is thin; it is the seam that matters, not its current contents.
 /// </para>
 /// </remarks>
-public sealed record ImportEmployeesCommand(IReadOnlyList<SubmittedImportRow<ImportEmployeeDto>> Rows) : ICommand<Guid>;
+public sealed record ImportEmployeesCommand(IReadOnlyList<SubmittedImportRow<ImportEmployeeDto>> Rows, Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, not the file they arrived in.
@@ -67,6 +67,6 @@ public sealed class ImportEmployeesCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(EmployeeImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(EmployeeImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

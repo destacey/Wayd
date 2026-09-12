@@ -13,7 +13,8 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 /// validates each row's shape, then hands the parsed rows here.
 /// </remarks>
 public sealed record ImportProjectStagesCommand(
-    IReadOnlyList<SubmittedImportRow<ImportProjectStageDto>> Rows) : ICommand<Guid>;
+    IReadOnlyList<SubmittedImportRow<ImportProjectStageDto>> Rows,
+    Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -64,6 +65,6 @@ public sealed class ImportProjectStagesCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(ProjectStageImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(ProjectStageImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

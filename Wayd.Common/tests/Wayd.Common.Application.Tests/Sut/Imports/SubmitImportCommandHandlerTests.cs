@@ -162,6 +162,18 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_RejectsAnEmptySubmissionGroupRatherThanFilingEveryStrayRunTogether()
+    {
+        // Arrange & Act
+        var result = await CreateHandler().Handle(
+            new SubmitImportCommand("test-import", Rows(1), Guid.Empty), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _db.ImportProcesses.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Handle_RejectsAnImportIdLongerThanTheColumnHolds()
     {
         // Arrange — otherwise this surfaces at SaveChanges as a 500 naming a column

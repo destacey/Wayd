@@ -132,6 +132,7 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     public async Task<ActionResult> Import(
         [FromForm] IFormFile file,
         [FromForm] IFormFile? contentsFile,
+        [FromQuery] Guid? submissionGroupId,
         [FromServices] ImportSubmissionResponder responder,
         CancellationToken cancellationToken)
     {
@@ -211,7 +212,7 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
                 return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
             }
 
-            var result = await _dispatcher.Send(new ImportReleasesCommand(rows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportReleasesCommand(rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

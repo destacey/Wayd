@@ -20,7 +20,7 @@ namespace Wayd.Planning.Application.Risks.Commands;
 /// today, which is why this handler is thin; it is the seam that matters, not its current contents.
 /// </para>
 /// </remarks>
-public sealed record ImportRisksCommand(IReadOnlyList<SubmittedImportRow<ImportRiskDto>> Rows) : ICommand<Guid>;
+public sealed record ImportRisksCommand(IReadOnlyList<SubmittedImportRow<ImportRiskDto>> Rows, Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, not the file they arrived in.
@@ -67,6 +67,6 @@ public sealed class ImportRisksCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(RiskImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(RiskImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

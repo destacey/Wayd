@@ -93,7 +93,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -117,7 +117,7 @@ public class TeamsController(
                 rows.Add(new SubmittedImportRow<ImportTeamDto>(team.ImportId, team.ToImportTeamDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportTeamsCommand(rows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamsCommand(rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -136,7 +136,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportMembers([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportMembers([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -161,7 +161,7 @@ public class TeamsController(
                     member.ImportId, member.ToImportTeamMemberDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportTeamMembersCommand(rows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamMembersCommand(rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -180,7 +180,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -205,7 +205,7 @@ public class TeamsController(
                     membership.ImportId, membership.ToImportTeamMembershipDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(rows), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(rows, submissionGroupId), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

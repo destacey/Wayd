@@ -14,7 +14,8 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 /// validates each row's shape, then hands the parsed rows here.
 /// </remarks>
 public sealed record ImportStrategicThemesCommand(
-    IReadOnlyList<SubmittedImportRow<ImportStrategicThemeDto>> Rows) : ICommand<Guid>;
+    IReadOnlyList<SubmittedImportRow<ImportStrategicThemeDto>> Rows,
+    Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -63,6 +64,6 @@ public sealed class ImportStrategicThemesCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(StrategicThemeImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(StrategicThemeImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

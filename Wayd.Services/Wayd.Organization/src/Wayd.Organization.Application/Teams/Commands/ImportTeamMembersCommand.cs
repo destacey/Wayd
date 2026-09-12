@@ -15,7 +15,8 @@ namespace Wayd.Organization.Application.Teams.Commands;
 /// validates each row's shape, then hands the parsed rows here.
 /// </remarks>
 public sealed record ImportTeamMembersCommand(
-    IReadOnlyList<SubmittedImportRow<ImportTeamMemberDto>> Rows) : ICommand<Guid>;
+    IReadOnlyList<SubmittedImportRow<ImportTeamMemberDto>> Rows,
+    Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, not the file they arrived in.
@@ -61,6 +62,6 @@ public sealed class ImportTeamMembersCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(TeamMemberImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(TeamMemberImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

@@ -14,7 +14,7 @@ namespace Wayd.Organization.Application.Teams.Commands;
 /// The application boundary for this import. A controller parses the file, checks the permission and
 /// validates each row's shape, then hands the parsed rows here.
 /// </remarks>
-public sealed record ImportTeamsCommand(IReadOnlyList<SubmittedImportRow<ImportTeamDto>> Rows) : ICommand<Guid>;
+public sealed record ImportTeamsCommand(IReadOnlyList<SubmittedImportRow<ImportTeamDto>> Rows, Guid? SubmissionGroupId = null) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the two things that are true of a file rather than of any row.
@@ -65,6 +65,6 @@ public sealed class ImportTeamsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(TeamImportDefinition.ImportKey, rows), cancellationToken);
+            new SubmitImportCommand(TeamImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
     }
 }

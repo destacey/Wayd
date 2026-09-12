@@ -37206,10 +37206,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// Submit a csv file of planning interval objectives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
+        /// <remarks>
+        /// Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid id, System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -40280,14 +40283,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// Submit a csv file of planning interval objectives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
+        /// <remarks>
+        /// Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid id, System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
-
             var client_ = _httpClient;
             var disposeClient_ = false;
             try
@@ -40314,10 +40317,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/planning/planning-intervals/{id}/objectives/import"
-                    urlBuilder_.Append("api/planning/planning-intervals/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/objectives/import");
+                    // Operation Path: "api/planning/planning-intervals/objectives/import"
+                    urlBuilder_.Append("api/planning/planning-intervals/objectives/import");
                     urlBuilder_.Append('?');
                     if (submissionGroupId != null)
                     {

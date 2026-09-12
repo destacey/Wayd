@@ -22310,15 +22310,12 @@ export class PlanningIntervalsClient {
     }
 
     /**
-     * Submit a csv file of objectives for a planning interval. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * Submit a csv file of planning interval objectives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
      * @param file (optional) 
      */
-    importObjectives(id: string, submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
-        let url_ = this.baseUrl + "/api/planning/planning-intervals/{id}/objectives/import?";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    importObjectives(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/planning/planning-intervals/objectives/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
         url_ = url_.replace(/[?&]$/, "");

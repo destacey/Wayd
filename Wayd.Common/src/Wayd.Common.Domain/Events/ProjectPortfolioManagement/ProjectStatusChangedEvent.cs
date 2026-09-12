@@ -22,7 +22,9 @@ public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
 {
     [JsonConstructor]
     public ProjectStatusChangedEvent(
-        Guid statusHistoryId,
+        // Named for the EventId property it binds to; any other name fails deserialization. The value is the
+        // ProjectStatusHistory row's id.
+        Guid eventId,
         Guid id,
         ProjectKey key,
         string name,
@@ -37,7 +39,7 @@ public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
         Instant timestamp)
         : base(actor, "1.0")
     {
-        EventId = statusHistoryId;
+        EventId = eventId;
 
         Id = id;
         Key = key;

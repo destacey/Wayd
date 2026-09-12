@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Flex, Typography } from 'antd'
+import { Button, Flex, Tooltip, Typography } from 'antd'
+import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import PageTitle from '@/src/components/common/page-title'
@@ -11,9 +12,11 @@ import {
   createActionsColumn,
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import { useDocumentTitle } from '@/src/hooks'
-import { ImportProcessDto, ImportProcessStatus } from '@/src/services/wayd-api'
+import { ImportProcessStatus } from '@/src/services/wayd-api'
 import { useGetImportProcessesQuery } from '@/src/store/features/admin/imports-api'
+import { buildImportRows, ImportListRow } from './_components/import-groups'
 import {
   ImportStatusTag,
   importStatusLabel,
@@ -67,16 +70,17 @@ const ImportsPage = () => {
   const rejectedRowCount =
     imports?.reduce((total, i) => total + i.failedRowCount, 0) ?? 0
 
-  const columns = useMemo<ColumnDef<ImportProcessDto, any>[]>(() => {
+  const columns = useMemo<ColumnDef<ImportListRow, any>[]>(() => {
     return [
-      createActionsColumn<ImportProcessDto>({
+      createActionsColumn<ImportListRow>({
         ariaLabel: 'Import actions',
         getItems: (importProcess) => {
           const items: ItemType[] = []
 
           // Seeing a run and acting on it are separate grants: someone overseeing every import type
           // reads this row but may not change the records it created. The server refuses either way;
-          // this keeps the menu from offering what it would refuse.
+          // this keeps the menu from offering what it would refuse. A batch rollup never manages:
+          // stop, resume and retry each act on one run, and those sit beneath it.
           if (!importProcess.canManage) return items
 
           if (isRunning(importProcess.status)) {
@@ -113,13 +117,59 @@ const ImportsPage = () => {
         id: 'displayName',
         accessorKey: 'displayName',
         header: 'Import',
-        size: 200,
+        size: 240,
         meta: { filterType: 'set' },
+        // The grid renders tree rows flat and leaves depth to the cell, so this column draws the
+        // indent and the expander itself. A rollup has no page of its own: it is the runs beneath it.
         cell: ({ row }) => (
-          <Link href={`/settings/imports/${row.original.id}`}>
-            {row.original.displayName}
-          </Link>
+          <Flex align="center" gap={0} className={treeGridStyles.nameCell}>
+            {Array.from({ length: row.depth }).map((_, index) => (
+              <span key={index} className={treeGridStyles.indentSpacer} />
+            ))}
+            {row.getCanExpand() ? (
+              <Button
+                type="text"
+                size="small"
+                icon={
+                  row.getIsExpanded() ? (
+                    <CaretDownOutlined />
+                  ) : (
+                    <CaretRightOutlined />
+                  )
+                }
+                onClick={row.getToggleExpandedHandler()}
+                className={treeGridStyles.expanderBtn}
+                aria-label={row.getIsExpanded() ? 'Collapse batch' : 'Expand batch'}
+              />
+            ) : (
+              <span className={treeGridStyles.indentSpacer} />
+            )}
+            {row.original.isGroup ? (
+              <Typography.Text strong>{row.original.displayName}</Typography.Text>
+            ) : (
+              <Link href={`/settings/imports/${row.original.id}`}>
+                {row.original.displayName}
+              </Link>
+            )}
+          </Flex>
         ),
+      },
+      {
+        id: 'submissionGroupId',
+        accessorKey: 'submissionGroupId',
+        header: 'Batch',
+        size: 110,
+        meta: { filterType: 'set' },
+        // The id is the caller's; the short form is enough to tell batches apart, and the full
+        // value is what a script filtering the API would paste.
+        cell: ({ row }) =>
+          row.original.submissionGroupId ? (
+            <Tooltip title={row.original.submissionGroupId}>
+              <Typography.Text code>
+                {row.original.submissionGroupId.slice(0, 8)}
+              </Typography.Text>
+            </Tooltip>
+          ) : null,
       },
       {
         id: 'status',
@@ -185,6 +235,10 @@ const ImportsPage = () => {
 
   const overflow = data && data.totalCount > (imports?.length ?? 0)
 
+  // Runs posted together fold under one rollup row, collapsed: the batch's outcome is what the
+  // reader came for, and its files are a click away.
+  const rows = useMemo(() => buildImportRows(imports), [imports])
+
   return (
     <div className="page-gutters">
       <PageTitle title="Imports" />
@@ -214,9 +268,11 @@ const ImportsPage = () => {
           tooltip="Rows rejected across every import shown. A rejected row changed nothing — its data is kept so it can be retried, until the import passes its 30-day retention window."
         />
       </Flex>
-      <WaydGrid
+      <WaydGrid<ImportListRow>
         columns={columns}
-        data={imports}
+        data={rows}
+        getSubRows={(row) => row.children}
+        initialExpanded={false}
         onRefresh={refetch}
         isLoading={isLoading}
         persistStateKey="settings-imports"

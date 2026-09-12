@@ -728,6 +728,7 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     getRowActivateLabel,
     onRowReorder,
     getSubRows,
+    initialExpanded = true,
     enableDragAndDrop = false,
     onNodeMove,
     onMoveRejected,
@@ -1440,7 +1441,7 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
         ? {
             getSubRows,
             filterFromLeafRows: true,
-            initialState: { expanded: true as const },
+            initialState: { expanded: initialExpanded ? (true as const) : {} },
           }
         : {}),
       ...(onRowSelectionChange ? { onRowSelectionChange } : {}),

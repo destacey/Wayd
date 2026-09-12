@@ -4,10 +4,53 @@ import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { formatDateTime } from '@/src/components/common/wayd-grid'
 import { ImportAtomicity, ImportProcessDto } from '@/src/services/wayd-api'
-import { Flex, Tooltip } from 'antd'
+import { useGetImportProcessesQuery } from '@/src/store/features/admin/imports-api'
+import { Flex, Tooltip, Typography } from 'antd'
+import Link from 'next/link'
+import { ImportStatusTag } from './import-status-tag'
 
 export interface ImportFactsProps {
   importProcess: ImportProcessDto
+}
+
+// A batch is a seed's fifteen files or a split export's handful; the list cap is well past either.
+const GROUP_PAGE_SIZE = 100
+
+/**
+ * The other runs of the batch this one was submitted in, so a reader can step through a seed or a
+ * split export from any of its files without going back to the list.
+ */
+const SubmittedWith = ({ importProcess }: ImportFactsProps) => {
+  const { data } = useGetImportProcessesQuery(
+    {
+      submissionGroupId: importProcess.submissionGroupId,
+      pageSize: GROUP_PAGE_SIZE,
+    },
+    { skip: !importProcess.submissionGroupId },
+  )
+
+  if (!importProcess.submissionGroupId) return null
+
+  const others = data?.processes?.filter((p) => p.id !== importProcess.id) ?? []
+
+  return (
+    <RecordFactsGroup label="Submitted With">
+      <Flex vertical gap={6}>
+        {others.length === 0 ? (
+          <Typography.Text type="secondary">
+            No other imports in this batch.
+          </Typography.Text>
+        ) : (
+          others.map((other) => (
+            <Flex key={other.id} gap={8} align="center" wrap>
+              <Link href={`/settings/imports/${other.id}`}>{other.displayName}</Link>
+              <ImportStatusTag status={other.status} />
+            </Flex>
+          ))
+        )}
+      </Flex>
+    </RecordFactsGroup>
+  )
 }
 
 /**
@@ -49,6 +92,8 @@ const ImportFacts = ({ importProcess }: ImportFactsProps) => (
         </LabeledContent>
       </Flex>
     </RecordFactsGroup>
+
+    <SubmittedWith importProcess={importProcess} />
   </>
 )
 

@@ -15,6 +15,8 @@ export interface GetImportProcessesRequest {
   status?: ImportProcessStatus
   importType?: string
   submittedByUserId?: string
+  /** Only the runs of one batch — the files a caller posted together. */
+  submissionGroupId?: string
   pageNumber?: number
   pageSize?: number
 }
@@ -61,6 +63,7 @@ export const importsApi = apiSlice.injectEndpoints({
             request.status,
             request.importType,
             request.submittedByUserId,
+            request.submissionGroupId,
             request.pageNumber,
             request.pageSize,
           )

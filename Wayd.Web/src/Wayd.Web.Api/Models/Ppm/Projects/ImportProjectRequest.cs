@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Extensions.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
@@ -41,27 +41,27 @@ public sealed class ImportProjectRequest
     public string? ExpectedBenefits { get; set; }
 
     /// <summary>The timeline the project plans to run over.</summary>
-    public DateTime? Start { get; set; }
-    public DateTime? End { get; set; }
+    public DateOnly? Start { get; set; }
+    public DateOnly? End { get; set; }
 
     /// <summary>
     /// The date the project was proposed. Required on every row, and what the project's opening status
     /// history entry is dated — the audit stamp records when the file was uploaded, which is not the
     /// same thing.
     /// </summary>
-    public DateTime? CreatedOn { get; set; }
+    public DateOnly? CreatedOn { get; set; }
 
     /// <summary>
     /// The date the project became active. Required once the status is Active or Completed, optional on
     /// a canceled project, and rejected on one that never got that far.
     /// </summary>
-    public DateTime? ActivatedOn { get; set; }
+    public DateOnly? ActivatedOn { get; set; }
 
     /// <summary>
     /// The date the project was completed or canceled — the status says which. Required on those two
     /// statuses and rejected on the rest.
     /// </summary>
-    public DateTime? ClosedOn { get; set; }
+    public DateOnly? ClosedOn { get; set; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
@@ -85,13 +85,13 @@ public sealed class ImportProjectRequest
             ProjectLifecycleId,
             BusinessCase,
             ExpectedBenefits,
-            Start?.ToLocalDateTime().Date,
-            End?.ToLocalDateTime().Date,
+            Start?.ToLocalDate(),
+            End?.ToLocalDate(),
             // Required by the validator that runs before this mapping, so the row cannot reach here
             // without one.
-            CreatedOn!.Value.ToLocalDateTime().Date,
-            ActivatedOn?.ToLocalDateTime().Date,
-            ClosedOn?.ToLocalDateTime().Date,
+            CreatedOn!.Value.ToLocalDate(),
+            ActivatedOn?.ToLocalDate(),
+            ClosedOn?.ToLocalDate(),
             CsvList.SplitIds(StrategicThemes),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),

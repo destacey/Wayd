@@ -251,6 +251,7 @@ public static class ApplicationPermissions
         new("Create Planning Intervals", ApplicationAction.Create, ApplicationResource.PlanningIntervals, PlanningCategory),
         new("Update Planning Intervals", ApplicationAction.Update, ApplicationResource.PlanningIntervals, PlanningCategory),
         new("Delete Planning Intervals", ApplicationAction.Delete, ApplicationResource.PlanningIntervals, PlanningCategory),
+        new("Import Planning Intervals", ApplicationAction.Import, ApplicationResource.PlanningIntervals, PlanningCategory),
 
         new("View Planning Interval Objectives", ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives, PlanningCategory),
         new("Create, update, and delete Planning Interval Objectives", ApplicationAction.Manage, ApplicationResource.PlanningIntervalObjectives, PlanningCategory),

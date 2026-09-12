@@ -17354,6 +17354,96 @@
         ]
       }
     },
+    "/api/planning/planning-intervals/import": {
+      "post": {
+        "tags": [
+          "PlanningIntervals"
+        ],
+        "summary": "Submit a csv file of planning intervals to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "description": "One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.",
+        "operationId": "PlanningIntervals_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/planning/planning-intervals/{id}": {
       "put": {
         "tags": [

@@ -48,6 +48,7 @@ public sealed class ImportEndpointPermissionTests
         (typeof(TeamsController), nameof(TeamsController.Import), typeof(TeamImportDefinition)),
         (typeof(TeamsController), nameof(TeamsController.ImportMembers), typeof(TeamMemberImportDefinition)),
         (typeof(TeamsController), nameof(TeamsController.ImportTeamMemberships), typeof(TeamMembershipImportDefinition)),
+        (typeof(PlanningIntervalsController), nameof(PlanningIntervalsController.Import), typeof(PlanningIntervalImportDefinition)),
         (typeof(PlanningIntervalsController), nameof(PlanningIntervalsController.ImportObjectives), typeof(PlanningIntervalObjectiveImportDefinition)),
         (typeof(RisksController), nameof(RisksController.Import), typeof(RiskImportDefinition)),
         (typeof(PortfoliosController), nameof(PortfoliosController.Import), typeof(ProjectPortfolioImportDefinition)),

@@ -1,4 +1,4 @@
-﻿using NodaTime.Extensions;
+﻿using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
@@ -31,13 +31,13 @@ public sealed class ImportPortfolioRequest
     /// keeps no creation date beyond the audit stamp, which records when the file was uploaded — but the
     /// column is required now so that no file has to change on the day one is kept.
     /// </summary>
-    public DateTime? CreatedOn { get; set; }
+    public DateOnly? CreatedOn { get; set; }
 
     /// <summary>
     /// The date the portfolio was activated. Required unless the portfolio is Proposed. There is no
     /// closing date here: an import cannot close a portfolio, so the finalize import carries that one.
     /// </summary>
-    public DateTime? ActivatedOn { get; set; }
+    public DateOnly? ActivatedOn { get; set; }
 
     public string? Sponsors { get; set; }
     public string? Owners { get; set; }
@@ -52,8 +52,8 @@ public sealed class ImportPortfolioRequest
             Description,
             status,
             // Required by the validator that runs before this mapping.
-            CreatedOn!.Value.ToLocalDateTime().Date,
-            ActivatedOn?.ToLocalDateTime().Date,
+            CreatedOn!.Value.ToLocalDate(),
+            ActivatedOn?.ToLocalDate(),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
             CsvList.Split(Managers));

@@ -1,6 +1,6 @@
 ﻿using Wayd.Planning.Application.PlanningIntervals.Dtos;
+using Wayd.Common.Extensions;
 using Wayd.Planning.Domain.Enums;
-using NodaTime.Extensions;
 
 namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 
@@ -19,16 +19,16 @@ public class ImportPlanningIntervalObjectivesRequest
     public string? Description { get; set; }
     public int StatusId { get; set; }
     public double Progress { get; set; }
-    public DateTime? StartDate { get; set; }
-    public DateTime? TargetDate { get; set; }
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? TargetDate { get; set; }
     public bool IsStretch { get; set; }
     public DateTime? ClosedDateUtc { get; set; }
     public int? Order { get; set; }
 
     public ImportPlanningIntervalObjectiveDto ToImportPlanningIntervalObjectiveDto()
     {
-        LocalDate? startDate = StartDate?.ToLocalDateTime().Date;
-        LocalDate? targetDate = TargetDate?.ToLocalDateTime().Date;
+        LocalDate? startDate = StartDate?.ToLocalDate();
+        LocalDate? targetDate = TargetDate?.ToLocalDate();
         Instant? closedDateUtc = ClosedDateUtc.HasValue ? Instant.FromDateTimeUtc(DateTime.SpecifyKind(ClosedDateUtc.Value, DateTimeKind.Utc)) : null;
         return new ImportPlanningIntervalObjectiveDto(PlanningIntervalId, TeamId, Name, Description, (ObjectiveStatus)StatusId, Progress, startDate, targetDate, IsStretch, closedDateUtc, Order);
     }

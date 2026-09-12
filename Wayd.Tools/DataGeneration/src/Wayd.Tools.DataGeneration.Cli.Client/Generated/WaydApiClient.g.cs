@@ -11608,6 +11608,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Submit a csv file of deployment environments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row is created active unless IsActive is false, in which case it is created and then retired — for the environments a historical backfill's deployments still point at.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a deployment environment.
         /// </summary>
         /// <remarks>
@@ -11825,6 +11835,133 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of deployment environments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row is created active unless IsActive is false, in which case it is created and then retired — for the environments a historical backfill's deployments still point at.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/deployment-environments/import"
+                    urlBuilder_.Append("api/product-management/deployment-environments/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -12225,6 +12362,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of deployments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row names its version or package by id and its environment by name, and is walked to the outcome it describes with the timestamps it carries: no outcome leaves it in flight, Succeeded and Failed complete it, and RolledBack records a success and then the rollback. A build number is never resolved to a version.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -12772,6 +12919,133 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of deployments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row names its version or package by id and its environment by name, and is walked to the outcome it describes with the timestamps it carries: no outcome leaves it in flight, Succeeded and Failed complete it, and RolledBack records a success and then the rollback. A build number is never resolved to a version.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/deployments/import"
+                    urlBuilder_.Append("api/product-management/deployments/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -36748,6 +37022,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Submit a csv file of planning intervals to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a planning interval.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -37461,6 +37745,133 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of planning intervals to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/planning-intervals/import"
+                    urlBuilder_.Append("api/planning/planning-intervals/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {

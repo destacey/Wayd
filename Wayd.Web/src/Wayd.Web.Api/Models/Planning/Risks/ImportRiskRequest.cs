@@ -1,7 +1,7 @@
 ﻿using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.Risks.Dtos;
+using Wayd.Common.Extensions;
 using Wayd.Planning.Domain.Enums;
-using NodaTime.Extensions;
 
 namespace Wayd.Web.Api.Models.Planning.Risks;
 
@@ -23,7 +23,7 @@ public class ImportRiskRequest
     public int ImpactId { get; set; }
     public int LikelihoodId { get; set; }
     public Guid? AssigneeId { get; set; }
-    public DateTime? FollowUpDate { get; set; }
+    public DateOnly? FollowUpDate { get; set; }
     public string? Response { get; set; }
     public DateTime? ClosedDateUtc { get; set; }
 
@@ -31,7 +31,7 @@ public class ImportRiskRequest
     {
         Instant reportedOn = Instant.FromDateTimeUtc(DateTime.SpecifyKind(ReportedOnUtc, DateTimeKind.Utc));
         Instant? closedDate = ClosedDateUtc.HasValue ? Instant.FromDateTimeUtc(DateTime.SpecifyKind(ClosedDateUtc.Value, DateTimeKind.Utc)) : null;
-        LocalDate? followUpDate = FollowUpDate?.ToLocalDateTime().Date;
+        LocalDate? followUpDate = FollowUpDate?.ToLocalDate();
 
         return new ImportRiskDto(Summary, Description, TeamId, reportedOn, ReportedById, (RiskStatus)StatusId, (RiskCategory)CategoryId, (RiskGrade)ImpactId, (RiskGrade)LikelihoodId, AssigneeId, followUpDate, Response, closedDate);
     }

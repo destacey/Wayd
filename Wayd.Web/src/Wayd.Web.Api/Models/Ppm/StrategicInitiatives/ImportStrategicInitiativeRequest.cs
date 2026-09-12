@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -27,8 +27,8 @@ public sealed class ImportStrategicInitiativeRequest
     /// <summary>The initiative's status. Defaults to Active when the column is absent.</summary>
     public string Status { get; set; } = nameof(StrategicInitiativeStatus.Active);
 
-    public DateTime Start { get; set; }
-    public DateTime End { get; set; }
+    public DateOnly Start { get; set; }
+    public DateOnly End { get; set; }
 
     /// <summary>Semicolon-separated project keys the initiative delivers through.</summary>
     public string? ProjectKeys { get; set; }
@@ -46,8 +46,8 @@ public sealed class ImportStrategicInitiativeRequest
             Description,
             status,
             PortfolioId,
-            Start.ToLocalDateTime().Date,
-            End.ToLocalDateTime().Date,
+            Start.ToLocalDate(),
+            End.ToLocalDate(),
             CsvList.Split(ProjectKeys),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),

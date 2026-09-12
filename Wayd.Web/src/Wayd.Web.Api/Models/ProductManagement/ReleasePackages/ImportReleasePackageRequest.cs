@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.ReleasePackages.Dtos;
 
@@ -25,17 +25,17 @@ public sealed class ImportReleasePackageRequest
 
     public string? Name { get; set; }
 
-    public DateTime? TargetDate { get; set; }
+    public DateOnly? TargetDate { get; set; }
 
     /// <summary>When the package shipped. Supplying it makes the package Released.</summary>
-    public DateTime? ReleasedDate { get; set; }
+    public DateOnly? ReleasedDate { get; set; }
 
     public ImportReleasePackageDto ToImportReleasePackageDto(
         IReadOnlyList<ImportReleasePackageComponentDto> components) =>
         new(Version,
             Name,
-            TargetDate?.ToLocalDateTime().Date,
-            ReleasedDate?.ToLocalDateTime().Date,
+            TargetDate?.ToLocalDate(),
+            ReleasedDate?.ToLocalDate(),
             components);
 }
 

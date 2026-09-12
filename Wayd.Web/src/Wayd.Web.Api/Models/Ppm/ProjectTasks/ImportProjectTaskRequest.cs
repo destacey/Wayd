@@ -1,4 +1,4 @@
-using NodaTime.Extensions;
+using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Extensions.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
@@ -44,11 +44,11 @@ public sealed class ImportProjectTaskRequest
     public decimal? Progress { get; set; }
 
     /// <summary>Planned start, for tasks. Milestones use PlannedDate instead.</summary>
-    public DateTime? PlannedStart { get; set; }
-    public DateTime? PlannedEnd { get; set; }
+    public DateOnly? PlannedStart { get; set; }
+    public DateOnly? PlannedEnd { get; set; }
 
     /// <summary>The milestone's date. Only for milestones.</summary>
-    public DateTime? PlannedDate { get; set; }
+    public DateOnly? PlannedDate { get; set; }
 
     public decimal? EstimatedEffortHours { get; set; }
 
@@ -72,9 +72,9 @@ public sealed class ImportProjectTaskRequest
             string.IsNullOrWhiteSpace(ParentImportId) ? null : ParentImportId,
             ParentTaskId,
             Progress,
-            PlannedStart?.ToLocalDateTime().Date,
-            PlannedEnd?.ToLocalDateTime().Date,
-            PlannedDate?.ToLocalDateTime().Date,
+            PlannedStart?.ToLocalDate(),
+            PlannedEnd?.ToLocalDate(),
+            PlannedDate?.ToLocalDate(),
             EstimatedEffortHours,
             CsvList.Split(Assignees));
     }

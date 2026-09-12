@@ -53,7 +53,8 @@ A few rules apply to every import:
 - **Multi-value columns are semicolon-separated.** Columns that hold a list (role assignments, strategic
   themes, project keys) separate their values with semicolons — for example `E-1001;E-1002`. A comma would
   collide with the CSV field delimiter.
-- **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
+- **Dates are ISO `yyyy-MM-dd`.** A date column takes a date, not a timestamp: a cell carrying a time
+  is rejected rather than truncated.
 - **Transition dates say when a record moved, and are separate from its timeline.** `CreatedOn`,
   `ActivatedOn` and `ClosedOn` record when the record reached each status; `Start`/`End`, where a record has
   them, are the timeline it plans to run over. A project that overran closed after the end it planned for, so

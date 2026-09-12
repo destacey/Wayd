@@ -1,8 +1,8 @@
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Extensions.Organizations;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Extensions;
 using Wayd.Organization.Application.Teams.Dtos;
-using NodaTime.Extensions;
 
 namespace Wayd.Web.Api.Models.Organizations.Teams;
 
@@ -23,19 +23,19 @@ public sealed class ImportTeamRequest
     public string Name { get; set; } = default!;
     public string Code { get; set; } = default!;
     public string? Description { get; set; }
-    public DateTime ActiveDate { get; set; }
+    public DateOnly ActiveDate { get; set; }
 
     /// <summary>Whether the team is currently active. Defaults to true when the column is absent.</summary>
     public bool IsActive { get; set; } = true;
 
     /// <summary>When the team was retired. Required when <see cref="IsActive"/> is false; must be after <see cref="ActiveDate"/>.</summary>
-    public DateTime? InactiveDate { get; set; }
+    public DateOnly? InactiveDate { get; set; }
 
     public ImportTeamDto ToImportTeamDto()
     {
         var teamType = Enum.Parse<TeamType>(Type.Trim(), ignoreCase: true);
-        var activeDate = ActiveDate.ToLocalDateTime().Date;
-        var inactiveDate = InactiveDate?.ToLocalDateTime().Date;
+        var activeDate = ActiveDate.ToLocalDate();
+        var inactiveDate = InactiveDate?.ToLocalDate();
 
         return new ImportTeamDto(teamType, Name, (TeamCode)Code, Description, activeDate, IsActive, inactiveDate);
     }

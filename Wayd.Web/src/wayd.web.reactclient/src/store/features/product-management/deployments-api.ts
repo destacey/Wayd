@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   DeploymentDto,
   FailDeploymentRequest,
+  ImportProcessDto,
   ObjectIdAndKey,
   RollBackDeploymentRequest,
   StartDeploymentRequest,
@@ -108,6 +109,31 @@ export const deploymentsApi = apiSlice.injectEndpoints({
         { type: QueryTags.DeliveryMetrics, id: 'LIST' },
       ],
     }),
+    // The generated client takes a FileParameter, so the caller hands over the browser File and its
+    // name travels with it.
+    importDeployments: builder.mutation<ImportProcessDto, File>({
+      queryFn: async (file) => {
+        try {
+          // A file uploaded from the app is submitted on its own, under no group.
+          const data = await getDeploymentsClient().import(undefined, {
+            data: file,
+            fileName: file.name,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // An import writes many deployments at once, so the list and the measures computed from it are
+      // refetched rather than patched. They only have them if the run finished within the wait; one
+      // still running refreshes them from its import page.
+      invalidatesTags: () => [
+        { type: QueryTags.Deployment, id: 'LIST' },
+        { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+        QueryTags.ImportProcess,
+      ],
+    }),
     succeedDeployment: builder.mutation<
       void,
       { id: string; cacheKey: number; request: SucceedDeploymentRequest }
@@ -186,6 +212,7 @@ export const {
   useGetDeploymentQuery,
   useGetDeploymentStatusHistoryQuery,
   useStartDeploymentMutation,
+  useImportDeploymentsMutation,
   useSucceedDeploymentMutation,
   useFailDeploymentMutation,
   useRollBackDeploymentMutation,

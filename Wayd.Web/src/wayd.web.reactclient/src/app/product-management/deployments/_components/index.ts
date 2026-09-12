@@ -3,6 +3,8 @@ export type { DeploymentsGridProps } from './deployments-grid'
 export { buildDeploymentColumns } from './deployments-grid'
 export { default as StartDeploymentForm } from './start-deployment-form'
 export type { StartDeploymentFormProps } from './start-deployment-form'
+export { default as ImportDeploymentsForm } from './import-deployments-form'
+export type { ImportDeploymentsFormProps } from './import-deployments-form'
 export { default as CompleteDeploymentForm } from './complete-deployment-form'
 export type {
   CompleteDeploymentFormProps,

@@ -12,7 +12,11 @@ import { useGetDeploymentsQuery } from '@/src/store/features/product-management/
 import { Button, DatePicker, Flex, Select, Space } from 'antd'
 import { Dayjs } from 'dayjs'
 import { FC, useEffect, useState } from 'react'
-import { DeploymentsGrid, StartDeploymentForm } from './_components'
+import {
+  DeploymentsGrid,
+  ImportDeploymentsForm,
+  StartDeploymentForm,
+} from './_components'
 
 /**
  * The wire value for each category.
@@ -32,6 +36,7 @@ const environmentCategoryValue: Record<EnvironmentCategory, number> = {
 const DeploymentsPage: FC = () => {
   useDocumentTitle('Deployments')
   const [openStartForm, setOpenStartForm] = useState<boolean>(false)
+  const [openImportForm, setOpenImportForm] = useState<boolean>(false)
   const [environmentId, setEnvironmentId] = useState<string | undefined>()
   const [environmentCategory, setEnvironmentCategory] = useState<
     EnvironmentCategory | undefined
@@ -42,6 +47,7 @@ const DeploymentsPage: FC = () => {
 
   const { hasPermissionClaim } = useAuth()
   const canCreateDeployment = hasPermissionClaim('Permissions.Delivery.Create')
+  const canImportDeployments = hasPermissionClaim('Permissions.Delivery.Import')
 
   // Filtered server-side rather than in the grid: the deployment record grows without bound, and the
   // date filter in particular is what keeps a long-lived environment's history from being fetched
@@ -70,13 +76,30 @@ const DeploymentsPage: FC = () => {
     }
   }, [error, messageApi])
 
-  const actions = !canCreateDeployment ? null : (
-    <Button onClick={() => setOpenStartForm(true)}>Start Deployment</Button>
-  )
+  const actions =
+    !canCreateDeployment && !canImportDeployments ? null : (
+      <Space>
+        {canImportDeployments && (
+          <Button onClick={() => setOpenImportForm(true)}>Import</Button>
+        )}
+        {canCreateDeployment && (
+          <Button onClick={() => setOpenStartForm(true)}>
+            Start Deployment
+          </Button>
+        )}
+      </Space>
+    )
 
   const onStartFormClosed = (wasStarted: boolean) => {
     setOpenStartForm(false)
     if (wasStarted) {
+      refetch()
+    }
+  }
+
+  const onImportFormClosed = (wasImported: boolean) => {
+    setOpenImportForm(false)
+    if (wasImported) {
       refetch()
     }
   }
@@ -135,6 +158,12 @@ const DeploymentsPage: FC = () => {
         <StartDeploymentForm
           onFormComplete={() => onStartFormClosed(true)}
           onFormCancel={() => onStartFormClosed(false)}
+        />
+      )}
+      {openImportForm && (
+        <ImportDeploymentsForm
+          onFormComplete={() => onImportFormClosed(true)}
+          onFormCancel={() => onImportFormClosed(false)}
         />
       )}
     </div>

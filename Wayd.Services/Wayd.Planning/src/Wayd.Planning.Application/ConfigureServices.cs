@@ -15,6 +15,7 @@ public static class ConfigureServices
 
         services.AddValidatorsFromAssembly(assembly);
 
+        services.AddScoped<IImportDefinition, PlanningIntervalImportDefinition>();
         services.AddScoped<IImportDefinition, PlanningIntervalObjectiveImportDefinition>();
         services.AddScoped<IImportDefinition, RiskImportDefinition>();
 

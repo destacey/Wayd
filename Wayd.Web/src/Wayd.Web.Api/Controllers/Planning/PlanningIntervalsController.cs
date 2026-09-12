@@ -109,6 +109,56 @@ public class PlanningIntervalsController : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.PlanningIntervals)]
+    [OpenApiOperation(
+        "Submit a csv file of planning intervals to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedPlanningIntervals = _csvService.ReadCsv<ImportPlanningIntervalRequest>(file.OpenReadStream());
+
+            List<SubmittedImportRow<ImportPlanningIntervalDto>> rows = [];
+            var validator = new ImportPlanningIntervalRequestValidator();
+            foreach (var planningInterval in importedPlanningIntervals)
+            {
+                // The same key the run will know this row by, so a file without the column still names a
+                // row the reader can find rather than an empty id.
+                var key = SubmittedImportRow.KeyFor(planningInterval.ImportId, rows.Count + 1);
+
+                var validationResults = await validator.ValidateAsync(planningInterval, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Import Id: {key})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportPlanningIntervalDto>(
+                    planningInterval.ImportId, planningInterval.ToImportPlanningIntervalDto()));
+            }
+
+            var result = await _dispatcher.Send(new ImportPlanningIntervalsCommand(rows, submissionGroupId), cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
+    }
+
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PlanningIntervals)]
     [OpenApiOperation("Update a planning interval.", "")]

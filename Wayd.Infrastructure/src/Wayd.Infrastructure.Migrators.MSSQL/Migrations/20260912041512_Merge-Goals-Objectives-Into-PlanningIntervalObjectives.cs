@@ -101,7 +101,8 @@ public partial class MergeGoalsObjectivesIntoPlanningIntervalObjectives : Migrat
         //    whether the objective is live, and a soft-deleted Goals row behind a live PI row still
         //    holds its name. Status is not copied — the PI row already carries the status the app shows.
         //    A PI row with no Goals row behind it (the old two-step create could leave one when the
-        //    second save failed) gets a placeholder name so the column can be made NOT NULL.
+        //    second save failed), or whose Goals name is blank, gets a placeholder name: the entity
+        //    rejects a blank name on load, so a blank copied through would make the row unreadable.
         //
         //    Audit rows mirror what AuditTrail.ToAuditTrail writes: TableName is the CLR entity name,
         //    PrimaryKey/OldValues/NewValues are camelCase JSON with lowercase GUIDs and nulls omitted,
@@ -114,7 +115,7 @@ public partial class MergeGoalsObjectivesIntoPlanningIntervalObjectives : Migrat
                     po.[Id],
                     po.[Key],
                     CASE WHEN o.[Id] IS NULL THEN 0 ELSE 1 END AS Matched,
-                    ISNULL(o.[Name], N'Objective ' + CAST(po.[Key] AS nvarchar(20))) AS [Name],
+                    ISNULL(NULLIF(LTRIM(RTRIM(o.[Name])), N''), N'Objective ' + CAST(po.[Key] AS nvarchar(20))) AS [Name],
                     o.[Description],
                     ISNULL(o.[Progress], 0.0) AS [Progress],
                     o.[StartDate],

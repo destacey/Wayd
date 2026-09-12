@@ -29,8 +29,10 @@ public sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlannin
     {
         try
         {
+            var objectiveIds = request.Objectives.Keys.ToList();
+
             var planningInterval = await _planningDbContext.PlanningIntervals
-                .Include(p => p.Objectives.Where(o => request.Objectives.Keys.Contains(o.Id)))
+                .Include(p => p.Objectives.Where(o => objectiveIds.Contains(o.Id)))
                 .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
 
             if (planningInterval is null)

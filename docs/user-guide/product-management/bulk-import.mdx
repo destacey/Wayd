@@ -33,6 +33,11 @@ A few rules apply to every import:
   `Location` to follow. Either way the body is the same run, and its page under
   [Settings → Imports](../settings/imports.mdx) shows what became of each row. Importing from the app
   tells you the outcome in the dialog, and takes you to that page when a file is still running.
+- **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
+  query parameter — any GUID you choose — and records it on the run, so a set of files posted under one
+  value shows as one batch in [Settings → Imports](../settings/imports.mdx#what-you-see), with summed
+  counts and each run's page linking to the others. Leave it out to submit a file on its own. An empty
+  GUID is rejected rather than treated as a group.
 - **`ImportId` is an optional column, and it is yours.** Any value you like — a row number, a key from
   whatever system the file came out of — provided it is unique within the one file, compared
   case-insensitively. Row outcomes are reported against it, rows reference each other by it (a child
@@ -102,6 +107,20 @@ carries its released date. Every record reaches its final state in one pass.
 | Versions | Import Delivery |
 | Release packages | Import Delivery |
 | Releases | Import Releases |
+
+## Limits
+
+Every import here is all-or-nothing and accepts at most **10,000 rows per file** — one file is one
+database transaction, and the cap bounds it. For the two-file imports (packages with their manifest,
+releases with their contents) the cap applies to the first file; the second is read alongside it. A file
+over the cap is rejected before anything is queued, with a message naming the cap.
+
+Splitting a larger products file has a rule of its own: a child names its parent's `ImportId` in the same
+file, so split on **top-level products**, keeping each tree whole. Post the parts one at a time, waiting
+for each run; one `submissionGroupId` across them keeps the runs findable as one import.
+
+The rules every file shares — request size, `ImportId` length, how long the post waits, retries, stalls
+and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
 
 ---
 

@@ -166,21 +166,19 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// </summary>
     /// <remarks>
     /// Raises nothing when every value already matches, so an unedited save records no change. Compares
-    /// trimmed input because the setters trim.
+    /// after assignment because the setters trim.
     /// </remarks>
     public Result UpdateDetails(string name, string? description, EventActor actor, Instant timestamp)
     {
-        var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
-        var newDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        var previous = (Name, Description);
 
-        if (string.Equals(Name, newName, StringComparison.Ordinal)
-            && string.Equals(Description, newDescription, StringComparison.Ordinal))
+        Name = name;
+        Description = description;
+
+        if ((Name, Description) == previous)
         {
             return Result.Success();
         }
-
-        Name = newName;
-        Description = newDescription;
 
         AddDomainEvent(new ProductDetailsUpdatedEvent(Id, Key, Name, Description, ExternalId, actor, timestamp));
 

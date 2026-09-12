@@ -126,26 +126,21 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     /// Updates the version number, name, notes or ordering sequence.
     /// </summary>
     /// <remarks>
-    /// Raises nothing when every value already matches. Compares trimmed input because the setters trim.
+    /// Raises nothing when every value already matches. Compares after assignment because the setters trim.
     /// </remarks>
     public Result UpdateDetails(string number, string? name, string? notes, long? sequence, EventActor actor, Instant timestamp)
     {
-        var newNumber = Guard.Against.NullOrWhiteSpace(number, nameof(number)).Trim();
-        var newName = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
-        var newNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        var previous = (Number, Name, Notes, Sequence);
 
-        if (string.Equals(Number, newNumber, StringComparison.Ordinal)
-            && string.Equals(Name, newName, StringComparison.Ordinal)
-            && string.Equals(Notes, newNotes, StringComparison.Ordinal)
-            && Sequence == sequence)
+        Number = number;
+        Name = name;
+        Notes = notes;
+        Sequence = sequence;
+
+        if ((Number, Name, Notes, Sequence) == previous)
         {
             return Result.Success();
         }
-
-        Number = newNumber;
-        Name = newName;
-        Notes = newNotes;
-        Sequence = sequence;
 
         AddDomainEvent(new VersionDetailsUpdatedEvent(Id, Key, ProductId, Number, Name, Sequence, actor, timestamp));
 

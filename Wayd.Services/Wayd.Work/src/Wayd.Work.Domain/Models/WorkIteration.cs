@@ -1,5 +1,4 @@
-﻿using Ardalis.GuardClauses;
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
@@ -49,10 +48,7 @@ public sealed class WorkIteration : BaseEntity<Guid>, ISimpleIteration, IHasIdAn
             return Result.Failure("Iteration ID does not match.");
         }
 
-        if (!ValuesChanged(iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId))
-        {
-            return Result.Success();
-        }
+        var previous = (Name, Type, State, DateRange, TeamId);
 
         Name = iteration.Name;
         Type = iteration.Type;
@@ -60,21 +56,13 @@ public sealed class WorkIteration : BaseEntity<Guid>, ISimpleIteration, IHasIdAn
         DateRange = iteration.DateRange;
         TeamId = iteration.TeamId;
 
+        if ((Name, Type, State, DateRange, TeamId) == previous)
+        {
+            return Result.Success();
+        }
+
         AddDomainEvent(new WorkIterationUpdatedEvent(this, actor, timestamp));
 
         return Result.Success();
-    }
-
-    private bool ValuesChanged(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId)
-    {
-        // Normalize and validate incoming values before comparing to current state
-        var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
-
-        if (Type != type) return true;
-        if (!EqualityComparer<IterationDateRange>.Default.Equals(DateRange, dateRange)) return true;
-        if (!string.Equals(Name, newName, StringComparison.Ordinal)) return true;
-        if (State != state) return true;
-        if (TeamId != teamId) return true;
-        return false;
     }
 }

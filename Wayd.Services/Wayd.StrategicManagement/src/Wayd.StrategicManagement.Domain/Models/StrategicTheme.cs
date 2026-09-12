@@ -60,8 +60,14 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     /// <returns></returns>
     public Result Update(string name, string description, EventActor actor, Instant timestamp)
     {
+        var previous = (Name, Description);
+
         Name = name;
         Description = description;
+
+        // Compared after assignment because the setters trim.
+        if ((Name, Description) == previous)
+            return Result.Success();
 
         AddDomainEvent(new StrategicThemeUpdatedEvent(this, actor, timestamp));
 

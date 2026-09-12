@@ -260,6 +260,23 @@ public class TeamTests
         team.DomainEvents.Should().ContainSingle(e => e is TeamUpdatedEvent);
     }
 
+    [Fact]
+    public void Update_WhenNothingChanged_RaisesNoEvent()
+    {
+        // Arrange — the values a whole-record save sends back, before the setters normalise them
+        var team = _teamFaker.Generate();
+        var name = $"{team.Name} ";
+        var code = new TeamCode(team.Code.Value.ToLower());
+        var description = $" {team.Description}";
+
+        // Act
+        var result = team.Update(name, code, description, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
     #endregion Update
 
 

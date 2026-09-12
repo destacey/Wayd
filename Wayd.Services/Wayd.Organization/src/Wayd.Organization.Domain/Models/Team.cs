@@ -98,11 +98,16 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     {
         try
         {
+            var previous = (Name, Code, Description);
+
             Name = name;
             Code = code;
             Description = description;
 
-            // Publish specific TeamUpdatedEvent immediately; Id is already set prior to updates
+            // Compared after assignment because the setters normalise.
+            if ((Name, Code, Description) == previous)
+                return Result.Success();
+
             AddDomainEvent(new TeamUpdatedEvent(Id, Code, Name, Description, actor, timestamp));
 
             return Result.Success();

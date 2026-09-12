@@ -103,9 +103,15 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
     {
         try
         {
+            var previous = (Name, Code, Description);
+
             Name = name;
             Code = code;
             Description = description;
+
+            // Compared after assignment because the setters normalise.
+            if ((Name, Code, Description) == previous)
+                return Result.Success();
 
             AddDomainEvent(new TeamUpdatedEvent(Id, Code, Name, Description, actor, timestamp));
 

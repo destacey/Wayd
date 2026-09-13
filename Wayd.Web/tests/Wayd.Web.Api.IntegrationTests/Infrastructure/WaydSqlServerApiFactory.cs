@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.MsSql;
+using Wayd.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Web.Api.Services;
 
@@ -165,10 +166,11 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
                 thrown.TryDequeue(out _);
         }
 
+        HttpClient client;
         AppDomain.CurrentDomain.FirstChanceException += Record;
         try
         {
-            _ = CreateClient();
+            client = CreateClient();
         }
         catch (Exception ex)
         {
@@ -179,15 +181,43 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             foreach (var exception in thrown)
                 report.AppendLine($"- {exception.GetType().FullName}: {exception.Message}").AppendLine(exception.StackTrace);
 
-            var (stdout, stderr) = await _container.GetLogsAsync();
-            report.AppendLine().AppendLine("SQL Server container log (tail):").AppendLine(Tail(stdout + stderr, 40));
-
-            throw new InvalidOperationException(report.ToString(), ex);
+            throw new InvalidOperationException(await AppendContainerLog(report), ex);
         }
         finally
         {
             AppDomain.CurrentDomain.FirstChanceException -= Record;
         }
+
+        await WaitUntilHealthy(client);
+    }
+
+    /// <summary>
+    /// Waits for the readiness endpoint, which includes the database check, so a host that started but
+    /// cannot reach its database fails here rather than in the first test to query it.
+    /// </summary>
+    private async Task WaitUntilHealthy(HttpClient client)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        var last = string.Empty;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            using var response = await client.GetAsync(ServiceEndpoints.HealthEndpointPath);
+            if (response.IsSuccessStatusCode)
+                return;
+
+            last = $"{(int)response.StatusCode} {await response.Content.ReadAsStringAsync()}";
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+        }
+
+        var report = new StringBuilder($"The API host started but {ServiceEndpoints.HealthEndpointPath} never reported healthy. Last response: {last}");
+        throw new InvalidOperationException(await AppendContainerLog(report));
+    }
+
+    private async Task<string> AppendContainerLog(StringBuilder report)
+    {
+        var (stdout, stderr) = await _container.GetLogsAsync();
+        return report.AppendLine().AppendLine("SQL Server container log (tail):").AppendLine(Tail(stdout + stderr, 40)).ToString();
     }
 
     private static async Task RetryTransient(string step, string connectionString, string commandText)

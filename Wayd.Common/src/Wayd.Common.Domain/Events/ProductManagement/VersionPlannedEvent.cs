@@ -7,8 +7,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A version was cut against a product node.
 /// </summary>
-public sealed record VersionPlannedEvent : DomainEvent, IProductManagementEvent
+public sealed record VersionPlannedEvent : DomainEvent<VersionPlannedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public VersionPlannedEvent(
         Guid id,
         int key,

@@ -21,8 +21,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// anyone reads the entry.
 /// </para>
 /// </remarks>
-public sealed record ProjectPortfolioScoringModelChangedEvent : DomainEvent, IPpmEvent
+public sealed record ProjectPortfolioScoringModelChangedEvent : DomainEvent<ProjectPortfolioScoringModelChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProjectPortfolioScoringModelChangedEvent(
         Guid id,

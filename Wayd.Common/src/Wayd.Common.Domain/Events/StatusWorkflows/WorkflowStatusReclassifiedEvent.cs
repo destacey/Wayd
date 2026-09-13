@@ -23,8 +23,10 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// with the status they point at, and moving those is a remap rather than an edit.
 /// </para>
 /// </remarks>
-public sealed record WorkflowStatusReclassifiedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkflowStatusReclassifiedEvent : DomainEvent<WorkflowStatusReclassifiedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public WorkflowStatusReclassifiedEvent(
         Guid workflowId,
         Guid statusId,

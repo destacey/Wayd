@@ -265,6 +265,12 @@ Name events for **what happened**, never a generic `Updated`, and match the doma
 `IProductManagementEvent`) so projections handle the marker rather than a hand-listed set that goes stale
 the day someone forgets to register a new type.
 
+Every event derives from `DomainEvent<TSelf>` and implements `IDomainEventDescriptor`, declaring
+`public static ActivityCategory ActivityCategory => ...;`. It is what the Activity section badges the entry
+as, recorded on `ActivityLogEntry.Category` — pick by what happened, not by the words in the name (see
+[Categorising an entry](docs/contributing/domain-events.mdx#categorising-an-entry)). Static so it never enters a
+payload; the self-typed base makes a missing one a compile error.
+
 **Designing an event or adding a field follows the steps in
 [domain-events.mdx](docs/contributing/domain-events.mdx#designing-an-event).** Name the part of the record that
 changed: edits to descriptive fields are a `DetailsUpdated` event, a transition is its own event, and a bare

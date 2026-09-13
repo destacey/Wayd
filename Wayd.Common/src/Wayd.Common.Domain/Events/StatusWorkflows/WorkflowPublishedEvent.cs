@@ -13,8 +13,10 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by WorkflowPublishedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record WorkflowPublishedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkflowPublishedEvent : DomainEvent<WorkflowPublishedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StateChanged;
+
     [JsonConstructor]
     public WorkflowPublishedEvent(Guid id, int key, string name, string ownerType, int statusCount, EventActor actor, Instant timestamp)
         : base(actor, "1.0")

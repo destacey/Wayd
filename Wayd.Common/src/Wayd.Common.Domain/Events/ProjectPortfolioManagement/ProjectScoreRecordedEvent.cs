@@ -14,8 +14,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// contract those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by ProjectScoreRecordedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record ProjectScoreRecordedEvent : DomainEvent, IPpmEvent
+public sealed record ProjectScoreRecordedEvent : DomainEvent<ProjectScoreRecordedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProjectScoreRecordedEvent(
         Guid id,

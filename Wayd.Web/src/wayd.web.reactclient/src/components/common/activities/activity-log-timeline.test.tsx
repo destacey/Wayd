@@ -1,7 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
-import { ActivityLogDto, EventActorKind } from '@/src/services/wayd-api'
+import {
+  ActivityCategory,
+  ActivityLogDto,
+  EventActorKind,
+} from '@/src/services/wayd-api'
 import ActivityLogTimeline from './activity-log-timeline'
 
 jest.mock('./export-activities-modal', () => {
@@ -15,7 +19,12 @@ jest.mock('./compare-payload-modal', () => {
   const MockCompareModal = ({ open }: any) =>
     open ? <div>Compare Event Payloads</div> : null
   MockCompareModal.displayName = 'MockCompareModal'
-  return MockCompareModal
+  return {
+    __esModule: true,
+    default: MockCompareModal,
+    isSameEventType: jest.requireActual('./compare-payload-modal')
+      .isSameEventType,
+  }
 })
 
 const createActivity = (
@@ -23,6 +32,7 @@ const createActivity = (
 ): ActivityLogDto => ({
   id: '11111111-1111-1111-1111-111111111111',
   eventType: 'TeamCreatedEvent',
+  category: ActivityCategory.Created,
   domainArea: 'Organization',
   aggregateType: 'Team',
   aggregateId: '22222222-2222-2222-2222-222222222222',
@@ -83,32 +93,43 @@ describe('ActivityLogTimeline', () => {
   })
 
   it.each([
-    // Activation and deactivation share a tag, so 'deactivated' containing 'activated' cannot label a
-    // deactivation as its opposite.
-    ['TeamDeactivatedEvent', 'State Change'],
-    ['TeamActivatedEvent', 'State Change'],
-    ['StrategicThemeArchivedEvent', 'State Change'],
-    ['WorkflowArchivedEventV2', 'State Change'],
-    ['ProjectStatusChangedEvent', 'Status Change'],
-    // A health check event also contains 'added' / 'removed'; the health signal has to win.
-    ['ProjectHealthCheckAddedEvent', 'Health'],
-    ['ProjectHealthCheckRemovedEvent', 'Health'],
-    ['TeamCreatedEvent', 'Created'],
-    ['VersionCutEvent', 'Created'],
-    // Destructive events stay scannable rather than reading like an ordinary edit.
-    ['ProjectDeletedEvent', 'Removed'],
-    ['DeploymentFailedEvent', 'Removed'],
-    ['TeamUpdatedEvent', 'Updated'],
-    ['ProjectTimelineChangedEvent', 'Updated'],
-  ])('badges %s as %s', (eventType, expectedBadge) => {
+    [ActivityCategory.Created, 'Created'],
+    [ActivityCategory.Updated, 'Updated'],
+    [ActivityCategory.ScheduleChanged, 'Schedule Change'],
+    [ActivityCategory.StatusChanged, 'Status Change'],
+    [ActivityCategory.StateChanged, 'State Change'],
+    [ActivityCategory.Health, 'Health'],
+    [ActivityCategory.Removed, 'Removed'],
+  ])('badges the %s category as %s', (category, expectedBadge) => {
     render(
       <ActivityLogTimeline
-        activities={[createActivity({ id: 'act-1', eventType })]}
+        activities={[createActivity({ id: 'act-1', category })]}
         isLoading={false}
       />,
     )
 
     expect(screen.getAllByText(expectedBadge).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('badges from the category, not from words in the event type', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 'act-1',
+            eventType: 'ProjectCreatedEvent',
+            summary: 'Project Opened',
+            category: ActivityCategory.StatusChanged,
+          }),
+        ]}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.getAllByText('Status Change').length).toBeGreaterThanOrEqual(
+      1,
+    )
+    expect(screen.queryByText('Created')).not.toBeInTheDocument()
   })
 
   it('selects the first activity by default and displays its properties in the inspector pane', () => {
@@ -261,6 +282,34 @@ describe('ActivityLogTimeline', () => {
     expect(screen.queryByText('Rollback Release')).not.toBeInTheDocument()
   })
 
+  it('matches a search against the badge an entry shows', async () => {
+    const user = userEvent.setup()
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        eventType: 'IterationDateRangeChangedEvent',
+        summary: 'Iteration Date Range Changed',
+        category: ActivityCategory.ScheduleChanged,
+      }),
+      createActivity({
+        id: 'act-2',
+        summary: 'Team Created',
+      }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    await user.type(
+      screen.getByPlaceholderText('Search events, actors, or types...'),
+      'schedule change',
+    )
+
+    expect(
+      screen.getAllByText('Iteration Date Range Changed').length,
+    ).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText('Team Created')).not.toBeInTheDocument()
+  })
+
   it('renders load more toolbar with remaining count and triggers callback on click', async () => {
     const user = userEvent.setup()
     const handleLoadMore = jest.fn()
@@ -397,13 +446,85 @@ describe('ActivityLogTimeline', () => {
     expect(screen.getByText('Export Activity History')).toBeInTheDocument()
   })
 
-  it('shows the compare action when a preceding event exists and opens the compare modal on click', async () => {
+  it('shows the compare action when an earlier event of the same type exists and opens the compare modal on click', async () => {
     const user = userEvent.setup()
     const activities = [
       createActivity({
+        id: 'act-3',
+        eventType: 'TeamDetailsUpdatedEvent',
+        summary: 'Team Details Updated',
+        timestamp: new Date('2026-04-01T11:00:00Z'),
+      }),
+      createActivity({
         id: 'act-2',
-        eventType: 'TeamUpdatedEvent',
-        summary: 'Team Updated',
+        eventType: 'TeamDeactivatedEvent',
+        summary: 'Team Deactivated',
+        timestamp: new Date('2026-04-01T10:00:00Z'),
+      }),
+      createActivity({
+        id: 'act-1',
+        eventType: 'TeamDetailsUpdatedEvent',
+        summary: 'Team Details Updated',
+        timestamp: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={3}
+        />
+      </App>,
+    )
+
+    // act-3 is selected by default; act-1 is the earlier event of its type
+    const compareButtons = screen.getAllByRole('button', {
+      name: /Compare changes/i,
+    })
+    expect(compareButtons).toHaveLength(1)
+
+    await user.click(compareButtons[0])
+    expect(screen.getByText('Compare Event Payloads')).toBeInTheDocument()
+  })
+
+  it('shows the compare action against an earlier version of the same event', () => {
+    const activities = [
+      createActivity({
+        id: 'act-2',
+        eventType: 'ProjectReparentedEventV2',
+        eventVersion: '2.0',
+        timestamp: new Date('2026-04-01T10:00:00Z'),
+      }),
+      createActivity({
+        id: 'act-1',
+        eventType: 'ProjectReparentedEvent',
+        timestamp: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={2}
+        />
+      </App>,
+    )
+
+    expect(
+      screen.getByRole('button', { name: /Compare changes/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('does not show the compare action when only events of other types precede it', () => {
+    const activities = [
+      createActivity({
+        id: 'act-2',
+        eventType: 'TeamDetailsUpdatedEvent',
+        summary: 'Team Details Updated',
         timestamp: new Date('2026-04-01T10:00:00Z'),
       }),
       createActivity({
@@ -424,14 +545,9 @@ describe('ActivityLogTimeline', () => {
       </App>,
     )
 
-    // The first item (act-2) is selected by default and has a preceding item (act-1)
-    const compareButtons = screen.getAllByRole('button', {
-      name: /Compare changes/i,
-    })
-    expect(compareButtons).toHaveLength(1)
-
-    await user.click(compareButtons[0])
-    expect(screen.getByText('Compare Event Payloads')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Compare changes/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('does not show the compare action when viewing the oldest/initial event', () => {

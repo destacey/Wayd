@@ -38108,6 +38108,7 @@
           "aggregateType",
           "payload",
           "id",
+          "category",
           "aggregateId",
           "actorKind",
           "timestamp",
@@ -38122,6 +38123,9 @@
           },
           "eventType": {
             "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ActivityCategory"
           },
           "domainArea": {
             "type": "string"
@@ -38165,6 +38169,28 @@
             "nullable": true
           }
         }
+      },
+      "ActivityCategory": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Created",
+          "Updated",
+          "ScheduleChanged",
+          "StatusChanged",
+          "StateChanged",
+          "Health",
+          "Removed"
+        ],
+        "enum": [
+          "Created",
+          "Updated",
+          "ScheduleChanged",
+          "StatusChanged",
+          "StateChanged",
+          "Health",
+          "Removed"
+        ]
       },
       "EventActorKind": {
         "type": "string",

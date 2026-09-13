@@ -6,8 +6,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A product node was removed from the taxonomy.
 /// </summary>
-public sealed record ProductRemovedEvent : DomainEvent, IProductManagementEvent
+public sealed record ProductRemovedEvent : DomainEvent<ProductRemovedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Removed;
+
     public ProductRemovedEvent(Guid id, int key, string name, Guid? parentId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

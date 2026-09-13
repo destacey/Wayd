@@ -15,8 +15,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// value it replaced.
 /// </para>
 /// </remarks>
-public sealed record VersionRevertedEvent : DomainEvent, IProductManagementEvent
+public sealed record VersionRevertedEvent : DomainEvent<VersionRevertedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public VersionRevertedEvent(
         Guid id,
         int key,

@@ -19,8 +19,10 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record WorkflowPublishedEventV2 : DomainEvent, IAggregateEvent
+public sealed record WorkflowPublishedEventV2 : DomainEvent<WorkflowPublishedEventV2>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StateChanged;
+
     [JsonConstructor]
     public WorkflowPublishedEventV2(Guid id, int key, string ownerType, int statusCount, EventActor actor, Instant timestamp)
         : base(actor, "2.0")

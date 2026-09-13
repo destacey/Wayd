@@ -10,8 +10,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// Distinct from <see cref="VersionReleasedEvent"/> because cut-to-released is the latency measure
 /// phase one reports, and it needs both ends as separate facts.
 /// </remarks>
-public sealed record VersionCutEvent : DomainEvent, IProductManagementEvent
+public sealed record VersionCutEvent : DomainEvent<VersionCutEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public VersionCutEvent(Guid id, int key, Guid productId, string productName, string number, LocalDate cutDate, Guid statusId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

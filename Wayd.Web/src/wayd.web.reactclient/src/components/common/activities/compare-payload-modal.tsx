@@ -8,6 +8,7 @@ import {
   EyeOutlined,
 } from '@ant-design/icons'
 import {
+  Alert,
   App,
   Button,
   Card,
@@ -56,6 +57,13 @@ const METADATA_KEYS = new Set([
   'aggregatetype',
   'eventversion',
 ])
+
+/**
+ * Whether two entries record the same kind of event. A superseding generation (`ProjectReparentedEventV2`)
+ * records the same fact as the type it replaced, so the generation suffix is ignored.
+ */
+export const isSameEventType = (a: string, b: string): boolean =>
+  a.replace(/V\d+$/, '') === b.replace(/V\d+$/, '')
 
 const formatFieldLabel = (key: string): string => {
   return key
@@ -188,7 +196,8 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
   const [copiedPrev, setCopiedPrev] = useState(false)
   const [copiedCurr, setCopiedCurr] = useState(false)
 
-  // Determine selectable earlier activities to compare against
+  // Earlier events of the current event's type only, in any version; another type's payload has a different
+  // shape.
   const earlierActivities = useMemo(() => {
     if (!currentActivity || !allActivities || allActivities.length === 0) {
       return previousActivity ? [previousActivity] : []
@@ -197,14 +206,17 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
     const currentIndex = allActivities.findIndex(
       (a) => a.id === currentActivity.id,
     )
-    if (currentIndex >= 0) {
-      return allActivities.slice(currentIndex + 1)
-    }
+    const earlier =
+      currentIndex >= 0
+        ? allActivities.slice(currentIndex + 1)
+        : allActivities.filter(
+            (a) =>
+              new Date(a.timestamp).getTime() <
+              new Date(currentActivity.timestamp).getTime(),
+          )
 
-    // Fallback: compare by timestamp
-    const currTime = new Date(currentActivity.timestamp).getTime()
-    return allActivities.filter(
-      (a) => new Date(a.timestamp).getTime() < currTime,
+    return earlier.filter((a) =>
+      isSameEventType(a.eventType, currentActivity.eventType),
     )
   }, [currentActivity, allActivities, previousActivity])
 
@@ -219,6 +231,17 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
     if (earlierActivities.length > 0) return earlierActivities[0]
     return null
   }, [selectedBaseId, earlierActivities, previousActivity])
+
+  const eventVersionOf = (activity: ActivityLogDto) =>
+    activity.eventVersion ?? '1.0'
+
+  // A new generation changes the type name as well as the version, and a minor version adds fields, so
+  // either one explains differences that are not changes to the record.
+  const versionsDiffer =
+    !!currentActivity &&
+    !!activeBaseActivity &&
+    (eventVersionOf(activeBaseActivity) !== eventVersionOf(currentActivity) ||
+      activeBaseActivity.eventType !== currentActivity.eventType)
 
   const diffItems = useMemo(() => {
     if (!currentActivity || !activeBaseActivity) return []
@@ -340,25 +363,6 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
             <Tag color="blue" style={{ margin: 0 }}>
               {currentActivity?.eventType}
             </Tag>
-            {activeBaseActivity &&
-              (activeBaseActivity.summary !== currentActivity?.summary ||
-                activeBaseActivity.eventType !==
-                  currentActivity?.eventType) && (
-                <>
-                  <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                    vs
-                  </Text>
-                  <Text strong style={{ fontSize: token.fontSize }}>
-                    {activeBaseActivity.summary || activeBaseActivity.eventType}
-                  </Text>
-                  {activeBaseActivity.eventType !==
-                    currentActivity?.eventType && (
-                    <Tag style={{ margin: 0 }}>
-                      {activeBaseActivity.eventType}
-                    </Tag>
-                  )}
-                </>
-              )}
           </Flex>
 
           <Flex gap="middle" wrap="wrap" align="center">
@@ -387,17 +391,17 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
                     value={activeBaseActivity?.id}
                     onChange={(val) => setSelectedBaseId(val)}
                     options={earlierActivities.map((act) => {
-                      const timeStr = dayjs(act.timestamp).format(
+                      const time = dayjs(act.timestamp).format(
                         'MMM D, h:mm:ss A',
                       )
-                      const isDifferentType =
-                        act.eventType !== currentActivity?.eventType &&
-                        Boolean(act.summary || act.eventType)
                       return {
                         value: act.id,
-                        label: isDifferentType
-                          ? `${timeStr} (${act.summary || act.eventType})`
-                          : timeStr,
+                        label:
+                          currentActivity &&
+                          eventVersionOf(act) !==
+                            eventVersionOf(currentActivity)
+                            ? `${time} (v${eventVersionOf(act)})`
+                            : time,
                       }
                     })}
                   />
@@ -407,14 +411,21 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
               {activeBaseActivity ? (
                 <Card size="small" variant="outlined">
                   <Flex justify="space-between" align="center">
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: token.fontSizeSM }}
-                    >
-                      {dayjs(activeBaseActivity.timestamp).format(
-                        'MMM D, YYYY [at] h:mm:ss A',
+                    <Flex align="center" gap="small">
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: token.fontSizeSM }}
+                      >
+                        {dayjs(activeBaseActivity.timestamp).format(
+                          'MMM D, YYYY [at] h:mm:ss A',
+                        )}
+                      </Text>
+                      {versionsDiffer && (
+                        <Tag color="orange" style={{ margin: 0 }}>
+                          v{eventVersionOf(activeBaseActivity)}
+                        </Tag>
                       )}
-                    </Text>
+                    </Flex>
                     <Text
                       type="secondary"
                       style={{ fontSize: token.fontSizeSM }}
@@ -460,14 +471,21 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
               {currentActivity ? (
                 <Card size="small" variant="outlined">
                   <Flex justify="space-between" align="center">
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: token.fontSizeSM }}
-                    >
-                      {dayjs(currentActivity.timestamp).format(
-                        'MMM D, YYYY [at] h:mm:ss A',
+                    <Flex align="center" gap="small">
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: token.fontSizeSM }}
+                      >
+                        {dayjs(currentActivity.timestamp).format(
+                          'MMM D, YYYY [at] h:mm:ss A',
+                        )}
+                      </Text>
+                      {versionsDiffer && (
+                        <Tag color="orange" style={{ margin: 0 }}>
+                          v{eventVersionOf(currentActivity)}
+                        </Tag>
                       )}
-                    </Text>
+                    </Flex>
                     <Text
                       type="secondary"
                       style={{ fontSize: token.fontSizeSM }}
@@ -484,6 +502,15 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
             </Flex>
           </Flex>
         </Flex>
+
+        {versionsDiffer && activeBaseActivity && currentActivity && (
+          <Alert
+            type="warning"
+            showIcon
+            title={`Comparing different versions of this event: v${eventVersionOf(activeBaseActivity)} and v${eventVersionOf(currentActivity)}`}
+            description="The event's recorded shape changed between these versions, so a field shown as added or removed may reflect that change rather than a change to the record."
+          />
+        )}
 
         {/* Toolbar & Filters */}
         <Flex justify="space-between" align="center" wrap="wrap" gap="small">

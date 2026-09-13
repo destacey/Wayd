@@ -84,8 +84,8 @@ and consumers read published ones in the shape they were written against.
 
 **5. Keep the recording out of the fact.** Anything about *recording* an occurrence rather than the
 occurrence itself belongs on the `ActivityLogEntry`, not in the payload: its order (see
-[Order lives on the ledger, not on the event](#order-lives-on-the-ledger-not-on-the-event)), and a display
-label for the record when one is added.
+[Order lives on the ledger, not on the event](#order-lives-on-the-ledger-not-on-the-event)), its category
+(see [Categorising an entry](#categorising-an-entry)), and a display label for the record when one is added.
 
 ### When another aggregate's state belongs in the payload
 
@@ -120,8 +120,12 @@ will catch for you.
 
 **The type**
 
-- [ ] It lives in `Wayd.Common.Domain/Events/{Module}/`, is a `sealed record` deriving from `DomainEvent`,
-  and is named `{Aggregate}{WhatHappened}Event` in the past tense.
+- [ ] It lives in `Wayd.Common.Domain/Events/{Module}/`, is a `sealed record` deriving from
+  `DomainEvent<TSelf>` with itself as `TSelf`, and is named `{Aggregate}{WhatHappened}Event` in the past tense.
+  *Convention test.*
+- [ ] It implements `IDomainEventDescriptor` and declares its category,
+  `public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;`. *Compiler.* See
+  [Categorising an entry](#categorising-an-entry) for which one.
 - [ ] It implements the module's marker (`IPpmEvent`, `IProductManagementEvent`) or `IAggregateEvent`, with
   `AggregateType` and `AggregateId` marked `[JsonIgnore]`. `AggregateType` is the value the record's Activity
   section reads by — use the one the aggregate's other events already declare.
@@ -144,9 +148,8 @@ will catch for you.
 
 **Recording and delivering it**
 
-- [ ] Nothing to register for the activity log; capture is automatic. Check the badge the entry will get:
-  the Activity section currently picks it from words in the type name (`StatusChanged`, `Activated`,
-  `Archived`, `Deleted`, `Removed`, `Created`, `Added`, …), and anything else shows as **Updated**.
+- [ ] Nothing to register for the activity log; capture is automatic, and the entry records the category
+  the type declares.
 - [ ] Add the type to `DurableEventRoutes` only when a consumer needs asynchronous delivery. A durable
   handler is delivered at least once and in no guaranteed order, so it follows
   [Consuming an event](#consuming-an-event).
@@ -440,6 +443,33 @@ Capture happens whether the event is routed durably or inline, and `EventPublish
 subscriber-less event as a no-op. **A new event therefore earns a full audit trail without a handler and
 without a `DurableEventRoutes` entry** — add it to that allow-list only when a real consumer needs it
 delivered asynchronously.
+
+### Categorising an entry
+
+Each entry records an `ActivityCategory`, which the Activity section turns into the entry's badge. The event
+type declares it as a static member of `IDomainEventDescriptor`, so it is never part of a payload, and
+`DomainEvent<TSelf>` requires that interface, so an event without one does not compile. The factory copies
+it onto the `ActivityLogEntry`; the timeline reads it and knows nothing about event names.
+
+Pick by what happened, not by the words in the name:
+
+| Category | Badge | The event records | Examples |
+|---|---|---|---|
+| `Created` | Created | The record coming into existence | `ProjectCreated`, `ProductAdded`, `ReleasePlanned`, `DeploymentStarted` |
+| `Updated` | Updated | A change to part of the record that does not move it along its lifecycle | `*DetailsUpdated`, `*RolesChanged`, `ProjectReparented`, `ProductTagsChanged` |
+| `ScheduleChanged` | Schedule Change | Its dates moving | `ProjectTimelineChanged`, `ReleaseTargetDateMoved`, `IterationDateRangeChanged` |
+| `StatusChanged` | Status Change | A step along its lifecycle | `ProjectStatusChanged`, `VersionCut`, `ReleaseWithdrawn`, `DeploymentFailed` |
+| `StateChanged` | State Change | Being put into or taken out of use | `TeamDeactivated`, `WorkflowPublished`, `StrategicThemeArchived`, `EnvironmentRetired` |
+| `Health` | Health | A health signal recorded, changed or withdrawn | `ProjectHealthCheckAdded`, `ProjectHealthCheckRemoved` |
+| `Removed` | Removed | The record ceasing to exist | `ProjectDeleted`, `ProductRemoved` |
+
+Status and state are the two that need care. A **status** is a position in the record's lifecycle —
+proposed, active, completed; planned, cut, released — and moving it is progress, even when the move is a
+withdrawal or a failure. A **state** is whether the record is in use at all, independent of that position:
+an archived workflow and a retired environment keep their history and simply stop being offered.
+
+The category belongs to the type, so it is part of the type's meaning rather than its published shape. It can
+be corrected without a new generation, but the rows already written keep the category they were recorded with.
 
 ### Order lives on the ledger, not on the event
 

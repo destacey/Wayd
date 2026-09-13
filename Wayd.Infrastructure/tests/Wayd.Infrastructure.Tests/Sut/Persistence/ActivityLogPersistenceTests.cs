@@ -41,6 +41,7 @@ public sealed class ActivityLogPersistenceTests
         savedLog.Should().NotBeNull();
         savedLog!.Id.Should().Be(domainEvent.EventId);
         savedLog.EventType.Should().Be(nameof(TestBusinessEvent));
+        savedLog.Category.Should().Be(ActivityCategory.StatusChanged);
         savedLog.AggregateType.Should().Be(nameof(ActivityTestEntity));
         savedLog.AggregateId.Should().Be(entity.Id);
         savedLog.ActorKind.Should().Be(EventActorKind.User);
@@ -52,6 +53,7 @@ public sealed class ActivityLogPersistenceTests
         savedLog.EventVersion.Should().Be("1.0");
         savedLog.Payload.Should().Contain("Sample Details");
         savedLog.Payload.Should().NotContain("corr-123");
+        savedLog.Payload.Should().NotContainEquivalentOf("category", "the category describes the type, not the occurrence");
         savedLog.Payload.Should().Contain("1.0");
         savedLog.Summary.Should().NotBeNullOrWhiteSpace();
     }
@@ -183,8 +185,10 @@ public sealed class ActivityLogPersistenceTests
         public void Raise(DomainEvent domainEvent) => AddDomainEvent(domainEvent);
     }
 
-    private sealed record TestBusinessEvent : DomainEvent
+    private sealed record TestBusinessEvent : DomainEvent<TestBusinessEvent>, IDomainEventDescriptor
     {
+        public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
         public string Details { get; }
 
         public TestBusinessEvent(string details, EventActor actor, Instant timestamp) : base(actor, "1.0")

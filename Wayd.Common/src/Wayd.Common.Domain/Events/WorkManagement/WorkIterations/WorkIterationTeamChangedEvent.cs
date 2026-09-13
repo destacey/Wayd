@@ -8,8 +8,10 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 /// <summary>
 /// The Work copy of an iteration was assigned to a different team, or to none.
 /// </summary>
-public sealed record WorkIterationTeamChangedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkIterationTeamChangedEvent : DomainEvent<WorkIterationTeamChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public WorkIterationTeamChangedEvent(Guid id, int key, Guid? previousTeamId, Guid? teamId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

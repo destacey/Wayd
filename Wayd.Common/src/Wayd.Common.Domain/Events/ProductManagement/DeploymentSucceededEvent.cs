@@ -12,8 +12,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// production without loading the environment. Also the event time-to-restore measures <em>to</em>,
 /// from a preceding failure in the same environment.
 /// </remarks>
-public sealed record DeploymentSucceededEvent : DomainEvent, IProductManagementEvent
+public sealed record DeploymentSucceededEvent : DomainEvent<DeploymentSucceededEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public DeploymentSucceededEvent(
         Guid id,
         int key,

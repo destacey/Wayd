@@ -4,8 +4,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Organization;
 
-public sealed record TeamDeletedEvent : DomainEvent, IAggregateEvent
+public sealed record TeamDeletedEvent : DomainEvent<TeamDeletedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Removed;
+
     public TeamDeletedEvent(Guid id, int key, TeamCode? code, EventActor actor, Instant timestamp)
         : base(actor, "1.1")
     {

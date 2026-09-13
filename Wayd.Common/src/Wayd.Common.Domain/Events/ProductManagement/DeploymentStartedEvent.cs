@@ -6,8 +6,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A deployment of a version or package into an environment began.
 /// </summary>
-public sealed record DeploymentStartedEvent : DomainEvent, IProductManagementEvent
+public sealed record DeploymentStartedEvent : DomainEvent<DeploymentStartedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public DeploymentStartedEvent(
         Guid id,
         int key,

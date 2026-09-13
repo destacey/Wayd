@@ -6,8 +6,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A release package shipped.
 /// </summary>
-public sealed record PackageReleasedEvent : DomainEvent, IProductManagementEvent
+public sealed record PackageReleasedEvent : DomainEvent<PackageReleasedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public PackageReleasedEvent(Guid id, int key, string version, LocalDate releasedDate, int componentCount, Guid statusId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

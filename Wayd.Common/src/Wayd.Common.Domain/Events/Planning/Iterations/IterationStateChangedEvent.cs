@@ -8,8 +8,10 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// <summary>
 /// The iteration moved between Future, Active and Completed.
 /// </summary>
-public sealed record IterationStateChangedEvent : DomainEvent, IAggregateEvent
+public sealed record IterationStateChangedEvent : DomainEvent<IterationStateChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public IterationStateChangedEvent(Guid id, int key, IterationState fromState, IterationState toState, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

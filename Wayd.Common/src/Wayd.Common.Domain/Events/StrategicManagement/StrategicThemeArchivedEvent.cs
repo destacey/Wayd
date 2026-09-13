@@ -9,8 +9,10 @@ namespace Wayd.Common.Domain.Events.StrategicManagement;
 /// <remarks>
 /// Only an active theme can be archived, so the type records both ends of the transition.
 /// </remarks>
-public sealed record StrategicThemeArchivedEvent : DomainEvent, IAggregateEvent
+public sealed record StrategicThemeArchivedEvent : DomainEvent<StrategicThemeArchivedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StateChanged;
+
     public StrategicThemeArchivedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

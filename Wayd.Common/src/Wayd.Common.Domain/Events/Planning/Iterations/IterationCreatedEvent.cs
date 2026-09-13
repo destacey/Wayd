@@ -7,8 +7,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Planning.Iterations;
 
-public sealed record IterationCreatedEvent : DomainEvent, ISimpleIteration, IAggregateEvent
+public sealed record IterationCreatedEvent : DomainEvent<IterationCreatedEvent>, IDomainEventDescriptor, ISimpleIteration, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public IterationCreatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
         : this(iteration.Id, iteration.Key, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
     {

@@ -14,8 +14,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// contract those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by ProductLifecycleChangedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record ProductLifecycleChangedEvent : DomainEvent, IProductManagementEvent
+public sealed record ProductLifecycleChangedEvent : DomainEvent<ProductLifecycleChangedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     [JsonConstructor]
     public ProductLifecycleChangedEvent(
         Guid id,

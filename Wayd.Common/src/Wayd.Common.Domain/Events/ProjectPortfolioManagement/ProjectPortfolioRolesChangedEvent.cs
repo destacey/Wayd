@@ -18,8 +18,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// deltas is not.
 /// </para>
 /// </remarks>
-public sealed record ProjectPortfolioRolesChangedEvent : DomainEvent, IPpmEvent
+public sealed record ProjectPortfolioRolesChangedEvent : DomainEvent<ProjectPortfolioRolesChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProjectPortfolioRolesChangedEvent(
         Guid id,

@@ -6,8 +6,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
-public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject, IPpmEvent
+public sealed record ProjectCreatedEvent : DomainEvent<ProjectCreatedEvent>, IDomainEventDescriptor, ISimpleProject, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public ProjectCreatedEvent(ISimpleProject project, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
         : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, businessCase, expectedBenefits, roles, strategicThemes, actor, timestamp)
     {

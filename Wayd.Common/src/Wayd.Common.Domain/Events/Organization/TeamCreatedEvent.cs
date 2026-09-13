@@ -6,8 +6,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Organization;
 
-public sealed record TeamCreatedEvent : DomainEvent, ISimpleTeam, IAggregateEvent
+public sealed record TeamCreatedEvent : DomainEvent<TeamCreatedEvent>, IDomainEventDescriptor, ISimpleTeam, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public TeamCreatedEvent(Guid id, int key, TeamCode code, string name, string? description, TeamType type, LocalDate activeDate, LocalDate? inactiveDate, bool isActive, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

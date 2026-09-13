@@ -46,6 +46,25 @@ public sealed partial class DomainEventConventionTests
 
     [Theory]
     [MemberData(nameof(EventTypeNames))]
+    public void Type_DerivesFromTheSelfTypedBase_SoItMustDeclareItsDescriptor(string typeName)
+    {
+        // Arrange
+        var type = DomainEventCatalog.ByName(typeName);
+
+        // Act
+        var selfTypedBase = BaseTypes(type)
+            .FirstOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(DomainEvent<>));
+
+        // Assert
+        selfTypedBase.Should().NotBeNull(
+            $"{type.Name} derives from DomainEvent directly, which skips the compiler's check that it declares " +
+            $"an ActivityCategory — derive from DomainEvent<{type.Name}> and implement IDomainEventDescriptor");
+        selfTypedBase!.GetGenericArguments()[0].Should().Be(type,
+            $"{type.Name} must name itself as DomainEvent<TSelf>, or it records another type's category");
+    }
+
+    [Theory]
+    [MemberData(nameof(EventTypeNames))]
     public void Name_SaysWhatChangedRatherThanNamingOnlyTheRecord(string typeName)
     {
         // Arrange
@@ -106,6 +125,12 @@ public sealed partial class DomainEventConventionTests
                     yield return nested;
             }
         }
+    }
+
+    private static IEnumerable<Type> BaseTypes(Type type)
+    {
+        for (var current = type.BaseType; current is not null; current = current.BaseType)
+            yield return current;
     }
 
     private static IEnumerable<Type> DomainTypesWithin(Type type)

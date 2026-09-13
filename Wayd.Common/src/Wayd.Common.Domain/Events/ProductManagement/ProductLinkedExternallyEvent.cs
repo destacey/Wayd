@@ -13,8 +13,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// contract those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by ProductLinkedExternallyEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record ProductLinkedExternallyEvent : DomainEvent, IProductManagementEvent, ISimpleProduct
+public sealed record ProductLinkedExternallyEvent : DomainEvent<ProductLinkedExternallyEvent>, IDomainEventDescriptor, IProductManagementEvent, ISimpleProduct
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProductLinkedExternallyEvent(Guid id, int key, string name, string? description, string? externalId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")

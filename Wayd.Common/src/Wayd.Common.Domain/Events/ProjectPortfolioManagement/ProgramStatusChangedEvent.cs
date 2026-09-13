@@ -17,8 +17,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// share an id with, and nothing can be backfilled from.
 /// </para>
 /// </remarks>
-public sealed record ProgramStatusChangedEvent : DomainEvent, IPpmEvent
+public sealed record ProgramStatusChangedEvent : DomainEvent<ProgramStatusChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     [JsonConstructor]
     public ProgramStatusChangedEvent(
         Guid id,

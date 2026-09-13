@@ -9,8 +9,10 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// The iteration's name or type changed. Supersedes, with the other <c>Iteration*Changed</c> events,
 /// <see cref="IterationUpdatedEvent"/>.
 /// </summary>
-public sealed record IterationDetailsUpdatedEvent : DomainEvent, IAggregateEvent
+public sealed record IterationDetailsUpdatedEvent : DomainEvent<IterationDetailsUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public IterationDetailsUpdatedEvent(Guid id, int key, string name, IterationType type, IterationDetails? previous, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

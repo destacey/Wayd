@@ -7,8 +7,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A deployment environment was defined.
 /// </summary>
-public sealed record EnvironmentAddedEvent : DomainEvent, IProductManagementEvent
+public sealed record EnvironmentAddedEvent : DomainEvent<EnvironmentAddedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public EnvironmentAddedEvent(Guid id, int key, string name, EnvironmentCategory category, int ringOrder, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

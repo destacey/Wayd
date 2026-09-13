@@ -4,8 +4,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.StrategicManagement;
 
-public sealed record StrategicThemeDeletedEvent : DomainEvent, IAggregateEvent
+public sealed record StrategicThemeDeletedEvent : DomainEvent<StrategicThemeDeletedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Removed;
+
     public StrategicThemeDeletedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

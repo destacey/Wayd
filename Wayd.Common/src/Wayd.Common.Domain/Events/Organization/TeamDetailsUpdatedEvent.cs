@@ -7,8 +7,10 @@ namespace Wayd.Common.Domain.Events.Organization;
 /// <summary>
 /// A team's or team of teams' code, name or description was edited. Supersedes <see cref="TeamUpdatedEvent"/>.
 /// </summary>
-public sealed record TeamDetailsUpdatedEvent : DomainEvent, IAggregateEvent
+public sealed record TeamDetailsUpdatedEvent : DomainEvent<TeamDetailsUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public TeamDetailsUpdatedEvent(Guid id, int key, TeamCode code, string name, string? description, TeamDetails? previous, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

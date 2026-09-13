@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// market was later told, so a consumer must not infer that the contents were pulled — each version
 /// records its own withdrawal where it too was pulled.
 /// </remarks>
-public sealed record ReleaseWithdrawnEvent : DomainEvent, IProductManagementEvent
+public sealed record ReleaseWithdrawnEvent : DomainEvent<ReleaseWithdrawnEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public ReleaseWithdrawnEvent(Guid id, int key, Guid? productId, string version, string? reason, Guid statusId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

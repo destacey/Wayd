@@ -13,8 +13,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// contract those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by EnvironmentReclassifiedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record EnvironmentReclassifiedEvent : DomainEvent, IProductManagementEvent
+public sealed record EnvironmentReclassifiedEvent : DomainEvent<EnvironmentReclassifiedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public EnvironmentReclassifiedEvent(Guid id, int key, string name, EnvironmentCategory fromCategory, EnvironmentCategory toCategory, EventActor actor, Instant timestamp)
         : base(actor, "1.0")

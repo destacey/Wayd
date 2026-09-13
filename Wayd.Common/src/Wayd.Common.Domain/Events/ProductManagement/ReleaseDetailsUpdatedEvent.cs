@@ -9,8 +9,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <remarks>
 /// Shared across those fields because handling is identical everywhere.
 /// </remarks>
-public sealed record ReleaseDetailsUpdatedEvent : DomainEvent, IProductManagementEvent
+public sealed record ReleaseDetailsUpdatedEvent : DomainEvent<ReleaseDetailsUpdatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public ReleaseDetailsUpdatedEvent(Guid id, int key, Guid? productId, string version, string? name, long? sequence, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

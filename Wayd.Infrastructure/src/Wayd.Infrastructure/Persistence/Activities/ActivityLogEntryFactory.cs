@@ -64,6 +64,7 @@ internal static partial class ActivityLogEntryFactory
         return new ActivityLogEntry(
             domainEvent.EventId,
             eventType,
+            domainEvent.GetActivityCategory(),
             domainArea,
             aggregateType,
             aggregateId,
@@ -171,6 +172,7 @@ internal static partial class ActivityLogEntryFactory
         return new ActivityLogEntry(
             domainEvent.EventId,
             eventType,
+            domainEvent.GetActivityCategory(),
             domainArea,
             aggregateEvent.AggregateType,
             aggregateEvent.AggregateId,

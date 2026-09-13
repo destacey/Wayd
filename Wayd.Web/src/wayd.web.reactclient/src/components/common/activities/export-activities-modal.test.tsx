@@ -1,6 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ActivityLogDto, EventActorKind } from '@/src/services/wayd-api'
+import {
+  ActivityCategory,
+  ActivityLogDto,
+  EventActorKind,
+} from '@/src/services/wayd-api'
 import ExportActivitiesModal from './export-activities-modal'
 
 const mockDownloadJsonWithTimestamp = jest.fn()
@@ -32,6 +36,7 @@ const createActivity = (
 ): ActivityLogDto => ({
   id: '11111111-1111-1111-1111-111111111111',
   eventType: 'TeamCreatedEvent',
+  category: ActivityCategory.Created,
   domainArea: 'Organization',
   aggregateType: 'Team',
   aggregateId: '22222222-2222-2222-2222-222222222222',
@@ -122,6 +127,7 @@ describe('ExportActivitiesModal', () => {
     expect(envelope.scope).toBe('all')
     expect(envelope.totalEvents).toBe(2)
     expect(envelope.events[0].eventVersion).toBe('1.0')
+    expect(envelope.events[0].category).toBe(ActivityCategory.Created)
     expect(envelope.events[0].payload).toEqual({ name: 'Alpha' })
     expect(envelope.events[1].payload).toEqual({ name: 'Alpha Prime' })
 

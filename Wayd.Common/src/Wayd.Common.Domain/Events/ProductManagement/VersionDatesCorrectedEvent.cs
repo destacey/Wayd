@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// version moved. This says only that what was written down was wrong, so it carries both ends: the
 /// value that was replaced is the whole point of recording the correction.
 /// </remarks>
-public sealed record VersionDatesCorrectedEvent : DomainEvent, IProductManagementEvent
+public sealed record VersionDatesCorrectedEvent : DomainEvent<VersionDatesCorrectedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;
+
     public VersionDatesCorrectedEvent(
         Guid id,
         int key,

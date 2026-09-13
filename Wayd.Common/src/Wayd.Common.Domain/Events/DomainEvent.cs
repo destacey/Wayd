@@ -95,4 +95,32 @@ public abstract record DomainEvent : IEvent
     /// The schema version of this domain event (e.g. "1.0").
     /// </summary>
     public virtual string EventVersion { get; init; } = "1.0";
+
+    /// <summary>
+    /// The <see cref="IDomainEventDescriptor.ActivityCategory"/> this event's type declares.
+    /// </summary>
+    /// <remarks>
+    /// A method rather than a property so the serializer can never write it into a payload.
+    /// </remarks>
+    public abstract ActivityCategory GetActivityCategory();
+}
+
+/// <summary>
+/// The base every concrete event derives from, naming itself as <typeparamref name="TSelf"/>.
+/// </summary>
+/// <remarks>
+/// The constraint is the point: an event that does not implement <see cref="IDomainEventDescriptor"/> does
+/// not compile. Deriving from <see cref="DomainEvent"/> directly would bypass it, which
+/// <c>DomainEventConventionTests</c> fails.
+/// </remarks>
+public abstract record DomainEvent<TSelf> : DomainEvent
+    where TSelf : DomainEvent<TSelf>, IDomainEventDescriptor
+{
+    /// <inheritdoc cref="DomainEvent(EventActor, string)"/>
+    protected DomainEvent(EventActor actor, string eventVersion)
+        : base(actor, eventVersion)
+    {
+    }
+
+    public sealed override ActivityCategory GetActivityCategory() => TSelf.ActivityCategory;
 }

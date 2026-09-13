@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// rather than in an event of its own: Wayd observes versions rather than owning them, so editing a
 /// version is an ordinary change, not a lifecycle event.
 /// </remarks>
-public sealed record VersionDetailsUpdatedEvent : DomainEvent, IProductManagementEvent
+public sealed record VersionDetailsUpdatedEvent : DomainEvent<VersionDetailsUpdatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public VersionDetailsUpdatedEvent(Guid id, int key, Guid productId, string number, string? name, long? sequence, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

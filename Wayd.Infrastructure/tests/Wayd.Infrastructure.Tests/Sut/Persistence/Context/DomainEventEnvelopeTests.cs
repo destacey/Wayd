@@ -251,8 +251,10 @@ public sealed class DomainEventEnvelopeTests
     /// inline branch. Declared here rather than reusing a production event so the test does not silently
     /// change meaning if that event's routing is changed.
     /// </summary>
-    private sealed record PortfolioRenamedEvent : DomainEvent
+    private sealed record PortfolioRenamedEvent : DomainEvent<PortfolioRenamedEvent>, IDomainEventDescriptor
     {
+        public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
         public PortfolioRenamedEvent(EventActor actor, Instant timestamp)
             : base(actor, "1.0") =>
             Timestamp = timestamp;

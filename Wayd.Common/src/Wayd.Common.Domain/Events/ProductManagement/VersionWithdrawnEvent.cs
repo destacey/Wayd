@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// record supports honestly, without work items or pipeline data. Folding it into a generic status
 /// change would push the interesting distinction into a field every consumer then has to inspect.
 /// </remarks>
-public sealed record VersionWithdrawnEvent : DomainEvent, IProductManagementEvent
+public sealed record VersionWithdrawnEvent : DomainEvent<VersionWithdrawnEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public VersionWithdrawnEvent(Guid id, int key, Guid productId, string productName, string number, string? reason, Guid statusId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

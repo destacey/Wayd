@@ -8,8 +8,10 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// <summary>
 /// The iteration's start or end moved, was set, or was cleared.
 /// </summary>
-public sealed record IterationDateRangeChangedEvent : DomainEvent, IAggregateEvent
+public sealed record IterationDateRangeChangedEvent : DomainEvent<IterationDateRangeChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;
+
     public IterationDateRangeChangedEvent(Guid id, int key, IterationDateRange previousDateRange, IterationDateRange dateRange, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

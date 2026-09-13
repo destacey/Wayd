@@ -19,8 +19,10 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// stale, and once the remap engine exists this is what starts migrating every record in the scope.
 /// </para>
 /// </remarks>
-public sealed record WorkflowAssignedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkflowAssignedEvent : DomainEvent<WorkflowAssignedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public WorkflowAssignedEvent(
         string ownerType,
         Guid? scopeId,

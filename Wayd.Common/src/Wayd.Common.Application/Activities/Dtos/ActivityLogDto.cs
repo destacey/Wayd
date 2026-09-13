@@ -8,6 +8,7 @@ public sealed record ActivityLogDto : IMapFrom<ActivityLogEntry>
 {
     public Guid Id { get; init; }
     public required string EventType { get; init; }
+    public ActivityCategory Category { get; init; }
     public required string DomainArea { get; init; }
     public required string AggregateType { get; init; }
     public Guid AggregateId { get; init; }

@@ -12,8 +12,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// its manifest in one act, a release is commonly drafted before anyone knows which versions will
 /// make it.
 /// </remarks>
-public sealed record ReleasePlannedEvent : DomainEvent, IProductManagementEvent
+public sealed record ReleasePlannedEvent : DomainEvent<ReleasePlannedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public ReleasePlannedEvent(
         Guid id,
         int key,

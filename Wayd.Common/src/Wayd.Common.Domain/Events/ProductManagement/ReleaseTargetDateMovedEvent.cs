@@ -10,8 +10,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// Carries both ends, because here the change is the story: "slipped two weeks" is the fact a watcher
 /// wants, and it cannot be recovered from the new value alone.
 /// </remarks>
-public sealed record ReleaseTargetDateMovedEvent : DomainEvent, IProductManagementEvent
+public sealed record ReleaseTargetDateMovedEvent : DomainEvent<ReleaseTargetDateMovedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;
+
     public ReleaseTargetDateMovedEvent(
         Guid id,
         int key,

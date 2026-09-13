@@ -8,8 +8,10 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.Planning.Iterations;
 
 [Obsolete("Superseded by IterationDetailsUpdatedEvent, IterationDateRangeChangedEvent, IterationStateChangedEvent and IterationTeamChangedEvent. Kept only to deserialize payloads already written as this type.")]
-public sealed record IterationUpdatedEvent : DomainEvent, ISimpleIteration, IAggregateEvent
+public sealed record IterationUpdatedEvent : DomainEvent<IterationUpdatedEvent>, IDomainEventDescriptor, ISimpleIteration, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public IterationUpdatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
         : this(iteration.Id, iteration.Key, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
     {

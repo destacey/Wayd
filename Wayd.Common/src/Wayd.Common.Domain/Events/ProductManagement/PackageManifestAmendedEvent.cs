@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// An amendment after the fact means an earlier answer to that question was wrong, which is a different
 /// thing from the package itself changing state.
 /// </remarks>
-public sealed record PackageManifestAmendedEvent : DomainEvent, IProductManagementEvent
+public sealed record PackageManifestAmendedEvent : DomainEvent<PackageManifestAmendedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public PackageManifestAmendedEvent(Guid id, int key, string version, int componentCount, int changedCount, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

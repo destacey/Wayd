@@ -12,8 +12,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// inside a package. Carries counts rather than ids — a consumer needing the membership reads it, and
 /// an event that enumerated it would go stale against the next amendment.
 /// </remarks>
-public sealed record ReleaseContentsChangedEvent : DomainEvent, IProductManagementEvent
+public sealed record ReleaseContentsChangedEvent : DomainEvent<ReleaseContentsChangedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public ReleaseContentsChangedEvent(Guid id, int key, string version, int versionCount, int packageCount, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

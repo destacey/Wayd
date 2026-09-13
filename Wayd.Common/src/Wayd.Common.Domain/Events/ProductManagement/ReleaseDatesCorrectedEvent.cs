@@ -14,8 +14,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// No cut date, unlike <see cref="VersionDatesCorrectedEvent"/> — a release is never cut.
 /// </para>
 /// </remarks>
-public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagementEvent
+public sealed record ReleaseDatesCorrectedEvent : DomainEvent<ReleaseDatesCorrectedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;
+
     public ReleaseDatesCorrectedEvent(
         Guid id,
         int key,

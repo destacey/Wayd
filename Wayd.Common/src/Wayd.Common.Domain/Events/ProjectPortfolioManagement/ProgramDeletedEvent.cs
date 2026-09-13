@@ -4,8 +4,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
-public sealed record ProgramDeletedEvent : DomainEvent, IPpmEvent
+public sealed record ProgramDeletedEvent : DomainEvent<ProgramDeletedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Removed;
+
     public ProgramDeletedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

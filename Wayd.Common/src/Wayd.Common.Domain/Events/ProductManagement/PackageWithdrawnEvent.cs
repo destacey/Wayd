@@ -6,8 +6,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A release package was pulled after being assembled.
 /// </summary>
-public sealed record PackageWithdrawnEvent : DomainEvent, IProductManagementEvent
+public sealed record PackageWithdrawnEvent : DomainEvent<PackageWithdrawnEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public PackageWithdrawnEvent(Guid id, int key, string version, string? reason, Guid statusId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

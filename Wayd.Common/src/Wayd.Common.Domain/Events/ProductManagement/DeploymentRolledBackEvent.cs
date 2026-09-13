@@ -12,8 +12,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// a rollback means something actually reached users and then had to be undone. Time to restore
 /// measures from here to the next success in the same environment.
 /// </remarks>
-public sealed record DeploymentRolledBackEvent : DomainEvent, IProductManagementEvent
+public sealed record DeploymentRolledBackEvent : DomainEvent<DeploymentRolledBackEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public DeploymentRolledBackEvent(
         Guid id,
         int key,

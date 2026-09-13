@@ -10,8 +10,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// Raised after persistence, because <see cref="Key"/> is assigned by the database and an event raised at
 /// construction would carry zero.
 /// </remarks>
-public sealed record ProjectPortfolioCreatedEvent : DomainEvent, IPpmEvent
+public sealed record ProjectPortfolioCreatedEvent : DomainEvent<ProjectPortfolioCreatedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     [JsonConstructor]
     public ProjectPortfolioCreatedEvent(
         Guid id,

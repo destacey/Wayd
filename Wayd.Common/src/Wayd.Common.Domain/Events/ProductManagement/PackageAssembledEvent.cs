@@ -7,8 +7,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A release package was assembled from a set of component releases.
 /// </summary>
-public sealed record PackageAssembledEvent : DomainEvent, IProductManagementEvent
+public sealed record PackageAssembledEvent : DomainEvent<PackageAssembledEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public PackageAssembledEvent(Guid id, int key, string version, string? name, int componentCount, int changedCount, Guid statusId, StatusCategory statusCategory, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

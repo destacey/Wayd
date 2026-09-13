@@ -1,16 +1,11 @@
 'use client'
 
 import {
-  CheckCircleOutlined,
   CheckOutlined,
   CopyOutlined,
   DiffOutlined,
   DownloadOutlined,
-  EditOutlined,
-  PlusCircleOutlined,
   SearchOutlined,
-  StopOutlined,
-  SwapOutlined,
   UserOutlined,
 } from '@ant-design/icons'
 import {
@@ -35,7 +30,11 @@ import { FC, useMemo, useState } from 'react'
 import { PersonAvatar, PersonPopover } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
 import { useRemainingHeight } from '@/src/hooks'
-import { ActivityLogDto, EventActorKind } from '@/src/services/wayd-api'
+import {
+  ActivityCategory,
+  ActivityLogDto,
+  EventActorKind,
+} from '@/src/services/wayd-api'
 import ComparePayloadModal from './compare-payload-modal'
 import ExportActivitiesModal from './export-activities-modal'
 
@@ -104,75 +103,23 @@ const actorTagColor = (kind: EventActorKind): string => {
   }
 }
 
-const getEventBadge = (
-  eventType: string,
-  token: ReturnType<typeof theme.useToken>['token'],
-) => {
-  const lower = eventType.toLowerCase()
-
-  // Ahead of Created and Removed: a health check event also contains 'added' or 'removed', and what a
-  // reader wants from it is the health signal, not which way the record moved.
-  if (lower.includes('health')) {
-    return {
-      icon: <CheckCircleOutlined style={{ color: token.colorInfo }} />,
-      color: 'cyan' as const,
-      label: 'Health',
-    }
+const eventBadges: Record<ActivityCategory, { color: string; label: string }> =
+  {
+    [ActivityCategory.Created]: { color: 'green', label: 'Created' },
+    [ActivityCategory.Updated]: { color: 'blue', label: 'Updated' },
+    [ActivityCategory.ScheduleChanged]: {
+      color: 'geekblue',
+      label: 'Schedule Change',
+    },
+    [ActivityCategory.StatusChanged]: { color: 'gold', label: 'Status Change' },
+    [ActivityCategory.StateChanged]: { color: 'purple', label: 'State Change' },
+    [ActivityCategory.Health]: { color: 'cyan', label: 'Health' },
+    [ActivityCategory.Removed]: { color: 'red', label: 'Removed' },
   }
 
-  if (lower.includes('statuschanged')) {
-    return {
-      icon: <SwapOutlined style={{ color: token.colorWarning }} />,
-      color: 'gold' as const,
-      label: 'Status Change',
-    }
-  }
-
-  // Catches deactivation too, which is the point: both directions are the same kind of change, so the
-  // fact that 'deactivated' contains 'activated' stops mattering rather than needing to be ordered around.
-  // Archiving keeps the record, so it is a state change rather than a removal.
-  if (lower.includes('activated') || lower.includes('archived')) {
-    return {
-      icon: <SwapOutlined style={{ color: token.colorPrimary }} />,
-      color: 'purple' as const,
-      label: 'State Change',
-    }
-  }
-
-  if (
-    lower.includes('deleted') ||
-    lower.includes('removed') ||
-    lower.includes('withdrawn') ||
-    lower.includes('retired') ||
-    lower.includes('failed')
-  ) {
-    return {
-      icon: <StopOutlined style={{ color: token.colorError }} />,
-      color: 'red' as const,
-      label: 'Removed',
-    }
-  }
-
-  // 'Cut' is matched with its capital so it cannot fire on a word that merely contains those letters —
-  // a future ...ExecutedEvent would otherwise badge as a creation.
-  if (
-    lower.includes('created') ||
-    lower.includes('added') ||
-    eventType.includes('Cut')
-  ) {
-    return {
-      icon: <PlusCircleOutlined style={{ color: token.colorSuccess }} />,
-      color: 'green' as const,
-      label: 'Created',
-    }
-  }
-
-  return {
-    icon: <EditOutlined style={{ color: token.colorPrimary }} />,
-    color: 'blue' as const,
-    label: 'Updated',
-  }
-}
+// A category added to the API before the client is redeployed still renders, as the most general kind.
+const getEventBadge = (category: ActivityCategory) =>
+  eventBadges[category] ?? eventBadges[ActivityCategory.Updated]
 
 const getActorDisplay = (
   activity: ActivityLogDto,
@@ -525,7 +472,7 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
             ) : (
               filteredActivities.map((entry) => {
                 const isSelected = selectedActivity?.id === entry.id
-                const badge = getEventBadge(entry.eventType, token)
+                const badge = getEventBadge(entry.category)
                 const title = formatEventTitle(entry.eventType, entry.summary)
                 const timestampDayjs = dayjs(entry.timestamp)
 
@@ -765,13 +712,11 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                     </Text>
                   </Flex>
                   <Tag
-                    color={
-                      getEventBadge(selectedActivity.eventType, token).color
-                    }
+                    color={getEventBadge(selectedActivity.category).color}
                     variant="filled"
                     style={{ margin: 0, padding: '2px 8px' }}
                   >
-                    {getEventBadge(selectedActivity.eventType, token).label}
+                    {getEventBadge(selectedActivity.category).label}
                   </Tag>
                 </Flex>
 

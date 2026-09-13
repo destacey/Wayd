@@ -1,5 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { ActivityLogDto, EventActorKind } from '@/src/services/wayd-api'
+import {
+  ActivityCategory,
+  ActivityLogDto,
+  EventActorKind,
+} from '@/src/services/wayd-api'
 import ComparePayloadModal, {
   computePayloadDiff,
 } from './compare-payload-modal'
@@ -35,6 +39,7 @@ const createActivity = (
 ): ActivityLogDto => ({
   id: '11111111-1111-1111-1111-111111111111',
   eventType: 'TeamUpdatedEvent',
+  category: ActivityCategory.Updated,
   domainArea: 'Organization',
   aggregateType: 'Team',
   aggregateId: '22222222-2222-2222-2222-222222222222',

@@ -1,7 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
-import { ActivityLogDto, EventActorKind } from '@/src/services/wayd-api'
+import {
+  ActivityCategory,
+  ActivityLogDto,
+  EventActorKind,
+} from '@/src/services/wayd-api'
 import ActivityLogTimeline from './activity-log-timeline'
 
 jest.mock('./export-activities-modal', () => {
@@ -23,6 +27,7 @@ const createActivity = (
 ): ActivityLogDto => ({
   id: '11111111-1111-1111-1111-111111111111',
   eventType: 'TeamCreatedEvent',
+  category: ActivityCategory.Created,
   domainArea: 'Organization',
   aggregateType: 'Team',
   aggregateId: '22222222-2222-2222-2222-222222222222',
@@ -83,32 +88,43 @@ describe('ActivityLogTimeline', () => {
   })
 
   it.each([
-    // Activation and deactivation share a tag, so 'deactivated' containing 'activated' cannot label a
-    // deactivation as its opposite.
-    ['TeamDeactivatedEvent', 'State Change'],
-    ['TeamActivatedEvent', 'State Change'],
-    ['StrategicThemeArchivedEvent', 'State Change'],
-    ['WorkflowArchivedEventV2', 'State Change'],
-    ['ProjectStatusChangedEvent', 'Status Change'],
-    // A health check event also contains 'added' / 'removed'; the health signal has to win.
-    ['ProjectHealthCheckAddedEvent', 'Health'],
-    ['ProjectHealthCheckRemovedEvent', 'Health'],
-    ['TeamCreatedEvent', 'Created'],
-    ['VersionCutEvent', 'Created'],
-    // Destructive events stay scannable rather than reading like an ordinary edit.
-    ['ProjectDeletedEvent', 'Removed'],
-    ['DeploymentFailedEvent', 'Removed'],
-    ['TeamUpdatedEvent', 'Updated'],
-    ['ProjectTimelineChangedEvent', 'Updated'],
-  ])('badges %s as %s', (eventType, expectedBadge) => {
+    [ActivityCategory.Created, 'Created'],
+    [ActivityCategory.Updated, 'Updated'],
+    [ActivityCategory.ScheduleChanged, 'Schedule Change'],
+    [ActivityCategory.StatusChanged, 'Status Change'],
+    [ActivityCategory.StateChanged, 'State Change'],
+    [ActivityCategory.Health, 'Health'],
+    [ActivityCategory.Removed, 'Removed'],
+  ])('badges the %s category as %s', (category, expectedBadge) => {
     render(
       <ActivityLogTimeline
-        activities={[createActivity({ id: 'act-1', eventType })]}
+        activities={[createActivity({ id: 'act-1', category })]}
         isLoading={false}
       />,
     )
 
     expect(screen.getAllByText(expectedBadge).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('badges from the category, not from words in the event type', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 'act-1',
+            eventType: 'ProjectCreatedEvent',
+            summary: 'Project Opened',
+            category: ActivityCategory.StatusChanged,
+          }),
+        ]}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.getAllByText('Status Change').length).toBeGreaterThanOrEqual(
+      1,
+    )
+    expect(screen.queryByText('Created')).not.toBeInTheDocument()
   })
 
   it('selects the first activity by default and displays its properties in the inspector pane', () => {

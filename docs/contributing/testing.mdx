@@ -54,6 +54,23 @@ made one suite take six containers to run 44 tests.
 The consequence is that tests **share a database**. Scope assertions to data the test itself created
 (a fresh `Guid`, a unique key) rather than assuming an empty schema or querying for "the only row".
 
+### Authenticated HTTP requests
+
+`Wayd.Web.Api.IntegrationTests` boots the real API against its container, so a test can call an endpoint
+the way a client does. `CreateAuthenticatedClient` creates a local user holding exactly the permissions you
+name, signs them in through `POST /api/auth/login`, and returns an `HttpClient` that sends their token:
+
+```csharp
+var user = await _factory.CreateAuthenticatedClient(
+    ApplicationPermission.NameFor(ApplicationAction.Import, ApplicationResource.StrategicThemes));
+
+var response = await user.Client.PostAsync(route, content, TestContext.Current.CancellationToken);
+```
+
+Each call makes a new role and user, so one test's permissions never reach another's. Use it for anything
+that belongs to the HTTP layer: status codes, headers, model binding, and the permission attributes. Tests
+that only need a handler to run can still dispatch through `IDispatcher` in a scope.
+
 ## Frameworks and Libraries
 
 | Library | Purpose |

@@ -1,126 +1,65 @@
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Organization;
 
 namespace Wayd.Planning.Application.PlanningTeams.EventHandlers;
 
 /// <summary>
-/// Replicates Organization <c>Team</c> changes into the Planning domain's <c>PlanningTeam</c> projection
-/// (same Id).
+/// Keeps the Planning module's <c>PlanningTeam</c> copy of each Organization team (same Id).
 /// </summary>
 /// <remarks>
-/// The <c>Team*</c> events are delivered durably (see <c>DurableEventRoutes</c>): enlisted in the Wolverine
-/// outbox, delivered on a background thread, and governed by a retry-with-cooldown → dead-letter failure
-/// policy. So this handler lets exceptions propagate — a transient DB failure is retried by Wolverine and a
-/// poison message dead-letters. The per-message idempotency guards (create no-ops if the row already exists;
-/// update/activate/deactivate/delete no-op if it does not) make redelivery safe.
+/// The <c>Team*</c> events are delivered durably (see <c>DurableEventRoutes</c>): at least once and in no
+/// guaranteed order, with a retry-with-cooldown → dead-letter failure policy. This handler follows the rules
+/// in "Consuming an event" (docs/contributing/domain-events.mdx): a change older than the one the copy already
+/// holds is skipped, a missing copy is created from the team's current state, and a team that no longer
+/// exists is left without a copy.
 /// <para>
 /// Because delivery is asynchronous, a <c>PlanningTeam</c> may not exist at the instant a follow-up command
 /// references it. <c>ManagePlanningIntervalTeamsCommand</c> validates team existence and fails cleanly rather
-/// than FK-faulting, which is what makes async replication safe for this projection.
+/// than FK-faulting, which is what makes async replication safe for this copy.
 /// </para>
 /// </remarks>
-public sealed class PlanningTeamChangeEventHandler
+public sealed class PlanningTeamChangeEventHandler(
+    IPlanningDbContext planningDbContext,
+    IDispatcher dispatcher,
+    ILogger<PlanningTeamChangeEventHandler> logger)
 {
-    private readonly IPlanningDbContext _planningDbContext;
-    private readonly ILogger<PlanningTeamChangeEventHandler> _logger;
-
-    public PlanningTeamChangeEventHandler(IPlanningDbContext planningDbContext, ILogger<PlanningTeamChangeEventHandler> logger)
-    {
-        _planningDbContext = planningDbContext;
-        _logger = logger;
-    }
+    private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ILogger<PlanningTeamChangeEventHandler> _logger = logger;
 
     public async Task Handle(TeamCreatedEvent @event, CancellationToken cancellationToken)
     {
-        await CreatePlanningTeam(@event, cancellationToken);
+        if (await _planningDbContext.PlanningTeams.AnyAsync(t => t.Id == @event.Id, cancellationToken))
+        {
+            _logger.LogInformation("[{SystemActionType}] Planning Team create skipped: {PlanningTeamId} already has a copy.", SystemActionType.ServiceDataReplication, @event.Id);
+            return;
+        }
+
+        await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
     }
 
     public async Task Handle(TeamUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        await UpdatePlanningTeam(@event, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyDetails(@event.Name, @event.Code, @event.Timestamp), "details", cancellationToken);
     }
 
     public async Task Handle(TeamActivatedEvent @event, CancellationToken cancellationToken)
     {
-        await ActivatePlanningTeam(@event, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyActivation(true, @event.Timestamp), "activation", cancellationToken);
     }
 
     public async Task Handle(TeamDeactivatedEvent @event, CancellationToken cancellationToken)
     {
-        await DeactivatePlanningTeam(@event, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyActivation(false, @event.Timestamp), "deactivation", cancellationToken);
     }
 
     public async Task Handle(TeamDeletedEvent @event, CancellationToken cancellationToken)
     {
-        await DeletePlanningTeam(@event, cancellationToken);
-    }
-
-    private async Task CreatePlanningTeam(TeamCreatedEvent team, CancellationToken cancellationToken)
-    {
-        if (await _planningDbContext.PlanningTeams.AnyAsync(t => t.Id == team.Id, cancellationToken))
-        {
-            _logger.LogInformation("[{SystemActionType}] Planning Team create action skipped. Team already exists. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-            return;
-        }
-
-        var planningTeam = new PlanningTeam(team);
-        await _planningDbContext.PlanningTeams.AddAsync(planningTeam, cancellationToken);
-        await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("[{SystemActionType}] Planning Team created. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-    }
-
-    private async Task UpdatePlanningTeam(TeamUpdatedEvent team, CancellationToken cancellationToken)
-    {
-        var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
+        var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == @event.Id, cancellationToken);
         if (existingTeam is null)
         {
-            _logger.LogInformation("[{SystemActionType}] Planning Team update action skipped. Unable to find team {PlanningTeamId} to update.", SystemActionType.ServiceDataReplication, team.Id);
-            return;
-        }
-
-        existingTeam.Update(team);
-        await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("[{SystemActionType}] Planning Team updated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-    }
-
-    private async Task ActivatePlanningTeam(TeamActivatedEvent team, CancellationToken cancellationToken)
-    {
-        var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
-        if (existingTeam is null)
-        {
-            _logger.LogInformation("[{SystemActionType}] Planning Team activate action skipped. Unable to find team {PlanningTeamId} to activate.", SystemActionType.ServiceDataReplication, team.Id);
-            return;
-        }
-
-        existingTeam.UpdateIsActive(true);
-        await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("[{SystemActionType}] Planning Team activated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-    }
-
-    private async Task DeactivatePlanningTeam(TeamDeactivatedEvent team, CancellationToken cancellationToken)
-    {
-        var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
-        if (existingTeam is null)
-        {
-            _logger.LogInformation("[{SystemActionType}] Planning Team deactivate action skipped. Unable to find team {PlanningTeamId} to deactivate.", SystemActionType.ServiceDataReplication, team.Id);
-            return;
-        }
-
-        existingTeam.UpdateIsActive(false);
-        await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("[{SystemActionType}] Planning Team deactivated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-    }
-
-    private async Task DeletePlanningTeam(TeamDeletedEvent team, CancellationToken cancellationToken)
-    {
-        var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
-        if (existingTeam is null)
-        {
-            _logger.LogInformation("[{SystemActionType}] Planning Team delete action skipped. Unable to find team {PlanningTeamId} to delete.", SystemActionType.ServiceDataReplication, team.Id);
+            _logger.LogInformation("[{SystemActionType}] Planning Team delete skipped: {PlanningTeamId} has no copy.", SystemActionType.ServiceDataReplication, @event.Id);
             return;
         }
 
@@ -128,6 +67,41 @@ public sealed class PlanningTeamChangeEventHandler
         _planningDbContext.PlanningTeams.Remove(existingTeam);
         await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("[{SystemActionType}] Planning Team deleted. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, existingTeam.Id, existingTeam.Name);
+        _logger.LogInformation("[{SystemActionType}] Planning Team deleted. {PlanningTeamId}", SystemActionType.ServiceDataReplication, @event.Id);
+    }
+
+    private async Task Apply(Guid teamId, Instant timestamp, Func<PlanningTeam, bool> apply, string change, CancellationToken cancellationToken)
+    {
+        var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == teamId, cancellationToken);
+        if (existingTeam is null)
+        {
+            await CreateFromSource(teamId, timestamp, cancellationToken);
+            return;
+        }
+
+        if (!apply(existingTeam))
+        {
+            _logger.LogInformation("[{SystemActionType}] Planning Team {Change} skipped: {PlanningTeamId} already holds this or a newer change.", SystemActionType.ServiceDataReplication, change, teamId);
+            return;
+        }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Planning Team {Change} applied. {PlanningTeamId}", SystemActionType.ServiceDataReplication, change, teamId);
+    }
+
+    private async Task CreateFromSource(Guid teamId, Instant timestamp, CancellationToken cancellationToken)
+    {
+        var source = await _dispatcher.Send(new GetSimpleTeamQuery(teamId), cancellationToken);
+        if (source is null)
+        {
+            _logger.LogInformation("[{SystemActionType}] Planning Team copy not created: team {PlanningTeamId} no longer exists.", SystemActionType.ServiceDataReplication, teamId);
+            return;
+        }
+
+        await _planningDbContext.PlanningTeams.AddAsync(new PlanningTeam(source, timestamp), cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Planning Team created from source. {PlanningTeamId}", SystemActionType.ServiceDataReplication, teamId);
     }
 }

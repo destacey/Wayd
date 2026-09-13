@@ -4,7 +4,9 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkProjects.Commands;
 
-public sealed record SyncWorkProjectsCommand(IEnumerable<ISimpleProject> Projects) : ICommand, ILongRunningRequest;
+/// <param name="Projects">Every PPM project, as read from the source.</param>
+/// <param name="AsOf">When the source was read, taken before the read began.</param>
+public sealed record SyncWorkProjectsCommand(IEnumerable<ISimpleProject> Projects, Instant AsOf) : ICommand, ILongRunningRequest;
 
 public sealed class SyncWorkProjectsCommandHandler(
     IWorkDbContext workDbContext,
@@ -33,18 +35,18 @@ public sealed class SyncWorkProjectsCommandHandler(
             var existingProjects = await _workDbContext.WorkProjects
                 .ToListAsync(cancellationToken);
 
-            var existingIds = existingProjects.Select(x => x.Id).ToHashSet();
+            var sourceIds = request.Projects.Select(x => x.Id).ToHashSet();
 
-            // Handle deletes
-            var deleteIds = existingIds.Except(request.Projects.Select(x => x.Id)).ToList();
-            if (deleteIds.Count != 0)
+            // A copy that took a change after the read belongs to a project created after it, not a deleted one.
+            var projectsToDelete = existingProjects
+                .Where(x => !sourceIds.Contains(x.Id) && !x.Watermarks.AnyAfter(request.AsOf))
+                .ToList();
+            if (projectsToDelete.Count != 0)
             {
-                var projectsToDelete = existingProjects.Where(x => deleteIds.Contains(x.Id)).ToList();
                 _workDbContext.WorkProjects.RemoveRange(projectsToDelete);
                 deleteCount = projectsToDelete.Count;
             }
 
-            // Handle creates and updates
             foreach (var project in request.Projects)
             {
                 var existingProject = existingProjects.FirstOrDefault(x => x.Id == project.Id);
@@ -53,17 +55,14 @@ public sealed class SyncWorkProjectsCommandHandler(
                     if (_logger.IsEnabled(LogLevel.Debug))
                         _logger.LogDebug("Creating new Work project {ProjectId}.", project.Id);
 
-                    var newProject = new WorkProject(project);
-
-                    await _workDbContext.WorkProjects.AddAsync(newProject, cancellationToken);
+                    await _workDbContext.WorkProjects.AddAsync(new WorkProject(project, request.AsOf), cancellationToken);
                     createCount++;
                 }
-                else
+                else if (existingProject.Resync(project, request.AsOf))
                 {
                     if (_logger.IsEnabled(LogLevel.Debug))
-                        _logger.LogDebug("Updating existing Work project {ProjectId}.", project.Id);
+                        _logger.LogDebug("Updated existing Work project {ProjectId}.", project.Id);
 
-                    existingProject.UpdateDetails(project);
                     updateCount++;
                 }
             }

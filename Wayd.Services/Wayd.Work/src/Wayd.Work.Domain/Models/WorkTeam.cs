@@ -1,18 +1,25 @@
 ﻿using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Replication;
+using NodaTime;
 
 namespace Wayd.Work.Domain.Models;
 
 /// <summary>
-/// A copy of the Wayd.Common.Domain.Interfaces.Organization.ISimpleTeam interface.  Used to hold basic team information for the work service and db context.
+/// The Work module's copy of an Organization team, kept by the <c>Team*</c> events (see
+/// <see cref="ReplicaWatermark"/> for how it orders them).
 /// </summary>
 public sealed class WorkTeam : ISimpleTeam, IHasIdAndKey, IHasTeamIdAndCode
 {
     private WorkTeam() { }
 
-    public WorkTeam(TeamCreatedEvent team)
+    /// <param name="team">The team's state as read from its source.</param>
+    /// <param name="asOf">
+    /// The timestamp of the change that led to the copy being created. Every group is stamped with it, so an
+    /// older event still in flight is skipped rather than rolling back state the source already moved past.
+    /// </param>
+    public WorkTeam(ISimpleTeam team, Instant asOf)
     {
         Id = team.Id;
         Key = team.Key;
@@ -20,16 +27,7 @@ public sealed class WorkTeam : ISimpleTeam, IHasIdAndKey, IHasTeamIdAndCode
         Code = team.Code;
         Type = team.Type;
         IsActive = team.IsActive;
-    }
-
-    public WorkTeam(ISimpleTeam team)
-    {
-        Id = team.Id;
-        Key = team.Key;
-        Name = team.Name;
-        Code = team.Code;
-        Type = team.Type;
-        IsActive = team.IsActive;
+        Watermarks = TeamReplicaWatermarks.At(asOf);
     }
 
     public Guid Id { get; private set; }
@@ -38,50 +36,78 @@ public sealed class WorkTeam : ISimpleTeam, IHasIdAndKey, IHasTeamIdAndCode
     public TeamCode Code { get; private set; } = default!;
     public TeamType Type { get; private set; } = default!;
     public bool IsActive { get; private set; }
+    public TeamReplicaWatermarks Watermarks { get; private set; } = TeamReplicaWatermarks.None;
 
     /// <summary>
-    /// Update the team information based on a TeamUpdatedEvent
+    /// Applies a change to the name and code made at <paramref name="timestamp"/>.
     /// </summary>
-    /// <param name="team"></param>
-    public void Update(TeamUpdatedEvent team)
+    /// <returns>False when a newer change already applied, or when the copy already holds this one.</returns>
+    public bool ApplyDetails(string name, TeamCode code, Instant timestamp)
     {
-        Name = team.Name;
-        Code = team.Code;
+        if (ReplicaWatermark.IsStale(Watermarks.Details, timestamp)
+            || (Name == name && Equals(Code, code) && Watermarks.Details == timestamp))
+        {
+            return false;
+        }
+
+        Name = name;
+        Code = code;
+        Watermarks = Watermarks with { Details = timestamp };
+        return true;
     }
 
-    public void UpdateIsActive(bool isActive)
+    /// <summary>
+    /// Applies an activation or deactivation made at <paramref name="timestamp"/>.
+    /// </summary>
+    /// <returns>False when a newer change already applied, or when the copy already holds this one.</returns>
+    public bool ApplyActivation(bool isActive, Instant timestamp)
     {
+        if (ReplicaWatermark.IsStale(Watermarks.Activation, timestamp)
+            || (IsActive == isActive && Watermarks.Activation == timestamp))
+        {
+            return false;
+        }
+
         IsActive = isActive;
+        Watermarks = Watermarks with { Activation = timestamp };
+        return true;
     }
 
     /// <summary>
-    /// Used to resynchronize the WorkTeam with an ISimpleTeam instance.
+    /// Brings the copy in line with the source as read at <paramref name="asOf"/>, one group at a time.
     /// </summary>
-    /// <param name="team"></param>
-    /// <exception cref="InvalidOperationException"></exception>
-    public void UpdateSimpleTeam(ISimpleTeam team)
+    /// <remarks>
+    /// A group that already matches keeps its watermark: stamping it would skip a change the read could not
+    /// see, one timestamped before <paramref name="asOf"/> but committed after it. A group holding a change
+    /// newer than the read is left alone too, because the read is the older of the two.
+    /// </remarks>
+    /// <returns>Whether anything changed.</returns>
+    public bool Resync(ISimpleTeam team, Instant asOf)
     {
         if (Id != team.Id)
         {
-            throw new InvalidOperationException("Cannot update WorkTeam with a different Id.");
+            throw new InvalidOperationException("Cannot resync WorkTeam with a different Id.");
         }
 
-        Key = team.Key;
-        Name = team.Name;
-        Code = team.Code;
-        Type = team.Type;
-        IsActive = team.IsActive;
-    }
+        var changed = false;
 
-    public bool EqualsSimpleTeam(ISimpleTeam? other)
-    {
-        if (other is null) return false;
+        if ((Name != team.Name || !Equals(Code, team.Code))
+            && !ReplicaWatermark.IsStale(Watermarks.Details, asOf))
+        {
+            Name = team.Name;
+            Code = team.Code;
+            Watermarks = Watermarks with { Details = asOf };
+            changed = true;
+        }
 
-        return Id == other.Id
-            && Key == other.Key
-            && string.Equals(Name, other.Name, StringComparison.Ordinal)
-            && Equals(Code, other.Code)
-            && Equals(Type, other.Type)
-            && IsActive == other.IsActive;
+        if (IsActive != team.IsActive
+            && !ReplicaWatermark.IsStale(Watermarks.Activation, asOf))
+        {
+            IsActive = team.IsActive;
+            Watermarks = Watermarks with { Activation = asOf };
+            changed = true;
+        }
+
+        return changed;
     }
 }

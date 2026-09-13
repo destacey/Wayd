@@ -26,7 +26,8 @@ public class JobManager(
     ILogger<JobManager> logger,
     IWorkSyncRunner workSyncRunner,
     IPeopleSyncRunner peopleSyncRunner,
-    IDispatcher dispatcher)
+    IDispatcher dispatcher,
+    IDateTimeProvider dateTimeProvider)
     : IJobManager
 {
     // TODO: does this belong in JobService/HangfireService?
@@ -35,6 +36,7 @@ public class JobManager(
     private readonly IWorkSyncRunner _workSyncRunner = workSyncRunner;
     private readonly IPeopleSyncRunner _peopleSyncRunner = peopleSyncRunner;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     // No automatic retry. People-sync failures are overwhelmingly deterministic — a duplicate key
     // on a uniquely-indexed employee field, an ambiguous identity match, a source returning zero
@@ -107,9 +109,11 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncIterations));
 
+        // Taken before the read: a copy's watermark must never claim a change the read could not have seen.
+        var asOf = _dateTimeProvider.Now;
         var iterations = await _dispatcher.Send(new GetSimpleIterationsQuery(), cancellationToken);
 
-        var result = await _dispatcher.Send(new SyncWorkIterationsCommand(iterations), cancellationToken);
+        var result = await _dispatcher.Send(new SyncWorkIterationsCommand(iterations, asOf), cancellationToken);
         if (result.IsFailure)
         {
             _logger.LogError("Failed to sync iterations: {Error}", result.Error);
@@ -124,9 +128,10 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncStrategicThemes));
 
+        var asOf = _dateTimeProvider.Now;
         var strategicThemes = await _dispatcher.Send(new GetStrategicThemesDataQuery(), cancellationToken);
 
-        var result = await _dispatcher.Send(new PpmSyncStrategicThemesCommand(strategicThemes), cancellationToken);
+        var result = await _dispatcher.Send(new PpmSyncStrategicThemesCommand(strategicThemes, asOf), cancellationToken);
         if (result.IsFailure)
         {
             _logger.LogError("Failed to sync strategic themes: {Error}", result.Error);
@@ -157,9 +162,10 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncProjects));
 
+        var asOf = _dateTimeProvider.Now;
         var projects = await _dispatcher.Send(new GetSimpleProjectsQuery(), cancellationToken);
 
-        var result = await _dispatcher.Send(new SyncWorkProjectsCommand(projects), cancellationToken);
+        var result = await _dispatcher.Send(new SyncWorkProjectsCommand(projects, asOf), cancellationToken);
         if (result.IsFailure)
         {
             _logger.LogError("Failed to sync projects: {Error}", result.Error);
@@ -174,21 +180,22 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncTeams));
 
+        var asOf = _dateTimeProvider.Now;
         var teams = await _dispatcher.Send(new GetSimpleTeamsQuery(), cancellationToken);
 
-        var planningSyncResult = await _dispatcher.Send(new SyncPlanningTeamsCommand(teams), cancellationToken);
+        var planningSyncResult = await _dispatcher.Send(new SyncPlanningTeamsCommand(teams, asOf), cancellationToken);
         if (planningSyncResult.IsFailure)
         {
             _logger.LogError("Failed to sync planning teams: {Error}", planningSyncResult.Error);
         }
 
-        var ppmSyncResult = await _dispatcher.Send(new SyncPpmTeamsCommand(teams), cancellationToken);
+        var ppmSyncResult = await _dispatcher.Send(new SyncPpmTeamsCommand(teams, asOf), cancellationToken);
         if (ppmSyncResult.IsFailure)
         {
             _logger.LogError("Failed to sync PPM teams: {Error}", ppmSyncResult.Error);
         }
 
-        var workSyncResult = await _dispatcher.Send(new SyncWorkTeamsCommand(teams), cancellationToken);
+        var workSyncResult = await _dispatcher.Send(new SyncWorkTeamsCommand(teams, asOf), cancellationToken);
         if (workSyncResult.IsFailure)
         {
             _logger.LogError("Failed to sync work teams: {Error}", workSyncResult.Error);

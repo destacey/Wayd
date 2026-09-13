@@ -10,6 +10,8 @@ using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Organization.Application.Teams.Commands;
+using Wayd.Planning.Application.Persistence;
+using Wayd.Planning.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -173,27 +175,34 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
     [Fact]
     public async Task DurableEvent_WhoseHandlerFailsPersistently_LandsInDeadLetterStore()
     {
-        // Arrange — a TeamCreatedEvent whose Name exceeds the PlanningTeam projection's 128-char column,
-        // so the replication handler's SaveChanges fails deterministically on every attempt (a
+        // Arrange — a TeamUpdatedEvent for an existing PlanningTeam copy whose Name exceeds the copy's 128-char
+        // column, so the replication handler's SaveChanges fails deterministically on every attempt (a
         // non-transient failure). Per DurableEventFailurePolicy the chain retries with cooldowns
         // (1s/5s/15s) and then dead-letters — this proves a real handler failure ends up in the durable
-        // dead letter store, where the messaging dashboard (and replay) can see it.
+        // dead letter store, where the messaging dashboard (and replay) can see it. It is an update to a
+        // seeded copy because a create builds the copy from the source team, which does not exist here.
         _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
 
         var poisonedId = Guid.NewGuid();
-        var poisonedEvent = new TeamCreatedEvent(
+        using (var seedScope = _factory.Services.CreateScope())
+        {
+            var planning = seedScope.ServiceProvider.GetRequiredService<IPlanningDbContext>();
+            var copyKey = Random.Shared.Next(900_000, 999_999);
+            planning.PlanningTeams.Add(new PlanningTeam(
+                new TeamCreatedEvent(poisonedId, copyKey, new TeamCode($"D{copyKey}"), "Dead Letter Test", null,
+                    TeamType.Team, new LocalDate(2026, 1, 1), null, true, EventActor.System, Now),
+                Now));
+            await planning.SaveChangesAsync(ct);
+        }
+
+        var poisonedEvent = new TeamUpdatedEvent(
             id: poisonedId,
-            key: 999999,
             code: new TeamCode("DLQTEST"),
             name: new string('x', 200),
             description: "Poisoned event for the failure-to-dead-letter pipeline test.",
-            type: TeamType.Team,
-            activeDate: new LocalDate(2026, 1, 1),
-            inactiveDate: null,
-            isActive: true,
             EventActor.System,
-            timestamp: Now);
+            timestamp: Now.Plus(Duration.FromMinutes(1)));
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -211,11 +220,11 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         while (DateTime.UtcNow < deadline)
         {
             var results = await store.DeadLetters.QueryAsync(
-                new DeadLetterEnvelopeQuery { MessageType = typeof(TeamCreatedEvent).FullName },
+                new DeadLetterEnvelopeQuery { MessageType = typeof(TeamUpdatedEvent).FullName },
                 ct);
             // The dead letter store is shared with every other class in this collection, so match strictly on
             // the poisoned id in the serialized body. A null-body envelope is NOT assumed to be ours: another
-            // test's TeamCreatedEvent failure would otherwise satisfy this and pass the assertions below.
+            // test's TeamUpdatedEvent failure would otherwise satisfy this and pass the assertions below.
             deadLetter = results.Envelopes.FirstOrDefault(e =>
                 e.Envelope.Data is not null
                 && System.Text.Encoding.UTF8.GetString(e.Envelope.Data).Contains(poisonedId.ToString(), StringComparison.OrdinalIgnoreCase));
@@ -227,7 +236,7 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
             await Task.Delay(1000, ct);
         }
 
-        Assert.True(deadLetter is not null, "Poisoned TeamCreatedEvent should have been moved to the durable dead letter store after exhausting retries");
+        Assert.True(deadLetter is not null, "Poisoned TeamUpdatedEvent should have been moved to the durable dead letter store after exhausting retries");
         Assert.False(deadLetter!.Replayable);
         Assert.NotNull(deadLetter.ExceptionType);
 

@@ -1,3 +1,4 @@
+using Wayd.Common.Application.Requests.StrategicManagement;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
@@ -6,122 +7,101 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicThemes.EventHandlers;
 
 /// <summary>
-/// Replicates StrategicManagement <c>StrategicTheme</c> changes into the PPM <c>PpmStrategicThemes</c>
-/// projection (same Id).
+/// Keeps the PPM module's <c>PpmStrategicThemes</c> copy of each StrategicManagement theme (same Id).
 /// </summary>
 /// <remarks>
-/// The <c>StrategicTheme*</c> events are delivered durably (see <c>DurableEventRoutes</c>): enlisted in the
-/// Wolverine outbox, delivered on a background thread, and governed by a retry-with-cooldown → dead-letter
-/// failure policy. So this handler lets exceptions propagate — a transient DB failure is retried by Wolverine
-/// and a poison message dead-letters. The per-message idempotency guards (create no-ops if the row already
-/// exists; update/delete no-op if it does not) make redelivery safe.
+/// The <c>StrategicTheme*</c> events are delivered durably (see <c>DurableEventRoutes</c>): at least once and
+/// in no guaranteed order, with a retry-with-cooldown → dead-letter failure policy. This handler follows the
+/// rules in "Consuming an event" (docs/contributing/domain-events.mdx): a change older than the one the copy
+/// already holds is skipped, a missing copy is created from the theme's current state, and a theme that no
+/// longer exists is left without a copy.
 /// </remarks>
-public sealed class StrategicThemeChangedHandler(IProjectPortfolioManagementDbContext ppmContext, ILogger<StrategicThemeChangedHandler> logger)
+public sealed class StrategicThemeChangedHandler(
+    IProjectPortfolioManagementDbContext ppmContext,
+    IDispatcher dispatcher,
+    ILogger<StrategicThemeChangedHandler> logger)
 {
     private readonly IProjectPortfolioManagementDbContext _ppmContext = ppmContext;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<StrategicThemeChangedHandler> _logger = logger;
 
     public async Task Handle(StrategicThemeCreatedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for a new Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await CreateStrategicTheme(@event, cancellationToken);
+        if (await _ppmContext.PpmStrategicThemes.AnyAsync(x => x.Id == @event.Id, cancellationToken))
+        {
+            _logger.LogInformation("PPM {SystemActionType} for a new Strategic Theme skipped: Strategic Theme {StrategicThemeId} already has a copy.", SystemActionType.ServiceDataReplication, @event.Id);
+            return;
+        }
+
+        await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
     }
 
+    // The payload's State is the state the theme happened to be in, not part of the change: an update only
+    // renames or redescribes, and every transition raises its own event.
     public async Task Handle(StrategicThemeUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for an updated Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await UpdateStrategicTheme(@event, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyDetails(@event.Name, @event.Description, @event.Timestamp), "details", cancellationToken);
     }
 
     public async Task Handle(StrategicThemeActivatedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for an activated Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await ChangeStrategicThemeState(@event.Id, StrategicThemeState.Active, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyState(StrategicThemeState.Active, @event.Timestamp), "activation", cancellationToken);
     }
 
     public async Task Handle(StrategicThemeArchivedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for an archived Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await ChangeStrategicThemeState(@event.Id, StrategicThemeState.Archived, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyState(StrategicThemeState.Archived, @event.Timestamp), "archive", cancellationToken);
     }
 
     public async Task Handle(StrategicThemeDeletedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for a deleted Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await DeleteStrategicTheme(@event, cancellationToken);
-    }
-
-    private async Task CreateStrategicTheme(StrategicThemeCreatedEvent createdEvent, CancellationToken cancellationToken)
-    {
-        // Idempotency guard, not error handling: a redelivery or a race with the Hangfire SyncStrategicThemes
-        // bulk path may find the projection already present — that is a success, not a fault.
-        if (await _ppmContext.PpmStrategicThemes.AnyAsync(x => x.Id == createdEvent.Id, cancellationToken))
-        {
-            _logger.LogInformation("PPM {SystemActionType} for a new Strategic Theme skipped: Strategic Theme {StrategicThemeId} already exists in the PPM system.", SystemActionType.ServiceDataReplication, createdEvent.Id);
-            return;
-        }
-
-        var theme = new StrategicTheme(createdEvent);
-        await _ppmContext.PpmStrategicThemes.AddAsync(theme, cancellationToken);
-        await _ppmContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} created action.", SystemActionType.ServiceDataReplication, createdEvent.Id);
-    }
-
-    private async Task UpdateStrategicTheme(StrategicThemeUpdatedEvent updatedEvent, CancellationToken cancellationToken)
-    {
         var existingStrategicTheme = await _ppmContext.PpmStrategicThemes
-            .FirstOrDefaultAsync(x => x.Id == updatedEvent.Id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == @event.Id, cancellationToken);
         if (existingStrategicTheme is null)
         {
-            // The create event has not been applied yet (out-of-order delivery) or the theme was deleted.
-            // No-op rather than throw: a create redelivery or the Hangfire bulk sync will converge the state.
-            _logger.LogWarning("PPM {SystemActionType} for an updated Strategic Theme skipped: Strategic Theme {StrategicThemeId} does not exist in the PPM system.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
-            return;
-        }
-
-        existingStrategicTheme.Update(updatedEvent.Name, updatedEvent.Description, updatedEvent.State);
-        await _ppmContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} update action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
-    }
-
-    private async Task ChangeStrategicThemeState(Guid id, StrategicThemeState state, CancellationToken cancellationToken)
-    {
-        var existingStrategicTheme = await _ppmContext.PpmStrategicThemes
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (existingStrategicTheme is null)
-        {
-            // Same convergence as an update: a create redelivery or the Hangfire bulk sync carries the state.
-            _logger.LogWarning("PPM {SystemActionType} for a Strategic Theme state change skipped: Strategic Theme {StrategicThemeId} does not exist in the PPM system.", SystemActionType.ServiceDataReplication, id);
-            return;
-        }
-
-        if (existingStrategicTheme.State == state)
-        {
-            return;
-        }
-
-        existingStrategicTheme.ChangeState(state);
-        await _ppmContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} state change to {StrategicThemeState}.", SystemActionType.ServiceDataReplication, id, state);
-    }
-
-    private async Task DeleteStrategicTheme(StrategicThemeDeletedEvent deletedEvent, CancellationToken cancellationToken)
-    {
-        var existingStrategicTheme = await _ppmContext.PpmStrategicThemes
-            .FirstOrDefaultAsync(x => x.Id == deletedEvent.Id, cancellationToken);
-        if (existingStrategicTheme is null)
-        {
-            // Already gone (redelivery, or the theme never replicated) — deleting nothing is the goal state.
-            _logger.LogInformation("PPM {SystemActionType} for a deleted Strategic Theme skipped: Strategic Theme {StrategicThemeId} does not exist in the PPM system.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
+            _logger.LogInformation("PPM {SystemActionType} for a deleted Strategic Theme skipped: Strategic Theme {StrategicThemeId} has no copy.", SystemActionType.ServiceDataReplication, @event.Id);
             return;
         }
 
         _ppmContext.PpmStrategicThemes.Remove(existingStrategicTheme);
         await _ppmContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} delete action.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
+        _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} delete action.", SystemActionType.ServiceDataReplication, @event.Id);
+    }
+
+    private async Task Apply(Guid themeId, Instant timestamp, Func<StrategicTheme, bool> apply, string change, CancellationToken cancellationToken)
+    {
+        var existingStrategicTheme = await _ppmContext.PpmStrategicThemes
+            .FirstOrDefaultAsync(x => x.Id == themeId, cancellationToken);
+        if (existingStrategicTheme is null)
+        {
+            await CreateFromSource(themeId, timestamp, cancellationToken);
+            return;
+        }
+
+        if (!apply(existingStrategicTheme))
+        {
+            _logger.LogInformation("PPM {SystemActionType} for a Strategic Theme {Change} skipped: Strategic Theme {StrategicThemeId} already holds this or a newer change.", SystemActionType.ServiceDataReplication, change, themeId);
+            return;
+        }
+
+        await _ppmContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful PPM {SystemActionType} for the Strategic Theme {StrategicThemeId} {Change}.", SystemActionType.ServiceDataReplication, themeId, change);
+    }
+
+    private async Task CreateFromSource(Guid themeId, Instant timestamp, CancellationToken cancellationToken)
+    {
+        var source = await _dispatcher.Send(new GetStrategicThemeDataQuery(themeId), cancellationToken);
+        if (source is null)
+        {
+            _logger.LogInformation("PPM {SystemActionType} copy not created: Strategic Theme {StrategicThemeId} no longer exists.", SystemActionType.ServiceDataReplication, themeId);
+            return;
+        }
+
+        await _ppmContext.PpmStrategicThemes.AddAsync(new StrategicTheme(source, timestamp), cancellationToken);
+        await _ppmContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful PPM {SystemActionType} creating Strategic Theme {StrategicThemeId} from its source.", SystemActionType.ServiceDataReplication, themeId);
     }
 }

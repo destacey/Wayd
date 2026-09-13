@@ -3,7 +3,9 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicThemes.Commands;
 
-public sealed record SyncStrategicThemesCommand(IEnumerable<IStrategicThemeData> StrategicThemes) : ICommand;
+/// <param name="StrategicThemes">Every strategic theme, as read from the source.</param>
+/// <param name="AsOf">When the source was read, taken before the read began.</param>
+public sealed record SyncStrategicThemesCommand(IEnumerable<IStrategicThemeData> StrategicThemes, Instant AsOf) : ICommand;
 
 public sealed class SyncStrategicThemesCommandHandler(
     IProjectPortfolioManagementDbContext ppmContext,
@@ -32,18 +34,18 @@ public sealed class SyncStrategicThemesCommandHandler(
             var existingThemes = await _ppmContext.PpmStrategicThemes
                 .ToListAsync(cancellationToken);
 
-            var existingIds = existingThemes.Select(x => x.Id).ToHashSet();
+            var sourceIds = request.StrategicThemes.Select(x => x.Id).ToHashSet();
 
-            // Handle deletes
-            var deleteIds = existingIds.Except(request.StrategicThemes.Select(x => x.Id)).ToList();
-            if (deleteIds.Count != 0)
+            // A copy that took a change after the read belongs to a theme created after it, not a deleted one.
+            var themesToDelete = existingThemes
+                .Where(x => !sourceIds.Contains(x.Id) && !x.Watermarks.AnyAfter(request.AsOf))
+                .ToList();
+            if (themesToDelete.Count != 0)
             {
-                var themesToDelete = existingThemes.Where(x => deleteIds.Contains(x.Id)).ToList();
                 _ppmContext.PpmStrategicThemes.RemoveRange(themesToDelete);
                 deleteCount = themesToDelete.Count;
             }
 
-            // Handle creates and updates
             foreach (var strategicTheme in request.StrategicThemes)
             {
                 var existingTheme = existingThemes.FirstOrDefault(x => x.Id == strategicTheme.Id);
@@ -51,17 +53,13 @@ public sealed class SyncStrategicThemesCommandHandler(
                 {
                     _logger.LogDebug("Creating new PPM strategic theme {StrategicThemeId}.", strategicTheme.Id);
 
-                    var theme = new StrategicTheme(strategicTheme);
-
-                    await _ppmContext.PpmStrategicThemes.AddAsync(theme, cancellationToken);
+                    await _ppmContext.PpmStrategicThemes.AddAsync(new StrategicTheme(strategicTheme, request.AsOf), cancellationToken);
 
                     createCount++;
                 }
-                else
+                else if (existingTheme.Resync(strategicTheme, request.AsOf))
                 {
-                    _logger.LogDebug("Updating existing PPM strategic theme {StrategicThemeId}.", strategicTheme.Id);
-
-                    existingTheme.Update(strategicTheme.Name, strategicTheme.Description, strategicTheme.State);
+                    _logger.LogDebug("Updated existing PPM strategic theme {StrategicThemeId}.", strategicTheme.Id);
 
                     updateCount++;
                 }

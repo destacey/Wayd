@@ -4,19 +4,19 @@ using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Application.WorkIterations.Commands;
 
-public sealed record SyncWorkIterationsCommand(IEnumerable<ISimpleIteration> Iterations) : ICommand, ILongRunningRequest;
+/// <param name="Iterations">Every Planning iteration, as read from the source.</param>
+/// <param name="AsOf">When the source was read, taken before the read began.</param>
+public sealed record SyncWorkIterationsCommand(IEnumerable<ISimpleIteration> Iterations, Instant AsOf) : ICommand, ILongRunningRequest;
 
 public sealed class SyncWorkIterationsCommandHandler(
     IWorkDbContext workDbContext,
-    ILogger<SyncWorkIterationsCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    ILogger<SyncWorkIterationsCommandHandler> logger)
     : ICommandHandler<SyncWorkIterationsCommand>
 {
     private const string AppRequestName = nameof(SyncWorkIterationsCommand);
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<SyncWorkIterationsCommandHandler> _logger = logger;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(SyncWorkIterationsCommand request, CancellationToken cancellationToken)
     {
@@ -28,26 +28,25 @@ public sealed class SyncWorkIterationsCommandHandler(
                 return Result.Success();
             }
 
-            var now = _dateTimeProvider.Now;
-
             int createCount = 0;
             int updateCount = 0;
             int deleteCount = 0;
 
             var existingIterations = await _workDbContext.WorkIterations
                 .ToListAsync(cancellationToken);
-            var existingIds = existingIterations.Select(x => x.Id).ToHashSet();
 
-            // Handle deletes
-            var deleteIds = existingIds.Except(request.Iterations.Select(x => x.Id)).ToList();
-            if (deleteIds.Count != 0)
+            var sourceIds = request.Iterations.Select(x => x.Id).ToHashSet();
+
+            // A copy that took a change after the read belongs to an iteration created after it, not a deleted one.
+            var iterationsToDelete = existingIterations
+                .Where(x => !sourceIds.Contains(x.Id) && !x.Watermarks.AnyAfter(request.AsOf))
+                .ToList();
+            if (iterationsToDelete.Count != 0)
             {
-                var iterationsToDelete = existingIterations.Where(x => deleteIds.Contains(x.Id)).ToList();
                 _workDbContext.WorkIterations.RemoveRange(iterationsToDelete);
                 deleteCount = iterationsToDelete.Count;
             }
 
-            // Handle creates and updates
             foreach (var iteration in request.Iterations)
             {
                 var existingIteration = existingIterations.FirstOrDefault(x => x.Id == iteration.Id);
@@ -56,21 +55,14 @@ public sealed class SyncWorkIterationsCommandHandler(
                     if (_logger.IsEnabled(LogLevel.Debug))
                         _logger.LogDebug("Creating new Work iteration {IterationId}.", iteration.Id);
 
-                    var newIteration = new WorkIteration(iteration);
-
-                    await _workDbContext.WorkIterations.AddAsync(newIteration, cancellationToken);
+                    await _workDbContext.WorkIterations.AddAsync(new WorkIteration(iteration, request.AsOf), cancellationToken);
                     createCount++;
                 }
-                else
+                else if (existingIteration.Resync(iteration, EventActor.System, request.AsOf))
                 {
                     if (_logger.IsEnabled(LogLevel.Debug))
-                        _logger.LogDebug("Updating existing Work iteration {IterationId}.", iteration.Id);
+                        _logger.LogDebug("Updated existing Work iteration {IterationId}.", iteration.Id);
 
-                    var result = existingIteration.Update(iteration, EventActor.System, now);
-                    if (result.IsFailure)
-                    {
-                        _logger.LogWarning("Failed to update Work iteration {IterationId}: {ErrorMessage}.", iteration.Id, result.Error);
-                    }
                     updateCount++;
                 }
             }

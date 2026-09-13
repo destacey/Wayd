@@ -1,61 +1,67 @@
 ﻿using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
+using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Planning.Application.PlanningTeams.EventHandlers;
 using Wayd.Planning.Application.Tests.Infrastructure;
+using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
-using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningTeams.EventHandlers;
 
 /// <summary>
-/// <see cref="PlanningTeamChangeEventHandler"/> replicates Organization Team changes into the Planning
-/// <c>PlanningTeam</c> projection. Because it is delivered durably, its contract is: idempotent guards
-/// short-circuit a redelivery, and any real failure PROPAGATES (Wolverine's retry/dead-letter governs it)
-/// rather than being swallowed.
+/// <see cref="PlanningTeamChangeEventHandler"/> keeps the Planning copy of each team correct however the
+/// durable <c>Team*</c> events arrive: late, twice, out of order, or after the team was deleted.
 /// </summary>
 public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
 {
-    private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+    private static readonly Instant Created = Instant.FromUtc(2026, 1, 15, 9, 0, 0);
+    private static readonly Instant Renamed = Created.Plus(Duration.FromMinutes(5));
+    private static readonly Instant Reactivated = Created.Plus(Duration.FromMinutes(10));
 
     private readonly FakePlanningDbContext _planningDbContext = new();
+    private readonly Mock<IDispatcher> _dispatcher = new();
     private readonly PlanningTeamChangeEventHandler _handler;
 
     public PlanningTeamChangeEventHandlerTests()
     {
-        _handler = new PlanningTeamChangeEventHandler(_planningDbContext, Mock.Of<ILogger<PlanningTeamChangeEventHandler>>());
+        _handler = new PlanningTeamChangeEventHandler(_planningDbContext, _dispatcher.Object, Mock.Of<ILogger<PlanningTeamChangeEventHandler>>());
     }
 
     public void Dispose() => _planningDbContext.Dispose();
 
     [Fact]
-    public async Task Handle_Created_WhenTeamIsNew_AddsProjectionAndSaves()
+    public async Task Handle_Created_WhenNoCopyExists_CreatesItFromTheSource()
     {
         // Arrange
-        var @event = CreatedEvent(Guid.CreateVersion7(), "Alpha");
+        var source = new PlanningTeamFaker(TeamType.Team).WithName("Atlas").Generate();
+        SourceReturns(source);
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(CreatedEvent(source.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        _planningDbContext.PlanningTeams.Should().ContainSingle(t => t.Id == @event.Id);
+        var copy = _planningDbContext.PlanningTeams.Should().ContainSingle(t => t.Id == source.Id).Subject;
+        copy.Name.Should().Be("Atlas");
+        copy.Watermarks.Should().Be(TeamReplicaWatermarks.At(Created));
         _planningDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task Handle_Created_WhenTeamAlreadyExists_IsIdempotentNoOp()
+    public async Task Handle_Created_WhenRedelivered_IsNoOp()
     {
-        // Arrange — a redelivery finds the projection already there.
-        var id = Guid.CreateVersion7();
-        _planningDbContext.AddPlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate());
-
-        var @event = CreatedEvent(id, "Duplicate");
+        // Arrange
+        var id = Guid.NewGuid();
+        _planningDbContext.AddPlanningTeam(new PlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate(), Created));
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(CreatedEvent(id), TestContext.Current.CancellationToken);
 
         // Assert
         _planningDbContext.PlanningTeams.Should().ContainSingle(t => t.Id == id);
@@ -63,30 +69,13 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenTeamExists_UpdatesAndSaves()
+    public async Task Handle_Created_WhenDeliveredAfterTheTeamWasDeleted_CreatesNothing()
     {
         // Arrange
-        var id = Guid.CreateVersion7();
-        _planningDbContext.AddPlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate());
-
-        var @event = new TeamUpdatedEvent(id, new TeamCode("NEW01"), "New Name", "desc", EventActor.System, Now);
+        SourceReturns(null);
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
-
-        // Assert
-        _planningDbContext.PlanningTeams.Single(t => t.Id == id).Name.Should().Be("New Name");
-        _planningDbContext.SaveChangesCallCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task Handle_Updated_WhenTeamMissing_IsNoOp()
-    {
-        // Arrange — out-of-order delivery: the update arrives before the create was applied.
-        var @event = new TeamUpdatedEvent(Guid.CreateVersion7(), new TeamCode("NEW02"), "Whatever", "desc", EventActor.System, Now);
-
-        // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(CreatedEvent(Guid.NewGuid()), TestContext.Current.CancellationToken);
 
         // Assert
         _planningDbContext.PlanningTeams.Should().BeEmpty();
@@ -94,33 +83,58 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Deactivated_WhenTeamExists_UpdatesActiveFlagAndSaves()
+    public async Task Handle_Updated_WhenNewerThanTheCopy_AppliesAndSaves()
     {
         // Arrange
-        var id = Guid.CreateVersion7();
-        _planningDbContext.AddPlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate());
-
-        var @event = new TeamDeactivatedEvent(id, new LocalDate(2026, 12, 31), EventActor.System, Now);
+        var id = Guid.NewGuid();
+        _planningDbContext.AddPlanningTeam(new PlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate(), Created));
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamUpdatedEvent(id, new TeamCode("BOR"), "Borealis", "desc", EventActor.System, Renamed), TestContext.Current.CancellationToken);
 
         // Assert
-        _planningDbContext.PlanningTeams.Single(t => t.Id == id).IsActive.Should().BeFalse();
+        _planningDbContext.PlanningTeams.Single(t => t.Id == id).Name.Should().Be("Borealis");
         _planningDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task Handle_Deleted_WhenTeamExists_RemovesAndSaves()
+    public async Task Handle_Updated_WhenTheCreateHasNotArrived_CreatesTheCopyFromTheSource()
     {
         // Arrange
-        var id = Guid.CreateVersion7();
-        _planningDbContext.AddPlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate());
-
-        var @event = new TeamDeletedEvent(id, EventActor.System, Now);
+        var source = new PlanningTeamFaker(TeamType.Team).WithName("Borealis").Generate();
+        SourceReturns(source);
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamUpdatedEvent(source.Id, source.Code, "Borealis", "desc", EventActor.System, Renamed), TestContext.Current.CancellationToken);
+
+        // Assert
+        _planningDbContext.PlanningTeams.Should().ContainSingle(t => t.Id == source.Id).Which.Name.Should().Be("Borealis");
+    }
+
+    [Fact]
+    public async Task Handle_ActivatedAndDeactivated_WhenDeliveredOutOfOrder_KeepTheLaterState()
+    {
+        // Arrange — deactivated at Renamed, reactivated at Reactivated; the reactivation arrives first.
+        var id = Guid.NewGuid();
+        _planningDbContext.AddPlanningTeam(new PlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).WithIsActive(true).Generate(), Created));
+
+        // Act
+        await _handler.Handle(new TeamActivatedEvent(id, EventActor.System, Reactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeactivatedEvent(id, new LocalDate(2026, 12, 31), EventActor.System, Renamed), TestContext.Current.CancellationToken);
+
+        // Assert
+        _planningDbContext.PlanningTeams.Single(t => t.Id == id).IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_Deleted_WhenTheCopyExists_RemovesAndSaves()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _planningDbContext.AddPlanningTeam(new PlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate(), Created));
+
+        // Act
+        await _handler.Handle(new TeamDeletedEvent(id, EventActor.System, Reactivated), TestContext.Current.CancellationToken);
 
         // Assert
         _planningDbContext.PlanningTeams.Should().BeEmpty();
@@ -128,29 +142,33 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Deleted_WhenTeamMissing_IsIdempotentNoOp()
+    public async Task Handle_Deleted_WhenRedelivered_IsNoOp()
     {
-        // Arrange — a redelivery of a delete that already ran.
-        var @event = new TeamDeletedEvent(Guid.CreateVersion7(), EventActor.System, Now);
+        // Arrange
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeletedEvent(Guid.NewGuid(), EventActor.System, Reactivated), TestContext.Current.CancellationToken);
 
         // Assert
         _planningDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
-    private static TeamCreatedEvent CreatedEvent(Guid id, string name) =>
+    private void SourceReturns(ISimpleTeam? team) =>
+        _dispatcher
+            .Setup(d => d.Send(It.IsAny<GetSimpleTeamQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(team);
+
+    private static TeamCreatedEvent CreatedEvent(Guid id) =>
         new(
             id: id,
             key: 1,
             code: new TeamCode("ABC01"),
-            name: name,
+            name: "Atlas",
             description: "desc",
             type: TeamType.Team,
             activeDate: new LocalDate(2026, 1, 1),
             inactiveDate: null,
             isActive: true,
             actor: EventActor.System,
-            timestamp: Now);
+            timestamp: Created);
 }

@@ -1,131 +1,105 @@
+using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
-using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkProjects.EventHandlers;
 
 /// <summary>
-/// Replicates PPM <c>Project</c> changes into the Work domain's <c>WorkProject</c> projection (same Id).
+/// Keeps the Work module's <c>WorkProject</c> copy of each PPM project (same Id).
 /// </summary>
 /// <remarks>
-/// The <c>Project*</c> events are delivered durably (see <c>DurableEventRoutes</c>): enlisted in the
-/// Wolverine outbox, delivered on a background thread, and governed by a retry-with-cooldown → dead-letter
-/// failure policy. So this handler lets exceptions propagate — a transient DB failure is retried by Wolverine
-/// and a poison message dead-letters, rather than being logged-and-dropped. The per-message idempotency
-/// guards (create no-ops if the row already exists; update/delete no-op if it does not) make redelivery safe.
+/// The <c>Project*</c> events are delivered durably (see <c>DurableEventRoutes</c>): at least once and in no
+/// guaranteed order, with a retry-with-cooldown → dead-letter failure policy. This handler follows the rules
+/// in "Consuming an event" (docs/contributing/domain-events.mdx): a change older than the one the copy already
+/// holds is skipped, a missing copy is created from the project's current state, and a project that no longer
+/// exists is left without a copy.
 /// </remarks>
-public sealed class ProjectSyncHandler(IWorkDbContext workDbContext, ILogger<ProjectSyncHandler> logger)
+public sealed class ProjectSyncHandler(IWorkDbContext workDbContext, IDispatcher dispatcher, ILogger<ProjectSyncHandler> logger)
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<ProjectSyncHandler> _logger = logger;
 
     public async Task Handle(ProjectCreatedEvent @event, CancellationToken cancellationToken)
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a new Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await CreateProject(@event, cancellationToken);
+        if (await _workDbContext.WorkProjects.AnyAsync(x => x.Id == @event.Id, cancellationToken))
+        {
+            _logger.LogInformation("Work {SystemActionType} for a new Project skipped: Project {ProjectId} already has a copy.", SystemActionType.ServiceDataReplication, @event.Id);
+            return;
+        }
+
+        await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
     }
 
     public async Task Handle(ProjectDetailsUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for an updated Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await UpdateProject(@event, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, p => p.ApplyDetails(@event.Name, @event.Description, @event.Timestamp), "details", cancellationToken);
     }
 
     public async Task Handle(ProjectKeyChangedEventV2 @event, CancellationToken cancellationToken)
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a rekeyed Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await ChangeProjectKey(@event.Id, @event.Key, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, p => p.ApplyKey(@event.Key, @event.Timestamp), "key", cancellationToken);
     }
 
     // Nothing raises the superseded type, but an envelope written as it before the switch can still be
-    // waiting in the durable outbox; without this it would dead-letter rather than rekey the projection.
+    // waiting in the durable outbox; without this it would dead-letter rather than rekey the copy.
 #pragma warning disable CS0618
     public async Task Handle(ProjectKeyChangedEvent @event, CancellationToken cancellationToken)
 #pragma warning restore CS0618
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a rekeyed Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await ChangeProjectKey(@event.Id, @event.Key, cancellationToken);
+        await Apply(@event.Id, @event.Timestamp, p => p.ApplyKey(@event.Key, @event.Timestamp), "key", cancellationToken);
     }
 
     public async Task Handle(ProjectDeletedEvent @event, CancellationToken cancellationToken)
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a deleted Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
-        await DeleteProject(@event, cancellationToken);
-    }
-
-    private async Task CreateProject(ProjectCreatedEvent createdEvent, CancellationToken cancellationToken)
-    {
-        // Idempotency guard, not error handling: a redelivery (at-least-once) or a race with the Hangfire
-        // SyncWorkProjects bulk path may find the projection already present — that is a success, not a fault.
-        if (await _workDbContext.WorkProjects.AnyAsync(x => x.Id == createdEvent.Id, cancellationToken))
-        {
-            _logger.LogInformation("Work {SystemActionType} for a new Project skipped: Project {ProjectId} already exists in the Work system.", SystemActionType.ServiceDataReplication, createdEvent.Id);
-            return;
-        }
-
-        var project = new WorkProject(createdEvent);
-
-        await _workDbContext.WorkProjects.AddAsync(project, cancellationToken);
-        await _workDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} created action.", SystemActionType.ServiceDataReplication, createdEvent.Id);
-    }
-
-    private async Task UpdateProject(ProjectDetailsUpdatedEvent updatedEvent, CancellationToken cancellationToken)
-    {
         var existingProject = await _workDbContext.WorkProjects
-            .FirstOrDefaultAsync(x => x.Id == updatedEvent.Id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == @event.Id, cancellationToken);
         if (existingProject == null)
         {
-            // The create event has not been applied yet (out-of-order delivery) or the project was deleted.
-            // No-op rather than throw: a create redelivery or the Hangfire bulk sync will converge the state.
-            _logger.LogWarning("Work {SystemActionType} for an updated Project skipped: Project {ProjectId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
-            return;
-        }
-
-        existingProject.UpdateDetails(updatedEvent);
-        await _workDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} updated action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
-    }
-
-    private async Task ChangeProjectKey(Guid projectId, ProjectKey key, CancellationToken cancellationToken)
-    {
-        var existingProject = await _workDbContext.WorkProjects
-            .FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken);
-        if (existingProject == null)
-        {
-            // Same reasoning as the details path: out-of-order delivery or an already-deleted project.
-            _logger.LogWarning("Work {SystemActionType} for a rekeyed Project skipped: Project {ProjectId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, projectId);
-            return;
-        }
-
-        existingProject.ChangeKey(projectId, key);
-        await _workDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} rekeyed action.", SystemActionType.ServiceDataReplication, projectId);
-    }
-
-    private async Task DeleteProject(ProjectDeletedEvent deletedEvent, CancellationToken cancellationToken)
-    {
-        var existingProject = await _workDbContext.WorkProjects
-            .FirstOrDefaultAsync(x => x.Id == deletedEvent.Id, cancellationToken);
-        if (existingProject == null)
-        {
-            // Already gone (redelivery, or the project never replicated) — deleting nothing is the goal state.
-            _logger.LogInformation("Work {SystemActionType} for a deleted Project skipped: Project {ProjectId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
+            _logger.LogInformation("Work {SystemActionType} for a deleted Project skipped: Project {ProjectId} has no copy.", SystemActionType.ServiceDataReplication, @event.Id);
             return;
         }
 
         _workDbContext.WorkProjects.Remove(existingProject);
         await _workDbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} deleted action.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
+        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} deleted action.", SystemActionType.ServiceDataReplication, @event.Id);
+    }
+
+    private async Task Apply(Guid projectId, Instant timestamp, Func<WorkProject, bool> apply, string change, CancellationToken cancellationToken)
+    {
+        var existingProject = await _workDbContext.WorkProjects
+            .FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken);
+        if (existingProject == null)
+        {
+            await CreateFromSource(projectId, timestamp, cancellationToken);
+            return;
+        }
+
+        if (!apply(existingProject))
+        {
+            _logger.LogInformation("Work {SystemActionType} for a Project {Change} skipped: Project {ProjectId} already holds this or a newer change.", SystemActionType.ServiceDataReplication, change, projectId);
+            return;
+        }
+
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful Work {SystemActionType} for the Project {ProjectId} {Change} change.", SystemActionType.ServiceDataReplication, projectId, change);
+    }
+
+    private async Task CreateFromSource(Guid projectId, Instant timestamp, CancellationToken cancellationToken)
+    {
+        var source = await _dispatcher.Send(new GetSimpleProjectQuery(projectId), cancellationToken);
+        if (source is null)
+        {
+            _logger.LogInformation("Work {SystemActionType} copy not created: Project {ProjectId} no longer exists.", SystemActionType.ServiceDataReplication, projectId);
+            return;
+        }
+
+        await _workDbContext.WorkProjects.AddAsync(new WorkProject(source, timestamp), cancellationToken);
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful Work {SystemActionType} creating Project {ProjectId} from its source.", SystemActionType.ServiceDataReplication, projectId);
     }
 }

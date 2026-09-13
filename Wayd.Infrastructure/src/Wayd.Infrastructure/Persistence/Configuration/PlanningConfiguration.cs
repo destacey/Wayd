@@ -52,6 +52,8 @@ public class PlanningTeamConfig : IEntityTypeConfiguration<PlanningTeam>
             .HasMaxLength(32);
         builder.Property(t => t.IsActive);
 
+        builder.ConfigureReplicaTracking(t => t.Watermarks);
+
         // Relationships
         builder.HasMany<Risk>()
             .WithOne(t => t.Team)

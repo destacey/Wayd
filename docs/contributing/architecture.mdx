@@ -192,8 +192,8 @@ another domain, kept aligned two ways:
 |---|---|---|---|
 | Organization | `Team` / `TeamOfTeams` | `TeamCreated/DetailsUpdated/Activated/Deactivated/Deleted` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
 | PPM | `Project` | `ProjectCreated/DetailsUpdated/KeyChangedV2/Deleted` | Work `WorkProject` |
-| StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/Updated/Activated/Archived/Deleted` | PPM `PpmStrategicThemes` |
-| Planning | `Iteration` | `IterationCreated/Updated/Deleted` | Work `WorkIteration` |
+| StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/DetailsUpdated/Activated/Archived/Deleted` | PPM `PpmStrategicThemes` |
+| Planning | `Iteration` | `IterationCreated/DetailsUpdated/DateRangeChanged/StateChanged/TeamChanged/Deleted` | Work `WorkIteration` |
 | Common | `Employee` | — (shared table) | referenced by Guid everywhere |
 
 `StrategicTheme` is owned by **StrategicManagement**; PPM only holds a copy — author themes in

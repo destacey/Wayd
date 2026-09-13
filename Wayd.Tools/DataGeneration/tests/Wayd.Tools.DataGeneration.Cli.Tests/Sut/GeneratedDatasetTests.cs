@@ -90,6 +90,21 @@ public class GeneratedDatasetTests : IDisposable
     }
 
     [Fact]
+    public void Counts_ReportZeroForProductManagementWhenItDidNotRun()
+    {
+        // Arrange & Act
+        var dataset = GeneratedDataset.From(Resolve(new Recipe { ProductManagement = new ProductManagementRecipe { Enabled = false } }));
+
+        // Assert — PPM still ran, so the zeros are this area's alone
+        dataset.Counts.Projects.Should().BeGreaterThan(0);
+        dataset.Counts.Products.Should().Be(0);
+        dataset.Counts.Versions.Should().Be(0);
+        dataset.Counts.ReleasePackages.Should().Be(0);
+        dataset.Counts.Releases.Should().Be(0);
+        dataset.Counts.Deployments.Should().Be(0);
+    }
+
+    [Fact]
     public void From_NamesProjectsAfterTheProductsTheCatalogHolds()
     {
         // Arrange — the two areas derive the catalog separately, so this is what proves they agree

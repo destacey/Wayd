@@ -344,6 +344,21 @@ public class ProductManagementGeneratorTests
     }
 
     [Fact]
+    public void Generate_ProducesAnEmptyCatalogForAnOrgWithNoArts()
+    {
+        // Arrange — a hand-built structure can have value streams and no ARTs, and a packaged share above
+        // zero must not demand at least one ART from none
+        var org = new OrgStructure([new ValueStreamNode("Payments", null, null, null, [])]);
+
+        // Act
+        var data = new ProductManagementGenerator(org, new ProductManagementOptions { PackagedArtFraction = 0.5 }, Context()).Generate();
+
+        // Assert
+        data.ReleasePackages.Should().BeEmpty();
+        data.Versions.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ProducesTheSameDataForTheSameSeedAndDate()
     {
         // Arrange & Act

@@ -171,7 +171,7 @@ public sealed class ProductManagementGenerator
         // Chosen as a count rather than a coin flip per ART: a handful of ARTs flipping at 25% lands on
         // none often enough that a seed would regularly show no release packages at all.
         var arts = _catalog.Lines.SelectMany(l => l.Products).ToList();
-        var packagedCount = _options.PackagedArtFraction <= 0
+        var packagedCount = arts.Count == 0 || _options.PackagedArtFraction <= 0
             ? 0
             : Math.Clamp((int)Math.Round(arts.Count * _options.PackagedArtFraction), 1, arts.Count);
         var packaged = _faker.PickRandom(arts, packagedCount).Select(a => a.ArtCode).ToHashSet(StringComparer.OrdinalIgnoreCase);

@@ -29,6 +29,7 @@ public sealed class WaydSeedClient : IDisposable
     private readonly ProjectLifecyclesClient _projectLifecyclesClient;
     private readonly RolesClient _applicationRolesClient;
     private readonly UsersClient _usersClient;
+    private readonly FeatureFlagsClient _featureFlagsClient;
     private readonly ImportAwaiter _awaiter;
 
     /// <summary>
@@ -55,6 +56,7 @@ public sealed class WaydSeedClient : IDisposable
         _projectLifecyclesClient = new ProjectLifecyclesClient(root, _httpClient);
         _applicationRolesClient = new RolesClient(root, _httpClient);
         _usersClient = new UsersClient(root, _httpClient);
+        _featureFlagsClient = new FeatureFlagsClient(root, _httpClient);
         _awaiter = new ImportAwaiter(new ImportsClient(root, _httpClient), PollInterval, ImportTimeout);
     }
 
@@ -195,6 +197,48 @@ public sealed class WaydSeedClient : IDisposable
 
     public Task<ImportRun> ImportPpmFinalizations(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/ppm/portfolios/finalize/import", csv, "ppm-finalizations.csv", "finalize", cancellationToken);
+
+    // ---- Product Management CSV imports -------------------------------------------------------
+
+    public Task<ImportRun> ImportDeploymentEnvironments(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/product-management/deployment-environments/import", csv, "deployment-environments.csv", "deployment environments", cancellationToken);
+
+    public Task<ImportRun> ImportProducts(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/product-management/products/import", csv, "products.csv", "products", cancellationToken);
+
+    public Task<ImportRun> ImportVersions(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/product-management/versions/import", csv, "versions.csv", "versions", cancellationToken);
+
+    public Task<ImportRun> ImportReleasePackages(byte[] packagesCsv, byte[] manifestCsv, CancellationToken cancellationToken) =>
+        Import("api/product-management/release-packages/import", packagesCsv, "release-packages.csv", "release packages", cancellationToken,
+            secondFieldName: "manifestFile", secondCsv: manifestCsv, secondFileName: "release-package-components.csv");
+
+    public Task<ImportRun> ImportReleases(byte[] releasesCsv, byte[]? contentsCsv, CancellationToken cancellationToken) =>
+        Import("api/product-management/releases/import", releasesCsv, "releases.csv", "releases", cancellationToken,
+            secondFieldName: "contentsFile", secondCsv: contentsCsv, secondFileName: "release-contents.csv");
+
+    public Task<ImportRun> ImportDeployments(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/product-management/deployments/import", csv, "deployments.csv", "deployments", cancellationToken);
+
+    /// <summary>
+    /// Switches a feature flag on, answering whether it had to be.
+    /// </summary>
+    /// <remarks>
+    /// Product Management is seeded disabled, and every one of its endpoints — the imports included —
+    /// answers 404 until it is enabled. A seed asked for that data is asking for the module.
+    /// </remarks>
+    public async Task<bool> EnsureFeatureFlagEnabled(string name, CancellationToken cancellationToken)
+    {
+        var flags = await _featureFlagsClient.FeatureFlagsAsync(includeArchived: false, cancellationToken);
+        var flag = flags.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase))
+            ?? throw new SeedException($"The environment has no '{name}' feature flag. Is the API older than this tool?");
+
+        if (flag.IsEnabled)
+            return false;
+
+        await _featureFlagsClient.ToggleAsync(flag.Id, new ToggleFeatureFlagRequest { Id = flag.Id, IsEnabled = true }, cancellationToken);
+        return true;
+    }
 
     // ---- Settings bootstrap (create-or-get by name) -------------------------------------------
 

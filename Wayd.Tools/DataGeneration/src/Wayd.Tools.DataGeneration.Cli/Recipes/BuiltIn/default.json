@@ -25,5 +25,11 @@
   "users": {
     "enabled": true,
     "password": "Test123$"
+  },
+  "productManagement": {
+    "enabled": true,
+    "versionIntervalDays": 14,
+    "changeFailureRate": 0.12,
+    "packagedArtFraction": 0.25
   }
 }

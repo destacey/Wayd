@@ -50,6 +50,12 @@ void ReportRunInputs(ParseResult parse, GenerationContext context)
         + $"(pass{recipe} --random-seed {context.Seed} --as-of {context.AsOf:yyyy-MM-dd} to reproduce this data).");
 }
 
+void ReportProductManagement(GeneratedProductManagement productManagement) =>
+    Console.WriteLine(
+        $"Generated {productManagement.Products.Count} products, {productManagement.Versions.Count} versions, "
+        + $"{productManagement.ReleasePackages.Count} release packages, {productManagement.Releases.Count} releases, "
+        + $"{productManagement.Deployments.Count} deployments across {productManagement.Environments.Count} environments.");
+
 // ---- generate: write the CSVs to a directory for inspection -----------------------------------
 //
 // The organization files are the real thing — its references are natural keys the generator owns, so they
@@ -85,6 +91,9 @@ generateCommand.SetAction((parse, _) =>
         Console.WriteLine("Expenditure categories and the project lifecycle are bootstrapped via the API at seed time (not written as CSV).");
         Console.WriteLine("The PPM files name portfolios, programs and categories rather than referencing them by id, so they are for inspection — `seed` resolves those ids from each run as it goes.");
     }
+
+    if (dataset.ProductManagement is { } productManagement)
+        ReportProductManagement(productManagement);
 
     Console.WriteLine($"Wrote CSVs to {outDir.FullName}");
     return Task.FromResult(0);
@@ -125,6 +134,13 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
         Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
     }
 
+    GeneratedProductManagement? productManagement = null;
+    if (resolved.GenerateProductManagement)
+    {
+        productManagement = new ProductManagementGenerator(org.Structure, resolved.ProductManagement, context).Generate();
+        ReportProductManagement(productManagement);
+    }
+
     var apiUrl = parse.GetValue(apiOption)!;
     // One group per seed run, so the files it posts can be found together afterwards.
     using var client = new WaydSeedClient(apiUrl, apiKey, submissionGroupId: Guid.NewGuid());
@@ -132,7 +148,7 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
 
     try
     {
-        await runner.Run(org, ppm, resolved.CreateUsers, resolved.UserPassword, cancellationToken);
+        await runner.Run(org, ppm, productManagement, resolved.CreateUsers, resolved.UserPassword, cancellationToken);
         return 0;
     }
     catch (SeedException ex)

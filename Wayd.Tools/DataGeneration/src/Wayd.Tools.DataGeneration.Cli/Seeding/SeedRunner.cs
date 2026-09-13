@@ -37,6 +37,13 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new ProjectStagesArea(),
         new StrategicInitiativesArea(),
         new PpmFinalizeArea(),
+        new ProductManagementFeatureFlagArea(),
+        new DeploymentEnvironmentsArea(),
+        new ProductsArea(),
+        new VersionsArea(),
+        new ReleasePackagesArea(),
+        new ReleasesArea(),
+        new DeploymentsArea(),
         new UserRolesArea(),
         new UserAccountsArea(),
     ];
@@ -44,6 +51,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
     public async Task Run(
         GeneratedOrg org,
         GeneratedPpm? ppm,
+        GeneratedProductManagement? productManagement,
         bool createUsers,
         string userPassword,
         CancellationToken cancellationToken)
@@ -52,6 +60,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         {
             Org = org,
             Ppm = ppm,
+            ProductManagement = productManagement,
             CreateUsers = createUsers,
             UserPassword = userPassword,
         };

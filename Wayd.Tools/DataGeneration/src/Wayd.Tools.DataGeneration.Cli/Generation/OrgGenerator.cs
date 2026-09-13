@@ -140,6 +140,7 @@ public sealed class OrgGenerator
 
             artNodes.Add(new ArtNode(
                 art.Code,
+                art.Name,
                 art.EngineeringLead?.EmployeeNumber,
                 art.ProductLead?.EmployeeNumber,
                 teamNodes));
@@ -284,7 +285,7 @@ public sealed class OrgGenerator
         public required string FirstName { get; init; }
         public required string LastName { get; init; }
         public required string Email { get; init; }
-        public required DateTime HireDate { get; init; }
+        public required DateOnly HireDate { get; init; }
         public required string JobTitle { get; init; }
         public required string Department { get; init; }
         public string? ManagerNumber { get; set; }
@@ -298,7 +299,7 @@ public sealed class OrgGenerator
             FirstName = FirstName,
             LastName = LastName,
             Email = Email,
-            HireDate = HireDate,
+            HireDate = HireDate.ToDateTime(TimeOnly.MinValue),
             JobTitle = JobTitle,
             Department = Department,
             OfficeLocation = null,
@@ -321,7 +322,7 @@ public sealed class OrgGenerator
             Email = UniqueEmail(first, last),
             // Hires span anywhere from founding to the run's today. The reference date has to be passed
             // in: left out, Bogus measures back from its own DateTime.Now, so a pinned seed still moves.
-            HireDate = _faker.Date.Past(_context.CompanyAgeYears, _context.AsOf),
+            HireDate = DateOnly.FromDateTime(_faker.Date.Past(_context.CompanyAgeYears, _context.AsOf.ToDateTime(TimeOnly.MinValue))),
             JobTitle = jobTitle,
             Department = department,
             ManagerNumber = manager?.EmployeeNumber,
@@ -427,7 +428,7 @@ public sealed class OrgGenerator
     {
         public required string Code { get; init; }
         public required string Name { get; init; }
-        public required DateTime ActiveDate { get; init; }
+        public required DateOnly ActiveDate { get; init; }
         public TeamNodeRef? Parent { get; set; }
         public Person? EngineeringLead { get; set; }
         public Person? ProductLead { get; set; }
@@ -438,7 +439,7 @@ public sealed class OrgGenerator
         public List<Person> Members { get; } = [];
     }
 
-    private TeamNodeRef AddTeam(string name, DateTime activeDate)
+    private TeamNodeRef AddTeam(string name, DateOnly activeDate)
     {
         name = MakeUnique(name, _usedNames);
         var code = ResolveCode(name, _usedCodes);
@@ -456,7 +457,7 @@ public sealed class OrgGenerator
         return new TeamNodeRef { Code = code, Name = name, ActiveDate = activeDate };
     }
 
-    private TeamNodeRef AddTeamOfTeams(string name, DateTime activeDate)
+    private TeamNodeRef AddTeamOfTeams(string name, DateOnly activeDate)
     {
         name = MakeUnique(name, _usedNames);
         var code = ResolveCode(name, _usedCodes);
@@ -474,7 +475,7 @@ public sealed class OrgGenerator
         return new TeamNodeRef { Code = code, Name = name, ActiveDate = activeDate };
     }
 
-    private void LinkMembership(TeamNodeRef child, TeamNodeRef parent, DateTime activeDate)
+    private void LinkMembership(TeamNodeRef child, TeamNodeRef parent, DateOnly activeDate)
     {
         child.Parent = parent;
 
@@ -523,8 +524,8 @@ public sealed class OrgGenerator
     /// The reference date is passed explicitly for the same reason as hire dates — Bogus otherwise counts
     /// back from its own DateTime.Now, which moves every run regardless of the seed.
     /// </remarks>
-    private DateTime RecentActiveDate() =>
-        DateTime.SpecifyKind(_faker.Date.Past(_context.TeamStructureAgeYears, _context.AsOf), DateTimeKind.Utc).Date;
+    private DateOnly RecentActiveDate() =>
+        DateOnly.FromDateTime(_faker.Date.Past(_context.TeamStructureAgeYears, _context.AsOf.ToDateTime(TimeOnly.MinValue)));
 
     private string MakeUnique(string name, HashSet<string> used)
     {

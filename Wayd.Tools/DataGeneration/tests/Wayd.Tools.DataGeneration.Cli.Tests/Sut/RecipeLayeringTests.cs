@@ -106,7 +106,7 @@ public class RecipeLayeringTests
         {
             Timeline = new TimelineRecipe
             {
-                AsOf = new DateTime(2000, 1, 1),
+                AsOf = new DateOnly(2000, 1, 1),
                 CompanyAgeYears = 1,
                 TeamStructureAgeYears = 1,
                 HistoryYears = 1,
@@ -127,13 +127,19 @@ public class RecipeLayeringTests
                 ConcurrentProgramsPerPortfolio = 1,
             },
             Users = new UsersRecipe { Password = "Under123$" },
+            ProductManagement = new ProductManagementRecipe
+            {
+                VersionIntervalDays = 1,
+                ChangeFailureRate = 0.01,
+                PackagedArtFraction = 0.01,
+            },
         };
 
         var over = new Recipe
         {
             Timeline = new TimelineRecipe
             {
-                AsOf = new DateTime(2026, 6, 15),
+                AsOf = new DateOnly(2026, 6, 15),
                 CompanyAgeYears = 9,
                 TeamStructureAgeYears = 8,
                 HistoryYears = 7,
@@ -154,13 +160,19 @@ public class RecipeLayeringTests
                 ConcurrentProgramsPerPortfolio = 4,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
+            ProductManagement = new ProductManagementRecipe
+            {
+                VersionIntervalDays = 21,
+                ChangeFailureRate = 0.3,
+                PackagedArtFraction = 0.4,
+            },
         };
 
         // Act
         var result = ResolvedRecipe.From(over.LayerOver(under), seed: 1);
 
         // Assert
-        result.Context.AsOf.Should().Be(new DateTime(2026, 6, 15));
+        result.Context.AsOf.Should().Be(new DateOnly(2026, 6, 15));
         result.Context.CompanyAgeYears.Should().Be(9);
         result.Context.TeamStructureAgeYears.Should().Be(8);
         result.Context.HistoryYears.Should().Be(7);
@@ -177,6 +189,10 @@ public class RecipeLayeringTests
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
 
         result.UserPassword.Should().Be("Over1234$");
+
+        result.ProductManagement.VersionIntervalDays.Should().Be(21);
+        result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
+        result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
     }
 
     [Fact]
@@ -188,7 +204,7 @@ public class RecipeLayeringTests
         {
             Timeline = new TimelineRecipe
             {
-                AsOf = new DateTime(2026, 6, 15),
+                AsOf = new DateOnly(2026, 6, 15),
                 CompanyAgeYears = 9,
                 TeamStructureAgeYears = 8,
                 HistoryYears = 7,
@@ -209,13 +225,19 @@ public class RecipeLayeringTests
                 ConcurrentProgramsPerPortfolio = 4,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
+            ProductManagement = new ProductManagementRecipe
+            {
+                VersionIntervalDays = 21,
+                ChangeFailureRate = 0.3,
+                PackagedArtFraction = 0.4,
+            },
         };
 
         // Act — an upper layer that states nothing at all, which is what an unflagged run looks like
         var result = ResolvedRecipe.From(new Recipe().LayerOver(under), seed: 1);
 
         // Assert
-        result.Context.AsOf.Should().Be(new DateTime(2026, 6, 15));
+        result.Context.AsOf.Should().Be(new DateOnly(2026, 6, 15));
         result.Context.CompanyAgeYears.Should().Be(9);
         result.Context.TeamStructureAgeYears.Should().Be(8);
         result.Context.HistoryYears.Should().Be(7);
@@ -232,6 +254,10 @@ public class RecipeLayeringTests
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
 
         result.UserPassword.Should().Be("Over1234$");
+
+        result.ProductManagement.VersionIntervalDays.Should().Be(21);
+        result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
+        result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
     }
 
     [Fact]
@@ -242,9 +268,9 @@ public class RecipeLayeringTests
 
         // Act — bracketed by the clock, because reading UtcNow again in the assertion would disagree
         // with the resolver's own reading on a run that crosses UTC midnight
-        var before = DateTime.UtcNow.Date;
+        var before = DateOnly.FromDateTime(DateTime.UtcNow);
         var result = ResolvedRecipe.From(recipe, seed: 1);
-        var after = DateTime.UtcNow.Date;
+        var after = DateOnly.FromDateTime(DateTime.UtcNow);
 
         // Assert
         result.Context.AsOf.Should().BeOneOf(before, after);

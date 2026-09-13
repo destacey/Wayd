@@ -26,6 +26,7 @@ public sealed class EmployeeCsvRow
     /// </summary>
     public string? AdditionalEmails { get; init; }
 
+    /// <summary>A DateTime rather than a DateOnly because the employee import still takes one; only the date is written.</summary>
     public DateTime? HireDate { get; init; }
     public string? JobTitle { get; init; }
     public string? Department { get; init; }
@@ -45,9 +46,9 @@ public sealed class TeamCsvRow
     public required string Name { get; init; }
     public required string Code { get; init; }
     public string? Description { get; init; }
-    public DateTime ActiveDate { get; init; }
+    public DateOnly ActiveDate { get; init; }
     public bool IsActive { get; init; } = true;
-    public DateTime? InactiveDate { get; init; }
+    public DateOnly? InactiveDate { get; init; }
 }
 
 /// <summary>One row of the staffing CSV: one employee on one team in one role, all by natural key.</summary>
@@ -69,6 +70,6 @@ public sealed class TeamMembershipCsvRow
 
     public required string ChildCode { get; init; }
     public required string ParentCode { get; init; }
-    public required DateTime Start { get; init; }
-    public DateTime? End { get; init; }
+    public required DateOnly Start { get; init; }
+    public DateOnly? End { get; init; }
 }

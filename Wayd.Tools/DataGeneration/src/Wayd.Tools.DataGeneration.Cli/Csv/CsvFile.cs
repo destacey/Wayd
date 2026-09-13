@@ -30,12 +30,21 @@ public static class CsvFile
     {
         using var csv = new CsvWriter(writer, Configuration);
 
-        // Write dates in unambiguous ISO 8601 (yyyy-MM-dd). The API parses these with InvariantCulture and
-        // only needs the date component (team ActiveDate/InactiveDate are LocalDate; employee HireDate
-        // becomes an Instant at UTC midnight).
+        // Write dates in unambiguous ISO 8601 (yyyy-MM-dd), which every bulk-import page documents. The cache
+        // is keyed by type, so DateOnly does not inherit the DateTime entry: without its own, it is written
+        // in the invariant culture's MM/dd/yyyy. DateTime stays for employee HireDate, the one column the
+        // API still takes as a DateTime.
         var isoFormats = new[] { "yyyy-MM-dd" };
+        csv.Context.TypeConverterOptionsCache.GetOptions<DateOnly>().Formats = isoFormats;
+        csv.Context.TypeConverterOptionsCache.GetOptions<DateOnly?>().Formats = isoFormats;
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = isoFormats;
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().Formats = isoFormats;
+
+        // Instants, written with their offset. Only the generated model files carry these; the deployment
+        // rows a seed posts format their own.
+        var instantFormats = new[] { "yyyy-MM-dd'T'HH:mm:sszzz" };
+        csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset>().Formats = instantFormats;
+        csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset?>().Formats = instantFormats;
 
         csv.WriteRecords(rows);
     }

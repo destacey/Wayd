@@ -14,7 +14,9 @@ public sealed record ResolvedRecipe(
     GenerationContext Context,
     OrgOptions Organization,
     PpmOptions Ppm,
+    ProductManagementOptions ProductManagement,
     bool GeneratePpm,
+    bool GenerateProductManagement,
     bool CreateUsers,
     string UserPassword)
 {
@@ -33,6 +35,7 @@ public sealed record ResolvedRecipe(
         var organization = recipe.Organization ?? new OrganizationRecipe();
         var ppm = recipe.Ppm ?? new PpmRecipe();
         var users = recipe.Users ?? new UsersRecipe();
+        var productManagement = recipe.ProductManagement ?? new ProductManagementRecipe();
 
         // Every other area is layered over the organization — portfolios and projects name people by
         // employee number, and projects are scoped to a team — so a run without it generates nothing at
@@ -50,7 +53,7 @@ public sealed record ResolvedRecipe(
         {
             // The one knob a recipe may legitimately leave open: an unpinned run anchors on the real
             // today, so its data still straddles now.
-            AsOf = (timeline.AsOf ?? DateTime.UtcNow).Date,
+            AsOf = timeline.AsOf ?? DateOnly.FromDateTime(DateTime.UtcNow),
             Seed = seed,
             CompanyAgeYears = Required(timeline.CompanyAgeYears, "timeline.companyAgeYears"),
             TeamStructureAgeYears = Required(timeline.TeamStructureAgeYears, "timeline.teamStructureAgeYears"),
@@ -74,7 +77,14 @@ public sealed record ResolvedRecipe(
                 ConcurrentProjectsPerArt = Required(ppm.ConcurrentProjectsPerArt, "ppm.concurrentProjectsPerArt"),
                 ConcurrentProgramsPerPortfolio = Required(ppm.ConcurrentProgramsPerPortfolio, "ppm.concurrentProgramsPerPortfolio"),
             },
+            new ProductManagementOptions
+            {
+                VersionIntervalDays = Required(productManagement.VersionIntervalDays, "productManagement.versionIntervalDays"),
+                ChangeFailureRate = Required(productManagement.ChangeFailureRate, "productManagement.changeFailureRate"),
+                PackagedArtFraction = Required(productManagement.PackagedArtFraction, "productManagement.packagedArtFraction"),
+            },
             GeneratePpm: ppm.Enabled ?? true,
+            GenerateProductManagement: productManagement.Enabled ?? true,
             CreateUsers: users.Enabled ?? true,
             UserPassword: users.Password ?? throw new RecipeException(
                 "The resolved recipe does not set 'users.password'. The built-in default recipe is expected to set every knob."));

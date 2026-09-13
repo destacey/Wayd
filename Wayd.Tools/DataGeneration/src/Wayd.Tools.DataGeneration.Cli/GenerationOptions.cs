@@ -31,7 +31,7 @@ public static class GenerationOptions
         Description = "Fixed random seed for reproducible output.",
     };
 
-    public static Option<DateTime?> AsOf { get; } = new("--as-of")
+    public static Option<DateOnly?> AsOf { get; } = new("--as-of")
     {
         Description = "The date the run treats as today, which the whole timeline is anchored on. Defaults to today, so generated data straddles now. Pin it together with --random-seed for byte-identical output — either alone is not enough.",
     };
@@ -111,6 +111,26 @@ public static class GenerationOptions
         Description = "Average number of thematic programs a portfolio runs at once (Modernization, Integrations, …). Programs group projects by theme, independent of the delivery hierarchy; the total is derived across the window.",
     };
 
+    public static Option<bool> SkipProductManagement { get; } = new("--skip-product-management")
+    {
+        Description = "Skip the product catalog and its delivery history. A shorthand for a recipe that disables the productManagement area.",
+    };
+
+    public static Option<int?> VersionIntervalDays { get; } = new("--version-interval-days")
+    {
+        Description = "Average days between two versions of a service. Web apps ship less often, libraries and tools far less, and teams speed up across the history.",
+    };
+
+    public static Option<double?> ChangeFailureRate { get; } = new("--change-failure-rate")
+    {
+        Description = "Share (0..1) of production deployments that fail or are rolled back, averaged over the history. Teams vary around it and it falls toward today.",
+    };
+
+    public static Option<double?> PackagedArtFraction { get; } = new("--packaged-art-fraction")
+    {
+        Description = "Share (0..1) of ARTs that ship their services together as release packages rather than each deploying on its own.",
+    };
+
     /// <summary>
     /// Every option a generating verb takes, in the order they are added to a command.
     /// </summary>
@@ -139,6 +159,10 @@ public static class GenerationOptions
         FunctionPortfolios,
         ConcurrentProjectsPerArt,
         ConcurrentProgramsPerPortfolio,
+        SkipProductManagement,
+        VersionIntervalDays,
+        ChangeFailureRate,
+        PackagedArtFraction,
     ];
 
     public static void AddTo(Command command)
@@ -196,6 +220,13 @@ public static class GenerationOptions
                 // passing it says nothing rather than switching it back on over a recipe.
                 Enabled = parse.GetValue(SkipUsers) ? false : null,
                 Password = parse.GetValue(UserPassword),
+            },
+            ProductManagement = new ProductManagementRecipe
+            {
+                Enabled = parse.GetValue(SkipProductManagement) ? false : null,
+                VersionIntervalDays = FlagOr(parse, VersionIntervalDays),
+                ChangeFailureRate = FlagOr(parse, ChangeFailureRate),
+                PackagedArtFraction = FlagOr(parse, PackagedArtFraction),
             },
         };
 

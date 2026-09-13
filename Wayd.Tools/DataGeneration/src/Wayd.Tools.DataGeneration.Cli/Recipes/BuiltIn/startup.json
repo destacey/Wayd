@@ -18,5 +18,10 @@
     "functionPortfolios": 0,
     "concurrentProjectsPerArt": 4,
     "concurrentProgramsPerPortfolio": 2
+  },
+  "productManagement": {
+    "versionIntervalDays": 7,
+    "changeFailureRate": 0.15,
+    "packagedArtFraction": 0
   }
 }

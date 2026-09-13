@@ -28,6 +28,7 @@ import {
   getVersionsClient,
 } from '@/src/services/clients'
 import type { ImportKey } from '@/src/components/common/import/import-templates.generated'
+import { isApiError } from '@/src/utils'
 
 export interface GetImportProcessesRequest {
   status?: ImportProcessStatus
@@ -265,7 +266,14 @@ export const importsApi = apiSlice.injectEndpoints({
           const data = await SUBMITTERS[importKey](files)
           return { data }
         } catch (error) {
-          console.error('API Error:', error)
+          // A refused file is an outcome the dialog shows, not a failure to log; the client
+          // interceptor has already noted the request.
+          if (
+            !isApiError(error) ||
+            (error.status !== 400 && error.status !== 422)
+          ) {
+            console.error('API Error:', error)
+          }
           return { error }
         }
       },

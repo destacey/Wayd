@@ -101,7 +101,6 @@ public sealed class DeliveryMetricsDispatchTests(WaydSqlServerApiFactory factory
     public async Task Dispatch_GetDeliveryMetricsQuery_CountsFrequencyAndFailureRateForOneProduct()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -135,7 +134,6 @@ public sealed class DeliveryMetricsDispatchTests(WaydSqlServerApiFactory factory
     public async Task Dispatch_GetDeliveryMetricsQuery_IgnoresNonProductionAndOutOfWindowDeployments()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -171,7 +169,6 @@ public sealed class DeliveryMetricsDispatchTests(WaydSqlServerApiFactory factory
     public async Task Dispatch_GetDeliveryMetricsQuery_ReportsTheMeasuresItCannotCompute()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 

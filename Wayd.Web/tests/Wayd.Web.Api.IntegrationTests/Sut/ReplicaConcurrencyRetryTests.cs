@@ -30,7 +30,6 @@ public sealed class ReplicaConcurrencyRetryTests(WaydSqlServerApiFactory factory
     public async Task ReplicationHandler_WhoseSaveHitsAConcurrencyConflict_AppliesTheChangeOnRetry()
     {
         // Arrange — a Planning copy of a team, and a rename whose first save will lose to another writer.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
 
         var teamId = Guid.NewGuid();

@@ -33,7 +33,6 @@ public sealed class ImportSubmissionTests(WaydSqlServerApiFactory factory)
     public async Task Submit_SmallFile_IsAppliedByTheQueueWithinTheResponseWait()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("import-submission-test");
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();

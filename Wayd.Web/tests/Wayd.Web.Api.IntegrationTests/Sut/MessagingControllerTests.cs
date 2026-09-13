@@ -26,8 +26,7 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
     [Fact]
     public async Task GetCounts_ReturnsPersistedCountsSnapshot()
     {
-        // Arrange — boot the real host so the wolverine schema is provisioned.
-        _ = _factory.CreateClient();
+        // Arrange
         var controller = CreateController();
 
         // Act
@@ -43,7 +42,6 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
     public async Task GetDeadLetters_ReturnsSeededEnvelope_AndDetailExposesBody()
     {
         // Arrange
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
         var envelopeId = await SeedDeadLetter(ct);
@@ -71,7 +69,6 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
     public async Task GetDeadLetterById_UnknownId_ReturnsNotFound()
     {
         // Arrange
-        _ = _factory.CreateClient();
         var controller = CreateController();
 
         // Act
@@ -85,7 +82,6 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
     public async Task ReplayDeadLetters_MarksEnvelopeReplayable()
     {
         // Arrange
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
         var envelopeId = await SeedDeadLetter(ct);
@@ -107,7 +103,6 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
     public async Task DiscardDeadLetters_DeletesEnvelope()
     {
         // Arrange
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
         var envelopeId = await SeedDeadLetter(ct);
@@ -127,7 +122,6 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — the Ids property initializer does not survive an explicit {"ids": null} payload,
         // so both action guards must handle null as well as empty.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
 

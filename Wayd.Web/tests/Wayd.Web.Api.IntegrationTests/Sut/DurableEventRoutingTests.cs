@@ -47,7 +47,6 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — seed the two prerequisites CreateProjectCommand needs (an active ExpenditureCategory and
         // a Portfolio), directly through the real DbContext. Neither raises a durable event.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
 
         var (expenditureCategoryId, portfolioId) = await SeedProjectPrerequisites(ct);
@@ -103,7 +102,6 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         // Arrange — full host start so Wolverine has applied every IHandlerPolicy, including
         // DurableEventFailurePolicy, to the discovered handler chains. The HandlerGraph is on the concrete
         // WolverineRuntime (not the IWolverineRuntime interface), so resolve and cast.
-        _ = _factory.CreateClient();
         var runtime = (WolverineRuntime)_factory.Services.GetRequiredService<IWolverineRuntime>();
 
         // A representative event type from every durable family (see DurableEventRoutes). Each of these
@@ -143,7 +141,6 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         // crash between commit and dispatch silently loses the event. This pins the queue mode so that
         // regression can't return silently (it is invisible to delivery-based tests: in-memory delivery
         // also "arrives eventually").
-        _ = _factory.CreateClient();
         var runtime = (WolverineRuntime)_factory.Services.GetRequiredService<IWolverineRuntime>();
 
         Type[] durableEventTypes =
@@ -181,7 +178,6 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         // (1s/5s/15s) and then dead-letters — this proves a real handler failure ends up in the durable
         // dead letter store, where the messaging dashboard (and replay) can see it. It is an update to a
         // seeded copy because a create builds the copy from the source team, which does not exist here.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
 
         var poisonedId = Guid.NewGuid();

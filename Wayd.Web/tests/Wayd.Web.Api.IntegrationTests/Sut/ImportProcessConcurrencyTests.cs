@@ -46,7 +46,6 @@ public sealed class ImportProcessConcurrencyTests(WaydSqlServerApiFactory factor
     public async Task Release_CannotOverwriteAStopThatLandedAfterTheRunWasRead()
     {
         // Arrange — the worker reads the failed run, then the stop commits
-        _ = _factory.CreateClient();
         var id = await SaveRun(claimed: true);
 
         using var worker = _factory.Services.CreateScope();
@@ -78,7 +77,6 @@ public sealed class ImportProcessConcurrencyTests(WaydSqlServerApiFactory factor
     public async Task Start_LetsOnlyOneOfTwoDeliveriesClaimTheRun()
     {
         // Arrange — both deliveries read the run while it is still queued
-        _ = _factory.CreateClient();
         var id = await SaveRun(claimed: false);
 
         using var first = _factory.Services.CreateScope();

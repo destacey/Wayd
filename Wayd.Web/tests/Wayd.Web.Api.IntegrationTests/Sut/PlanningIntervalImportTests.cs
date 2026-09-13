@@ -39,7 +39,6 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
     public async Task Import_CreatesTheInterval_WithItsIterationsAndRoster()
     {
         // Arrange — a real replicated team, so the roster FK has something to point at
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
 
         var teamId = await CreateReplicatedTeam(ct);
@@ -78,7 +77,6 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
     public async Task Import_LeavesTheIntervalWithNoTeams_WhenTheRosterIsBlank()
     {
         // Arrange — this import only creates, so a blank roster is an interval with no teams
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName();
 
@@ -102,7 +100,6 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
     public async Task Import_RejectsTheRun_WhenTheNameIsAlreadyTaken()
     {
         // Arrange — the first import creates it, the second finds it taken
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName();
 
@@ -125,7 +122,6 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
     public async Task Import_RejectsTheRun_WhenTheRosterNamesATeamPlanningHasNotSeen()
     {
         // Arrange — the guard the fakes cannot test: without it the required FK faults the runner's save
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName();
 

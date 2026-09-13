@@ -20,10 +20,8 @@ public sealed class WolverineOutboxProvisioningTests(WaydSqlServerApiFactory fac
     [Fact]
     public async Task Host_ProvisionsWolverineEnvelopeTables_InDedicatedSchema_AlongsideEfMigrations()
     {
-        // Arrange — creating the client boots the real host: EF migrations apply to the app schema and
-        // Wolverine's resource-setup provisions the envelope tables in the "wolverine" schema.
-        _ = _factory.CreateClient();
-
+        // Arrange — the fixture has booted the real host: EF migrations applied to the app schema and
+        // Wolverine's resource-setup provisioned the envelope tables in the "wolverine" schema.
         await using var connection = new SqlConnection(_factory.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 

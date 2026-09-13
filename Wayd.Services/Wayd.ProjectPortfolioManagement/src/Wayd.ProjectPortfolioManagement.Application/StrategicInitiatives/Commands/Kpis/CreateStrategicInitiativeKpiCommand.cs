@@ -38,7 +38,9 @@ public sealed class CreateStrategicInitiativeKpiCommandHandler(
     {
         try
         {
+            // The KPIs are loaded because the new one is ordered after the last of them.
             var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
+                    .Include(si => si.Kpis)
                     .FirstOrDefaultAsync(si => si.Id == request.StrategicInitiativeId, cancellationToken);
             if (strategicInitiative == null)
             {

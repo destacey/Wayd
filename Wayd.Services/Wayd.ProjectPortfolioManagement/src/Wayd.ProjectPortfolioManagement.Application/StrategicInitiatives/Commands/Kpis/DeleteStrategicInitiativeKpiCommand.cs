@@ -32,11 +32,10 @@ public sealed class DeleteStrategicInitiativeKpiCommandHandler(
     {
         try
         {
+            // Every KPI, not just the one being deleted: the rest are renumbered to close the gap it leaves.
+            // Its checkpoints and measurements go with it by cascade, so they need not be loaded.
             var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
-                .Include(i => i.Kpis.Where(k => k.Id == request.KpiId))
-                    .ThenInclude(k => k.Measurements)
-                .Include(i => i.Kpis.Where(k => k.Id == request.KpiId))
-                    .ThenInclude(k => k.Checkpoints)
+                .Include(i => i.Kpis)
                 .FirstOrDefaultAsync(i => i.Id == request.StrategicInitiativeId, cancellationToken);
             if (strategicInitiative == null)
             {

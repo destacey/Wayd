@@ -398,7 +398,8 @@ public sealed class OrgGenerator
     private const int MinBackfillDays = 14;
     private const int MaxBackfillDays = 45;
 
-    // Nobody leaves within their first three months, which also keeps each tenure longer than the backfill.
+    // Departures from one position are at least three months apart. A replacement starts up to MaxBackfillDays
+    // after the departure, so the shortest tenure is this less that — still longer than the backfill itself.
     private const int MinTenureDays = 90;
 
     /// <summary>

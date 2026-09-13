@@ -422,8 +422,12 @@ async function follow(id) {
       const frame = buffer.slice(0, end);
       buffer = buffer.slice(end + 2);
 
+      // A frame with no data line (a comment, a keep-alive) carries nothing to show.
+      const payload = /^data: (.*)$/m.exec(frame);
+      if (!payload) continue;
+
       const event = /^event: (.*)$/m.exec(frame)?.[1] ?? 'message';
-      const data = JSON.parse(/^data: (.*)$/m.exec(frame)[1]);
+      const data = JSON.parse(payload[1]);
       if (event === 'done') return data;
       seedLog(data.line);
     }

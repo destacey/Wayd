@@ -58,8 +58,25 @@ public sealed class SeedRun
             State = state;
             Error = error;
         }
+    }
 
-        Cancellation.Dispose();
+    /// <summary>Asks the run to stop. False when it has already ended.</summary>
+    /// <remarks>
+    /// The state is checked under the lock <see cref="Finish"/> takes, so an ended run never touches its
+    /// cancellation source — which is what lets <see cref="SeedRuns"/> dispose it once the run is replaced.
+    /// Cancelling runs the token's callbacks on this thread, and the seed's own continuation can run inline
+    /// and finish the run; that re-enters the lock on the same thread, which <see cref="Lock"/> allows.
+    /// </remarks>
+    internal bool Cancel()
+    {
+        lock (_lock)
+        {
+            if (State != SeedRunState.Running)
+                return false;
+
+            Cancellation.Cancel();
+            return true;
+        }
     }
 }
 
@@ -70,12 +87,15 @@ public sealed class SeedRun
 /// One at a time because two seeds into the same environment would race each other's imports, and a seed
 /// is long enough that a second click while the first is running is far more likely to be a mistake than a
 /// plan.
+/// <para>
+/// Only the latest run is kept. The page follows the one it started, and holding every past run's log would
+/// grow for as long as the tool is left open.
+/// </para>
 /// </remarks>
 public sealed class SeedRuns(CancellationToken stopping)
 {
     private readonly Lock _lock = new();
     private readonly CancellationToken _stopping = stopping;
-    private readonly Dictionary<Guid, SeedRun> _runs = [];
     private SeedRun? _current;
 
     /// <summary>Starts <paramref name="work"/> as a run, unless one is still going.</summary>
@@ -87,8 +107,10 @@ public sealed class SeedRuns(CancellationToken stopping)
             if (_current is { State: SeedRunState.Running })
                 return null;
 
+            // The run being replaced has ended, so nothing will cancel through its source again.
+            _current?.Cancellation.Dispose();
+
             run = new SeedRun(_stopping);
-            _runs[run.Id] = run;
             _current = run;
         }
 
@@ -117,26 +139,9 @@ public sealed class SeedRuns(CancellationToken stopping)
     public SeedRun? Find(Guid id)
     {
         lock (_lock)
-            return _runs.GetValueOrDefault(id);
+            return _current?.Id == id ? _current : null;
     }
 
     /// <summary>Asks a run to stop. False when there is no such run, or it has already ended.</summary>
-    public bool Cancel(Guid id)
-    {
-        var run = Find(id);
-        if (run is null || run.State != SeedRunState.Running)
-            return false;
-
-        try
-        {
-            run.Cancellation.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-            // It finished between the check and the cancel.
-            return false;
-        }
-
-        return true;
-    }
+    public bool Cancel(Guid id) => Find(id)?.Cancel() ?? false;
 }

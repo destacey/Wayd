@@ -272,6 +272,7 @@ public static class UiServer
                 {
                     await http.Response.WriteAsync(
                         $"event: done\ndata: {JsonSerializer.Serialize(new { state = state.ToString(), error })}\n\n", cancellationToken);
+                    await http.Response.Body.FlushAsync(cancellationToken);
                     return;
                 }
 

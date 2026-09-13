@@ -108,8 +108,14 @@ public sealed class OrganizationRecipe : AreaRecipe
     /// <summary>Number of leaf delivery teams.</summary>
     public int? Teams { get; init; }
 
-    /// <summary>Fraction (0..1) of non-delivery individual contributors generated as former employees.</summary>
-    public double? FormerEmployeeFraction { get; init; }
+    /// <summary>Whether a value stream gets a team of teams of its own.</summary>
+    public StructureMode? ValueStreamTier { get; init; }
+
+    /// <summary>Whether teams are grouped into ARTs.</summary>
+    public StructureMode? ArtTier { get; init; }
+
+    /// <summary>The share (0..1) of positions that change hands in a year, each leaver replaced.</summary>
+    public double? AttritionRate { get; init; }
 }
 
 /// <summary>
@@ -144,6 +150,9 @@ public sealed class PpmRecipe : AreaRecipe
 
     /// <summary>Average number of thematic programs a portfolio runs at once.</summary>
     public int? ConcurrentProgramsPerPortfolio { get; init; }
+
+    /// <summary>Whether value-stream portfolios group their projects into programs.</summary>
+    public StructureMode? Programs { get; init; }
 }
 
 /// <summary>The product catalog layered over the organization, and its delivery history.</summary>

@@ -63,8 +63,11 @@ public sealed class PlanningGenerator
     {
         var cadence = Cadence();
 
-        foreach (var art in _org.ValueStreams.SelectMany(v => v.Arts))
-            BuildArt(art, cadence);
+        foreach (var valueStream in _org.ValueStreams)
+        {
+            foreach (var art in valueStream.Arts)
+                BuildArt(valueStream, art, cadence);
+        }
 
         return new GeneratedPlanning(_intervals, _objectives, _risks);
     }
@@ -124,13 +127,16 @@ public sealed class PlanningGenerator
         }
     }
 
-    private void BuildArt(ArtNode art, IReadOnlyList<Slot> cadence)
+    private void BuildArt(ValueStreamNode valueStream, ArtNode art, IReadOnlyList<Slot> cadence)
     {
         // How reliably each team delivers what it commits to. Fixed per team, so predictability differs
         // between teams and not just between intervals.
         var reliability = art.Teams.ToDictionary(t => t.TeamCode, _ => _faker.Random.Double(0.72, 1.0), StringComparer.OrdinalIgnoreCase);
 
-        string[] roster = [art.TeamCode, .. art.Teams.Select(t => t.TeamCode)];
+        // The team of teams directly over the teams runs the interval: the ART, or the value stream's own when
+        // there are no ARTs. With neither, the roster is the teams alone.
+        var planner = art.TeamCode ?? valueStream.TeamCode;
+        string[] roster = [.. planner is null ? [] : new[] { planner }, .. art.Teams.Select(t => t.TeamCode)];
 
         foreach (var slot in cadence)
         {
@@ -335,6 +341,10 @@ public sealed class PlanningGenerator
             var closeOn = reportedOn.AddDays(_faker.Random.Int(3, 45));
             var closes = closeOn < Today && (_faker.Random.Double() < 0.88 || Today.DayNumber - closeOn.DayNumber > 90);
 
+            // People are drawn as positions and named as whoever held them: the reporter on the day it was
+            // raised, the assignee on the day it closed — or today, since an open risk needs someone still here.
+            var assignedOn = closes ? closeOn : Today;
+
             var category = closes
                 ? _faker.Random.WeightedRandom([Resolved, Mitigated, Accepted, Owned], [0.4f, 0.35f, 0.2f, 0.05f])
                 : _faker.Random.WeightedRandom([Owned, Mitigated, Accepted], [0.5f, 0.3f, 0.2f]);
@@ -346,12 +356,12 @@ public sealed class PlanningGenerator
                 Summary = RiskSummary(team, art, interval.Start),
                 Description = Pick(RiskDescriptions),
                 ReportedAt = At(reportedOn, _faker.Random.Int(9, 16)),
-                ReportedByEmployeeNumber = _faker.PickRandom(people),
+                ReportedByEmployeeNumber = _org.HolderOn(_faker.PickRandom(people), reportedOn),
                 Status = closes ? Closed : Open,
                 Category = category,
                 Impact = Grade(),
                 Likelihood = Grade(),
-                AssigneeEmployeeNumber = _faker.Random.Double() < (closes ? 0.6 : 0.85) ? _faker.PickRandom(people) : null,
+                AssigneeEmployeeNumber = _faker.Random.Double() < (closes ? 0.6 : 0.85) ? _org.HolderOn(_faker.PickRandom(people), assignedOn) : null,
                 FollowUpDate = closes ? null : Workday(Today.AddDays(_faker.Random.Int(3, 21))),
                 Response = closes || _faker.Random.Bool() ? Pick(RiskResponses[category]) : null,
                 ClosedAt = closes ? At(closeOn, _faker.Random.Int(10, 17)) : null,

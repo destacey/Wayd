@@ -66,7 +66,7 @@ public sealed class ProductCatalog
         private readonly HashSet<string> _codes = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _slugs = new(StringComparer.OrdinalIgnoreCase);
 
-        private sealed record LineDraft(string Domain, string Name, List<ProductDraft> Products);
+        private sealed record LineDraft(string Domain, string Name, string Code, string Slug, List<ProductDraft> Products);
 
         private sealed record ProductDraft(string ArtCode, string ArtName, string Name, List<ComponentPlan> Components);
 
@@ -77,16 +77,20 @@ public sealed class ProductCatalog
             foreach (var valueStream in org.ValueStreams)
             {
                 var domain = valueStream.Domain;
-                var line = new LineDraft(domain, Unique($"{domain} {Pick(ProductLineSuffixes)}"), []);
+                var line = new LineDraft(domain, Unique($"{domain} {Pick(ProductLineSuffixes)}"), UniqueCode(domain), UniqueSlug(domain), []);
 
                 foreach (var art in valueStream.Arts)
                 {
-                    var artBase = WithoutLastWord(art.Name);
+                    // A group with no ART is the whole value stream's teams: it has no name of its own to take a
+                    // product name from, and its line's code tells its packages apart, since a line holds only it.
+                    var artBase = art.TeamCode is null ? domain : WithoutLastWord(art.Name);
                     var productName = Unique(string.Equals(artBase, domain, StringComparison.OrdinalIgnoreCase)
                         ? $"{domain} {Pick(ProductNouns)}"
                         : artBase);
 
-                    var product = new ProductDraft(art.TeamCode, art.Name, productName, []);
+                    var product = art.TeamCode is null
+                        ? new ProductDraft(line.Code, $"{domain} teams", productName, [])
+                        : new ProductDraft(art.TeamCode, art.Name, productName, []);
 
                     // Every team owns something it deploys; some also publish a library or a tool beside it.
                     foreach (var team in art.Teams)
@@ -110,7 +114,7 @@ public sealed class ProductCatalog
             AddConcepts(lines, org);
 
             return new ProductCatalog([.. lines.Select(l => new ProductLinePlan(
-                l.Domain, l.Name, UniqueCode(l.Domain), UniqueSlug(l.Domain),
+                l.Domain, l.Name, l.Code, l.Slug,
                 [.. l.Products.Select(p => new ArtProductPlan(p.ArtCode, p.ArtName, p.Name, p.Components))]))]);
         }
 
@@ -236,7 +240,10 @@ public sealed class ProductCatalog
 /// <summary>A product line: one value stream's products, and the names its releases and environments take.</summary>
 public sealed record ProductLinePlan(string Domain, string Name, string Code, string Slug, IReadOnlyList<ArtProductPlan> Products);
 
-/// <summary>The product one ART delivers, and the components its teams own.</summary>
+/// <summary>
+/// The product one ART delivers, and the components its teams own. With the ART tier off the group is a
+/// value stream's teams, and <see cref="ArtCode"/> is its line's code.
+/// </summary>
 public sealed record ArtProductPlan(string ArtCode, string ArtName, string Name, IReadOnlyList<ComponentPlan> Components);
 
 /// <summary>

@@ -94,12 +94,22 @@
           "minimum": 1,
           "x-cli-flag": "--teams"
         },
-        "formerEmployeeFraction": {
+        "valueStreamTier": {
+          "enum": ["Auto", "On", "Off"],
+          "description": "Whether a value stream gets a team of teams above its ARTs, led by a VP of Engineering and a VP of Product. Auto gives one only to a value stream with enough teams for two ARTs.",
+          "x-cli-flag": "--value-stream-tier"
+        },
+        "artTier": {
+          "enum": ["Auto", "On", "Off"],
+          "description": "Whether teams are grouped into ARTs. Auto is on. Off puts each value stream's teams directly under its team of teams, or at the top of the hierarchy when it has none; they then plan, ship and take on projects as one group.",
+          "x-cli-flag": "--art-tier"
+        },
+        "attritionRate": {
           "type": "number",
-          "description": "Fraction of non-delivery individual contributors generated as former employees.",
+          "description": "Share of positions that change hands in a year, across the delivery history. Every leaver is replaced, so this adds former employees — including managers and people on delivery teams — without shrinking today's organization, and past work names whoever held a role at the time.",
           "minimum": 0,
-          "maximum": 1,
-          "x-cli-flag": "--former-employees"
+          "maximum": 0.5,
+          "x-cli-flag": "--attrition-rate"
         }
       }
     },
@@ -150,6 +160,11 @@
           "description": "Average number of thematic programs a portfolio runs at once.",
           "minimum": 1,
           "x-cli-flag": "--concurrent-programs-per-portfolio"
+        },
+        "programs": {
+          "enum": ["Auto", "On", "Off"],
+          "description": "Whether value-stream portfolios group their projects into programs. Auto leaves about one project in six standalone; On places every project in a program whose window covers it; Off generates no programs.",
+          "x-cli-flag": "--programs"
         }
       }
     },

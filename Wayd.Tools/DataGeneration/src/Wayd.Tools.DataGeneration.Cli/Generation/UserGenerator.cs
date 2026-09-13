@@ -28,7 +28,9 @@ public sealed class UserGenerator(GeneratedOrg org, GeneratedPpm? ppm)
 
     public IReadOnlyList<GeneratedUser> Generate()
     {
-        var employeesByNumber = _org.Employees.ToDictionary(e => e.EmployeeNumber, StringComparer.OrdinalIgnoreCase);
+        // Only people still employed get a sign-in. Finished work names people who have since left, and an
+        // account for one of them would be a login for someone who no longer works there.
+        var employeesByNumber = _org.Employees.Where(e => e.IsActive).ToDictionary(e => e.EmployeeNumber, StringComparer.OrdinalIgnoreCase);
 
         // Strongest role wins where somebody holds several positions, so a portfolio owner who also runs a
         // project is a Delivery Manager rather than whichever role happened to be assigned last.

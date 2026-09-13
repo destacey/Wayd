@@ -114,7 +114,9 @@ public static class RecipeLayering
             DeliveryRatio = over.DeliveryRatio ?? under.DeliveryRatio,
             ValueStreams = over.ValueStreams ?? under.ValueStreams,
             Teams = over.Teams ?? under.Teams,
-            FormerEmployeeFraction = over.FormerEmployeeFraction ?? under.FormerEmployeeFraction,
+            ValueStreamTier = over.ValueStreamTier ?? under.ValueStreamTier,
+            ArtTier = over.ArtTier ?? under.ArtTier,
+            AttritionRate = over.AttritionRate ?? under.AttritionRate,
         };
     }
 
@@ -132,6 +134,7 @@ public static class RecipeLayering
             FunctionPortfolios = over.FunctionPortfolios ?? under.FunctionPortfolios,
             ConcurrentProjectsPerArt = over.ConcurrentProjectsPerArt ?? under.ConcurrentProjectsPerArt,
             ConcurrentProgramsPerPortfolio = over.ConcurrentProgramsPerPortfolio ?? under.ConcurrentProgramsPerPortfolio,
+            Programs = over.Programs ?? under.Programs,
         };
     }
 }

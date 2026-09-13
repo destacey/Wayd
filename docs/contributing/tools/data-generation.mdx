@@ -30,11 +30,11 @@ out-of-band operation (an Aspire dashboard command), not part of this tool.
 ## Quick start
 
 The tool has three verbs: **`generate`** (write CSVs to disk to inspect), **`seed`** (generate and push
-through the API), and **`ui`** (build a recipe in a browser). `generate` and `seed` share the same
-generation options.
+through the API), and **`ui`** (build, preview and seed a recipe in a browser). `generate` and `seed` share
+the same generation options.
 
 If you would rather not start from a command line, [`wayd-data ui`](#the-ui) opens a page that builds the
-recipe for you and shows the command it corresponds to.
+recipe for you, seeds it, and shows the command it corresponds to.
 
 :::note `generate` writes files to read, not files to post
 The organization files are postable as they stand — every reference in them is a natural key the generator
@@ -108,7 +108,7 @@ $ wayd-data recipes
   enterprise     A large non-delivery-led business.
   large-tech     A scaled product organization.
   org-only       The organization on its own, with no PPM, Product Management or Planning dataset over it.
-  startup        A young company: one product line, a handful of teams.
+  startup        A young company: one product line, a handful of teams with no ART over them.
 ```
 
 Use one with `--recipe <name>`, or point `--recipe` at a file of your own.
@@ -257,12 +257,13 @@ run of it produce the same company — which is what `--random-seed` is for, whe
 ## The UI
 
 `wayd-data ui` opens a local page for building a recipe: pick a built-in, adjust the knobs, see what it
-would generate, and write the CSVs.
+would generate, write the CSVs, or seed it into an environment.
 
 ```bash
-wayd-data ui                       # opens a browser
-wayd-data ui --no-browser          # prints the URL instead
-wayd-data ui --out ./seed          # where "Write CSVs" writes by default
+wayd-data ui                                   # opens a browser
+wayd-data ui --no-browser                      # prints the URL instead
+wayd-data ui --out ./seed                      # where "Write CSVs" writes by default
+wayd-data ui --api https://localhost:7021      # fills in the seed form's API URL
 ```
 
 It is a second front end over the same resolver, not a second implementation. Three things follow from
@@ -270,16 +271,28 @@ that, and they are the reason it exists in this shape:
 
 - **The form is built from the recipe schema at run time.** Adding an area to the recipe format puts it on
   the page with no change to the page. Hand-written fields would drift the first time the format grew.
-- **Generation goes through the same code `generate` runs**, so the two cannot produce different data from
-  the same recipe.
-- **It shows you the command.** The page displays the equivalent `wayd-data generate …` line, with a copy
-  button, beside the recipe JSON. The intent is that the page teaches the CLI rather than replacing it —
-  you can stop using the page as soon as you know what to type.
+- **Generation and seeding go through the same code `generate` and `seed` run**, so the page and the CLI
+  cannot produce different data from the same recipe.
+- **It shows you the command.** The page displays the equivalent `wayd-data generate …` line — or
+  `wayd-data seed … --api <url>` once an API URL is filled in — with a copy button, beside the recipe JSON.
+  The intent is that the page teaches the CLI rather than replacing it: you can stop using the page as soon
+  as you know what to type.
 
-:::note Seeding stays on the command line
-The page generates files; it does not seed an environment. Seeding needs a Personal Access Token, and a
-browser form is a worse place to keep a credential than a shell that already has one in `WAYD_API_KEY`.
-:::
+### Seeding from the page
+
+Fill in the API URL and a Personal Access Token and press **Seed**. The page asks you to confirm the
+environment, then streams the seed's log as it runs and reports how it ended.
+
+- **The token** can be pasted into the form, or left empty to use the `WAYD_API_KEY` the tool was started
+  with — the form says when one is available. A pasted token wins. Either way it only travels from the page
+  to `wayd-data` on the loopback address; it is never saved, logged, or put in the printed command, which
+  leaves `--api-key` out because `seed` reads `WAYD_API_KEY` itself.
+- **One seed at a time.** Two seeds into one environment would race each other's imports, so a second
+  press while one is running is refused.
+- **Cancel** stops the seed. Imports the API has already accepted still finish there, so a
+  cancelled seed leaves a partly seeded environment — reset it before seeding again.
+- Closing the page does not stop a running seed; reopening the page's URL does not reattach to it, but the
+  seed carries on until it ends or you stop `wayd-data`.
 
 ### How it is reached
 
@@ -311,13 +324,16 @@ anything you can compose in the page, you can also say on a command line.
 | `--delivery-ratio` | (from type) | Override (0..1) for the inside-teams share |
 | `--value-streams`, `-v` | `3` | Number of value streams (product lines); larger ones become three-tier |
 | `--teams`, `-t` | `18` | Number of leaf delivery teams (overall headcount derives from this) |
-| `--former-employees` | `0.08` | Fraction of non-delivery ICs marked former (inactive) |
+| `--value-stream-tier` | `Auto` | `Auto` / `On` / `Off` — whether a value stream gets a team of teams above its ARTs. `Auto` gives one only to a value stream with enough teams for two ARTs |
+| `--art-tier` | `Auto` | `Auto` / `On` / `Off` — whether teams are grouped into ARTs. `Auto` is on |
+| `--attrition-rate` | `0.1` | Share (0..0.5) of positions that change hands a year across the history; every leaver is replaced — see [Attrition](#attrition) |
 | `--skip-users` | off | Do not create application roles or sign-ins. A shorthand for a recipe that disables the users area |
 | `--user-password` | `Test123$` | The password every generated account is created with |
 | `--skip-ppm` | off | Generate only the organization; skip the PPM dataset. A shorthand for the `org-only` recipe |
 | `--function-portfolios` | `2` | Cross-cutting business-function portfolios, on top of one per value stream |
 | `--concurrent-projects-per-art` | `10` | Projects an ART has *in flight at once*; the total generated is derived from this across the window |
 | `--concurrent-programs-per-portfolio` | `5` | Thematic programs a portfolio runs at once; the total generated is derived from this across the window |
+| `--programs` | `Auto` | `Auto` / `On` / `Off` — whether value-stream portfolios group projects into programs. `Auto` leaves about one project in six standalone; `On` places every project in a covering program; `Off` generates none |
 | `--skip-product-management` | off | Skip the product catalog and its delivery history |
 | `--version-interval-days` | `14` | Average days between two versions of a service; web and mobile apps ship less often, libraries and tools far less |
 | `--change-failure-rate` | `0.12` | Share (0..0.6) of production deployments that fail or are rolled back, averaged over the history |
@@ -330,7 +346,7 @@ anything you can compose in the page, you can also say on a command line.
 | `--as-of` | today | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
 | `--out`, `-o` | `./seed` | (`generate` and `ui`) output directory |
 | `--no-browser` | off | (`ui` only) print the URL instead of opening a browser |
-| `--api`, `-a` | — | (`seed` only, required) API base URL |
+| `--api`, `-a` | — | API base URL — required for `seed`; for `ui`, fills in the seed form |
 | `--api-key` | `WAYD_API_KEY` | (`seed` only) Personal Access Token |
 
 ## What gets generated
@@ -348,6 +364,19 @@ company org chart:
 
 Value streams are **mixed by size**: a large one becomes the full three tiers (value stream → ARTs →
 teams); a small one collapses to a single ART over its teams.
+
+That is what `Auto` does, and two switches override it when you want a particular shape rather than the
+one size suggests:
+
+| | `On` | `Off` |
+|---|---|---|
+| `valueStreamTier` | Every value stream gets a team of teams and VPs, even one with a single ART | No value-stream teams of teams; ARTs sit at the top, their leads reporting to the CTO and CPO |
+| `artTier` | ARTs, as `Auto` | No ARTs. Teams sit directly under their value stream's team of teams, or at the top when it has none, and their managers report to its VPs or to the CTO and CPO |
+
+With ARTs off, the work that was grouped by ART is grouped by value stream instead: its teams plan one set
+of planning intervals (rostered with the value stream's team of teams, if any), ship one product, and take
+on projects together — as many as the ARTs they replace would have. The `startup` recipe turns ARTs off,
+since a handful of teams rarely has one.
 
 ### Who sits where (staffing)
 
@@ -377,8 +406,30 @@ Operations) has its own management chains and **no team memberships**.
   `Contingent Worker`, `Intern`, or `Part-Time`. Every manager is a regular employee.
 - **Timeline** — the company is modeled as ~5 years old (hire dates span up to five years back); the current
   team structure is ~2 years old (team active dates within two years).
-- **Former employees** — some non-delivery ICs are inactive (`--former-employees`). Inactive people are
-  never on a team.
+- **Former employees** — people who held a position and left it; see [Attrition](#attrition).
+
+### Attrition
+
+Over the delivery history every position — engineers, managers, product owners, executives and the rest of
+the company alike — loses people at `attritionRate` a year, and **every leaver is replaced**. So attrition
+adds former employees without shrinking the company as it stands today, and it reaches the delivery teams:
+memberships are current state, so a leaver simply holds none.
+
+- A position's holders follow one another: the replacement starts two to six weeks after the leaver goes,
+  nobody leaves in their first three months, and everyone hired falls between the company's founding and
+  today. Leavers are generated inactive, reporting to whoever held their manager's position on the day they
+  left.
+- The rate applies across the **history** (`historyYears`), not the company's whole age, so a 25-year-old
+  enterprise does not bury its data under decades of ghosts. Two years at 10% is about one leaver for every
+  five positions.
+- **Past work names whoever held a role at the time.** A completed project is owned, sponsored and staffed by
+  the people in post when it closed; a completed task by whoever held the position when it finished; a risk
+  by whoever reported it that day. Open work only ever names people still employed — an active project with
+  an inactive owner would be a record nobody can manage.
+- Leavers get no sign-in, even when they own finished work.
+
+How long someone stayed is known only to the generator. Wayd records a hire date and whether someone is
+active, and nothing in it needs the day they left.
 
 ### The PPM dataset (portfolios → programs → projects → tasks)
 

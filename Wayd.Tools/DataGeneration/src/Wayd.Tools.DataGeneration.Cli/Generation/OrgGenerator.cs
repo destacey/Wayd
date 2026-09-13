@@ -7,7 +7,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// <summary>
 /// Generates a coherent organization directly with Bogus, shaped as a three-tier delivery hierarchy:
 /// value streams (top teams-of-teams) → ARTs (mid teams-of-teams) → teams (leaves). Larger value streams
-/// get the full three tiers; smaller ones collapse to a single ART over their teams. People are staffed by
+/// get the full three tiers; smaller ones collapse to a single ART over their teams — unless the options switch
+/// either tier on or off outright. People are staffed by
 /// tier — a team has ICs plus an engineering manager (who is also an IC there) and a product owner; an ART
 /// has an engineering lead and a product lead who do not sit on any single team; a value stream has VP/Director
 /// leaders. The management tree mirrors the delivery hierarchy. Emits the CSV row sets the API imports consume.
@@ -25,6 +26,10 @@ public sealed class OrgGenerator
     private readonly HashSet<string> _usedCodes = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _usedEmails = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _roleNames = new(StringComparer.OrdinalIgnoreCase);
+
+    // Names of the delivery groups that have no team of teams to name them. Planning intervals are named
+    // after the group, and the import rejects two intervals of the same name.
+    private readonly HashSet<string> _groupNames = new(StringComparer.OrdinalIgnoreCase);
     private int _nextEmployeeSeq = 1000;
 
     /// <summary>The area name this generator draws its seed under.</summary>
@@ -53,8 +58,8 @@ public sealed class OrgGenerator
         BuildExecutiveLayer();
         BuildHierarchyAndStaff();
         BuildNonDeliveryOrganization();
+        SimulateAttrition();
         AssignEmployeeTypes();
-        MarkFormerEmployees();
 
         return new GeneratedOrg(
             _people.Select(p => p.ToRow()).ToList(),
@@ -66,7 +71,21 @@ public sealed class OrgGenerator
                 _valueStreamNodes,
                 _ceo.EmployeeNumber,
                 _cto.EmployeeNumber,
-                _cpo.EmployeeNumber));
+                _cpo.EmployeeNumber,
+                Positions()));
+    }
+
+    private Dictionary<string, IReadOnlyList<Tenure>> Positions()
+    {
+        var positions = new Dictionary<string, IReadOnlyList<Tenure>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var position in _people.Select(p => p.Position).Distinct())
+        {
+            IReadOnlyList<Tenure> tenures = [.. position.Holders.Select(h => new Tenure(h.EmployeeNumber, h.HireDate, h.LeftOn))];
+            foreach (var holder in position.Holders)
+                positions[holder.EmployeeNumber] = tenures;
+        }
+
+        return positions;
     }
 
     // ---- Executive layer ----------------------------------------------------------------------
@@ -102,48 +121,56 @@ public sealed class OrgGenerator
         var domain = PickDomain();
         var activeDate = RecentActiveDate();
 
-        // "Large" value streams (enough teams for 2+ ARTs) get the full three tiers; small ones collapse to a
-        // single ART over their teams (two tiers), so there is no separate value-stream ToT.
+        // Sized as though ARTs were generated even when they are not, so a value stream's own tier is decided
+        // the same way either way: one with enough teams for two ARTs is large enough to have a top team.
         var artCount = Math.Max(1, (int)Math.Round(teamCount / 3.0));
-        var isThreeTier = artCount >= 2;
+        var hasValueStreamTeam = _options.ValueStreamTier switch
+        {
+            StructureMode.On => true,
+            StructureMode.Off => false,
+            _ => artCount >= 2,
+        };
 
         TeamNodeRef? valueStream = null;
-        if (isThreeTier)
+        if (hasValueStreamTeam)
         {
             valueStream = AddTeamOfTeams($"{domain} {Pick(OrgVocabulary.ValueStreamSuffixes)}", activeDate);
             StaffValueStream(valueStream);
         }
 
         var artNodes = new List<ArtNode>();
-        var teamsPerArt = DistributeEvenly(teamCount, artCount);
-        for (var i = 0; i < artCount; i++)
+
+        if (_options.ArtTier == StructureMode.Off)
         {
-            var artName = isThreeTier
-                ? $"{domain} {PickDistinctDomainWord()} {Pick(OrgVocabulary.ArtSuffixes)}"
-                : $"{domain} {Pick(OrgVocabulary.ArtSuffixes)}";
-            var art = AddTeamOfTeams(artName, activeDate);
-
-            // Wire the parent before staffing so ART leaders can report up to the value-stream leaders.
-            if (valueStream is not null)
-                LinkMembership(art, valueStream, activeDate);
-
-            StaffArt(art);
-
-            var teamNodes = new List<TeamNode>();
-            foreach (var _ in Enumerable.Range(0, teamsPerArt[i]))
+            // The teams report straight to the value stream's leaders, or to the executives when it has none,
+            // and plan and ship as one group.
+            var teams = BuildTeams(teamCount, domain, activeDate, valueStream);
+            artNodes.Add(new ArtNode(null, valueStream?.Name ?? MakeUnique(domain, _groupNames), null, null, teams));
+        }
+        else
+        {
+            var teamsPerArt = DistributeEvenly(teamCount, artCount);
+            for (var i = 0; i < artCount; i++)
             {
-                var team = AddTeam($"{domain} {PickDistinctDomainWord()} {Pick(OrgVocabulary.Functions)}", activeDate);
-                LinkMembership(team, art, activeDate);
-                StaffTeam(team, art);
-                teamNodes.Add(ToTeamNode(team));
-            }
+                // Two ARTs in one value stream need a word between the domain and the suffix to tell them apart.
+                var artName = artCount >= 2
+                    ? $"{domain} {PickDistinctDomainWord()} {Pick(OrgVocabulary.ArtSuffixes)}"
+                    : $"{domain} {Pick(OrgVocabulary.ArtSuffixes)}";
+                var art = AddTeamOfTeams(artName, activeDate);
 
-            artNodes.Add(new ArtNode(
-                art.Code,
-                art.Name,
-                art.EngineeringLead?.EmployeeNumber,
-                art.ProductLead?.EmployeeNumber,
-                teamNodes));
+                // Wire the parent before staffing so ART leaders can report up to the value-stream leaders.
+                if (valueStream is not null)
+                    LinkMembership(art, valueStream, activeDate);
+
+                StaffArt(art);
+
+                artNodes.Add(new ArtNode(
+                    art.Code,
+                    art.Name,
+                    art.EngineeringLead?.EmployeeNumber,
+                    art.ProductLead?.EmployeeNumber,
+                    BuildTeams(teamsPerArt[i], domain, activeDate, art)));
+            }
         }
 
         _valueStreamNodes.Add(new ValueStreamNode(
@@ -152,6 +179,23 @@ public sealed class OrgGenerator
             valueStream?.EngineeringLead?.EmployeeNumber,
             valueStream?.ProductLead?.EmployeeNumber,
             artNodes));
+    }
+
+    /// <summary>Leaf teams under <paramref name="parent"/>, or at the top of the hierarchy when there is none.</summary>
+    private List<TeamNode> BuildTeams(int count, string domain, DateOnly activeDate, TeamNodeRef? parent)
+    {
+        var teamNodes = new List<TeamNode>(count);
+        foreach (var _ in Enumerable.Range(0, count))
+        {
+            var team = AddTeam($"{domain} {PickDistinctDomainWord()} {Pick(OrgVocabulary.Functions)}", activeDate);
+            if (parent is not null)
+                LinkMembership(team, parent, activeDate);
+
+            StaffTeam(team, parent);
+            teamNodes.Add(ToTeamNode(team));
+        }
+
+        return teamNodes;
     }
 
     private static TeamNode ToTeamNode(TeamNodeRef team) => new(
@@ -221,10 +265,11 @@ public sealed class OrgGenerator
 
     // ---- Tier staffing ------------------------------------------------------------------------
 
-    private void StaffTeam(TeamNodeRef team, TeamNodeRef art)
+    private void StaffTeam(TeamNodeRef team, TeamNodeRef? parent)
     {
-        // A single-team engineering manager who is ALSO an individual contributor on that team.
-        var em = AddPerson(jobTitle: "Engineering Manager", department: "Engineering", manager: art.EngineeringLead);
+        // A single-team engineering manager who is ALSO an individual contributor on that team. They report to
+        // whoever leads the team of teams above, and to the CTO/CPO when nothing is above.
+        var em = AddPerson(jobTitle: "Engineering Manager", department: "Engineering", manager: parent?.EngineeringLead ?? _cto);
         AddMembership(team, em, OrgVocabulary.EngineeringManagerRole);
 
         // Also contributes as an IC — in a discipline they do not already hold. "Engineering Manager" is
@@ -235,7 +280,7 @@ public sealed class OrgGenerator
         team.Members.Add(em);
 
         // A product manager acting as product owner on the team.
-        var po = AddPerson(jobTitle: "Product Manager", department: "Product", manager: art.ProductLead);
+        var po = AddPerson(jobTitle: "Product Manager", department: "Product", manager: parent?.ProductLead ?? _cpo);
         AddMembership(team, po, OrgVocabulary.ProductOwnerRole);
         team.ProductOwner = po;
         team.Members.Add(po);
@@ -279,17 +324,29 @@ public sealed class OrgGenerator
 
     // ---- People -------------------------------------------------------------------------------
 
+    /// <summary>A job someone holds: whoever holds it today, and everyone who held it before them, oldest first.</summary>
+    private sealed class Position
+    {
+        public Position? ManagerPosition { get; init; }
+        public List<Person> Holders { get; } = [];
+
+        /// <summary>Who was in post on a day, with the same rule as <see cref="OrgStructure.HolderOn"/>.</summary>
+        public Person HolderOn(DateOnly on) => Holders.LastOrDefault(h => h.HireDate <= on) ?? Holders[0];
+    }
+
     private sealed class Person
     {
         public required string EmployeeNumber { get; init; }
         public required string FirstName { get; init; }
         public required string LastName { get; init; }
         public required string Email { get; init; }
-        public required DateOnly HireDate { get; init; }
+        public required DateOnly HireDate { get; set; }
         public required string JobTitle { get; init; }
         public required string Department { get; init; }
+        public required Position Position { get; init; }
         public string? ManagerNumber { get; set; }
         public bool IsActive { get; set; } = true;
+        public DateOnly? LeftOn { get; set; }
         public string EmployeeType { get; set; } = OrgVocabulary.RegularEmployeeType;
 
         public EmployeeCsvRow ToRow() => new()
@@ -325,53 +382,168 @@ public sealed class OrgGenerator
             HireDate = DateOnly.FromDateTime(_faker.Date.Past(_context.CompanyAgeYears, _context.AsOf.ToDateTime(TimeOnly.MinValue))),
             JobTitle = jobTitle,
             Department = department,
+            Position = new Position { ManagerPosition = manager?.Position },
             ManagerNumber = manager?.EmployeeNumber,
         };
 
+        person.Position.Holders.Add(person);
         _people.Add(person);
         return person;
     }
+
+    // ---- Attrition ----------------------------------------------------------------------------
+
+    // A replacement starts a few weeks after the person they replace leaves. Kept shorter than the shortest
+    // project, so a project can never fall entirely inside the gap and name nobody who worked on it.
+    private const int MinBackfillDays = 14;
+    private const int MaxBackfillDays = 45;
+
+    // Departures from one position are at least three months apart. A replacement starts up to MaxBackfillDays
+    // after the departure, so the shortest tenure is this less that — still longer than the backfill itself.
+    private const int MinTenureDays = 90;
+
+    /// <summary>
+    /// Plays the delivery history forward for every position: the people who held it and left, each replaced
+    /// by the next, ending with whoever holds it today.
+    /// </summary>
+    /// <remarks>
+    /// Leavers are not a slice of today's roster marked inactive. A position that lost its engineering manager
+    /// still has one, so attrition adds people rather than removing them — which is what lets it reach the
+    /// delivery teams at all: memberships are current state, so a leaver simply holds none.
+    /// <para>
+    /// Leaving is memoryless, so the gaps between departures are drawn from an exponential distribution and a
+    /// position loses, on average, the annual rate times the years of history. Measured over the history
+    /// rather than the company's whole age, which would bury an old enterprise under decades of ghosts.
+    /// </para>
+    /// <para>
+    /// Positions are walked in the order they were created, which puts every manager's position before its
+    /// reports': a leaver reported to whoever held their manager's position on the day they left.
+    /// </para>
+    /// </remarks>
+    private void SimulateAttrition()
+    {
+        var historyStart = _context.WindowStart > _context.FoundedOn ? _context.WindowStart : _context.FoundedOn;
+        var delivery = DeliveryPositions();
+        List<Person> leavers = [];
+
+        foreach (var current in _people.ToList())
+        {
+            var position = current.Position;
+            var inDelivery = delivery.Contains(position);
+            var departures = Departures(historyStart);
+
+            // Delivery records name whoever held a position on their own dates, which reach back to the start of
+            // the history, so somebody must already have held it by then. A later hire would leave that history
+            // owned by nobody who worked there.
+            if (departures.Count == 0)
+            {
+                if (inDelivery && current.HireDate > historyStart)
+                    current.HireDate = Between(_context.FoundedOn, historyStart);
+
+                continue;
+            }
+
+            var hired = Between(_context.FoundedOn, inDelivery ? historyStart : departures[0].AddDays(-MinTenureDays));
+            position.Holders.Clear();
+
+            foreach (var leftOn in departures)
+            {
+                var leaver = AddLeaver(current, hired, leftOn);
+                position.Holders.Add(leaver);
+                leavers.Add(leaver);
+
+                hired = leftOn.AddDays(_faker.Random.Int(MinBackfillDays, MaxBackfillDays));
+            }
+
+            current.HireDate = hired;
+            position.Holders.Add(current);
+        }
+
+        _people.AddRange(leavers);
+    }
+
+    /// <summary>The days a position's holders left it, oldest first, all within the history.</summary>
+    private List<DateOnly> Departures(DateOnly historyStart)
+    {
+        List<DateOnly> departures = [];
+        if (_options.AttritionRate <= 0)
+            return departures;
+
+        // Walked back from the latest day a replacement could still have started by today.
+        var cursor = _context.AsOf.AddDays(-MaxBackfillDays);
+        while (true)
+        {
+            var years = -Math.Log(1 - _faker.Random.Double()) / _options.AttritionRate;
+            cursor = cursor.AddDays(-Math.Max(MinTenureDays, (int)(years * 365.25)));
+
+            if (cursor < historyStart.AddDays(MinTenureDays))
+                break;
+
+            departures.Add(cursor);
+        }
+
+        departures.Reverse();
+        return departures;
+    }
+
+    /// <summary>Someone who held <paramref name="successor"/>'s position before them, and left it.</summary>
+    private Person AddLeaver(Person successor, DateOnly hired, DateOnly leftOn)
+    {
+        var first = _faker.Name.FirstName();
+        var last = _faker.Name.LastName();
+
+        return new Person
+        {
+            EmployeeNumber = $"E-{_nextEmployeeSeq++:D5}",
+            FirstName = first,
+            LastName = last,
+            Email = UniqueEmail(first, last),
+            HireDate = hired,
+            JobTitle = successor.JobTitle,
+            Department = successor.Department,
+            Position = successor.Position,
+            ManagerNumber = successor.Position.ManagerPosition?.HolderOn(leftOn).EmployeeNumber,
+            IsActive = false,
+            LeftOn = leftOn,
+        };
+    }
+
+    /// <summary>
+    /// The positions a delivery record can name: everyone staffed on a team, plus the CTO and CPO, who lead a
+    /// value stream's work when nothing sits between them and its teams.
+    /// </summary>
+    private HashSet<Position> DeliveryPositions()
+    {
+        var staffed = _members.Select(m => m.EmployeeNumber).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return
+        [
+            .. _people.Where(p => staffed.Contains(p.EmployeeNumber)).Select(p => p.Position),
+            _cto.Position,
+            _cpo.Position,
+        ];
+    }
+
+    private DateOnly Between(DateOnly start, DateOnly end) =>
+        end <= start ? start : start.AddDays(_faker.Random.Int(0, end.DayNumber - start.DayNumber));
 
     private void AssignEmployeeTypes()
     {
         // Everyone defaults to a regular "Employee". Only a minority of non-manager individual contributors
         // are non-regular (contractor, intern, …). Managers are always regular: someone who manages people is
-        // never a contractor/intern in this model.
+        // never a contractor/intern in this model. Decided by position, so whoever held a manager's position
+        // before today's holder was a regular employee too, whether or not anyone still reports to them.
         var managerNumbers = ManagerNumbers();
+        var managerPositions = _people.Where(p => managerNumbers.Contains(p.EmployeeNumber)).Select(p => p.Position).ToHashSet();
 
         foreach (var person in _people)
         {
-            if (managerNumbers.Contains(person.EmployeeNumber))
+            if (managerPositions.Contains(person.Position))
                 continue; // managers stay regular
 
             // ~12% of individual contributors are a non-regular worker type.
             if (_faker.Random.Double() < 0.12)
                 person.EmployeeType = _faker.PickRandom(OrgVocabulary.NonRegularEmployeeTypes);
-        }
-    }
-
-    private void MarkFormerEmployees()
-    {
-        if (_options.FormerEmployeeFraction <= 0)
-            return;
-
-        // Over the company's ~5-year life some employees have left. A former employee is inactive, and the
-        // domain forbids inactive people from holding current team memberships, so only leaf individual
-        // contributors who are not staffed on a team and who manage no one are eligible — this keeps the
-        // current team structure intact and never leaves a dangling manager reference. In practice these are
-        // the non-delivery individual contributors.
-        var managerNumbers = ManagerNumbers();
-
-        foreach (var person in _people)
-        {
-            if (managerNumbers.Contains(person.EmployeeNumber))
-                continue; // this person manages someone — keep active
-
-            if (StaffedSomewhere(person))
-                continue; // keep people who hold a team role active (imports reject inactive members)
-
-            if (_faker.Random.Double() < _options.FormerEmployeeFraction)
-                person.IsActive = false;
         }
     }
 

@@ -5,8 +5,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 // each seed area substitutes them as it writes its file.
 
 /// <summary>
-/// A generated planning interval, run by the ART named by <see cref="ArtCode"/>. <see cref="TeamCodes"/> is
-/// its roster: the ART itself and each of its teams, semicolon-separated.
+/// A generated planning interval, run by the ART named by <see cref="ArtCode"/> — null when the ART tier is
+/// off. <see cref="TeamCodes"/> is its roster: the team of teams directly over the teams, if any, and each of
+/// the teams, semicolon-separated.
 /// </summary>
 public sealed class PlanningIntervalModel
 {
@@ -16,7 +17,7 @@ public sealed class PlanningIntervalModel
     public required DateOnly End { get; init; }
     public required int IterationWeeks { get; init; }
     public required string IterationPrefix { get; init; }
-    public required string ArtCode { get; init; }
+    public required string? ArtCode { get; init; }
     public required string TeamCodes { get; init; }
 }
 

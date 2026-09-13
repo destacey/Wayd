@@ -72,13 +72,16 @@ public sealed record ResolvedRecipe(
                 DeliveryRatio = organization.DeliveryRatio,
                 ValueStreams = Required(organization.ValueStreams, "organization.valueStreams"),
                 Teams = Required(organization.Teams, "organization.teams"),
-                FormerEmployeeFraction = Required(organization.FormerEmployeeFraction, "organization.formerEmployeeFraction"),
+                ValueStreamTier = Required(organization.ValueStreamTier, "organization.valueStreamTier"),
+                ArtTier = Required(organization.ArtTier, "organization.artTier"),
+                AttritionRate = Required(organization.AttritionRate, "organization.attritionRate"),
             },
             new PpmOptions
             {
                 FunctionPortfolios = Required(ppm.FunctionPortfolios, "ppm.functionPortfolios"),
                 ConcurrentProjectsPerArt = Required(ppm.ConcurrentProjectsPerArt, "ppm.concurrentProjectsPerArt"),
                 ConcurrentProgramsPerPortfolio = Required(ppm.ConcurrentProgramsPerPortfolio, "ppm.concurrentProgramsPerPortfolio"),
+                Programs = Required(ppm.Programs, "ppm.programs"),
             },
             new ProductManagementOptions
             {

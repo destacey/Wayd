@@ -29,6 +29,22 @@ public class UserGeneratorTests
     }
 
     [Fact]
+    public void Generate_GivesSignInsOnlyToPeopleStillEmployed()
+    {
+        // Arrange — finished projects name people who have since left, and they must not become accounts
+        var (org, ppm) = Generate();
+        var inactive = org.Employees.Where(e => !e.IsActive).Select(e => e.EmployeeNumber).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var namedOnWork = ppm.Projects.SelectMany(p => $"{p.Owners};{p.Managers};{p.Sponsors}".Split(';', StringSplitOptions.RemoveEmptyEntries));
+
+        // Act
+        var users = new UserGenerator(org, ppm).Generate();
+
+        // Assert
+        namedOnWork.Should().Contain(n => inactive.Contains(n), "the dataset has to name a leaver for this to prove anything");
+        users.Should().NotContain(u => inactive.Contains(u.EmployeeNumber));
+    }
+
+    [Fact]
     public void Generate_GivesEveryAccountAnEmployeeThatExists()
     {
         // Arrange — the whole reason the area exists: an account not linked to an employee cannot hold a

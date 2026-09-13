@@ -43,13 +43,13 @@ public class OrgGeneratorTests
     }
 
     [Fact]
-    public void Generate_ExactlyOneEmployeeHasNoManager()
+    public void Generate_ExactlyOneActiveEmployeeHasNoManager()
     {
-        // Arrange — the CEO is the single root of the whole company.
+        // Arrange — the CEO is the single root of the whole company. Former CEOs had no manager either.
         var org = Generate();
 
         // Act
-        var roots = org.Employees.Where(e => e.ManagerNumber is null).ToList();
+        var roots = org.Employees.Where(e => e.IsActive && e.ManagerNumber is null).ToList();
 
         // Assert
         roots.Should().ContainSingle();
@@ -267,9 +267,10 @@ public class OrgGeneratorTests
         // Arrange
         var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, CompanyType = companyType });
 
-        // Act — "inside" = people staffed on a team.
+        // Act — "inside" = people staffed on a team, as a share of the company today. Leavers are history,
+        // not headcount.
         var staffedNumbers = org.Members.Select(m => m.EmployeeNumber).ToHashSet();
-        var insideShare = staffedNumbers.Count / (double)org.Employees.Count;
+        var insideShare = staffedNumbers.Count / (double)org.Employees.Count(e => e.IsActive);
 
         // Assert — within a tolerance band, since the outside population is sized by rounding.
         insideShare.Should().BeApproximately(expected, 0.08);
@@ -385,6 +386,224 @@ public class OrgGeneratorTests
 
         // Assert
         early.Should().BeEmpty();
+    }
+
+    // ---- Structure switches -------------------------------------------------------------------
+
+    [Fact]
+    public void Generate_WithArtsOff_PutsTeamsDirectlyUnderTheirValueStream()
+    {
+        // Arrange — three value streams of about seven teams, each large enough for a top team
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, ArtTier = StructureMode.Off });
+        var teamsByCode = org.Teams.ToDictionary(t => t.Code);
+        var valueStreamCodes = org.Structure.ValueStreams.Select(v => v.TeamCode).ToHashSet();
+
+        // Act
+        var parents = org.TeamMemberships.Select(m => m.ParentCode).ToHashSet();
+
+        // Assert
+        org.Teams.Count(t => t.Type == "TeamOfTeams").Should().Be(3);
+        parents.Should().BeSubsetOf(valueStreamCodes!);
+        org.TeamMemberships.Should().OnlyContain(m => teamsByCode[m.ChildCode].Type == "Team");
+        org.Structure.ValueStreams.Should().OnlyContain(v => v.Arts.Count == 1 && v.Arts[0].TeamCode == null);
+        org.Members.Should().NotContain(m => m.RoleName == "RTE");
+    }
+
+    [Fact]
+    public void Generate_WithBothTiersOff_LeavesTeamsFlatAndReportingToTheExecutives()
+    {
+        // Arrange
+        var org = Generate(new OrgOptions { ValueStreams = 2, Teams = 8, ValueStreamTier = StructureMode.Off, ArtTier = StructureMode.Off });
+        // Act
+        var managersOfEms = org.Employees
+            .Where(e => e.IsActive && e.JobTitle == "Engineering Manager")
+            .Select(e => e.ManagerNumber)
+            .ToHashSet();
+
+        // Assert
+        org.Teams.Should().OnlyContain(t => t.Type == "Team");
+        org.TeamMemberships.Should().BeEmpty();
+        managersOfEms.Should().BeEquivalentTo([org.Structure.ChiefTechnologyEmployeeNumber]);
+    }
+
+    [Fact]
+    public void Generate_WithTheValueStreamTierOn_GivesEvenASmallValueStreamATopTeam()
+    {
+        // Arrange — three teams make one ART, which Auto would leave without a value stream above it
+        var org = Generate(new OrgOptions { ValueStreams = 1, Teams = 3, ValueStreamTier = StructureMode.On });
+        var valueStream = org.Structure.ValueStreams.Single();
+
+        // Act
+        var art = valueStream.Arts.Single();
+
+        // Assert
+        valueStream.TeamCode.Should().NotBeNull();
+        valueStream.EngineeringLeadEmployeeNumber.Should().NotBeNull();
+        org.TeamMemberships.Should().Contain(m => m.ChildCode == art.TeamCode && m.ParentCode == valueStream.TeamCode);
+    }
+
+    [Fact]
+    public void Generate_WithTheValueStreamTierOff_LeavesArtsAtTheTopWithDistinctNames()
+    {
+        // Arrange — twelve teams make four ARTs, which Auto would put under a value stream
+        var org = Generate(new OrgOptions { ValueStreams = 1, Teams = 12, ValueStreamTier = StructureMode.Off });
+        var arts = org.Structure.ValueStreams.Single().Arts;
+
+        // Act
+        var artsWithAParent = org.TeamMemberships.Where(m => arts.Any(a => a.TeamCode == m.ChildCode)).ToList();
+
+        // Assert
+        arts.Should().HaveCount(4);
+        artsWithAParent.Should().BeEmpty();
+        arts.Select(a => a.Name).Should().OnlyHaveUniqueItems();
+        org.Structure.ValueStreams.Single().TeamCode.Should().BeNull();
+    }
+
+    [Fact]
+    public void Generate_OnAuto_MatchesTheSizeDerivedShape()
+    {
+        // Arrange — Auto is what a run did before the switches existed, and a pinned seed depends on it
+        var options = new OrgOptions { ValueStreams = 3, Teams = 20 };
+        var explicitAuto = new OrgOptions { ValueStreams = 3, Teams = 20, ValueStreamTier = StructureMode.Auto, ArtTier = StructureMode.Auto };
+
+        // Act
+        var a = Generate(options);
+        var b = Generate(explicitAuto);
+
+        // Assert
+        Serialize(b).Should().Be(Serialize(a));
+        a.Structure.ValueStreams.Should().OnlyContain(v => v.TeamCode != null && v.Arts.All(art => art.TeamCode != null));
+    }
+
+    // ---- Attrition ----------------------------------------------------------------------------
+
+    [Fact]
+    public void Generate_ReplacesEveryLeaver()
+    {
+        // Arrange — attrition adds history; it must not shrink or reshape the company as it stands today
+        var context = Context();
+
+        // Act
+        var without = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0 }, context);
+        var with = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0.2 }, context);
+
+        // Assert
+        with.Employees.Count(e => e.IsActive).Should().Be(without.Employees.Count);
+        with.Employees.Should().Contain(e => !e.IsActive);
+        with.Members.Select(m => m.ImportId).Should().Equal(without.Members.Select(m => m.ImportId));
+    }
+
+    [Fact]
+    public void Generate_WithNoAttrition_HasNoFormerEmployees()
+    {
+        // Arrange & Act
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0 });
+
+        // Assert
+        org.Employees.Should().OnlyContain(e => e.IsActive);
+    }
+
+    [Fact]
+    public void Generate_LosesPeopleAtAboutTheAnnualRateOverTheHistory()
+    {
+        // Arrange — two years of history at 15% a year is about 0.3 leavers a position; the tenure floor and
+        // the backfill lag trim the window a little, so the band sits below that
+        var context = Context();
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 30, AttritionRate = 0.15 }, context);
+        var positions = org.Employees.Count(e => e.IsActive);
+
+        // Act
+        var perPosition = org.Employees.Count(e => !e.IsActive) / (double)positions;
+
+        // Assert
+        perPosition.Should().BeInRange(0.15 * context.HistoryYears * 0.6, 0.15 * context.HistoryYears * 1.2);
+    }
+
+    [Fact]
+    public void Generate_ReachesDeliveryTeamsAndManagers()
+    {
+        // Arrange — the flat fraction this replaced could only touch non-delivery individual contributors
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0.2 });
+        var leavers = org.Employees.Where(e => !e.IsActive).ToList();
+        var managers = org.Employees.Where(e => e.ManagerNumber != null).Select(e => e.ManagerNumber).ToHashSet();
+
+        // Act & Assert
+        leavers.Should().Contain(e => e.JobTitle == "Engineering Manager");
+        leavers.Should().Contain(e => e.Department == "Product");
+        leavers.Should().Contain(e => managers.Contains(e.EmployeeNumber));
+    }
+
+    [Fact]
+    public void Generate_GivesNoLeaverAnActiveReport()
+    {
+        // Arrange — a leaver can have managed people who have also since left, but today everyone reports
+        // to someone still here
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0.2 });
+        var inactive = org.Employees.Where(e => !e.IsActive).Select(e => e.EmployeeNumber).ToHashSet();
+
+        // Act
+        var reportingToALeaver = org.Employees.Where(e => e.IsActive && e.ManagerNumber != null && inactive.Contains(e.ManagerNumber)).ToList();
+
+        // Assert
+        reportingToALeaver.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_HandsEachPositionOnWithoutOverlapOrGaps()
+    {
+        // Arrange
+        var context = Context();
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0.2 }, context);
+
+        // Act
+        var positions = org.Structure.Positions!.Values.Distinct().ToList();
+
+        // Assert — one holder at a time, the replacement starting within weeks, and nobody outside the company's life
+        positions.Should().Contain(p => p.Count > 1);
+        foreach (var holders in positions)
+        {
+            holders[^1].LeftOn.Should().BeNull();
+            holders.Take(holders.Count - 1).Where(h => h.LeftOn == null || h.LeftOn <= h.HiredOn).Should().BeEmpty();
+
+            foreach (var (leaver, successor) in holders.Zip(holders.Skip(1)))
+            {
+                successor.HiredOn.Should().BeAfter(leaver.LeftOn!.Value);
+                (successor.HiredOn.DayNumber - leaver.LeftOn!.Value.DayNumber).Should().BeLessThanOrEqualTo(45);
+            }
+
+            holders.Should().OnlyContain(h => h.HiredOn >= context.FoundedOn && h.HiredOn <= context.AsOf);
+        }
+    }
+
+    [Fact]
+    public void Generate_MarksExactlyThePeopleWhoLeftInactive()
+    {
+        // Arrange
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0.2 });
+        var tenures = org.Structure.Positions!;
+
+        // Act & Assert
+        org.Employees.Should().OnlyContain(e => e.IsActive == (tenures[e.EmployeeNumber].Single(t => t.EmployeeNumber == e.EmployeeNumber).LeftOn == null));
+    }
+
+    [Fact]
+    public void Generate_StaffsDeliveryPositionsFromTheStartOfTheHistory()
+    {
+        // Arrange — history names whoever held a position on its own dates, so every delivery position has to
+        // have been held by then, or old work would name someone hired after it finished
+        var context = Context();
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0.2 }, context);
+        var staffed = org.Members.Select(m => m.EmployeeNumber).ToHashSet();
+
+        // Act
+        var lateFirstHolders = org.Structure.Positions!
+            .Where(p => staffed.Contains(p.Key))
+            .Select(p => p.Value[0])
+            .Where(first => first.HiredOn > context.WindowStart)
+            .ToList();
+
+        // Assert
+        lateFirstHolders.Should().BeEmpty();
     }
 
     private static string Serialize(GeneratedOrg org)

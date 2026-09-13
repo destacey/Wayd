@@ -665,7 +665,7 @@ public class PpmGeneratorTests
             foreach (var art in vs.Arts)
                 foreach (var team in art.Teams)
                     foreach (var emp in team.MemberEmployeeNumbers)
-                        artByEmployee[emp] = art.TeamCode;
+                        artByEmployee[emp] = art.TeamCode!;
 
         // Act — projects whose members map to more than one ART.
         var crossArt = ppm.Projects.Count(p =>

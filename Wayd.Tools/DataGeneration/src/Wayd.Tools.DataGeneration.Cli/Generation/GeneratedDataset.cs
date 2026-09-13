@@ -86,9 +86,37 @@ public sealed record GeneratedDataset(
         }
     }
 
+    /// <summary>One line per area that ran, saying what it generated.</summary>
+    public IEnumerable<string> Summary()
+    {
+        var former = Org.Employees.Count(e => !e.IsActive);
+        yield return $"Generated {Org.Employees.Count - former} employees and {former} former employees, {Org.Teams.Count} teams, "
+            + $"{Org.TeamMemberships.Count} hierarchy links, {Org.Members.Count} staffing rows.";
+
+        if (Ppm is { } ppm)
+        {
+            yield return $"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, "
+                + $"{ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.";
+        }
+
+        if (ProductManagement is { } pm)
+        {
+            yield return $"Generated {pm.Products.Count} products, {pm.Versions.Count} versions, "
+                + $"{pm.ReleasePackages.Count} release packages, {pm.Releases.Count} releases, "
+                + $"{pm.Deployments.Count} deployments across {pm.Environments.Count} environments.";
+        }
+
+        if (Planning is { } planning)
+        {
+            yield return $"Generated {planning.PlanningIntervals.Count} planning intervals, {planning.Objectives.Count} objectives, "
+                + $"{planning.Risks.Count} risks.";
+        }
+    }
+
     /// <summary>What was generated, for a run summary or a preview.</summary>
     public DatasetCounts Counts => new(
-        Org.Employees.Count,
+        Org.Employees.Count(e => e.IsActive),
+        Org.Employees.Count(e => !e.IsActive),
         Org.Teams.Count,
         Org.TeamMemberships.Count,
         Org.Members.Count,
@@ -110,6 +138,7 @@ public sealed record GeneratedDataset(
 /// <summary>How much of each thing a run produced.</summary>
 public sealed record DatasetCounts(
     int Employees,
+    int FormerEmployees,
     int Teams,
     int HierarchyLinks,
     int Staffing,

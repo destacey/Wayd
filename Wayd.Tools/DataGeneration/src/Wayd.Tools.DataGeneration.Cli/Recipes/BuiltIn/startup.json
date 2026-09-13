@@ -2,7 +2,7 @@
   "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
   "version": 1,
   "extends": "default",
-  "description": "A young company: one product line, a handful of teams, and little history behind it.",
+  "description": "A young company: one product line, a handful of teams with no ART over them, and little history behind it.",
   "timeline": {
     "companyAgeYears": 2,
     "teamStructureAgeYears": 1,
@@ -12,7 +12,8 @@
   "organization": {
     "valueStreams": 1,
     "teams": 4,
-    "formerEmployeeFraction": 0.03
+    "artTier": "Off",
+    "attritionRate": 0.15
   },
   "ppm": {
     "functionPortfolios": 0,

@@ -190,7 +190,7 @@ another domain, kept aligned two ways:
 
 | Source domain | Aggregate | Event(s) | Consumers (projection written) |
 |---|---|---|---|
-| Organization | `Team` / `TeamOfTeams` | `TeamCreated/Updated/Activated/Deactivated/Deleted` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
+| Organization | `Team` / `TeamOfTeams` | `TeamCreated/DetailsUpdated/Activated/Deactivated/Deleted` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
 | PPM | `Project` | `ProjectCreated/DetailsUpdated/KeyChangedV2/Deleted` | Work `WorkProject` |
 | StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/Updated/Activated/Archived/Deleted` | PPM `PpmStrategicThemes` |
 | Planning | `Iteration` | `IterationCreated/Updated/Deleted` | Work `WorkIteration` |

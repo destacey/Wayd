@@ -268,7 +268,7 @@ the day someone forgets to register a new type.
 changed: edits to descriptive fields are a `DetailsUpdated` event, a transition is its own event, and a bare
 `XxxUpdatedEvent` is never right. Every consumer is served from those same events, including another module
 keeping a copy of the record (`WorkProject` is built from Created, DetailsUpdated, KeyChanged and Deleted).
-Never add an event that ships the whole record to a copy. The existing `TeamUpdatedEvent`,
+Never add an event that ships the whole record to a copy. The existing
 `IterationUpdatedEvent`, `StrategicThemeUpdatedEvent` and `WorkIterationUpdatedEvent` are legacy, to be
 superseded — don't copy them. A payload starts as `Id`/`Key`, and a field must pass four ordered tests.
 People are ids, never names or emails, because the log can't be corrected. A field goes in only when a kind

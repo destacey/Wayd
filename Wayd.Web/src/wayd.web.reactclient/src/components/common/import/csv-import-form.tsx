@@ -1,49 +1,49 @@
 'use client'
 
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
+  ImportAtomicity,
+  ImportDefinitionDto,
   ImportProcessDto,
   ImportProcessStatus,
 } from '@/src/services/wayd-api'
+import { useSubmitImportMutation } from '@/src/store/features/admin/imports-api'
 import { isApiError, type ApiError } from '@/src/utils'
-import { InboxOutlined } from '@ant-design/icons'
-import { Alert, Modal, Typography, Upload } from 'antd'
+import { downloadCsv, generateCsv } from '@/src/utils/csv-utils'
+import { DownloadOutlined, InboxOutlined } from '@ant-design/icons'
+import {
+  Alert,
+  Button,
+  Collapse,
+  Flex,
+  Form,
+  Modal,
+  Select,
+  Typography,
+  Upload,
+} from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ReactNode, useState } from 'react'
+import { useState } from 'react'
+import ImportColumnsTable from './import-columns-table'
+import type { ImportFileTemplate, ImportTemplate } from './import-template'
+import { ImportKey, importTemplates } from './import-templates.generated'
 
 const { Dragger } = Upload
 const { Paragraph, Text } = Typography
 
 export interface CsvImportFormProps {
-  /** Modal title, e.g. "Import Versions". */
-  title: string
-  /** The columns the endpoint expects, in order. Rendered as a copyable header row. */
-  columns: string
   /**
-   * A second file the import requires, where one applies — the packages import takes its manifest
-   * this way, since a package cannot be assembled without one.
+   * The import types the viewer can see. Only those they may submit, and that this client knows the
+   * template for, are offered.
    */
-  secondFile?: {
-    /** What the file is, e.g. "Manifest". */
-    label: string
-    /** Its columns, rendered as a second copyable header row. */
-    columns: string
-    /**
-     * Whether the import needs it. A package's manifest is required — a package cannot exist without
-     * one — while a release's contents are optional, because an empty release is a real state.
-     */
-    required: boolean
-  }
-  /** What the file loads, shown above the column list. */
-  children?: ReactNode
-  /** Posts the file(s) and answers with the run. Rejects with the API error if it was refused. */
-  onImport: (file: File, secondFile?: File) => Promise<ImportProcessDto>
-  /** Toast for a run that applied every row, e.g. "Versions imported." */
-  successMessage: string
+  definitions: ImportDefinitionDto[]
   onFormComplete: () => void
   onFormCancel: () => void
 }
+
+const isKnownImport = (key: string): key is ImportKey => key in importTemplates
 
 /**
  * Turns an import's refusal into something a person can act on.
@@ -87,54 +87,91 @@ const describeRun = (run: ImportProcessDto) => {
   return { title, description: [rejected, run.error].filter(Boolean).join(' ') }
 }
 
+const toFileName = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+
+const fileTitle = (definition: ImportDefinitionDto, file: ImportFileTemplate) =>
+  file.label ?? definition.displayName
+
 /**
- * The shared shape of every CSV import: pick one file, post it, and show what came back.
+ * The one place a CSV import is submitted from the app: pick the kind of import, read what its files
+ * must carry, take a template, and post the file.
  *
- * One component rather than one per area because the endpoints behave identically — a multipart file,
- * answered with the run, and the same two refusal shapes before it starts. Only the wording and the
- * mutation differ, so those are the props.
+ * Every import endpoint behaves identically — multipart files, answered with the run, and the same two
+ * refusal shapes before it starts — so the kind of import is a choice inside the form, and what differs
+ * between them comes from the generated templates and the definition list.
  *
  * The endpoint waits a few seconds for the run, so most files come back finished. One that applied every
  * row closes the form; one that did not stays open to say so, linking to the rows; one still running
  * hands over to its page, which follows it to the end.
  */
 const CsvImportForm = ({
-  title,
-  columns,
-  secondFile,
-  children,
-  onImport,
-  successMessage,
+  definitions,
   onFormComplete,
   onFormCancel,
 }: CsvImportFormProps) => {
   const messageApi = useMessage()
   const router = useRouter()
+  const [submitImport] = useSubmitImportMutation()
 
-  // The browser File itself, not antd's UploadFile wrapper: the mutation needs the real thing, and
-  // going through the wrapper means unwrapping an originFileObj that may or may not be set.
-  const [file, setFile] = useState<File | null>(null)
-  const [second, setSecond] = useState<File | null>(null)
+  const [importKey, setImportKey] = useState<ImportKey>()
+  // Browser Files rather than antd's UploadFile wrappers: the client needs the real thing, and the
+  // wrapper's originFileObj may or may not be set.
+  const [files, setFiles] = useState<Partial<Record<string, File>>>({})
   const [isImporting, setIsImporting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [finishedRun, setFinishedRun] = useState<ImportProcessDto | null>(null)
+
+  const offered = definitions
+    .filter((d) => d.canSubmit && isKnownImport(d.key))
+    .sort((a, b) => caseInsensitiveCompare(a.displayName, b.displayName))
+
+  const definition = offered.find((d) => d.key === importKey)
+  const template: ImportTemplate | undefined = importKey
+    ? importTemplates[importKey]
+    : undefined
+
+  const isReady =
+    !!template && template.files.every((f) => !f.required || files[f.field])
 
   const resetResult = () => {
     setFailure(null)
     setFinishedRun(null)
   }
 
-  const requiresSecond = secondFile?.required === true
-  const isReady = file !== null && (!requiresSecond || second !== null)
+  const selectImport = (key: ImportKey) => {
+    setImportKey(key)
+    setFiles({})
+    resetResult()
+  }
+
+  const setFile = (field: string, file: File | undefined) => {
+    setFiles((current) => ({ ...current, [field]: file }))
+    resetResult()
+  }
+
+  const downloadTemplate = (file: ImportFileTemplate) => {
+    if (!definition) return
+    downloadCsv(
+      generateCsv(
+        file.columns.map((c) => c.name),
+        [],
+      ),
+      `${toFileName(fileTitle(definition, file))}-import-template.csv`,
+    )
+  }
 
   const handleOk = async () => {
-    if (!file || (requiresSecond && !second)) return
+    if (!importKey || !definition || !isReady) return
 
     setIsImporting(true)
     resetResult()
 
     try {
-      const run = await onImport(file, second ?? undefined)
+      const run = await submitImport({ importKey, files }).unwrap()
 
       if (!run.isTerminal) {
         messageApi.info('The import is still running. Opening its page.')
@@ -144,7 +181,7 @@ const CsvImportForm = ({
       }
 
       if (run.status === ImportProcessStatus.Succeeded) {
-        messageApi.success(successMessage)
+        messageApi.success(`${definition.displayName} imported.`)
         onFormComplete()
         return
       }
@@ -161,8 +198,9 @@ const CsvImportForm = ({
 
   return (
     <Modal
-      title={title}
+      title="Import"
       open
+      width={760}
       onOk={handleOk}
       okText="Import"
       okButtonProps={{ disabled: !isReady }}
@@ -171,89 +209,116 @@ const CsvImportForm = ({
       keyboard={false}
       destroyOnHidden
     >
-      {children}
+      <Form layout="vertical">
+        <Form.Item label="What are you importing?" required>
+          <Select<ImportKey>
+            showSearch={{ optionFilterProp: 'label' }}
+            placeholder="Select an import"
+            value={importKey}
+            onChange={selectImport}
+            options={offered.map((d) => ({
+              value: d.key as ImportKey,
+              label: d.displayName,
+            }))}
+            notFoundContent="You have no imports you may submit."
+          />
+        </Form.Item>
+      </Form>
 
-      <Paragraph type="secondary">
-        The file must carry every column, even where a cell is empty:
-      </Paragraph>
-      <Paragraph>
-        <Text code copyable style={{ fontSize: 12 }}>
-          {columns}
-        </Text>
-      </Paragraph>
-
-      <Alert
-        type="info"
-        showIcon
-        title="All or nothing"
-        description="If any reference cannot be resolved, the whole file is rejected and nothing is created."
-        style={{ marginBottom: 16 }}
-      />
-
-      <Dragger
-        accept=".csv,text/csv"
-        maxCount={1}
-        beforeUpload={(selected) => {
-          setFile(selected)
-          resetResult()
-          // False keeps antd from uploading on drop: the file is posted by the Import button, so the
-          // modal's action stays the thing that performs the import.
-          return false
-        }}
-        onRemove={() => {
-          setFile(null)
-          resetResult()
-        }}
-        fileList={
-          file ? [{ uid: file.name, name: file.name, status: 'done' }] : []
-        }
-      >
-        <p className="ant-upload-drag-icon">
-          <InboxOutlined />
-        </p>
-        <p className="ant-upload-text">Click or drag a CSV file here</p>
-        <p className="ant-upload-hint">One file, one import.</p>
-      </Dragger>
-
-      {secondFile && (
+      {definition && template && (
         <>
-          <Paragraph type="secondary" style={{ marginTop: 16 }}>
-            {secondFile.label} columns:
-          </Paragraph>
-          <Paragraph>
-            <Text code copyable style={{ fontSize: 12 }}>
-              {secondFile.columns}
-            </Text>
-          </Paragraph>
+          {template.description && (
+            <Paragraph type="secondary">{template.description}</Paragraph>
+          )}
 
-          <Dragger
-            accept=".csv,text/csv"
-            maxCount={1}
-            beforeUpload={(selected) => {
-              setSecond(selected)
-              resetResult()
-              return false
-            }}
-            onRemove={() => {
-              setSecond(null)
-              resetResult()
-            }}
-            fileList={
-              second
-                ? [{ uid: second.name, name: second.name, status: 'done' }]
-                : []
-            }
-          >
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">
-              Click or drag the {secondFile.label.toLowerCase()} CSV here
-            </p>
-            <p className="ant-upload-hint">
-              {secondFile.required ? 'Required.' : 'Optional.'}
-            </p>
-          </Dragger>
+          {definition.atomicity === ImportAtomicity.Atomic ? (
+            <Alert
+              type="info"
+              showIcon
+              title="All or nothing"
+              description={`The file applies as one unit: if any row is rejected, nothing is created. Up to ${definition.maxRows.toLocaleString()} rows.`}
+              style={{ marginBottom: 16 }}
+            />
+          ) : (
+            <Alert
+              type="info"
+              showIcon
+              title="Row by row"
+              description={`Each row applies on its own: a rejected row changes nothing, and the rest are still imported. Up to ${definition.maxRows.toLocaleString()} rows.`}
+              style={{ marginBottom: 16 }}
+            />
+          )}
+
+          {template.files.map((file) => {
+            const title = fileTitle(definition, file)
+            const selected = files[file.field]
+
+            return (
+              <Flex
+                key={`${importKey}-${file.field}`}
+                vertical
+                gap={8}
+                style={{ marginBottom: 16 }}
+              >
+                <Flex justify="space-between" align="center" gap={8} wrap>
+                  <Text strong>
+                    {title} file
+                    {!file.required && (
+                      <Text type="secondary"> (optional)</Text>
+                    )}
+                  </Text>
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadTemplate(file)}
+                  >
+                    Download Template
+                  </Button>
+                </Flex>
+
+                <Collapse
+                  size="small"
+                  items={[
+                    {
+                      key: 'columns',
+                      label: `${file.columns.length} columns — the file must carry every one, even where a cell is empty`,
+                      children: <ImportColumnsTable columns={file.columns} />,
+                    },
+                  ]}
+                />
+
+                <Dragger
+                  accept=".csv,text/csv"
+                  maxCount={1}
+                  beforeUpload={(chosen) => {
+                    setFile(file.field, chosen)
+                    // False keeps antd from uploading on drop: the Import button posts the files, so
+                    // the modal's action stays the thing that performs the import.
+                    return false
+                  }}
+                  onRemove={() => setFile(file.field, undefined)}
+                  fileList={
+                    selected
+                      ? [
+                          {
+                            uid: selected.name,
+                            name: selected.name,
+                            status: 'done',
+                          },
+                        ]
+                      : []
+                  }
+                >
+                  <p className="ant-upload-drag-icon">
+                    <InboxOutlined />
+                  </p>
+                  <p className="ant-upload-text">
+                    Click or drag the {title.toLowerCase()} CSV here
+                  </p>
+                </Dragger>
+              </Flex>
+            )
+          })}
         </>
       )}
 
@@ -262,7 +327,9 @@ const CsvImportForm = ({
           type="error"
           showIcon
           title="The import was rejected"
-          description={<span style={{ whiteSpace: 'pre-wrap' }}>{failure}</span>}
+          description={
+            <span style={{ whiteSpace: 'pre-wrap' }}>{failure}</span>
+          }
           style={{ marginTop: 16 }}
         />
       )}

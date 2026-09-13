@@ -3,7 +3,6 @@ import { apiSlice } from '../apiSlice'
 import {
   CorrectVersionDatesRequest,
   CutVersionRequest,
-  ImportProcessDto,
   MarkVersionReleasedRequest,
   RevertVersionReleaseRequest,
   MoveVersionTargetDateRequest,
@@ -92,29 +91,6 @@ export const versionsApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, arg) => [
         { type: QueryTags.StatusHistory, id: arg },
-      ],
-    }),
-    // The generated client takes a FileParameter, so the caller hands over the browser File and its
-    // name travels with it.
-    importVersions: builder.mutation<ImportProcessDto, File>({
-      queryFn: async (file) => {
-        try {
-          // A file uploaded from the app is submitted on its own, under no group.
-          const data = await getVersionsClient().import(undefined, {
-            data: file,
-            fileName: file.name,
-          })
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      // An import writes many versions at once, so the list is refetched rather than patched. It only has
-      // them if the run finished within the wait; one still running refreshes it from its import page.
-      invalidatesTags: () => [
-        { type: QueryTags.Version, id: 'LIST' },
-        QueryTags.ImportProcess,
       ],
     }),
     planVersion: builder.mutation<ObjectIdAndKey, PlanVersionRequest>({
@@ -283,7 +259,6 @@ export const {
   useGetVersionsQuery,
   useGetVersionQuery,
   useGetVersionStatusHistoryQuery,
-  useImportVersionsMutation,
   usePlanVersionMutation,
   useUpdateVersionMutation,
   useMoveVersionTargetDateMutation,

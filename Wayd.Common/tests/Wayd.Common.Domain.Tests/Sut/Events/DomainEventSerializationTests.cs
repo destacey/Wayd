@@ -372,6 +372,104 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void TeamDetailsUpdatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — the TeamCode value object appears both on the event and inside the nested Previous record.
+        var original = new TeamDetailsUpdatedEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            code: new TeamCode("BOR"),
+            name: "Borealis",
+            description: null,
+            previous: new TeamDetails(new TeamCode("ATL"), "Atlas", "The first team."),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.Key.Should().Be(42);
+        roundTripped.Code.Should().Be(original.Code);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Description.Should().BeNull();
+        roundTripped.Previous.Should().Be(original.Previous);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void TeamDeactivatedEvent_PayloadWrittenBefore1_1_ReadsKeyAndCodeAsNotRecorded()
+    {
+        // Arrange - a 1.0 payload, written before Key and Code were added
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "InactiveDate": "2026-09-30",
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<TeamDeactivatedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Key.Should().Be(0);
+        restored.Code.Should().BeNull();
+        restored.InactiveDate.Should().Be(new LocalDate(2026, 9, 30));
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void TeamActivatedEvent_RoundTripsKeyAndCode()
+    {
+        // Arrange
+        var original = new TeamActivatedEvent(Guid.NewGuid(), 42, new TeamCode("ATL"), EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Key.Should().Be(42);
+        roundTripped.Code.Should().Be(new TeamCode("ATL"));
+        roundTripped.EventVersion.Should().Be("1.1");
+    }
+
+    [Fact]
+    public void TeamUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen whole-record contract, as it was written before TeamDetailsUpdatedEvent replaced it
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Code": "ATLAS",
+              "Name": "Atlas",
+              "Description": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<TeamUpdatedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Code.Value.Should().Be("ATLAS");
+        restored.Name.Should().Be("Atlas");
+        restored.Description.Should().BeNull();
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
     public void ProjectReparentedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
     {
         // Arrange - the frozen V1 contract, as it was written before V2 replaced it. Nothing raises V1 any

@@ -76,11 +76,28 @@ public sealed class PpmTeamChangeEventHandlerTests : IDisposable
         _dbContext.AddPpmTeam(new PpmTeam(new PpmTeamFaker().WithId(id).WithName("Cassiopeia").Generate(), Reactivated));
 
         // Act
-        await _handler.Handle(new TeamUpdatedEvent(id, new TeamCode("BOR"), "Borealis", "desc", EventActor.System, Renamed), TestContext.Current.CancellationToken);
+        await _handler.Handle(DetailsUpdatedEvent(id, new TeamCode("BOR"), "Borealis", Renamed), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.PpmTeams.Single(t => t.Id == id).Name.Should().Be("Cassiopeia");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_SupersededUpdated_WhenNewerThanTheCopy_AppliesAndSaves()
+    {
+        // Arrange — an envelope written as the superseded type before the switch, still in the outbox.
+        var id = Guid.NewGuid();
+        _dbContext.AddPpmTeam(new PpmTeam(new PpmTeamFaker().WithId(id).WithName("Atlas").Generate(), Created));
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        await _handler.Handle(new TeamUpdatedEvent(id, new TeamCode("BOR"), "Borealis", "desc", EventActor.System, Renamed), TestContext.Current.CancellationToken);
+#pragma warning restore CS0618
+
+        // Assert
+        _dbContext.PpmTeams.Single(t => t.Id == id).Name.Should().Be("Borealis");
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]
@@ -91,7 +108,7 @@ public sealed class PpmTeamChangeEventHandlerTests : IDisposable
         SourceReturns(source);
 
         // Act
-        await _handler.Handle(new TeamUpdatedEvent(source.Id, source.Code, "Borealis", "desc", EventActor.System, Renamed), TestContext.Current.CancellationToken);
+        await _handler.Handle(DetailsUpdatedEvent(source.Id, source.Code, "Borealis", Renamed), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.PpmTeams.Should().ContainSingle(t => t.Id == source.Id).Which.Name.Should().Be("Borealis");
@@ -105,8 +122,8 @@ public sealed class PpmTeamChangeEventHandlerTests : IDisposable
         _dbContext.AddPpmTeam(new PpmTeam(new PpmTeamFaker().WithId(id).WithIsActive(true).Generate(), Created));
 
         // Act
-        await _handler.Handle(new TeamActivatedEvent(id, EventActor.System, Reactivated), TestContext.Current.CancellationToken);
-        await _handler.Handle(new TeamDeactivatedEvent(id, new LocalDate(2026, 12, 31), EventActor.System, Renamed), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamActivatedEvent(id, 1, new TeamCode("ABC01"), EventActor.System, Reactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeactivatedEvent(id, 1, new TeamCode("ABC01"), new LocalDate(2026, 12, 31), EventActor.System, Renamed), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.PpmTeams.Single(t => t.Id == id).IsActive.Should().BeTrue();
@@ -120,7 +137,7 @@ public sealed class PpmTeamChangeEventHandlerTests : IDisposable
         _dbContext.AddPpmTeam(new PpmTeam(new PpmTeamFaker().WithId(id).Generate(), Created));
 
         // Act
-        await _handler.Handle(new TeamDeletedEvent(id, EventActor.System, Reactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeletedEvent(id, 1, new TeamCode("ABC01"), EventActor.System, Reactivated), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.PpmTeams.Should().BeEmpty();
@@ -133,7 +150,7 @@ public sealed class PpmTeamChangeEventHandlerTests : IDisposable
         // Arrange
 
         // Act
-        await _handler.Handle(new TeamDeletedEvent(Guid.NewGuid(), EventActor.System, Reactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeletedEvent(Guid.NewGuid(), 1, new TeamCode("ABC01"), EventActor.System, Reactivated), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.SaveChangesCallCount.Should().Be(0);
@@ -157,4 +174,7 @@ public sealed class PpmTeamChangeEventHandlerTests : IDisposable
             isActive: true,
             actor: EventActor.System,
             timestamp: Created);
+
+    private static TeamDetailsUpdatedEvent DetailsUpdatedEvent(Guid id, TeamCode code, string name, Instant timestamp) =>
+        new(id, 1, code, name, "desc", new TeamDetails(new TeamCode("ABC01"), "Atlas", "desc"), EventActor.System, timestamp);
 }

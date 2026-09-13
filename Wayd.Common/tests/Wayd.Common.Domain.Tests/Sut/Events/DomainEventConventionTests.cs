@@ -19,7 +19,6 @@ public sealed partial class DomainEventConventionTests
     [
         "IterationUpdatedEvent",
         "StrategicThemeUpdatedEvent",
-        "TeamUpdatedEvent",
         "WorkIterationUpdatedEvent",
     ];
 

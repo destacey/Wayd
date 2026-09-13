@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
@@ -175,7 +175,7 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
     [Fact]
     public async Task DurableEvent_WhoseHandlerFailsPersistently_LandsInDeadLetterStore()
     {
-        // Arrange — a TeamUpdatedEvent for an existing PlanningTeam copy whose Name exceeds the copy's 128-char
+        // Arrange — a TeamDetailsUpdatedEvent for an existing PlanningTeam copy whose Name exceeds the copy's 128-char
         // column, so the replication handler's SaveChanges fails deterministically on every attempt (a
         // non-transient failure). Per DurableEventFailurePolicy the chain retries with cooldowns
         // (1s/5s/15s) and then dead-letters — this proves a real handler failure ends up in the durable
@@ -185,10 +185,10 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         var ct = TestContext.Current.CancellationToken;
 
         var poisonedId = Guid.NewGuid();
+        var copyKey = Random.Shared.Next(900_000, 999_999);
         using (var seedScope = _factory.Services.CreateScope())
         {
             var planning = seedScope.ServiceProvider.GetRequiredService<IPlanningDbContext>();
-            var copyKey = Random.Shared.Next(900_000, 999_999);
             planning.PlanningTeams.Add(new PlanningTeam(
                 new TeamCreatedEvent(poisonedId, copyKey, new TeamCode($"D{copyKey}"), "Dead Letter Test", null,
                     TeamType.Team, new LocalDate(2026, 1, 1), null, true, EventActor.System, Now),
@@ -196,11 +196,13 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
             await planning.SaveChangesAsync(ct);
         }
 
-        var poisonedEvent = new TeamUpdatedEvent(
+        var poisonedEvent = new TeamDetailsUpdatedEvent(
             id: poisonedId,
+            key: copyKey,
             code: new TeamCode("DLQTEST"),
             name: new string('x', 200),
             description: "Poisoned event for the failure-to-dead-letter pipeline test.",
+            previous: new TeamDetails(new TeamCode($"D{copyKey}"), "Dead Letter Test", null),
             EventActor.System,
             timestamp: Now.Plus(Duration.FromMinutes(1)));
 
@@ -220,11 +222,11 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         while (DateTime.UtcNow < deadline)
         {
             var results = await store.DeadLetters.QueryAsync(
-                new DeadLetterEnvelopeQuery { MessageType = typeof(TeamUpdatedEvent).FullName },
+                new DeadLetterEnvelopeQuery { MessageType = typeof(TeamDetailsUpdatedEvent).FullName },
                 ct);
             // The dead letter store is shared with every other class in this collection, so match strictly on
             // the poisoned id in the serialized body. A null-body envelope is NOT assumed to be ours: another
-            // test's TeamUpdatedEvent failure would otherwise satisfy this and pass the assertions below.
+            // test's TeamDetailsUpdatedEvent failure would otherwise satisfy this and pass the assertions below.
             deadLetter = results.Envelopes.FirstOrDefault(e =>
                 e.Envelope.Data is not null
                 && System.Text.Encoding.UTF8.GetString(e.Envelope.Data).Contains(poisonedId.ToString(), StringComparison.OrdinalIgnoreCase));
@@ -236,7 +238,7 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
             await Task.Delay(1000, ct);
         }
 
-        Assert.True(deadLetter is not null, "Poisoned TeamUpdatedEvent should have been moved to the durable dead letter store after exhausting retries");
+        Assert.True(deadLetter is not null, "Poisoned TeamDetailsUpdatedEvent should have been moved to the durable dead letter store after exhausting retries");
         Assert.False(deadLetter!.Replayable);
         Assert.NotNull(deadLetter.ExceptionType);
 

@@ -41,7 +41,8 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
         {
             IsActive = true;
             InactiveDate = null;
-            AddDomainEvent(new TeamActivatedEvent(Id, args.Actor, args.Timestamp));
+            var code = Code;
+            AddKeyedDomainEvent(() => new TeamActivatedEvent(Id, Key, code, args.Actor, args.Timestamp));
         }
 
         return Result.Success();
@@ -87,33 +88,36 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
         InactiveDate = args.AsOfDate;
         IsActive = false;  // TODO: this will be invalid if the InactiveDate is in the future
 
-        AddDomainEvent(new TeamDeactivatedEvent(Id, InactiveDate!.Value, args.Actor, args.Timestamp));
+        var code = Code;
+        var inactiveDate = InactiveDate!.Value;
+        AddKeyedDomainEvent(() => new TeamDeactivatedEvent(Id, Key, code, inactiveDate, args.Actor, args.Timestamp));
 
         return Result.Success();
     }
 
-    /// <summary>Update team of teams.</summary>
+    /// <summary>Updates the team of teams' code, name and description.</summary>
     /// <param name="name">The name.</param>
     /// <param name="code">The code.</param>
     /// <param name="description">The description.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns></returns>
-    public Result Update(string name, TeamCode code, string? description, EventActor actor, Instant timestamp)
+    public Result UpdateDetails(string name, TeamCode code, string? description, EventActor actor, Instant timestamp)
     {
         try
         {
-            var previous = (Name, Code, Description);
+            var before = new TeamDetails(Code, Name, Description);
 
             Name = name;
             Code = code;
             Description = description;
 
             // Compared after assignment because the setters normalise.
-            if ((Name, Code, Description) == previous)
+            var after = new TeamDetails(Code, Name, Description);
+            if (after == before)
                 return Result.Success();
 
-            AddDomainEvent(new TeamUpdatedEvent(Id, Code, Name, Description, actor, timestamp));
+            AddKeyedDomainEvent(() => new TeamDetailsUpdatedEvent(Id, Key, after.Code, after.Name, after.Description, before, actor, timestamp));
 
             return Result.Success();
         }

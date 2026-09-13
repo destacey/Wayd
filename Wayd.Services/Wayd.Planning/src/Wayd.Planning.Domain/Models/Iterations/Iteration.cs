@@ -87,9 +87,17 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// </summary>
     public IReadOnlyCollection<KeyValueObjectMetadata> ExternalMetadata => _externalMetadata.AsReadOnly();
 
+    /// <summary>
+    /// Applies the iteration as its source describes it. Each part that changed raises its own event: the
+    /// details, the date range, the state and the team change for different reasons, and the state moves on
+    /// its own as the dates pass.
+    /// </summary>
     public Result Update(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
     {
-        var previous = (Name, Type, State, DateRange, TeamId);
+        var previousDetails = new IterationDetails(Name, Type);
+        var previousState = State;
+        var previousDateRange = DateRange;
+        var previousTeamId = TeamId;
 
         Name = name;
         Type = type;
@@ -98,12 +106,35 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
         TeamId = teamId;
 
         // Compared after assignment because the Name setter trims.
-        if ((Name, Type, State, DateRange, TeamId) == previous)
-            return Result.Success();
+        var details = new IterationDetails(Name, Type);
+        if (details != previousDetails)
+            AddKeyedDomainEvent(() => new IterationDetailsUpdatedEvent(Id, Key, details.Name, details.Type, previousDetails, actor, timestamp));
 
-        AddDomainEvent(new IterationUpdatedEvent(this, actor, timestamp));
+        var newDateRange = DateRange;
+        if (newDateRange != previousDateRange)
+            AddKeyedDomainEvent(() => new IterationDateRangeChangedEvent(Id, Key, previousDateRange, newDateRange, actor, timestamp));
+
+        var newState = State;
+        if (newState != previousState)
+            AddKeyedDomainEvent(() => new IterationStateChangedEvent(Id, Key, previousState, newState, actor, timestamp));
+
+        var newTeamId = TeamId;
+        if (newTeamId != previousTeamId)
+            AddKeyedDomainEvent(() => new IterationTeamChangedEvent(Id, Key, previousTeamId, newTeamId, actor, timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Raises an event whose payload carries <see cref="Key"/>, which the first save assigns; a change made
+    /// before it waits for the key. <paramref name="build"/> runs at that point, so capture what it reads.
+    /// </summary>
+    private void AddKeyedDomainEvent(Func<DomainEvent> build)
+    {
+        if (Key == 0)
+            AddPostPersistenceAction(() => AddDomainEvent(build()));
+        else
+            AddDomainEvent(build());
     }
 
     /// <summary>

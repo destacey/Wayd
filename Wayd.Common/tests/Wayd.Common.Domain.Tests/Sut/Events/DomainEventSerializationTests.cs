@@ -11,6 +11,7 @@ using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
+using Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
@@ -437,6 +438,165 @@ public sealed class DomainEventSerializationTests
         roundTripped.Key.Should().Be(42);
         roundTripped.Code.Should().Be(new TeamCode("ATL"));
         roundTripped.EventVersion.Should().Be("1.1");
+    }
+
+    [Fact]
+    public void IterationDateRangeChangedEvent_RoundTripsBothEnds()
+    {
+        // Arrange — an open-ended range on one side, so a null Instant inside the value object is covered.
+        var original = new IterationDateRangeChangedEvent(
+            Guid.NewGuid(),
+            7,
+            new IterationDateRange(Instant.FromUtc(2026, 1, 1, 0, 0), null),
+            new IterationDateRange(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0)),
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Key.Should().Be(7);
+        roundTripped.PreviousDateRange.Should().Be(original.PreviousDateRange);
+        roundTripped.PreviousDateRange.End.Should().BeNull();
+        roundTripped.DateRange.Should().Be(original.DateRange);
+    }
+
+    [Fact]
+    public void IterationDetailsUpdatedEvent_RoundTripsThePreviousDetails()
+    {
+        // Arrange
+        var original = new IterationDetailsUpdatedEvent(
+            Guid.NewGuid(), 7, "Sprint 7a", IterationType.Sprint, new IterationDetails("Sprint 7", IterationType.Iteration),
+            EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Name.Should().Be("Sprint 7a");
+        roundTripped.Type.Should().Be(IterationType.Sprint);
+        roundTripped.Previous.Should().Be(original.Previous);
+    }
+
+    [Fact]
+    public void IterationUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen whole-record contract; its enums were written as numbers
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 7,
+              "Name": "Sprint 7",
+              "Type": 2,
+              "State": 2,
+              "DateRange": { "Start": "2026-01-01T00:00:00Z", "End": "2026-01-14T00:00:00Z" },
+              "TeamId": "019f2a10-0000-7000-8000-000000000002",
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<IterationUpdatedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Key.Should().Be(7);
+        restored.Type.Should().Be(IterationType.Sprint);
+        restored.State.Should().Be(IterationState.Active);
+        restored.DateRange.End.Should().Be(Instant.FromUtc(2026, 1, 14, 0, 0));
+        restored.TeamId.Should().Be(Guid.Parse("019f2a10-0000-7000-8000-000000000002"));
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void WorkIterationUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen whole-record contract, which never carried Key
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Name": "Sprint 7",
+              "Type": 1,
+              "State": 3,
+              "DateRange": { "Start": "2026-01-01T00:00:00Z", "End": null },
+              "TeamId": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<WorkIterationUpdatedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Sprint 7");
+        restored.Type.Should().Be(IterationType.Iteration);
+        restored.State.Should().Be(IterationState.Future);
+        restored.DateRange.End.Should().BeNull();
+        restored.TeamId.Should().BeNull();
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void StrategicThemeDetailsUpdatedEvent_RoundTripsThePreviousDetails(bool recorded)
+    {
+        // Arrange
+        var original = new StrategicThemeDetailsUpdatedEvent(
+            Guid.NewGuid(), 7, "Cloud Migration", "Move every workload off the data centre.",
+            recorded ? new StrategicThemeDetails("Cloud", "Move workloads.") : null,
+            EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Key.Should().Be(7);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Description.Should().Be(original.Description);
+        roundTripped.Previous.Should().Be(original.Previous);
+    }
+
+    [Fact]
+    public void StrategicThemeUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen whole-record contract; its State was written as a number
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Name": "Cloud Migration",
+              "Description": "Move every workload off the data centre.",
+              "State": 2,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<StrategicThemeUpdatedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Cloud Migration");
+        restored.Description.Should().Be("Move every workload off the data centre.");
+        restored.State.Should().Be(StrategicThemeState.Active);
+        restored.EventVersion.Should().Be("1.0");
     }
 
     [Fact]

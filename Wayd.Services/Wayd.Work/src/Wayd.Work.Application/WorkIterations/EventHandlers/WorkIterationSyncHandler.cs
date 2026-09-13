@@ -32,24 +32,33 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, IDisp
         await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
     }
 
-    public async Task Handle(IterationUpdatedEvent @event, CancellationToken cancellationToken)
+    public async Task Handle(IterationDetailsUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        var iteration = await _workDbContext.WorkIterations.FirstOrDefaultAsync(x => x.Id == @event.Id, cancellationToken);
-        if (iteration == null)
-        {
-            await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
-            return;
-        }
+        await Apply(@event.Id, @event.Timestamp, i => i.ApplyDetails(@event.Name, @event.Type, EventActor.System, @event.Timestamp), "details", cancellationToken);
+    }
 
-        if (!iteration.ApplyRecord(@event, EventActor.System, @event.Timestamp))
-        {
-            _logger.LogInformation("Work {SystemActionType} for an updated Iteration skipped: Iteration {IterationId} already holds this or a newer change.", SystemActionType.ServiceDataReplication, @event.Id);
-            return;
-        }
+    public async Task Handle(IterationDateRangeChangedEvent @event, CancellationToken cancellationToken)
+    {
+        await Apply(@event.Id, @event.Timestamp, i => i.ApplyDateRange(@event.DateRange, EventActor.System, @event.Timestamp), "date range", cancellationToken);
+    }
 
-        await _workDbContext.SaveChangesAsync(cancellationToken);
+    public async Task Handle(IterationStateChangedEvent @event, CancellationToken cancellationToken)
+    {
+        await Apply(@event.Id, @event.Timestamp, i => i.ApplyState(@event.ToState, EventActor.System, @event.Timestamp), "state", cancellationToken);
+    }
 
-        _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} updated action.", SystemActionType.ServiceDataReplication, @event.Id);
+    public async Task Handle(IterationTeamChangedEvent @event, CancellationToken cancellationToken)
+    {
+        await Apply(@event.Id, @event.Timestamp, i => i.ApplyTeam(@event.TeamId, EventActor.System, @event.Timestamp), "team", cancellationToken);
+    }
+
+    // Nothing raises the superseded type, but an envelope written as it before the switch can still be
+    // waiting in the durable outbox; without this it would dead-letter rather than update the copy.
+#pragma warning disable CS0618
+    public async Task Handle(IterationUpdatedEvent @event, CancellationToken cancellationToken)
+#pragma warning restore CS0618
+    {
+        await Apply(@event.Id, @event.Timestamp, i => i.ApplyRecord(@event, EventActor.System, @event.Timestamp), "record", cancellationToken);
     }
 
     public async Task Handle(IterationDeletedEvent @event, CancellationToken cancellationToken)
@@ -66,6 +75,26 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, IDisp
         await _workDbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} deleted action.", SystemActionType.ServiceDataReplication, @event.Id);
+    }
+
+    private async Task Apply(Guid iterationId, Instant timestamp, Func<WorkIteration, bool> apply, string change, CancellationToken cancellationToken)
+    {
+        var iteration = await _workDbContext.WorkIterations.FirstOrDefaultAsync(x => x.Id == iterationId, cancellationToken);
+        if (iteration == null)
+        {
+            await CreateFromSource(iterationId, timestamp, cancellationToken);
+            return;
+        }
+
+        if (!apply(iteration))
+        {
+            _logger.LogInformation("Work {SystemActionType} for an Iteration {Change} skipped: Iteration {IterationId} already holds this or a newer change.", SystemActionType.ServiceDataReplication, change, iterationId);
+            return;
+        }
+
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} {Change}.", SystemActionType.ServiceDataReplication, iterationId, change);
     }
 
     private async Task CreateFromSource(Guid iterationId, Instant timestamp, CancellationToken cancellationToken)

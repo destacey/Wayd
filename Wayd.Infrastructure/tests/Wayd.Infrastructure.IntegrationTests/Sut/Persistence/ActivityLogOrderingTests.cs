@@ -49,9 +49,9 @@ public sealed class ActivityLogOrderingTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
         var theme = await SeedTheme(context);
 
-        theme.Update("First edit", "First", EventActor.System, EditedAt);
-        theme.Update("Second edit", "Second", EventActor.System, EditedAt);
-        theme.Update("Third edit", "Third", EventActor.System, EditedAt);
+        theme.UpdateDetails("First edit", "First", EventActor.System, EditedAt);
+        theme.UpdateDetails("Second edit", "Second", EventActor.System, EditedAt);
+        theme.UpdateDetails("Third edit", "Third", EventActor.System, EditedAt);
 
         // Act
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -75,9 +75,9 @@ public sealed class ActivityLogOrderingTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
         var theme = await SeedTheme(context);
 
-        theme.Update("First edit", "First", EventActor.System, EditedAt);
-        theme.Update("Second edit", "Second", EventActor.System, EditedAt);
-        theme.Update("Third edit", "Third", EventActor.System, EditedAt);
+        theme.UpdateDetails("First edit", "First", EventActor.System, EditedAt);
+        theme.UpdateDetails("Second edit", "Second", EventActor.System, EditedAt);
+        theme.UpdateDetails("Third edit", "Third", EventActor.System, EditedAt);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _ = Mappings.Value;
@@ -101,9 +101,9 @@ public sealed class ActivityLogOrderingTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
         var theme = await SeedTheme(context);
 
-        theme.Update("First edit", "First", EventActor.System, EditedAt);
-        theme.Update("Second edit", "Second", EventActor.System, EditedAt);
-        theme.Update("Third edit", "Third", EventActor.System, EditedAt);
+        theme.UpdateDetails("First edit", "First", EventActor.System, EditedAt);
+        theme.UpdateDetails("Second edit", "Second", EventActor.System, EditedAt);
+        theme.UpdateDetails("Third edit", "Third", EventActor.System, EditedAt);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _ = Mappings.Value;

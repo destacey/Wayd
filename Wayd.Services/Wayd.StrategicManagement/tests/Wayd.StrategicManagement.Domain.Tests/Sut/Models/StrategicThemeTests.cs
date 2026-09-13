@@ -2,6 +2,7 @@ using FluentAssertions;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StrategicManagement;
+using Wayd.StrategicManagement.Domain.Models;
 using Wayd.StrategicManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 using NodaTime.Extensions;
@@ -21,31 +22,51 @@ public class StrategicThemeTests
     }
 
     [Fact]
-    public void Update_WhenValuesChange_RaisesUpdatedEvent()
+    public void UpdateDetails_WhenValuesChange_RaisesEventCarryingBothEnds()
     {
         // Arrange
         var theme = _faker.Generate();
+        var before = new StrategicThemeDetails(theme.Name, theme.Description);
 
         // Act
-        var result = theme.Update("New Name ", "New Description ", EventActor.System, _dateTimeProvider.Now);
+        var result = theme.UpdateDetails("New Name ", "New Description ", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         theme.Name.Should().Be("New Name");
         theme.Description.Should().Be("New Description");
-        var updatedEvent = theme.DomainEvents.OfType<StrategicThemeUpdatedEvent>().Should().ContainSingle().Subject;
+        var updatedEvent = theme.DomainEvents.OfType<StrategicThemeDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        updatedEvent.Id.Should().Be(theme.Id);
+        updatedEvent.Key.Should().Be(theme.Key);
         updatedEvent.Name.Should().Be("New Name");
         updatedEvent.Description.Should().Be("New Description");
+        updatedEvent.Previous.Should().Be(before);
     }
 
     [Fact]
-    public void Update_WhenNothingChanged_RaisesNoEvent()
+    public void UpdateDetails_BeforeTheFirstSave_WaitsForTheKey()
+    {
+        // Arrange
+        var theme = StrategicTheme.Create("Name", "Description", StrategicThemeState.Proposed, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        theme.UpdateDetails("New Name", "Description", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        theme.DomainEvents.Should().BeEmpty();
+        theme.ExecutePostPersistenceActions();
+        theme.DomainEvents.OfType<StrategicThemeCreatedEvent>().Should().ContainSingle().Which.Name.Should().Be("Name");
+        theme.DomainEvents.OfType<StrategicThemeDetailsUpdatedEvent>().Should().ContainSingle().Which.Name.Should().Be("New Name");
+    }
+
+    [Fact]
+    public void UpdateDetails_WhenNothingChanged_RaisesNoEvent()
     {
         // Arrange — the values a whole-record save sends back, before the setters trim them
         var theme = _faker.Generate();
 
         // Act
-        var result = theme.Update($"{theme.Name} ", $" {theme.Description}", EventActor.System, _dateTimeProvider.Now);
+        var result = theme.UpdateDetails($"{theme.Name} ", $" {theme.Description}", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -66,7 +87,7 @@ public class StrategicThemeTests
         theme.State.Should().Be(StrategicThemeState.Active);
         theme.DomainEvents.OfType<StrategicThemeActivatedEvent>().Should().ContainSingle()
             .Which.Id.Should().Be(theme.Id);
-        theme.DomainEvents.OfType<StrategicThemeUpdatedEvent>().Should().BeEmpty();
+        theme.DomainEvents.OfType<StrategicThemeDetailsUpdatedEvent>().Should().BeEmpty();
     }
 
     [Fact]
@@ -97,7 +118,7 @@ public class StrategicThemeTests
         theme.State.Should().Be(StrategicThemeState.Archived);
         theme.DomainEvents.OfType<StrategicThemeArchivedEvent>().Should().ContainSingle()
             .Which.Id.Should().Be(theme.Id);
-        theme.DomainEvents.OfType<StrategicThemeUpdatedEvent>().Should().BeEmpty();
+        theme.DomainEvents.OfType<StrategicThemeDetailsUpdatedEvent>().Should().BeEmpty();
     }
 
     [Fact]

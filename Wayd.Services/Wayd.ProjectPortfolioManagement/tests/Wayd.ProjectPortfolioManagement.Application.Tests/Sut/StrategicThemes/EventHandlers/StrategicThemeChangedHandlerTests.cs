@@ -84,15 +84,18 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Updated_AppliesTheDetailsButNotTheStateTheThemeHappenedToBeIn()
+    public async Task Handle_SupersededUpdated_AppliesTheDetailsButNotTheStateTheThemeHappenedToBeIn()
     {
-        // Arrange — archived at Archived; an edit made before the archive still carries State = Active.
+        // Arrange — an envelope written as the superseded type before the switch; archived at Archived, an
+        // edit made before the archive still carries State = Active.
         var id = Guid.CreateVersion7();
         var copy = new StrategicTheme(new StrategicThemeFaker().WithId(id).WithName("Old Name").WithState(StrategicThemeState.Active).Generate(), Created);
         copy.ApplyState(StrategicThemeState.Archived, Archived);
         _ppmContext.AddPpmStrategicTheme(copy);
 
+#pragma warning disable CS0618 // the retired type is exactly what is under test
         var @event = new StrategicThemeUpdatedEvent(id, "New Name", "desc", StrategicThemeState.Active, EventActor.System, Activated);
+#pragma warning restore CS0618
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -105,13 +108,45 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenNewerThanTheCopy_UpdatesAndSaves()
+    public async Task Handle_DetailsUpdated_WhenOlderThanTheCopy_IsSkipped()
+    {
+        // Arrange — two edits processed newest first.
+        var id = Guid.CreateVersion7();
+        _ppmContext.AddPpmStrategicTheme(new StrategicTheme(new StrategicThemeFaker().WithId(id).Generate(), Created));
+        await _handler.Handle(DetailsUpdatedEvent(id, "Newest Name", Archived), TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(DetailsUpdatedEvent(id, "Older Name", Activated), TestContext.Current.CancellationToken);
+
+        // Assert
+        _ppmContext.PpmStrategicThemes.Single(t => t.Id == id).Name.Should().Be("Newest Name");
+        _ppmContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_DetailsUpdated_WhenTheCreateHasNotArrived_CreatesTheCopyFromTheSource()
+    {
+        // Arrange
+        var source = new StrategicThemeFaker().WithName("New Name").Generate();
+        SourceReturns(source);
+
+        // Act
+        await _handler.Handle(DetailsUpdatedEvent(source.Id, "New Name", Activated), TestContext.Current.CancellationToken);
+
+        // Assert
+        var copy = _ppmContext.PpmStrategicThemes.Should().ContainSingle(t => t.Id == source.Id).Subject;
+        copy.Name.Should().Be("New Name");
+        copy.Watermarks.Should().Be(StrategicThemeWatermarks.At(Activated));
+    }
+
+    [Fact]
+    public async Task Handle_DetailsUpdated_WhenNewerThanTheCopy_UpdatesAndSaves()
     {
         // Arrange
         var id = Guid.CreateVersion7();
         _ppmContext.AddPpmStrategicTheme(new StrategicTheme(new StrategicThemeFaker().WithId(id).WithName("Old Name").WithState(StrategicThemeState.Active).Generate(), Created));
 
-        var @event = new StrategicThemeUpdatedEvent(id, "New Name", "desc", StrategicThemeState.Active, EventActor.System, Activated);
+        var @event = DetailsUpdatedEvent(id, "New Name", Activated);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -208,4 +243,7 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
             state: StrategicThemeState.Proposed,
             actor: EventActor.System,
             timestamp: Created);
+
+    private static StrategicThemeDetailsUpdatedEvent DetailsUpdatedEvent(Guid id, string name, Instant timestamp) =>
+        new(id, 1, name, "desc", new StrategicThemeDetails("Cloud Migration", "desc"), EventActor.System, timestamp);
 }

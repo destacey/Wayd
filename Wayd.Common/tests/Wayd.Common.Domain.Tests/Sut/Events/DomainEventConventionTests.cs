@@ -11,17 +11,6 @@ namespace Wayd.Common.Domain.Tests.Sut.Events;
 /// </summary>
 public sealed partial class DomainEventConventionTests
 {
-    /// <summary>
-    /// Whole-record events raised under the aggregate's bare name, which predate the convention. Each is to be
-    /// superseded (#792); once it is <c>[Obsolete]</c> the rule no longer applies to it and its entry here goes.
-    /// </summary>
-    private static readonly HashSet<string> LegacyWholeRecordEvents =
-    [
-        "IterationUpdatedEvent",
-        "StrategicThemeUpdatedEvent",
-        "WorkIterationUpdatedEvent",
-    ];
-
     public static TheoryData<string> EventTypeNames() => DomainEventCatalog.EventTypeNames();
 
     [Theory]
@@ -61,7 +50,8 @@ public sealed partial class DomainEventConventionTests
     {
         // Arrange
         var type = DomainEventCatalog.ByName(typeName);
-        if (type.GetCustomAttribute<ObsoleteAttribute>() is not null || LegacyWholeRecordEvents.Contains(type.Name))
+        // A superseded type is frozen under the name it was published with.
+        if (type.GetCustomAttribute<ObsoleteAttribute>() is not null)
             return;
 
         // Act
@@ -73,24 +63,6 @@ public sealed partial class DomainEventConventionTests
         namesOnlyTheRecord.Should().BeFalse(
             $"{type.Name} says only that something about the {aggregateType} is different. Name what happened: " +
             "a DetailsUpdated event for descriptive fields, or the transition itself");
-    }
-
-    [Fact]
-    public void LegacyWholeRecordEvents_AreStillLiveTypes()
-    {
-        // Arrange
-        var byName = DomainEventCatalog.EventTypes.ToDictionary(t => t.Name);
-
-        foreach (var name in LegacyWholeRecordEvents)
-        {
-            // Act
-            var type = byName.GetValueOrDefault(name);
-
-            // Assert
-            type.Should().NotBeNull($"{name} is allow-listed but no longer exists");
-            type!.GetCustomAttribute<ObsoleteAttribute>().Should().BeNull(
-                $"{name} has been superseded, so the naming rule no longer applies to it — remove its allow-list entry");
-        }
     }
 
     [Theory]

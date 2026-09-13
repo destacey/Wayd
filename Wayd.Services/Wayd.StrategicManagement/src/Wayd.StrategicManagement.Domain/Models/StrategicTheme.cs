@@ -51,25 +51,33 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     public StrategicThemeState State { get; private set; }
 
     /// <summary>
-    /// Updates the Strategic Theme.
+    /// Updates the Strategic Theme's name and description.
     /// </summary>
     /// <param name="name"></param>
     /// <param name="description"></param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result Update(string name, string description, EventActor actor, Instant timestamp)
+    public Result UpdateDetails(string name, string description, EventActor actor, Instant timestamp)
     {
-        var previous = (Name, Description);
+        var before = new StrategicThemeDetails(Name, Description);
 
         Name = name;
         Description = description;
 
         // Compared after assignment because the setters trim.
-        if ((Name, Description) == previous)
+        var after = new StrategicThemeDetails(Name, Description);
+        if (after == before)
             return Result.Success();
 
-        AddDomainEvent(new StrategicThemeUpdatedEvent(this, actor, timestamp));
+        StrategicThemeDetailsUpdatedEvent Build() =>
+            new(Id, Key, after.Name, after.Description, before, actor, timestamp);
+
+        // Key is assigned by the first save; an edit made before it waits for the key.
+        if (Key == 0)
+            AddPostPersistenceAction(() => AddDomainEvent(Build()));
+        else
+            AddDomainEvent(Build());
 
         return Result.Success();
     }

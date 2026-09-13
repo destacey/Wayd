@@ -56,15 +56,28 @@ public static class DurableEventRoutes
 
         // Planning Iteration → Work WorkIteration.
         typeof(IterationCreatedEvent),
-        typeof(IterationUpdatedEvent),
+        typeof(IterationDetailsUpdatedEvent),
+        typeof(IterationDateRangeChangedEvent),
+        typeof(IterationStateChangedEvent),
+        typeof(IterationTeamChangedEvent),
         typeof(IterationDeletedEvent),
+
+        // Superseded by the four events above; routed durably for envelopes written before the switch.
+#pragma warning disable CS0618
+        typeof(IterationUpdatedEvent),
+#pragma warning restore CS0618
 
         // StrategicManagement StrategicTheme → PPM PpmStrategicThemes.
         typeof(StrategicThemeCreatedEvent),
-        typeof(StrategicThemeUpdatedEvent),
+        typeof(StrategicThemeDetailsUpdatedEvent),
         typeof(StrategicThemeActivatedEvent),
         typeof(StrategicThemeArchivedEvent),
         typeof(StrategicThemeDeletedEvent),
+
+        // Superseded by StrategicThemeDetailsUpdatedEvent; routed durably for envelopes written before the switch.
+#pragma warning disable CS0618
+        typeof(StrategicThemeUpdatedEvent),
+#pragma warning restore CS0618
 
         // Work WorkProcess integration-state flip → AppIntegration connection config (no projection, no FK,
         // no in-request reader — genuinely fire-and-forget). Closed generic; routed on the concrete type.

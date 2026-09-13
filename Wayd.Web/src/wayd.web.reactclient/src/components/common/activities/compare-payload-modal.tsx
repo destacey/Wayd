@@ -188,7 +188,7 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
   const [copiedPrev, setCopiedPrev] = useState(false)
   const [copiedCurr, setCopiedCurr] = useState(false)
 
-  // Determine selectable earlier activities to compare against
+  // Earlier events of the current event's type only; another type's payload has a different shape.
   const earlierActivities = useMemo(() => {
     if (!currentActivity || !allActivities || allActivities.length === 0) {
       return previousActivity ? [previousActivity] : []
@@ -197,15 +197,16 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
     const currentIndex = allActivities.findIndex(
       (a) => a.id === currentActivity.id,
     )
-    if (currentIndex >= 0) {
-      return allActivities.slice(currentIndex + 1)
-    }
+    const earlier =
+      currentIndex >= 0
+        ? allActivities.slice(currentIndex + 1)
+        : allActivities.filter(
+            (a) =>
+              new Date(a.timestamp).getTime() <
+              new Date(currentActivity.timestamp).getTime(),
+          )
 
-    // Fallback: compare by timestamp
-    const currTime = new Date(currentActivity.timestamp).getTime()
-    return allActivities.filter(
-      (a) => new Date(a.timestamp).getTime() < currTime,
-    )
+    return earlier.filter((a) => a.eventType === currentActivity.eventType)
   }, [currentActivity, allActivities, previousActivity])
 
   const [selectedBaseId, setSelectedBaseId] = useState<string | null>(null)
@@ -340,25 +341,6 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
             <Tag color="blue" style={{ margin: 0 }}>
               {currentActivity?.eventType}
             </Tag>
-            {activeBaseActivity &&
-              (activeBaseActivity.summary !== currentActivity?.summary ||
-                activeBaseActivity.eventType !==
-                  currentActivity?.eventType) && (
-                <>
-                  <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                    vs
-                  </Text>
-                  <Text strong style={{ fontSize: token.fontSize }}>
-                    {activeBaseActivity.summary || activeBaseActivity.eventType}
-                  </Text>
-                  {activeBaseActivity.eventType !==
-                    currentActivity?.eventType && (
-                    <Tag style={{ margin: 0 }}>
-                      {activeBaseActivity.eventType}
-                    </Tag>
-                  )}
-                </>
-              )}
           </Flex>
 
           <Flex gap="middle" wrap="wrap" align="center">
@@ -386,20 +368,10 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
                     style={{ minWidth: 200, maxWidth: 260 }}
                     value={activeBaseActivity?.id}
                     onChange={(val) => setSelectedBaseId(val)}
-                    options={earlierActivities.map((act) => {
-                      const timeStr = dayjs(act.timestamp).format(
-                        'MMM D, h:mm:ss A',
-                      )
-                      const isDifferentType =
-                        act.eventType !== currentActivity?.eventType &&
-                        Boolean(act.summary || act.eventType)
-                      return {
-                        value: act.id,
-                        label: isDifferentType
-                          ? `${timeStr} (${act.summary || act.eventType})`
-                          : timeStr,
-                      }
-                    })}
+                    options={earlierActivities.map((act) => ({
+                      value: act.id,
+                      label: dayjs(act.timestamp).format('MMM D, h:mm:ss A'),
+                    }))}
                   />
                 )}
               </Flex>

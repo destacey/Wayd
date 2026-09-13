@@ -113,8 +113,8 @@ describe('computePayloadDiff helper', () => {
 describe('ComparePayloadModal component', () => {
   const prevActivity = createActivity({
     id: 'prev-1',
-    eventType: 'TeamCreatedEvent',
-    summary: 'Team Created',
+    eventType: 'TeamUpdatedEvent',
+    summary: 'Team Updated',
     timestamp: new Date('2026-04-01T09:00:00Z'),
     payload: JSON.stringify({
       name: 'Old Core Team',
@@ -149,17 +149,22 @@ describe('ComparePayloadModal component', () => {
     expect(screen.getByText('Compare Event Payloads')).toBeInTheDocument()
     expect(screen.getByText('BASE (EARLIER EVENT):')).toBeInTheDocument()
     expect(screen.getByText('TARGET (CURRENT EVENT):')).toBeInTheDocument()
-    expect(screen.getByText('Team Created')).toBeInTheDocument()
-    expect(screen.getByText('Team Updated')).toBeInTheDocument()
+    expect(screen.getAllByText('Team Updated')).toHaveLength(1)
   })
 
-  it('renders event summary once in the header when both events share the same type', () => {
-    const prevSameActivity = createActivity({
-      id: 'prev-same-1',
+  it('compares only against earlier events of the same type', () => {
+    const otherType = createActivity({
+      id: 'other-1',
+      eventType: 'TeamDeactivatedEvent',
+      summary: 'Team Deactivated',
+      timestamp: new Date('2026-04-01T09:30:00Z'),
+      payload: JSON.stringify({ name: 'Deactivated Payload' }),
+    })
+    const oldest = createActivity({
+      id: 'oldest-1',
       eventType: 'TeamUpdatedEvent',
-      summary: 'Team Updated',
-      timestamp: new Date('2026-04-01T09:00:00Z'),
-      payload: JSON.stringify({ name: 'Alpha' }),
+      timestamp: new Date('2026-04-01T08:00:00Z'),
+      payload: JSON.stringify({ name: 'Oldest Core Team' }),
     })
 
     render(
@@ -167,14 +172,16 @@ describe('ComparePayloadModal component', () => {
         open={true}
         onClose={jest.fn()}
         currentActivity={currActivity}
-        previousActivity={prevSameActivity}
-        allActivities={[currActivity, prevSameActivity]}
+        allActivities={[currActivity, otherType, prevActivity, oldest]}
       />,
     )
 
-    // "Team Updated" should be displayed once in the header, not duplicated in both cards
-    const matches = screen.getAllByText('Team Updated')
-    expect(matches).toHaveLength(1)
+    // The nearest earlier event is of another type, so the base is the nearest of the same type
+    expect(screen.getByText('Old Core Team')).toBeInTheDocument()
+    expect(screen.queryByText('Deactivated Payload')).not.toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByRole('combobox'))
+    expect(screen.getAllByRole('option')).toHaveLength(2)
   })
 
   it('displays modified fields in table diff', () => {

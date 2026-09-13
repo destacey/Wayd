@@ -319,13 +319,19 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
 
   const [isCompareOpen, setIsCompareOpen] = useState(false)
 
+  // Only an earlier event of the same type is comparable: a different type has a different payload shape,
+  // so every field would read as added or removed.
   const previousActivity = useMemo(() => {
     if (!activities || !selectedActivity) return null
     const currentIndex = activities.findIndex(
       (a) => a.id === selectedActivity.id,
     )
-    if (currentIndex < 0 || currentIndex >= activities.length - 1) return null
-    return activities[currentIndex + 1]
+    if (currentIndex < 0) return null
+    return (
+      activities
+        .slice(currentIndex + 1)
+        .find((a) => a.eventType === selectedActivity.eventType) ?? null
+    )
   }, [activities, selectedActivity])
 
   const handleCopyPayload = (rawPayload: string) => {

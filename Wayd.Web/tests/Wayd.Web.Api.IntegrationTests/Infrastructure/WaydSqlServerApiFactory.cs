@@ -3,11 +3,14 @@ using System.Runtime.ExceptionServices;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.MsSql;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Web.Api.Services;
 
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 
@@ -34,6 +37,11 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
     // the integration host must too, or the durable-outbox schema is never provisioned.
     private const string DatabaseName = "WaydIntegrationTests";
 
+    // Long enough that a run the queue finishes is answered 200 however loaded the runner is. A test that
+    // needs the wait to run out holds the run back with ImportClaims and shortens it with WaitOnImportsFor.
+    private static readonly ImportResponseTiming _defaultImportResponseTiming =
+        new(TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(250));
+
     private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerImage).Build();
 
     private string _connectionString = null!;
@@ -44,9 +52,22 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
     /// <summary>Forces a concurrency conflict on a chosen save; inert unless a test arms it.</summary>
     public ConcurrentWriteInjector ConcurrentWrites { get; }
 
+    /// <summary>Holds import runs at Queued; inert unless a test holds it.</summary>
+    public ImportClaimGate ImportClaims { get; } = new();
+
+    /// <summary>How long an import submission waits on its run before answering 202.</summary>
+    public ImportResponseTiming ImportResponseTiming { get; private set; } = _defaultImportResponseTiming;
+
     public WaydSqlServerApiFactory()
     {
         ConcurrentWrites = new ConcurrentWriteInjector(() => _connectionString);
+    }
+
+    /// <summary>Shortens the import response wait until the returned handle is disposed.</summary>
+    public IDisposable WaitOnImportsFor(TimeSpan budget)
+    {
+        ImportResponseTiming = _defaultImportResponseTiming with { Budget = budget };
+        return new ImportResponseTimingReset(this);
     }
 
     public async ValueTask InitializeAsync()
@@ -113,7 +134,14 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         HandlerCodegenMode.Apply();
 
         builder.ConfigureServices(services =>
-            services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites)));
+            services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites, ImportClaims)));
+
+        builder.ConfigureTestServices(services =>
+        {
+            // Read per scope rather than captured once, so WaitOnImportsFor reaches the next request.
+            services.RemoveAll<ImportResponseTiming>();
+            services.AddScoped(_ => ImportResponseTiming);
+        });
     }
 
     /// <summary>
@@ -190,4 +218,11 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     private static string Tail(string text, int lines) =>
         string.Join(Environment.NewLine, text.Split('\n').TakeLast(lines));
+
+    private sealed class ImportResponseTimingReset(WaydSqlServerApiFactory owner) : IDisposable
+    {
+        private readonly WaydSqlServerApiFactory _owner = owner;
+
+        public void Dispose() => _owner.ImportResponseTiming = _defaultImportResponseTiming;
+    }
 }

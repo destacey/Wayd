@@ -269,12 +269,13 @@ export const importsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // The records only include the rows if the run finished within the wait; one still running
-      // refreshes them from its import page when it lands.
-      invalidatesTags: (result, error, { importKey }) => [
-        QueryTags.ImportProcess,
-        ...IMPORTED_RECORD_TAGS[importKey],
-      ],
+      // A refused file creates no run and changes no record, so there is nothing to refetch. The records
+      // only include the rows if the run finished within the wait; one still running refreshes them from
+      // its import page when it lands.
+      invalidatesTags: (result, error, { importKey }) =>
+        result
+          ? [QueryTags.ImportProcess, ...IMPORTED_RECORD_TAGS[importKey]]
+          : [],
     }),
     cancelImportProcess: builder.mutation<void, string>({
       queryFn: async (id) => {

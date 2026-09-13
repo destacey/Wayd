@@ -174,6 +174,22 @@ describe('CsvImportForm', () => {
     expect(fileName).toBe('strategic-themes-import-template.csv')
   })
 
+  it('names a secondary file template after its import as well', async () => {
+    // Arrange
+    renderForm()
+    await chooseImport('Release Packages')
+
+    // Act
+    await userEvent.click(
+      screen.getAllByRole('button', { name: /Download Template/ })[1],
+    )
+
+    // Assert
+    expect(downloadCsv.mock.calls[0][1]).toBe(
+      'release-packages-manifest-import-template.csv',
+    )
+  })
+
   it('will not import until every required file is chosen', async () => {
     // Arrange — the packages import needs its manifest as well
     renderForm()

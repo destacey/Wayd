@@ -43,7 +43,12 @@ export interface CsvImportFormProps {
   onFormCancel: () => void
 }
 
-const isKnownImport = (key: string): key is ImportKey => key in importTemplates
+/**
+ * Whether this client can post the import. A server newer than the client can list a definition it has no
+ * template or submitter for.
+ */
+export const isKnownImport = (key: string): key is ImportKey =>
+  key in importTemplates
 
 /**
  * Turns an import's refusal into something a person can act on.
@@ -95,6 +100,17 @@ const toFileName = (text: string) =>
 
 const fileTitle = (definition: ImportDefinitionDto, file: ImportFileTemplate) =>
   file.label ?? definition.displayName
+
+// A secondary file keeps its import's name too: "manifest-import-template.csv" says nothing once it is
+// sitting in a downloads folder.
+const templateFileName = (
+  definition: ImportDefinitionDto,
+  file: ImportFileTemplate,
+) =>
+  [definition.displayName, file.label, 'import-template']
+    .filter(Boolean)
+    .map((part) => toFileName(part!))
+    .join('-') + '.csv'
 
 /**
  * The one place a CSV import is submitted from the app: pick the kind of import, read what its files
@@ -160,7 +176,7 @@ const CsvImportForm = ({
         file.columns.map((c) => c.name),
         [],
       ),
-      `${toFileName(fileTitle(definition, file))}-import-template.csv`,
+      templateFileName(definition, file),
     )
   }
 

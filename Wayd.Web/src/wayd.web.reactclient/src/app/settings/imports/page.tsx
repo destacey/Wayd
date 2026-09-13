@@ -6,7 +6,7 @@ import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import PageTitle from '@/src/components/common/page-title'
-import { CsvImportForm } from '@/src/components/common/import'
+import { CsvImportForm, isKnownImport } from '@/src/components/common/import'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import {
   WaydGrid,
@@ -49,7 +49,9 @@ const ImportsPage = () => {
 
   const { data: definitions } = useGetImportDefinitionsQuery()
   // The listing is what the viewer may see; oversight of every import type does not grant submitting one.
-  const canSubmitAny = definitions?.some((d) => d.canSubmit) ?? false
+  // The same filter the dialog offers from, so the button never opens onto an empty list.
+  const canSubmitAny =
+    definitions?.some((d) => d.canSubmit && isKnownImport(d.key)) ?? false
 
   const { data, isLoading, refetch } = useGetImportProcessesQuery(
     { pageSize: IMPORT_PAGE_SIZE },

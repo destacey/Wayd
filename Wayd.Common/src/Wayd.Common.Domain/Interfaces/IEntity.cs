@@ -12,6 +12,7 @@ public interface IEntity
     void AddPostPersistenceAction(Action action);
     void RemovePostPersistenceAction(Action action);
     void ExecutePostPersistenceActions();
+    void ClearPostPersistenceActions();
 }
 
 public interface IEntity<TId> : IEntity

@@ -497,11 +497,11 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
         var result = kpi.AddMeasurement(measurement);
         if (result.IsSuccess)
         {
-            var (actualValue, measurementDate, measuredById, note) =
-                (measurement.ActualValue, measurement.MeasurementDate, measurement.MeasuredById, measurement.Note);
+            var (measurementId, actualValue, measurementDate, measuredById, note) =
+                (measurement.Id, measurement.ActualValue, measurement.MeasurementDate, measurement.MeasuredById, measurement.Note);
 
             AddKeyedDomainEvent(() => new StrategicInitiativeKpiMeasurementAddedEvent(
-                Id, Key, kpiId, measurement.Id, actualValue, measurementDate, measuredById, note, actor, timestamp));
+                Id, Key, kpiId, measurementId, actualValue, measurementDate, measuredById, note, actor, timestamp));
         }
 
         return result;

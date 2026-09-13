@@ -63,6 +63,47 @@ public sealed class RefileStrategicInitiativeActivityMigrationTests(SqlServerDbC
         portfolioEntries.Should().ContainSingle().Which.Id.Should().Be(otherPortfolioEntryId);
     }
 
+    [Fact]
+    public async Task Down_ReturnsTheEntriesToTheirPortfolio()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var portfolioId = Guid.CreateVersion7();
+        var initiativeId = Guid.CreateVersion7();
+        var payload = $$"""{"portfolioId":"{{portfolioId}}","strategicInitiativeId":"{{initiativeId}}","name":"Atlas","eventVersion":"1.1"}""";
+
+        await using (var context = _fixture.CreateContext())
+        {
+            context.ActivityLogs.Add(new ActivityLogEntry(
+                Guid.CreateVersion7(), "StrategicInitiativeCreatedEvent", ActivityCategory.Created, "Ppm", "StrategicInitiative", initiativeId,
+                EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0), ordinal: 0, correlationId: null, payload, "Strategic Initiative Created"));
+            await context.SaveChangesAsync(ct);
+        }
+
+        try
+        {
+            // Act
+            await using (var context = _fixture.CreateContext())
+            {
+                await context.GetService<IMigrator>().MigrateAsync(MigrationBefore, ct);
+            }
+
+            // Assert
+            await using var verify = _fixture.CreateContext();
+            var entry = await verify.ActivityLogs.AsNoTracking().SingleAsync(a => a.Payload == payload, ct);
+
+            entry.AggregateType.Should().Be("ProjectPortfolio");
+            entry.AggregateId.Should().Be(portfolioId);
+            entry.Summary.Should().Be("Strategic Initiative Created on Project Portfolio");
+        }
+        finally
+        {
+            // Leave the shared database at the latest migration for the tests that follow.
+            await using var restore = _fixture.CreateContext();
+            await restore.Database.MigrateAsync(ct);
+        }
+    }
+
     private static ActivityLogEntry Entry(string eventType, ActivityCategory category, Guid portfolioId, string payload, string summary, Guid? id = null) =>
         new(id ?? Guid.CreateVersion7(), eventType, category, "Ppm", "ProjectPortfolio", portfolioId,
             EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0), ordinal: 0, correlationId: null, payload, summary);

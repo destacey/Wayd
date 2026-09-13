@@ -548,6 +548,27 @@ public sealed class DomainEventSerializationTests
         restored.EventVersion.Should().Be("1.0");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void StrategicThemeDetailsUpdatedEvent_RoundTripsThePreviousDetails(bool recorded)
+    {
+        // Arrange
+        var original = new StrategicThemeDetailsUpdatedEvent(
+            Guid.NewGuid(), 7, "Cloud Migration", "Move every workload off the data centre.",
+            recorded ? new StrategicThemeDetails("Cloud", "Move workloads.") : null,
+            EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Key.Should().Be(7);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Description.Should().Be(original.Description);
+        roundTripped.Previous.Should().Be(original.Previous);
+    }
+
     [Fact]
     public void StrategicThemeUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
     {

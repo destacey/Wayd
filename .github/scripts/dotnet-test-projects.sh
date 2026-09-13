@@ -60,6 +60,25 @@ filter="test-${mode}.slnf"
     printf '    ]\n  }\n}\n'
 } > "$filter"
 
+parallel_args=()
+if [[ "$mode" == "integration" ]]; then
+    # Pull the image once, up front. Otherwise every suite that starts at the same time downloads it at the
+    # same time, and the download eats into each container's start-up time.
+    image="$(grep -oP '(?<=Name = ")[^"]+' Wayd.Common/tests/Wayd.Tests.Containers/SqlServerTestImage.cs)"
+    echo "Pulling $image"
+    docker pull --quiet "$image"
+
+    # Each integration project starts its own SQL Server container, and dotnet test runs projects in parallel
+    # up to the MSBuild node count. On a runner with far fewer cores than projects, every engine then warms
+    # up at once and early queries time out. Capping the nodes caps the containers starting together.
+    #
+    # The cap applies to the test run only. Building under it as well hung the run after the build finished,
+    # with no test host ever started, so the projects are built first at full parallelism.
+    dotnet build "$filter" -c Release --verbosity minimal
+    parallel_args=(--no-build -maxcpucount:"${INTEGRATION_TEST_PARALLELISM:-2}")
+    echo "Running at most ${INTEGRATION_TEST_PARALLELISM:-2} integration project(s) at a time"
+fi
+
 coverage_args=()
 if [[ "$collect_coverage" == "true" ]]; then
     # Results land in each project's TestResults/<guid>/coverage.cobertura.xml; the workflow collects
@@ -74,4 +93,5 @@ dotnet test "$filter" \
     -c Release \
     --verbosity normal \
     --blame-hang-timeout 5m \
+    "${parallel_args[@]}" \
     "${coverage_args[@]}"

@@ -67,7 +67,6 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — two versions of one product shipped the same day, so the date cannot separate them
         // and only the sequence can.
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -92,7 +91,6 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
         // Arrange — one version per product, shipped the same day, sequenced so that honouring the
         // sequence would invert the order a date-only sort produces. A sequence set to order one
         // product's versions must not move another product's version that happens to share a date.
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -120,7 +118,6 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — a planned version has no date to sort on, and belongs at the top rather than the
         // bottom: what is coming matters more than what already shipped.
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -146,7 +143,6 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
         // that projects to a DTO before materializing never produces an entity for the change tracker
         // to hold, so AsNoTracking would be a no-op. Asserted against SQL Server because only a real
         // provider builds a real change tracker.
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();

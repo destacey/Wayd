@@ -32,7 +32,6 @@ public sealed class ProductDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_CreateProductCommand_ResolvesTheSeededWorkflowAndPersists()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -67,7 +66,6 @@ public sealed class ProductDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_CreateProductCommand_WritesTheOpeningTransition()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -104,7 +102,6 @@ public sealed class ProductDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_ChangeProductStatusCommand_MovesTheProductAndAppendsHistory()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -152,7 +149,6 @@ public sealed class ProductDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_GetProductsQuery_ProjectsTheStatusAlias()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();

@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Tests.Containers;
 using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.Work.IntegrationTests.Infrastructure;
@@ -30,18 +31,14 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     // A fixed instant so audit/system columns are deterministic and no test ever reaches for DateTime.UtcNow.
     public static readonly Instant FixedNow = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
-    // Pinned to a concrete CU rather than a floating tag (e.g. 2022-latest), so the schema is built against
-    // the same SQL Server engine on every machine and CI run. Bump deliberately.
-    private const string SqlServerImage = "mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04";
-
-    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerImage).Build();
+    private MsSqlContainer _container = null!;
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;
 
     public async ValueTask InitializeAsync()
     {
-        await _container.StartAsync();
+        _container = await SqlServerTestContainer.Start();
 
         var connectionString = _container.GetConnectionString();
 
@@ -74,7 +71,8 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        await _container.DisposeAsync();
+        if (_container is not null)
+            await _container.DisposeAsync();
     }
 
     /// <summary>Creates a fresh <see cref="WaydDbContext"/> against the container, with no-op collaborators.</summary>

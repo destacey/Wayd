@@ -25,7 +25,6 @@ public sealed class StrategicThemeReplicationTests(WaydSqlServerApiFactory facto
     public async Task UpdateStrategicTheme_ReplicatesTheNewDetailsToPpm()
     {
         // Arrange
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var themeId = await CreateReplicatedTheme(ct);
         var name = $"Renamed Theme {Guid.NewGuid():N}"[..24];
@@ -50,7 +49,6 @@ public sealed class StrategicThemeReplicationTests(WaydSqlServerApiFactory facto
     {
         // Arrange — an envelope written as the superseded type before the switch, delivered through the real
         // durable route.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var themeId = await CreateReplicatedTheme(ct);
         var name = $"Legacy Theme {Guid.NewGuid():N}"[..24];

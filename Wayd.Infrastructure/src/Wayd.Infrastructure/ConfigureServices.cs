@@ -18,6 +18,7 @@ using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
 using Wayd.Infrastructure.Logging;
 using Wayd.Infrastructure.OpenTelemetry;
+using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Infrastructure.SignalR;
 using Wayd.Infrastructure.StatusWorkflows;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
@@ -167,7 +168,10 @@ public static class ConfigureServices
     {
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"])
+            // Readiness only, so deliberately not tagged "live": a database outage should take the API out
+            // of rotation, not have it restarted into the same outage.
+            .AddDbContextCheck<WaydDbContext>("database");
 
         return builder;
     }

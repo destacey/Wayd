@@ -25,6 +25,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\Wayd.Web.Api\Wayd.Web.Api.csproj" />
+      <ProjectReference Include="..\..\..\Wayd.Common\tests\Wayd.Tests.Containers\Wayd.Tests.Containers.csproj" />
     </ItemGroup>
 
     <ItemGroup>

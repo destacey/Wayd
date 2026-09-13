@@ -32,7 +32,6 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_ProductTypeLifecycle_CreatesUpdatesAndDeletes()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
@@ -63,7 +62,6 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_GetProductTypesQuery_CountsTheProductsCarryingEachType()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -102,7 +100,6 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_DeleteProductTypeCommand_RefusesATypeInUse()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
@@ -136,7 +133,6 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_TagCategoryLifecycle_AddsRenamesAndProjectsTags()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
@@ -178,7 +174,6 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         // what sequence they arrive in: a tag holds no position, so the caller sorts (the UI does,
         // alphabetically). What is still worth pinning is that the projection returns all of them —
         // a join that dropped or duplicated one would read as a tag silently missing from a picker.
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
@@ -212,7 +207,6 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_AddProductTagCommand_RefusesADuplicateOnTheSameAxis()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
@@ -244,7 +238,6 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_GetDeploymentEnvironmentsQuery_ProjectsThroughMapster()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 

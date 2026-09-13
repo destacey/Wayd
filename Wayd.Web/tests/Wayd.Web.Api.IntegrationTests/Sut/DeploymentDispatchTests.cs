@@ -61,7 +61,6 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_StartDeploymentCommand_FreezesTheEnvironmentCategory()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -90,7 +89,6 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_FailDeploymentCommand_CountsAsAChangeFailureOnlyInProduction()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -134,7 +132,6 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_RollBackDeploymentCommand_RefusesAFailedDeployment()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -164,7 +161,6 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_RollBackDeploymentCommand_CountsASucceededDeploymentAsAFailure()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
@@ -202,7 +198,6 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_StartDeploymentCommand_RefusesBothAVersionAndAPackage()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();

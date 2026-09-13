@@ -35,7 +35,6 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
     public async Task CreateTeam_ReplicatesToWorkPlanningAndPpm_AsynchronouslyAfterCommandReturns()
     {
         // Arrange
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var code = $"T{Guid.NewGuid():N}"[..8].ToUpperInvariant();
 
@@ -89,7 +88,6 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
     public async Task UpdateTeam_ReplicatesTheNewDetailsToWorkPlanningAndPpm()
     {
         // Arrange — a team whose three copies have all arrived.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var teamId = await CreateReplicatedTeam(ct);
         var newCode = new TeamCode($"R{Guid.NewGuid():N}"[..8].ToUpperInvariant());
@@ -132,7 +130,6 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — an envelope written as the superseded type before the switch, delivered through the real
         // durable route, so a missing route or handler for it would leave the copies unrenamed.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var teamId = await CreateReplicatedTeam(ct);
         var code = new TeamCode($"S{Guid.NewGuid():N}"[..8].ToUpperInvariant());

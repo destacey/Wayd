@@ -31,6 +31,10 @@ Integration tests need Docker running. Unit tests never do — including
 `Wayd.Integrations.AzureDevOps.IntegrationTests`, which despite its name needs a live Azure DevOps org
 rather than a container, and skips itself when one is not configured.
 
+Each integration project starts its own container, so the integration run pulls the SQL Server image once
+before any suite starts and runs at most two projects at a time. Set `INTEGRATION_TEST_PARALLELISM` to change
+the limit.
+
 ### Sharing a container
 
 Every integration project shares **one** SQL Server container and one migrated schema across all of its
@@ -53,6 +57,28 @@ made one suite take six containers to run 44 tests.
 
 The consequence is that tests **share a database**. Scope assertions to data the test itself created
 (a fresh `Guid`, a unique key) rather than assuming an empty schema or querying for "the only row".
+
+Start a fixture's container with `SqlServerTestContainer.Start()` from `Wayd.Tests.Containers`, rather than
+building one yourself. It runs the image every suite shares, pinned once as `SqlServerTestImage.Name`.
+`Wayd.Tests.Containers` is referenced only by integration projects, so `Wayd.Tests.Shared` and the unit
+projects never depend on Testcontainers.
+
+### Authenticated HTTP requests
+
+`Wayd.Web.Api.IntegrationTests` boots the real API against its container, so a test can call an endpoint
+the way a client does. `CreateAuthenticatedClient` creates a local user holding exactly the permissions you
+name, signs them in through `POST /api/auth/login`, and returns an `HttpClient` that sends their token:
+
+```csharp
+var user = await _factory.CreateAuthenticatedClient(
+    ApplicationPermission.NameFor(ApplicationAction.Import, ApplicationResource.StrategicThemes));
+
+var response = await user.Client.PostAsync(route, content, TestContext.Current.CancellationToken);
+```
+
+Each call makes a new role and user, so one test's permissions never reach another's. Use it for anything
+that belongs to the HTTP layer: status codes, headers, model binding, and the permission attributes. Tests
+that only need a handler to run can still dispatch through `IDispatcher` in a scope.
 
 ## Frameworks and Libraries
 

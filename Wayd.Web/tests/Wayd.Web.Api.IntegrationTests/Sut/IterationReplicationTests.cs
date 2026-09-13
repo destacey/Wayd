@@ -32,7 +32,6 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
     public async Task UpdateIteration_ReplicatesEveryChangedPartToWork()
     {
         // Arrange
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var iterationId = await CreateReplicatedIteration(ct);
         var moved = new IterationDateRange(Range.Start, Instant.FromUtc(2026, 1, 21, 0, 0));
@@ -63,7 +62,6 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — an envelope written as the superseded type before the switch, delivered through the real
         // durable route.
-        _ = _factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
         var iterationId = await CreateReplicatedIteration(ct);
         int key;

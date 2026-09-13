@@ -26,7 +26,6 @@ public sealed class HangfireIdentityPropagationTests(WaydSqlServerApiFactory fac
     public async Task Dispatch_FromJobScopeWithUserId_StampsUserIdOntoAuditColumns()
     {
         // Arrange - mimic WaydJobActivator: a fresh scope with the acting user id seeded, no HttpContext.
-        _ = _factory.CreateClient();
         const string jobUserId = "job-user-abc-123";
 
         using var scope = _factory.Services.CreateScope();
@@ -64,8 +63,6 @@ public sealed class HangfireIdentityPropagationTests(WaydSqlServerApiFactory fac
     {
         // Arrange - a background scope with NO acting user (scheduled job, startup work): the platform
         // itself is acting, and the audit columns must say so explicitly rather than stay empty.
-        _ = _factory.CreateClient();
-
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var employeeNumber = $"SYS-{Guid.NewGuid():N}"[..12];

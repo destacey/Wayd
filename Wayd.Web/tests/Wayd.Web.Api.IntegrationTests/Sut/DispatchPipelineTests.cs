@@ -23,7 +23,6 @@ public sealed class DispatchPipelineTests(WaydSqlServerApiFactory factory)
     public async Task Dispatch_CreateEmployeeCommand_RunsHandlerAndPersists()
     {
         // Arrange - fictional data (RFC-reserved acme.example domain), invented identifiers.
-        _ = _factory.CreateClient();
         var employeeNumber = $"E2E-{Guid.NewGuid():N}"[..12];
         var command = new CreateEmployeeCommand(
             name: new PersonName("Dana", null, "Okoro"),
@@ -57,7 +56,6 @@ public sealed class DispatchPipelineTests(WaydSqlServerApiFactory factory)
     {
         // Arrange - empty employee number violates the FluentValidation rule, so the Wolverine
         // FluentValidation middleware must throw our ValidationException before the handler runs.
-        _ = _factory.CreateClient();
         var command = new CreateEmployeeCommand(
             name: new PersonName("Dana", null, "Okoro"),
             employeeNumber: string.Empty,

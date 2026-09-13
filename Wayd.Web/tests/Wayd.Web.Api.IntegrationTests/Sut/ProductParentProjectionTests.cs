@@ -22,7 +22,6 @@ public sealed class ProductParentProjectionTests(WaydSqlServerApiFactory factory
     public async Task GetProducts_ShouldCarryTheParentOfAChild()
     {
         // Arrange
-        _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();

@@ -13,18 +13,16 @@ import { useDocumentTitle } from '@/src/hooks'
 import { DeploymentEnvironmentDto } from '@/src/services/wayd-api'
 import { useGetDeploymentEnvironmentsQuery } from '@/src/store/features/product-management/deployment-environments-api'
 import { isApiError } from '@/src/utils'
-import { Button, Space } from 'antd'
+import { Button } from 'antd'
 import { useEffect, useState } from 'react'
 import {
   DeploymentEnvironmentForm,
-  ImportDeploymentEnvironmentsForm,
   useDeploymentEnvironmentActions,
 } from './_components'
 
 const DeploymentEnvironmentsPage = () => {
   useDocumentTitle('Delivery - Environments')
   const [openCreateForm, setOpenCreateForm] = useState<boolean>(false)
-  const [openImportForm, setOpenImportForm] = useState<boolean>(false)
 
   const messageApi = useMessage()
 
@@ -38,9 +36,6 @@ const DeploymentEnvironmentsPage = () => {
   const { hasPermissionClaim } = useAuth()
   const canCreateEnvironment = hasPermissionClaim(
     'Permissions.DeploymentEnvironments.Create',
-  )
-  const canImportEnvironments = hasPermissionClaim(
-    'Permissions.DeploymentEnvironments.Import',
   )
 
   const { getActionItems, dialogs } = useDeploymentEnvironmentActions({
@@ -99,30 +94,13 @@ const DeploymentEnvironmentsPage = () => {
     },
   ]
 
-  const actions =
-    !canCreateEnvironment && !canImportEnvironments ? null : (
-      <Space>
-        {canImportEnvironments && (
-          <Button onClick={() => setOpenImportForm(true)}>Import</Button>
-        )}
-        {canCreateEnvironment && (
-          <Button onClick={() => setOpenCreateForm(true)}>
-            Create Environment
-          </Button>
-        )}
-      </Space>
-    )
+  const actions = canCreateEnvironment ? (
+    <Button onClick={() => setOpenCreateForm(true)}>Create Environment</Button>
+  ) : null
 
   const onCreateFormClosed = (wasCreated: boolean) => {
     setOpenCreateForm(false)
     if (wasCreated) {
-      refetch()
-    }
-  }
-
-  const onImportFormClosed = (wasImported: boolean) => {
-    setOpenImportForm(false)
-    if (wasImported) {
       refetch()
     }
   }
@@ -147,12 +125,6 @@ const DeploymentEnvironmentsPage = () => {
         <DeploymentEnvironmentForm
           onFormComplete={() => onCreateFormClosed(true)}
           onFormCancel={() => onCreateFormClosed(false)}
-        />
-      )}
-      {openImportForm && (
-        <ImportDeploymentEnvironmentsForm
-          onFormComplete={() => onImportFormClosed(true)}
-          onFormCancel={() => onImportFormClosed(false)}
         />
       )}
     </div>

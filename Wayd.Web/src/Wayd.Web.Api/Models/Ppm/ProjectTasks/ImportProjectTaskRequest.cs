@@ -23,9 +23,13 @@ public sealed class ImportProjectTaskRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    /// <summary>The project this task belongs to, by key.</summary>
     public string ProjectKey { get; set; } = default!;
+
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
+
+    /// <summary>A stage of the project's assigned lifecycle, by name.</summary>
     public string StageName { get; set; } = default!;
 
     /// <summary>The ImportId of the row this task nests under. Empty makes it a root task of its stage.</summary>
@@ -35,9 +39,13 @@ public sealed class ImportProjectTaskRequest
     public Guid? ParentTaskId { get; set; }
 
     /// <summary>'Task' or 'Milestone'. Defaults to Task when the column is absent.</summary>
+    [CsvValues(typeof(ProjectTaskType))]
     public string Type { get; set; } = nameof(ProjectTaskType.Task);
 
+    [CsvValues(typeof(TaskStatus))]
     public string Status { get; set; } = nameof(TaskStatus.NotStarted);
+
+    [CsvValues(typeof(TaskPriority))]
     public string Priority { get; set; } = nameof(TaskPriority.Medium);
 
     /// <summary>Percent complete (0-100). Required for tasks, not allowed for milestones.</summary>
@@ -45,11 +53,14 @@ public sealed class ImportProjectTaskRequest
 
     /// <summary>Planned start, for tasks. Milestones use PlannedDate instead.</summary>
     public DateOnly? PlannedStart { get; set; }
+
+    /// <summary>Planned end, for tasks. On or after PlannedStart.</summary>
     public DateOnly? PlannedEnd { get; set; }
 
     /// <summary>The milestone's date. Only for milestones.</summary>
     public DateOnly? PlannedDate { get; set; }
 
+    /// <summary>Estimated effort in hours. Greater than 0 when present.</summary>
     public decimal? EstimatedEffortHours { get; set; }
 
     /// <summary>Semicolon-separated employee numbers assigned to the task.</summary>

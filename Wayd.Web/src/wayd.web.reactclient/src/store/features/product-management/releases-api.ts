@@ -2,7 +2,6 @@ import { getReleasesClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   CorrectReleaseDatesRequest,
-  ImportProcessDto,
   MarkReleaseReleasedRequest,
   MoveReleaseTargetDateRequest,
   ObjectIdAndKey,
@@ -97,35 +96,6 @@ export const releasesApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, arg) => [
         { type: QueryTags.StatusHistory, id: arg },
-      ],
-    }),
-    // Two files, the second optional: an empty release is a legitimate state, so a file with no
-    // contents is a valid import rather than an incomplete one.
-    importReleases: builder.mutation<
-      ImportProcessDto,
-      { file: File; contentsFile?: File }
-    >({
-      queryFn: async ({ file, contentsFile }) => {
-        try {
-          // Files uploaded from the app are submitted on their own, under no group.
-          const data = await getReleasesClient().import(
-            undefined,
-            { data: file, fileName: file.name },
-            contentsFile
-              ? { data: contentsFile, fileName: contentsFile.name }
-              : undefined,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      // The list only has the rows if the run finished within the wait; one still running refreshes it
-      // from its import page when it lands.
-      invalidatesTags: () => [
-        { type: QueryTags.Release, id: 'LIST' },
-        QueryTags.ImportProcess,
       ],
     }),
     planRelease: builder.mutation<ObjectIdAndKey, PlanReleaseRequest>({
@@ -301,7 +271,6 @@ export const {
   useGetReleasesQuery,
   useGetReleaseQuery,
   useGetReleaseStatusHistoryQuery,
-  useImportReleasesMutation,
   usePlanReleaseMutation,
   useUpdateReleaseMutation,
   useSetReleaseContentsMutation,

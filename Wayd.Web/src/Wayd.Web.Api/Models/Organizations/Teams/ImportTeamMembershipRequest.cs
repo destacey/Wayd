@@ -16,9 +16,16 @@ public sealed class ImportTeamMembershipRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    /// <summary>The child team's code. May be a Team or a Team of Teams.</summary>
     public string ChildCode { get; set; } = default!;
+
+    /// <summary>The parent's code. Must be a Team of Teams, and cannot equal ChildCode.</summary>
     public string ParentCode { get; set; } = default!;
+
+    /// <summary>When the membership begins. On or after both teams' active dates.</summary>
     public DateOnly Start { get; set; }
+
+    /// <summary>When the membership ends. On or after Start; blank for one still in place.</summary>
     public DateOnly? End { get; set; }
 
     public ImportTeamMembershipDto ToImportTeamMembershipDto()

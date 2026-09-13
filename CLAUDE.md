@@ -223,6 +223,8 @@ Microsoft.FeatureManagement — defined in code, stored in database, managed via
 
 NSwag generates TypeScript client from API's OpenAPI spec on Debug build. Config in `nswag.json`. Generated client in `wayd.web.reactclient/src/services/wayd-api.ts`.
 
+**CSV import columns are generated too, but not by the build.** Each import action carries `[CsvImport(key)]`, each file parameter `[CsvRows(typeof(Row))]` naming the class it passes to `ReadCsv`, and enum-parsed text columns `[CsvValues(typeof(Enum))]`; `CsvImportOperationProcessor` publishes them in the spec. After changing a row class, rebuild the API and run `npm run generate:import-templates` in the client — `import-templates.generated.test.ts` fails until you do. A new import endpoint also needs its entry in `SUBMITTERS` and `IMPORTED_RECORD_TAGS` (`store/features/admin/imports-api.ts`); both are keyed by the generated `ImportKey`, so the compiler asks for them.
+
 **The NSwag target boots the real API**, so a Debug build starts the application. `WAYD_SKIP_DB_INIT=true` (set by the MSBuild target) drives `HostIntrospection.SkipsDatabaseInitialization`, which skips every piece of startup work that touches the database — EF migrations and seeding, the Hangfire server, and the Hangfire dashboard — so a Debug build does **not** require a running database. Gate any new database-touching startup work the same way: an ungated one fails the *build* (`MSB3077` + `Build FAILED`, real cause buried in NSwag's output; under Aspire just `The project could not be built.` and exit code 6) instead of erroring at runtime.
 
 ### MCP Server (`Wayd.Web/src/Wayd.Mcp`)

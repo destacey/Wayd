@@ -8,6 +8,7 @@ using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.ReleasePackages.Commands;
 using Wayd.ProductManagement.Application.ReleasePackages.Dtos;
+using Wayd.ProductManagement.Application.ReleasePackages.Imports;
 using Wayd.ProductManagement.Application.ReleasePackages.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.ProductManagement.ReleasePackages;
@@ -130,9 +131,10 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [CsvImport(ReleasePackageImportDefinition.ImportKey)]
     public async Task<ActionResult> Import(
-        [FromForm] IFormFile file,
-        [FromForm] IFormFile manifestFile,
+        [FromForm, CsvRows(typeof(ImportReleasePackageRequest))] IFormFile file,
+        [FromForm, CsvRows(typeof(ImportReleasePackageComponentRequest), Label = "Manifest")] IFormFile manifestFile,
         [FromQuery] Guid? submissionGroupId,
         [FromServices] ImportSubmissionResponder responder,
         CancellationToken cancellationToken)

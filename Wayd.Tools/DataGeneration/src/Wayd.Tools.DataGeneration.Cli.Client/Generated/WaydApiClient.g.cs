@@ -76234,6 +76234,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A single CSV row for the strategic theme import. State is the theme's state on creation
+    /// <br/>(case-insensitive: "Proposed" / "Active" / "Archived"), applied directly rather than through the
+    /// <br/>activate/archive transitions.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportStrategicThemeRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(1024, MinimumLength = 1)]
+        public string Description { get; set; } = default!;
+
+        /// <summary>
+        /// The theme's state. Defaults to Active when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string State { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateStrategicThemeRequest
     {
@@ -76684,6 +76720,55 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A single CSV row for the deployment environment import.
+    /// <br/>An environment is identified by Name, which is unique across the organization. The
+    /// <br/>deployments import names its environment by this, so a file of environments is what a historical
+    /// <br/>backfill loads first.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportDeploymentEnvironmentRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// What your organization calls it — "Production", "prod-eu", "QA2".
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// Development, Testing, Staging or Production, case-insensitively.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Category { get; set; } = default!;
+
+        /// <summary>
+        /// Position in a progressive rollout, lowest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ringOrder")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int RingOrder { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the environment is still deployed into. Blank means active; false creates it and
+        /// <br/>then retires it, for the environments a historical backfill's deployments still point at.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool? IsActive { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Renames an environment, repositions it, and sets what kind of target it is.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -77002,6 +77087,96 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A single CSV row for the deployment import.
+    /// <br/>Exactly one of VersionId and PackageId is set, both by id. The
+    /// <br/>environment is named, because names are unique. A build number is never resolved to a version: the
+    /// <br/>row says which version it deployed and carries the build as its ArtifactId.
+    /// <br/>There is no status column. A row with no Outcome is still in flight; one with an
+    /// <br/>outcome is walked through the same transitions a person would record, with the real timestamps
+    /// <br/>supplied here. A rollback is recorded as a success first, so it needs both the time it completed
+    /// <br/>and the time it was reverted.
+    /// <br/>Timestamps are instants, and each must carry its offset — 2026-03-01T14:30:00Z or
+    /// <br/>2026-03-01T09:30:00-05:00. A value with no offset is refused rather than read in the
+    /// <br/>server's zone, which would shift every historical deployment by whatever that zone happens to be.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportDeploymentRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The version deployed, by id. Leave empty when a package was deployed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionId")]
+        public System.Guid? VersionId { get; set; } = default!;
+
+        /// <summary>
+        /// The package deployed, by id. Leave empty when a version was deployed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("packageId")]
+        public System.Guid? PackageId { get; set; } = default!;
+
+        /// <summary>
+        /// The environment reached, by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("environmentName")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string EnvironmentName { get; set; } = default!;
+
+        /// <summary>
+        /// The build that actually shipped — 4.8.2.008 where the version number is 4.8.2.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("artifactId")]
+        [System.ComponentModel.DataAnnotations.StringLength(128)]
+        public string? ArtifactId { get; set; } = default!;
+
+        /// <summary>
+        /// When the deployment began, with its offset.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startedAt")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string StartedAt { get; set; } = default!;
+
+        /// <summary>
+        /// Succeeded, Failed or RolledBack, case-insensitively. Blank leaves the
+        /// <br/>deployment in flight.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outcome")]
+        public string? Outcome { get; set; } = default!;
+
+        /// <summary>
+        /// When the deployment reached its outcome, with its offset. Required with an outcome. For a
+        /// <br/>rollback, when it succeeded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedAt")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CompletedAt { get; set; } = default!;
+
+        /// <summary>
+        /// When a rolled-back deployment was reverted, with its offset. Required for a rollback.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rolledBackAt")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string RolledBackAt { get; set; } = default!;
+
+        /// <summary>
+        /// Why it failed or was rolled back. Max 1024 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Reason { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Records that a deployment reached its environment.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -77161,6 +77336,72 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("externalId")]
         [System.ComponentModel.DataAnnotations.StringLength(256)]
         public string? ExternalId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the product import.
+    /// <br/>ParentImportId must name another row in the same file by its ImportId,
+    /// <br/>or be empty for a root. A product already in the catalog cannot be named as a parent — this import
+    /// <br/>stands a catalog up rather than grafting single products onto one, which is what the screens are
+    /// <br/>for. Names cannot serve as the link: a tree legitimately holds the same name in two places, so
+    /// <br/>keying on names would make such a file unimportable.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportProductRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it, and child rows name it as their ParentImportId. Falls back to the row's
+        /// <br/>position when the column is absent — but a file with parents should supply it, since a
+        /// <br/>position is a fragile thing to reference.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// The product type by name, which must already exist and be active.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productTypeName")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ProductTypeName { get; set; } = default!;
+
+        /// <summary>
+        /// The ImportId of another row in this file, or empty for a root product.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentImportId")]
+        public string? ParentImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The product's identifier in the system that owns it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalId")]
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? ExternalId { get; set; } = default!;
+
+        /// <summary>
+        /// The status by name, which must belong to the product workflow. Defaults to the workflow's
+        /// <br/>initial status when the column is absent or blank.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string? Status { get; set; } = default!;
+
+        /// <summary>
+        /// The product's tags, as semicolon-separated Category|Tag pairs —
+        /// <br/>Platform|ios;Platform|android;Compliance|pci-scope.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tags")]
+        public string? Tags { get; set; } = default!;
 
     }
 
@@ -77785,6 +78026,89 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A single CSV row for the release package import — one package, without its manifest.
+    /// <br/>A package is identified by Version alone: it has no product, because it spans them.
+    /// <br/>Manifest lines arrive in a second file and point back here by this row's ImportId.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportReleasePackageRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it, and the manifest file names it to say which package a line belongs to.
+        /// <br/>Falls back to the row's position when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The package's own version, distinct from any component's. Free text, never parsed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("version")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Version { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.StringLength(128)]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// When the package is expected to ship.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// When the package shipped. Supplying it makes the package Released.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the manifest file: one component of one package.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportReleasePackageComponentRequest
+    {
+
+        /// <summary>
+        /// The `ImportId` of the package row this line belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("packageImportId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string PackageImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The component product, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid ProductId { get; set; } = default!;
+
+        /// <summary>
+        /// The component's version in this package. Free text, never parsed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionNumber")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string VersionNumber { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the component changed in this package. `Changed` or `CarriedForward`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Kind { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Replaces a package's manifest wholesale.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -77956,6 +78280,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sequence")]
         public long? Sequence { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the release import — one release, without its contents.
+    /// <br/>A release is identified by Version alone. ProductId is optional by
+    /// <br/>design: a release spanning product lines has no single owner, so requiring one would force a
+    /// <br/>misleading choice.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportReleaseRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it, and the contents file names it to say which release a row belongs to.
+        /// <br/>Falls back to the row's position when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The release as the organization announces it — `2026.07`. Free text, never parsed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("version")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Version { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.StringLength(128)]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// The product this release is announced under, if any, by id. Usually a product line.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productId")]
+        public System.Guid? ProductId { get; set; } = default!;
+
+        /// <summary>
+        /// When the release is expected to be announced.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// When it was announced. Supplying it makes the release Released — and is refused while anything
+        /// <br/>it carries has not shipped.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+
+        /// <summary>
+        /// A manual ordering override, for the rare case where chronology misleads.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sequence")]
+        public long? Sequence { get; set; } = default!;
+
+        /// <summary>
+        /// Product notes for this release, written for customers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("notes")]
+        public string? Notes { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the contents file: one thing a release announces.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportReleaseContentRequest
+    {
+
+        /// <summary>
+        /// The `ImportId` of the release row this row belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releaseImportId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ReleaseImportId { get; set; } = default!;
+
+        /// <summary>
+        /// `Package` or `Version`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Kind { get; set; } = default!;
+
+        /// <summary>
+        /// The package, by id. Required when Kind is `Package`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("packageId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid PackageId { get; set; } = default!;
+
+        /// <summary>
+        /// The version, by id. Required when Kind is `Version`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid VersionId { get; set; } = default!;
 
     }
 
@@ -78196,6 +78622,82 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sequence")]
         public long? Sequence { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the version import.
+    /// <br/>The product is referenced by id, and a version is identified by that product together with its
+    /// <br/>Number — version strings are free text and only meaningful within one product, so two
+    /// <br/>products may each hold a 1.0.0.
+    /// <br/>There is no status column: the dates decide where the version ends up. A row with no dates is
+    /// <br/>planned, a CutDate makes it ready, and a ReleasedDate makes it
+    /// <br/>released. A released date without a cut date is legitimate — a version recorded after the fact
+    /// <br/>often has no record of when scope froze.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportVersionRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The product this version was cut against, by id. Must be a releasable type.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid ProductId { get; set; } = default!;
+
+        /// <summary>
+        /// The version as the organization writes it. Free text, never parsed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("number")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Number { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.StringLength(128)]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// When the version is expected to ship.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// When scope froze. Supplying it makes the version Ready.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? CutDate { get; set; } = default!;
+
+        /// <summary>
+        /// When it shipped. Supplying it makes the version Released.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+
+        /// <summary>
+        /// A manual ordering override, for the rare case where chronology misleads.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sequence")]
+        public long? Sequence { get; set; } = default!;
+
+        /// <summary>
+        /// Engineering notes for this version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("notes")]
+        public string? Notes { get; set; } = default!;
 
     }
 
@@ -78656,6 +79158,127 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("managerIds")]
         public System.Collections.Generic.ICollection<System.Guid>? ManagerIds { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the portfolio import. Status is the status the portfolio should end
+    /// <br/>up in (case-insensitive), reached by replaying the real lifecycle transitions — which is why the
+    /// <br/>transition dates are on the row: a portfolio only ever gets its date range from those transitions,
+    /// <br/>never from creation.
+    /// <br/>Role columns hold semicolon-separated employee numbers, since a CSV cell cannot carry a list.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportPortfolioRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(1024, MinimumLength = 1)]
+        public string Description { get; set; } = default!;
+
+        /// <summary>
+        /// The portfolio's status. Defaults to Active when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The date the portfolio was proposed. Required on every row. Nothing stores it yet — a portfolio
+        /// <br/>keeps no creation date beyond the audit stamp, which records when the file was uploaded — but the
+        /// <br/>column is required now so that no file has to change on the day one is kept.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("createdOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset CreatedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The date the portfolio was activated. Required unless the portfolio is Proposed. There is no
+        /// <br/>closing date here: an import cannot close a portfolio, so the finalize import carries that one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activatedOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ActivatedOn { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
+        public string? Sponsors { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        public string? Owners { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("managers")]
+        public string? Managers { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the finalization import, closing one program or portfolio after its contents have
+    /// <br/>been imported. Type discriminates between the two (case-insensitive: "Program" /
+    /// <br/>"Portfolio") and says how to read Id.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportPpmFinalizationRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the row closes a program or a portfolio, which also says how Id is read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Type { get; set; } = default!;
+
+        /// <summary>
+        /// The program or portfolio this row closes, per Type.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// Programs: 'Completed' or 'Canceled'. Portfolios: 'Closed' or 'Archived'.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The portfolio's end date. Required for portfolio rows, ignored for program rows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("endDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? EndDate { get; set; } = default!;
 
     }
 
@@ -79359,6 +79982,107 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemeIds")]
         public System.Collections.Generic.ICollection<System.Guid>? StrategicThemeIds { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes
+    /// <br/>by a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers.
+    /// <br/>Status is the status the program should end up in (case-insensitive), reached by replaying
+    /// <br/>the real lifecycle transitions.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportProgramRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(2048, MinimumLength = 1)]
+        public string Description { get; set; } = default!;
+
+        /// <summary>
+        /// The owning portfolio, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portfolioId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid PortfolioId { get; set; } = default!;
+
+        /// <summary>
+        /// The program's status. Defaults to Active when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The timeline the program plans to run over.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? Start { get; set; } = default!;
+
+        /// <summary>
+        /// On or after Start. Start and End are both empty or both set.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        /// <summary>
+        /// The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps
+        /// <br/>no transition dates beyond the audit stamp, which records when the file was uploaded — but the
+        /// <br/>column is required now so that no file has to change on the day one is kept.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("createdOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset CreatedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The date the program became active. Required once the status is Active or Completed, optional on a
+        /// <br/>canceled program, and rejected on one that never got that far. There is no closing date here: an
+        /// <br/>import cannot complete or cancel a program, so the finalize import carries that one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activatedOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ActivatedOn { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated strategic theme ids.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
+        public string? StrategicThemes { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
+        public string? Sponsors { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        public string? Owners { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("managers")]
+        public string? Managers { get; set; } = default!;
 
     }
 
@@ -80083,6 +80807,306 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemeIds")]
         public System.Collections.Generic.ICollection<System.Guid>? StrategicThemeIds { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the project import. Key is the project's natural key, which project
+    /// <br/>tasks and strategic initiatives reference. The portfolio, program, expenditure category and lifecycle
+    /// <br/>are referenced by id; strategic themes and the role columns hold semicolon-separated lists.
+    /// <br/>Status is the status the project should end up in (case-insensitive), reached by replaying
+    /// <br/>the real lifecycle transitions.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportProjectRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(4096, MinimumLength = 1)]
+        public string Description { get; set; } = default!;
+
+        /// <summary>
+        /// 2–20 uppercase letters and numbers, unique across projects. Tasks, stages and strategic initiatives name the project by it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// The owning portfolio, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portfolioId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid PortfolioId { get; set; } = default!;
+
+        /// <summary>
+        /// An expenditure category, by id. Create it in Settings first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expenditureCategoryId")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int ExpenditureCategoryId { get; set; } = default!;
+
+        /// <summary>
+        /// The project's status. Defaults to Active when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The program this project belongs to, if any. The program must be in the same portfolio.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("programId")]
+        public System.Guid? ProgramId { get; set; } = default!;
+
+        /// <summary>
+        /// The lifecycle to assign. Required for approved projects, and by any project with tasks.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("projectLifecycleId")]
+        public System.Guid? ProjectLifecycleId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("businessCase")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? BusinessCase { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("expectedBenefits")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? ExpectedBenefits { get; set; } = default!;
+
+        /// <summary>
+        /// The timeline the project plans to run over.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? Start { get; set; } = default!;
+
+        /// <summary>
+        /// On or after Start. Start and End are both empty or both set.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        /// <summary>
+        /// The date the project was proposed. Required on every row, and what the project's opening status
+        /// <br/>history entry is dated — the audit stamp records when the file was uploaded, which is not the
+        /// <br/>same thing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("createdOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset CreatedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The date the project became active. Required once the status is Active or Completed, optional on
+        /// <br/>a canceled project, and rejected on one that never got that far.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activatedOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ActivatedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The date the project was completed or canceled — the status says which. Required on those two
+        /// <br/>statuses and rejected on the rest.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closedOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ClosedOn { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated strategic theme ids.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
+        public string? StrategicThemes { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
+        public string? Sponsors { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        public string? Owners { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("managers")]
+        public string? Managers { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("members")]
+        public string? Members { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the project task import. The project is referenced by key and the stage by name
+    /// <br/>(stages come from the project's assigned lifecycle). A task nests under another row in this file by its
+    /// <br/>ParentImportId, or under a task the project already has by ParentTaskId;
+    /// <br/>with neither it is a root task of its stage. Rows may be listed in any order — parents are applied
+    /// <br/>before children.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportProjectTaskRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it, and child rows name it as their ParentImportId. Falls back to the row's
+        /// <br/>position when the column is absent, so a hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The project this task belongs to, by key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("projectKey")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ProjectKey { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// A stage of the project's assigned lifecycle, by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stageName")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string StageName { get; set; } = default!;
+
+        /// <summary>
+        /// The ImportId of the row this task nests under. Empty makes it a root task of its stage.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentImportId")]
+        public string? ParentImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The id of an existing task this one nests under. Cannot be combined with ParentImportId.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentTaskId")]
+        public System.Guid? ParentTaskId { get; set; } = default!;
+
+        /// <summary>
+        /// 'Task' or 'Milestone'. Defaults to Task when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("priority")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Priority { get; set; } = default!;
+
+        /// <summary>
+        /// Percent complete (0-100). Required for tasks, not allowed for milestones.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progress")]
+        [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.0", "100.0")]
+        public decimal? Progress { get; set; } = default!;
+
+        /// <summary>
+        /// Planned start, for tasks. Milestones use PlannedDate instead.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("plannedStart")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? PlannedStart { get; set; } = default!;
+
+        /// <summary>
+        /// Planned end, for tasks. On or after PlannedStart.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("plannedEnd")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? PlannedEnd { get; set; } = default!;
+
+        /// <summary>
+        /// The milestone's date. Only for milestones.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("plannedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? PlannedDate { get; set; } = default!;
+
+        /// <summary>
+        /// Estimated effort in hours. Greater than 0 when present.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
+        [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.0", "79228162514264337593543950335")]
+        public decimal? EstimatedEffortHours { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers assigned to the task.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assignees")]
+        public string? Assignees { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the project stage import: sets one stage's status. The project is referenced by key
+    /// <br/>and the stage by name (stages come from the project's assigned lifecycle). The status is applied as given.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportProjectStageRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The project, by key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("projectKey")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ProjectKey { get; set; } = default!;
+
+        /// <summary>
+        /// A stage of the project's assigned lifecycle, by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stageName")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string StageName { get; set; } = default!;
+
+        /// <summary>
+        /// The stage status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
 
     }
 
@@ -81398,6 +82422,146 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A single CSV row for the strategic initiative import. The owning portfolio is referenced by id and the
+    /// <br/>delivering projects by a semicolon-separated list of their keys; role columns hold semicolon-separated
+    /// <br/>employee numbers. Status is the status the initiative should end up in (case-insensitive),
+    /// <br/>reached by replaying the real lifecycle transitions.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportStrategicInitiativeRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back
+        /// <br/>to the row's position when the column is absent, so a hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(2048, MinimumLength = 1)]
+        public string Description { get; set; } = default!;
+
+        /// <summary>
+        /// The owning portfolio, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portfolioId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid PortfolioId { get; set; } = default!;
+
+        /// <summary>
+        /// The initiative's status. Defaults to Active when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The initiative's start date.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The initiative's end date. On or after Start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated project keys the initiative delivers through.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("projectKeys")]
+        public string? ProjectKeys { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
+        public string? Sponsors { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        public string? Owners { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the strategic initiative KPI import, attached to its initiative by that row's
+    /// <br/>ImportId. KPIs are a separate file because an initiative has many of them, which a single
+    /// <br/>initiative row cannot carry.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportStrategicInitiativeKpiRequest
+    {
+
+        /// <summary>
+        /// The ImportId of the initiative row this KPI belongs to. Where that row left the column
+        /// <br/>blank its position stands in, so 1 reaches the first initiative — but a file carrying KPIs
+        /// <br/>should supply ImportId, since inserting a row silently re-parents every KPI below it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("strategicInitiativeImportId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string StrategicInitiativeImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(512)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// The value that defines success.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetValue")]
+        public double TargetValue { get; set; } = default!;
+
+        /// <summary>
+        /// The baseline value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startingValue")]
+        public double? StartingValue { get; set; } = default!;
+
+        /// <summary>
+        /// A symbol shown before the value, such as "$".
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("prefix")]
+        [System.ComponentModel.DataAnnotations.StringLength(8)]
+        public string? Prefix { get; set; } = default!;
+
+        /// <summary>
+        /// A symbol shown after the value, such as "%".
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("suffix")]
+        [System.ComponentModel.DataAnnotations.StringLength(8)]
+        public string? Suffix { get; set; } = default!;
+
+        /// <summary>
+        /// Whether success means increasing or decreasing the value. Defaults to Increase.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDirection")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TargetDirection { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateStrategicInitiativeRequest
     {
@@ -82266,6 +83430,74 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("iterationPrefix")]
         public string? IterationPrefix { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the planning interval import. The teams that ran the interval ride on the same
+    /// <br/>row as TeamIds, a semicolon-separated list of ids — the repo's multi-value column
+    /// <br/>convention — so one row is one planning interval and there is no second file.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportPlanningIntervalRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// The dates the interval ran over. Its iterations are generated inside this range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The last date the interval ran over. On or after Start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        /// <summary>
+        /// The cadence the interval's iterations are generated from. There is no column for the iterations
+        /// <br/>themselves: an interval whose real history had irregular lengths or names is corrected afterwards
+        /// <br/>on its own dates screen.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("iterationWeeks")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int IterationWeeks { get; set; } = default!;
+
+        /// <summary>
+        /// Prefixes each generated iteration's name, which is otherwise just its sequence number — so
+        /// <br/>iterations from different intervals stay tellable apart.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("iterationPrefix")]
+        [System.ComponentModel.DataAnnotations.StringLength(32)]
+        public string? IterationPrefix { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated ids of the teams that ran the interval. Blank leaves the new interval with no
+        /// <br/>teams; nothing is ever replaced, since this import only creates.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
+        public string? TeamIds { get; set; } = default!;
 
     }
 
@@ -83360,6 +84592,85 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportPlanningIntervalObjectivesRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The planning interval the objective belongs to, by id. Rows may name different intervals.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planningIntervalId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid PlanningIntervalId { get; set; } = default!;
+
+        /// <summary>
+        /// The team the objective belongs to, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid TeamId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// 1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusId")]
+        public int StatusId { get; set; } = default!;
+
+        /// <summary>
+        /// Percent complete, 0–100.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progress")]
+        [System.ComponentModel.DataAnnotations.Range(0.0D, 100.0D)]
+        public double Progress { get; set; } = default!;
+
+        /// <summary>
+        /// Before TargetDate where both are given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? StartDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the objective is a stretch goal.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isStretch")]
+        public bool IsStretch { get; set; } = default!;
+
+        /// <summary>
+        /// When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closedDateUtc")]
+        public System.DateTimeOffset? ClosedDateUtc { get; set; } = default!;
+
+        /// <summary>
+        /// Display position within the team's objectives.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        public int? Order { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PlanningIntervalObjectiveStatusDto
     {
 
@@ -83845,6 +85156,94 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("response")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Response { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportRiskRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The team the risk belongs to, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid TeamId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string Summary { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// When the risk was reported, in UTC. Must be in the past.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reportedOnUtc")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.DateTimeOffset ReportedOnUtc { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who reported it, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reportedById")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid ReportedById { get; set; } = default!;
+
+        /// <summary>
+        /// 1 Open, 2 Closed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusId")]
+        public int StatusId { get; set; } = default!;
+
+        /// <summary>
+        /// 1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryId")]
+        public int CategoryId { get; set; } = default!;
+
+        /// <summary>
+        /// 1 Low, 2 Medium, 3 High.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("impactId")]
+        public int ImpactId { get; set; } = default!;
+
+        /// <summary>
+        /// 1 Low, 2 Medium, 3 High.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("likelihoodId")]
+        public int LikelihoodId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee the risk is assigned to, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assigneeId")]
+        public System.Guid? AssigneeId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("followUpDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? FollowUpDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("response")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Response { get; set; } = default!;
+
+        /// <summary>
+        /// When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closedDateUtc")]
+        public System.DateTimeOffset? ClosedDateUtc { get; set; } = default!;
 
     }
 
@@ -86305,6 +87704,96 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A single CSV row for the employee import. References the row's manager by employee number so an entire
+    /// <br/>management tree can be imported at once; linkage is resolved server-side after all rows are created.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportEmployeeRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it, and it is how a row is identified without depending on a display name. Falls
+        /// <br/>back to the row's position when the column is absent, so a hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee's natural key, unique across the company.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeNumber")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string EmployeeNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("firstName")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
+        public string FirstName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("middleName")]
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string? MiddleName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastName")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
+        public string LastName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("email")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string Email { get; set; } = default!;
+
+        /// <summary>
+        /// The date the employee was hired.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hireDate")]
+        public System.DateTimeOffset? HireDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("jobTitle")]
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? JobTitle { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("department")]
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? Department { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("officeLocation")]
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? OfficeLocation { get; set; } = default!;
+
+        /// <summary>
+        /// The manager's employee number. May name someone elsewhere in the file.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("managerNumber")]
+        public string? ManagerNumber { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the employee is currently active. Defaults to true when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
+
+        /// <summary>
+        /// The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeType")]
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? EmployeeType { get; set; } = default!;
+
+        /// <summary>
+        /// Further work addresses for this person, semicolon-separated. Email stays the
+        /// <br/>primary; these are additional addresses the person is known by in other systems — typically ones
+        /// <br/>left behind by a domain or tenant move. Home and personal addresses do not belong here.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("additionalEmails")]
+        public string? AdditionalEmails { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateEmployeeRequest
     {
@@ -86672,6 +88161,157 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset ActiveDate { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the unified team import. Type discriminates between a Team and a
+    /// <br/>Team of Teams (case-insensitive: "Team" / "TeamOfTeams"). Both share the same create shape.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportTeamRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The team's natural key: 2–10 uppercase letters and numbers, unique across teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
+        public string Code { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// The date the team became active.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeDate")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset ActiveDate { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the team is currently active. Defaults to true when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
+
+        /// <summary>
+        /// When the team was retired. Required when IsActive is false; must be after ActiveDate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inactiveDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? InactiveDate { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for team staffing: places one employee on one team in one role, all by natural key.
+    /// <br/>Multiple roles for the same employee on the same team are expressed as multiple rows.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportTeamMemberRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The team, by code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamCode")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
+        public string TeamCode { get; set; } = default!;
+
+        /// <summary>
+        /// The employee, by number. Must be an active employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeNumber")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string EmployeeNumber { get; set; } = default!;
+
+        /// <summary>
+        /// A team member role, by name. The role must already exist.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roleName")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string RoleName { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the team-hierarchy import: places a child team (or team of teams) under a parent
+    /// <br/>team of teams for a date range, all by natural key.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportTeamMembershipRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent, so a
+        /// <br/>hand-authored file still works.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The child team's code. May be a Team or a Team of Teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("childCode")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
+        public string ChildCode { get; set; } = default!;
+
+        /// <summary>
+        /// The parent's code. Must be a Team of Teams, and cannot equal ChildCode.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentCode")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
+        public string ParentCode { get; set; } = default!;
+
+        /// <summary>
+        /// When the membership begins. On or after both teams' active dates.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// When the membership ends. On or after Start; blank for one still in place.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
 
     }
 

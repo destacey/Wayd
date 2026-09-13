@@ -19,10 +19,16 @@ public sealed class ImportTeamRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    [CsvValues(typeof(TeamType))]
     public string Type { get; set; } = default!;
     public string Name { get; set; } = default!;
+
+    /// <summary>The team's natural key: 2–10 uppercase letters and numbers, unique across teams.</summary>
     public string Code { get; set; } = default!;
+
     public string? Description { get; set; }
+
+    /// <summary>The date the team became active.</summary>
     public DateOnly ActiveDate { get; set; }
 
     /// <summary>Whether the team is currently active. Defaults to true when the column is absent.</summary>

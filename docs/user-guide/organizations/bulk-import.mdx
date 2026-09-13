@@ -12,14 +12,16 @@ useful for standing up an environment, onboarding a company's people and teams, 
 another tool. Each import is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and
 each is gated by a permission.
 
-:::info Submitting is API only; following a run is not
-There is no upload screen in the app — files are posted directly to the endpoints below (for example with
-`curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
-which generates these exact CSVs and posts them for you). Exact request/response shapes are also in the
-OpenAPI/Swagger spec served by the API.
+:::info Screen or API
+Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
+which lists each file's columns and hands over a template. Files can also be posted directly to the
+endpoints below (for example with `curl`, a script, or the
+[`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx), which generates these
+exact CSVs and posts them for you). Exact request/response shapes are also in the OpenAPI/Swagger spec
+served by the API.
 
-Once submitted, the run itself is visible in **Settings → Imports**, where you can see what became of each
-row and act on a run that did not finish. See [Imports](../settings/imports.mdx).
+However it was submitted, the run is visible in **Settings → Imports**, where you can see what became of
+each row and act on a run that did not finish. See [Imports](../settings/imports.mdx).
 :::
 
 ## How imports work

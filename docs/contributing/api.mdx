@@ -69,6 +69,31 @@ any resource starts.
 
 :::
 
+### CSV import endpoints
+
+An import endpoint binds only an uploaded file, so the shape of the CSV it reads never reaches the
+OpenAPI document by itself. Three attributes put it there, and the **Settings → Imports** dialog is
+built from what they publish — its column lists, accepted values and templates:
+
+- `[CsvImport(XImportDefinition.ImportKey)]` on the action names the import definition it submits to.
+- `[CsvRows(typeof(ImportXRequest))]` on each `IFormFile` parameter names the class that file is read
+  into — the same type the action passes to `ReadCsv`. A secondary file also takes a `Label`
+  (`"Manifest"`).
+- `[CsvValues(typeof(SomeEnum))]` on a text column that parses into an enum publishes its accepted
+  names.
+
+`CsvImportOperationProcessor` registers each row class as a schema and stamps the operation with an
+`x-wayd-import` extension; each property carries `x-csv-column`, its exact header. A property's XML
+summary becomes the column's description in the dialog, so write one wherever the name and type don't
+say what the cell must hold.
+
+The client's templates are generated from the committed document, not by the build. After changing a row
+class or adding an import, rebuild the API, then run `npm run generate:import-templates` in the React
+client — `import-templates.generated.test.ts` fails until you do. A new import also needs its submitter
+and cache tags in `store/features/admin/imports-api.ts`, and a new API module a group in
+`csv-import-form.tsx`; all three are keyed by generated types, so the compiler asks for them.
+`ImportEndpointPermissionTests` fails an import endpoint missing either attribute.
+
 ## API Conventions
 
 - Use RESTful route patterns

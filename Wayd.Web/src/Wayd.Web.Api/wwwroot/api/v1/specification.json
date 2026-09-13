@@ -3287,7 +3287,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "strategic.themes",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportStrategicThemeRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/strategic-management/strategic-themes/{id}": {
@@ -4546,7 +4557,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "product-management.deployment-environments",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportDeploymentEnvironmentRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/product-management/deployment-environments/{id}": {
@@ -5075,7 +5097,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "product-management.deployments",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportDeploymentRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/product-management/deployments/{id}/succeed": {
@@ -5678,7 +5711,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "product-management.products",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportProductRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/product-management/products/{id}": {
@@ -7358,7 +7402,24 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "product-management.release-packages",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportReleasePackageRequest",
+              "required": true
+            },
+            {
+              "field": "manifestFile",
+              "label": "Manifest",
+              "schema": "ImportReleasePackageComponentRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/product-management/release-packages/{id}/manifest": {
@@ -7933,7 +7994,24 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "product-management.releases",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportReleaseRequest",
+              "required": true
+            },
+            {
+              "field": "contentsFile",
+              "label": "Contents",
+              "schema": "ImportReleaseContentRequest",
+              "required": false
+            }
+          ]
+        }
       }
     },
     "/api/product-management/releases/{id}": {
@@ -8724,7 +8802,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "product-management.versions",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportVersionRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/product-management/versions/{id}": {
@@ -9826,7 +9915,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "ppm.portfolios",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportPortfolioRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/ppm/portfolios/finalize/import": {
@@ -9916,7 +10016,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "ppm.finalizations",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportPpmFinalizationRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/ppm/portfolios/{id}": {
@@ -11064,7 +11175,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "ppm.programs",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportProgramRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/ppm/programs/{id}": {
@@ -12873,7 +12995,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "ppm.projects",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportProjectRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/ppm/projects/tasks/import": {
@@ -12963,7 +13096,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "ppm.project-tasks",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportProjectTaskRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/ppm/projects/stages/import": {
@@ -13053,7 +13197,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "ppm.project-stages",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportProjectStageRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/ppm/projects/{id}": {
@@ -15552,7 +15707,24 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "ppm.strategic-initiatives",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportStrategicInitiativeRequest",
+              "required": true
+            },
+            {
+              "field": "kpiFile",
+              "label": "KPIs",
+              "schema": "ImportStrategicInitiativeKpiRequest",
+              "required": false
+            }
+          ]
+        }
       }
     },
     "/api/ppm/strategic-initiatives/{id}": {
@@ -17441,7 +17613,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "planning.planning-intervals",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportPlanningIntervalRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/planning/planning-intervals/{id}": {
@@ -19091,7 +19274,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "planning.planning-interval-objectives",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportPlanningIntervalObjectivesRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/planning/planning-intervals/objective-statuses": {
@@ -20690,7 +20884,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "planning.risks",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportRiskRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/planning/risks/statuses": {
@@ -26821,7 +27026,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "employees",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportEmployeeRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/organization/employees/{id}": {
@@ -27822,7 +28038,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "teams",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportTeamRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/organization/teams/members/import": {
@@ -27911,7 +28138,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "team-members",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportTeamMemberRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/organization/teams/team-memberships/import": {
@@ -28000,7 +28238,18 @@
           {
             "ApiKey": []
           }
-        ]
+        ],
+        "x-wayd-import": {
+          "key": "team-memberships",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportTeamMembershipRequest",
+              "required": true
+            }
+          ]
+        }
       }
     },
     "/api/organization/teams/{id}/deactivate": {
@@ -38121,6 +38370,50 @@
           "Cancelled"
         ]
       },
+      "ImportStrategicThemeRequest": {
+        "type": "object",
+        "description": "A single CSV row for the strategic theme import. State is the theme's state on creation\n(case-insensitive: \"Proposed\" / \"Active\" / \"Archived\"), applied directly rather than through the\nactivate/archive transitions.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "state"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Description"
+          },
+          "state": {
+            "type": "string",
+            "description": "The theme's state. Defaults to Active when the column is absent.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "State",
+            "x-csv-values": [
+              "Proposed",
+              "Active",
+              "Archived"
+            ]
+          }
+        }
+      },
       "UpdateStrategicThemeRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -38671,6 +38964,58 @@
           }
         }
       },
+      "ImportDeploymentEnvironmentRequest": {
+        "type": "object",
+        "description": "A single CSV row for the deployment environment import.\nAn environment is identified by Name, which is unique across the organization. The\ndeployments import names its environment by this, so a file of environments is what a historical\nbackfill loads first.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "category",
+          "ringOrder"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "description": "What your organization calls it — \"Production\", \"prod-eu\", \"QA2\".",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "category": {
+            "type": "string",
+            "description": "Development, Testing, Staging or Production, case-insensitively.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Category",
+            "x-csv-values": [
+              "Development",
+              "Testing",
+              "Staging",
+              "Production"
+            ]
+          },
+          "ringOrder": {
+            "type": "integer",
+            "description": "Position in a progressive rollout, lowest first.",
+            "format": "int32",
+            "minimum": 0.0,
+            "x-csv-column": "RingOrder"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the environment is still deployed into. Blank means active; false creates it and\nthen retires it, for the environments a historical backfill's deployments still point at.",
+            "nullable": true,
+            "x-csv-column": "IsActive"
+          }
+        }
+      },
       "UpdateDeploymentEnvironmentRequest": {
         "type": "object",
         "description": "Renames an environment, repositions it, and sets what kind of target it is.",
@@ -39057,6 +39402,97 @@
           }
         }
       },
+      "ImportDeploymentRequest": {
+        "type": "object",
+        "description": "A single CSV row for the deployment import.\nExactly one of VersionId and PackageId is set, both by id. The\nenvironment is named, because names are unique. A build number is never resolved to a version: the\nrow says which version it deployed and carries the build as its ArtifactId.\nThere is no status column. A row with no Outcome is still in flight; one with an\noutcome is walked through the same transitions a person would record, with the real timestamps\nsupplied here. A rollback is recorded as a success first, so it needs both the time it completed\nand the time it was reverted.\nTimestamps are instants, and each must carry its offset — 2026-03-01T14:30:00Z or\n2026-03-01T09:30:00-05:00. A value with no offset is refused rather than read in the\nserver's zone, which would shift every historical deployment by whatever that zone happens to be.",
+        "additionalProperties": false,
+        "required": [
+          "environmentName",
+          "startedAt",
+          "completedAt",
+          "rolledBackAt"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "versionId": {
+            "type": "string",
+            "description": "The version deployed, by id. Leave empty when a package was deployed.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "VersionId"
+          },
+          "packageId": {
+            "type": "string",
+            "description": "The package deployed, by id. Leave empty when a version was deployed.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "PackageId"
+          },
+          "environmentName": {
+            "type": "string",
+            "description": "The environment reached, by name.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "EnvironmentName"
+          },
+          "artifactId": {
+            "type": "string",
+            "description": "The build that actually shipped — 4.8.2.008 where the version number is 4.8.2.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "ArtifactId"
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When the deployment began, with its offset.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "StartedAt"
+          },
+          "outcome": {
+            "type": "string",
+            "description": "Succeeded, Failed or RolledBack, case-insensitively. Blank leaves the\ndeployment in flight.",
+            "nullable": true,
+            "x-csv-column": "Outcome",
+            "x-csv-values": [
+              "Succeeded",
+              "Failed",
+              "RolledBack"
+            ]
+          },
+          "completedAt": {
+            "type": "string",
+            "description": "When the deployment reached its outcome, with its offset. Required with an outcome. For a\nrollback, when it succeeded.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "CompletedAt"
+          },
+          "rolledBackAt": {
+            "type": "string",
+            "description": "When a rolled-back deployment was reverted, with its offset. Required for a rollback.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "RolledBackAt"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why it failed or was rolled back. Max 1024 chars.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Reason"
+          }
+        }
+      },
       "SucceedDeploymentRequest": {
         "type": "object",
         "description": "Records that a deployment reached its environment.",
@@ -39242,6 +39678,70 @@
             "maxLength": 256,
             "minLength": 0,
             "nullable": true
+          }
+        }
+      },
+      "ImportProductRequest": {
+        "type": "object",
+        "description": "A single CSV row for the product import.\nParentImportId must name another row in the same file by its ImportId,\nor be empty for a root. A product already in the catalog cannot be named as a parent — this import\nstands a catalog up rather than grafting single products onto one, which is what the screens are\nfor. Names cannot serve as the link: a tree legitimately holds the same name in two places, so\nkeying on names would make such a file unimportable.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "productTypeName"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and child rows name it as their ParentImportId. Falls back to the row's\nposition when the column is absent — but a file with parents should supply it, since a\nposition is a fragile thing to reference.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "productTypeName": {
+            "type": "string",
+            "description": "The product type by name, which must already exist and be active.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ProductTypeName"
+          },
+          "parentImportId": {
+            "type": "string",
+            "description": "The ImportId of another row in this file, or empty for a root product.",
+            "nullable": true,
+            "x-csv-column": "ParentImportId"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The product's identifier in the system that owns it.",
+            "maxLength": 256,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "ExternalId"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status by name, which must belong to the product workflow. Defaults to the workflow's\ninitial status when the column is absent or blank.",
+            "nullable": true,
+            "x-csv-column": "Status"
+          },
+          "tags": {
+            "type": "string",
+            "description": "The product's tags, as semicolon-separated Category|Tag pairs —\nPlatform|ios;Platform|android;Compliance|pci-scope.",
+            "nullable": true,
+            "x-csv-column": "Tags"
           }
         }
       },
@@ -39956,6 +40456,99 @@
           }
         }
       },
+      "ImportReleasePackageRequest": {
+        "type": "object",
+        "description": "A single CSV row for the release package import — one package, without its manifest.\nA package is identified by Version alone: it has no product, because it spans them.\nManifest lines arrive in a second file and point back here by this row's ImportId.",
+        "additionalProperties": false,
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the manifest file names it to say which package a line belongs to.\nFalls back to the row's position when the column is absent.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "version": {
+            "type": "string",
+            "description": "The package's own version, distinct from any component's. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Version"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Name"
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the package is expected to ship.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "TargetDate"
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "When the package shipped. Supplying it makes the package Released.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "ReleasedDate"
+          }
+        }
+      },
+      "ImportReleasePackageComponentRequest": {
+        "type": "object",
+        "description": "A single CSV row for the manifest file: one component of one package.",
+        "additionalProperties": false,
+        "required": [
+          "packageImportId",
+          "productId",
+          "versionNumber",
+          "kind"
+        ],
+        "properties": {
+          "packageImportId": {
+            "type": "string",
+            "description": "The `ImportId` of the package row this line belongs to.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "PackageImportId"
+          },
+          "productId": {
+            "type": "string",
+            "description": "The component product, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ProductId"
+          },
+          "versionNumber": {
+            "type": "string",
+            "description": "The component's version in this package. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "VersionNumber"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Whether the component changed in this package. `Changed` or `CarriedForward`.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Kind",
+            "x-csv-values": [
+              "Changed",
+              "CarriedForward"
+            ]
+          }
+        }
+      },
       "SetReleasePackageManifestRequest": {
         "type": "object",
         "description": "Replaces a package's manifest wholesale.",
@@ -40159,6 +40752,119 @@
             "description": "A manual ordering override, for the rare case where chronology misleads.",
             "format": "int64",
             "nullable": true
+          }
+        }
+      },
+      "ImportReleaseRequest": {
+        "type": "object",
+        "description": "A single CSV row for the release import — one release, without its contents.\nA release is identified by Version alone. ProductId is optional by\ndesign: a release spanning product lines has no single owner, so requiring one would force a\nmisleading choice.",
+        "additionalProperties": false,
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the contents file names it to say which release a row belongs to.\nFalls back to the row's position when the column is absent.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "version": {
+            "type": "string",
+            "description": "The release as the organization announces it — `2026.07`. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Version"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Name"
+          },
+          "productId": {
+            "type": "string",
+            "description": "The product this release is announced under, if any, by id. Usually a product line.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ProductId"
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the release is expected to be announced.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "TargetDate"
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "When it was announced. Supplying it makes the release Released — and is refused while anything\nit carries has not shipped.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "ReleasedDate"
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "A manual ordering override, for the rare case where chronology misleads.",
+            "format": "int64",
+            "nullable": true,
+            "x-csv-column": "Sequence"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Product notes for this release, written for customers.",
+            "nullable": true,
+            "x-csv-column": "Notes"
+          }
+        }
+      },
+      "ImportReleaseContentRequest": {
+        "type": "object",
+        "description": "A single CSV row for the contents file: one thing a release announces.",
+        "additionalProperties": false,
+        "required": [
+          "releaseImportId",
+          "kind",
+          "packageId",
+          "versionId"
+        ],
+        "properties": {
+          "releaseImportId": {
+            "type": "string",
+            "description": "The `ImportId` of the release row this row belongs to.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ReleaseImportId"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`Package` or `Version`.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Kind",
+            "x-csv-values": [
+              "Package",
+              "Version"
+            ]
+          },
+          "packageId": {
+            "type": "string",
+            "description": "The package, by id. Required when Kind is `Package`.",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "PackageId"
+          },
+          "versionId": {
+            "type": "string",
+            "description": "The version, by id. Required when Kind is `Version`.",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "VersionId"
           }
         }
       },
@@ -40421,6 +41127,81 @@
             "description": "A manual ordering override, for the rare case where chronology misleads.",
             "format": "int64",
             "nullable": true
+          }
+        }
+      },
+      "ImportVersionRequest": {
+        "type": "object",
+        "description": "A single CSV row for the version import.\nThe product is referenced by id, and a version is identified by that product together with its\nNumber — version strings are free text and only meaningful within one product, so two\nproducts may each hold a 1.0.0.\nThere is no status column: the dates decide where the version ends up. A row with no dates is\nplanned, a CutDate makes it ready, and a ReleasedDate makes it\nreleased. A released date without a cut date is legitimate — a version recorded after the fact\noften has no record of when scope froze.",
+        "additionalProperties": false,
+        "required": [
+          "productId",
+          "number"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "productId": {
+            "type": "string",
+            "description": "The product this version was cut against, by id. Must be a releasable type.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ProductId"
+          },
+          "number": {
+            "type": "string",
+            "description": "The version as the organization writes it. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Number"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Name"
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the version is expected to ship.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "TargetDate"
+          },
+          "cutDate": {
+            "type": "string",
+            "description": "When scope froze. Supplying it makes the version Ready.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "CutDate"
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "When it shipped. Supplying it makes the version Released.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "ReleasedDate"
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "A manual ordering override, for the rare case where chronology misleads.",
+            "format": "int64",
+            "nullable": true,
+            "x-csv-column": "Sequence"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Engineering notes for this version.",
+            "nullable": true,
+            "x-csv-column": "Notes"
           }
         }
       },
@@ -40942,6 +41723,143 @@
               "nullable": false,
               "example": "00000000-0000-0000-0000-000000000000"
             }
+          }
+        }
+      },
+      "ImportPortfolioRequest": {
+        "type": "object",
+        "description": "A single CSV row for the portfolio import. Status is the status the portfolio should end\nup in (case-insensitive), reached by replaying the real lifecycle transitions — which is why the\ntransition dates are on the row: a portfolio only ever gets its date range from those transitions,\nnever from creation.\nRole columns hold semicolon-separated employee numbers, since a CSV cell cannot carry a list.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "status",
+          "createdOn"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Description"
+          },
+          "status": {
+            "type": "string",
+            "description": "The portfolio's status. Defaults to Active when the column is absent.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Status",
+            "x-csv-values": [
+              "Proposed",
+              "Active",
+              "OnHold",
+              "Closed",
+              "Archived"
+            ]
+          },
+          "createdOn": {
+            "type": "string",
+            "description": "The date the portfolio was proposed. Required on every row. Nothing stores it yet — a portfolio\nkeeps no creation date beyond the audit stamp, which records when the file was uploaded — but the\ncolumn is required now so that no file has to change on the day one is kept.",
+            "format": "date",
+            "nullable": false,
+            "x-csv-column": "CreatedOn"
+          },
+          "activatedOn": {
+            "type": "string",
+            "description": "The date the portfolio was activated. Required unless the portfolio is Proposed. There is no\nclosing date here: an import cannot close a portfolio, so the finalize import carries that one.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "ActivatedOn"
+          },
+          "sponsors": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Sponsors"
+          },
+          "owners": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Owners"
+          },
+          "managers": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Managers"
+          }
+        }
+      },
+      "ImportPpmFinalizationRequest": {
+        "type": "object",
+        "description": "A single CSV row for the finalization import, closing one program or portfolio after its contents have\nbeen imported. Type discriminates between the two (case-insensitive: \"Program\" /\n\"Portfolio\") and says how to read Id.",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "id",
+          "status"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "type": {
+            "type": "string",
+            "description": "Whether the row closes a program or a portfolio, which also says how Id is read.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Type",
+            "x-csv-values": [
+              "Program",
+              "Portfolio"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "The program or portfolio this row closes, per Type.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "Id"
+          },
+          "status": {
+            "type": "string",
+            "description": "Programs: 'Completed' or 'Canceled'. Portfolios: 'Closed' or 'Archived'.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Status",
+            "x-csv-values": [
+              "Completed",
+              "Canceled",
+              "Closed",
+              "Archived"
+            ]
+          },
+          "endDate": {
+            "type": "string",
+            "description": "The portfolio's end date. Required for portfolio rows, ignored for program rows.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "EndDate"
           }
         }
       },
@@ -41951,6 +42869,114 @@
           }
         }
       },
+      "ImportProgramRequest": {
+        "type": "object",
+        "description": "A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes\nby a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers.\nStatus is the status the program should end up in (case-insensitive), reached by replaying\nthe real lifecycle transitions.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "portfolioId",
+          "status",
+          "createdOn"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Description"
+          },
+          "portfolioId": {
+            "type": "string",
+            "description": "The owning portfolio, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "PortfolioId"
+          },
+          "status": {
+            "type": "string",
+            "description": "The program's status. Defaults to Active when the column is absent.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Status",
+            "x-csv-values": [
+              "Proposed",
+              "Active",
+              "Completed",
+              "Canceled"
+            ]
+          },
+          "start": {
+            "type": "string",
+            "description": "The timeline the program plans to run over.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "Start"
+          },
+          "end": {
+            "type": "string",
+            "description": "On or after Start. Start and End are both empty or both set.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "End"
+          },
+          "createdOn": {
+            "type": "string",
+            "description": "The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps\nno transition dates beyond the audit stamp, which records when the file was uploaded — but the\ncolumn is required now so that no file has to change on the day one is kept.",
+            "format": "date",
+            "nullable": false,
+            "x-csv-column": "CreatedOn"
+          },
+          "activatedOn": {
+            "type": "string",
+            "description": "The date the program became active. Required once the status is Active or Completed, optional on a\ncanceled program, and rejected on one that never got that far. There is no closing date here: an\nimport cannot complete or cancel a program, so the finalize import carries that one.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "ActivatedOn"
+          },
+          "strategicThemes": {
+            "type": "string",
+            "description": "Semicolon-separated strategic theme ids.",
+            "nullable": true,
+            "x-csv-column": "StrategicThemes"
+          },
+          "sponsors": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Sponsors"
+          },
+          "owners": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Owners"
+          },
+          "managers": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Managers"
+          }
+        }
+      },
       "UpdateProgramRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -42917,6 +43943,363 @@
               "nullable": false,
               "example": "00000000-0000-0000-0000-000000000000"
             }
+          }
+        }
+      },
+      "ImportProjectRequest": {
+        "type": "object",
+        "description": "A single CSV row for the project import. Key is the project's natural key, which project\ntasks and strategic initiatives reference. The portfolio, program, expenditure category and lifecycle\nare referenced by id; strategic themes and the role columns hold semicolon-separated lists.\nStatus is the status the project should end up in (case-insensitive), reached by replaying\nthe real lifecycle transitions.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "key",
+          "portfolioId",
+          "expenditureCategoryId",
+          "status",
+          "createdOn"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Description"
+          },
+          "key": {
+            "type": "string",
+            "description": "2–20 uppercase letters and numbers, unique across projects. Tasks, stages and strategic initiatives name the project by it.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Key"
+          },
+          "portfolioId": {
+            "type": "string",
+            "description": "The owning portfolio, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "PortfolioId"
+          },
+          "expenditureCategoryId": {
+            "type": "integer",
+            "description": "An expenditure category, by id. Create it in Settings first.",
+            "format": "int32",
+            "minimum": 0.0,
+            "exclusiveMinimum": true,
+            "x-csv-column": "ExpenditureCategoryId"
+          },
+          "status": {
+            "type": "string",
+            "description": "The project's status. Defaults to Active when the column is absent.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Status",
+            "x-csv-values": [
+              "Proposed",
+              "Active",
+              "Completed",
+              "Canceled",
+              "Approved"
+            ]
+          },
+          "programId": {
+            "type": "string",
+            "description": "The program this project belongs to, if any. The program must be in the same portfolio.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ProgramId"
+          },
+          "projectLifecycleId": {
+            "type": "string",
+            "description": "The lifecycle to assign. Required for approved projects, and by any project with tasks.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ProjectLifecycleId"
+          },
+          "businessCase": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "BusinessCase"
+          },
+          "expectedBenefits": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "ExpectedBenefits"
+          },
+          "start": {
+            "type": "string",
+            "description": "The timeline the project plans to run over.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "Start"
+          },
+          "end": {
+            "type": "string",
+            "description": "On or after Start. Start and End are both empty or both set.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "End"
+          },
+          "createdOn": {
+            "type": "string",
+            "description": "The date the project was proposed. Required on every row, and what the project's opening status\nhistory entry is dated — the audit stamp records when the file was uploaded, which is not the\nsame thing.",
+            "format": "date",
+            "nullable": false,
+            "x-csv-column": "CreatedOn"
+          },
+          "activatedOn": {
+            "type": "string",
+            "description": "The date the project became active. Required once the status is Active or Completed, optional on\na canceled project, and rejected on one that never got that far.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "ActivatedOn"
+          },
+          "closedOn": {
+            "type": "string",
+            "description": "The date the project was completed or canceled — the status says which. Required on those two\nstatuses and rejected on the rest.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "ClosedOn"
+          },
+          "strategicThemes": {
+            "type": "string",
+            "description": "Semicolon-separated strategic theme ids.",
+            "nullable": true,
+            "x-csv-column": "StrategicThemes"
+          },
+          "sponsors": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Sponsors"
+          },
+          "owners": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Owners"
+          },
+          "managers": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Managers"
+          },
+          "members": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Members"
+          }
+        }
+      },
+      "ImportProjectTaskRequest": {
+        "type": "object",
+        "description": "A single CSV row for the project task import. The project is referenced by key and the stage by name\n(stages come from the project's assigned lifecycle). A task nests under another row in this file by its\nParentImportId, or under a task the project already has by ParentTaskId;\nwith neither it is a root task of its stage. Rows may be listed in any order — parents are applied\nbefore children.",
+        "additionalProperties": false,
+        "required": [
+          "projectKey",
+          "name",
+          "stageName",
+          "type",
+          "status",
+          "priority"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and child rows name it as their ParentImportId. Falls back to the row's\nposition when the column is absent, so a hand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "projectKey": {
+            "type": "string",
+            "description": "The project this task belongs to, by key.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ProjectKey"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "stageName": {
+            "type": "string",
+            "description": "A stage of the project's assigned lifecycle, by name.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "StageName"
+          },
+          "parentImportId": {
+            "type": "string",
+            "description": "The ImportId of the row this task nests under. Empty makes it a root task of its stage.",
+            "nullable": true,
+            "x-csv-column": "ParentImportId"
+          },
+          "parentTaskId": {
+            "type": "string",
+            "description": "The id of an existing task this one nests under. Cannot be combined with ParentImportId.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ParentTaskId"
+          },
+          "type": {
+            "type": "string",
+            "description": "'Task' or 'Milestone'. Defaults to Task when the column is absent.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Type",
+            "x-csv-values": [
+              "Task",
+              "Milestone"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Status",
+            "x-csv-values": [
+              "NotStarted",
+              "InProgress",
+              "Completed",
+              "Canceled"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Priority",
+            "x-csv-values": [
+              "Low",
+              "Medium",
+              "High",
+              "Critical"
+            ]
+          },
+          "progress": {
+            "type": "number",
+            "description": "Percent complete (0-100). Required for tasks, not allowed for milestones.",
+            "format": "decimal",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "nullable": true,
+            "x-csv-column": "Progress"
+          },
+          "plannedStart": {
+            "type": "string",
+            "description": "Planned start, for tasks. Milestones use PlannedDate instead.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "PlannedStart"
+          },
+          "plannedEnd": {
+            "type": "string",
+            "description": "Planned end, for tasks. On or after PlannedStart.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "PlannedEnd"
+          },
+          "plannedDate": {
+            "type": "string",
+            "description": "The milestone's date. Only for milestones.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "PlannedDate"
+          },
+          "estimatedEffortHours": {
+            "type": "number",
+            "description": "Estimated effort in hours. Greater than 0 when present.",
+            "format": "decimal",
+            "minimum": 0.0,
+            "nullable": true,
+            "exclusiveMinimum": true,
+            "x-csv-column": "EstimatedEffortHours"
+          },
+          "assignees": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers assigned to the task.",
+            "nullable": true,
+            "x-csv-column": "Assignees"
+          }
+        }
+      },
+      "ImportProjectStageRequest": {
+        "type": "object",
+        "description": "A single CSV row for the project stage import: sets one stage's status. The project is referenced by key\nand the stage by name (stages come from the project's assigned lifecycle). The status is applied as given.",
+        "additionalProperties": false,
+        "required": [
+          "projectKey",
+          "stageName",
+          "status"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "projectKey": {
+            "type": "string",
+            "description": "The project, by key.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ProjectKey"
+          },
+          "stageName": {
+            "type": "string",
+            "description": "A stage of the project's assigned lifecycle, by name.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "StageName"
+          },
+          "status": {
+            "type": "string",
+            "description": "The stage status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Status",
+            "x-csv-values": [
+              "NotStarted",
+              "InProgress",
+              "Completed",
+              "Canceled"
+            ]
           }
         }
       },
@@ -44736,6 +46119,173 @@
           }
         }
       },
+      "ImportStrategicInitiativeRequest": {
+        "type": "object",
+        "description": "A single CSV row for the strategic initiative import. The owning portfolio is referenced by id and the\ndelivering projects by a semicolon-separated list of their keys; role columns hold semicolon-separated\nemployee numbers. Status is the status the initiative should end up in (case-insensitive),\nreached by replaying the real lifecycle transitions.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "portfolioId",
+          "status",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back\nto the row's position when the column is absent, so a hand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Description"
+          },
+          "portfolioId": {
+            "type": "string",
+            "description": "The owning portfolio, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "PortfolioId"
+          },
+          "status": {
+            "type": "string",
+            "description": "The initiative's status. Defaults to Active when the column is absent.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Status",
+            "x-csv-values": [
+              "Proposed",
+              "Approved",
+              "Active",
+              "OnHold",
+              "Completed",
+              "Canceled"
+            ]
+          },
+          "start": {
+            "type": "string",
+            "description": "The initiative's start date.",
+            "format": "date",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Start"
+          },
+          "end": {
+            "type": "string",
+            "description": "The initiative's end date. On or after Start.",
+            "format": "date",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "End"
+          },
+          "projectKeys": {
+            "type": "string",
+            "description": "Semicolon-separated project keys the initiative delivers through.",
+            "nullable": true,
+            "x-csv-column": "ProjectKeys"
+          },
+          "sponsors": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Sponsors"
+          },
+          "owners": {
+            "type": "string",
+            "description": "Semicolon-separated employee numbers.",
+            "nullable": true,
+            "x-csv-column": "Owners"
+          }
+        }
+      },
+      "ImportStrategicInitiativeKpiRequest": {
+        "type": "object",
+        "description": "A single CSV row for the strategic initiative KPI import, attached to its initiative by that row's\nImportId. KPIs are a separate file because an initiative has many of them, which a single\ninitiative row cannot carry.",
+        "additionalProperties": false,
+        "required": [
+          "strategicInitiativeImportId",
+          "name",
+          "targetValue",
+          "targetDirection"
+        ],
+        "properties": {
+          "strategicInitiativeImportId": {
+            "type": "string",
+            "description": "The ImportId of the initiative row this KPI belongs to. Where that row left the column\nblank its position stands in, so 1 reaches the first initiative — but a file carrying KPIs\nshould supply ImportId, since inserting a row silently re-parents every KPI below it.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "StrategicInitiativeImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "targetValue": {
+            "type": "number",
+            "description": "The value that defines success.",
+            "format": "double",
+            "x-csv-column": "TargetValue"
+          },
+          "startingValue": {
+            "type": "number",
+            "description": "The baseline value.",
+            "format": "double",
+            "nullable": true,
+            "x-csv-column": "StartingValue"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "A symbol shown before the value, such as \"$\".",
+            "maxLength": 8,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Prefix"
+          },
+          "suffix": {
+            "type": "string",
+            "description": "A symbol shown after the value, such as \"%\".",
+            "maxLength": 8,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Suffix"
+          },
+          "targetDirection": {
+            "type": "string",
+            "description": "Whether success means increasing or decreasing the value. Defaults to Increase.",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "TargetDirection",
+            "x-csv-values": [
+              "Increase",
+              "Decrease"
+            ]
+          }
+        }
+      },
       "UpdateStrategicInitiativeRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -45861,6 +47411,75 @@
             "type": "string",
             "description": "Gets or sets the iteration prefix.",
             "nullable": true
+          }
+        }
+      },
+      "ImportPlanningIntervalRequest": {
+        "type": "object",
+        "description": "A single CSV row for the planning interval import. The teams that ran the interval ride on the same\nrow as TeamIds, a semicolon-separated list of ids — the repo's multi-value column\nconvention — so one row is one planning interval and there is no second file.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "iterationWeeks",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "start": {
+            "type": "string",
+            "description": "The dates the interval ran over. Its iterations are generated inside this range.",
+            "format": "date",
+            "nullable": false,
+            "x-csv-column": "Start"
+          },
+          "end": {
+            "type": "string",
+            "description": "The last date the interval ran over. On or after Start.",
+            "format": "date",
+            "nullable": false,
+            "x-csv-column": "End"
+          },
+          "iterationWeeks": {
+            "type": "integer",
+            "description": "The cadence the interval's iterations are generated from. There is no column for the iterations\nthemselves: an interval whose real history had irregular lengths or names is corrected afterwards\non its own dates screen.",
+            "format": "int32",
+            "minimum": 0.0,
+            "exclusiveMinimum": true,
+            "x-csv-column": "IterationWeeks"
+          },
+          "iterationPrefix": {
+            "type": "string",
+            "description": "Prefixes each generated iteration's name, which is otherwise just its sequence number — so\niterations from different intervals stay tellable apart.",
+            "maxLength": 32,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "IterationPrefix"
+          },
+          "teamIds": {
+            "type": "string",
+            "description": "Semicolon-separated ids of the teams that ran the interval. Blank leaves the new interval with no\nteams; nothing is ever replaced, since this import only creates.",
+            "nullable": true,
+            "x-csv-column": "TeamIds"
           }
         }
       },
@@ -47292,6 +48911,104 @@
           }
         }
       },
+      "ImportPlanningIntervalObjectivesRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "planningIntervalId",
+          "teamId",
+          "name",
+          "statusId",
+          "progress",
+          "isStretch"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "planningIntervalId": {
+            "type": "string",
+            "description": "The planning interval the objective belongs to, by id. Rows may name different intervals.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "PlanningIntervalId"
+          },
+          "teamId": {
+            "type": "string",
+            "description": "The team the objective belongs to, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "TeamId"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "statusId": {
+            "type": "integer",
+            "description": "1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed.",
+            "format": "int32",
+            "x-csv-column": "StatusId"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Percent complete, 0–100.",
+            "format": "double",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "x-csv-column": "Progress"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Before TargetDate where both are given.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "StartDate"
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "TargetDate"
+          },
+          "isStretch": {
+            "type": "boolean",
+            "description": "Whether the objective is a stretch goal.",
+            "x-csv-column": "IsStretch"
+          },
+          "closedDateUtc": {
+            "type": "string",
+            "description": "When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.",
+            "format": "date-time",
+            "nullable": true,
+            "x-csv-column": "ClosedDateUtc"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display position within the team's objectives.",
+            "format": "int32",
+            "nullable": true,
+            "x-csv-column": "Order"
+          }
+        }
+      },
       "PlanningIntervalObjectiveStatusDto": {
         "type": "object",
         "additionalProperties": false,
@@ -48006,6 +49723,120 @@
             "maxLength": 1024,
             "minLength": 0,
             "nullable": true
+          }
+        }
+      },
+      "ImportRiskRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teamId",
+          "summary",
+          "reportedOnUtc",
+          "reportedById",
+          "statusId",
+          "categoryId",
+          "impactId",
+          "likelihoodId"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "teamId": {
+            "type": "string",
+            "description": "The team the risk belongs to, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "TeamId"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Summary"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "reportedOnUtc": {
+            "type": "string",
+            "description": "When the risk was reported, in UTC. Must be in the past.",
+            "format": "date-time",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ReportedOnUtc"
+          },
+          "reportedById": {
+            "type": "string",
+            "description": "The employee who reported it, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ReportedById"
+          },
+          "statusId": {
+            "type": "integer",
+            "description": "1 Open, 2 Closed.",
+            "format": "int32",
+            "x-csv-column": "StatusId"
+          },
+          "categoryId": {
+            "type": "integer",
+            "description": "1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated.",
+            "format": "int32",
+            "x-csv-column": "CategoryId"
+          },
+          "impactId": {
+            "type": "integer",
+            "description": "1 Low, 2 Medium, 3 High.",
+            "format": "int32",
+            "x-csv-column": "ImpactId"
+          },
+          "likelihoodId": {
+            "type": "integer",
+            "description": "1 Low, 2 Medium, 3 High.",
+            "format": "int32",
+            "x-csv-column": "LikelihoodId"
+          },
+          "assigneeId": {
+            "type": "string",
+            "description": "The employee the risk is assigned to, by id.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "AssigneeId"
+          },
+          "followUpDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "FollowUpDate"
+          },
+          "response": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Response"
+          },
+          "closedDateUtc": {
+            "type": "string",
+            "description": "When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.",
+            "format": "date-time",
+            "nullable": true,
+            "x-csv-column": "ClosedDateUtc"
           }
         }
       },
@@ -51386,6 +53217,115 @@
           }
         }
       },
+      "ImportEmployeeRequest": {
+        "type": "object",
+        "description": "A single CSV row for the employee import. References the row's manager by employee number so an entire\nmanagement tree can be imported at once; linkage is resolved server-side after all rows are created.",
+        "additionalProperties": false,
+        "required": [
+          "employeeNumber",
+          "firstName",
+          "lastName",
+          "email",
+          "isActive"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and it is how a row is identified without depending on a display name. Falls\nback to the row's position when the column is absent, so a hand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "employeeNumber": {
+            "type": "string",
+            "description": "The employee's natural key, unique across the company.",
+            "maxLength": 256,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "EmployeeNumber"
+          },
+          "firstName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "FirstName"
+          },
+          "middleName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "MiddleName"
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "LastName"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Email"
+          },
+          "hireDate": {
+            "type": "string",
+            "description": "The date the employee was hired.",
+            "format": "date-time",
+            "nullable": true,
+            "x-csv-column": "HireDate"
+          },
+          "jobTitle": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "JobTitle"
+          },
+          "department": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Department"
+          },
+          "officeLocation": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "OfficeLocation"
+          },
+          "managerNumber": {
+            "type": "string",
+            "description": "The manager's employee number. May name someone elsewhere in the file.",
+            "nullable": true,
+            "x-csv-column": "ManagerNumber"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the employee is currently active. Defaults to true when the column is absent.",
+            "x-csv-column": "IsActive"
+          },
+          "employeeType": {
+            "type": "string",
+            "description": "The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form.",
+            "maxLength": 256,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "EmployeeType"
+          },
+          "additionalEmails": {
+            "type": "string",
+            "description": "Further work addresses for this person, semicolon-separated. Email stays the\nprimary; these are additional addresses the person is known by in other systems — typically ones\nleft behind by a domain or tenant move. Home and personal addresses do not belong here.",
+            "nullable": true,
+            "x-csv-column": "AdditionalEmails"
+          }
+        }
+      },
       "UpdateEmployeeRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -51829,6 +53769,169 @@
             "format": "date",
             "minLength": 1,
             "nullable": false
+          }
+        }
+      },
+      "ImportTeamRequest": {
+        "type": "object",
+        "description": "A single CSV row for the unified team import. Type discriminates between a Team and a\nTeam of Teams (case-insensitive: \"Team\" / \"TeamOfTeams\"). Both share the same create shape.",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "name",
+          "code",
+          "activeDate",
+          "isActive"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Type",
+            "x-csv-values": [
+              "Team",
+              "TeamOfTeams"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Name"
+          },
+          "code": {
+            "type": "string",
+            "description": "The team's natural key: 2–10 uppercase letters and numbers, unique across teams.",
+            "maxLength": 10,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Code"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "activeDate": {
+            "type": "string",
+            "description": "The date the team became active.",
+            "format": "date",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ActiveDate"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the team is currently active. Defaults to true when the column is absent.",
+            "x-csv-column": "IsActive"
+          },
+          "inactiveDate": {
+            "type": "string",
+            "description": "When the team was retired. Required when IsActive is false; must be after ActiveDate.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "InactiveDate"
+          }
+        }
+      },
+      "ImportTeamMemberRequest": {
+        "type": "object",
+        "description": "A single CSV row for team staffing: places one employee on one team in one role, all by natural key.\nMultiple roles for the same employee on the same team are expressed as multiple rows.",
+        "additionalProperties": false,
+        "required": [
+          "teamCode",
+          "employeeNumber",
+          "roleName"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "teamCode": {
+            "type": "string",
+            "description": "The team, by code.",
+            "maxLength": 10,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "TeamCode"
+          },
+          "employeeNumber": {
+            "type": "string",
+            "description": "The employee, by number. Must be an active employee.",
+            "maxLength": 256,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "EmployeeNumber"
+          },
+          "roleName": {
+            "type": "string",
+            "description": "A team member role, by name. The role must already exist.",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "RoleName"
+          }
+        }
+      },
+      "ImportTeamMembershipRequest": {
+        "type": "object",
+        "description": "A single CSV row for the team-hierarchy import: places a child team (or team of teams) under a parent\nteam of teams for a date range, all by natural key.",
+        "additionalProperties": false,
+        "required": [
+          "childCode",
+          "parentCode",
+          "start"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent, so a\nhand-authored file still works.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "childCode": {
+            "type": "string",
+            "description": "The child team's code. May be a Team or a Team of Teams.",
+            "maxLength": 10,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ChildCode"
+          },
+          "parentCode": {
+            "type": "string",
+            "description": "The parent's code. Must be a Team of Teams, and cannot equal ChildCode.",
+            "maxLength": 10,
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "ParentCode"
+          },
+          "start": {
+            "type": "string",
+            "description": "When the membership begins. On or after both teams' active dates.",
+            "format": "date",
+            "minLength": 1,
+            "nullable": false,
+            "x-csv-column": "Start"
+          },
+          "end": {
+            "type": "string",
+            "description": "When the membership ends. On or after Start; blank for one still in place.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "End"
           }
         }
       },

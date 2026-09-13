@@ -24,11 +24,18 @@ public sealed class ImportProjectRequest
 
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
+
+    /// <summary>2–20 uppercase letters and numbers, unique across projects. Tasks, stages and strategic initiatives name the project by it.</summary>
     public string Key { get; set; } = default!;
+
+    /// <summary>The owning portfolio, by id.</summary>
     public Guid PortfolioId { get; set; }
+
+    /// <summary>An expenditure category, by id. Create it in Settings first.</summary>
     public int ExpenditureCategoryId { get; set; }
 
     /// <summary>The project's status. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(ProjectStatus))]
     public string Status { get; set; } = nameof(ProjectStatus.Active);
 
     /// <summary>The program this project belongs to, if any. The program must be in the same portfolio.</summary>
@@ -42,6 +49,8 @@ public sealed class ImportProjectRequest
 
     /// <summary>The timeline the project plans to run over.</summary>
     public DateOnly? Start { get; set; }
+
+    /// <summary>On or after Start. Start and End are both empty or both set.</summary>
     public DateOnly? End { get; set; }
 
     /// <summary>
@@ -65,9 +74,17 @@ public sealed class ImportProjectRequest
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Sponsors { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Owners { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Managers { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Members { get; set; }
 
     public ImportProjectDto ToImportProjectDto()

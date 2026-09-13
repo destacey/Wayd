@@ -34,6 +34,7 @@ public sealed class ImportVersionRequest
 
     public string? Name { get; set; }
 
+    /// <summary>When the version is expected to ship.</summary>
     public DateOnly? TargetDate { get; set; }
 
     /// <summary>When scope froze. Supplying it makes the version Ready.</summary>

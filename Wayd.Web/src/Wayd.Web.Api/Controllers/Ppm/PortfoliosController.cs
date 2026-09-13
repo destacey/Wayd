@@ -5,8 +5,10 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Finalization.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Finalization.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Dtos;
@@ -99,7 +101,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(ProjectPortfolioImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportPortfolioRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -147,7 +150,8 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> FinalizeImport([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(PpmFinalizationImportDefinition.ImportKey)]
+    public async Task<ActionResult> FinalizeImport([FromForm, CsvRows(typeof(ImportPpmFinalizationRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

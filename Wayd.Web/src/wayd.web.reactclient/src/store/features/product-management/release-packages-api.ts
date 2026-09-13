@@ -2,7 +2,6 @@ import { getReleasePackagesClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   AssembleReleasePackageRequest,
-  ImportProcessDto,
   MarkReleasePackageReleasedRequest,
   ObjectIdAndKey,
   ReleasePackageDto,
@@ -95,33 +94,6 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, arg) => [
         { type: QueryTags.StatusHistory, id: arg },
-      ],
-    }),
-    // Two files: the packages and their manifest lines. Both are required — a package cannot be
-    // assembled without a manifest.
-    importReleasePackages: builder.mutation<
-      ImportProcessDto,
-      { file: File; manifestFile: File }
-    >({
-      queryFn: async ({ file, manifestFile }) => {
-        try {
-          // Files uploaded from the app are submitted on their own, under no group.
-          const data = await getReleasePackagesClient().import(
-            undefined,
-            { data: file, fileName: file.name },
-            { data: manifestFile, fileName: manifestFile.name },
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      // The list only has the rows if the run finished within the wait; one still running refreshes it
-      // from its import page when it lands.
-      invalidatesTags: () => [
-        { type: QueryTags.ReleasePackage, id: 'LIST' },
-        QueryTags.ImportProcess,
       ],
     }),
     assembleReleasePackage: builder.mutation<
@@ -233,7 +205,6 @@ export const {
   useGetReleasePackagesQuery,
   useGetReleasePackageQuery,
   useGetReleasePackageStatusHistoryQuery,
-  useImportReleasePackagesMutation,
   useAssembleReleasePackageMutation,
   useSetReleasePackageManifestMutation,
   useMarkReleasePackageReleasedMutation,

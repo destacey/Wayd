@@ -6,6 +6,7 @@ import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import PageTitle from '@/src/components/common/page-title'
+import { CsvImportForm, isKnownImport } from '@/src/components/common/import'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import {
   WaydGrid,
@@ -15,7 +16,10 @@ import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import { useDocumentTitle } from '@/src/hooks'
 import { ImportProcessStatus } from '@/src/services/wayd-api'
-import { useGetImportProcessesQuery } from '@/src/store/features/admin/imports-api'
+import {
+  useGetImportDefinitionsQuery,
+  useGetImportProcessesQuery,
+} from '@/src/store/features/admin/imports-api'
 import { buildImportRows, ImportListRow } from './_components/import-groups'
 import {
   ImportStatusTag,
@@ -41,6 +45,13 @@ const ImportsPage = () => {
   // changed value, and why this is not an effect: setting state from one renders a second time, which
   // is what the lint rule against it is for.
   const [isPolling, setIsPolling] = useState(false)
+  const [openImportForm, setOpenImportForm] = useState(false)
+
+  const { data: definitions } = useGetImportDefinitionsQuery()
+  // The listing is what the viewer may see; oversight of every import type does not grant submitting one.
+  // The same filter the dialog offers from, so the button never opens onto an empty list.
+  const canSubmitAny =
+    definitions?.some((d) => d.canSubmit && isKnownImport(d.key)) ?? false
 
   const { data, isLoading, refetch } = useGetImportProcessesQuery(
     { pageSize: IMPORT_PAGE_SIZE },
@@ -139,13 +150,17 @@ const ImportsPage = () => {
                 }
                 onClick={row.getToggleExpandedHandler()}
                 className={treeGridStyles.expanderBtn}
-                aria-label={row.getIsExpanded() ? 'Collapse batch' : 'Expand batch'}
+                aria-label={
+                  row.getIsExpanded() ? 'Collapse batch' : 'Expand batch'
+                }
               />
             ) : (
               <span className={treeGridStyles.indentSpacer} />
             )}
             {row.original.isGroup ? (
-              <Typography.Text strong>{row.original.displayName}</Typography.Text>
+              <Typography.Text strong>
+                {row.original.displayName}
+              </Typography.Text>
             ) : (
               <Link href={`/settings/imports/${row.original.id}`}>
                 {row.original.displayName}
@@ -241,7 +256,14 @@ const ImportsPage = () => {
 
   return (
     <div className="page-gutters">
-      <PageTitle title="Imports" />
+      <PageTitle
+        title="Imports"
+        actions={
+          canSubmitAny && (
+            <Button onClick={() => setOpenImportForm(true)}>Import</Button>
+          )
+        }
+      />
       <Flex gap={12} wrap style={{ marginBottom: 16 }}>
         <MetricCard
           title="In Progress"
@@ -287,6 +309,13 @@ const ImportsPage = () => {
           ) : undefined
         }
       />
+      {openImportForm && definitions && (
+        <CsvImportForm
+          definitions={definitions}
+          onFormComplete={() => setOpenImportForm(false)}
+          onFormCancel={() => setOpenImportForm(false)}
+        />
+      )}
     </div>
   )
 }

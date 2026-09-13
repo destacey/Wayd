@@ -21,6 +21,7 @@ public sealed class ImportStrategicThemeRequest
     public string Description { get; set; } = default!;
 
     /// <summary>The theme's state. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(StrategicThemeState))]
     public string State { get; set; } = nameof(StrategicThemeState.Active);
 
     public ImportStrategicThemeDto ToImportStrategicThemeDto()

@@ -22,18 +22,27 @@ public sealed class ImportStrategicInitiativeRequest
 
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
+
+    /// <summary>The owning portfolio, by id.</summary>
     public Guid PortfolioId { get; set; }
 
     /// <summary>The initiative's status. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(StrategicInitiativeStatus))]
     public string Status { get; set; } = nameof(StrategicInitiativeStatus.Active);
 
+    /// <summary>The initiative's start date.</summary>
     public DateOnly Start { get; set; }
+
+    /// <summary>The initiative's end date. On or after Start.</summary>
     public DateOnly End { get; set; }
 
     /// <summary>Semicolon-separated project keys the initiative delivers through.</summary>
     public string? ProjectKeys { get; set; }
 
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Sponsors { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Owners { get; set; }
 
     public ImportStrategicInitiativeDto ToImportStrategicInitiativeDto(
@@ -103,7 +112,10 @@ public sealed class ImportStrategicInitiativeKpiRequest
 
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
+    /// <summary>The value that defines success.</summary>
     public double TargetValue { get; set; }
+
+    /// <summary>The baseline value.</summary>
     public double? StartingValue { get; set; }
 
     /// <summary>A symbol shown before the value, such as "$".</summary>
@@ -113,6 +125,7 @@ public sealed class ImportStrategicInitiativeKpiRequest
     public string? Suffix { get; set; }
 
     /// <summary>Whether success means increasing or decreasing the value. Defaults to Increase.</summary>
+    [CsvValues(typeof(KpiTargetDirection))]
     public string TargetDirection { get; set; } = nameof(KpiTargetDirection.Increase);
 
     public ImportStrategicInitiativeKpiDto ToImportStrategicInitiativeKpiDto()

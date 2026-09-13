@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Enums.Work;
 using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Dtos;
+using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.Iterations.Dtos;
 using Wayd.Planning.Application.Iterations.Queries;
@@ -93,7 +94,8 @@ public class TeamsController(
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(TeamImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportTeamRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -136,7 +138,8 @@ public class TeamsController(
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportMembers([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(TeamMemberImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportMembers([FromForm, CsvRows(typeof(ImportTeamMemberRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -180,7 +183,8 @@ public class TeamsController(
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(TeamMembershipImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportTeamMemberships([FromForm, CsvRows(typeof(ImportTeamMembershipRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

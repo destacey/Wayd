@@ -10,6 +10,7 @@ using Wayd.Planning.Application.PlanningIntervals.Commands;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
 using Wayd.Planning.Application.PlanningIntervals.HealthChecks.Queries;
+using Wayd.Planning.Application.PlanningIntervals.Imports;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Dtos;
 using Wayd.Planning.Application.Risks.Queries;
@@ -118,7 +119,8 @@ public class PlanningIntervalsController : ControllerBase
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(PlanningIntervalImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportPlanningIntervalRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -778,7 +780,8 @@ public class PlanningIntervalsController : ControllerBase
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportObjectives([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(PlanningIntervalObjectiveImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportObjectives([FromForm, CsvRows(typeof(ImportPlanningIntervalObjectivesRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

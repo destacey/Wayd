@@ -25,6 +25,7 @@ public sealed class ImportReleasePackageRequest
 
     public string? Name { get; set; }
 
+    /// <summary>When the package is expected to ship.</summary>
     public DateOnly? TargetDate { get; set; }
 
     /// <summary>When the package shipped. Supplying it makes the package Released.</summary>
@@ -74,6 +75,7 @@ public sealed class ImportReleasePackageComponentRequest
     public string VersionNumber { get; set; } = default!;
 
     /// <summary>Whether the component changed in this package. `Changed` or `CarriedForward`.</summary>
+    [CsvValues(typeof(ManifestEntryKind))]
     public string Kind { get; set; } = nameof(ManifestEntryKind.Changed);
 
     public ImportReleasePackageComponentDto ToImportReleasePackageComponentDto() =>

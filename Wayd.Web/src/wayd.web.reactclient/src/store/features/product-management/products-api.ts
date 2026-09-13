@@ -3,7 +3,6 @@ import { apiSlice } from '../apiSlice'
 import {
   ChangeProductStatusRequest,
   CreateProductRequest,
-  ImportProcessDto,
   ObjectIdAndKey,
   ProductDto,
   ReparentProductRequest,
@@ -99,25 +98,6 @@ export const productsApi = apiSlice.injectEndpoints({
       providesTags: (result, error, arg) => [
         { type: QueryTags.StatusHistory, id: arg },
       ],
-    }),
-    // The generated client takes a FileParameter, so the caller hands over the browser File and
-    // its name travels with it.
-    importProducts: builder.mutation<ImportProcessDto, File>({
-      queryFn: async (file) => {
-        try {
-          // A file uploaded from the app is submitted on its own, under no group.
-          const data = await getProductsClient().import(undefined, {
-            data: file,
-            fileName: file.name,
-          })
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      // An import writes the whole tree at once, so the list is refetched rather than patched.
-      invalidatesTags: () => [{ type: QueryTags.Product, id: 'LIST' }],
     }),
     createProduct: builder.mutation<ObjectIdAndKey, CreateProductRequest>({
       queryFn: async (request) => {
@@ -302,7 +282,6 @@ export const {
   useGetProductQuery,
   useGetProductStatusOptionsQuery,
   useGetProductStatusHistoryQuery,
-  useImportProductsMutation,
   useCreateProductMutation,
   useUpdateProductMutation,
   useReparentProductMutation,

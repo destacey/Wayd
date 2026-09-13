@@ -6,6 +6,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 using Wayd.StrategicManagement.Application.StrategicThemes.Dtos;
+using Wayd.StrategicManagement.Application.StrategicThemes.Imports;
 using Wayd.StrategicManagement.Application.StrategicThemes.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.StrategicManagement.StrategicThemes;
@@ -85,7 +86,8 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(StrategicThemeImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportStrategicThemeRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.ProductManagement.Application.Deployments.Commands;
 using Wayd.ProductManagement.Application.Deployments.Dtos;
+using Wayd.ProductManagement.Application.Deployments.Imports;
 using Wayd.ProductManagement.Application.Deployments.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.ProductManagement.Deployments;
@@ -133,7 +134,8 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(DeploymentImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportDeploymentRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

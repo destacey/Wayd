@@ -24,6 +24,7 @@ public sealed class ImportPortfolioRequest
     public string Description { get; set; } = default!;
 
     /// <summary>The portfolio's status. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(ProjectPortfolioStatus))]
     public string Status { get; set; } = nameof(ProjectPortfolioStatus.Active);
 
     /// <summary>
@@ -39,8 +40,13 @@ public sealed class ImportPortfolioRequest
     /// </summary>
     public DateOnly? ActivatedOn { get; set; }
 
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Sponsors { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Owners { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Managers { get; set; }
 
     public ImportProjectPortfolioDto ToImportProjectPortfolioDto()

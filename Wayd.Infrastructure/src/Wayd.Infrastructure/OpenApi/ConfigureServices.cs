@@ -72,6 +72,7 @@ internal static class ConfigureServices
                 // bytes at all.
                 document.OperationProcessors.Add(new FormFileOperationProcessor());
                 document.DocumentProcessors.Add(new FormFileDocumentProcessor());
+                document.OperationProcessors.Add(new CsvImportOperationProcessor());
 
                 var fluentValidationSchemaProcessor = serviceProvider.CreateScope().ServiceProvider.GetService<FluentValidationSchemaProcessor>() ?? throw new InvalidOperationException("FluentValidationSchemaProcessor is not registered");
                 document.SchemaSettings.SchemaProcessors.Add(fluentValidationSchemaProcessor);

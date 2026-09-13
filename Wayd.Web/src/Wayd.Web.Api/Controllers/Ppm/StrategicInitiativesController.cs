@@ -6,6 +6,7 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Imports;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Queries;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Extensions;
@@ -81,7 +82,10 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromForm] IFormFile? kpiFile, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(StrategicInitiativeImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import(
+        [FromForm, CsvRows(typeof(ImportStrategicInitiativeRequest))] IFormFile file,
+        [FromForm, CsvRows(typeof(ImportStrategicInitiativeKpiRequest), Label = "KPIs")] IFormFile? kpiFile, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

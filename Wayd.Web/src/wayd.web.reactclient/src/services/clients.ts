@@ -189,7 +189,11 @@ function isNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   const e = error as { response?: unknown; code?: string; message?: string }
   if (e.response) return false
-  if (e.code === 'ERR_NETWORK' || e.code === 'ECONNABORTED' || e.code === 'ERR_CANCELED') {
+  if (
+    e.code === 'ERR_NETWORK' ||
+    e.code === 'ECONNABORTED' ||
+    e.code === 'ERR_CANCELED'
+  ) {
     return true
   }
   return e.message === 'Network Error'
@@ -198,7 +202,12 @@ function isNetworkError(error: unknown): boolean {
 function redirectToLoginWithReturnUrl(): void {
   if (typeof window === 'undefined') return
   const { pathname } = window.location
-  if (pathname && pathname !== '/' && pathname !== '/login' && pathname !== '/logout') {
+  if (
+    pathname &&
+    pathname !== '/' &&
+    pathname !== '/login' &&
+    pathname !== '/logout'
+  ) {
     sessionStorage.setItem('wayd.returnUrl', pathname)
   }
   window.location.href = '/login'
@@ -333,8 +342,15 @@ axiosClient.interceptors.response.use(
     // refetch-on-focus mean a single offline blip can produce dozens of
     // identical entries, and each endpoint's own queryFn already logs the
     // error with its endpoint context. Real server errors stay loud.
+    //
+    // A 400 or 422 is the server refusing the input, which the form that sent
+    // it shows to the user. Logged as an error, Next's dev overlay reports
+    // every rejected form as a crash.
+    const status = error.response?.status
     if (isNetworkError(error)) {
       console.warn('API unreachable:', error.config?.url)
+    } else if (status === 400 || status === 422) {
+      console.warn('API refused the request:', status, error.config?.url)
     } else {
       console.error('API Error:', error.message, error.config?.url)
     }
@@ -500,7 +516,8 @@ export const getFeatureFlagsClient = () =>
   new FeatureFlagsClient('', axiosClient)
 
 // USER MANAGEMENT
-export const getOidcProvidersClient = () => new OidcProvidersClient('', axiosClient)
+export const getOidcProvidersClient = () =>
+  new OidcProvidersClient('', axiosClient)
 export const getPermissionsClient = () => new PermissionsClient('', axiosClient)
 export const getProfileClient = () => new ProfileClient('', axiosClient)
 export const getRolesClient = () => new RolesClient('', axiosClient)

@@ -140,7 +140,8 @@ public class RecipeBoundsTests
               "timeline": { "companyAgeYears": -9, "teamStructureAgeYears": -9, "historyYears": -9, "runwayYears": -9 },
               "organization": { "deliveryRatio": 99, "valueStreams": -9, "teams": -9, "formerEmployeeFraction": 99 },
               "ppm": { "functionPortfolios": -9, "concurrentProjectsPerArt": -9, "concurrentProgramsPerPortfolio": -9 },
-              "productManagement": { "versionIntervalDays": -9, "changeFailureRate": 99, "packagedArtFraction": 99 }
+              "productManagement": { "versionIntervalDays": -9, "changeFailureRate": 99, "packagedArtFraction": 99 },
+              "planning": { "iterationWeeks": -9,"objectivesPerTeam": -9, "risksPerTeam": 99 }
             }
             """)!;
 

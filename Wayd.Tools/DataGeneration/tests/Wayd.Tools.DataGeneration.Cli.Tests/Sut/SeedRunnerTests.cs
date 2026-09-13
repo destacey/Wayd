@@ -127,6 +127,25 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public void Areas_DeclareEveryPlanningIdTheyReference()
+    {
+        // Arrange & Act & Assert — a roster, an objective and a risk each name a team by id, an objective
+        // names its interval, and a risk names the people who reported and own it
+        ShouldDependOn(PlanningArea.PlanningIntervals, OrganizationArea.Teams);
+        ShouldDependOn(PlanningArea.Objectives, PlanningArea.PlanningIntervals, OrganizationArea.Teams);
+        ShouldDependOn(PlanningArea.Risks, OrganizationArea.Teams, OrganizationArea.Employees);
+    }
+
+    [Fact]
+    public void Areas_DeclarePlanningAfterStaffing()
+    {
+        // Arrange & Act & Assert — Planning resolves teams against its own copy, which fills asynchronously
+        // after the teams import; staffing lands several runs later and gives it that time
+        ShouldDependOn(PlanningArea.PlanningIntervals, OrganizationArea.Staffing);
+        ShouldDependOn(PlanningArea.Risks, OrganizationArea.Staffing);
+    }
+
+    [Fact]
     public void Areas_DeclareTheHierarchyAfterTheTeamsItLinks()
     {
         // Arrange & Act & Assert

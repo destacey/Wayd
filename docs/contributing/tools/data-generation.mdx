@@ -8,8 +8,8 @@ audience: [developer, agent]
 # Data Generation (`wayd-data`)
 
 `wayd-data` is a developer tool that **generates a realistic company** — people and a management tree, a
-cross-functional delivery hierarchy, a full project-portfolio dataset, and a product catalog with its
-delivery history on top of it — and **seeds it into
+cross-functional delivery hierarchy, a full project-portfolio dataset, a product catalog with its
+delivery history, and each ART's planning history on top of it — and **seeds it into
 a Wayd environment through the public HTTP API**. Use it to stand up a believable environment for exploring
 features or demoing, without hand-crafting data. Every seed run also exercises the real API end to end, so
 it doubles as an integration smoke test.
@@ -18,12 +18,13 @@ it doubles as an integration smoke test.
 
 :::info Scope
 Generates the organization (people + team hierarchy), the PPM dataset (portfolios, programs, projects,
-tasks, strategic themes, and strategic initiatives with KPIs), and the Product Management dataset
-(products, versions, release packages, releases, deployment environments and deployments). Use the
-`org-only` recipe for the organization on its own, or `--skip-ppm` / `--skip-product-management` to leave
-out one area.
-Planning and work items are not generated. Database **reset** is a separate, out-of-band operation (an
-Aspire dashboard command), not part of this tool.
+tasks, strategic themes, and strategic initiatives with KPIs), the Product Management dataset
+(products, versions, release packages, releases, deployment environments and deployments), and the
+Planning dataset (planning intervals with their teams, objectives and risks). Use the `org-only` recipe for
+the organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` to leave out
+one area.
+Work items, sprints and objective health checks are not generated. Database **reset** is a separate,
+out-of-band operation (an Aspire dashboard command), not part of this tool.
 :::
 
 ## Quick start
@@ -37,8 +38,9 @@ recipe for you and shows the command it corresponds to.
 
 :::note `generate` writes files to read, not files to post
 The organization files are postable as they stand — every reference in them is a natural key the generator
-owns. The PPM and Product Management files are the generated model: they name portfolios, products and
-versions rather than pointing at ids, because those ids only exist once a run has created the records.
+owns. The PPM, Product Management and Planning files are the generated model: they name portfolios,
+products, versions and planning intervals rather than pointing at ids, because those ids only exist once a
+run has created the records.
 `seed` resolves them stage by stage as it goes; there is no way to write a postable file for either ahead of
 a run.
 :::
@@ -105,7 +107,7 @@ $ wayd-data recipes
   demo           A fixed dataset for demos and screenshots.
   enterprise     A large non-delivery-led business.
   large-tech     A scaled product organization.
-  org-only       The organization on its own, with no PPM or Product Management dataset over it.
+  org-only       The organization on its own, with no PPM, Product Management or Planning dataset over it.
   startup        A young company: one product line, a handful of teams.
 ```
 
@@ -177,9 +179,9 @@ Each area block carries an `enabled` flag, so switching one off is part of the f
 { "extends": "default", "ppm": { "enabled": false } }
 ```
 
-The `org-only` built-in disables both `ppm` and `productManagement`. `--skip-ppm` and
-`--skip-product-management` are shorthands for one area each, and only ever turn it off — leaving one out
-never switches an area back on over a recipe that disabled it.
+The `org-only` built-in disables `ppm`, `productManagement` and `planning`. `--skip-ppm`,
+`--skip-product-management` and `--skip-planning` are shorthands for one area each, and only ever turn it
+off — leaving one out never switches an area back on over a recipe that disabled it.
 
 The organization is the exception: it cannot be disabled, and saying so is an error rather than a silent
 no-op. Every other area is generated *over* it — portfolios and projects name people by employee number,
@@ -320,6 +322,10 @@ anything you can compose in the page, you can also say on a command line.
 | `--version-interval-days` | `14` | Average days between two versions of a service; web and mobile apps ship less often, libraries and tools far less |
 | `--change-failure-rate` | `0.12` | Share (0..0.6) of production deployments that fail or are rolled back, averaged over the history |
 | `--packaged-art-fraction` | `0.25` | Share (0..1) of ARTs that ship their services together as release packages; at least one ART when above zero |
+| `--skip-planning` | off | Skip the planning intervals and the objectives and risks planned in them |
+| `--iteration-weeks` | `2` | Length (1..4) of each iteration in a planning interval, in weeks; intervals are quarterly, so this also sets how many iterations each holds |
+| `--objectives-per-team` | `4` | Average objectives (1..10) a team commits to per planning interval, stretch objectives included |
+| `--risks-per-team` | `1.5` | Average risks (0..5) a team raises per planning interval |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (every area) |
 | `--as-of` | today | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
 | `--out`, `-o` | `./seed` | (`generate` and `ui`) output directory |
@@ -489,6 +495,40 @@ Product Management is seeded **disabled**, and every one of its endpoints — th
 says so in the log.
 :::
 
+### The Planning dataset
+
+Unless `--skip-planning` is passed, the generator gives every ART a planning history over the same delivery
+hierarchy.
+
+- **Planning intervals** — each ART runs its own series, named `{ART} PI {year}.{quarter}`, on one
+  quarterly calendar every ART shares. A planning year starts on the last Monday of January — companies
+  rarely plan over the holidays, or before the year's funding is settled — and holds four
+  intervals of whole iterations, the spare ones going to the second and fourth: with two-week iterations
+  that is six, seven, six and seven, which fills 52 weeks, so each interval starts at about the same time
+  every year. In a 53-week year the extra week goes to the last interval, whose final iteration is cut
+  short. Wayd generates the iterations from `--iteration-weeks`, prefixed `{yy}.{quarter}.`, the last one
+  Innovation and Planning. Intervals run back to back from the start of the history, one is always in
+  progress today, and the next one is scheduled when the runway reaches it. Each is rostered with the ART
+  itself and every team in it.
+- **Objectives** — each team commits to `--objectives-per-team` per interval, give or take one (3 to 5 at
+  the default); the ART itself plans none. Half the teams that plan three or more
+  hold the last back as a stretch objective. Each is worked from the start of one development iteration to
+  the end of the same or a later one, and is named for a service or application the team owns in the
+  [product catalog](#the-product-management-dataset) ("Deliver saved searches in Loyalty Gateway").
+  Objectives of an interval that has ended are all closed — **Completed**, **Missed** at the end, or
+  **Canceled** partway. The current interval's are as far along as the days elapsed suggest, and the next
+  interval has none, because objectives are set at planning. Teams keep more of their commitments as the
+  history approaches today, so predictability rises rather than sitting flat.
+- **Risks** — each team raises about `--risks-per-team` per interval, reported by someone on the team on a
+  day that has passed, sometimes naming a dependency on another team in the ART or one of its own
+  components. Most are closed within a few weeks under a ROAM category; the rest stay open as Owned,
+  Accepted or Mitigated with a follow-up date ahead. Nothing reported more than a few months ago is left
+  open.
+
+Objective health checks are not generated. There is no import for them, and the endpoint that creates one
+records the signed-in user's employee as the reporter and stamps the real time rather than a date in the
+history.
+
 ## Reproducibility
 
 Every run resolves a concrete seed (random when `--random-seed` is omitted) and prints it:
@@ -518,8 +558,9 @@ the database IDs.
 
 The tool **never touches the database directly** — it POSTs CSV to the API's import endpoints (the same
 endpoints documented in the [Organization](../../user-guide/organizations/bulk-import.mdx),
-[PPM](../../user-guide/ppm/bulk-import.mdx) and
-[Product Management](../../user-guide/product-management/bulk-import.mdx) Bulk Import guides), and each
+[PPM](../../user-guide/ppm/bulk-import.mdx),
+[Product Management](../../user-guide/product-management/bulk-import.mdx) and
+[Planning](../../user-guide/planning/bulk-import.mdx) Bulk Import guides), and each
 import handler creates rows
 **through the owning domain's commands**. This is deliberate: Wayd domains keep
 aligned local copies of shared concepts (creating an `Organization.Team` replicates it into the PPM,
@@ -550,6 +591,9 @@ employees → teams → team hierarchy → roles (created as needed) → team st
 product-management feature flag → deployment environments
                                 → products → versions → release packages (+ manifests) → releases (+ contents)
                                                       → deployments (after environments and packages)
+
+team staffing → planning intervals (+ rosters) → planning interval objectives
+              → risks
 ```
 
 Product Management depends on nothing in the organization or PPM areas — it references no employees — so
@@ -557,10 +601,15 @@ it only needs its own order. Versions come before packages because a manifest li
 if the version already exists, and releases come last because a release is accepted as released only once
 everything it carries has been saved as shipped.
 
+Planning references teams and employees by id, but it resolves teams against Planning's own copy of them,
+which Organization fills asynchronously after the teams import. A team that has not landed there yet
+rejects the row — and with it the whole file — so the Planning areas also wait on staffing, which runs
+several imports later and leaves the copy time to catch up.
+
 ### One area can be more than one file
 
-An import rejects a file past its row cap outright, and the atomic ones — which is all of the PPM and
-Product Management imports — cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a
+An import rejects a file past its row cap outright, and the atomic ones — which is all of the PPM, Product
+Management and Planning imports — cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a
 run that is applied as one transaction; it is the server's guard against an arbitrary client, and the seed
 is a client like any other.
 
@@ -582,7 +631,9 @@ whole and rejected rather than split, because a named failure beats a file that 
 Versions, release packages, releases and deployments are batched the same way — by product, by package
 (with that package's manifest lines), by release (with its contents) and by what was deployed. Deployments
 are the one that needs it: a `large-tech` seed produces more than 10,000. Products and environments are
-always one file each, because a product's parent has to be a row in the same file.
+always one file each, because a product's parent has to be a row in the same file. Planning intervals,
+objectives and risks are batched too — by interval, by interval and by team — though none of them comes
+near the cap at the built-in sizes.
 
 ### Post, wait, read back, substitute
 

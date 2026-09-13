@@ -186,6 +186,40 @@
           "x-cli-flag": "--packaged-art-fraction"
         }
       }
+    },
+    "planning": {
+      "type": "object",
+      "description": "The planning intervals each ART runs — quarterly, on a calendar every ART shares, rostered with the ART and its teams — and the objectives and risks its teams plan in them.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the area is generated at all.",
+          "x-cli-flag": "--skip-planning",
+          "x-cli-flag-negates": true
+        },
+        "iterationWeeks": {
+          "type": "integer",
+          "description": "Length of each iteration in a planning interval, in weeks. Intervals are quarterly — a year's four hold six, seven, six and seven two-week iterations — so this also sets how many iterations each holds.",
+          "minimum": 1,
+          "maximum": 4,
+          "x-cli-flag": "--iteration-weeks"
+        },
+        "objectivesPerTeam": {
+          "type": "integer",
+          "description": "Average number of objectives a team commits to per planning interval, stretch objectives included.",
+          "minimum": 1,
+          "maximum": 10,
+          "x-cli-flag": "--objectives-per-team"
+        },
+        "risksPerTeam": {
+          "type": "number",
+          "description": "Average number of risks a team raises per planning interval.",
+          "minimum": 0,
+          "maximum": 5,
+          "x-cli-flag": "--risks-per-team"
+        }
+      }
     }
   }
 }

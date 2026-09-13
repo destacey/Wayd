@@ -133,6 +133,12 @@ public class RecipeLayeringTests
                 ChangeFailureRate = 0.01,
                 PackagedArtFraction = 0.01,
             },
+            Planning = new PlanningRecipe
+            {
+                IterationWeeks = 1,
+                ObjectivesPerTeam = 1,
+                RisksPerTeam = 0.5,
+            },
         };
 
         var over = new Recipe
@@ -166,6 +172,12 @@ public class RecipeLayeringTests
                 ChangeFailureRate = 0.3,
                 PackagedArtFraction = 0.4,
             },
+            Planning = new PlanningRecipe
+            {
+                IterationWeeks = 3,
+                ObjectivesPerTeam = 7,
+                RisksPerTeam = 2.5,
+            },
         };
 
         // Act
@@ -193,6 +205,10 @@ public class RecipeLayeringTests
         result.ProductManagement.VersionIntervalDays.Should().Be(21);
         result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
         result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
+
+        result.Planning.IterationWeeks.Should().Be(3);
+        result.Planning.ObjectivesPerTeam.Should().Be(7);
+        result.Planning.RisksPerTeam.Should().Be(2.5);
     }
 
     [Fact]
@@ -231,6 +247,12 @@ public class RecipeLayeringTests
                 ChangeFailureRate = 0.3,
                 PackagedArtFraction = 0.4,
             },
+            Planning = new PlanningRecipe
+            {
+                IterationWeeks = 3,
+                ObjectivesPerTeam = 7,
+                RisksPerTeam = 2.5,
+            },
         };
 
         // Act — an upper layer that states nothing at all, which is what an unflagged run looks like
@@ -258,6 +280,10 @@ public class RecipeLayeringTests
         result.ProductManagement.VersionIntervalDays.Should().Be(21);
         result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
         result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
+
+        result.Planning.IterationWeeks.Should().Be(3);
+        result.Planning.ObjectivesPerTeam.Should().Be(7);
+        result.Planning.RisksPerTeam.Should().Be(2.5);
     }
 
     [Fact]

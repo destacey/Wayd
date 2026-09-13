@@ -22,5 +22,8 @@
     "versionIntervalDays": 28,
     "changeFailureRate": 0.2,
     "packagedArtFraction": 0.6
+  },
+  "planning": {
+    "risksPerTeam": 2.5
   }
 }

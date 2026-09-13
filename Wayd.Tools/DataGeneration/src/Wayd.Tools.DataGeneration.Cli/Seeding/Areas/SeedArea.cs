@@ -64,4 +64,29 @@ public abstract class SeedArea(string name, params string[] dependsOn) : ISeedAr
 
         return batches;
     }
+
+    /// <summary>
+    /// Posts each batch as its own run and gathers what they created. Each run is atomic, so a failure
+    /// names the batch it happened in and nothing from that batch exists.
+    /// </summary>
+    protected static async Task<IReadOnlyDictionary<string, Guid>> ImportBatches<TRow>(
+        SeedContext context,
+        string label,
+        IReadOnlyList<IReadOnlyList<TRow>> batches,
+        Func<IReadOnlyList<TRow>, Task<ImportRun>> import)
+    {
+        Dictionary<string, Guid> created = new(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < batches.Count; i++)
+        {
+            if (batches.Count > 1)
+                context.Log($"  batch {i + 1} of {batches.Count}: {batches[i].Count} {label}");
+
+            var run = await import(batches[i]);
+            foreach (var (importId, id) in run.CreatedIdsByImportId)
+                created[importId] = id;
+        }
+
+        return created;
+    }
 }

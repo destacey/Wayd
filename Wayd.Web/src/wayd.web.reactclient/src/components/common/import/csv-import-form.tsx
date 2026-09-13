@@ -273,7 +273,11 @@ const CsvImportForm = ({
             value={importKey}
             onChange={selectImport}
             options={groups}
-            notFoundContent="You have no imports you may submit."
+            notFoundContent={
+              offered.length === 0
+                ? 'You have no imports you may submit.'
+                : 'No import matches.'
+            }
           />
         </Form.Item>
       </Form>

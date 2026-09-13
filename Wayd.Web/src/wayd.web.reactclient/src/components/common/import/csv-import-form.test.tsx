@@ -187,6 +187,7 @@ describe('CsvImportForm', () => {
 
     // Assert
     expect(document.querySelectorAll('.ant-select-item-option')).toHaveLength(0)
+    expect(await screen.findByText('No import matches.')).toBeInTheDocument()
     await userEvent.clear(search)
     await userEvent.type(search, 'themes')
     const options = Array.from(

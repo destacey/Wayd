@@ -24,6 +24,8 @@ export interface ImportFileTemplate {
 }
 
 export interface ImportTemplate {
+  /** The API module the endpoint lives in — `ppm` for `/api/ppm/projects/import`. */
+  readonly module: string
   /** The endpoint's own account of what the import does, from its OpenAPI description. */
   readonly description?: string
   readonly files: readonly ImportFileTemplate[]

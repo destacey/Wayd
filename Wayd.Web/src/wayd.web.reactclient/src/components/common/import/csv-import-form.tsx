@@ -92,6 +92,21 @@ const describeRun = (run: ImportProcessDto) => {
   return { title, description: [rejected, run.error].filter(Boolean).join(' ') }
 }
 
+type ImportModule = (typeof importTemplates)[ImportKey]['module']
+
+/**
+ * The group each API module's imports are listed under. Keyed by every generated module, so an import from
+ * a new module cannot be offered without a group. Strategic themes sit with PPM, where they are set up
+ * alongside the portfolios and initiatives that use them.
+ */
+const IMPORT_GROUPS: Record<ImportModule, string> = {
+  organization: 'Organization',
+  planning: 'Planning',
+  ppm: 'Project Portfolio Management',
+  'product-management': 'Product Management',
+  'strategic-management': 'Project Portfolio Management',
+}
+
 const toFileName = (text: string) =>
   text
     .toLowerCase()
@@ -144,6 +159,23 @@ const CsvImportForm = ({
   const offered = definitions
     .filter((d) => d.canSubmit && isKnownImport(d.key))
     .sort((a, b) => caseInsensitiveCompare(a.displayName, b.displayName))
+
+  // Groups by name, and only the ones holding an import this viewer may submit.
+  const groups = Object.entries(
+    Object.groupBy(
+      offered,
+      (d) => IMPORT_GROUPS[importTemplates[d.key as ImportKey].module],
+    ),
+  )
+    .sort(([a], [b]) => caseInsensitiveCompare(a, b))
+    .map(([label, imports]) => ({
+      label,
+      title: label,
+      options: (imports ?? []).map((d) => ({
+        value: d.key as ImportKey,
+        label: d.displayName,
+      })),
+    }))
 
   const definition = offered.find((d) => d.key === importKey)
   const template: ImportTemplate | undefined = importKey
@@ -228,14 +260,19 @@ const CsvImportForm = ({
       <Form layout="vertical">
         <Form.Item label="What are you importing?" required>
           <Select<ImportKey>
-            showSearch={{ optionFilterProp: 'label' }}
+            showSearch={{
+              // Matches imports by name only. antd otherwise matches a group's name too and keeps
+              // the whole group, so "management" would list every Product Management import.
+              filterOption: (input, option) =>
+                !option?.options &&
+                String(option?.label ?? '')
+                  .toLowerCase()
+                  .includes(input.toLowerCase()),
+            }}
             placeholder="Select an import"
             value={importKey}
             onChange={selectImport}
-            options={offered.map((d) => ({
-              value: d.key as ImportKey,
-              label: d.displayName,
-            }))}
+            options={groups}
             notFoundContent="You have no imports you may submit."
           />
         </Form.Item>

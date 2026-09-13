@@ -86,14 +86,23 @@ const buildColumns = (spec, schemaName) => {
   })
 }
 
+/** The module an endpoint belongs to: the first segment after `api` — `ppm` in `/api/ppm/projects/import`. */
+const moduleOf = (path) => {
+  const [prefix, module] = path.split('/').filter(Boolean)
+  if (prefix !== 'api' || !module) {
+    throw new Error(`Cannot read a module from the import route '${path}'.`)
+  }
+  return module
+}
+
 /**
- * @returns {Record<string, { description?: string, files: { field: string, label?: string, required: boolean, columns: object[] }[] }>}
+ * @returns {Record<string, { module: string, description?: string, files: { field: string, label?: string, required: boolean, columns: object[] }[] }>}
  *   One entry per import definition key, sorted by key so the generated file diffs cleanly.
  */
 export const buildImportTemplates = (spec) => {
   const templates = {}
 
-  for (const pathItem of Object.values(spec.paths ?? {})) {
+  for (const [path, pathItem] of Object.entries(spec.paths ?? {})) {
     for (const method of HTTP_METHODS) {
       const operation = pathItem[method]
       const extension = operation?.[IMPORT_EXTENSION]
@@ -103,7 +112,7 @@ export const buildImportTemplates = (spec) => {
         throw new Error(`Two endpoints declare the import '${extension.key}'.`)
       }
 
-      const template = {}
+      const template = { module: moduleOf(path) }
       const description = operation.description?.replace(/\s+/g, ' ').trim()
       if (description) template.description = description
       template.files = extension.files.map((file) => {

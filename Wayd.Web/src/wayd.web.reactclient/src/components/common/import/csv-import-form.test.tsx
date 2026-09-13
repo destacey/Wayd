@@ -155,6 +155,46 @@ describe('CsvImportForm', () => {
     expect(options).toEqual(['Release Packages', 'Strategic Themes'])
   })
 
+  it('lists imports under their area, with strategic themes under PPM', async () => {
+    // Arrange
+    renderForm()
+
+    // Act
+    await userEvent.click(screen.getByRole('combobox'))
+
+    // Assert
+    await screen.findByTitle('Strategic Themes')
+    const items = Array.from(
+      document.querySelectorAll(
+        '.ant-select-item-group, .ant-select-item-option',
+      ),
+    ).map((item) => item.getAttribute('title'))
+    expect(items).toEqual([
+      'Product Management',
+      'Release Packages',
+      'Project Portfolio Management',
+      'Strategic Themes',
+    ])
+  })
+
+  it('searches imports by name, not by the area they are grouped under', async () => {
+    // Arrange
+    renderForm()
+    const search = screen.getByRole('combobox')
+
+    // Act — "Management" names both groups but neither import
+    await userEvent.type(search, 'Management')
+
+    // Assert
+    expect(document.querySelectorAll('.ant-select-item-option')).toHaveLength(0)
+    await userEvent.clear(search)
+    await userEvent.type(search, 'themes')
+    const options = Array.from(
+      document.querySelectorAll('.ant-select-item-option'),
+    ).map((o) => o.getAttribute('title'))
+    expect(options).toEqual(['Strategic Themes'])
+  })
+
   it('hands over a template carrying every column of the file', async () => {
     // Arrange
     renderForm()

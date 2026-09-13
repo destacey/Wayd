@@ -4,6 +4,7 @@ import type { ImportTemplate } from './import-template'
 
 export const importTemplates = {
   employees: {
+    module: 'organization',
     files: [
       {
         field: 'file',
@@ -106,6 +107,7 @@ export const importTemplates = {
     ],
   },
   'planning.planning-interval-objectives': {
+    module: 'planning',
     description:
       'Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.',
     files: [
@@ -193,6 +195,7 @@ export const importTemplates = {
     ],
   },
   'planning.planning-intervals': {
+    module: 'planning',
     description:
       'One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.',
     files: [
@@ -260,6 +263,7 @@ export const importTemplates = {
     ],
   },
   'planning.risks': {
+    module: 'planning',
     files: [
       {
         field: 'file',
@@ -356,6 +360,7 @@ export const importTemplates = {
     ],
   },
   'ppm.finalizations': {
+    module: 'ppm',
     description:
       'Completes or cancels programs and closes or archives portfolios, after their contents have been imported.',
     files: [
@@ -404,6 +409,7 @@ export const importTemplates = {
     ],
   },
   'ppm.portfolios': {
+    module: 'ppm',
     files: [
       {
         field: 'file',
@@ -473,6 +479,7 @@ export const importTemplates = {
     ],
   },
   'ppm.programs': {
+    module: 'ppm',
     files: [
       {
         field: 'file',
@@ -567,6 +574,7 @@ export const importTemplates = {
     ],
   },
   'ppm.project-stages': {
+    module: 'ppm',
     description:
       'Each row names the project and stage it sets, so one file can cover many projects.',
     files: [
@@ -607,6 +615,7 @@ export const importTemplates = {
     ],
   },
   'ppm.project-tasks': {
+    module: 'ppm',
     description:
       'Each row names the project it belongs to, so one file can cover many projects.',
     files: [
@@ -725,6 +734,7 @@ export const importTemplates = {
     ],
   },
   'ppm.projects': {
+    module: 'ppm',
     files: [
       {
         field: 'file',
@@ -872,6 +882,7 @@ export const importTemplates = {
     ],
   },
   'ppm.strategic-initiatives': {
+    module: 'ppm',
     description:
       'Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.',
     files: [
@@ -1015,6 +1026,7 @@ export const importTemplates = {
     ],
   },
   'product-management.deployment-environments': {
+    module: 'product-management',
     description:
       "Each row is created active unless IsActive is false, in which case it is created and then retired — for the environments a historical backfill's deployments still point at.",
     files: [
@@ -1063,6 +1075,7 @@ export const importTemplates = {
     ],
   },
   'product-management.deployments': {
+    module: 'product-management',
     description:
       'Each row names its version or package by id and its environment by name, and is walked to the outcome it describes with the timestamps it carries: no outcome leaves it in flight, Succeeded and Failed complete it, and RolledBack records a success and then the rollback. A build number is never resolved to a version.',
     files: [
@@ -1146,6 +1159,7 @@ export const importTemplates = {
     ],
   },
   'product-management.products': {
+    module: 'product-management',
     files: [
       {
         field: 'file',
@@ -1210,6 +1224,7 @@ export const importTemplates = {
     ],
   },
   'product-management.release-packages': {
+    module: 'product-management',
     description:
       'Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.',
     files: [
@@ -1292,6 +1307,7 @@ export const importTemplates = {
     ],
   },
   'product-management.releases': {
+    module: 'product-management',
     description:
       'Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.',
     files: [
@@ -1392,6 +1408,7 @@ export const importTemplates = {
     ],
   },
   'product-management.versions': {
+    module: 'product-management',
     description:
       'Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.',
     files: [
@@ -1465,6 +1482,7 @@ export const importTemplates = {
     ],
   },
   'strategic.themes': {
+    module: 'strategic-management',
     files: [
       {
         field: 'file',
@@ -1502,6 +1520,7 @@ export const importTemplates = {
     ],
   },
   'team-members': {
+    module: 'organization',
     files: [
       {
         field: 'file',
@@ -1541,6 +1560,7 @@ export const importTemplates = {
     ],
   },
   'team-memberships': {
+    module: 'organization',
     files: [
       {
         field: 'file',
@@ -1588,6 +1608,7 @@ export const importTemplates = {
     ],
   },
   teams: {
+    module: 'organization',
     files: [
       {
         field: 'file',

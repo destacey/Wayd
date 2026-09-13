@@ -5,6 +5,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Programs.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
@@ -95,7 +96,8 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(ProgramImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportProgramRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

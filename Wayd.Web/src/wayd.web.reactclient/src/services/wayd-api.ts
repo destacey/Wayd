@@ -41971,6 +41971,18 @@ export enum ImportProcessStatus {
     Cancelled = "Cancelled",
 }
 
+/** A single CSV row for the strategic theme import. State is the theme's state on creation (case-insensitive: "Proposed" / "Active" / "Archived"), applied directly rather than through the activate/archive transitions. */
+export interface ImportStrategicThemeRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    name: string;
+    description: string;
+    /** The theme's state. Defaults to Active when the column is absent. */
+    state: string;
+}
+
 export interface UpdateStrategicThemeRequest {
     /** The unique identifier of the strategic theme. */
     id: string;
@@ -42123,6 +42135,23 @@ together. */
     ringOrder: number;
 }
 
+/** A single CSV row for the deployment environment import. An environment is identified by Name, which is unique across the organization. The deployments import names its environment by this, so a file of environments is what a historical backfill loads first. */
+export interface ImportDeploymentEnvironmentRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    /** What your organization calls it — "Production", "prod-eu", "QA2". */
+    name: string;
+    /** Development, Testing, Staging or Production, case-insensitively. */
+    category: string;
+    /** Position in a progressive rollout, lowest first. */
+    ringOrder: number;
+    /** Whether the environment is still deployed into. Blank means active; false creates it and
+then retires it, for the environments a historical backfill's deployments still point at. */
+    isActive?: boolean | undefined;
+}
+
 /** Renames an environment, repositions it, and sets what kind of target it is. */
 export interface UpdateDeploymentEnvironmentRequest {
     /** The unique identifier of the environment. */
@@ -42229,6 +42258,34 @@ one version are two deployments. Free text, never parsed. */
     startedAt?: Date | undefined;
 }
 
+/** A single CSV row for the deployment import. Exactly one of VersionId and PackageId is set, both by id. The environment is named, because names are unique. A build number is never resolved to a version: the row says which version it deployed and carries the build as its ArtifactId. There is no status column. A row with no Outcome is still in flight; one with an outcome is walked through the same transitions a person would record, with the real timestamps supplied here. A rollback is recorded as a success first, so it needs both the time it completed and the time it was reverted. Timestamps are instants, and each must carry its offset — 2026-03-01T14:30:00Z or 2026-03-01T09:30:00-05:00. A value with no offset is refused rather than read in the server's zone, which would shift every historical deployment by whatever that zone happens to be. */
+export interface ImportDeploymentRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    /** The version deployed, by id. Leave empty when a package was deployed. */
+    versionId?: string | undefined;
+    /** The package deployed, by id. Leave empty when a version was deployed. */
+    packageId?: string | undefined;
+    /** The environment reached, by name. */
+    environmentName: string;
+    /** The build that actually shipped — 4.8.2.008 where the version number is 4.8.2. */
+    artifactId?: string | undefined;
+    /** When the deployment began, with its offset. */
+    startedAt: string;
+    /** Succeeded, Failed or RolledBack, case-insensitively. Blank leaves the
+deployment in flight. */
+    outcome?: string | undefined;
+    /** When the deployment reached its outcome, with its offset. Required with an outcome. For a
+rollback, when it succeeded. */
+    completedAt: string;
+    /** When a rolled-back deployment was reverted, with its offset. Required for a rollback. */
+    rolledBackAt: string;
+    /** Why it failed or was rolled back. Max 1024 chars. */
+    reason?: string | undefined;
+}
+
 /** Records that a deployment reached its environment. */
 export interface SucceedDeploymentRequest {
     /** When it completed. Defaults to now. */
@@ -42282,6 +42339,28 @@ export interface CreateProductRequest {
     parentId?: string | undefined;
     /** The node's identifier in whatever system owns it — a repository, a pipeline, a registry package. */
     externalId?: string | undefined;
+}
+
+/** A single CSV row for the product import. ParentImportId must name another row in the same file by its ImportId, or be empty for a root. A product already in the catalog cannot be named as a parent — this import stands a catalog up rather than grafting single products onto one, which is what the screens are for. Names cannot serve as the link: a tree legitimately holds the same name in two places, so keying on names would make such a file unimportable. */
+export interface ImportProductRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it, and child rows name it as their ParentImportId. Falls back to the row's
+position when the column is absent — but a file with parents should supply it, since a
+position is a fragile thing to reference. */
+    importId?: string | undefined;
+    name: string;
+    description?: string | undefined;
+    /** The product type by name, which must already exist and be active. */
+    productTypeName: string;
+    /** The ImportId of another row in this file, or empty for a root product. */
+    parentImportId?: string | undefined;
+    externalId?: string | undefined;
+    /** The status by name, which must belong to the product workflow. Defaults to the workflow's
+initial status when the column is absent or blank. */
+    status?: string | undefined;
+    /** The product's tags, as semicolon-separated Category|Tag pairs —
+Platform|ios;Platform|android;Compliance|pci-scope. */
+    tags?: string | undefined;
 }
 
 /** A whole-record update of a product's descriptive fields. */
@@ -42496,6 +42575,32 @@ component version that was never cut as a version of its own. */
     kind: ManifestEntryKind;
 }
 
+/** A single CSV row for the release package import — one package, without its manifest. A package is identified by Version alone: it has no product, because it spans them. Manifest lines arrive in a second file and point back here by this row's ImportId. */
+export interface ImportReleasePackageRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it, and the manifest file names it to say which package a line belongs to.
+Falls back to the row's position when the column is absent. */
+    importId?: string | undefined;
+    /** The package's own version, distinct from any component's. Free text, never parsed. */
+    version: string;
+    name?: string | undefined;
+    targetDate?: Date | undefined;
+    /** When the package shipped. Supplying it makes the package Released. */
+    releasedDate?: Date | undefined;
+}
+
+/** A single CSV row for the manifest file: one component of one package. */
+export interface ImportReleasePackageComponentRequest {
+    /** The `ImportId` of the package row this line belongs to. */
+    packageImportId: string;
+    /** The component product, by id. */
+    productId: string;
+    /** The component's version in this package. Free text, never parsed. */
+    versionNumber: string;
+    /** Whether the component changed in this package. `Changed` or `CarriedForward`. */
+    kind: string;
+}
+
 /** Replaces a package's manifest wholesale. */
 export interface SetReleasePackageManifestRequest {
     /** Every component version in this package. Replaces the manifest entirely. */
@@ -42555,6 +42660,38 @@ Free text, never parsed: nothing sorts or compares it. */
     targetDate?: Date | undefined;
     /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
+}
+
+/** A single CSV row for the release import — one release, without its contents. A release is identified by Version alone. ProductId is optional by design: a release spanning product lines has no single owner, so requiring one would force a misleading choice. */
+export interface ImportReleaseRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it, and the contents file names it to say which release a row belongs to.
+Falls back to the row's position when the column is absent. */
+    importId?: string | undefined;
+    /** The release as the organization announces it — `2026.07`. Free text, never parsed. */
+    version: string;
+    name?: string | undefined;
+    /** The product this release is announced under, if any, by id. Usually a product line. */
+    productId?: string | undefined;
+    targetDate?: Date | undefined;
+    /** When it was announced. Supplying it makes the release Released — and is refused while anything
+it carries has not shipped. */
+    releasedDate?: Date | undefined;
+    sequence?: number | undefined;
+    /** Product notes for this release, written for customers. */
+    notes?: string | undefined;
+}
+
+/** A single CSV row for the contents file: one thing a release announces. */
+export interface ImportReleaseContentRequest {
+    /** The `ImportId` of the release row this row belongs to. */
+    releaseImportId: string;
+    /** `Package` or `Version`. */
+    kind: string;
+    /** The package, by id. Required when Kind is `Package`. */
+    packageId: string;
+    /** The version, by id. Required when Kind is `Version`. */
+    versionId: string;
 }
 
 /** A whole-record update of a release's descriptive fields. */
@@ -42636,6 +42773,28 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
     targetDate?: Date | undefined;
     /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
+}
+
+/** A single CSV row for the version import. The product is referenced by id, and a version is identified by that product together with its Number — version strings are free text and only meaningful within one product, so two products may each hold a 1.0.0. There is no status column: the dates decide where the version ends up. A row with no dates is planned, a CutDate makes it ready, and a ReleasedDate makes it released. A released date without a cut date is legitimate — a version recorded after the fact often has no record of when scope froze. */
+export interface ImportVersionRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    /** The product this version was cut against, by id. Must be a releasable type. */
+    productId: string;
+    /** The version as the organization writes it. Free text, never parsed. */
+    number: string;
+    name?: string | undefined;
+    targetDate?: Date | undefined;
+    /** When scope froze. Supplying it makes the version Ready. */
+    cutDate?: Date | undefined;
+    /** When it shipped. Supplying it makes the version Released. */
+    releasedDate?: Date | undefined;
+    /** A manual ordering override, for the rare case where chronology misleads. */
+    sequence?: number | undefined;
+    /** Engineering notes for this version. */
+    notes?: string | undefined;
 }
 
 /** A whole-record update of a version's descriptive fields. */
@@ -42793,6 +42952,43 @@ export interface CreatePortfolioRequest {
     ownerIds?: string[] | undefined;
     /** The managers of the portfolio. */
     managerIds?: string[] | undefined;
+}
+
+/** A single CSV row for the portfolio import. Status is the status the portfolio should end up in (case-insensitive), reached by replaying the real lifecycle transitions — which is why the transition dates are on the row: a portfolio only ever gets its date range from those transitions, never from creation. Role columns hold semicolon-separated employee numbers, since a CSV cell cannot carry a list. */
+export interface ImportPortfolioRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    name: string;
+    description: string;
+    /** The portfolio's status. Defaults to Active when the column is absent. */
+    status: string;
+    /** The date the portfolio was proposed. Required on every row. Nothing stores it yet — a portfolio
+keeps no creation date beyond the audit stamp, which records when the file was uploaded — but the
+column is required now so that no file has to change on the day one is kept. */
+    createdOn: Date;
+    /** The date the portfolio was activated. Required unless the portfolio is Proposed. There is no
+closing date here: an import cannot close a portfolio, so the finalize import carries that one. */
+    activatedOn?: Date | undefined;
+    sponsors?: string | undefined;
+    owners?: string | undefined;
+    managers?: string | undefined;
+}
+
+/** A single CSV row for the finalization import, closing one program or portfolio after its contents have been imported. Type discriminates between the two (case-insensitive: "Program" / "Portfolio") and says how to read Id. */
+export interface ImportPpmFinalizationRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    type: string;
+    /** The program or portfolio this row closes, per Type. */
+    id: string;
+    /** Programs: 'Completed' or 'Canceled'. Portfolios: 'Closed' or 'Archived'. */
+    status: string;
+    /** The portfolio's end date. Required for portfolio rows, ignored for program rows. */
+    endDate?: Date | undefined;
 }
 
 export interface UpdatePortfolioRequest {
@@ -43018,6 +43214,35 @@ export interface CreateProgramRequest {
     managerIds?: string[] | undefined;
     /** The strategic themes associated with this program. */
     strategicThemeIds?: string[] | undefined;
+}
+
+/** A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes by a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers. Status is the status the program should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
+export interface ImportProgramRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    name: string;
+    description: string;
+    portfolioId: string;
+    /** The program's status. Defaults to Active when the column is absent. */
+    status: string;
+    /** The timeline the program plans to run over. */
+    start?: Date | undefined;
+    end?: Date | undefined;
+    /** The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps
+no transition dates beyond the audit stamp, which records when the file was uploaded — but the
+column is required now so that no file has to change on the day one is kept. */
+    createdOn: Date;
+    /** The date the program became active. Required once the status is Active or Completed, optional on a
+canceled program, and rejected on one that never got that far. There is no closing date here: an
+import cannot complete or cancel a program, so the finalize import carries that one. */
+    activatedOn?: Date | undefined;
+    /** Semicolon-separated strategic theme ids. */
+    strategicThemes?: string | undefined;
+    sponsors?: string | undefined;
+    owners?: string | undefined;
+    managers?: string | undefined;
 }
 
 export interface UpdateProgramRequest {
@@ -43254,6 +43479,88 @@ Examples: revenue growth, cost savings, compliance achievement, efficiency impro
     memberIds?: string[] | undefined;
     /** The strategic themes associated with this project. */
     strategicThemeIds?: string[] | undefined;
+}
+
+/** A single CSV row for the project import. Key is the project's natural key, which project tasks and strategic initiatives reference. The portfolio, program, expenditure category and lifecycle are referenced by id; strategic themes and the role columns hold semicolon-separated lists. Status is the status the project should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
+export interface ImportProjectRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    name: string;
+    description: string;
+    key: string;
+    portfolioId: string;
+    expenditureCategoryId: number;
+    /** The project's status. Defaults to Active when the column is absent. */
+    status: string;
+    /** The program this project belongs to, if any. The program must be in the same portfolio. */
+    programId?: string | undefined;
+    /** The lifecycle to assign. Required for approved projects, and by any project with tasks. */
+    projectLifecycleId?: string | undefined;
+    businessCase?: string | undefined;
+    expectedBenefits?: string | undefined;
+    /** The timeline the project plans to run over. */
+    start?: Date | undefined;
+    end?: Date | undefined;
+    /** The date the project was proposed. Required on every row, and what the project's opening status
+history entry is dated — the audit stamp records when the file was uploaded, which is not the
+same thing. */
+    createdOn: Date;
+    /** The date the project became active. Required once the status is Active or Completed, optional on
+a canceled project, and rejected on one that never got that far. */
+    activatedOn?: Date | undefined;
+    /** The date the project was completed or canceled — the status says which. Required on those two
+statuses and rejected on the rest. */
+    closedOn?: Date | undefined;
+    /** Semicolon-separated strategic theme ids. */
+    strategicThemes?: string | undefined;
+    sponsors?: string | undefined;
+    owners?: string | undefined;
+    managers?: string | undefined;
+    members?: string | undefined;
+}
+
+/** A single CSV row for the project task import. The project is referenced by key and the stage by name (stages come from the project's assigned lifecycle). A task nests under another row in this file by its ParentImportId, or under a task the project already has by ParentTaskId; with neither it is a root task of its stage. Rows may be listed in any order — parents are applied before children. */
+export interface ImportProjectTaskRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it, and child rows name it as their ParentImportId. Falls back to the row's
+position when the column is absent, so a hand-authored file still works. */
+    importId?: string | undefined;
+    projectKey: string;
+    name: string;
+    description?: string | undefined;
+    stageName: string;
+    /** The ImportId of the row this task nests under. Empty makes it a root task of its stage. */
+    parentImportId?: string | undefined;
+    /** The id of an existing task this one nests under. Cannot be combined with ParentImportId. */
+    parentTaskId?: string | undefined;
+    /** 'Task' or 'Milestone'. Defaults to Task when the column is absent. */
+    type: string;
+    status: string;
+    priority: string;
+    /** Percent complete (0-100). Required for tasks, not allowed for milestones. */
+    progress?: number | undefined;
+    /** Planned start, for tasks. Milestones use PlannedDate instead. */
+    plannedStart?: Date | undefined;
+    plannedEnd?: Date | undefined;
+    /** The milestone's date. Only for milestones. */
+    plannedDate?: Date | undefined;
+    estimatedEffortHours?: number | undefined;
+    /** Semicolon-separated employee numbers assigned to the task. */
+    assignees?: string | undefined;
+}
+
+/** A single CSV row for the project stage import: sets one stage's status. The project is referenced by key and the stage by name (stages come from the project's assigned lifecycle). The status is applied as given. */
+export interface ImportProjectStageRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    projectKey: string;
+    stageName: string;
+    /** The stage status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'. */
+    status: string;
 }
 
 export interface UpdateProjectRequest {
@@ -43691,6 +43998,43 @@ export interface CreateStrategicInitiativeRequest {
     ownerIds?: string[] | undefined;
 }
 
+/** A single CSV row for the strategic initiative import. The owning portfolio is referenced by id and the delivering projects by a semicolon-separated list of their keys; role columns hold semicolon-separated employee numbers. Status is the status the initiative should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
+export interface ImportStrategicInitiativeRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it, and the KPI file names it to say which initiative a KPI belongs to. Falls back
+to the row's position when the column is absent, so a hand-authored file still works. */
+    importId?: string | undefined;
+    name: string;
+    description: string;
+    portfolioId: string;
+    /** The initiative's status. Defaults to Active when the column is absent. */
+    status: string;
+    start: Date;
+    end: Date;
+    /** Semicolon-separated project keys the initiative delivers through. */
+    projectKeys?: string | undefined;
+    sponsors?: string | undefined;
+    owners?: string | undefined;
+}
+
+/** A single CSV row for the strategic initiative KPI import, attached to its initiative by that row's ImportId. KPIs are a separate file because an initiative has many of them, which a single initiative row cannot carry. */
+export interface ImportStrategicInitiativeKpiRequest {
+    /** The ImportId of the initiative row this KPI belongs to. Where that row left the column
+blank its position stands in, so 1 reaches the first initiative — but a file carrying KPIs
+should supply ImportId, since inserting a row silently re-parents every KPI below it. */
+    strategicInitiativeImportId: string;
+    name: string;
+    description?: string | undefined;
+    targetValue: number;
+    startingValue?: number | undefined;
+    /** A symbol shown before the value, such as "$". */
+    prefix?: string | undefined;
+    /** A symbol shown after the value, such as "%". */
+    suffix?: string | undefined;
+    /** Whether success means increasing or decreasing the value. Defaults to Increase. */
+    targetDirection: string;
+}
+
 export interface UpdateStrategicInitiativeRequest {
     id: string;
     /** The name of the strategic initiative. */
@@ -43971,6 +44315,29 @@ export interface CreatePlanningIntervalRequest {
     iterationWeeks: number;
     /** Gets or sets the iteration prefix. */
     iterationPrefix?: string | undefined;
+}
+
+/** A single CSV row for the planning interval import. The teams that ran the interval ride on the same row as TeamIds, a semicolon-separated list of ids — the repo's multi-value column convention — so one row is one planning interval and there is no second file. */
+export interface ImportPlanningIntervalRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    name: string;
+    description?: string | undefined;
+    /** The dates the interval ran over. Its iterations are generated inside this range. */
+    start: Date;
+    end: Date;
+    /** The cadence the interval's iterations are generated from. There is no column for the iterations
+themselves: an interval whose real history had irregular lengths or names is corrected afterwards
+on its own dates screen. */
+    iterationWeeks: number;
+    /** Prefixes each generated iteration's name, which is otherwise just its sequence number — so
+iterations from different intervals stay tellable apart. */
+    iterationPrefix?: string | undefined;
+    /** Semicolon-separated ids of the teams that ran the interval. Blank leaves the new interval with no
+teams; nothing is ever replaced, since this import only creates. */
+    teamIds?: string | undefined;
 }
 
 export interface UpdatePlanningIntervalRequest {
@@ -44320,6 +44687,24 @@ export interface ManagePlanningIntervalObjectiveWorkItemsRequest {
     workItemIds: string[];
 }
 
+export interface ImportPlanningIntervalObjectivesRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    planningIntervalId: string;
+    teamId: string;
+    name: string;
+    description?: string | undefined;
+    statusId: number;
+    progress: number;
+    startDate?: Date | undefined;
+    targetDate?: Date | undefined;
+    isStretch: boolean;
+    closedDateUtc?: Date | undefined;
+    order?: number | undefined;
+}
+
 export interface PlanningIntervalObjectiveStatusDto {
     id: number;
     name: string;
@@ -44477,6 +44862,26 @@ export interface UpdateRiskRequest {
     assigneeId?: string | undefined;
     followUpDate?: Date | undefined;
     response?: string | undefined;
+}
+
+export interface ImportRiskRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    teamId: string;
+    summary: string;
+    description?: string | undefined;
+    reportedOnUtc: Date;
+    reportedById: string;
+    statusId: number;
+    categoryId: number;
+    impactId: number;
+    likelihoodId: number;
+    assigneeId?: string | undefined;
+    followUpDate?: Date | undefined;
+    response?: string | undefined;
+    closedDateUtc?: Date | undefined;
 }
 
 export interface RiskStatusDto {
@@ -45298,6 +45703,32 @@ export interface CreateEmployeeRequest {
     managerId?: string | undefined;
 }
 
+/** A single CSV row for the employee import. References the row's manager by employee number so an entire management tree can be imported at once; linkage is resolved server-side after all rows are created. */
+export interface ImportEmployeeRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it, and it is how a row is identified without depending on a display name. Falls
+back to the row's position when the column is absent, so a hand-authored file still works. */
+    importId?: string | undefined;
+    employeeNumber: string;
+    firstName: string;
+    middleName?: string | undefined;
+    lastName: string;
+    email: string;
+    hireDate?: Date | undefined;
+    jobTitle?: string | undefined;
+    department?: string | undefined;
+    officeLocation?: string | undefined;
+    managerNumber?: string | undefined;
+    /** Whether the employee is currently active. Defaults to true when the column is absent. */
+    isActive: boolean;
+    /** The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form. */
+    employeeType?: string | undefined;
+    /** Further work addresses for this person, semicolon-separated. Email stays the
+primary; these are additional addresses the person is known by in other systems — typically ones
+left behind by a domain or tenant move. Home and personal addresses do not belong here. */
+    additionalEmails?: string | undefined;
+}
+
 export interface UpdateEmployeeRequest {
     /** Gets or sets the identifier. */
     id: string;
@@ -45416,6 +45847,46 @@ export interface CreateTeamRequest {
     description?: string | undefined;
     /** The active date for the team. */
     activeDate: Date;
+}
+
+/** A single CSV row for the unified team import. Type discriminates between a Team and a Team of Teams (case-insensitive: "Team" / "TeamOfTeams"). Both share the same create shape. */
+export interface ImportTeamRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    type: string;
+    name: string;
+    code: string;
+    description?: string | undefined;
+    activeDate: Date;
+    /** Whether the team is currently active. Defaults to true when the column is absent. */
+    isActive: boolean;
+    /** When the team was retired. Required when IsActive is false; must be after ActiveDate. */
+    inactiveDate?: Date | undefined;
+}
+
+/** A single CSV row for team staffing: places one employee on one team in one role, all by natural key. Multiple roles for the same employee on the same team are expressed as multiple rows. */
+export interface ImportTeamMemberRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    teamCode: string;
+    employeeNumber: string;
+    roleName: string;
+}
+
+/** A single CSV row for the team-hierarchy import: places a child team (or team of teams) under a parent team of teams for a date range, all by natural key. */
+export interface ImportTeamMembershipRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent, so a
+hand-authored file still works. */
+    importId?: string | undefined;
+    childCode: string;
+    parentCode: string;
+    start: Date;
+    end?: Date | undefined;
 }
 
 export interface UpdateTeamRequest {

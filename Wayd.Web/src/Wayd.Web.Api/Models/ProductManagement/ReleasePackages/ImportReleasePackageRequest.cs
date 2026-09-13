@@ -74,6 +74,7 @@ public sealed class ImportReleasePackageComponentRequest
     public string VersionNumber { get; set; } = default!;
 
     /// <summary>Whether the component changed in this package. `Changed` or `CarriedForward`.</summary>
+    [CsvValues(typeof(ManifestEntryKind))]
     public string Kind { get; set; } = nameof(ManifestEntryKind.Changed);
 
     public ImportReleasePackageComponentDto ToImportReleasePackageComponentDto() =>

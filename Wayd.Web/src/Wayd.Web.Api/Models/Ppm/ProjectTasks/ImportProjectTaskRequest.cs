@@ -35,9 +35,13 @@ public sealed class ImportProjectTaskRequest
     public Guid? ParentTaskId { get; set; }
 
     /// <summary>'Task' or 'Milestone'. Defaults to Task when the column is absent.</summary>
+    [CsvValues(typeof(ProjectTaskType))]
     public string Type { get; set; } = nameof(ProjectTaskType.Task);
 
+    [CsvValues(typeof(TaskStatus))]
     public string Status { get; set; } = nameof(TaskStatus.NotStarted);
+
+    [CsvValues(typeof(TaskPriority))]
     public string Priority { get; set; } = nameof(TaskPriority.Medium);
 
     /// <summary>Percent complete (0-100). Required for tasks, not allowed for milestones.</summary>

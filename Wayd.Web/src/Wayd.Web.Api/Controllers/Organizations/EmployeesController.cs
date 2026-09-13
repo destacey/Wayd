@@ -1,6 +1,7 @@
 ﻿using CsvHelper;
 using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Employees.Queries;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
@@ -73,7 +74,8 @@ public class EmployeesController(
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(EmployeeImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportEmployeeRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

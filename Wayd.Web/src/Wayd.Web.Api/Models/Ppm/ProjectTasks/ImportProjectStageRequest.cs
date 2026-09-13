@@ -22,6 +22,7 @@ public sealed class ImportProjectStageRequest
     public string StageName { get; set; } = default!;
 
     /// <summary>The stage status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.</summary>
+    [CsvValues(typeof(TaskStatus))]
     public string Status { get; set; } = default!;
 
     public ImportProjectStageDto ToImportProjectStageDto()

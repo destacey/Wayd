@@ -29,6 +29,7 @@ public sealed class ImportProjectRequest
     public int ExpenditureCategoryId { get; set; }
 
     /// <summary>The project's status. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(ProjectStatus))]
     public string Status { get; set; } = nameof(ProjectStatus.Active);
 
     /// <summary>The program this project belongs to, if any. The program must be in the same portfolio.</summary>

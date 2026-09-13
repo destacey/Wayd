@@ -26,6 +26,7 @@ public sealed class ImportDeploymentEnvironmentRequest
     /// <summary>
     /// <c>Development</c>, <c>Testing</c>, <c>Staging</c> or <c>Production</c>, case-insensitively.
     /// </summary>
+    [CsvValues(typeof(EnvironmentCategory))]
     public string Category { get; set; } = default!;
 
     /// <summary>Position in a progressive rollout, lowest first.</summary>

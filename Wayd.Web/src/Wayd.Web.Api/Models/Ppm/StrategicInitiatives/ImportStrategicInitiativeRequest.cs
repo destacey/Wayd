@@ -25,6 +25,7 @@ public sealed class ImportStrategicInitiativeRequest
     public Guid PortfolioId { get; set; }
 
     /// <summary>The initiative's status. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(StrategicInitiativeStatus))]
     public string Status { get; set; } = nameof(StrategicInitiativeStatus.Active);
 
     public DateOnly Start { get; set; }
@@ -113,6 +114,7 @@ public sealed class ImportStrategicInitiativeKpiRequest
     public string? Suffix { get; set; }
 
     /// <summary>Whether success means increasing or decreasing the value. Defaults to Increase.</summary>
+    [CsvValues(typeof(KpiTargetDirection))]
     public string TargetDirection { get; set; } = nameof(KpiTargetDirection.Increase);
 
     public ImportStrategicInitiativeKpiDto ToImportStrategicInitiativeKpiDto()

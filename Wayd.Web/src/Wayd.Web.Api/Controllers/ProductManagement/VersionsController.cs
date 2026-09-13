@@ -8,6 +8,7 @@ using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Versions.Commands;
 using Wayd.ProductManagement.Application.Versions.Dtos;
+using Wayd.ProductManagement.Application.Versions.Imports;
 using Wayd.ProductManagement.Application.Versions.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.ProductManagement.Versions;
@@ -126,7 +127,8 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(VersionImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportVersionRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

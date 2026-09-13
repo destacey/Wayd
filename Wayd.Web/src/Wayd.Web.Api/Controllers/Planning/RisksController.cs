@@ -3,6 +3,7 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Planning.Application.Risks.Commands;
 using Wayd.Planning.Application.Risks.Dtos;
+using Wayd.Planning.Application.Risks.Imports;
 using Wayd.Planning.Application.Risks.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Planning.Risks;
@@ -99,7 +100,8 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(RiskImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportRiskRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

@@ -24,6 +24,7 @@ public sealed class ImportProgramRequest
     public Guid PortfolioId { get; set; }
 
     /// <summary>The program's status. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(ProgramStatus))]
     public string Status { get; set; } = nameof(ProgramStatus.Active);
 
     /// <summary>The timeline the program plans to run over.</summary>

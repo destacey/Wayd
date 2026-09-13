@@ -24,6 +24,7 @@ public sealed class ImportPortfolioRequest
     public string Description { get; set; } = default!;
 
     /// <summary>The portfolio's status. Defaults to Active when the column is absent.</summary>
+    [CsvValues(typeof(ProjectPortfolioStatus))]
     public string Status { get; set; } = nameof(ProjectPortfolioStatus.Active);
 
     /// <summary>

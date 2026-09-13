@@ -17,12 +17,14 @@ public sealed class ImportPpmFinalizationRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    [CsvValues(typeof(FinalizePpmItemType))]
     public string Type { get; set; } = default!;
 
     /// <summary>The program or portfolio this row closes, per Type.</summary>
     public Guid Id { get; set; }
 
     /// <summary>Programs: 'Completed' or 'Canceled'. Portfolios: 'Closed' or 'Archived'.</summary>
+    [CsvValues(typeof(FinalizePpmItemStatus))]
     public string Status { get; set; } = default!;
 
     /// <summary>The portfolio's end date. Required for portfolio rows, ignored for program rows.</summary>

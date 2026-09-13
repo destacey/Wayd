@@ -19,6 +19,7 @@ public sealed class ImportTeamRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    [CsvValues(typeof(TeamType))]
     public string Type { get; set; } = default!;
     public string Name { get; set; } = default!;
     public string Code { get; set; } = default!;

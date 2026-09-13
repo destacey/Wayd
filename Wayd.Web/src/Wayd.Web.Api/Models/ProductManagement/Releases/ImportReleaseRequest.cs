@@ -81,6 +81,7 @@ public sealed class ImportReleaseContentRequest
     public string ReleaseImportId { get; set; } = default!;
 
     /// <summary>`Package` or `Version`.</summary>
+    [CsvValues(typeof(ReleaseContentKind))]
     public string Kind { get; set; } = nameof(ReleaseContentKind.Package);
 
     /// <summary>The package, by id. Required when <see cref="Kind"/> is `Package`.</summary>

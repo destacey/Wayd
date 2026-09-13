@@ -50,6 +50,7 @@ public sealed class ImportDeploymentRequest
     /// <c>Succeeded</c>, <c>Failed</c> or <c>RolledBack</c>, case-insensitively. Blank leaves the
     /// deployment in flight.
     /// </summary>
+    [CsvValues(typeof(ImportDeploymentOutcome))]
     public string? Outcome { get; set; }
 
     /// <summary>

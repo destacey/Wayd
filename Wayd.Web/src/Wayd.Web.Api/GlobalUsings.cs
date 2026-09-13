@@ -16,6 +16,7 @@ global using Wayd.Common.Domain.Authorization;
 global using Wayd.Common.Models;
 global using Wayd.Infrastructure.Auth.Permissions;
 global using Wayd.Infrastructure.Middleware;
+global using Wayd.Infrastructure.OpenApi;
 global using Wayd.Web.Api.Services;
 global using Wayd.Work.Application.WorkStatuses.Commands;
 global using NodaTime;

@@ -6,10 +6,12 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Ppm.ProjectLifecycles;
@@ -137,7 +139,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(ProjectImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportProjectRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -183,7 +186,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportTasks([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(ProjectTaskImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportTasks([FromForm, CsvRows(typeof(ImportProjectTaskRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -230,7 +234,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportStages([FromForm] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    [CsvImport(ProjectStageImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportStages([FromForm, CsvRows(typeof(ImportProjectStageRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {

@@ -7,6 +7,7 @@ using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth.Permissions;
+using Wayd.Infrastructure.OpenApi;
 using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Planning.Application.PlanningIntervals.Imports;
 using Wayd.Planning.Application.Risks.Imports;
@@ -93,6 +94,33 @@ public sealed class ImportEndpointPermissionTests
 
         // Assert
         policy.Should().Be(expected);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public void Endpoint_DeclaresTheImportItSubmits(Type controller, string method, Type definitionType)
+    {
+        // Arrange
+        var definition = (IImportDefinition)RuntimeHelpers.GetUninitializedObject(definitionType);
+
+        // Act
+        var importKey = controller.GetMethod(method)!.GetCustomAttribute<CsvImportAttribute>()?.ImportKey;
+
+        // Assert — the key is how the Imports page pairs a definition with its endpoint and columns
+        importKey.Should().Be(definition.Key);
+    }
+
+    [Fact]
+    public void Endpoints_DeclareTheRowsEachFileCarries()
+    {
+        // Arrange & Act
+        var undeclared = ImportEndpoints()
+            .SelectMany(m => m.GetParameters()
+                .Where(p => p.ParameterType == typeof(IFormFile) && p.GetCustomAttribute<CsvRowsAttribute>() is null)
+                .Select(p => $"{m.DeclaringType!.Name}.{m.Name}({p.Name})"));
+
+        // Assert — without it the OpenAPI document cannot describe the file's columns, and generation fails
+        undeclared.Should().BeEmpty();
     }
 
     [Fact]

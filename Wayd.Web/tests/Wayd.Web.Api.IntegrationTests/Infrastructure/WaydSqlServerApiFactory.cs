@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.MsSql;
 using Wayd.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
-using Wayd.Tests.Shared.Infrastructure;
+using Wayd.Tests.Containers;
 using Wayd.Web.Api.Services;
 
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
@@ -41,7 +41,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
     private static readonly ImportResponseTiming _defaultImportResponseTiming =
         new(TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(250));
 
-    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerTestImage.Name).Build();
+    private MsSqlContainer _container = null!;
 
     private string _connectionString = null!;
 
@@ -71,7 +71,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     public async ValueTask InitializeAsync()
     {
-        await _container.StartAsync();
+        _container = await SqlServerTestContainer.Start();
 
         // Testcontainers reports the container ready as soon as SQL Server accepts a connection, but under CI
         // load (several of these containers starting at once on far fewer cores) the engine can still be
@@ -109,7 +109,8 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         HandlerCodegenMode.Clear();
 
         await base.DisposeAsync();
-        await _container.DisposeAsync();
+        if (_container is not null)
+            await _container.DisposeAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- How every integration suite gets its SQL Server. Kept apart from Wayd.Tests.Shared so the unit test
+       projects that reference that library never pull in Testcontainers. A project referencing this one must
+       still reference Testcontainers itself to be classified as an integration project (see
+       Directory.Build.targets). -->
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.MsSql" />
+  </ItemGroup>
+
+</Project>

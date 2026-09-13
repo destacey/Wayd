@@ -64,7 +64,7 @@ parallel_args=()
 if [[ "$mode" == "integration" ]]; then
     # Pull the image once, up front. Otherwise every suite that starts at the same time downloads it at the
     # same time, and the download eats into each container's start-up time.
-    image="$(grep -oP '(?<=Name = ")[^"]+' Wayd.Common/tests/Wayd.Tests.Shared/Infrastructure/SqlServerTestImage.cs)"
+    image="$(grep -oP '(?<=Name = ")[^"]+' Wayd.Common/tests/Wayd.Tests.Containers/SqlServerTestImage.cs)"
     echo "Pulling $image"
     docker pull --quiet "$image"
 

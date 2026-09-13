@@ -8,7 +8,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
-using Wayd.Tests.Shared.Infrastructure;
+using Wayd.Tests.Containers;
 using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -22,14 +22,14 @@ namespace Wayd.Infrastructure.IntegrationTests.Infrastructure;
 /// <remarks>Requires Docker on the machine running the tests.</remarks>
 public sealed class SqlServerDbContextFixture : IAsyncLifetime
 {
-    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerTestImage.Name).Build();
+    private MsSqlContainer _container = null!;
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;
 
     public async ValueTask InitializeAsync()
     {
-        await _container.StartAsync();
+        _container = await SqlServerTestContainer.Start();
 
         var connectionString = _container.GetConnectionString();
 
@@ -59,7 +59,8 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        await _container.DisposeAsync();
+        if (_container is not null)
+            await _container.DisposeAsync();
     }
 
     /// <summary>Creates a fresh context against the container, with no-op collaborators.</summary>

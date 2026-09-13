@@ -10,6 +10,7 @@
     <Project Path="Wayd.Common/tests/Wayd.Common.Domain.Tests/Wayd.Common.Domain.Tests.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Common.Tests/Wayd.Common.Tests.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.TestData.Core/Wayd.TestData.Core.csproj" />
+    <Project Path="Wayd.Common/tests/Wayd.Tests.Containers/Wayd.Tests.Containers.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Tests.Shared/Wayd.Tests.Shared.csproj" />
   </Folder>
   <Folder Name="/Wayd.Infrastructure/" />

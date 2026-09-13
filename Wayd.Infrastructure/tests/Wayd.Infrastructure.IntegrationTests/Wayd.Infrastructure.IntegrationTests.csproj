@@ -28,7 +28,7 @@
              NodaTime mapping all behave exactly as in production. -->
         <ProjectReference Include="..\..\src\Wayd.Infrastructure.Migrators.MSSQL\Wayd.Infrastructure.Migrators.MSSQL.csproj" />
         <ProjectReference Include="..\..\src\Wayd.Infrastructure\Wayd.Infrastructure.csproj" />
-        <ProjectReference Include="..\..\..\Wayd.Common\tests\Wayd.Tests.Shared\Wayd.Tests.Shared.csproj" />
+        <ProjectReference Include="..\..\..\Wayd.Common\tests\Wayd.Tests.Containers\Wayd.Tests.Containers.csproj" />
     </ItemGroup>
 
 </Project>

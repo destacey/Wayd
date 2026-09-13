@@ -54,7 +54,7 @@ public class TestProjectTests
 
         // Assert
         invalidTestProjects.Should().BeEmpty(
-            "All test projects should end with '.Tests' or '.IntegrationTests' (except shared test utilities like Wayd.Tests.Shared and *.TestData faker libraries). Invalid projects: {0}",
+            "All test projects should end with '.Tests' or '.IntegrationTests' (except shared test utilities like Wayd.Tests.Shared, Wayd.Tests.Containers and *.TestData faker libraries). Invalid projects: {0}",
             string.Join(", ", invalidTestProjects));
     }
 

@@ -1,4 +1,4 @@
-namespace Wayd.Tests.Shared.Infrastructure;
+namespace Wayd.Tests.Containers;
 
 /// <summary>The SQL Server image every Testcontainers suite runs against.</summary>
 /// <remarks>

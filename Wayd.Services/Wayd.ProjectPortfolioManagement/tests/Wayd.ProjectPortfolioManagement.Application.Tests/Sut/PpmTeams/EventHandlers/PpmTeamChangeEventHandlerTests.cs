@@ -129,33 +129,6 @@ public sealed class PpmTeamChangeEventHandlerTests : IDisposable
         _dbContext.PpmTeams.Single(t => t.Id == id).IsActive.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task Handle_Deleted_WhenTheCopyExists_RemovesAndSaves()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        _dbContext.AddPpmTeam(new PpmTeam(new PpmTeamFaker().WithId(id).Generate(), Created));
-
-        // Act
-        await _handler.Handle(new TeamDeletedEvent(id, 1, new TeamCode("ABC01"), EventActor.System, Reactivated), TestContext.Current.CancellationToken);
-
-        // Assert
-        _dbContext.PpmTeams.Should().BeEmpty();
-        _dbContext.SaveChangesCallCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task Handle_Deleted_WhenRedelivered_IsNoOp()
-    {
-        // Arrange
-
-        // Act
-        await _handler.Handle(new TeamDeletedEvent(Guid.NewGuid(), 1, new TeamCode("ABC01"), EventActor.System, Reactivated), TestContext.Current.CancellationToken);
-
-        // Assert
-        _dbContext.SaveChangesCallCount.Should().Be(0);
-    }
-
     private void SourceReturns(ISimpleTeam? team) =>
         _dispatcher
             .Setup(d => d.Send(It.IsAny<GetSimpleTeamQuery>(), It.IsAny<CancellationToken>()))

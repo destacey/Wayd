@@ -63,22 +63,6 @@ public sealed class PlanningTeamChangeEventHandler(
         await Apply(@event.Id, @event.Timestamp, t => t.ApplyActivation(false, @event.Timestamp), "deactivation", cancellationToken);
     }
 
-    public async Task Handle(TeamDeletedEvent @event, CancellationToken cancellationToken)
-    {
-        var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == @event.Id, cancellationToken);
-        if (existingTeam is null)
-        {
-            _logger.LogInformation("[{SystemActionType}] Planning Team delete skipped: {PlanningTeamId} has no copy.", SystemActionType.ServiceDataReplication, @event.Id);
-            return;
-        }
-
-        // TODO: consider making the team inactive or archiving it instead of deleting it.  Maybe we only delete if the planning team has never been used?
-        _planningDbContext.PlanningTeams.Remove(existingTeam);
-        await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("[{SystemActionType}] Planning Team deleted. {PlanningTeamId}", SystemActionType.ServiceDataReplication, @event.Id);
-    }
-
     private async Task Apply(Guid teamId, Instant timestamp, Func<PlanningTeam, bool> apply, string change, CancellationToken cancellationToken)
     {
         var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == teamId, cancellationToken);

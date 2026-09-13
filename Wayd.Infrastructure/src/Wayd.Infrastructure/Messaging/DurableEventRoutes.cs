@@ -90,7 +90,6 @@ public static class DurableEventRoutes
         typeof(TeamDetailsUpdatedEvent),
         typeof(TeamActivatedEvent),
         typeof(TeamDeactivatedEvent),
-        typeof(TeamDeletedEvent),
 
         // Superseded by TeamDetailsUpdatedEvent; routed durably for envelopes written before the switch.
 #pragma warning disable CS0618

@@ -4,6 +4,14 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Organization;
 
+/// <summary>
+/// A team was deleted.
+/// </summary>
+/// <remarks>
+/// Nothing raises it and nothing handles it: a team or team of teams cannot be deleted, only deactivated. The
+/// type is kept because a published event is never removed. A delete added later must raise it from the team
+/// and give each module keeping a team copy a handler before it ships.
+/// </remarks>
 public sealed record TeamDeletedEvent : DomainEvent<TeamDeletedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Removed;

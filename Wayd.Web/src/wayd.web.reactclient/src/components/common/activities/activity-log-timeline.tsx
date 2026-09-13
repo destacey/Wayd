@@ -256,11 +256,13 @@ export const isActivityMatchingQuery = (
   const eventType = (act.eventType ?? '').toLowerCase()
   const actorKind = (act.actorKind ?? '').toLowerCase()
   const employeeName = (act.employee?.name ?? '').toLowerCase()
+  const badgeLabel = getEventBadge(act.category).label.toLowerCase()
   return (
     summary.includes(q) ||
     eventType.includes(q) ||
     actorKind.includes(q) ||
-    employeeName.includes(q)
+    employeeName.includes(q) ||
+    badgeLabel.includes(q)
   )
 }
 
@@ -361,6 +363,10 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
       </Card>
     )
   }
+
+  const selectedBadge = selectedActivity
+    ? getEventBadge(selectedActivity.category)
+    : null
 
   const selectedDetails = selectedActivity
     ? parsePayloadDetails(selectedActivity.payload)
@@ -712,11 +718,11 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                     </Text>
                   </Flex>
                   <Tag
-                    color={getEventBadge(selectedActivity.category).color}
+                    color={selectedBadge?.color}
                     variant="filled"
                     style={{ margin: 0, padding: '2px 8px' }}
                   >
-                    {getEventBadge(selectedActivity.category).label}
+                    {selectedBadge?.label}
                   </Tag>
                 </Flex>
 

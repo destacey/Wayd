@@ -50,6 +50,7 @@ export const formatEventForExport = (event: ActivityLogDto) => {
   return {
     id: event.id,
     eventType: event.eventType,
+    category: event.category,
     domainArea: event.domainArea,
     aggregateType: event.aggregateType,
     aggregateId: event.aggregateId,

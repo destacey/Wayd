@@ -277,6 +277,34 @@ describe('ActivityLogTimeline', () => {
     expect(screen.queryByText('Rollback Release')).not.toBeInTheDocument()
   })
 
+  it('matches a search against the badge an entry shows', async () => {
+    const user = userEvent.setup()
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        eventType: 'IterationDateRangeChangedEvent',
+        summary: 'Iteration Date Range Changed',
+        category: ActivityCategory.ScheduleChanged,
+      }),
+      createActivity({
+        id: 'act-2',
+        summary: 'Team Created',
+      }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    await user.type(
+      screen.getByPlaceholderText('Search events, actors, or types...'),
+      'schedule change',
+    )
+
+    expect(
+      screen.getAllByText('Iteration Date Range Changed').length,
+    ).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText('Team Created')).not.toBeInTheDocument()
+  })
+
   it('renders load more toolbar with remaining count and triggers callback on click', async () => {
     const user = userEvent.setup()
     const handleLoadMore = jest.fn()

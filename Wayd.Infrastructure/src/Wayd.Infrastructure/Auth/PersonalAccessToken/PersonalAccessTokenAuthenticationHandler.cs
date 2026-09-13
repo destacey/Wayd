@@ -2,9 +2,9 @@
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Wayd.Infrastructure.Identity;
 
 namespace Wayd.Infrastructure.Auth.PersonalAccessToken;
 
@@ -19,7 +19,7 @@ public class PersonalAccessTokenAuthenticationHandler : AuthenticationHandler<Au
     private readonly WaydDbContext _dbContext;
     private readonly ITokenHashingService _tokenHashingService;
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly LastSeenWriter _lastSeenWriter;
     private readonly ILogger<PersonalAccessTokenAuthenticationHandler> _logger;
 
     public PersonalAccessTokenAuthenticationHandler(
@@ -29,15 +29,14 @@ public class PersonalAccessTokenAuthenticationHandler : AuthenticationHandler<Au
         WaydDbContext dbContext,
         ITokenHashingService tokenHashingService,
         IDateTimeProvider dateTimeProvider,
-        IServiceProvider serviceProvider)
+        LastSeenWriter lastSeenWriter)
         : base(options, loggerFactory, encoder)
     {
         _dbContext = dbContext;
         _tokenHashingService = tokenHashingService;
         _dateTimeProvider = dateTimeProvider;
-        _serviceProvider = serviceProvider;
+        _lastSeenWriter = lastSeenWriter;
         _logger = loggerFactory.CreateLogger<PersonalAccessTokenAuthenticationHandler>();
-
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -103,38 +102,7 @@ public class PersonalAccessTokenAuthenticationHandler : AuthenticationHandler<Au
                 return AuthenticateResult.Fail("User not found or inactive.");
             }
 
-            // Update last used timestamp only if it's been more than 1 hour since last use
-            // This reduces database writes by ~99% while still providing useful tracking
-            var hoursSinceLastUse = matchingToken.LastUsedAt.HasValue
-                ? (now - matchingToken.LastUsedAt.Value).TotalHours
-                : double.MaxValue;
-
-            if (hoursSinceLastUse >= 1.0)
-            {
-                // Use a separate scoped DbContext for the background update to avoid tracking conflicts
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        using var scope = _serviceProvider.CreateScope();
-                        var dbContext = scope.ServiceProvider.GetRequiredService<WaydDbContext>();
-                        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-
-                        var token = await dbContext.PersonalAccessTokens
-                            .FirstOrDefaultAsync(t => t.Id == matchingToken.Id);
-
-                        if (token != null)
-                        {
-                            token.UpdateLastUsed(dateTimeProvider.Now);
-                            await dbContext.SaveChangesAsync();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to update last used timestamp for token {TokenId}", matchingToken.Id);
-                    }
-                });
-            }
+            _lastSeenWriter.RecordTokenUse(matchingToken.Id, now);
 
             // Build claims principal
             var claims = new List<Claim>

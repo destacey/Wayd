@@ -2,7 +2,9 @@
 
 namespace Wayd.Planning.Application.PlanningTeams.Commands;
 
-public sealed record SyncPlanningTeamsCommand(IEnumerable<ISimpleTeam> Teams) : ICommand, ILongRunningRequest;
+/// <param name="Teams">Every Organization team, as read from the source.</param>
+/// <param name="AsOf">When the source was read, taken before the read began.</param>
+public sealed record SyncPlanningTeamsCommand(IEnumerable<ISimpleTeam> Teams, Instant AsOf) : ICommand, ILongRunningRequest;
 
 public sealed class SyncPlanningTeamsCommandHandler(
     IPlanningDbContext planningDbContext,
@@ -32,40 +34,33 @@ public sealed class SyncPlanningTeamsCommandHandler(
             var existingTeams = await _planningDbContext.PlanningTeams
                 .ToListAsync(cancellationToken);
 
-            var existingIds = existingTeams.Select(x => x.Id).ToHashSet();
+            var sourceIds = request.Teams.Select(x => x.Id).ToHashSet();
 
-            // Handle deletes
-            var deleteIds = existingIds.Except(request.Teams.Select(x => x.Id)).ToList();
-            if (deleteIds.Count != 0)
+            // A copy that took a change after the read belongs to a team created after it, not a deleted one.
+            var teamsToDelete = existingTeams
+                .Where(x => !sourceIds.Contains(x.Id) && !x.Watermarks.AnyAfter(request.AsOf))
+                .ToList();
+            if (teamsToDelete.Count != 0)
             {
-                var teamsToDelete = existingTeams.Where(x => deleteIds.Contains(x.Id)).ToList();
                 _planningDbContext.PlanningTeams.RemoveRange(teamsToDelete);
                 deleteCount = teamsToDelete.Count;
             }
 
-            // Handle creates and updates
             foreach (var team in request.Teams)
             {
                 var existingTeam = existingTeams.FirstOrDefault(x => x.Id == team.Id);
                 if (existingTeam == null)
                 {
-                    var newTeam = new PlanningTeam(team);
-
-                    await _planningDbContext.PlanningTeams.AddAsync(newTeam, cancellationToken);
+                    await _planningDbContext.PlanningTeams.AddAsync(new PlanningTeam(team, request.AsOf), cancellationToken);
                     createCount++;
+                }
+                else if (existingTeam.Resync(team, request.AsOf))
+                {
+                    updateCount++;
                 }
                 else
                 {
-                    // Update existing team if necessary
-                    if (!existingTeam.EqualsSimpleTeam(team))
-                    {
-                        existingTeam.UpdateSimpleTeam(team);
-                        updateCount++;
-                    }
-                    else
-                    {
-                        matchedCount++;
-                    }
+                    matchedCount++;
                 }
             }
 

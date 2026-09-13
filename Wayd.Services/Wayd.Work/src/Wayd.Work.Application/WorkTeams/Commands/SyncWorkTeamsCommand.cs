@@ -3,7 +3,9 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkTeams.Commands;
 
-public sealed record SyncWorkTeamsCommand(IEnumerable<ISimpleTeam> Teams) : ICommand, ILongRunningRequest;
+/// <param name="Teams">Every Organization team, as read from the source.</param>
+/// <param name="AsOf">When the source was read, taken before the read began.</param>
+public sealed record SyncWorkTeamsCommand(IEnumerable<ISimpleTeam> Teams, Instant AsOf) : ICommand, ILongRunningRequest;
 
 public sealed class SyncWorkTeamsCommandHandler(
     IWorkDbContext workDbContext,
@@ -33,40 +35,33 @@ public sealed class SyncWorkTeamsCommandHandler(
             var existingTeams = await _workDbContext.WorkTeams
                 .ToListAsync(cancellationToken);
 
-            var existingIds = existingTeams.Select(x => x.Id).ToHashSet();
+            var sourceIds = request.Teams.Select(x => x.Id).ToHashSet();
 
-            // Handle deletes
-            var deleteIds = existingIds.Except(request.Teams.Select(x => x.Id)).ToList();
-            if (deleteIds.Count != 0)
+            // A copy that took a change after the read belongs to a team created after it, not a deleted one.
+            var teamsToDelete = existingTeams
+                .Where(x => !sourceIds.Contains(x.Id) && !x.Watermarks.AnyAfter(request.AsOf))
+                .ToList();
+            if (teamsToDelete.Count != 0)
             {
-                var teamsToDelete = existingTeams.Where(x => deleteIds.Contains(x.Id)).ToList();
                 _workDbContext.WorkTeams.RemoveRange(teamsToDelete);
                 deleteCount = teamsToDelete.Count;
             }
 
-            // Handle creates and updates
             foreach (var team in request.Teams)
             {
                 var existingTeam = existingTeams.FirstOrDefault(x => x.Id == team.Id);
                 if (existingTeam == null)
                 {
-                    var newTeam = new WorkTeam(team);
-
-                    await _workDbContext.WorkTeams.AddAsync(newTeam, cancellationToken);
+                    await _workDbContext.WorkTeams.AddAsync(new WorkTeam(team, request.AsOf), cancellationToken);
                     createCount++;
+                }
+                else if (existingTeam.Resync(team, request.AsOf))
+                {
+                    updateCount++;
                 }
                 else
                 {
-                    // Update existing team if necessary
-                    if (!existingTeam.EqualsSimpleTeam(team))
-                    {
-                        existingTeam.UpdateSimpleTeam(team);
-                        updateCount++;
-                    }
-                    else
-                    {
-                        matchedCount++;
-                    }
+                    matchedCount++;
                 }
             }
 

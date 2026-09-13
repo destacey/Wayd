@@ -26,4 +26,22 @@ public static class PlanningTeamFakerExtensions
         faker.RuleFor(x => x.Id, id);
         return faker;
     }
+
+    public static PlanningTeamFaker WithName(this PlanningTeamFaker faker, string name)
+    {
+        faker.RuleFor(x => x.Name, name);
+        return faker;
+    }
+
+    public static PlanningTeamFaker WithCode(this PlanningTeamFaker faker, TeamCode code)
+    {
+        faker.RuleFor(x => x.Code, code);
+        return faker;
+    }
+
+    public static PlanningTeamFaker WithIsActive(this PlanningTeamFaker faker, bool isActive)
+    {
+        faker.RuleFor(x => x.IsActive, isActive);
+        return faker;
+    }
 }

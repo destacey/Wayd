@@ -2,11 +2,14 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Requests.Planning.Iterations;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events.Planning.Iterations;
+using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkIterations.EventHandlers;
+using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
 using Moq;
 using Xunit;
@@ -15,71 +18,83 @@ using Wayd.Common.Domain.Events;
 namespace Wayd.Work.Application.Tests.Sut.WorkIterations.EventHandlers;
 
 /// <summary>
-/// <see cref="WorkIterationSyncHandler"/> replicates Planning Iteration changes into the Work
-/// <c>WorkIteration</c> projection. Because it is delivered durably, its contract is: idempotent guards
-/// short-circuit a redelivery, and any real failure PROPAGATES (Wolverine's retry/dead-letter governs it)
-/// rather than being swallowed.
+/// <see cref="WorkIterationSyncHandler"/> keeps the Work copy of each iteration correct however the durable
+/// <c>Iteration*</c> events arrive: late, twice, out of order, or after the iteration was deleted.
 /// </summary>
 public sealed class WorkIterationSyncHandlerTests : IDisposable
 {
-    private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+    private static readonly Instant Created = Instant.FromUtc(2026, 1, 15, 9, 0, 0);
+    private static readonly Instant FirstEdit = Created.Plus(Duration.FromMinutes(5));
+    private static readonly Instant SecondEdit = Created.Plus(Duration.FromMinutes(10));
     private static readonly IterationDateRange Range =
         new(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0));
 
     private readonly FakeWorkDbContext _workDbContext = new();
+    private readonly Mock<IDispatcher> _dispatcher = new();
     private readonly WorkIterationSyncHandler _handler;
 
     public WorkIterationSyncHandlerTests()
     {
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
-        _handler = new WorkIterationSyncHandler(_workDbContext, Mock.Of<ILogger<WorkIterationSyncHandler>>(), dateTimeProvider.Object);
+        _handler = new WorkIterationSyncHandler(_workDbContext, _dispatcher.Object, Mock.Of<ILogger<WorkIterationSyncHandler>>());
     }
 
     public void Dispose() => _workDbContext.Dispose();
 
     [Fact]
-    public async Task Handle_Created_WhenIterationIsNew_AddsProjectionAndSaves()
+    public async Task Handle_Created_WhenNoCopyExists_CreatesItFromTheSource()
     {
         // Arrange
-        var @event = CreatedEvent(Guid.CreateVersion7(), 1, "Sprint 1");
+        var source = new WorkIterationFaker().WithName("Sprint 1").WithDateRange(Range).Generate();
+        SourceReturns(source);
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(CreatedEvent(source.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == @event.Id);
+        var copy = _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == source.Id).Subject;
+        copy.Name.Should().Be("Sprint 1");
+        copy.Watermarks.Record.Should().Be(Created);
         _workDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task Handle_Created_WhenIterationAlreadyExists_IsIdempotentNoOp()
+    public async Task Handle_Created_WhenRedelivered_IsNoOp()
     {
-        // Arrange — a redelivery, or a race with the Hangfire bulk sync, finds the projection already there.
+        // Arrange
         var id = Guid.CreateVersion7();
-        _workDbContext.AddWorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate());
-
-        var @event = CreatedEvent(id, 2, "Duplicate");
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate(), Created));
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(CreatedEvent(id), TestContext.Current.CancellationToken);
 
-        // Assert — no second row, no save.
+        // Assert
         _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == id);
         _workDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenIterationExists_UpdatesAndSaves()
+    public async Task Handle_Created_WhenDeliveredAfterTheIterationWasDeleted_CreatesNothing()
+    {
+        // Arrange
+        SourceReturns(null);
+
+        // Act
+        await _handler.Handle(CreatedEvent(Guid.CreateVersion7()), TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.WorkIterations.Should().BeEmpty();
+        _workDbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_Updated_WhenNewerThanTheCopy_UpdatesAndSaves()
     {
         // Arrange
         var id = Guid.CreateVersion7();
-        _workDbContext.AddWorkIteration(new WorkIterationFaker().WithId(id).WithName("Old Name").WithDateRange(Range).Generate());
-
-        var @event = UpdatedEvent(id, 3, "New Name");
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithName("Old Name").WithDateRange(Range).Generate(), Created));
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(UpdatedEvent(id, "New Name", FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkIterations.Single(i => i.Id == id).Name.Should().Be("New Name");
@@ -87,13 +102,43 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenIterationMissing_IsNoOp()
+    public async Task Handle_Updated_WhenDeliveredOutOfOrder_KeepsTheLaterEdit()
     {
-        // Arrange — out-of-order delivery: the update arrives before the create was applied.
-        var @event = UpdatedEvent(Guid.CreateVersion7(), 4, "Whatever");
+        // Arrange
+        var id = Guid.CreateVersion7();
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate(), Created));
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(UpdatedEvent(id, "Sprint 1b", SecondEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(UpdatedEvent(id, "Sprint 1a", FirstEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.WorkIterations.Single(i => i.Id == id).Name.Should().Be("Sprint 1b");
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_Updated_WhenTheCreateHasNotArrived_CreatesTheCopyFromTheSource()
+    {
+        // Arrange
+        var source = new WorkIterationFaker().WithName("New Name").WithDateRange(Range).Generate();
+        SourceReturns(source);
+
+        // Act
+        await _handler.Handle(UpdatedEvent(source.Id, "New Name", FirstEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == source.Id).Which.Name.Should().Be("New Name");
+    }
+
+    [Fact]
+    public async Task Handle_Updated_WhenDeliveredAfterTheIterationWasDeleted_CreatesNothing()
+    {
+        // Arrange
+        SourceReturns(null);
+
+        // Act
+        await _handler.Handle(UpdatedEvent(Guid.CreateVersion7(), "Whatever", FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkIterations.Should().BeEmpty();
@@ -101,16 +146,14 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Deleted_WhenIterationExists_RemovesAndSaves()
+    public async Task Handle_Deleted_WhenTheCopyExists_RemovesAndSaves()
     {
         // Arrange
         var id = Guid.CreateVersion7();
-        _workDbContext.AddWorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate());
-
-        var @event = new IterationDeletedEvent(id, EventActor.System, Now);
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate(), Created));
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationDeletedEvent(id, EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkIterations.Should().BeEmpty();
@@ -118,39 +161,43 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Deleted_WhenIterationMissing_IsIdempotentNoOp()
+    public async Task Handle_Deleted_WhenRedelivered_IsNoOp()
     {
-        // Arrange — a redelivery of a delete that already ran; the goal state (absent) already holds.
-        var @event = new IterationDeletedEvent(Guid.CreateVersion7(), EventActor.System, Now);
+        // Arrange
 
         // Act
-        await _handler.Handle(@event, TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationDeletedEvent(Guid.CreateVersion7(), EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
-    private static IterationCreatedEvent CreatedEvent(Guid id, int key, string name) =>
-        new(
-            id: id,
-            key: key,
-            name: name,
-            type: IterationType.Iteration,
-            state: IterationState.Active,
-            dateRange: Range,
-            teamId: null,
-            actor: EventActor.System,
-            timestamp: Now);
+    private void SourceReturns(ISimpleIteration? iteration) =>
+        _dispatcher
+            .Setup(d => d.Send(It.IsAny<GetSimpleIterationQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(iteration);
 
-    private static IterationUpdatedEvent UpdatedEvent(Guid id, int key, string name) =>
+    private static IterationCreatedEvent CreatedEvent(Guid id) =>
         new(
             id: id,
-            key: key,
+            key: 1,
+            name: "Sprint 1",
+            type: IterationType.Iteration,
+            state: IterationState.Active,
+            dateRange: Range,
+            teamId: null,
+            actor: EventActor.System,
+            timestamp: Created);
+
+    private static IterationUpdatedEvent UpdatedEvent(Guid id, string name, Instant timestamp) =>
+        new(
+            id: id,
+            key: 1,
             name: name,
             type: IterationType.Iteration,
             state: IterationState.Active,
             dateRange: Range,
             teamId: null,
             actor: EventActor.System,
-            timestamp: Now);
+            timestamp: timestamp);
 }

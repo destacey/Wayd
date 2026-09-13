@@ -311,6 +311,16 @@ where the key is supplied rather than generated (`Project`), build the event out
 raise. Each aggregate with such a caller has a create-then-mutate test —
 see [domain-events.mdx](docs/contributing/domain-events.mdx#a-creation-event-records-the-record-as-created).
 
+**A durable consumer sees events late, twice and out of order.** A module's copy of another module's record
+(`WorkTeam`, `WorkProject`, the PPM `StrategicTheme`, …) follows
+[Consuming an event](docs/contributing/domain-events.mdx#consuming-an-event): a watermark per group of fields
+skips a change older than one already applied (the copy's `Apply*` methods decide, never the handler); a
+missing copy is built from the owner's single-record query in `Common.Application/Requests`, stamped with the
+**triggering event's** timestamp, and a gone source means no copy (no tombstones); a bulk resync takes its
+`AsOf` *before* reading and never moves a watermark backwards or deletes a copy that changed after the read.
+The watermarks are one JSON column plus a `rowversion` (`ConfigureReplicaTracking`) — drop the row version and
+two handlers on different groups silently restore each other's old watermark.
+
 Where an aggregate writes a durable record *and* an event about the same occurrence, give the event that
 record's id as its `EventId` (`ProjectStatusChangedEventV2` takes the `ProjectStatusHistory` row's). That is
 what makes a backfill replaying old records idempotent forever.

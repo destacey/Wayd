@@ -3,7 +3,9 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.PpmTeams.Commands;
 
-public sealed record SyncPpmTeamsCommand(IEnumerable<ISimpleTeam> Teams) : ICommand, ILongRunningRequest;
+/// <param name="Teams">Every Organization team, as read from the source.</param>
+/// <param name="AsOf">When the source was read, taken before the read began.</param>
+public sealed record SyncPpmTeamsCommand(IEnumerable<ISimpleTeam> Teams, Instant AsOf) : ICommand, ILongRunningRequest;
 
 public sealed class SyncPpmTeamsCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
@@ -33,40 +35,33 @@ public sealed class SyncPpmTeamsCommandHandler(
             var existingTeams = await _ppmDbContext.PpmTeams
                 .ToListAsync(cancellationToken);
 
-            var existingIds = existingTeams.Select(x => x.Id).ToHashSet();
+            var sourceIds = request.Teams.Select(x => x.Id).ToHashSet();
 
-            // Handle deletes
-            var deleteIds = existingIds.Except(request.Teams.Select(x => x.Id)).ToList();
-            if (deleteIds.Count != 0)
+            // A copy that took a change after the read belongs to a team created after it, not a deleted one.
+            var teamsToDelete = existingTeams
+                .Where(x => !sourceIds.Contains(x.Id) && !x.Watermarks.AnyAfter(request.AsOf))
+                .ToList();
+            if (teamsToDelete.Count != 0)
             {
-                var teamsToDelete = existingTeams.Where(x => deleteIds.Contains(x.Id)).ToList();
                 _ppmDbContext.PpmTeams.RemoveRange(teamsToDelete);
                 deleteCount = teamsToDelete.Count;
             }
 
-            // Handle creates and updates
             foreach (var team in request.Teams)
             {
                 var existingTeam = existingTeams.FirstOrDefault(x => x.Id == team.Id);
                 if (existingTeam == null)
                 {
-                    var newTeam = new PpmTeam(team);
-
-                    await _ppmDbContext.PpmTeams.AddAsync(newTeam, cancellationToken);
+                    await _ppmDbContext.PpmTeams.AddAsync(new PpmTeam(team, request.AsOf), cancellationToken);
                     createCount++;
+                }
+                else if (existingTeam.Resync(team, request.AsOf))
+                {
+                    updateCount++;
                 }
                 else
                 {
-                    // Update existing team if necessary
-                    if (!existingTeam.EqualsSimpleTeam(team))
-                    {
-                        existingTeam.UpdateSimpleTeam(team);
-                        updateCount++;
-                    }
-                    else
-                    {
-                        matchedCount++;
-                    }
+                    matchedCount++;
                 }
             }
 

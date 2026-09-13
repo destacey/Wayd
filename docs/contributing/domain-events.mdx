@@ -1,6 +1,6 @@
 ---
 title: Domain Events
-description: How to design, wire and version domain events, and how the activity log records them.
+description: How to design, wire, consume and version domain events, and how the activity log records them.
 sidebar_position: 1.5
 audience: [developer, agent]
 ---
@@ -10,7 +10,8 @@ audience: [developer, agent]
 A domain event records something that happened to an aggregate. Every event is written to the activity log
 automatically, and any event may be published to consumers in other modules, so its name and payload are a
 contract from the moment it is first raised. This page is the convention every module follows: how to design
-an event, how to wire it, the rules behind both, and how the activity log records and reads them.
+an event, how to wire it, how a consumer applies one, the rules behind them, and how the activity log records
+and reads them.
 
 ## Designing an event
 
@@ -41,6 +42,8 @@ that record: the activity log, a handler reacting to the change, a notification,
 its own copy of the record. A copy is built from the creation event, the details, the transitions and the
 deletion. The Work module keeps `WorkProject` from exactly that: `ProjectCreatedEvent`,
 `ProjectDetailsUpdatedEvent`, `ProjectKeyChangedEventV2` and `ProjectDeletedEvent`. Never add an event whose purpose is to ship the whole record to a copy.
+How the copy applies them when they arrive late, twice or out of order is in
+[Consuming an event](#consuming-an-event).
 Assume every event is published, whatever `DurableEventRoutes` says today — the routing table is a
 deployment detail, not the contract.
 
@@ -145,8 +148,8 @@ will catch for you.
   the Activity section currently picks it from words in the type name (`StatusChanged`, `Activated`,
   `Archived`, `Deleted`, `Removed`, `Created`, `Added`, …), and anything else shows as **Updated**.
 - [ ] Add the type to `DurableEventRoutes` only when a consumer needs asynchronous delivery. A durable
-  handler is delivered at least once and in no guaranteed order, so it must be idempotent — `EventId` is the
-  value to deduplicate on.
+  handler is delivered at least once and in no guaranteed order, so it follows
+  [Consuming an event](#consuming-an-event).
 - [ ] A member type the serializer may not handle — a NodaTime type, a value object, a collection of records
   — gets a round-trip test in `DomainEventSerializationTests`.
 
@@ -160,6 +163,73 @@ will catch for you.
 
 `DomainEventConventionTests` also fails a new event named only for its record (`TeamUpdatedEvent`) and a
 payload property that looks like personal data (`Email`, `FirstName`, `DisplayName`, …).
+
+## Consuming an event
+
+Durable events go through the outbox to durable local queues, one per message type. Delivery is **at least
+once**, the queues run handlers in parallel, and nothing orders one queue against another, so a consumer
+sees events late, twice, and out of order. `DurableEventFailurePolicy` retries any exception at 1s, 5s and
+15s, then dead-letters it to Settings → Messaging.
+
+A handler must be correct under all of that. For a consumer that reacts to a change ("tell the new Owner"),
+that means being idempotent on its own or deduplicating on `EventId`. A module keeping a **copy** of another
+module's record — `WorkTeam`, `PlanningTeam`, `PpmTeam`, `WorkProject`, `WorkIteration`, the PPM
+`StrategicTheme` — follows the rules below, and every existing copy does.
+
+**1. Apply absolute values, never deltas.** A handler writes the values the event carries, so applying the
+same event twice leaves the same copy. Collections arrive as the set afterwards for the same reason (see
+[A change carries both ends](#a-change-carries-both-ends)).
+
+**2. Skip a change older than the one the copy holds.** Each copy keeps a **watermark** per group of fields:
+the `Timestamp` of the last change applied to that group. A group is the set of fields one kind of change
+writes — a team copy has `Details` (name, code) and `Activation` (the active flag). An event older than its
+group's watermark is skipped, because a newer change already replaced what it describes; a tie applies, so a
+redelivery re-applies cleanly. One watermark for the whole record would not work: a rename at 10:02 would make
+a deactivation from 10:01 look stale, although nothing newer ever wrote the active flag.
+
+The comparison lives on the copy, in `ApplyDetails`, `ApplyActivation`, `ApplyKey` and the like, which return
+false when there was nothing to apply, so the handler skips the save. `ReplicaWatermark.IsStale` is the one
+rule they share. The watermarks are stored as a small JSON column, `ConfigureReplicaTracking` in
+Infrastructure.
+
+**3. A missing copy is built from the source.** When an event reaches a copy that does not exist — the create
+is still in flight, or was processed out of order — the handler reads the record's current state through the
+owner's single-record query in `Common.Application/Requests` (`GetSimpleTeamQuery`, `GetSimpleProjectQuery`,
+…) and creates the copy from it. It does not throw and wait for the create: the source already holds
+everything the create would have written, and more. The new copy's watermarks are stamped with the
+**triggering event's** timestamp, not the handler's clock. The source is at least as new as that event, so
+older events still in flight are rightly skipped, while a change made during the read, timestamped before it
+but committed after, is still newer than the stamp and applies when its event arrives.
+
+A creation event goes through the same path rather than applying its own payload, which is what stops a
+create redelivered after a delete from bringing the copy back.
+
+**4. Deletion needs no tombstone.** A delete removes the copy, and a redelivered delete finds nothing. A late
+event for a deleted record finds no copy, asks the source, finds nothing there either, and does nothing. Ids
+are never reused, so "the source no longer has it" is final.
+
+**5. A bulk resync never moves a watermark backwards.** The Hangfire syncs (`SyncWorkTeamsCommand`, …) take the
+time *before* reading the source and pass it as `AsOf`. For each group, a copy that already matches the source
+keeps its watermark — stamping it would skip a change timestamped before the read but committed after it. A
+group that differs is overwritten and stamped `AsOf`, unless it holds a change newer than the read, in which
+case the read is the older of the two and the group is left alone. A copy the source no longer lists is
+deleted, unless any group took a change after `AsOf`: that record was created after the read, not deleted.
+
+**6. Concurrent writers to one copy conflict rather than overwrite.** The watermark column is written whole,
+so two handlers applying different groups of the same copy would each put back the other's old watermark.
+Each copy has a `rowversion`; the second save fails with a concurrency conflict, and the durable failure policy
+retries it against fresh state.
+
+**What this does not cover.** Watermarks compare event timestamps, which come from each API instance's clock:
+two changes to the same group within the clock skew between instances can apply in the wrong order. Imports
+stamp a whole batch with one instant, so one command changing the same group of one record twice ties, and the
+later delivery wins. And a bulk resync that finds a group drifted *and* misses an uncommitted change to it
+stamps past that change. Each needs a coincidence on one group of one record, and the next resync corrects it.
+
+When adding a copy: give it a `{Copy}Watermarks` record with a property per group, `Apply{Group}` methods and a
+`Resync`, a constructor that takes the source state and an `asOf`, `ConfigureReplicaTracking` in its entity
+configuration, a single-record query from the owning module, and tests that deliver its events out of order,
+twice, and after a delete.
 
 ## The rules in detail
 

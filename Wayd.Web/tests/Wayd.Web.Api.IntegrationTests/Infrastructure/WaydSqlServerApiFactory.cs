@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.MsSql;
+using Wayd.Infrastructure.Persistence.Context;
 
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 
@@ -34,6 +37,14 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     /// <summary>Connection string for the dedicated container database the host runs against.</summary>
     public string ConnectionString => _connectionString;
+
+    /// <summary>Forces a concurrency conflict on a chosen save; inert unless a test arms it.</summary>
+    public ConcurrentWriteInjector ConcurrentWrites { get; }
+
+    public WaydSqlServerApiFactory()
+    {
+        ConcurrentWrites = new ConcurrentWriteInjector(() => _connectionString);
+    }
 
     public async ValueTask InitializeAsync()
     {
@@ -111,5 +122,8 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", _connectionString);
         Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", "integration-test-secret-key-please-ignore-0123456789");
         HandlerCodegenMode.Apply();
+
+        builder.ConfigureServices(services =>
+            services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites)));
     }
 }

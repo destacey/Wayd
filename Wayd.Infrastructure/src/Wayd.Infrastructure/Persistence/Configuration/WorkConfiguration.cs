@@ -445,6 +445,8 @@ public class WorkIterationConfig : IEntityTypeConfiguration<WorkIteration>
             options.Property(d => d.End).HasColumnName("End");
         });
 
+        builder.ConfigureReplicaTracking(i => i.Watermarks);
+
         // Relationships
         builder.HasOne(i => i.Team)
             .WithMany()
@@ -560,6 +562,8 @@ public class WorkProjectConfig : IEntityTypeConfiguration<WorkProject>
             .HasMaxLength(20);
         builder.Property(w => w.Name).IsRequired().HasMaxLength(128);
         builder.Property(p => p.Description).HasMaxLength(4096).IsRequired();
+
+        builder.ConfigureReplicaTracking(p => p.Watermarks);
     }
 }
 
@@ -695,6 +699,8 @@ public class WorkTeamConfig : IEntityTypeConfiguration<WorkTeam>
             .HasColumnType("varchar")
             .HasMaxLength(32);
         builder.Property(t => t.IsActive);
+
+        builder.ConfigureReplicaTracking(t => t.Watermarks);
 
         // Relationships
 

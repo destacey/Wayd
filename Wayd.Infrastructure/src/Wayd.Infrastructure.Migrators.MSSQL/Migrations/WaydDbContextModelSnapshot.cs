@@ -2915,6 +2915,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -4374,6 +4384,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -5612,6 +5632,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -6168,6 +6198,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
                     b.ComplexProperty(typeof(Dictionary<string, object>), "DateRange", "Wayd.Work.Domain.Models.WorkIteration.DateRange#IterationDateRange", b1 =>
                         {
                             b1.IsRequired();
@@ -6340,6 +6380,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
                     b.HasKey("Id");
 
                     b.ToTable("WorkProjects", "Work");
@@ -6430,6 +6480,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
 
                     b.HasKey("Id");
 

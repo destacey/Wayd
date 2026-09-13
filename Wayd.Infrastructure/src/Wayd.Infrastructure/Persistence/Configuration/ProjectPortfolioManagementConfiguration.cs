@@ -59,6 +59,8 @@ public class PpmStrategicThemeConfig : IEntityTypeConfiguration<StrategicTheme>
             .HasConversion<EnumConverter<StrategicThemeState>>()
             .HasMaxLength(32)
             .HasColumnType("varchar");
+
+        builder.ConfigureReplicaTracking(s => s.Watermarks);
     }
 }
 
@@ -909,6 +911,8 @@ public class PpmTeamConfig : IEntityTypeConfiguration<PpmTeam>
             .HasColumnType("varchar")
             .HasMaxLength(32);
         builder.Property(t => t.IsActive);
+
+        builder.ConfigureReplicaTracking(t => t.Watermarks);
     }
 }
 

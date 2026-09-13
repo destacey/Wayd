@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
+using Wayd.Infrastructure.Identity;
 
 namespace Wayd.Infrastructure.Middleware;
 
@@ -17,8 +18,8 @@ internal static class ConfigureServices
 
     internal static IServiceCollection AddUserActivityTracking(this IServiceCollection services)
     {
-        services.AddSingleton<UserActivityBackgroundService>();
-        services.AddHostedService(sp => sp.GetRequiredService<UserActivityBackgroundService>());
+        services.AddSingleton<LastSeenWriter>();
+        services.AddHostedService(sp => sp.GetRequiredService<LastSeenWriter>());
         services.AddScoped<UserActivityTrackingMiddleware>();
         return services;
     }

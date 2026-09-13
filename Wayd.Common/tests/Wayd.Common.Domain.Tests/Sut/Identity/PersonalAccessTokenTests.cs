@@ -142,20 +142,6 @@ public sealed class PersonalAccessTokenTests
     }
 
     [Fact]
-    public void UpdateLastUsed_ShouldSetLastUsedAt()
-    {
-        // Arrange
-        var token = _tokenFaker.Generate();
-        var usedAt = _now.Plus(Duration.FromMinutes(30));
-
-        // Act
-        token.UpdateLastUsed(usedAt);
-
-        // Assert
-        token.LastUsedAt.Should().Be(usedAt);
-    }
-
-    [Fact]
     public void Revoke_ShouldSetRevokedAtAndRevokedBy()
     {
         // Arrange

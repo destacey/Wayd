@@ -129,15 +129,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Updates the last used timestamp.
-    /// </summary>
-    /// <param name="timestamp">The timestamp when the token was used.</param>
-    public void UpdateLastUsed(Instant timestamp)
-    {
-        LastUsedAt = timestamp;
-    }
-
-    /// <summary>
     /// Revokes this token.
     /// </summary>
     /// <param name="revokedBy">The ID of the user revoking the token.</param>

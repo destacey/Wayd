@@ -1,43 +1,26 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Http;
+using Wayd.Infrastructure.Identity;
 
 namespace Wayd.Infrastructure.Middleware;
 
 public class UserActivityTrackingMiddleware(
     ICurrentUser currentUser,
-    IMemoryCache memoryCache,
-    UserActivityBackgroundService backgroundService) : IMiddleware
+    IDateTimeProvider dateTimeProvider,
+    LastSeenWriter lastSeenWriter) : IMiddleware
 {
-    private static readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(30);
-
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly IMemoryCache _memoryCache = memoryCache;
-    private readonly UserActivityBackgroundService _backgroundService = backgroundService;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly LastSeenWriter _lastSeenWriter = lastSeenWriter;
 
     public async Task InvokeAsync(HttpContext httpContext, RequestDelegate next)
     {
         if (_currentUser.IsAuthenticated())
         {
-            TrackUserActivity();
+            var userId = _currentUser.GetUserId();
+            if (!string.IsNullOrEmpty(userId))
+                _lastSeenWriter.RecordUserActivity(userId, _dateTimeProvider.Now);
         }
 
         await next(httpContext);
-    }
-
-    private void TrackUserActivity()
-    {
-        var userId = _currentUser.GetUserId();
-        if (string.IsNullOrEmpty(userId))
-            return;
-
-        var cacheKey = $"user-activity:{userId}";
-        if (_memoryCache.TryGetValue(cacheKey, out _))
-            return;
-
-        // Set cache entry immediately to prevent duplicate writes from concurrent requests
-        _memoryCache.Set(cacheKey, true, _cacheExpiration);
-
-        // Queue the update for background processing
-        _backgroundService.QueueUpdate(userId);
     }
 }

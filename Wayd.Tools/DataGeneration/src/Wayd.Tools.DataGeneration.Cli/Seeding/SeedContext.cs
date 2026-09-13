@@ -33,6 +33,9 @@ public sealed class SeedContext(WaydSeedClient client, Action<string> log)
     /// </remarks>
     public GeneratedPpm? Ppm { get; set; }
 
+    /// <summary>The generated product catalog and its delivery history. Null when the seed was asked to skip it.</summary>
+    public GeneratedProductManagement? ProductManagement { get; set; }
+
     /// <summary>Expenditure category ids by name, from the settings bootstrap.</summary>
     public IReadOnlyDictionary<string, int> ExpenditureCategoryIds { get; set; } =
         new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

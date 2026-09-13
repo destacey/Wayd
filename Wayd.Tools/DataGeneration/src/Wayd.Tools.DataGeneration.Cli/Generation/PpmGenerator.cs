@@ -67,11 +67,19 @@ public sealed class PpmGenerator
 
     private readonly GenerationContext _context;
 
+    /// <summary>What each team builds, which a project is named after more often than not.</summary>
+    private readonly ProductCatalog _catalog;
+
+    // Most of an ART's projects work on something its owning team builds; the rest are the cross-cutting
+    // efforts a component name would misdescribe.
+    private const double ProductProjectFraction = 0.7;
+
     public PpmGenerator(OrgStructure org, PpmOptions options, GenerationContext context)
     {
         _org = org;
         _options = options;
         _context = context;
+        _catalog = ProductCatalog.From(org, context);
 
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
@@ -212,7 +220,7 @@ public sealed class PpmGenerator
         for (var i = 0; i < projectCount; i++)
         {
             var teams = PickParticipatingTeams(art, otherArts);
-            BuildProject(teams, portfolioName, programs);
+            BuildProject(teams, portfolioName, programs, namedForProduct: true);
         }
     }
 
@@ -305,7 +313,7 @@ public sealed class PpmGenerator
             for (var i = 0; i < projectCount; i++)
             {
                 var teams = _faker.PickRandom(allTeams, Math.Min(_faker.Random.Int(2, 5), allTeams.Count)).ToList();
-                BuildProject(teams, portfolioName, programs: null);
+                BuildProject(teams, portfolioName, programs: null, namedForProduct: false);
             }
 
             BuildInitiative(portfolioName, valueStream: null);
@@ -326,7 +334,7 @@ public sealed class PpmGenerator
     /// portfolio-direct.
     /// </para>
     /// </summary>
-    private void BuildProject(IReadOnlyList<TeamNode> teams, string portfolioName, IReadOnlyList<GeneratedProgram>? programs)
+    private void BuildProject(IReadOnlyList<TeamNode> teams, string portfolioName, IReadOnlyList<GeneratedProgram>? programs, bool namedForProduct)
     {
         var (start, end) = ProjectWindow();
         var status = StatusForWindow(start, end);
@@ -334,7 +342,7 @@ public sealed class PpmGenerator
         var owningTeam = teams[0];
         var key = ProjectKey(owningTeam);
         var verb = Pick(PpmVocabulary.ProjectVerbs);
-        var name = $"{verb} {Pick(PpmVocabulary.ProjectObjects)}";
+        var name = $"{verb} {ProjectObject(owningTeam, start, namedForProduct)}";
 
         // The owning team's EM manages and its PO sponsors; the project team is everyone across the
         // participating teams.
@@ -745,6 +753,20 @@ public sealed class PpmGenerator
             n++;
         }
         return candidate;
+    }
+
+    /// <summary>
+    /// What a project works on: usually something its owning team builds, so the project reads against the
+    /// product catalog; otherwise a generic system. A component retired before the project starts is not
+    /// one it can work on.
+    /// </summary>
+    private string ProjectObject(TeamNode owningTeam, DateOnly start, bool namedForProduct)
+    {
+        var owned = _catalog.ComponentsOf(owningTeam.TeamCode, start);
+
+        return namedForProduct && owned.Count > 0 && _faker.Random.Double() < ProductProjectFraction
+            ? _faker.PickRandom(owned.ToList()).Name
+            : Pick(PpmVocabulary.ProjectObjects);
     }
 
     private IReadOnlyList<string> PickThemes(int count)

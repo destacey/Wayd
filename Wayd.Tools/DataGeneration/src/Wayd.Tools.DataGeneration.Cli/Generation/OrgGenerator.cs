@@ -140,6 +140,7 @@ public sealed class OrgGenerator
 
             artNodes.Add(new ArtNode(
                 art.Code,
+                art.Name,
                 art.EngineeringLead?.EmployeeNumber,
                 art.ProductLead?.EmployeeNumber,
                 teamNodes));

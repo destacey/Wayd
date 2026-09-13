@@ -49,6 +49,9 @@ public sealed class Recipe
 
     /// <summary>The application roles and the sign-ins that hold them.</summary>
     public UsersRecipe? Users { get; init; }
+
+    /// <summary>The product catalog and how it ships: versions, packages, releases and deployments.</summary>
+    public ProductManagementRecipe? ProductManagement { get; init; }
 }
 
 /// <summary>An area that can be switched off wholesale rather than tuned.</summary>
@@ -138,4 +141,17 @@ public sealed class PpmRecipe : AreaRecipe
 
     /// <summary>Average number of thematic programs a portfolio runs at once.</summary>
     public int? ConcurrentProgramsPerPortfolio { get; init; }
+}
+
+/// <summary>The product catalog layered over the organization, and its delivery history.</summary>
+public sealed class ProductManagementRecipe : AreaRecipe
+{
+    /// <summary>Average days between two versions of a service.</summary>
+    public int? VersionIntervalDays { get; init; }
+
+    /// <summary>The share (0..1) of production deployments that fail or are rolled back, averaged over the history.</summary>
+    public double? ChangeFailureRate { get; init; }
+
+    /// <summary>The share (0..1) of ARTs that ship their services together as release packages.</summary>
+    public double? PackagedArtFraction { get; init; }
 }

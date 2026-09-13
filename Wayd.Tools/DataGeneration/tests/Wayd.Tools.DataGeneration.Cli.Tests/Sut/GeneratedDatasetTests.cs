@@ -53,14 +53,20 @@ public class GeneratedDatasetTests : IDisposable
             "strategic-themes.csv", "portfolios.csv", "programs.csv", "projects.csv",
             "project-tasks.csv", "project-stages.csv", "strategic-initiatives.csv",
             "strategic-initiative-kpis.csv", "ppm-finalizations.csv",
+            "deployment-environments.csv", "products.csv", "versions.csv", "release-packages.csv",
+            "release-package-components.csv", "releases.csv", "release-contents.csv", "deployments.csv",
         ]);
     }
 
     [Fact]
-    public void WriteTo_WritesOnlyTheOrganizationWhenPpmIsDisabled()
+    public void WriteTo_WritesOnlyTheOrganizationWhenTheOtherAreasAreDisabled()
     {
-        // Arrange — the org-only shape, which has no PPM model to write at all
-        var recipe = new Recipe { Ppm = new PpmRecipe { Enabled = false } };
+        // Arrange — the org-only shape, which has no PPM or Product Management model to write at all
+        var recipe = new Recipe
+        {
+            Ppm = new PpmRecipe { Enabled = false },
+            ProductManagement = new ProductManagementRecipe { Enabled = false },
+        };
 
         // Act
         GeneratedDataset.From(Resolve(recipe)).WriteTo(_directory);
@@ -81,6 +87,21 @@ public class GeneratedDatasetTests : IDisposable
         dataset.Counts.Employees.Should().BeGreaterThan(0);
         dataset.Counts.Projects.Should().Be(0);
         dataset.Counts.Portfolios.Should().Be(0);
+    }
+
+    [Fact]
+    public void From_NamesProjectsAfterTheProductsTheCatalogHolds()
+    {
+        // Arrange — the two areas derive the catalog separately, so this is what proves they agree
+        var dataset = GeneratedDataset.From(Resolve());
+        var products = dataset.ProductManagement!.Products.Select(p => p.Name).ToList();
+
+        // Act
+        var namedForAProduct = dataset.Ppm!.Projects
+            .Count(project => products.Any(product => project.Name.EndsWith($" {product}", StringComparison.Ordinal)));
+
+        // Assert — most ART projects work on something their team builds
+        namedForAProduct.Should().BeGreaterThan(dataset.Ppm.Projects.Count / 3);
     }
 
     [Fact]

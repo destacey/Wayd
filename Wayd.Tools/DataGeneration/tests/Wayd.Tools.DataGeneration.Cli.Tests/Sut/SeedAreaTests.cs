@@ -9,7 +9,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 /// 10,000 rows outright, so a seed large enough to pass that has to send more than one file — and the
 /// split has to fall on a group boundary, because the rows within a group reference each other.
 /// </summary>
-public class PpmSeedAreaTests
+public class SeedAreaTests
 {
     /// <summary>The server-side cap the batches have to stay under.</summary>
     private const int ImportRowLimit = 10_000;
@@ -17,7 +17,7 @@ public class PpmSeedAreaTests
     private sealed record Row(string ProjectKey, int Number);
 
     /// <summary>Reaches the batching helper, which is protected because only an area needs it.</summary>
-    private sealed class Harness() : PpmSeedArea("test")
+    private sealed class Harness() : SeedArea("test")
     {
         public override bool ShouldRun(SeedContext context) => false;
 

@@ -707,4 +707,28 @@ public class PpmGeneratorTests
         second.Projects.Select(p => p.Key).Should().Equal(first.Projects.Select(p => p.Key));
         second.Portfolios.Select(p => p.Name).Should().Equal(first.Portfolios.Select(p => p.Name));
     }
+
+    [Fact]
+    public void Generate_NeverStartsAProjectOnAComponentAlreadyRetired()
+    {
+        // Arrange — a larger org, so the catalog holds retired components for projects to be tempted by
+        var context = ContextOf(2468);
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 4, Teams = 40 }, context).Generate();
+        var retiredOn = ProductCatalog.From(org.Structure, context).Lines
+            .SelectMany(l => l.Products).SelectMany(p => p.Components)
+            .Where(c => c.RetiredOn is not null)
+            .ToDictionary(c => c.Name, c => c.RetiredOn!.Value, StringComparer.OrdinalIgnoreCase);
+
+        var ppm = new PpmGenerator(org.Structure, new PpmOptions(), context).Generate();
+
+        // Act
+        var afterRetirement = ppm.Projects
+            .Where(p => retiredOn.Any(r => p.Name.EndsWith($" {r.Key}", StringComparison.Ordinal) && p.Start >= r.Value))
+            .Select(p => $"{p.Key}: {p.Name}")
+            .ToList();
+
+        // Assert
+        retiredOn.Should().NotBeEmpty();
+        afterRetirement.Should().BeEmpty();
+    }
 }

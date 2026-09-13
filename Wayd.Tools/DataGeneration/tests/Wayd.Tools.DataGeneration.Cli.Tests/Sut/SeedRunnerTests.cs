@@ -108,6 +108,25 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public void Areas_EnableProductManagementBeforePostingToIt()
+    {
+        // Arrange & Act & Assert — every Product Management endpoint answers 404 while its flag is off
+        ShouldDependOn(ProductManagementArea.Environments, ProductManagementArea.FeatureFlag);
+        ShouldDependOn(ProductManagementArea.Products, ProductManagementArea.FeatureFlag);
+    }
+
+    [Fact]
+    public void Areas_DeclareEveryProductManagementIdTheyReference()
+    {
+        // Arrange & Act & Assert — a manifest line links to a version only if the version already exists,
+        // and a release is accepted as released only once what it carries has been saved
+        ShouldDependOn(ProductManagementArea.Versions, ProductManagementArea.Products);
+        ShouldDependOn(ProductManagementArea.ReleasePackages, ProductManagementArea.Products, ProductManagementArea.Versions);
+        ShouldDependOn(ProductManagementArea.Releases, ProductManagementArea.Products, ProductManagementArea.Versions, ProductManagementArea.ReleasePackages);
+        ShouldDependOn(ProductManagementArea.Deployments, ProductManagementArea.Environments, ProductManagementArea.Versions, ProductManagementArea.ReleasePackages);
+    }
+
+    [Fact]
     public void Areas_DeclareTheHierarchyAfterTheTeamsItLinks()
     {
         // Arrange & Act & Assert

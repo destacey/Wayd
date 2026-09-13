@@ -40,6 +40,12 @@ public static class CsvFile
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = isoFormats;
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().Formats = isoFormats;
 
+        // Instants, written with their offset. Only the generated model files carry these; the deployment
+        // rows a seed posts format their own.
+        var instantFormats = new[] { "yyyy-MM-dd'T'HH:mm:sszzz" };
+        csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset>().Formats = instantFormats;
+        csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset?>().Formats = instantFormats;
+
         csv.WriteRecords(rows);
     }
 }

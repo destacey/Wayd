@@ -127,6 +127,12 @@ public class RecipeLayeringTests
                 ConcurrentProgramsPerPortfolio = 1,
             },
             Users = new UsersRecipe { Password = "Under123$" },
+            ProductManagement = new ProductManagementRecipe
+            {
+                VersionIntervalDays = 1,
+                ChangeFailureRate = 0.01,
+                PackagedArtFraction = 0.01,
+            },
         };
 
         var over = new Recipe
@@ -154,6 +160,12 @@ public class RecipeLayeringTests
                 ConcurrentProgramsPerPortfolio = 4,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
+            ProductManagement = new ProductManagementRecipe
+            {
+                VersionIntervalDays = 21,
+                ChangeFailureRate = 0.3,
+                PackagedArtFraction = 0.4,
+            },
         };
 
         // Act
@@ -177,6 +189,10 @@ public class RecipeLayeringTests
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
 
         result.UserPassword.Should().Be("Over1234$");
+
+        result.ProductManagement.VersionIntervalDays.Should().Be(21);
+        result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
+        result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
     }
 
     [Fact]
@@ -209,6 +225,12 @@ public class RecipeLayeringTests
                 ConcurrentProgramsPerPortfolio = 4,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
+            ProductManagement = new ProductManagementRecipe
+            {
+                VersionIntervalDays = 21,
+                ChangeFailureRate = 0.3,
+                PackagedArtFraction = 0.4,
+            },
         };
 
         // Act — an upper layer that states nothing at all, which is what an unflagged run looks like
@@ -232,6 +254,10 @@ public class RecipeLayeringTests
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
 
         result.UserPassword.Should().Be("Over1234$");
+
+        result.ProductManagement.VersionIntervalDays.Should().Be(21);
+        result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
+        result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
     }
 
     [Fact]

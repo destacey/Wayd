@@ -28,7 +28,25 @@ public static class RecipeLayering
         Organization = Layer(over.Organization, under.Organization),
         Ppm = Layer(over.Ppm, under.Ppm),
         Users = Layer(over.Users, under.Users),
+        ProductManagement = Layer(over.ProductManagement, under.ProductManagement),
     };
+
+    private static ProductManagementRecipe? Layer(ProductManagementRecipe? over, ProductManagementRecipe? under)
+    {
+        if (over is null)
+            return under;
+
+        if (under is null)
+            return over;
+
+        return new ProductManagementRecipe
+        {
+            Enabled = over.Enabled ?? under.Enabled,
+            VersionIntervalDays = over.VersionIntervalDays ?? under.VersionIntervalDays,
+            ChangeFailureRate = over.ChangeFailureRate ?? under.ChangeFailureRate,
+            PackagedArtFraction = over.PackagedArtFraction ?? under.PackagedArtFraction,
+        };
+    }
 
     private static UsersRecipe? Layer(UsersRecipe? over, UsersRecipe? under)
     {

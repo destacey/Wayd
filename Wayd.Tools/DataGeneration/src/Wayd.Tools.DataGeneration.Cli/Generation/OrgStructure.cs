@@ -31,6 +31,7 @@ public sealed record ValueStreamNode(
 /// <summary>An ART (mid tier) grouping delivery teams, with its engineering and product leads.</summary>
 public sealed record ArtNode(
     string TeamCode,
+    string Name,
     string? EngineeringLeadEmployeeNumber,
     string? ProductLeadEmployeeNumber,
     IReadOnlyList<TeamNode> Teams);

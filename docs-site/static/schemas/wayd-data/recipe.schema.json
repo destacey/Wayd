@@ -152,6 +152,40 @@
           "x-cli-flag": "--concurrent-programs-per-portfolio"
         }
       }
+    },
+    "productManagement": {
+      "type": "object",
+      "description": "The product catalog over the organization — a product line per value stream, a product per ART, a component per team — and how it ships: versions, release packages, releases and deployments.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the area is generated at all. Seeding it enables the product-management feature flag.",
+          "x-cli-flag": "--skip-product-management",
+          "x-cli-flag-negates": true
+        },
+        "versionIntervalDays": {
+          "type": "integer",
+          "description": "Average days between two versions of a service. Web apps ship less often, libraries and tools far less, and teams speed up across the history.",
+          "minimum": 1,
+          "maximum": 365,
+          "x-cli-flag": "--version-interval-days"
+        },
+        "changeFailureRate": {
+          "type": "number",
+          "description": "Share of production deployments that fail or are rolled back, averaged over the history. Teams vary around it and it falls toward today.",
+          "minimum": 0,
+          "maximum": 0.6,
+          "x-cli-flag": "--change-failure-rate"
+        },
+        "packagedArtFraction": {
+          "type": "number",
+          "description": "Share of ARTs that ship their services together as release packages rather than each deploying on its own. Any share above zero packages at least one ART.",
+          "minimum": 0,
+          "maximum": 1,
+          "x-cli-flag": "--packaged-art-fraction"
+        }
+      }
     }
   }
 }

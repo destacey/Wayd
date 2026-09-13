@@ -17,5 +17,10 @@
   "ppm": {
     "functionPortfolios": 5,
     "concurrentProjectsPerArt": 8
+  },
+  "productManagement": {
+    "versionIntervalDays": 28,
+    "changeFailureRate": 0.2,
+    "packagedArtFraction": 0.6
   }
 }

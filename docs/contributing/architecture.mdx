@@ -180,7 +180,9 @@ another domain, kept aligned two ways:
    public handlers with a `Handle(TEvent, CancellationToken)` method that create a local projection carrying the **same Id**.
    For example, `Organization.Team` is the source of truth; `PpmTeam`, `PlanningTeam`, and `WorkTeam` are
    read-model copies written by handlers for `TeamCreated`/`Updated`/`Activated`/`Deactivated`/`Deleted`.
-   Every handler is idempotent (`if (await ctx.X.AnyAsync(x => x.Id == evt.Id)) return`).
+   Delivery is durable, so events arrive late, twice and out of order: each copy keeps a watermark per group
+   of fields and skips a change older than one it already holds, and a missing copy is built from the owner's
+   current state. See [Consuming an event](./domain-events.mdx#consuming-an-event).
 2. **Shared table.** `Employee` lives in `Wayd.Common.Domain` — one row, referenced by Guid everywhere.
    No replication needed.
 
@@ -201,12 +203,17 @@ StrategicManagement.
 
 Because these projections are populated by events, code that **creates** a replicated concept must go
 through the owning domain's command so its `SaveChanges` dispatches the events — never insert a projection
-row directly. The timing matters: `TeamCreatedEvent` and `StrategicThemeCreatedEvent` fire via
-`AddPostPersistenceAction` (after the source aggregate saves), and consumers such as
-`PlanningInterval.SetTeams(teamIds)` add `PlanningIntervalTeam { TeamId }` with **no existence check** — so
-the replicated `PlanningTeam` row must already exist or the save FK-faults. Creating through commands keeps
-this ordering correct for free; bulk operations (e.g. the [data generation tool](./tools/data-generation.mdx))
-must create per row via the domain path plus one `SaveChanges`, never a raw `AddRange`.
+row directly, and never bulk-insert source rows with a raw `AddRange` that skips the domain path (the
+[data generation tool](./tools/data-generation.mdx) goes through the import endpoints for this reason).
+
+The copies are **eventually consistent**. These events are delivered durably and asynchronously (see
+`DurableEventRoutes`), after the command that raised them has returned, so a copy can be missing for a
+moment after its source was created. Anything that references a copy by foreign key must check it exists
+and fail cleanly rather than let the save fault: `PlanningInterval.ManageTeams(teamIds)` adds
+`PlanningIntervalTeam { TeamId }` with no existence check of its own, so both of its callers —
+`ManagePlanningIntervalTeamsCommand` and `PlanningIntervalImportDefinition` — verify every requested
+`PlanningTeam` first and report that the team "may still be syncing" instead of an FK violation. A new caller
+of `ManageTeams`, or any new FK to a copy, needs the same guard.
 
 ### Domain events and the activity log
 

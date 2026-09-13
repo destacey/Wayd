@@ -134,4 +134,34 @@ public class StrategicThemeTests
         result.IsFailure.Should().BeTrue();
         theme.DomainEvents.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Delete_WhenProposed_RaisesDeletedEvent()
+    {
+        // Arrange
+        var theme = _faker.AsProposed().Generate();
+
+        // Act
+        var result = theme.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        theme.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<StrategicThemeDeletedEvent>()
+            .Which.Id.Should().Be(theme.Id);
+    }
+
+    [Fact]
+    public void Delete_WhenNotProposed_FailsAndRaisesNoEvent()
+    {
+        // Arrange
+        var theme = _faker.AsActive().Generate();
+
+        // Act
+        var result = theme.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        theme.DomainEvents.Should().BeEmpty();
+    }
 }

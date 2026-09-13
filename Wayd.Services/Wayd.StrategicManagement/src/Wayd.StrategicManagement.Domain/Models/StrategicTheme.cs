@@ -127,6 +127,21 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     public bool CanBeDeleted() => State == StrategicThemeState.Proposed;
 
     /// <summary>
+    /// Raises the deletion event. The caller removes the theme in the same save, which is what drains it.
+    /// </summary>
+    public Result Delete(EventActor actor, Instant timestamp)
+    {
+        if (!CanBeDeleted())
+        {
+            return Result.Failure("Only proposed strategic themes can be deleted.");
+        }
+
+        AddDomainEvent(new StrategicThemeDeletedEvent(Id, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Creates a new Strategic Theme.
     /// </summary>
     /// <param name="name"></param>

@@ -1,7 +1,4 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Application.Models;
-using Wayd.Common.Domain.Events.StrategicManagement;
-using Wayd.Common.Domain.Events;
+﻿using Wayd.Common.Domain.Events;
 
 namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 
@@ -15,7 +12,7 @@ public sealed class DeleteStrategicThemeCommandValidator : AbstractValidator<Del
     }
 }
 
-public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ICurrentUser currentUser, ILogger<DeleteStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher) : ICommandHandler<DeleteStrategicThemeCommand>
+public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ICurrentUser currentUser, ILogger<DeleteStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeleteStrategicThemeCommand>
 {
     private const string AppRequestName = nameof(DeleteStrategicThemeCommand);
 
@@ -23,7 +20,6 @@ public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbCon
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteStrategicThemeCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly IEventPublisher _eventPublisher = eventPublisher;
 
     public async Task<Result> Handle(DeleteStrategicThemeCommand request, CancellationToken cancellationToken)
     {
@@ -38,10 +34,11 @@ public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbCon
                 return Result.Failure("Strategic Theme not found.");
             }
 
-            if (!strategicTheme.CanBeDeleted())
+            var deleteResult = strategicTheme.Delete(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+            if (deleteResult.IsFailure)
             {
-                _logger.LogInformation("Strategic Theme {StrategicThemeId} cannot be deleted.", request.Id);
-                return Result.Failure("Strategic Theme cannot be deleted.");
+                _logger.LogInformation("Strategic Theme {StrategicThemeId} cannot be deleted. Error message: {Error}", request.Id, deleteResult.Error);
+                return Result.Failure(deleteResult.Error);
             }
 
             _strategicManagementDbContext.StrategicThemes.Remove(strategicTheme);
@@ -49,15 +46,12 @@ public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbCon
 
             _logger.LogInformation("Strategic Theme {StrategicThemeId} deleted.", request.Id);
 
-            var deleteEvent = new StrategicThemeDeletedEvent(request.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            await _eventPublisher.PublishAsync(deleteEvent);
-
             return Result.Success();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

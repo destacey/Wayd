@@ -1,5 +1,4 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Application.Interfaces.ExternalWork;
+﻿using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.Planning.Iterations;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -13,7 +12,7 @@ using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Application.Iterations.Commands;
 
-public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext planningDbContext, ILogger<SyncAzureDevOpsIterationsCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher)
+public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext planningDbContext, ILogger<SyncAzureDevOpsIterationsCommandHandler> logger, IDateTimeProvider dateTimeProvider)
  : ICommandHandler<SyncAzureDevOpsIterationsCommand>
 {
     private const string AppRequestName = nameof(SyncAzureDevOpsIterationsCommand);
@@ -21,7 +20,6 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext p
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<SyncAzureDevOpsIterationsCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly IEventPublisher _eventPublisher = eventPublisher;
 
     public async Task<Result> Handle(SyncAzureDevOpsIterationsCommand request, CancellationToken cancellationToken)
     {
@@ -106,6 +104,12 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext p
         if (iterationsToDelete.Count == 0)
             return;
 
+        var timestamp = _dateTimeProvider.Now;
+        foreach (var iteration in iterationsToDelete)
+        {
+            iteration.Delete(EventActor.Sync(null), timestamp);
+        }
+
         _planningDbContext.Iterations.RemoveRange(iterationsToDelete);
 
         try
@@ -117,20 +121,6 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext p
         {
             // Log and continue: delete failures should not stop processing of other project groups
             _logger.LogError(ex, "Failed to delete {Count} iterations during sync. Continuing processing.", iterationsToDelete.Count);
-        }
-
-        try
-        {
-            foreach (var iteration in iterationsToDelete)
-            {
-                var deleteEvent = new IterationDeletedEvent(iteration.Id, EventActor.Sync(null), _dateTimeProvider.Now);
-                await _eventPublisher.PublishAsync(deleteEvent);
-            }
-        }
-        catch (Exception ex)
-        {
-            // Log and continue: delete failures should not stop processing of other project groups
-            _logger.LogError(ex, "Exception while processing iteration delete events");
         }
     }
 

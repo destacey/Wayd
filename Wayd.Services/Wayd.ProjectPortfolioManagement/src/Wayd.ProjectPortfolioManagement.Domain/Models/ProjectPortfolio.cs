@@ -133,6 +133,23 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     public bool CanBeDeleted() => Status is ProjectPortfolioStatus.Proposed;
 
     /// <summary>
+    /// Raises the deletion event. The caller removes the portfolio in the same save, which is what drains it.
+    /// </summary>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp"></param>
+    public Result Delete(EventActor actor, Instant timestamp)
+    {
+        if (!CanBeDeleted())
+        {
+            return Result.Failure("Only proposed portfolios can be deleted.");
+        }
+
+        AddDomainEvent(new ProjectPortfolioDeletedEvent(Id, Key, Name, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Read-side authorization predicate: returns true if the given actor may manage this portfolio.
     /// A portfolio has no parent, so only Owner/Manager on the portfolio itself qualifies — or the
     /// domain-wide PPM administrator grant. Sponsors are intentionally excluded — they fund and

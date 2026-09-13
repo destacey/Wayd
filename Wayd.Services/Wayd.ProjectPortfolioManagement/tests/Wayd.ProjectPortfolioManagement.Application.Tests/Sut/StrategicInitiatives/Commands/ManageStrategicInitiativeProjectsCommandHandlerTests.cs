@@ -1,5 +1,7 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -26,7 +28,10 @@ public class ManageStrategicInitiativeProjectsCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<ManageStrategicInitiativeProjectsCommandHandler>>();
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
 
-        _handler = new ManageStrategicInitiativeProjectsCommandHandler(_dbContext, _mockLogger.Object);
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(Guid.CreateVersion7().ToString());
+
+        _handler = new ManageStrategicInitiativeProjectsCommandHandler(_dbContext, _mockLogger.Object, currentUser.Object, _dateTimeProvider);
 
         _initiativeFaker = new StrategicInitiativeFaker(_dateTimeProvider);
         _projectFaker = new ProjectFaker();
@@ -147,7 +152,7 @@ public class ManageStrategicInitiativeProjectsCommandHandlerTests : IDisposable
         _dbContext.AddProject(keepProject);
         _dbContext.AddProject(removeProject);
 
-        initiative.ManageProjects([keepProject.Id, removeProject.Id]);
+        initiative.ManageProjects([keepProject.Id, removeProject.Id], EventActor.System, _dateTimeProvider.Now);
         _dbContext.AddStrategicInitiative(initiative);
 
         var command = new ManageStrategicInitiativeProjectsCommand(

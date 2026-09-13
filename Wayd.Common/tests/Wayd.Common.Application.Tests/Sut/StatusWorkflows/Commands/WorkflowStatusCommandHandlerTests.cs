@@ -14,7 +14,7 @@ public sealed class WorkflowStatusCommandHandlerTests : StatusWorkflowHandlerTes
     {
         // Arrange
         var workflow = SeedWorkflow();
-        var sut = new AddWorkflowStatusCommandHandler(DbContext, Logger<AddWorkflowStatusCommandHandler>());
+        var sut = new AddWorkflowStatusCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<AddWorkflowStatusCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -32,7 +32,7 @@ public sealed class WorkflowStatusCommandHandlerTests : StatusWorkflowHandlerTes
     {
         // Arrange
         var workflow = SeedWorkflow();
-        var sut = new AddWorkflowStatusCommandHandler(DbContext, Logger<AddWorkflowStatusCommandHandler>());
+        var sut = new AddWorkflowStatusCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<AddWorkflowStatusCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -49,7 +49,7 @@ public sealed class WorkflowStatusCommandHandlerTests : StatusWorkflowHandlerTes
     {
         // Arrange
         var workflow = SeedWorkflow(publish: true);
-        var sut = new AddWorkflowStatusCommandHandler(DbContext, Logger<AddWorkflowStatusCommandHandler>());
+        var sut = new AddWorkflowStatusCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<AddWorkflowStatusCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -66,7 +66,7 @@ public sealed class WorkflowStatusCommandHandlerTests : StatusWorkflowHandlerTes
         // Arrange
         var workflow = SeedWorkflow();
         var status = workflow.Statuses.First();
-        var sut = new RenameWorkflowStatusCommandHandler(DbContext, Logger<RenameWorkflowStatusCommandHandler>());
+        var sut = new RenameWorkflowStatusCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<RenameWorkflowStatusCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -105,7 +105,7 @@ public sealed class WorkflowStatusCommandHandlerTests : StatusWorkflowHandlerTes
         // Arrange
         var workflow = SeedWorkflow();
         var status = workflow.Statuses.Single(s => s.Name == "Proposed");
-        var sut = new RemoveWorkflowStatusCommandHandler(DbContext, Logger<RemoveWorkflowStatusCommandHandler>());
+        var sut = new RemoveWorkflowStatusCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<RemoveWorkflowStatusCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -122,7 +122,7 @@ public sealed class WorkflowStatusCommandHandlerTests : StatusWorkflowHandlerTes
         // The aggregate demands every id, so a caller moving one status still sends them all.
         // Arrange
         var workflow = SeedWorkflow();
-        var sut = new ReorderWorkflowStatusesCommandHandler(DbContext, Logger<ReorderWorkflowStatusesCommandHandler>());
+        var sut = new ReorderWorkflowStatusesCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<ReorderWorkflowStatusesCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -140,7 +140,7 @@ public sealed class WorkflowStatusCommandHandlerTests : StatusWorkflowHandlerTes
         // Arrange
         var workflow = SeedWorkflow();
         var reversed = workflow.Statuses.Select(s => s.Id).Reverse().ToList();
-        var sut = new ReorderWorkflowStatusesCommandHandler(DbContext, Logger<ReorderWorkflowStatusesCommandHandler>());
+        var sut = new ReorderWorkflowStatusesCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<ReorderWorkflowStatusesCommandHandler>());
 
         // Act
         var result = await sut.Handle(

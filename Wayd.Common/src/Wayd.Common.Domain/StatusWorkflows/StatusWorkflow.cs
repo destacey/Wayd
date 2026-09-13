@@ -141,7 +141,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Renames the workflow. Safe in any state other than archived.
     /// </summary>
-    public Result Update(string name, string? description)
+    public Result Update(string name, string? description, EventActor actor, Instant timestamp)
     {
         if (IsSystem)
         {
@@ -153,8 +153,17 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(ArchivedError);
         }
 
+        // Compared after assignment, never against the arguments: the setters trim and blank to null.
+        var before = new WorkflowDetails(Name, Description);
+
         Name = name;
         Description = description;
+
+        var after = new WorkflowDetails(Name, Description);
+        if (before != after)
+        {
+            AddKeyedDomainEvent(() => new WorkflowDetailsUpdatedEvent(Id, Key, after.Name, after.Description, before, actor, timestamp));
+        }
 
         return Result.Success();
     }
@@ -162,7 +171,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Adds a status. Draft only, until the remap engine exists.
     /// </summary>
-    public Result<WorkflowStatus> AddStatus(string name, string? description, StatusCategory category, int alias = NoAlias)
+    public Result<WorkflowStatus> AddStatus(string name, string? description, StatusCategory category, int alias, EventActor actor, Instant timestamp)
     {
         if (IsSystem)
         {
@@ -195,6 +204,8 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         var status = new WorkflowStatus(Id, trimmed, description, category, alias, order);
         _statuses.Add(status);
 
+        RaiseStatusAdded(status, actor, timestamp);
+
         return Result.Success(status);
     }
 
@@ -202,7 +213,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// Removes a status. Draft only: a status held by an existing record needs those records remapped
     /// first.
     /// </summary>
-    public Result RemoveStatus(Guid statusId)
+    public Result RemoveStatus(Guid statusId, EventActor actor, Instant timestamp)
     {
         if (IsSystem)
         {
@@ -222,13 +233,16 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         _statuses.Remove(status);
 
+        var name = status.Name;
+        AddKeyedDomainEvent(() => new WorkflowStatusRemovedEvent(Id, Key, statusId, name, actor, timestamp));
+
         return Result.Success();
     }
 
     /// <summary>
     /// Renames a status. Safe in every state including active, since records hold the id.
     /// </summary>
-    public Result RenameStatus(Guid statusId, string name, string? description)
+    public Result RenameStatus(Guid statusId, string name, string? description, EventActor actor, Instant timestamp)
     {
         if (IsSystem)
         {
@@ -258,7 +272,16 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure($"A status named '{trimmed}' already exists in this workflow.");
         }
 
+        var before = new WorkflowStatusDetails(status.Name, status.Description);
+
         status.Rename(trimmed, description);
+
+        var after = new WorkflowStatusDetails(status.Name, status.Description);
+        if (before != after)
+        {
+            AddKeyedDomainEvent(() => new WorkflowStatusRenamedEvent(
+                Id, Key, statusId, after.Name, after.Description, before, actor, timestamp));
+        }
 
         return Result.Success();
     }
@@ -301,16 +324,22 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         }
 
         var fromCategory = status.Category;
+        var fromAlias = status.Alias;
 
         status.Reclassify(category);
         status.SetAlias(alias);
 
-        // Raised only for the category: it is the half that changes what existing records roll up
-        // under, and a consumer counting Done or Removed needs to know it moved beneath them.
+        // Two events, not one: the category is what existing records roll up under, and a consumer
+        // counting Done or Removed must not be woken by an alias moving between statuses.
         if (fromCategory != category)
         {
             AddDomainEvent(new WorkflowStatusReclassifiedEvent(
                 Id, status.Id, status.Name, OwnerType, fromCategory, category, actor, timestamp));
+        }
+
+        if (fromAlias != alias)
+        {
+            AddKeyedDomainEvent(() => new WorkflowStatusAliasChangedEvent(Id, Key, statusId, fromAlias, alias, actor, timestamp));
         }
 
         return Result.Success();
@@ -319,7 +348,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Reorders the statuses for display. The supplied ids must be exactly the workflow's statuses.
     /// </summary>
-    public Result ReorderStatuses(IReadOnlyList<Guid> orderedStatusIds)
+    public Result ReorderStatuses(IReadOnlyList<Guid> orderedStatusIds, EventActor actor, Instant timestamp)
     {
         if (IsSystem)
         {
@@ -339,9 +368,17 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("The supplied statuses must be exactly the statuses in this workflow.");
         }
 
+        var previousOrder = StatusOrder();
+
         for (var i = 0; i < orderedStatusIds.Count; i++)
         {
             _statuses.Single(s => s.Id == orderedStatusIds[i]).Reorder(i + 1);
+        }
+
+        var order = StatusOrder();
+        if (!previousOrder.SequenceEqual(order))
+        {
+            AddKeyedDomainEvent(() => new WorkflowStatusesReorderedEvent(Id, Key, previousOrder, order, actor, timestamp));
         }
 
         return Result.Success();
@@ -374,11 +411,17 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
-        State = StatusWorkflowState.Published;
-
-        AddDomainEvent(new WorkflowPublishedEventV2(Id, Key, OwnerType, _statuses.Count, actor, timestamp));
+        MarkPublished(actor, timestamp);
 
         return Result.Success();
+    }
+
+    private void MarkPublished(EventActor actor, Instant timestamp)
+    {
+        State = StatusWorkflowState.Published;
+
+        var statusCount = _statuses.Count;
+        AddKeyedDomainEvent(() => new WorkflowPublishedEventV2(Id, Key, OwnerType, statusCount, actor, timestamp));
     }
 
     /// <summary>
@@ -413,7 +456,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         State = StatusWorkflowState.Archived;
 
-        AddDomainEvent(new WorkflowArchivedEventV2(Id, Key, OwnerType, actor, timestamp));
+        AddKeyedDomainEvent(() => new WorkflowArchivedEventV2(Id, Key, OwnerType, actor, timestamp));
 
         return Result.Success();
     }
@@ -422,7 +465,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// Copies this workflow into an editable draft — the route by which a seeded default is diverged
     /// from, keeping the originals safe to reseed on upgrade.
     /// </summary>
-    public StatusWorkflow Clone(string name, string? description = null)
+    public StatusWorkflow Clone(string name, string? description, EventActor actor, Instant timestamp)
     {
         var clone = new StatusWorkflow(name, description ?? Description, OwnerType, isSystem: false);
 
@@ -431,50 +474,83 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             clone._statuses.Add(new WorkflowStatus(clone.Id, status.Name, status.Description, status.Category, status.Alias, status.Order));
         }
 
+        clone.RaiseCreated(Id, actor, timestamp);
+
         return clone;
     }
 
     /// <summary>
     /// Creates an empty draft workflow for an owner type.
     /// </summary>
-    public static Result<StatusWorkflow> Create(string name, string? description, string ownerType)
-    {
-        var descriptor = WorkflowOwners.Resolve(ownerType);
-
-        return descriptor.IsFailure
-            ? Result.Failure<StatusWorkflow>(descriptor.Error)
-            : Result.Success(new StatusWorkflow(name, description, descriptor.Value.Key, isSystem: false));
-    }
+    public static Result<StatusWorkflow> Create(string name, string? description, string ownerType, EventActor actor, Instant timestamp) =>
+        Create(name, description, ownerType, isSystem: false, actor, timestamp);
 
     /// <summary>
     /// Creates a platform-seeded workflow. Read-only; published via <see cref="PublishSystem"/>.
     /// </summary>
-    public static Result<StatusWorkflow> CreateSystem(string name, string? description, string ownerType)
+    public static Result<StatusWorkflow> CreateSystem(string name, string? description, string ownerType, EventActor actor, Instant timestamp) =>
+        Create(name, description, ownerType, isSystem: true, actor, timestamp);
+
+    private static Result<StatusWorkflow> Create(string name, string? description, string ownerType, bool isSystem, EventActor actor, Instant timestamp)
     {
         var descriptor = WorkflowOwners.Resolve(ownerType);
+        if (descriptor.IsFailure)
+        {
+            return Result.Failure<StatusWorkflow>(descriptor.Error);
+        }
 
-        return descriptor.IsFailure
-            ? Result.Failure<StatusWorkflow>(descriptor.Error)
-            : Result.Success(new StatusWorkflow(name, description, descriptor.Value.Key, isSystem: true));
+        var workflow = new StatusWorkflow(name, description, descriptor.Value.Key, isSystem);
+        workflow.RaiseCreated(sourceWorkflowId: null, actor, timestamp);
+
+        return Result.Success(workflow);
+    }
+
+    /// <summary>
+    /// Raises the creation event once the first save has assigned <see cref="Key"/>.
+    /// </summary>
+    /// <remarks>
+    /// Everything else is captured now: the seeder adds statuses and publishes before that save, and those
+    /// raise their own events.
+    /// </remarks>
+    private void RaiseCreated(Guid? sourceWorkflowId, EventActor actor, Instant timestamp)
+    {
+        var (name, description, ownerType, isSystem) = (Name, Description, OwnerType, IsSystem);
+        WorkflowStatusValues[] statuses = [.. _statuses
+            .OrderBy(s => s.Order)
+            .Select(s => new WorkflowStatusValues(s.Id, s.Name, s.Description, s.Category, s.Alias, s.Order))];
+
+        AddPostPersistenceAction(() => AddDomainEvent(new WorkflowCreatedEvent(
+            Id, Key, name, description, ownerType, isSystem, sourceWorkflowId, statuses, actor, timestamp)));
     }
 
     /// <summary>
     /// Adds a status to a seeded workflow, bypassing the read-only guard. For the seeder that builds
     /// the workflow; the resulting statuses are themselves marked system-owned.
     /// </summary>
-    public WorkflowStatus AddSystemStatus(string name, string? description, StatusCategory category, int alias)
+    public WorkflowStatus AddSystemStatus(string name, string? description, StatusCategory category, int alias, EventActor actor, Instant timestamp)
     {
         var order = _statuses.Count == 0 ? 1 : _statuses.Max(s => s.Order) + 1;
         var status = new WorkflowStatus(Id, name, description, category, alias, order, isSystem: true);
         _statuses.Add(status);
 
+        RaiseStatusAdded(status, actor, timestamp);
+
         return status;
+    }
+
+    private void RaiseStatusAdded(WorkflowStatus status, EventActor actor, Instant timestamp)
+    {
+        var (statusId, name, description, category, alias, order) =
+            (status.Id, status.Name, status.Description, status.Category, status.Alias, status.Order);
+
+        AddKeyedDomainEvent(() => new WorkflowStatusAddedEvent(
+            Id, Key, statusId, name, description, category, alias, order, actor, timestamp));
     }
 
     /// <summary>
     /// Publishes a seeded workflow, bypassing the system read-only guard but not the alias check.
     /// </summary>
-    public Result PublishSystem()
+    public Result PublishSystem(EventActor actor, Instant timestamp)
     {
         var guard = GuardRequiredAliases();
         if (guard.IsFailure)
@@ -482,9 +558,26 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
-        State = StatusWorkflowState.Published;
+        MarkPublished(actor, timestamp);
 
         return Result.Success();
+    }
+
+    private Guid[] StatusOrder() => [.. _statuses.OrderBy(s => s.Order).Select(s => s.Id)];
+
+    /// <summary>
+    /// Raises an event that carries <see cref="Key"/>, waiting for the first save to assign it.
+    /// </summary>
+    /// <remarks>
+    /// The factory runs when the event is raised, so everything else it carries must be captured in locals by
+    /// the caller — only Key may be read inside it.
+    /// </remarks>
+    private void AddKeyedDomainEvent(Func<DomainEvent> build)
+    {
+        if (Key == 0)
+            AddPostPersistenceAction(() => AddDomainEvent(build()));
+        else
+            AddDomainEvent(build());
     }
 
     /// <summary>

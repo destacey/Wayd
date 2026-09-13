@@ -224,9 +224,9 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         ProductWorkflowOwners.Register();
         await using var context = _fixture.CreateContext();
 
-        var workflow = StatusWorkflow.Create("Unaliased Probe", null, ProductWorkflowOwners.Product.Key).Value;
-        workflow.AddStatus("Stage One", null, StatusCategory.Active);
-        workflow.AddStatus("Stage Two", null, StatusCategory.Active);
+        var workflow = StatusWorkflow.Create("Unaliased Probe", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        workflow.AddStatus("Stage One", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.AddStatus("Stage Two", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
         context.StatusWorkflows.Add(workflow);
@@ -250,15 +250,15 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         ProductWorkflowOwners.Register();
         await using var context = _fixture.CreateContext();
 
-        var workflow = StatusWorkflow.Create("Duplicate Name Probe", null, ProductWorkflowOwners.Product.Key).Value;
-        workflow.AddStatus("Live", null, StatusCategory.Active, (int)ProductStatusAlias.Active);
+        var workflow = StatusWorkflow.Create("Duplicate Name Probe", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        workflow.AddStatus("Live", null, StatusCategory.Active, (int)ProductStatusAlias.Active, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         context.StatusWorkflows.Add(workflow);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         // Two workflows may each have a "Live"; the uniqueness is per workflow, not global.
-        var other = StatusWorkflow.Create("Second Probe", null, ProductWorkflowOwners.Product.Key).Value;
-        other.AddStatus("Live", null, StatusCategory.Active, (int)ProductStatusAlias.Active);
+        var other = StatusWorkflow.Create("Second Probe", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        other.AddStatus("Live", null, StatusCategory.Active, (int)ProductStatusAlias.Active, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         context.StatusWorkflows.Add(other);
 
         var act = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);

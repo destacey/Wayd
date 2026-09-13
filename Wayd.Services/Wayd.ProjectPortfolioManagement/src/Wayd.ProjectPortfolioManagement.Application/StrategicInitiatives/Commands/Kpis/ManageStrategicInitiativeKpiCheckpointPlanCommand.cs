@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+﻿using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
@@ -99,13 +100,17 @@ public sealed class StrategicInitiativeKpiCheckpointPlanItemValidator : Abstract
 
 public sealed class ManageStrategicInitiativeKpiCheckpointPlanCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<ManageStrategicInitiativeKpiCheckpointPlanCommandHandler> logger)
+    ILogger<ManageStrategicInitiativeKpiCheckpointPlanCommandHandler> logger,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<ManageStrategicInitiativeKpiCheckpointPlanCommand>
 {
     private const string AppRequestName = nameof(ManageStrategicInitiativeKpiCheckpointPlanCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<ManageStrategicInitiativeKpiCheckpointPlanCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(ManageStrategicInitiativeKpiCheckpointPlanCommand request, CancellationToken cancellationToken)
     {
@@ -140,7 +145,7 @@ public sealed class ManageStrategicInitiativeKpiCheckpointPlanCommandHandler(
                 .Select(c => UpsertStrategicInitiativeKpiCheckpoint.Create(c.CheckpointId, c.TargetValue, c.CheckpointDate, c.DateLabel, c.AtRiskValue))
                 .ToList();
 
-            var manageResult = kpi.ManageCheckpointPlan(checkpoints);
+            var manageResult = strategicInitiative.ManageKpiCheckpointPlan(kpi.Id, checkpoints, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (manageResult.IsFailure)
             {
                 await _projectPortfolioManagementDbContext.Entry(strategicInitiative).ReloadAsync(cancellationToken);

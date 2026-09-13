@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 
 public sealed record ActivateStrategicInitiativeCommand(Guid Id) : ICommand;
 
@@ -11,12 +13,14 @@ public sealed class ActivateStrategicInitiativeCommandValidator : AbstractValida
     }
 }
 
-public sealed class ActivateStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ActivateStrategicInitiativeCommandHandler> logger) : ICommandHandler<ActivateStrategicInitiativeCommand>
+public sealed class ActivateStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ActivateStrategicInitiativeCommandHandler> logger, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(ActivateStrategicInitiativeCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<ActivateStrategicInitiativeCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(ActivateStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
@@ -30,7 +34,7 @@ public sealed class ActivateStrategicInitiativeCommandHandler(IProjectPortfolioM
                 return Result.Failure("Strategic Initiative not found.");
             }
 
-            var activateResult = strategicInitiative.Activate();
+            var activateResult = strategicInitiative.Activate(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

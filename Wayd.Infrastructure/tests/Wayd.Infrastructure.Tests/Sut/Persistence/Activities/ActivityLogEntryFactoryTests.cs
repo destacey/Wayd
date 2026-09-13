@@ -27,7 +27,7 @@ public sealed class ActivityLogEntryFactoryTests
     [Fact]
     public void CreateActivityLogEntry_ForAnEventAboutSomethingElse_NamesTheAggregateInWords()
     {
-        // Arrange — a strategic initiative is created through, and recorded against, its portfolio.
+        // Arrange — an event named for one record but recorded against another.
         var raised = new StrategicInitiativeStubEvent("ProjectPortfolio", Guid.CreateVersion7());
 
         // Act

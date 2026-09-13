@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 
 public sealed record DeleteStrategicInitiativeKpiCommand(Guid StrategicInitiativeId, Guid KpiId) : ICommand;
 
@@ -16,21 +18,24 @@ public sealed class DeleteStrategicInitiativeKpiCommandValidator : AbstractValid
 
 public sealed class DeleteStrategicInitiativeKpiCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<DeleteStrategicInitiativeKpiCommandHandler> logger)
+    ILogger<DeleteStrategicInitiativeKpiCommandHandler> logger,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteStrategicInitiativeKpiCommand>
 {
     private const string AppRequestName = nameof(DeleteStrategicInitiativeKpiCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<DeleteStrategicInitiativeKpiCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     public async Task<Result> Handle(DeleteStrategicInitiativeKpiCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            // Every KPI, not just the one being deleted: the rest are renumbered to close the gap it leaves.
+            // Its checkpoints and measurements go with it by cascade, so they need not be loaded.
             var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
-                .Include(i => i.Kpis.Where(k => k.Id == request.KpiId))
-                    .ThenInclude(k => k.Measurements)
-                .Include(i => i.Kpis.Where(k => k.Id == request.KpiId))
-                    .ThenInclude(k => k.Checkpoints)
+                .Include(i => i.Kpis)
                 .FirstOrDefaultAsync(i => i.Id == request.StrategicInitiativeId, cancellationToken);
             if (strategicInitiative == null)
             {
@@ -38,7 +43,7 @@ public sealed class DeleteStrategicInitiativeKpiCommandHandler(
                 return Result.Failure("Strategic Initiative not found.");
             }
 
-            var deleteResult = strategicInitiative.DeleteKpi(request.KpiId);
+            var deleteResult = strategicInitiative.DeleteKpi(request.KpiId, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Error deleting Strategic Initiative KPI {StrategicInitiativeKpiId}. Error message: {Error}", request.KpiId, deleteResult.Error);

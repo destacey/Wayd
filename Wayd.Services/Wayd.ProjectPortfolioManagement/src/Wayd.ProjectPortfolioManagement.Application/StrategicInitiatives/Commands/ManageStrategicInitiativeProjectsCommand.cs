@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 
 public sealed record ManageStrategicInitiativeProjectsCommand(Guid Id, List<Guid> ProjectIds) : ICommand;
 
@@ -14,12 +16,14 @@ public sealed class ManageStrategicInitiativeProjectsCommandValidator : Abstract
     }
 }
 
-public sealed class ManageStrategicInitiativeProjectsCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ManageStrategicInitiativeProjectsCommandHandler> logger) : ICommandHandler<ManageStrategicInitiativeProjectsCommand>
+public sealed class ManageStrategicInitiativeProjectsCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ManageStrategicInitiativeProjectsCommandHandler> logger, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : ICommandHandler<ManageStrategicInitiativeProjectsCommand>
 {
     private const string AppRequestName = nameof(ManageStrategicInitiativeProjectsCommand);
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<ManageStrategicInitiativeProjectsCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     public async Task<Result> Handle(ManageStrategicInitiativeProjectsCommand request, CancellationToken cancellationToken)
     {
         try
@@ -44,7 +48,7 @@ public sealed class ManageStrategicInitiativeProjectsCommandHandler(IProjectPort
                 return Result.Failure("One or more projects do not exist.");
             }
 
-            var result = strategicInitiative.ManageProjects(projectIds);
+            var result = strategicInitiative.ManageProjects(projectIds, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to update projects for Strategic Initiative {StrategicInitiativeId}. Error message: {Error}", request.Id, result.Error);

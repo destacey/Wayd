@@ -94,11 +94,11 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
     /// <summary>A published copy of the seeded workflow, so a remap between the two is legitimate.</summary>
     private static StatusWorkflow Replacement(StatusWorkflow source, string name)
     {
-        var replacement = StatusWorkflow.Create(name, null, source.OwnerType).Value;
+        var replacement = StatusWorkflow.Create(name, null, source.OwnerType, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
 
         foreach (var status in source.Statuses.OrderBy(s => s.Order))
         {
-            replacement.AddStatus(status.Name, status.Description, status.Category, status.Alias);
+            replacement.AddStatus(status.Name, status.Description, status.Category, status.Alias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         }
 
         replacement.Publish(EventActor.System, Timestamp);

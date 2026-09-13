@@ -106,6 +106,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.StatusWorkflow, id: 'LIST' },
         { type: QueryTags.StatusWorkflow, id: arg.id },
+        { type: QueryTags.ActivityLog, id: arg.id },
       ],
     }),
 
@@ -138,6 +139,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: QueryTags.StatusWorkflow, id: 'LIST' },
         { type: QueryTags.StatusWorkflow, id },
+        { type: QueryTags.ActivityLog, id },
       ],
     }),
 
@@ -154,6 +156,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: QueryTags.StatusWorkflow, id: 'LIST' },
         { type: QueryTags.StatusWorkflow, id },
+        { type: QueryTags.ActivityLog, id },
       ],
     }),
 
@@ -174,7 +177,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
         }
       },
       // Untagged: a status change alters the parent's publishability too.
-      invalidatesTags: () => [{ type: QueryTags.StatusWorkflow }],
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
     }),
 
     renameWorkflowStatus: builder.mutation<
@@ -198,7 +204,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.StatusWorkflow }],
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
     }),
 
     reclassifyWorkflowStatus: builder.mutation<
@@ -222,7 +231,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.StatusWorkflow }],
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
     }),
 
     removeWorkflowStatus: builder.mutation<
@@ -241,7 +253,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.StatusWorkflow }],
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
     }),
 
     reorderWorkflowStatuses: builder.mutation<
@@ -260,7 +275,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.StatusWorkflow }],
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
     }),
 
     getWorkflowAssignments: builder.query<

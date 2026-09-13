@@ -112,20 +112,27 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
 
         if (workflow is null)
         {
-            workflow = StatusWorkflow.CreateSystem(name, description, owner.Key).Value;
+            var timestamp = dateTimeProvider.Now;
+
+            workflow = StatusWorkflow.CreateSystem(name, description, owner.Key, EventActor.System, timestamp).Value;
 
             foreach (var (statusName, statusDescription, category, alias) in statuses)
             {
-                workflow.AddSystemStatus(statusName, statusDescription, category, (int)alias);
+                workflow.AddSystemStatus(statusName, statusDescription, category, (int)alias, EventActor.System, timestamp);
             }
 
             // A seeded workflow that cannot satisfy its own owner type is a bug in this file, not a
             // runtime condition — fail the boot rather than leave an unusable default in the database.
-            var publication = workflow.PublishSystem();
+            var publication = workflow.PublishSystem(EventActor.System, timestamp);
             if (publication.IsFailure)
             {
                 throw new InvalidOperationException($"The seeded '{name}' is invalid: {publication.Error}");
             }
+
+            // Cleared for the reason the assignment's event is below. Every one of these waits for the
+            // key, so they are post-persistence actions rather than pending events.
+            workflow.ClearDomainEvents();
+            workflow.ClearPostPersistenceActions();
 
             dbContext.StatusWorkflows.Add(workflow);
         }

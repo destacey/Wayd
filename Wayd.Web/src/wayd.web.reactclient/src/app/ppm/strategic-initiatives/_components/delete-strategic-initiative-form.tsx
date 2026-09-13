@@ -28,7 +28,6 @@ const DeleteStrategicInitiativeForm = ({
       try {
         const response = await deleteStrategicInitiativeMutation({
           id: strategicInitiative.id,
-          portfolioId: strategicInitiative.portfolio.id,
         })
         if (response.error) throw response.error
 

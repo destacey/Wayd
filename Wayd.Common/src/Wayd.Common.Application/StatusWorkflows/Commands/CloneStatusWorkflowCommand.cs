@@ -23,12 +23,16 @@ public sealed class CloneStatusWorkflowCommandValidator : AbstractValidator<Clon
 
 public sealed class CloneStatusWorkflowCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<CloneStatusWorkflowCommandHandler> logger)
     : ICommandHandler<CloneStatusWorkflowCommand, Guid>
 {
     private const string AppRequestName = nameof(CloneStatusWorkflowCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CloneStatusWorkflowCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CloneStatusWorkflowCommand request, CancellationToken cancellationToken)
@@ -46,7 +50,7 @@ public sealed class CloneStatusWorkflowCommandHandler(
                 return Result.Failure<Guid>("Status workflow not found.");
             }
 
-            var clone = workflow.Clone(request.Name, request.Description);
+            var clone = workflow.Clone(request.Name, request.Description, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
 
             _dbContext.StatusWorkflows.Add(clone);
             await _dbContext.SaveChangesAsync(cancellationToken);

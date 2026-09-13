@@ -1,6 +1,8 @@
-﻿using System.Data;
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using NodaTime;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -101,17 +103,48 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     public bool CanBeDeleted() => Status is StrategicInitiativeStatus.Proposed or StrategicInitiativeStatus.Approved;
 
     /// <summary>
-    /// Updates the details of the strategic initiative.
+    /// Updates the name and description of the strategic initiative.
     /// </summary>
     /// <param name="name"></param>
     /// <param name="description"></param>
-    /// <param name="dateRange"></param>
-    /// <returns></returns>
-    public Result UpdateDetails(string name, string description, LocalDateRange dateRange)
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result UpdateDetails(string name, string description, EventActor actor, Instant timestamp)
     {
+        // Compared after assignment, never against the arguments: the setters trim.
+        var before = new StrategicInitiativeDetails(Name, Description);
+
         Name = name;
         Description = description;
+
+        var after = new StrategicInitiativeDetails(Name, Description);
+        if (before != after)
+        {
+            AddKeyedDomainEvent(() => new StrategicInitiativeDetailsUpdatedEvent(
+                Id, Key, after.Name, after.Description, before, actor, timestamp));
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Moves the strategic initiative's start and end dates.
+    /// </summary>
+    /// <param name="dateRange"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result UpdateTimeline(LocalDateRange dateRange, EventActor actor, Instant timestamp)
+    {
+        var previous = DateRange;
+
         DateRange = dateRange;
+
+        if (!Equals(previous, DateRange))
+        {
+            var current = DateRange;
+            AddKeyedDomainEvent(() => new StrategicInitiativeTimelineChangedEvent(
+                Id, Key, previous, current, actor, timestamp));
+        }
 
         return Result.Success();
     }
@@ -120,10 +153,27 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// Updates the roles for the strategic initiative.
     /// </summary>
     /// <param name="updatedRoles"></param>
-    /// <returns></returns>
-    public Result UpdateRoles(Dictionary<StrategicInitiativeRole, HashSet<Guid>> updatedRoles)
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result UpdateRoles(Dictionary<StrategicInitiativeRole, HashSet<Guid>> updatedRoles, EventActor actor, Instant timestamp)
     {
-        return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        var before = RoleManager.ToRoleMap(_roles);
+
+        var result = RoleManager.UpdateRoles(_roles, Id, updatedRoles);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        var after = RoleManager.ToRoleMap(_roles);
+        var (added, removed) = RoleManager.Diff(before, after);
+        if (added.Length > 0 || removed.Length > 0)
+        {
+            AddKeyedDomainEvent(() => new StrategicInitiativeRolesChangedEvent(
+                Id, Key, added, removed, after, actor, timestamp));
+        }
+
+        return result;
     }
 
     #region Lifecycle
@@ -131,14 +181,14 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Approves the strategic initiative.
     /// </summary>
-    public Result Approve()
+    public Result Approve(EventActor actor, Instant timestamp)
     {
         if (Status != StrategicInitiativeStatus.Proposed)
         {
             return Result.Failure("Only proposed strategic initiatives can be approved.");
         }
 
-        Status = StrategicInitiativeStatus.Approved;
+        ChangeStatus(StrategicInitiativeStatus.Approved, actor, timestamp);
 
         return Result.Success();
     }
@@ -146,14 +196,14 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Activates the strategic initiative.
     /// </summary>
-    public Result Activate()
+    public Result Activate(EventActor actor, Instant timestamp)
     {
         if (Status != StrategicInitiativeStatus.Approved)
         {
             return Result.Failure("Only approved strategic initiatives can be activated.");
         }
 
-        Status = StrategicInitiativeStatus.Active;
+        ChangeStatus(StrategicInitiativeStatus.Active, actor, timestamp);
 
         return Result.Success();
     }
@@ -161,14 +211,14 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Marks the strategic initiative as completed.
     /// </summary>
-    public Result Complete()
+    public Result Complete(EventActor actor, Instant timestamp)
     {
         if (Status is not (StrategicInitiativeStatus.Active or StrategicInitiativeStatus.OnHold))
         {
             return Result.Failure("Only active strategic initiatives can be completed.");
         }
 
-        Status = StrategicInitiativeStatus.Completed;
+        ChangeStatus(StrategicInitiativeStatus.Completed, actor, timestamp);
 
         return Result.Success();
     }
@@ -176,16 +226,33 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Cancels the strategic initiative.
     /// </summary>
-    public Result Cancel()
+    public Result Cancel(EventActor actor, Instant timestamp)
     {
         if (Status is StrategicInitiativeStatus.Completed or StrategicInitiativeStatus.Canceled)
         {
             return Result.Failure("The strategic initiative is already completed or canceled.");
         }
 
-        Status = StrategicInitiativeStatus.Canceled;
+        ChangeStatus(StrategicInitiativeStatus.Canceled, actor, timestamp);
 
         return Result.Success();
+    }
+
+    private void ChangeStatus(StrategicInitiativeStatus toStatus, EventActor actor, Instant timestamp)
+    {
+        var fromStatus = Status;
+
+        Status = toStatus;
+
+        AddKeyedDomainEvent(() => new StrategicInitiativeStatusChangedEvent(
+            Id,
+            Key,
+            fromStatus.ToString(),
+            LifecycleCategories<StrategicInitiativeStatus>.Of(fromStatus),
+            toStatus.ToString(),
+            LifecycleCategories<StrategicInitiativeStatus>.Of(toStatus),
+            actor,
+            timestamp));
     }
 
     #endregion Lifecycle
@@ -196,8 +263,10 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// Creates a new KPI for the strategic initiative.
     /// </summary>
     /// <param name="parameters"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
     /// <returns></returns>
-    public Result<StrategicInitiativeKpi> CreateKpi(StrategicInitiativeKpiUpsertParameters parameters)
+    public Result<StrategicInitiativeKpi> CreateKpi(StrategicInitiativeKpiUpsertParameters parameters, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(parameters, nameof(parameters));
 
@@ -212,6 +281,12 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
 
         _kpis.Add(kpi);
 
+        var (name, description, startingValue, targetValue, prefix, suffix, direction, order) =
+            (kpi.Name, kpi.Description, kpi.StartingValue, kpi.TargetValue, kpi.Prefix, kpi.Suffix, kpi.TargetDirection, kpi.Order);
+
+        AddKeyedDomainEvent(() => new StrategicInitiativeKpiAddedEvent(
+            Id, Key, kpi.Id, name, description, startingValue, targetValue, prefix, suffix, direction, order, actor, timestamp));
+
         return kpi;
     }
 
@@ -220,8 +295,10 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     /// <param name="kpiId"></param>
     /// <param name="parameters"></param>
+    /// <param name="actor">Who is making the change, for the domain events this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
     /// <returns></returns>
-    public Result UpdateKpi(Guid kpiId, StrategicInitiativeKpiUpsertParameters parameters)
+    public Result UpdateKpi(Guid kpiId, StrategicInitiativeKpiUpsertParameters parameters, EventActor actor, Instant timestamp)
     {
         Guard.Against.NullOrEmpty(kpiId, nameof(kpiId));
         Guard.Against.Null(parameters, nameof(parameters));
@@ -237,15 +314,49 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("KPI not found.");
         }
 
-        return kpi.Update(parameters);
+        var detailsBefore = KpiDetails(kpi);
+        var targetBefore = KpiTarget(kpi);
+
+        var result = kpi.Update(parameters);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        // Compared after the update, never against the parameters: the setters trim and blank to null.
+        var detailsAfter = KpiDetails(kpi);
+        if (detailsBefore != detailsAfter)
+        {
+            AddKeyedDomainEvent(() => new StrategicInitiativeKpiDetailsUpdatedEvent(
+                Id, Key, kpi.Id, detailsAfter.Name, detailsAfter.Description, detailsAfter.Prefix, detailsAfter.Suffix,
+                detailsBefore, actor, timestamp));
+        }
+
+        var targetAfter = KpiTarget(kpi);
+        if (targetBefore != targetAfter)
+        {
+            AddKeyedDomainEvent(() => new StrategicInitiativeKpiTargetChangedEvent(
+                Id, Key, kpi.Id, targetAfter.StartingValue, targetAfter.TargetValue, targetAfter.TargetDirection,
+                targetBefore, actor, timestamp));
+        }
+
+        return result;
     }
+
+    private static StrategicInitiativeKpiDetails KpiDetails(StrategicInitiativeKpi kpi) =>
+        new(kpi.Name, kpi.Description, kpi.Prefix, kpi.Suffix);
+
+    private static StrategicInitiativeKpiTarget KpiTarget(StrategicInitiativeKpi kpi) =>
+        new(kpi.StartingValue, kpi.TargetValue, kpi.TargetDirection);
 
     /// <summary>
     /// Deletes a KPI from the strategic initiative.
     /// </summary>
     /// <param name="kpiId"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
     /// <returns></returns>
-    public Result DeleteKpi(Guid kpiId)
+    public Result DeleteKpi(Guid kpiId, EventActor actor, Instant timestamp)
     {
         Guard.Against.NullOrEmpty(kpiId, nameof(kpiId));
 
@@ -264,6 +375,9 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
 
         ResequenceKpiOrder();
 
+        var name = kpi.Name;
+        AddKeyedDomainEvent(() => new StrategicInitiativeKpiRemovedEvent(Id, Key, kpiId, name, actor, timestamp));
+
         return Result.Success();
     }
 
@@ -271,7 +385,9 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// Reorders the KPIs based on the provided ordered list of KPI IDs.
     /// </summary>
     /// <param name="orderedKpiIds">The KPI IDs in the desired order.</param>
-    public Result ReorderKpis(List<Guid> orderedKpiIds)
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result ReorderKpis(List<Guid> orderedKpiIds, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(orderedKpiIds, nameof(orderedKpiIds));
 
@@ -290,6 +406,8 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Duplicate KPI IDs are not allowed.");
         }
 
+        var previousOrder = KpiOrder();
+
         for (int i = 0; i < orderedKpiIds.Count; i++)
         {
             var kpi = _kpis.FirstOrDefault(k => k.Id == orderedKpiIds[i]);
@@ -301,7 +419,121 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
             kpi.Order = i + 1;
         }
 
+        var order = KpiOrder();
+        if (!previousOrder.SequenceEqual(order))
+        {
+            AddKeyedDomainEvent(() => new StrategicInitiativeKpisReorderedEvent(Id, Key, previousOrder, order, actor, timestamp));
+        }
+
         return Result.Success();
+    }
+
+    private Guid[] KpiOrder() => [.. _kpis.OrderBy(k => k.Order).Select(k => k.Id)];
+
+    /// <summary>
+    /// Replaces a KPI's checkpoint plan.
+    /// </summary>
+    /// <param name="kpiId"></param>
+    /// <param name="checkpoints">The whole plan: checkpoints without an id are added, and existing ones left out are removed.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result ManageKpiCheckpointPlan(Guid kpiId, IEnumerable<UpsertStrategicInitiativeKpiCheckpoint> checkpoints, EventActor actor, Instant timestamp)
+    {
+        var kpi = _kpis.FirstOrDefault(k => k.Id == kpiId);
+        if (kpi is null)
+        {
+            return Result.Failure("KPI not found.");
+        }
+
+        var before = CheckpointPlan(kpi).ToDictionary(c => c.CheckpointId);
+
+        var result = kpi.ManageCheckpointPlan(checkpoints);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        var after = CheckpointPlan(kpi);
+
+        StrategicInitiativeKpiCheckpointValues[] added = [.. after.Where(c => !before.ContainsKey(c.CheckpointId))];
+        StrategicInitiativeKpiCheckpointValues[] removed = [.. before.Values
+            .Where(c => after.All(a => a.CheckpointId != c.CheckpointId))
+            .OrderBy(c => c.CheckpointDate)];
+        StrategicInitiativeKpiCheckpointRevision[] revised = [.. after
+            .Where(c => before.TryGetValue(c.CheckpointId, out var previous) && previous != c)
+            .Select(c => new StrategicInitiativeKpiCheckpointRevision(before[c.CheckpointId], c))];
+
+        if (added.Length > 0 || removed.Length > 0 || revised.Length > 0)
+        {
+            AddKeyedDomainEvent(() => new StrategicInitiativeKpiCheckpointPlanChangedEvent(
+                Id, Key, kpiId, added, removed, revised, after, actor, timestamp));
+        }
+
+        return result;
+    }
+
+    private static StrategicInitiativeKpiCheckpointValues[] CheckpointPlan(StrategicInitiativeKpi kpi) =>
+        [.. kpi.Checkpoints
+            .OrderBy(c => c.CheckpointDate)
+            .Select(c => new StrategicInitiativeKpiCheckpointValues(c.Id, c.TargetValue, c.AtRiskValue, c.CheckpointDate, c.DateLabel))];
+
+    /// <summary>
+    /// Records a measurement against one of the strategic initiative's KPIs.
+    /// </summary>
+    /// <param name="kpiId"></param>
+    /// <param name="measurement"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result AddKpiMeasurement(Guid kpiId, StrategicInitiativeKpiMeasurement measurement, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(measurement, nameof(measurement));
+
+        var kpi = _kpis.FirstOrDefault(k => k.Id == kpiId);
+        if (kpi is null)
+        {
+            return Result.Failure("KPI not found.");
+        }
+
+        var result = kpi.AddMeasurement(measurement);
+        if (result.IsSuccess)
+        {
+            var (measurementId, actualValue, measurementDate, measuredById, note) =
+                (measurement.Id, measurement.ActualValue, measurement.MeasurementDate, measurement.MeasuredById, measurement.Note);
+
+            AddKeyedDomainEvent(() => new StrategicInitiativeKpiMeasurementAddedEvent(
+                Id, Key, kpiId, measurementId, actualValue, measurementDate, measuredById, note, actor, timestamp));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Removes a measurement from one of the strategic initiative's KPIs.
+    /// </summary>
+    /// <param name="kpiId"></param>
+    /// <param name="measurementId"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result RemoveKpiMeasurement(Guid kpiId, Guid measurementId, EventActor actor, Instant timestamp)
+    {
+        var kpi = _kpis.FirstOrDefault(k => k.Id == kpiId);
+        if (kpi is null)
+        {
+            return Result.Failure("KPI not found.");
+        }
+
+        var measurement = kpi.Measurements.FirstOrDefault(m => m.Id == measurementId);
+
+        var result = kpi.RemoveMeasurement(measurementId);
+        if (result.IsSuccess)
+        {
+            var (actualValue, measurementDate) = (measurement!.ActualValue, measurement.MeasurementDate);
+
+            AddKeyedDomainEvent(() => new StrategicInitiativeKpiMeasurementRemovedEvent(
+                Id, Key, kpiId, measurementId, actualValue, measurementDate, actor, timestamp));
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -325,8 +557,10 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// Manages the projects associated with the strategic initiative.
     /// </summary>
     /// <param name="projectIds"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
     /// <returns></returns>
-    public Result ManageProjects(IEnumerable<Guid> projectIds)
+    public Result ManageProjects(IEnumerable<Guid> projectIds, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(projectIds, nameof(projectIds));
 
@@ -346,10 +580,35 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
                                       .Select(id => StrategicInitiativeProject.Create(Id, id));
         _strategicInitiativeProjects.UnionWith(newProjects);
 
+        // Sorted so the same change always produces the same payload.
+        Guid[] added = [.. projectIdSet.Except(existingProjectIds).Order()];
+        Guid[] removed = [.. existingProjectIds.Except(projectIdSet).Order()];
+        if (added.Length > 0 || removed.Length > 0)
+        {
+            Guid[] after = [.. projectIdSet.Order()];
+            AddKeyedDomainEvent(() => new StrategicInitiativeProjectsChangedEvent(Id, Key, added, removed, after, actor, timestamp));
+        }
+
         return Result.Success();
     }
 
     #endregion Projects
+
+    /// <summary>
+    /// Raises an event that carries <see cref="Key"/>, waiting for the first save to assign it.
+    /// </summary>
+    /// <remarks>
+    /// An import creates an initiative and walks it to its status, adds its KPIs and links its projects before
+    /// that save. The factory runs when the event is raised, so everything else it carries must be captured
+    /// in locals by the caller — only Key may be read inside it.
+    /// </remarks>
+    private void AddKeyedDomainEvent(Func<DomainEvent> build)
+    {
+        if (Key == 0)
+            AddPostPersistenceAction(() => AddDomainEvent(build()));
+        else
+            AddDomainEvent(build());
+    }
 
     /// <summary>
     /// Creates a new strategic initiative.
@@ -359,9 +618,33 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// <param name="dateRange"></param>
     /// <param name="portfolioId"></param>
     /// <param name="roles"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp indicating when the initiative was created.</param>
     /// <returns></returns>
-    internal static StrategicInitiative Create(string name, string description, LocalDateRange dateRange, Guid portfolioId, Dictionary<StrategicInitiativeRole, HashSet<Guid>>? roles = null)
+    internal static StrategicInitiative Create(string name, string description, LocalDateRange dateRange, Guid portfolioId, Dictionary<StrategicInitiativeRole, HashSet<Guid>>? roles, EventActor actor, Instant timestamp)
     {
-        return new StrategicInitiative(name, description, StrategicInitiativeStatus.Proposed, dateRange, portfolioId, roles);
+        var initiative = new StrategicInitiative(name, description, StrategicInitiativeStatus.Proposed, dateRange, portfolioId, roles);
+
+        // Captured now, not when the action runs: the event records the initiative as created, and an import
+        // moves it on before the first save. Only Key waits for the save that assigns it.
+        var createdName = initiative.Name;
+        var createdDescription = initiative.Description;
+        var createdStatus = (int)initiative.Status;
+        var createdDateRange = initiative.DateRange;
+        var createdRoles = RoleManager.ToRoleMap(initiative._roles);
+
+        initiative.AddPostPersistenceAction(() => initiative.AddDomainEvent(new StrategicInitiativeCreatedEvent(
+            portfolioId,
+            initiative.Id,
+            initiative.Key,
+            createdName,
+            createdDescription,
+            createdStatus,
+            createdDateRange,
+            createdRoles,
+            actor,
+            timestamp)));
+
+        return initiative;
     }
 }

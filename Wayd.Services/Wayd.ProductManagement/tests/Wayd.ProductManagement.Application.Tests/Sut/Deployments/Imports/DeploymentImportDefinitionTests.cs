@@ -57,12 +57,12 @@ public sealed class DeploymentImportDefinitionTests
         _dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
 
         var workflow = StatusWorkflow
-            .CreateSystem("Deployment Lifecycle", null, ProductWorkflowOwners.Deployment.Key).Value;
-        _inProgress = workflow.AddSystemStatus("In Progress", null, StatusCategory.Active, (int)ProductStatusAlias.InProgress);
-        _succeeded = workflow.AddSystemStatus("Succeeded", null, StatusCategory.Done, (int)ProductStatusAlias.Succeeded);
-        _failed = workflow.AddSystemStatus("Failed", null, StatusCategory.Removed, (int)ProductStatusAlias.Failed);
-        _rolledBack = workflow.AddSystemStatus("Rolled Back", null, StatusCategory.Removed, (int)ProductStatusAlias.RolledBack);
-        workflow.PublishSystem();
+            .CreateSystem("Deployment Lifecycle", null, ProductWorkflowOwners.Deployment.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        _inProgress = workflow.AddSystemStatus("In Progress", null, StatusCategory.Active, (int)ProductStatusAlias.InProgress, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _succeeded = workflow.AddSystemStatus("Succeeded", null, StatusCategory.Done, (int)ProductStatusAlias.Succeeded, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _failed = workflow.AddSystemStatus("Failed", null, StatusCategory.Removed, (int)ProductStatusAlias.Failed, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _rolledBack = workflow.AddSystemStatus("Rolled Back", null, StatusCategory.Removed, (int)ProductStatusAlias.RolledBack, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.PublishSystem(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         Resolve(ProductStatusAlias.InProgress, _inProgress);
         Resolve(ProductStatusAlias.Succeeded, _succeeded);

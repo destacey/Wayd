@@ -36,9 +36,17 @@ public sealed class StrategicThemeChangedHandler(
         await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
     }
 
-    // The payload's State is the state the theme happened to be in, not part of the change: an update only
-    // renames or redescribes, and every transition raises its own event.
+    public async Task Handle(StrategicThemeDetailsUpdatedEvent @event, CancellationToken cancellationToken)
+    {
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyDetails(@event.Name, @event.Description, @event.Timestamp), "details", cancellationToken);
+    }
+
+    // Nothing raises the superseded type, but an envelope written as it before the switch can still be
+    // waiting in the durable outbox. Its State is the state the theme happened to be in, not part of the
+    // change: every transition raises its own event.
+#pragma warning disable CS0618
     public async Task Handle(StrategicThemeUpdatedEvent @event, CancellationToken cancellationToken)
+#pragma warning restore CS0618
     {
         await Apply(@event.Id, @event.Timestamp, t => t.ApplyDetails(@event.Name, @event.Description, @event.Timestamp), "details", cancellationToken);
     }

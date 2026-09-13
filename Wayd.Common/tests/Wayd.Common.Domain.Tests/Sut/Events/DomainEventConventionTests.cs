@@ -18,7 +18,6 @@ public sealed partial class DomainEventConventionTests
     private static readonly HashSet<string> LegacyWholeRecordEvents =
     [
         "IterationUpdatedEvent",
-        "StrategicThemeUpdatedEvent",
         "WorkIterationUpdatedEvent",
     ];
 

@@ -440,6 +440,36 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void StrategicThemeUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange - the frozen whole-record contract; its State was written as a number
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Name": "Cloud Migration",
+              "Description": "Move every workload off the data centre.",
+              "State": 2,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<StrategicThemeUpdatedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Cloud Migration");
+        restored.Description.Should().Be("Move every workload off the data centre.");
+        restored.State.Should().Be(StrategicThemeState.Active);
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
     public void TeamUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
     {
         // Arrange - the frozen whole-record contract, as it was written before TeamDetailsUpdatedEvent replaced it

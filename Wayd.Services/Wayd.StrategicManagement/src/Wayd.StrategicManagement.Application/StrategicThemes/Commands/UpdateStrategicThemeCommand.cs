@@ -48,7 +48,7 @@ public sealed class UpdateStrategicThemeCommandHandler(
                 return Result.Failure("Strategic Theme not found.");
             }
 
-            var updateResult = strategicTheme.Update(
+            var updateResult = strategicTheme.UpdateDetails(
                 request.Name,
                 request.Description,
                 EventActor.User(_currentUser.GetUserId()),

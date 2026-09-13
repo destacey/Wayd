@@ -1,6 +1,7 @@
 using Ardalis.GuardClauses;
 using NodaTime;
 using Wayd.Common.Domain.Data;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Common.Domain.Activities;
 
@@ -15,6 +16,7 @@ public sealed class ActivityLogEntry : BaseEntity
     public ActivityLogEntry(
         Guid id,
         string eventType,
+        ActivityCategory category,
         string domainArea,
         string aggregateType,
         Guid aggregateId,
@@ -28,6 +30,7 @@ public sealed class ActivityLogEntry : BaseEntity
     {
         Id = Guard.Against.Default(id, nameof(id));
         EventType = Guard.Against.NullOrWhiteSpace(eventType, nameof(eventType)).Trim();
+        Category = Guard.Against.EnumOutOfRange(category, nameof(category));
         EventVersion = string.IsNullOrWhiteSpace(eventVersion) ? "1.0" : eventVersion.Trim();
         DomainArea = Guard.Against.NullOrWhiteSpace(domainArea, nameof(domainArea)).Trim();
         AggregateType = Guard.Against.NullOrWhiteSpace(aggregateType, nameof(aggregateType)).Trim();
@@ -70,6 +73,13 @@ public sealed class ActivityLogEntry : BaseEntity
 
     /// <summary>The runtime type name of the raised domain event.</summary>
     public string EventType { get; private init; } = default!;
+
+    /// <summary>What kind of occurrence the event records, as its type declares it.</summary>
+    /// <remarks>
+    /// Recorded rather than derived from <see cref="EventType"/> when read, so the Activity section never has
+    /// to know any module's vocabulary, and an entry whose type no longer exists still has one.
+    /// </remarks>
+    public ActivityCategory Category { get; private init; }
 
     /// <summary>The schema version of the event (e.g. "1.0").</summary>
     public string EventVersion { get; private init; } = "1.0";

@@ -9,8 +9,10 @@ namespace Wayd.Common.Domain.Events.StrategicManagement;
 /// <remarks>
 /// Only a proposed theme can be activated, so the type records both ends of the transition.
 /// </remarks>
-public sealed record StrategicThemeActivatedEvent : DomainEvent, IAggregateEvent
+public sealed record StrategicThemeActivatedEvent : DomainEvent<StrategicThemeActivatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StateChanged;
+
     public StrategicThemeActivatedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

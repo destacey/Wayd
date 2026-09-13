@@ -13,8 +13,10 @@ public sealed class BaseEntityTests
         }
     }
 
-    private sealed record TestDomainEvent : DomainEvent
+    private sealed record TestDomainEvent : DomainEvent<TestDomainEvent>, IDomainEventDescriptor
     {
+        public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
         public string Name { get; }
 
         public TestDomainEvent(string name)

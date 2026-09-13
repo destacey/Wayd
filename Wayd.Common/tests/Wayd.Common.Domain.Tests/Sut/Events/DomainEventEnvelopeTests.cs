@@ -50,8 +50,10 @@ public sealed class DomainEventEnvelopeTests
         @event.EventVersion.Should().Be("1.0");
     }
 
-    private sealed record TestEvent : DomainEvent
+    private sealed record TestEvent : DomainEvent<TestEvent>, IDomainEventDescriptor
     {
+        public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
         public TestEvent(EventActor actor, Instant timestamp)
             : base(actor, "1.0") =>
             Timestamp = timestamp;

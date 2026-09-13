@@ -13,8 +13,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// keeps a copy: applying the latest set is correct however deliveries were ordered or repeated, and
 /// applying the deltas is not.
 /// </remarks>
-public sealed record ProgramStrategicThemesChangedEvent : DomainEvent, IPpmEvent
+public sealed record ProgramStrategicThemesChangedEvent : DomainEvent<ProgramStrategicThemesChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProgramStrategicThemesChangedEvent(
         Guid id,

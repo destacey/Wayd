@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// the two compare directly, and the details it replaced as <see cref="Previous"/>, grouped the way the
 /// project and program details events group them.
 /// </remarks>
-public sealed record ProjectPortfolioDetailsUpdatedEvent : DomainEvent, IPpmEvent
+public sealed record ProjectPortfolioDetailsUpdatedEvent : DomainEvent<ProjectPortfolioDetailsUpdatedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProjectPortfolioDetailsUpdatedEvent(
         Guid id,

@@ -13,8 +13,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// a reader looks to see what was added to it. Should initiatives grow an activity log of their own, that
 /// is a second event about their own aggregate rather than a change of this one's.
 /// </remarks>
-public sealed record StrategicInitiativeCreatedEvent : DomainEvent, IPpmEvent
+public sealed record StrategicInitiativeCreatedEvent : DomainEvent<StrategicInitiativeCreatedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     [JsonConstructor]
     public StrategicInitiativeCreatedEvent(
         Guid portfolioId,

@@ -10,8 +10,10 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 /// The Work copy of an iteration's name or type changed. Supersedes, with the other <c>WorkIteration*Changed</c> events,
 /// <see cref="WorkIterationUpdatedEvent"/>.
 /// </summary>
-public sealed record WorkIterationDetailsUpdatedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkIterationDetailsUpdatedEvent : DomainEvent<WorkIterationDetailsUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public WorkIterationDetailsUpdatedEvent(Guid id, int key, string name, IterationType type, IterationDetails? previous, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

@@ -41899,6 +41899,7 @@ export interface PagedResponseOfActivityLogDto {
 export interface ActivityLogDto {
     id: string;
     eventType: string;
+    category: ActivityCategory;
     domainArea: string;
     aggregateType: string;
     aggregateId: string;
@@ -41909,6 +41910,16 @@ export interface ActivityLogDto {
     eventVersion: string;
     payload: string;
     summary?: string | undefined;
+}
+
+export enum ActivityCategory {
+    Created = "Created",
+    Updated = "Updated",
+    ScheduleChanged = "ScheduleChanged",
+    StatusChanged = "StatusChanged",
+    StateChanged = "StateChanged",
+    Health = "Health",
+    Removed = "Removed",
 }
 
 export enum EventActorKind {

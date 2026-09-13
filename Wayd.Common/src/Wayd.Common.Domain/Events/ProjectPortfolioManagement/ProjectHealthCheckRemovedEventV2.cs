@@ -17,8 +17,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// required member breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record ProjectHealthCheckRemovedEventV2 : DomainEvent, IPpmEvent
+public sealed record ProjectHealthCheckRemovedEventV2 : DomainEvent<ProjectHealthCheckRemovedEventV2>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Health;
+
     [JsonConstructor]
     public ProjectHealthCheckRemovedEventV2(
         Guid id,

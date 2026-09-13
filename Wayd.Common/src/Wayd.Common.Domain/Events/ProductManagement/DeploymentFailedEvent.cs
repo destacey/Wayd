@@ -18,8 +18,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// event.
 /// </para>
 /// </remarks>
-public sealed record DeploymentFailedEvent : DomainEvent, IProductManagementEvent
+public sealed record DeploymentFailedEvent : DomainEvent<DeploymentFailedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public DeploymentFailedEvent(
         Guid id,
         int key,

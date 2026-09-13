@@ -13,8 +13,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by ProjectReparentedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record ProjectReparentedEvent : DomainEvent, IPpmEvent
+public sealed record ProjectReparentedEvent : DomainEvent<ProjectReparentedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProjectReparentedEvent(
         Guid id,

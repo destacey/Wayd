@@ -10,8 +10,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// The aggregate is the portfolio — see <see cref="StrategicInitiativeCreatedEvent"/>. The name is carried
 /// because the row it describes is gone by the time anyone reads the entry.
 /// </remarks>
-public sealed record StrategicInitiativeDeletedEvent : DomainEvent, IPpmEvent
+public sealed record StrategicInitiativeDeletedEvent : DomainEvent<StrategicInitiativeDeletedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Removed;
+
     [JsonConstructor]
     public StrategicInitiativeDeletedEvent(
         Guid portfolioId,

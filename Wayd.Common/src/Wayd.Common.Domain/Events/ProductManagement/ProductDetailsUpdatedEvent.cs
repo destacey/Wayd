@@ -18,8 +18,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// reparenting, retyping, a lifecycle move — have their own types.
 /// </para>
 /// </remarks>
-public sealed record ProductDetailsUpdatedEvent : DomainEvent, IProductManagementEvent, ISimpleProduct
+public sealed record ProductDetailsUpdatedEvent : DomainEvent<ProductDetailsUpdatedEvent>, IDomainEventDescriptor, IProductManagementEvent, ISimpleProduct
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public ProductDetailsUpdatedEvent(Guid id, int key, string name, string? description, string? externalId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

@@ -13,8 +13,10 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by WorkflowArchivedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record WorkflowArchivedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkflowArchivedEvent : DomainEvent<WorkflowArchivedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StateChanged;
+
     [JsonConstructor]
     public WorkflowArchivedEvent(Guid id, int key, string name, string ownerType, EventActor actor, Instant timestamp)
         : base(actor, "1.0")

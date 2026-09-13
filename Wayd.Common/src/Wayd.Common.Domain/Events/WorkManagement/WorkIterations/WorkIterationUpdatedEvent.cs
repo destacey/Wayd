@@ -8,8 +8,10 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 
 [Obsolete("Superseded by WorkIterationDetailsUpdatedEvent, WorkIterationDateRangeChangedEvent, WorkIterationStateChangedEvent and WorkIterationTeamChangedEvent. Kept only to deserialize payloads already written as this type.")]
-public sealed record WorkIterationUpdatedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkIterationUpdatedEvent : DomainEvent<WorkIterationUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public WorkIterationUpdatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
         : this(iteration.Id, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
     {

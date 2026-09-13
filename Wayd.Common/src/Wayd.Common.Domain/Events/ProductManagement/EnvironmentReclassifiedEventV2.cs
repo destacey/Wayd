@@ -18,8 +18,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// member breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record EnvironmentReclassifiedEventV2 : DomainEvent, IProductManagementEvent
+public sealed record EnvironmentReclassifiedEventV2 : DomainEvent<EnvironmentReclassifiedEventV2>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public EnvironmentReclassifiedEventV2(Guid id, int key, EnvironmentCategory fromCategory, EnvironmentCategory toCategory, EventActor actor, Instant timestamp)
         : base(actor, "2.0")

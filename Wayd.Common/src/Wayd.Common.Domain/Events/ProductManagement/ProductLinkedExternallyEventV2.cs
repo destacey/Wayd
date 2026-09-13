@@ -18,8 +18,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// version, because removing a required member breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record ProductLinkedExternallyEventV2 : DomainEvent, IProductManagementEvent
+public sealed record ProductLinkedExternallyEventV2 : DomainEvent<ProductLinkedExternallyEventV2>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProductLinkedExternallyEventV2(Guid id, int key, string? previousExternalId, string? externalId, EventActor actor, Instant timestamp)
         : base(actor, "2.0")

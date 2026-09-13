@@ -67,12 +67,34 @@ public sealed class ActivityLogEntryFactoryTests
         entry.EventType.Should().Be(nameof(ProjectPortfolioStubEventV2));
     }
 
+    [Fact]
+    public void CreateActivityLogEntry_RecordsTheCategoryTheEventTypeDeclares()
+    {
+        // Arrange
+        var raised = new StrategicInitiativeStubEvent("ProjectPortfolio", Guid.CreateVersion7());
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.Category.Should().Be(ActivityCategory.Created);
+    }
+
     private sealed record ProjectPortfolioStubEventV2(string AggregateType, Guid AggregateId)
-        : DomainEvent(EventActor.System, "2.0"), IAggregateEvent;
+        : DomainEvent<ProjectPortfolioStubEventV2>(EventActor.System, "2.0"), IDomainEventDescriptor, IAggregateEvent
+    {
+        public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+    }
 
     private sealed record ProjectPortfolioStubEvent(string AggregateType, Guid AggregateId)
-        : DomainEvent(EventActor.System, "1.0"), IAggregateEvent;
+        : DomainEvent<ProjectPortfolioStubEvent>(EventActor.System, "1.0"), IDomainEventDescriptor, IAggregateEvent
+    {
+        public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+    }
 
     private sealed record StrategicInitiativeStubEvent(string AggregateType, Guid AggregateId)
-        : DomainEvent(EventActor.System, "1.0"), IAggregateEvent;
+        : DomainEvent<StrategicInitiativeStubEvent>(EventActor.System, "1.0"), IDomainEventDescriptor, IAggregateEvent
+    {
+        public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+    }
 }

@@ -8,8 +8,10 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// <summary>
 /// The iteration was assigned to a different team, or to none.
 /// </summary>
-public sealed record IterationTeamChangedEvent : DomainEvent, IAggregateEvent
+public sealed record IterationTeamChangedEvent : DomainEvent<IterationTeamChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public IterationTeamChangedEvent(Guid id, int key, Guid? previousTeamId, Guid? teamId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

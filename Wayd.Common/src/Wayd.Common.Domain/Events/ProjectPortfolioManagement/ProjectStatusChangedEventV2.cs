@@ -34,8 +34,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record ProjectStatusChangedEventV2 : DomainEvent, IPpmEvent
+public sealed record ProjectStatusChangedEventV2 : DomainEvent<ProjectStatusChangedEventV2>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     [JsonConstructor]
     public ProjectStatusChangedEventV2(
         // Named for the EventId property it binds to; any other name fails deserialization. The value is the

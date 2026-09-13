@@ -15,8 +15,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// were as well as where they went, and cannot recover the earlier range from this entry alone.
 /// </para>
 /// </remarks>
-public sealed record ProgramTimelineChangedEvent : DomainEvent, IPpmEvent
+public sealed record ProgramTimelineChangedEvent : DomainEvent<ProgramTimelineChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;
+
     [JsonConstructor]
     public ProgramTimelineChangedEvent(
         Guid id,

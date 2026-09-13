@@ -76021,6 +76021,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string EventType { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ActivityCategory>))]
+        public ActivityCategory Category { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("domainArea")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string DomainArea { get; set; } = default!;
@@ -76058,6 +76063,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("summary")]
         public string? Summary { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ActivityCategory
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Created")]
+        Created = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Updated")]
+        Updated = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ScheduleChanged")]
+        ScheduleChanged = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StatusChanged")]
+        StatusChanged = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StateChanged")]
+        StateChanged = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Health")]
+        Health = 5,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Removed")]
+        Removed = 6,
 
     }
 

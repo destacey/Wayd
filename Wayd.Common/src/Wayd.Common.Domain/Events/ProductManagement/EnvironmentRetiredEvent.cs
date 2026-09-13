@@ -12,8 +12,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by EnvironmentRetiredEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record EnvironmentRetiredEvent : DomainEvent, IProductManagementEvent
+public sealed record EnvironmentRetiredEvent : DomainEvent<EnvironmentRetiredEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StateChanged;
+
     [JsonConstructor]
     public EnvironmentRetiredEvent(Guid id, int key, string name, EventActor actor, Instant timestamp)
         : base(actor, "1.0")

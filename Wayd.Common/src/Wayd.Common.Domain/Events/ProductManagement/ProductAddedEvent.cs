@@ -8,8 +8,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A new node was added to the product taxonomy.
 /// </summary>
-public sealed record ProductAddedEvent : DomainEvent, IProductManagementEvent, ISimpleProduct
+public sealed record ProductAddedEvent : DomainEvent<ProductAddedEvent>, IDomainEventDescriptor, IProductManagementEvent, ISimpleProduct
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public ProductAddedEvent(ISimpleProduct product, Guid productTypeId, Guid? parentId, Guid statusId, StatusCategory statusCategory, EventActor actor, Instant timestamp)
         : this(product.Id, product.Key, product.Name, product.Description, productTypeId, parentId, statusId, statusCategory, actor, timestamp)
     {

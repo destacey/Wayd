@@ -16,8 +16,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record ProductRetypedEventV2 : DomainEvent, IProductManagementEvent
+public sealed record ProductRetypedEventV2 : DomainEvent<ProductRetypedEventV2>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProductRetypedEventV2(Guid id, int key, Guid fromProductTypeId, Guid toProductTypeId, EventActor actor, Instant timestamp)
         : base(actor, "2.0")

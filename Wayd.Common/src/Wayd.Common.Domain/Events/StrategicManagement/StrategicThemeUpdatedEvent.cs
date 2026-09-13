@@ -7,8 +7,10 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.StrategicManagement;
 
 [Obsolete("Superseded by StrategicThemeDetailsUpdatedEvent. Kept only to deserialize payloads already written as this type.")]
-public sealed record StrategicThemeUpdatedEvent : DomainEvent, IAggregateEvent
+public sealed record StrategicThemeUpdatedEvent : DomainEvent<StrategicThemeUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public StrategicThemeUpdatedEvent(IStrategicThemeData strategicTheme, EventActor actor, Instant timestamp)
         : this(strategicTheme.Id, strategicTheme.Name, strategicTheme.Description, strategicTheme.State, actor, timestamp)
     {

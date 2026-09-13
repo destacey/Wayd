@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// from deployments; this is the moment the market was told, which can be days later or never happen
 /// at all for something shipped quietly.
 /// </remarks>
-public sealed record ReleaseReleasedEvent : DomainEvent, IProductManagementEvent
+public sealed record ReleaseReleasedEvent : DomainEvent<ReleaseReleasedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public ReleaseReleasedEvent(
         Guid id,
         int key,

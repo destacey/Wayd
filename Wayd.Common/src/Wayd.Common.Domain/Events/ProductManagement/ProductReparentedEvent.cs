@@ -12,8 +12,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// those payloads were written against, so neither may change.
 /// </remarks>
 [Obsolete("Superseded by ProductReparentedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record ProductReparentedEvent : DomainEvent, IProductManagementEvent
+public sealed record ProductReparentedEvent : DomainEvent<ProductReparentedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     [JsonConstructor]
     public ProductReparentedEvent(Guid id, int key, string name, Guid? fromParentId, Guid? toParentId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")

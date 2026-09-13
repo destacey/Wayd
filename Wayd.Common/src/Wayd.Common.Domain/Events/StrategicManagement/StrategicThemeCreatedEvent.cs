@@ -6,8 +6,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.StrategicManagement;
 
-public sealed record StrategicThemeCreatedEvent : DomainEvent, IStrategicThemeData, IAggregateEvent
+public sealed record StrategicThemeCreatedEvent : DomainEvent<StrategicThemeCreatedEvent>, IDomainEventDescriptor, IStrategicThemeData, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Created;
+
     public StrategicThemeCreatedEvent(IStrategicThemeData strategicTheme, EventActor actor, Instant timestamp)
         : this(strategicTheme.Id, strategicTheme.Key, strategicTheme.Name, strategicTheme.Description, strategicTheme.State, actor, timestamp)
     {

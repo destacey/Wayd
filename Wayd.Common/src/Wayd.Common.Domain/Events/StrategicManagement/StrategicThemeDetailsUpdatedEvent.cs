@@ -6,8 +6,10 @@ namespace Wayd.Common.Domain.Events.StrategicManagement;
 /// <summary>
 /// A strategic theme's name or description was edited. Supersedes <see cref="StrategicThemeUpdatedEvent"/>.
 /// </summary>
-public sealed record StrategicThemeDetailsUpdatedEvent : DomainEvent, IAggregateEvent
+public sealed record StrategicThemeDetailsUpdatedEvent : DomainEvent<StrategicThemeDetailsUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public StrategicThemeDetailsUpdatedEvent(Guid id, int key, string name, string description, StrategicThemeDetails? previous, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

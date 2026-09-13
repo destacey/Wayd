@@ -18,8 +18,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// </para>
 /// </remarks>
 [Obsolete("Superseded by ProjectStatusChangedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record ProjectStatusChangedEvent : DomainEvent, IPpmEvent
+public sealed record ProjectStatusChangedEvent : DomainEvent<ProjectStatusChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     [JsonConstructor]
     public ProjectStatusChangedEvent(
         // Named for the EventId property it binds to; any other name fails deserialization. The value is the

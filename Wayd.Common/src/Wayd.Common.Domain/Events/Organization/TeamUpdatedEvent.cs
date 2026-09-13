@@ -5,8 +5,10 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.Organization;
 
 [Obsolete("Superseded by TeamDetailsUpdatedEvent. Kept only to deserialize payloads already written as this type.")]
-public sealed record TeamUpdatedEvent : DomainEvent, IAggregateEvent
+public sealed record TeamUpdatedEvent : DomainEvent<TeamUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
     public TeamUpdatedEvent(Guid id, TeamCode code, string name, string? description, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

@@ -28,8 +28,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// required member breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record ProductLifecycleChangedEventV2 : DomainEvent, IProductManagementEvent
+public sealed record ProductLifecycleChangedEventV2 : DomainEvent<ProductLifecycleChangedEventV2>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     [JsonConstructor]
     public ProductLifecycleChangedEventV2(
         Guid id,

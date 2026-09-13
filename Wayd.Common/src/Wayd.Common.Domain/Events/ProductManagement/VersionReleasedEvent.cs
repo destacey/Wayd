@@ -11,8 +11,10 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// guarantee, so this can arrive before the <see cref="VersionCutEvent"/> for the same version — a
 /// consumer that renders a timeline should order on the dates carried here rather than on arrival.
 /// </remarks>
-public sealed record VersionReleasedEvent : DomainEvent, IProductManagementEvent
+public sealed record VersionReleasedEvent : DomainEvent<VersionReleasedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public VersionReleasedEvent(Guid id, int key, Guid productId, string productName, string number, LocalDate releasedDate, Guid statusId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

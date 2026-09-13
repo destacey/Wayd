@@ -8,8 +8,10 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 /// <summary>
 /// The Work copy of an iteration moved between Future, Active and Completed.
 /// </summary>
-public sealed record WorkIterationStateChangedEvent : DomainEvent, IAggregateEvent
+public sealed record WorkIterationStateChangedEvent : DomainEvent<WorkIterationStateChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
+
     public WorkIterationStateChangedEvent(Guid id, int key, IterationState fromState, IterationState toState, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

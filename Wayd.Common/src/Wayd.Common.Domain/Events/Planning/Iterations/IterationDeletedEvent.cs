@@ -4,8 +4,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Planning.Iterations;
 
-public sealed record IterationDeletedEvent : DomainEvent, IAggregateEvent
+public sealed record IterationDeletedEvent : DomainEvent<IterationDeletedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.Removed;
+
     public IterationDeletedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

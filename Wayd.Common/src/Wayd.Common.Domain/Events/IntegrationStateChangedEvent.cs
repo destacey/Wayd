@@ -4,8 +4,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events;
 
-public record IntegrationStateChangedEvent<TId> : DomainEvent
+public record IntegrationStateChangedEvent<TId> : DomainEvent<IntegrationStateChangedEvent<TId>>, IDomainEventDescriptor
 {
+    public static ActivityCategory ActivityCategory => ActivityCategory.StateChanged;
+
     public IntegrationStateChangedEvent(SystemContext systemContext, IntegrationState<TId> integrationState, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

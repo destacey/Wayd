@@ -39,6 +39,13 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     /// </summary>
     private int _activityOrdinal;
 
+    /// <summary>
+    /// Entities a save is about to delete. EF detaches them once the save commits, so the post-persistence
+    /// actions and the event drain, which both run after it, cannot find them in the change tracker — and the
+    /// event recording a record's own deletion is raised on exactly the entity being deleted.
+    /// </summary>
+    private readonly List<IEntity> _deletedEntities = [];
+
     protected BaseDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IDbContextOutbox outbox, IRequestCorrelationIdProvider requestCorrelationIdProvider)
         : base(options)
     {
@@ -120,7 +127,23 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
         var auditEntries = HandleAuditingBeforeSaveChanges(_currentUser.GetUserId(), _requestCorrelationIdProvider.CorrelationId);
 
-        int result = await base.SaveChangesAsync(cancellationToken);
+        // After the auditing pass, which turns a soft delete back into a modification that stays tracked.
+        _deletedEntities.AddRange(ChangeTracker.Entries<IEntity>()
+            .Where(e => e.State == EntityState.Deleted)
+            .Select(e => e.Entity));
+
+        int result;
+        try
+        {
+            result = await base.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            // Nothing was deleted, and a caller that catches this may abandon the delete. Kept, these entities
+            // would have their events drained by the context's next successful save.
+            _deletedEntities.Clear();
+            throw;
+        }
 
         await HandleAuditingAfterSaveChangesAsync(auditEntries, cancellationToken);
 
@@ -548,8 +571,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
     private void ExecutePostPersistenceActions()
     {
-        var entitiesWithActions = ChangeTracker.Entries<IEntity>()
-            .Select(e => e.Entity)
+        var entitiesWithActions = TrackedAndDeletedEntities()
             .Where(e => e.PostPersistenceActions.Count > 0)
             .ToArray();
 
@@ -590,10 +612,11 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         // each aggregate was touched. That is invisible today — every activity view reads one AggregateId —
         // and only becomes a question if a feed ever spans records, which would need the order captured where
         // the events are raised rather than here.
-        var entitiesWithEvents = ChangeTracker.Entries<IEntity>()
-            .Select(e => e.Entity)
+        var entitiesWithEvents = TrackedAndDeletedEntities()
             .Where(e => e.DomainEvents.Count > 0)
             .ToArray();
+
+        _deletedEntities.Clear();
 
         var inlineEvents = new List<IEvent>();
         var enrolledDurable = false;
@@ -640,4 +663,10 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
         return (inlineEvents, enrolledDurable, enrolledActivity);
     }
+
+    private IEnumerable<IEntity> TrackedAndDeletedEntities() =>
+        ChangeTracker.Entries<IEntity>()
+            .Select(e => e.Entity)
+            .Concat(_deletedEntities)
+            .Distinct<IEntity>(ReferenceEqualityComparer.Instance);
 }

@@ -86,6 +86,53 @@ public sealed class ActivityLogPersistenceTests
     }
 
     [Fact]
+    public async Task SaveChangesAsync_CapturesTheEventOfAnEntityTheSameSaveDeletes()
+    {
+        // Arrange
+        var harness = new Harness(correlationId: "corr-delete");
+        var entity = new ActivityTestEntity();
+        harness.Context.Entities.Add(entity);
+        await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var deleted = new TestBusinessEvent("Deleted", EventActor.System, Instant.FromUnixTimeSeconds(100));
+        entity.Raise(deleted);
+        harness.Context.Entities.Remove(entity);
+
+        // Act
+        await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.Id == deleted.EventId, TestContext.Current.CancellationToken);
+        savedLog.Should().NotBeNull();
+        savedLog!.AggregateId.Should().Be(entity.Id);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_AfterADeleteFailsAndIsAbandoned_DoesNotRecordItsEventOnTheNextSave()
+    {
+        // Arrange — the row was never saved, so deleting it fails
+        var harness = new Harness(correlationId: "corr-failed-delete");
+        var abandoned = new ActivityTestEntity();
+        harness.Context.Entities.Attach(abandoned);
+        var deleted = new TestBusinessEvent("Deleted", EventActor.System, Instant.FromUnixTimeSeconds(100));
+        abandoned.Raise(deleted);
+        harness.Context.Entities.Remove(abandoned);
+
+        var failedSave = () => harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await failedSave.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        harness.Context.Entry(abandoned).State = EntityState.Detached;
+
+        harness.Context.Entities.Add(new ActivityTestEntity());
+
+        // Act
+        await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.Id == deleted.EventId, TestContext.Current.CancellationToken);
+        savedLog.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetEntityActivityQuery_ReturnsChronologicalLogs_ForMatchingAggregate()
     {
         // Arrange

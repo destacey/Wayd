@@ -16,15 +16,22 @@ public sealed class ImportEmployeeRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    /// <summary>The employee's natural key, unique across the company.</summary>
     public string EmployeeNumber { get; set; } = default!;
+
     public string FirstName { get; set; } = default!;
     public string? MiddleName { get; set; }
     public string LastName { get; set; } = default!;
     public string Email { get; set; } = default!;
+
+    /// <summary>The date the employee was hired.</summary>
     public DateTime? HireDate { get; set; }
+
     public string? JobTitle { get; set; }
     public string? Department { get; set; }
     public string? OfficeLocation { get; set; }
+
+    /// <summary>The manager's employee number. May name someone elsewhere in the file.</summary>
     public string? ManagerNumber { get; set; }
 
     /// <summary>Whether the employee is currently active. Defaults to true when the column is absent.</summary>

@@ -20,6 +20,8 @@ export const importTemplates = {
             name: 'EmployeeNumber',
             type: 'text',
             required: true,
+            description:
+              "The employee's natural key, unique across the company.",
             maxLength: 256,
           },
           {
@@ -50,6 +52,7 @@ export const importTemplates = {
             name: 'HireDate',
             type: 'timestamp',
             required: false,
+            description: 'The date the employee was hired.',
           },
           {
             name: 'JobTitle',
@@ -73,6 +76,8 @@ export const importTemplates = {
             name: 'ManagerNumber',
             type: 'text',
             required: false,
+            description:
+              "The manager's employee number. May name someone elsewhere in the file.",
           },
           {
             name: 'IsActive',
@@ -119,11 +124,14 @@ export const importTemplates = {
             name: 'PlanningIntervalId',
             type: 'id',
             required: true,
+            description:
+              'The planning interval the objective belongs to, by id. Rows may name different intervals.',
           },
           {
             name: 'TeamId',
             type: 'id',
             required: true,
+            description: 'The team the objective belongs to, by id.',
           },
           {
             name: 'Name',
@@ -141,16 +149,20 @@ export const importTemplates = {
             name: 'StatusId',
             type: 'integer',
             required: true,
+            description:
+              '1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed.',
           },
           {
             name: 'Progress',
             type: 'number',
             required: true,
+            description: 'Percent complete, 0–100.',
           },
           {
             name: 'StartDate',
             type: 'date',
             required: false,
+            description: 'Before TargetDate where both are given.',
           },
           {
             name: 'TargetDate',
@@ -161,16 +173,20 @@ export const importTemplates = {
             name: 'IsStretch',
             type: 'boolean',
             required: true,
+            description: 'Whether the objective is a stretch goal.',
           },
           {
             name: 'ClosedDateUtc',
             type: 'timestamp',
             required: false,
+            description:
+              'When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.',
           },
           {
             name: 'Order',
             type: 'integer',
             required: false,
+            description: "Display position within the team's objectives.",
           },
         ],
       },
@@ -214,6 +230,8 @@ export const importTemplates = {
             name: 'End',
             type: 'date',
             required: true,
+            description:
+              'The last date the interval ran over. On or after Start.',
           },
           {
             name: 'IterationWeeks',
@@ -258,6 +276,7 @@ export const importTemplates = {
             name: 'TeamId',
             type: 'id',
             required: true,
+            description: 'The team the risk belongs to, by id.',
           },
           {
             name: 'Summary',
@@ -275,36 +294,44 @@ export const importTemplates = {
             name: 'ReportedOnUtc',
             type: 'timestamp',
             required: true,
+            description:
+              'When the risk was reported, in UTC. Must be in the past.',
           },
           {
             name: 'ReportedById',
             type: 'id',
             required: true,
+            description: 'The employee who reported it, by id.',
           },
           {
             name: 'StatusId',
             type: 'integer',
             required: true,
+            description: '1 Open, 2 Closed.',
           },
           {
             name: 'CategoryId',
             type: 'integer',
             required: true,
+            description: '1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated.',
           },
           {
             name: 'ImpactId',
             type: 'integer',
             required: true,
+            description: '1 Low, 2 Medium, 3 High.',
           },
           {
             name: 'LikelihoodId',
             type: 'integer',
             required: true,
+            description: '1 Low, 2 Medium, 3 High.',
           },
           {
             name: 'AssigneeId',
             type: 'id',
             required: false,
+            description: 'The employee the risk is assigned to, by id.',
           },
           {
             name: 'FollowUpDate',
@@ -321,6 +348,8 @@ export const importTemplates = {
             name: 'ClosedDateUtc',
             type: 'timestamp',
             required: false,
+            description:
+              'When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.',
           },
         ],
       },
@@ -345,6 +374,8 @@ export const importTemplates = {
             name: 'Type',
             type: 'text',
             required: true,
+            description:
+              'Whether the row closes a program or a portfolio, which also says how Id is read.',
             values: ['Program', 'Portfolio'],
           },
           {
@@ -423,16 +454,19 @@ export const importTemplates = {
             name: 'Sponsors',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Owners',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Managers',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
         ],
       },
@@ -467,6 +501,7 @@ export const importTemplates = {
             name: 'PortfolioId',
             type: 'id',
             required: true,
+            description: 'The owning portfolio, by id.',
           },
           {
             name: 'Status',
@@ -486,6 +521,8 @@ export const importTemplates = {
             name: 'End',
             type: 'date',
             required: false,
+            description:
+              'On or after Start. Start and End are both empty or both set.',
           },
           {
             name: 'CreatedOn',
@@ -511,16 +548,19 @@ export const importTemplates = {
             name: 'Sponsors',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Owners',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Managers',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
         ],
       },
@@ -545,11 +585,14 @@ export const importTemplates = {
             name: 'ProjectKey',
             type: 'text',
             required: true,
+            description: 'The project, by key.',
           },
           {
             name: 'StageName',
             type: 'text',
             required: true,
+            description:
+              "A stage of the project's assigned lifecycle, by name.",
           },
           {
             name: 'Status',
@@ -582,6 +625,7 @@ export const importTemplates = {
             name: 'ProjectKey',
             type: 'text',
             required: true,
+            description: 'The project this task belongs to, by key.',
           },
           {
             name: 'Name',
@@ -599,6 +643,8 @@ export const importTemplates = {
             name: 'StageName',
             type: 'text',
             required: true,
+            description:
+              "A stage of the project's assigned lifecycle, by name.",
           },
           {
             name: 'ParentImportId',
@@ -652,6 +698,7 @@ export const importTemplates = {
             name: 'PlannedEnd',
             type: 'date',
             required: false,
+            description: 'Planned end, for tasks. On or after PlannedStart.',
           },
           {
             name: 'PlannedDate',
@@ -663,6 +710,8 @@ export const importTemplates = {
             name: 'EstimatedEffortHours',
             type: 'number',
             required: false,
+            description:
+              'Estimated effort in hours. Greater than 0 when present.',
           },
           {
             name: 'Assignees',
@@ -704,16 +753,21 @@ export const importTemplates = {
             name: 'Key',
             type: 'text',
             required: true,
+            description:
+              '2–20 uppercase letters and numbers, unique across projects. Tasks, stages and strategic initiatives name the project by it.',
           },
           {
             name: 'PortfolioId',
             type: 'id',
             required: true,
+            description: 'The owning portfolio, by id.',
           },
           {
             name: 'ExpenditureCategoryId',
             type: 'integer',
             required: true,
+            description:
+              'An expenditure category, by id. Create it in Settings first.',
           },
           {
             name: 'Status',
@@ -759,6 +813,8 @@ export const importTemplates = {
             name: 'End',
             type: 'date',
             required: false,
+            description:
+              'On or after Start. Start and End are both empty or both set.',
           },
           {
             name: 'CreatedOn',
@@ -791,21 +847,25 @@ export const importTemplates = {
             name: 'Sponsors',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Owners',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Managers',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Members',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
         ],
       },
@@ -842,6 +902,7 @@ export const importTemplates = {
             name: 'PortfolioId',
             type: 'id',
             required: true,
+            description: 'The owning portfolio, by id.',
           },
           {
             name: 'Status',
@@ -862,11 +923,13 @@ export const importTemplates = {
             name: 'Start',
             type: 'date',
             required: true,
+            description: "The initiative's start date.",
           },
           {
             name: 'End',
             type: 'date',
             required: true,
+            description: "The initiative's end date. On or after Start.",
           },
           {
             name: 'ProjectKeys',
@@ -879,11 +942,13 @@ export const importTemplates = {
             name: 'Sponsors',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
           {
             name: 'Owners',
             type: 'text',
             required: false,
+            description: 'Semicolon-separated employee numbers.',
           },
         ],
       },
@@ -915,11 +980,13 @@ export const importTemplates = {
             name: 'TargetValue',
             type: 'number',
             required: true,
+            description: 'The value that defines success.',
           },
           {
             name: 'StartingValue',
             type: 'number',
             required: false,
+            description: 'The baseline value.',
           },
           {
             name: 'Prefix',
@@ -1121,6 +1188,7 @@ export const importTemplates = {
             name: 'ExternalId',
             type: 'text',
             required: false,
+            description: "The product's identifier in the system that owns it.",
             maxLength: 256,
           },
           {
@@ -1174,6 +1242,7 @@ export const importTemplates = {
             name: 'TargetDate',
             type: 'date',
             required: false,
+            description: 'When the package is expected to ship.',
           },
           {
             name: 'ReleasedDate',
@@ -1262,6 +1331,7 @@ export const importTemplates = {
             name: 'TargetDate',
             type: 'date',
             required: false,
+            description: 'When the release is expected to be announced.',
           },
           {
             name: 'ReleasedDate',
@@ -1274,6 +1344,8 @@ export const importTemplates = {
             name: 'Sequence',
             type: 'integer',
             required: false,
+            description:
+              'A manual ordering override, for the rare case where chronology misleads.',
           },
           {
             name: 'Notes',
@@ -1359,6 +1431,7 @@ export const importTemplates = {
             name: 'TargetDate',
             type: 'date',
             required: false,
+            description: 'When the version is expected to ship.',
           },
           {
             name: 'CutDate',
@@ -1445,18 +1518,22 @@ export const importTemplates = {
             name: 'TeamCode',
             type: 'text',
             required: true,
+            description: 'The team, by code.',
             maxLength: 10,
           },
           {
             name: 'EmployeeNumber',
             type: 'text',
             required: true,
+            description: 'The employee, by number. Must be an active employee.',
             maxLength: 256,
           },
           {
             name: 'RoleName',
             type: 'text',
             required: true,
+            description:
+              'A team member role, by name. The role must already exist.',
             maxLength: 128,
           },
         ],
@@ -1480,23 +1557,31 @@ export const importTemplates = {
             name: 'ChildCode',
             type: 'text',
             required: true,
+            description:
+              "The child team's code. May be a Team or a Team of Teams.",
             maxLength: 10,
           },
           {
             name: 'ParentCode',
             type: 'text',
             required: true,
+            description:
+              "The parent's code. Must be a Team of Teams, and cannot equal ChildCode.",
             maxLength: 10,
           },
           {
             name: 'Start',
             type: 'date',
             required: true,
+            description:
+              "When the membership begins. On or after both teams' active dates.",
           },
           {
             name: 'End',
             type: 'date',
             required: false,
+            description:
+              'When the membership ends. On or after Start; blank for one still in place.',
           },
         ],
       },
@@ -1531,6 +1616,8 @@ export const importTemplates = {
             name: 'Code',
             type: 'text',
             required: true,
+            description:
+              "The team's natural key: 2–10 uppercase letters and numbers, unique across teams.",
             maxLength: 10,
           },
           {
@@ -1543,6 +1630,7 @@ export const importTemplates = {
             name: 'ActiveDate',
             type: 'date',
             required: true,
+            description: 'The date the team became active.',
           },
           {
             name: 'IsActive',

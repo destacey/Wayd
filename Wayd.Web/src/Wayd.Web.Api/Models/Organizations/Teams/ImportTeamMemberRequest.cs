@@ -15,8 +15,13 @@ public sealed class ImportTeamMemberRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    /// <summary>The team, by code.</summary>
     public string TeamCode { get; set; } = default!;
+
+    /// <summary>The employee, by number. Must be an active employee.</summary>
     public string EmployeeNumber { get; set; } = default!;
+
+    /// <summary>A team member role, by name. The role must already exist.</summary>
     public string RoleName { get; set; } = default!;
 
     public ImportTeamMemberDto ToImportTeamMemberDto()

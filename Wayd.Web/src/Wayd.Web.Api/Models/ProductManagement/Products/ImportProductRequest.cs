@@ -31,6 +31,7 @@ public sealed class ImportProductRequest
     /// <summary>The <see cref="ImportId"/> of another row in this file, or empty for a root product.</summary>
     public string? ParentImportId { get; set; }
 
+    /// <summary>The product's identifier in the system that owns it.</summary>
     public string? ExternalId { get; set; }
 
     /// <summary>

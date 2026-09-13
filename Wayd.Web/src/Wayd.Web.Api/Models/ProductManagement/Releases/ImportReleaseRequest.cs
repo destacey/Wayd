@@ -28,6 +28,7 @@ public sealed class ImportReleaseRequest
     /// <summary>The product this release is announced under, if any, by id. Usually a product line.</summary>
     public Guid? ProductId { get; set; }
 
+    /// <summary>When the release is expected to be announced.</summary>
     public DateOnly? TargetDate { get; set; }
 
     /// <summary>
@@ -36,6 +37,7 @@ public sealed class ImportReleaseRequest
     /// </summary>
     public DateOnly? ReleasedDate { get; set; }
 
+    /// <summary>A manual ordering override, for the rare case where chronology misleads.</summary>
     public long? Sequence { get; set; }
 
     /// <summary>Product notes for this release, written for customers.</summary>

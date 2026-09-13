@@ -39725,6 +39725,7 @@
           },
           "externalId": {
             "type": "string",
+            "description": "The product's identifier in the system that owns it.",
             "maxLength": 256,
             "minLength": 0,
             "nullable": true,
@@ -40486,6 +40487,7 @@
           },
           "targetDate": {
             "type": "string",
+            "description": "When the package is expected to ship.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "TargetDate"
@@ -40792,6 +40794,7 @@
           },
           "targetDate": {
             "type": "string",
+            "description": "When the release is expected to be announced.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "TargetDate"
@@ -40805,6 +40808,7 @@
           },
           "sequence": {
             "type": "integer",
+            "description": "A manual ordering override, for the rare case where chronology misleads.",
             "format": "int64",
             "nullable": true,
             "x-csv-column": "Sequence"
@@ -41167,6 +41171,7 @@
           },
           "targetDate": {
             "type": "string",
+            "description": "When the version is expected to ship.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "TargetDate"
@@ -41782,16 +41787,19 @@
           },
           "sponsors": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Sponsors"
           },
           "owners": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Owners"
           },
           "managers": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Managers"
           }
@@ -41815,6 +41823,7 @@
           },
           "type": {
             "type": "string",
+            "description": "Whether the row closes a program or a portfolio, which also says how Id is read.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "Type",
@@ -42894,6 +42903,7 @@
           },
           "portfolioId": {
             "type": "string",
+            "description": "The owning portfolio, by id.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -42922,6 +42932,7 @@
           },
           "end": {
             "type": "string",
+            "description": "On or after Start. Start and End are both empty or both set.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "End"
@@ -42948,16 +42959,19 @@
           },
           "sponsors": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Sponsors"
           },
           "owners": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Owners"
           },
           "managers": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Managers"
           }
@@ -43968,12 +43982,14 @@
           },
           "key": {
             "type": "string",
+            "description": "2–20 uppercase letters and numbers, unique across projects. Tasks, stages and strategic initiatives name the project by it.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "Key"
           },
           "portfolioId": {
             "type": "string",
+            "description": "The owning portfolio, by id.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -43982,6 +43998,7 @@
           },
           "expenditureCategoryId": {
             "type": "integer",
+            "description": "An expenditure category, by id. Create it in Settings first.",
             "format": "int32",
             "minimum": 0.0,
             "exclusiveMinimum": true,
@@ -44040,6 +44057,7 @@
           },
           "end": {
             "type": "string",
+            "description": "On or after Start. Start and End are both empty or both set.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "End"
@@ -44073,21 +44091,25 @@
           },
           "sponsors": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Sponsors"
           },
           "owners": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Owners"
           },
           "managers": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Managers"
           },
           "members": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Members"
           }
@@ -44114,6 +44136,7 @@
           },
           "projectKey": {
             "type": "string",
+            "description": "The project this task belongs to, by key.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "ProjectKey"
@@ -44134,6 +44157,7 @@
           },
           "stageName": {
             "type": "string",
+            "description": "A stage of the project's assigned lifecycle, by name.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "StageName"
@@ -44205,6 +44229,7 @@
           },
           "plannedEnd": {
             "type": "string",
+            "description": "Planned end, for tasks. On or after PlannedStart.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "PlannedEnd"
@@ -44218,6 +44243,7 @@
           },
           "estimatedEffortHours": {
             "type": "number",
+            "description": "Estimated effort in hours. Greater than 0 when present.",
             "format": "decimal",
             "minimum": 0.0,
             "nullable": true,
@@ -44250,12 +44276,14 @@
           },
           "projectKey": {
             "type": "string",
+            "description": "The project, by key.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "ProjectKey"
           },
           "stageName": {
             "type": "string",
+            "description": "A stage of the project's assigned lifecycle, by name.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "StageName"
@@ -46126,6 +46154,7 @@
           },
           "portfolioId": {
             "type": "string",
+            "description": "The owning portfolio, by id.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -46149,6 +46178,7 @@
           },
           "start": {
             "type": "string",
+            "description": "The initiative's start date.",
             "format": "date",
             "minLength": 1,
             "nullable": false,
@@ -46156,6 +46186,7 @@
           },
           "end": {
             "type": "string",
+            "description": "The initiative's end date. On or after Start.",
             "format": "date",
             "minLength": 1,
             "nullable": false,
@@ -46169,11 +46200,13 @@
           },
           "sponsors": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Sponsors"
           },
           "owners": {
             "type": "string",
+            "description": "Semicolon-separated employee numbers.",
             "nullable": true,
             "x-csv-column": "Owners"
           }
@@ -46213,11 +46246,13 @@
           },
           "targetValue": {
             "type": "number",
+            "description": "The value that defines success.",
             "format": "double",
             "x-csv-column": "TargetValue"
           },
           "startingValue": {
             "type": "number",
+            "description": "The baseline value.",
             "format": "double",
             "nullable": true,
             "x-csv-column": "StartingValue"
@@ -47419,6 +47454,7 @@
           },
           "end": {
             "type": "string",
+            "description": "The last date the interval ran over. On or after Start.",
             "format": "date",
             "nullable": false,
             "x-csv-column": "End"
@@ -48895,6 +48931,7 @@
           },
           "planningIntervalId": {
             "type": "string",
+            "description": "The planning interval the objective belongs to, by id. Rows may name different intervals.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -48903,6 +48940,7 @@
           },
           "teamId": {
             "type": "string",
+            "description": "The team the objective belongs to, by id.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -48925,11 +48963,13 @@
           },
           "statusId": {
             "type": "integer",
+            "description": "1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed.",
             "format": "int32",
             "x-csv-column": "StatusId"
           },
           "progress": {
             "type": "number",
+            "description": "Percent complete, 0–100.",
             "format": "double",
             "maximum": 100.0,
             "minimum": 0.0,
@@ -48937,6 +48977,7 @@
           },
           "startDate": {
             "type": "string",
+            "description": "Before TargetDate where both are given.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "StartDate"
@@ -48949,16 +48990,19 @@
           },
           "isStretch": {
             "type": "boolean",
+            "description": "Whether the objective is a stretch goal.",
             "x-csv-column": "IsStretch"
           },
           "closedDateUtc": {
             "type": "string",
+            "description": "When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.",
             "format": "date-time",
             "nullable": true,
             "x-csv-column": "ClosedDateUtc"
           },
           "order": {
             "type": "integer",
+            "description": "Display position within the team's objectives.",
             "format": "int32",
             "nullable": true,
             "x-csv-column": "Order"
@@ -49704,6 +49748,7 @@
           },
           "teamId": {
             "type": "string",
+            "description": "The team the risk belongs to, by id.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -49726,6 +49771,7 @@
           },
           "reportedOnUtc": {
             "type": "string",
+            "description": "When the risk was reported, in UTC. Must be in the past.",
             "format": "date-time",
             "minLength": 1,
             "nullable": false,
@@ -49733,6 +49779,7 @@
           },
           "reportedById": {
             "type": "string",
+            "description": "The employee who reported it, by id.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -49741,26 +49788,31 @@
           },
           "statusId": {
             "type": "integer",
+            "description": "1 Open, 2 Closed.",
             "format": "int32",
             "x-csv-column": "StatusId"
           },
           "categoryId": {
             "type": "integer",
+            "description": "1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated.",
             "format": "int32",
             "x-csv-column": "CategoryId"
           },
           "impactId": {
             "type": "integer",
+            "description": "1 Low, 2 Medium, 3 High.",
             "format": "int32",
             "x-csv-column": "ImpactId"
           },
           "likelihoodId": {
             "type": "integer",
+            "description": "1 Low, 2 Medium, 3 High.",
             "format": "int32",
             "x-csv-column": "LikelihoodId"
           },
           "assigneeId": {
             "type": "string",
+            "description": "The employee the risk is assigned to, by id.",
             "format": "guid",
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000",
@@ -49781,6 +49833,7 @@
           },
           "closedDateUtc": {
             "type": "string",
+            "description": "When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.",
             "format": "date-time",
             "nullable": true,
             "x-csv-column": "ClosedDateUtc"
@@ -53184,6 +53237,7 @@
           },
           "employeeNumber": {
             "type": "string",
+            "description": "The employee's natural key, unique across the company.",
             "maxLength": 256,
             "minLength": 1,
             "nullable": false,
@@ -53219,6 +53273,7 @@
           },
           "hireDate": {
             "type": "string",
+            "description": "The date the employee was hired.",
             "format": "date-time",
             "nullable": true,
             "x-csv-column": "HireDate"
@@ -53246,6 +53301,7 @@
           },
           "managerNumber": {
             "type": "string",
+            "description": "The manager's employee number. May name someone elsewhere in the file.",
             "nullable": true,
             "x-csv-column": "ManagerNumber"
           },
@@ -53753,6 +53809,7 @@
           },
           "code": {
             "type": "string",
+            "description": "The team's natural key: 2–10 uppercase letters and numbers, unique across teams.",
             "maxLength": 10,
             "minLength": 1,
             "nullable": false,
@@ -53767,6 +53824,7 @@
           },
           "activeDate": {
             "type": "string",
+            "description": "The date the team became active.",
             "format": "date",
             "minLength": 1,
             "nullable": false,
@@ -53804,6 +53862,7 @@
           },
           "teamCode": {
             "type": "string",
+            "description": "The team, by code.",
             "maxLength": 10,
             "minLength": 1,
             "nullable": false,
@@ -53811,6 +53870,7 @@
           },
           "employeeNumber": {
             "type": "string",
+            "description": "The employee, by number. Must be an active employee.",
             "maxLength": 256,
             "minLength": 1,
             "nullable": false,
@@ -53818,6 +53878,7 @@
           },
           "roleName": {
             "type": "string",
+            "description": "A team member role, by name. The role must already exist.",
             "maxLength": 128,
             "minLength": 1,
             "nullable": false,
@@ -53843,6 +53904,7 @@
           },
           "childCode": {
             "type": "string",
+            "description": "The child team's code. May be a Team or a Team of Teams.",
             "maxLength": 10,
             "minLength": 1,
             "nullable": false,
@@ -53850,6 +53912,7 @@
           },
           "parentCode": {
             "type": "string",
+            "description": "The parent's code. Must be a Team of Teams, and cannot equal ChildCode.",
             "maxLength": 10,
             "minLength": 1,
             "nullable": false,
@@ -53857,6 +53920,7 @@
           },
           "start": {
             "type": "string",
+            "description": "When the membership begins. On or after both teams' active dates.",
             "format": "date",
             "minLength": 1,
             "nullable": false,
@@ -53864,6 +53928,7 @@
           },
           "end": {
             "type": "string",
+            "description": "When the membership ends. On or after Start; blank for one still in place.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "End"

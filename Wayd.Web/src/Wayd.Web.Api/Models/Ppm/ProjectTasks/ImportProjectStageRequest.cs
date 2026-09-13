@@ -18,7 +18,10 @@ public sealed class ImportProjectStageRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    /// <summary>The project, by key.</summary>
     public string ProjectKey { get; set; } = default!;
+
+    /// <summary>A stage of the project's assigned lifecycle, by name.</summary>
     public string StageName { get; set; } = default!;
 
     /// <summary>The stage status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.</summary>

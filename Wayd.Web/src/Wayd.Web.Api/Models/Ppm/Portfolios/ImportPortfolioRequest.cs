@@ -40,8 +40,13 @@ public sealed class ImportPortfolioRequest
     /// </summary>
     public DateOnly? ActivatedOn { get; set; }
 
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Sponsors { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Owners { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Managers { get; set; }
 
     public ImportProjectPortfolioDto ToImportProjectPortfolioDto()

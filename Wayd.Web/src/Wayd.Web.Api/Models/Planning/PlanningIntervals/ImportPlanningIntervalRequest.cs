@@ -22,6 +22,8 @@ public sealed class ImportPlanningIntervalRequest
 
     /// <summary>The dates the interval ran over. Its iterations are generated inside this range.</summary>
     public DateOnly? Start { get; set; }
+
+    /// <summary>The last date the interval ran over. On or after Start.</summary>
     public DateOnly? End { get; set; }
 
     /// <summary>

@@ -42354,6 +42354,7 @@ position is a fragile thing to reference. */
     productTypeName: string;
     /** The ImportId of another row in this file, or empty for a root product. */
     parentImportId?: string | undefined;
+    /** The product's identifier in the system that owns it. */
     externalId?: string | undefined;
     /** The status by name, which must belong to the product workflow. Defaults to the workflow's
 initial status when the column is absent or blank. */
@@ -42584,6 +42585,7 @@ Falls back to the row's position when the column is absent. */
     /** The package's own version, distinct from any component's. Free text, never parsed. */
     version: string;
     name?: string | undefined;
+    /** When the package is expected to ship. */
     targetDate?: Date | undefined;
     /** When the package shipped. Supplying it makes the package Released. */
     releasedDate?: Date | undefined;
@@ -42673,10 +42675,12 @@ Falls back to the row's position when the column is absent. */
     name?: string | undefined;
     /** The product this release is announced under, if any, by id. Usually a product line. */
     productId?: string | undefined;
+    /** When the release is expected to be announced. */
     targetDate?: Date | undefined;
     /** When it was announced. Supplying it makes the release Released — and is refused while anything
 it carries has not shipped. */
     releasedDate?: Date | undefined;
+    /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
     /** Product notes for this release, written for customers. */
     notes?: string | undefined;
@@ -42786,6 +42790,7 @@ hand-authored file still works. */
     /** The version as the organization writes it. Free text, never parsed. */
     number: string;
     name?: string | undefined;
+    /** When the version is expected to ship. */
     targetDate?: Date | undefined;
     /** When scope froze. Supplying it makes the version Ready. */
     cutDate?: Date | undefined;
@@ -42971,8 +42976,11 @@ column is required now so that no file has to change on the day one is kept. */
     /** The date the portfolio was activated. Required unless the portfolio is Proposed. There is no
 closing date here: an import cannot close a portfolio, so the finalize import carries that one. */
     activatedOn?: Date | undefined;
+    /** Semicolon-separated employee numbers. */
     sponsors?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     owners?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     managers?: string | undefined;
 }
 
@@ -42982,6 +42990,7 @@ export interface ImportPpmFinalizationRequest {
 reported against it. Falls back to the row's position when the column is absent, so a
 hand-authored file still works. */
     importId?: string | undefined;
+    /** Whether the row closes a program or a portfolio, which also says how Id is read. */
     type: string;
     /** The program or portfolio this row closes, per Type. */
     id: string;
@@ -43224,11 +43233,13 @@ hand-authored file still works. */
     importId?: string | undefined;
     name: string;
     description: string;
+    /** The owning portfolio, by id. */
     portfolioId: string;
     /** The program's status. Defaults to Active when the column is absent. */
     status: string;
     /** The timeline the program plans to run over. */
     start?: Date | undefined;
+    /** On or after Start. Start and End are both empty or both set. */
     end?: Date | undefined;
     /** The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps
 no transition dates beyond the audit stamp, which records when the file was uploaded — but the
@@ -43240,8 +43251,11 @@ import cannot complete or cancel a program, so the finalize import carries that 
     activatedOn?: Date | undefined;
     /** Semicolon-separated strategic theme ids. */
     strategicThemes?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     sponsors?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     owners?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     managers?: string | undefined;
 }
 
@@ -43489,8 +43503,11 @@ hand-authored file still works. */
     importId?: string | undefined;
     name: string;
     description: string;
+    /** 2–20 uppercase letters and numbers, unique across projects. Tasks, stages and strategic initiatives name the project by it. */
     key: string;
+    /** The owning portfolio, by id. */
     portfolioId: string;
+    /** An expenditure category, by id. Create it in Settings first. */
     expenditureCategoryId: number;
     /** The project's status. Defaults to Active when the column is absent. */
     status: string;
@@ -43502,6 +43519,7 @@ hand-authored file still works. */
     expectedBenefits?: string | undefined;
     /** The timeline the project plans to run over. */
     start?: Date | undefined;
+    /** On or after Start. Start and End are both empty or both set. */
     end?: Date | undefined;
     /** The date the project was proposed. Required on every row, and what the project's opening status
 history entry is dated — the audit stamp records when the file was uploaded, which is not the
@@ -43515,9 +43533,13 @@ statuses and rejected on the rest. */
     closedOn?: Date | undefined;
     /** Semicolon-separated strategic theme ids. */
     strategicThemes?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     sponsors?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     owners?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     managers?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     members?: string | undefined;
 }
 
@@ -43527,9 +43549,11 @@ export interface ImportProjectTaskRequest {
 reported against it, and child rows name it as their ParentImportId. Falls back to the row's
 position when the column is absent, so a hand-authored file still works. */
     importId?: string | undefined;
+    /** The project this task belongs to, by key. */
     projectKey: string;
     name: string;
     description?: string | undefined;
+    /** A stage of the project's assigned lifecycle, by name. */
     stageName: string;
     /** The ImportId of the row this task nests under. Empty makes it a root task of its stage. */
     parentImportId?: string | undefined;
@@ -43543,9 +43567,11 @@ position when the column is absent, so a hand-authored file still works. */
     progress?: number | undefined;
     /** Planned start, for tasks. Milestones use PlannedDate instead. */
     plannedStart?: Date | undefined;
+    /** Planned end, for tasks. On or after PlannedStart. */
     plannedEnd?: Date | undefined;
     /** The milestone's date. Only for milestones. */
     plannedDate?: Date | undefined;
+    /** Estimated effort in hours. Greater than 0 when present. */
     estimatedEffortHours?: number | undefined;
     /** Semicolon-separated employee numbers assigned to the task. */
     assignees?: string | undefined;
@@ -43557,7 +43583,9 @@ export interface ImportProjectStageRequest {
 reported against it. Falls back to the row's position when the column is absent, so a
 hand-authored file still works. */
     importId?: string | undefined;
+    /** The project, by key. */
     projectKey: string;
+    /** A stage of the project's assigned lifecycle, by name. */
     stageName: string;
     /** The stage status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'. */
     status: string;
@@ -44006,14 +44034,19 @@ to the row's position when the column is absent, so a hand-authored file still w
     importId?: string | undefined;
     name: string;
     description: string;
+    /** The owning portfolio, by id. */
     portfolioId: string;
     /** The initiative's status. Defaults to Active when the column is absent. */
     status: string;
+    /** The initiative's start date. */
     start: Date;
+    /** The initiative's end date. On or after Start. */
     end: Date;
     /** Semicolon-separated project keys the initiative delivers through. */
     projectKeys?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     sponsors?: string | undefined;
+    /** Semicolon-separated employee numbers. */
     owners?: string | undefined;
 }
 
@@ -44025,7 +44058,9 @@ should supply ImportId, since inserting a row silently re-parents every KPI belo
     strategicInitiativeImportId: string;
     name: string;
     description?: string | undefined;
+    /** The value that defines success. */
     targetValue: number;
+    /** The baseline value. */
     startingValue?: number | undefined;
     /** A symbol shown before the value, such as "$". */
     prefix?: string | undefined;
@@ -44327,6 +44362,7 @@ hand-authored file still works. */
     description?: string | undefined;
     /** The dates the interval ran over. Its iterations are generated inside this range. */
     start: Date;
+    /** The last date the interval ran over. On or after Start. */
     end: Date;
     /** The cadence the interval's iterations are generated from. There is no column for the iterations
 themselves: an interval whose real history had irregular lengths or names is corrected afterwards
@@ -44692,16 +44728,24 @@ export interface ImportPlanningIntervalObjectivesRequest {
 reported against it. Falls back to the row's position when the column is absent, so a
 hand-authored file still works. */
     importId?: string | undefined;
+    /** The planning interval the objective belongs to, by id. Rows may name different intervals. */
     planningIntervalId: string;
+    /** The team the objective belongs to, by id. */
     teamId: string;
     name: string;
     description?: string | undefined;
+    /** 1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed. */
     statusId: number;
+    /** Percent complete, 0–100. */
     progress: number;
+    /** Before TargetDate where both are given. */
     startDate?: Date | undefined;
     targetDate?: Date | undefined;
+    /** Whether the objective is a stretch goal. */
     isStretch: boolean;
+    /** When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise. */
     closedDateUtc?: Date | undefined;
+    /** Display position within the team's objectives. */
     order?: number | undefined;
 }
 
@@ -44869,18 +44913,27 @@ export interface ImportRiskRequest {
 reported against it. Falls back to the row's position when the column is absent, so a
 hand-authored file still works. */
     importId?: string | undefined;
+    /** The team the risk belongs to, by id. */
     teamId: string;
     summary: string;
     description?: string | undefined;
+    /** When the risk was reported, in UTC. Must be in the past. */
     reportedOnUtc: Date;
+    /** The employee who reported it, by id. */
     reportedById: string;
+    /** 1 Open, 2 Closed. */
     statusId: number;
+    /** 1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated. */
     categoryId: number;
+    /** 1 Low, 2 Medium, 3 High. */
     impactId: number;
+    /** 1 Low, 2 Medium, 3 High. */
     likelihoodId: number;
+    /** The employee the risk is assigned to, by id. */
     assigneeId?: string | undefined;
     followUpDate?: Date | undefined;
     response?: string | undefined;
+    /** When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past. */
     closedDateUtc?: Date | undefined;
 }
 
@@ -45709,15 +45762,18 @@ export interface ImportEmployeeRequest {
 reported against it, and it is how a row is identified without depending on a display name. Falls
 back to the row's position when the column is absent, so a hand-authored file still works. */
     importId?: string | undefined;
+    /** The employee's natural key, unique across the company. */
     employeeNumber: string;
     firstName: string;
     middleName?: string | undefined;
     lastName: string;
     email: string;
+    /** The date the employee was hired. */
     hireDate?: Date | undefined;
     jobTitle?: string | undefined;
     department?: string | undefined;
     officeLocation?: string | undefined;
+    /** The manager's employee number. May name someone elsewhere in the file. */
     managerNumber?: string | undefined;
     /** Whether the employee is currently active. Defaults to true when the column is absent. */
     isActive: boolean;
@@ -45857,8 +45913,10 @@ hand-authored file still works. */
     importId?: string | undefined;
     type: string;
     name: string;
+    /** The team's natural key: 2–10 uppercase letters and numbers, unique across teams. */
     code: string;
     description?: string | undefined;
+    /** The date the team became active. */
     activeDate: Date;
     /** Whether the team is currently active. Defaults to true when the column is absent. */
     isActive: boolean;
@@ -45872,8 +45930,11 @@ export interface ImportTeamMemberRequest {
 reported against it. Falls back to the row's position when the column is absent, so a
 hand-authored file still works. */
     importId?: string | undefined;
+    /** The team, by code. */
     teamCode: string;
+    /** The employee, by number. Must be an active employee. */
     employeeNumber: string;
+    /** A team member role, by name. The role must already exist. */
     roleName: string;
 }
 
@@ -45883,9 +45944,13 @@ export interface ImportTeamMembershipRequest {
 reported against it. Falls back to the row's position when the column is absent, so a
 hand-authored file still works. */
     importId?: string | undefined;
+    /** The child team's code. May be a Team or a Team of Teams. */
     childCode: string;
+    /** The parent's code. Must be a Team of Teams, and cannot equal ChildCode. */
     parentCode: string;
+    /** When the membership begins. On or after both teams' active dates. */
     start: Date;
+    /** When the membership ends. On or after Start; blank for one still in place. */
     end?: Date | undefined;
 }
 

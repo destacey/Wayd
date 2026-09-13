@@ -13,18 +13,38 @@ public class ImportRiskRequest
     /// hand-authored file still works.
     /// </summary>
     public string? ImportId { get; set; }
+
+    /// <summary>The team the risk belongs to, by id.</summary>
     public Guid TeamId { get; set; }
+
     public string Summary { get; set; } = default!;
     public string? Description { get; set; }
+
+    /// <summary>When the risk was reported, in UTC. Must be in the past.</summary>
     public DateTime ReportedOnUtc { get; set; }
+
+    /// <summary>The employee who reported it, by id.</summary>
     public Guid ReportedById { get; set; }
+
+    /// <summary>1 Open, 2 Closed.</summary>
     public int StatusId { get; set; }
+
+    /// <summary>1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated.</summary>
     public int CategoryId { get; set; }
+
+    /// <summary>1 Low, 2 Medium, 3 High.</summary>
     public int ImpactId { get; set; }
+
+    /// <summary>1 Low, 2 Medium, 3 High.</summary>
     public int LikelihoodId { get; set; }
+
+    /// <summary>The employee the risk is assigned to, by id.</summary>
     public Guid? AssigneeId { get; set; }
+
     public DateOnly? FollowUpDate { get; set; }
     public string? Response { get; set; }
+
+    /// <summary>When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.</summary>
     public DateTime? ClosedDateUtc { get; set; }
 
     public ImportRiskDto ToImportRiskDto()

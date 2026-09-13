@@ -17,6 +17,7 @@ public sealed class ImportPpmFinalizationRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    /// <summary>Whether the row closes a program or a portfolio, which also says how Id is read.</summary>
     [CsvValues(typeof(FinalizePpmItemType))]
     public string Type { get; set; } = default!;
 

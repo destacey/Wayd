@@ -13,16 +13,33 @@ public class ImportPlanningIntervalObjectivesRequest
     /// </summary>
     public string? ImportId { get; set; }
 
+    /// <summary>The planning interval the objective belongs to, by id. Rows may name different intervals.</summary>
     public Guid PlanningIntervalId { get; set; }
+
+    /// <summary>The team the objective belongs to, by id.</summary>
     public Guid TeamId { get; set; }
+
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
+
+    /// <summary>1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed.</summary>
     public int StatusId { get; set; }
+
+    /// <summary>Percent complete, 0–100.</summary>
     public double Progress { get; set; }
+
+    /// <summary>Before TargetDate where both are given.</summary>
     public DateOnly? StartDate { get; set; }
+
     public DateOnly? TargetDate { get; set; }
+
+    /// <summary>Whether the objective is a stretch goal.</summary>
     public bool IsStretch { get; set; }
+
+    /// <summary>When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.</summary>
     public DateTime? ClosedDateUtc { get; set; }
+
+    /// <summary>Display position within the team's objectives.</summary>
     public int? Order { get; set; }
 
     public ImportPlanningIntervalObjectiveDto ToImportPlanningIntervalObjectiveDto()

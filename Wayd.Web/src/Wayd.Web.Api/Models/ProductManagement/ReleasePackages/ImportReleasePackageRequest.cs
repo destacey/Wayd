@@ -25,6 +25,7 @@ public sealed class ImportReleasePackageRequest
 
     public string? Name { get; set; }
 
+    /// <summary>When the package is expected to ship.</summary>
     public DateOnly? TargetDate { get; set; }
 
     /// <summary>When the package shipped. Supplying it makes the package Released.</summary>

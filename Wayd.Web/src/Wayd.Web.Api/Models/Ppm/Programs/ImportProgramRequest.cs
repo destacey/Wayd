@@ -21,6 +21,8 @@ public sealed class ImportProgramRequest
 
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
+
+    /// <summary>The owning portfolio, by id.</summary>
     public Guid PortfolioId { get; set; }
 
     /// <summary>The program's status. Defaults to Active when the column is absent.</summary>
@@ -29,6 +31,8 @@ public sealed class ImportProgramRequest
 
     /// <summary>The timeline the program plans to run over.</summary>
     public DateOnly? Start { get; set; }
+
+    /// <summary>On or after Start. Start and End are both empty or both set.</summary>
     public DateOnly? End { get; set; }
 
     /// <summary>
@@ -47,8 +51,13 @@ public sealed class ImportProgramRequest
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; set; }
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Sponsors { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Owners { get; set; }
+
+    /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Managers { get; set; }
 
     public ImportProgramDto ToImportProgramDto()

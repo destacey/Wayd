@@ -77382,6 +77382,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("parentImportId")]
         public string? ParentImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The product's identifier in the system that owns it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("externalId")]
         [System.ComponentModel.DataAnnotations.StringLength(256)]
         public string? ExternalId { get; set; } = default!;
@@ -78051,6 +78054,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(128)]
         public string? Name { get; set; } = default!;
 
+        /// <summary>
+        /// When the package is expected to ship.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
@@ -78313,6 +78319,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("productId")]
         public System.Guid? ProductId { get; set; } = default!;
 
+        /// <summary>
+        /// When the release is expected to be announced.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
@@ -78325,6 +78334,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
+        /// <summary>
+        /// A manual ordering override, for the rare case where chronology misleads.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sequence")]
         public long? Sequence { get; set; } = default!;
 
@@ -78654,6 +78666,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(128)]
         public string? Name { get; set; } = default!;
 
+        /// <summary>
+        /// When the version is expected to ship.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
@@ -79200,12 +79215,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? ActivatedOn { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
         public string? Sponsors { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("owners")]
         public string? Owners { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("managers")]
         public string? Managers { get; set; } = default!;
 
@@ -79228,6 +79252,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the row closes a program or a portfolio, which also says how Id is read.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Type { get; set; } = default!;
@@ -79986,6 +80013,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(2048, MinimumLength = 1)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The owning portfolio, by id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid PortfolioId { get; set; } = default!;
@@ -80004,6 +80034,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// On or after Start. Start and End are both empty or both set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
@@ -80033,12 +80066,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
         public string? StrategicThemes { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
         public string? Sponsors { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("owners")]
         public string? Owners { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("managers")]
         public string? Managers { get; set; } = default!;
 
@@ -80797,14 +80839,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(4096, MinimumLength = 1)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// 2–20 uppercase letters and numbers, unique across projects. Tasks, stages and strategic initiatives name the project by it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Key { get; set; } = default!;
 
+        /// <summary>
+        /// The owning portfolio, by id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid PortfolioId { get; set; } = default!;
 
+        /// <summary>
+        /// An expenditure category, by id. Create it in Settings first.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expenditureCategoryId")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
         public int ExpenditureCategoryId { get; set; } = default!;
@@ -80843,6 +80894,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? Start { get; set; } = default!;
 
+        /// <summary>
+        /// On or after Start. Start and End are both empty or both set.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
@@ -80879,15 +80933,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
         public string? StrategicThemes { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
         public string? Sponsors { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("owners")]
         public string? Owners { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("managers")]
         public string? Managers { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("members")]
         public string? Members { get; set; } = default!;
 
@@ -80912,6 +80978,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The project this task belongs to, by key.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectKey")]
         [System.ComponentModel.DataAnnotations.Required]
         public string ProjectKey { get; set; } = default!;
@@ -80925,6 +80994,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(2048)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// A stage of the project's assigned lifecycle, by name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stageName")]
         [System.ComponentModel.DataAnnotations.Required]
         public string StageName { get; set; } = default!;
@@ -80970,6 +81042,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? PlannedStart { get; set; } = default!;
 
+        /// <summary>
+        /// Planned end, for tasks. On or after PlannedStart.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("plannedEnd")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? PlannedEnd { get; set; } = default!;
@@ -80981,6 +81056,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? PlannedDate { get; set; } = default!;
 
+        /// <summary>
+        /// Estimated effort in hours. Greater than 0 when present.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
         [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.0", "79228162514264337593543950335")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
@@ -81009,10 +81087,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The project, by key.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectKey")]
         [System.ComponentModel.DataAnnotations.Required]
         public string ProjectKey { get; set; } = default!;
 
+        /// <summary>
+        /// A stage of the project's assigned lifecycle, by name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stageName")]
         [System.ComponentModel.DataAnnotations.Required]
         public string StageName { get; set; } = default!;
@@ -82366,6 +82450,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(2048, MinimumLength = 1)]
         public string Description { get; set; } = default!;
 
+        /// <summary>
+        /// The owning portfolio, by id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portfolioId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid PortfolioId { get; set; } = default!;
@@ -82377,11 +82464,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public string Status { get; set; } = default!;
 
+        /// <summary>
+        /// The initiative's start date.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The initiative's end date. On or after Start.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -82393,9 +82486,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("projectKeys")]
         public string? ProjectKeys { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sponsors")]
         public string? Sponsors { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated employee numbers.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("owners")]
         public string? Owners { get; set; } = default!;
 
@@ -82428,9 +82527,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(512)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The value that defines success.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetValue")]
         public double TargetValue { get; set; } = default!;
 
+        /// <summary>
+        /// The baseline value.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startingValue")]
         public double? StartingValue { get; set; } = default!;
 
@@ -83362,6 +83467,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// The last date the interval ran over. On or after Start.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -84495,10 +84603,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The planning interval the objective belongs to, by id. Rows may name different intervals.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("planningIntervalId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid PlanningIntervalId { get; set; } = default!;
 
+        /// <summary>
+        /// The team the objective belongs to, by id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid TeamId { get; set; } = default!;
@@ -84512,13 +84626,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// 1 Not Started, 2 In Progress, 3 Completed, 4 Canceled, 5 Missed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusId")]
         public int StatusId { get; set; } = default!;
 
+        /// <summary>
+        /// Percent complete, 0–100.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
         [System.ComponentModel.DataAnnotations.Range(0.0D, 100.0D)]
         public double Progress { get; set; } = default!;
 
+        /// <summary>
+        /// Before TargetDate where both are given.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? StartDate { get; set; } = default!;
@@ -84527,12 +84650,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the objective is a stretch goal.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isStretch")]
         public bool IsStretch { get; set; } = default!;
 
+        /// <summary>
+        /// When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("closedDateUtc")]
         public System.DateTimeOffset? ClosedDateUtc { get; set; } = default!;
 
+        /// <summary>
+        /// Display position within the team's objectives.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int? Order { get; set; } = default!;
 
@@ -85039,6 +85171,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The team the risk belongs to, by id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid TeamId { get; set; } = default!;
@@ -85052,26 +85187,47 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// When the risk was reported, in UTC. Must be in the past.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reportedOnUtc")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.DateTimeOffset ReportedOnUtc { get; set; } = default!;
 
+        /// <summary>
+        /// The employee who reported it, by id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reportedById")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid ReportedById { get; set; } = default!;
 
+        /// <summary>
+        /// 1 Open, 2 Closed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusId")]
         public int StatusId { get; set; } = default!;
 
+        /// <summary>
+        /// 1 Resolved, 2 Owned, 3 Accepted, 4 Mitigated.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryId")]
         public int CategoryId { get; set; } = default!;
 
+        /// <summary>
+        /// 1 Low, 2 Medium, 3 High.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("impactId")]
         public int ImpactId { get; set; } = default!;
 
+        /// <summary>
+        /// 1 Low, 2 Medium, 3 High.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("likelihoodId")]
         public int LikelihoodId { get; set; } = default!;
 
+        /// <summary>
+        /// The employee the risk is assigned to, by id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("assigneeId")]
         public System.Guid? AssigneeId { get; set; } = default!;
 
@@ -85083,6 +85239,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Response { get; set; } = default!;
 
+        /// <summary>
+        /// When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("closedDateUtc")]
         public System.DateTimeOffset? ClosedDateUtc { get; set; } = default!;
 
@@ -87561,6 +87720,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The employee's natural key, unique across the company.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeNumber")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
@@ -87585,6 +87747,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
         public string Email { get; set; } = default!;
 
+        /// <summary>
+        /// The date the employee was hired.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hireDate")]
         public System.DateTimeOffset? HireDate { get; set; } = default!;
 
@@ -87600,6 +87765,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(256)]
         public string? OfficeLocation { get; set; } = default!;
 
+        /// <summary>
+        /// The manager's employee number. May name someone elsewhere in the file.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("managerNumber")]
         public string? ManagerNumber { get; set; } = default!;
 
@@ -88021,6 +88189,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// The team's natural key: 2–10 uppercase letters and numbers, unique across teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
@@ -88030,6 +88201,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The date the team became active.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeDate")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -88066,16 +88240,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The team, by code.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamCode")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
         public string TeamCode { get; set; } = default!;
 
+        /// <summary>
+        /// The employee, by number. Must be an active employee.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeNumber")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
         public string EmployeeNumber { get; set; } = default!;
 
+        /// <summary>
+        /// A team member role, by name. The role must already exist.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("roleName")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
@@ -88099,21 +88282,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("importId")]
         public string? ImportId { get; set; } = default!;
 
+        /// <summary>
+        /// The child team's code. May be a Team or a Team of Teams.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("childCode")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
         public string ChildCode { get; set; } = default!;
 
+        /// <summary>
+        /// The parent's code. Must be a Team of Teams, and cannot equal ChildCode.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentCode")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(10, MinimumLength = 1)]
         public string ParentCode { get; set; } = default!;
 
+        /// <summary>
+        /// When the membership begins. On or after both teams' active dates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
+        /// <summary>
+        /// When the membership ends. On or after Start; blank for one still in place.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;

@@ -181,33 +181,6 @@ public sealed class WorkTeamChangeEventHandlerTests : IDisposable
         _workDbContext.WorkTeams.Single(t => t.Id == id).IsActive.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task Handle_Deleted_WhenTheCopyExists_RemovesAndSaves()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        _workDbContext.AddWorkTeam(new WorkTeam(new WorkTeamFaker(TeamType.Team).WithId(id).Generate(), Created));
-
-        // Act
-        await _handler.Handle(new TeamDeletedEvent(id, 1, new TeamCode("ABC01"), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
-
-        // Assert
-        _workDbContext.WorkTeams.Should().BeEmpty();
-        _workDbContext.SaveChangesCallCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task Handle_Deleted_WhenRedelivered_IsNoOp()
-    {
-        // Arrange
-
-        // Act
-        await _handler.Handle(new TeamDeletedEvent(Guid.NewGuid(), 1, new TeamCode("ABC01"), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
-
-        // Assert
-        _workDbContext.SaveChangesCallCount.Should().Be(0);
-    }
-
     private void SourceReturns(ISimpleTeam? team) =>
         _dispatcher
             .Setup(d => d.Send(It.IsAny<GetSimpleTeamQuery>(), It.IsAny<CancellationToken>()))

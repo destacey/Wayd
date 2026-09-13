@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 
 public sealed record DeleteProjectPortfolioCommand(Guid Id) : ICommand;
 
@@ -11,12 +13,14 @@ public sealed class DeleteProjectPortfolioCommandValidator : AbstractValidator<D
     }
 }
 
-public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<DeleteProjectPortfolioCommandHandler> logger) : ICommandHandler<DeleteProjectPortfolioCommand>
+public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeleteProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectPortfolioCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteProjectPortfolioCommandHandler> _logger = logger;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(DeleteProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
@@ -31,10 +35,11 @@ public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManage
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            if (!portfolio.CanBeDeleted())
+            var deleteResult = portfolio.Delete(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+            if (deleteResult.IsFailure)
             {
-                _logger.LogInformation("Project Portfolio {ProjectPortfolioId} cannot be deleted.", request.Id);
-                return Result.Failure("Project Portfolio cannot be deleted.");
+                _logger.LogInformation("Project Portfolio {ProjectPortfolioId} cannot be deleted. Error message: {Error}", request.Id, deleteResult.Error);
+                return Result.Failure(deleteResult.Error);
             }
 
             _projectPortfolioManagementDbContext.Portfolios.Remove(portfolio);

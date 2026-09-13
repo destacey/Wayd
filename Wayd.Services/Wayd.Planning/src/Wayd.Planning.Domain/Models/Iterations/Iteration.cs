@@ -126,6 +126,14 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     }
 
     /// <summary>
+    /// Raises the deletion event. The caller removes the iteration in the same save, which is what drains it.
+    /// </summary>
+    public void Delete(EventActor actor, Instant timestamp)
+    {
+        AddDomainEvent(new IterationDeletedEvent(Id, actor, timestamp));
+    }
+
+    /// <summary>
     /// Raises an event whose payload carries <see cref="Key"/>, which the first save assigns; a change made
     /// before it waits for the key. <paramref name="build"/> runs at that point, so capture what it reads.
     /// </summary>

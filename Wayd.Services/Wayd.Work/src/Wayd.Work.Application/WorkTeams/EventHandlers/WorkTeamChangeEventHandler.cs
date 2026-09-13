@@ -59,22 +59,6 @@ public sealed class WorkTeamChangeEventHandler(
         await Apply(@event.Id, @event.Timestamp, t => t.ApplyActivation(false, @event.Timestamp), "deactivation", cancellationToken);
     }
 
-    public async Task Handle(TeamDeletedEvent @event, CancellationToken cancellationToken)
-    {
-        var existingTeam = await _workDbContext.WorkTeams.FirstOrDefaultAsync(t => t.Id == @event.Id, cancellationToken);
-        if (existingTeam is null)
-        {
-            _logger.LogInformation("[{SystemActionType}] Work Team delete skipped: {WorkTeamId} has no copy.", SystemActionType.ServiceDataReplication, @event.Id);
-            return;
-        }
-
-        // TODO: consider making the team inactive or archiving it instead of deleting it.  Maybe we only delete if the Work team has never been used?
-        _workDbContext.WorkTeams.Remove(existingTeam);
-        await _workDbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("[{SystemActionType}] Work Team deleted. {WorkTeamId}", SystemActionType.ServiceDataReplication, @event.Id);
-    }
-
     private async Task Apply(Guid teamId, Instant timestamp, Func<WorkTeam, bool> apply, string change, CancellationToken cancellationToken)
     {
         var existingTeam = await _workDbContext.WorkTeams.FirstOrDefaultAsync(t => t.Id == teamId, cancellationToken);

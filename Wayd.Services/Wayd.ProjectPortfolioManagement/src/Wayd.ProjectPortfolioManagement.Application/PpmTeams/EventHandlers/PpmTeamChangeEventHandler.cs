@@ -59,21 +59,6 @@ public sealed class PpmTeamChangeEventHandler(
         await Apply(@event.Id, @event.Timestamp, t => t.ApplyActivation(false, @event.Timestamp), "deactivation", cancellationToken);
     }
 
-    public async Task Handle(TeamDeletedEvent @event, CancellationToken cancellationToken)
-    {
-        var existingTeam = await _dbContext.PpmTeams.FirstOrDefaultAsync(t => t.Id == @event.Id, cancellationToken);
-        if (existingTeam is null)
-        {
-            _logger.LogInformation("[{SystemActionType}] Ppm Team delete skipped: {PpmTeamId} has no copy.", SystemActionType.ServiceDataReplication, @event.Id);
-            return;
-        }
-
-        _dbContext.PpmTeams.Remove(existingTeam);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("[{SystemActionType}] Ppm Team deleted. {PpmTeamId}", SystemActionType.ServiceDataReplication, @event.Id);
-    }
-
     private async Task Apply(Guid teamId, Instant timestamp, Func<PpmTeam, bool> apply, string change, CancellationToken cancellationToken)
     {
         var existingTeam = await _dbContext.PpmTeams.FirstOrDefaultAsync(t => t.Id == teamId, cancellationToken);

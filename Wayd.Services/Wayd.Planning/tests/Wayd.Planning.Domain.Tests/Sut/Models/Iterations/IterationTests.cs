@@ -126,6 +126,21 @@ public class IterationTests
     }
 
     [Fact]
+    public void Delete_RaisesDeletedEvent()
+    {
+        // Arrange
+        var iteration = _faker.Generate();
+
+        // Act
+        iteration.Delete(EventActor.Sync(null), _dateTimeProvider.Now);
+
+        // Assert
+        iteration.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IterationDeletedEvent>()
+            .Which.Id.Should().Be(iteration.Id);
+    }
+
+    [Fact]
     public void Update_BeforeTheFirstSave_WaitsForTheKey()
     {
         // Arrange

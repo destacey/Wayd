@@ -419,6 +419,40 @@ public class ProjectPortfolioTests
         raised.AggregateId.Should().Be(portfolio.Id);
     }
 
+    [Fact]
+    public void Delete_WhenProposed_RaisesAnEventCarryingTheNameOfTheRemovedRecord()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsProposed();
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = portfolio.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<ProjectPortfolioDeletedEvent>().Subject;
+        raised.Id.Should().Be(portfolio.Id);
+        raised.Key.Should().Be(portfolio.Key);
+        raised.Name.Should().Be(portfolio.Name, "the row it describes is gone by the time anyone reads the entry");
+    }
+
+    [Fact]
+    public void Delete_WhenNotProposed_FailsAndRaisesNothing()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        portfolio.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        portfolio.DomainEvents.Should().BeEmpty();
+    }
+
     #endregion Domain Events
 
     #region Portfolio Create and Update

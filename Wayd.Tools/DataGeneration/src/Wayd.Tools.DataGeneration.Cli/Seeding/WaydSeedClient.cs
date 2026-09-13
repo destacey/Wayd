@@ -220,6 +220,17 @@ public sealed class WaydSeedClient : IDisposable
     public Task<ImportRun> ImportDeployments(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/product-management/deployments/import", csv, "deployments.csv", "deployments", cancellationToken);
 
+    // ---- Planning CSV imports -----------------------------------------------------------------
+
+    public Task<ImportRun> ImportPlanningIntervals(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/planning/planning-intervals/import", csv, "planning-intervals.csv", "planning intervals", cancellationToken);
+
+    public Task<ImportRun> ImportPlanningIntervalObjectives(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/planning/planning-intervals/objectives/import", csv, "planning-interval-objectives.csv", "planning interval objectives", cancellationToken);
+
+    public Task<ImportRun> ImportRisks(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/planning/risks/import", csv, "risks.csv", "risks", cancellationToken);
+
     /// <summary>
     /// Switches a feature flag on, answering whether it had to be.
     /// </summary>

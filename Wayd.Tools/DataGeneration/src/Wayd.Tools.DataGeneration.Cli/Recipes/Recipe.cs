@@ -52,6 +52,9 @@ public sealed class Recipe
 
     /// <summary>The product catalog and how it ships: versions, packages, releases and deployments.</summary>
     public ProductManagementRecipe? ProductManagement { get; init; }
+
+    /// <summary>The planning intervals each ART runs, and the objectives and risks its teams plan in them.</summary>
+    public PlanningRecipe? Planning { get; init; }
 }
 
 /// <summary>An area that can be switched off wholesale rather than tuned.</summary>
@@ -154,4 +157,17 @@ public sealed class ProductManagementRecipe : AreaRecipe
 
     /// <summary>The share (0..1) of ARTs that ship their services together as release packages.</summary>
     public double? PackagedArtFraction { get; init; }
+}
+
+/// <summary>The planning history layered over the organization: intervals per ART, objectives and risks per team.</summary>
+public sealed class PlanningRecipe : AreaRecipe
+{
+    /// <summary>The length of each iteration, in weeks. Intervals are quarterly, so this sets how many each holds.</summary>
+    public int? IterationWeeks { get; init; }
+
+    /// <summary>Average number of objectives a team commits to per planning interval.</summary>
+    public int? ObjectivesPerTeam { get; init; }
+
+    /// <summary>Average number of risks a team raises per planning interval.</summary>
+    public double? RisksPerTeam { get; init; }
 }

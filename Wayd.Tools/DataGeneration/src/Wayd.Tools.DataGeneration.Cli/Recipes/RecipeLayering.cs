@@ -29,7 +29,25 @@ public static class RecipeLayering
         Ppm = Layer(over.Ppm, under.Ppm),
         Users = Layer(over.Users, under.Users),
         ProductManagement = Layer(over.ProductManagement, under.ProductManagement),
+        Planning = Layer(over.Planning, under.Planning),
     };
+
+    private static PlanningRecipe? Layer(PlanningRecipe? over, PlanningRecipe? under)
+    {
+        if (over is null)
+            return under;
+
+        if (under is null)
+            return over;
+
+        return new PlanningRecipe
+        {
+            Enabled = over.Enabled ?? under.Enabled,
+            IterationWeeks = over.IterationWeeks ?? under.IterationWeeks,
+            ObjectivesPerTeam = over.ObjectivesPerTeam ?? under.ObjectivesPerTeam,
+            RisksPerTeam = over.RisksPerTeam ?? under.RisksPerTeam,
+        };
+    }
 
     private static ProductManagementRecipe? Layer(ProductManagementRecipe? over, ProductManagementRecipe? under)
     {

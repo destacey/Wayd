@@ -15,8 +15,10 @@ public sealed record ResolvedRecipe(
     OrgOptions Organization,
     PpmOptions Ppm,
     ProductManagementOptions ProductManagement,
+    PlanningOptions Planning,
     bool GeneratePpm,
     bool GenerateProductManagement,
+    bool GeneratePlanning,
     bool CreateUsers,
     string UserPassword)
 {
@@ -36,6 +38,7 @@ public sealed record ResolvedRecipe(
         var ppm = recipe.Ppm ?? new PpmRecipe();
         var users = recipe.Users ?? new UsersRecipe();
         var productManagement = recipe.ProductManagement ?? new ProductManagementRecipe();
+        var planning = recipe.Planning ?? new PlanningRecipe();
 
         // Every other area is layered over the organization — portfolios and projects name people by
         // employee number, and projects are scoped to a team — so a run without it generates nothing at
@@ -83,8 +86,15 @@ public sealed record ResolvedRecipe(
                 ChangeFailureRate = Required(productManagement.ChangeFailureRate, "productManagement.changeFailureRate"),
                 PackagedArtFraction = Required(productManagement.PackagedArtFraction, "productManagement.packagedArtFraction"),
             },
+            new PlanningOptions
+            {
+                IterationWeeks = Required(planning.IterationWeeks, "planning.iterationWeeks"),
+                ObjectivesPerTeam = Required(planning.ObjectivesPerTeam, "planning.objectivesPerTeam"),
+                RisksPerTeam = Required(planning.RisksPerTeam, "planning.risksPerTeam"),
+            },
             GeneratePpm: ppm.Enabled ?? true,
             GenerateProductManagement: productManagement.Enabled ?? true,
+            GeneratePlanning: planning.Enabled ?? true,
             CreateUsers: users.Enabled ?? true,
             UserPassword: users.Password ?? throw new RecipeException(
                 "The resolved recipe does not set 'users.password'. The built-in default recipe is expected to set every knob."));

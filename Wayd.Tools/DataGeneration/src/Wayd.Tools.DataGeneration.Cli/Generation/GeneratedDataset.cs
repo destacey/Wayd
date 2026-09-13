@@ -4,15 +4,19 @@ using Wayd.Tools.DataGeneration.Cli.Recipes;
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
-/// One resolved recipe, generated: the organization and, unless the recipe switched them off, the PPM and
-/// Product Management datasets over it.
+/// One resolved recipe, generated: the organization and, unless the recipe switched them off, the PPM,
+/// Product Management and Planning datasets over it.
 /// </summary>
 /// <remarks>
 /// Exists so the two front ends produce the same thing rather than each assembling the generators for
 /// itself. The CLI's <c>generate</c> verb and the UI's preview both go through here, which is what makes
 /// "the page shows you the command that would do this" a true statement rather than an intention.
 /// </remarks>
-public sealed record GeneratedDataset(GeneratedOrg Org, GeneratedPpm? Ppm, GeneratedProductManagement? ProductManagement)
+public sealed record GeneratedDataset(
+    GeneratedOrg Org,
+    GeneratedPpm? Ppm,
+    GeneratedProductManagement? ProductManagement,
+    GeneratedPlanning? Planning)
 {
     /// <summary>Runs the generators for a resolved recipe.</summary>
     public static GeneratedDataset From(ResolvedRecipe resolved)
@@ -24,8 +28,11 @@ public sealed record GeneratedDataset(GeneratedOrg Org, GeneratedPpm? Ppm, Gener
         var productManagement = resolved.GenerateProductManagement
             ? new ProductManagementGenerator(org.Structure, resolved.ProductManagement, resolved.Context).Generate()
             : null;
+        var planning = resolved.GeneratePlanning
+            ? new PlanningGenerator(org.Structure, resolved.Planning, resolved.Context).Generate()
+            : null;
 
-        return new GeneratedDataset(org, ppm, productManagement);
+        return new GeneratedDataset(org, ppm, productManagement, planning);
     }
 
     /// <summary>
@@ -33,7 +40,7 @@ public sealed record GeneratedDataset(GeneratedOrg Org, GeneratedPpm? Ppm, Gener
     /// </summary>
     /// <remarks>
     /// The organization files are postable as they stand — every reference in them is a natural key the
-    /// generator owns. The PPM and Product Management files are the generated model, naming the records
+    /// generator owns. The PPM, Product Management and Planning files are the generated model, naming the records
     /// they point at rather than carrying ids, because those ids only exist once a run has created the
     /// records. They are for reading; <c>seed</c> resolves them stage by stage as it goes.
     /// </remarks>
@@ -70,6 +77,13 @@ public sealed record GeneratedDataset(GeneratedOrg Org, GeneratedPpm? Ppm, Gener
             CsvFile.Write(Path.Combine(directory, "release-contents.csv"), pm.ReleaseContents);
             CsvFile.Write(Path.Combine(directory, "deployments.csv"), pm.Deployments);
         }
+
+        if (Planning is { } planning)
+        {
+            CsvFile.Write(Path.Combine(directory, "planning-intervals.csv"), planning.PlanningIntervals);
+            CsvFile.Write(Path.Combine(directory, "planning-interval-objectives.csv"), planning.Objectives);
+            CsvFile.Write(Path.Combine(directory, "risks.csv"), planning.Risks);
+        }
     }
 
     /// <summary>What was generated, for a run summary or a preview.</summary>
@@ -87,7 +101,10 @@ public sealed record GeneratedDataset(GeneratedOrg Org, GeneratedPpm? Ppm, Gener
         ProductManagement?.Versions.Count ?? 0,
         ProductManagement?.ReleasePackages.Count ?? 0,
         ProductManagement?.Releases.Count ?? 0,
-        ProductManagement?.Deployments.Count ?? 0);
+        ProductManagement?.Deployments.Count ?? 0,
+        Planning?.PlanningIntervals.Count ?? 0,
+        Planning?.Objectives.Count ?? 0,
+        Planning?.Risks.Count ?? 0);
 }
 
 /// <summary>How much of each thing a run produced.</summary>
@@ -105,4 +122,7 @@ public sealed record DatasetCounts(
     int Versions,
     int ReleasePackages,
     int Releases,
-    int Deployments);
+    int Deployments,
+    int PlanningIntervals,
+    int Objectives,
+    int Risks);

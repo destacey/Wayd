@@ -44,6 +44,9 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new ReleasePackagesArea(),
         new ReleasesArea(),
         new DeploymentsArea(),
+        new PlanningIntervalsArea(),
+        new PlanningIntervalObjectivesArea(),
+        new RisksArea(),
         new UserRolesArea(),
         new UserAccountsArea(),
     ];
@@ -52,6 +55,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         GeneratedOrg org,
         GeneratedPpm? ppm,
         GeneratedProductManagement? productManagement,
+        GeneratedPlanning? planning,
         bool createUsers,
         string userPassword,
         CancellationToken cancellationToken)
@@ -61,6 +65,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
             Org = org,
             Ppm = ppm,
             ProductManagement = productManagement,
+            Planning = planning,
             CreateUsers = createUsers,
             UserPassword = userPassword,
         };

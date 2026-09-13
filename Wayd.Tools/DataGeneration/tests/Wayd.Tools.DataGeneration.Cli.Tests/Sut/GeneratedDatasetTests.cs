@@ -55,17 +55,19 @@ public class GeneratedDatasetTests : IDisposable
             "strategic-initiative-kpis.csv", "ppm-finalizations.csv",
             "deployment-environments.csv", "products.csv", "versions.csv", "release-packages.csv",
             "release-package-components.csv", "releases.csv", "release-contents.csv", "deployments.csv",
+            "planning-intervals.csv", "planning-interval-objectives.csv", "risks.csv",
         ]);
     }
 
     [Fact]
     public void WriteTo_WritesOnlyTheOrganizationWhenTheOtherAreasAreDisabled()
     {
-        // Arrange — the org-only shape, which has no PPM or Product Management model to write at all
+        // Arrange — the org-only shape, which has no PPM, Product Management or Planning model to write at all
         var recipe = new Recipe
         {
             Ppm = new PpmRecipe { Enabled = false },
             ProductManagement = new ProductManagementRecipe { Enabled = false },
+            Planning = new PlanningRecipe { Enabled = false },
         };
 
         // Act
@@ -102,6 +104,20 @@ public class GeneratedDatasetTests : IDisposable
         dataset.Counts.ReleasePackages.Should().Be(0);
         dataset.Counts.Releases.Should().Be(0);
         dataset.Counts.Deployments.Should().Be(0);
+    }
+
+    [Fact]
+    public void Counts_ReportZeroForPlanningWhenItDidNotRun()
+    {
+        // Arrange & Act
+        var dataset = GeneratedDataset.From(Resolve(new Recipe { Planning = new PlanningRecipe { Enabled = false } }));
+
+        // Assert — the other areas still ran, so the zeros are this area's alone
+        dataset.Counts.Projects.Should().BeGreaterThan(0);
+        dataset.Counts.Products.Should().BeGreaterThan(0);
+        dataset.Counts.PlanningIntervals.Should().Be(0);
+        dataset.Counts.Objectives.Should().Be(0);
+        dataset.Counts.Risks.Should().Be(0);
     }
 
     [Fact]

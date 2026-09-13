@@ -23,5 +23,9 @@
     "versionIntervalDays": 7,
     "changeFailureRate": 0.15,
     "packagedArtFraction": 0
+  },
+  "planning": {
+    "objectivesPerTeam": 3,
+    "risksPerTeam": 1
   }
 }

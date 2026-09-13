@@ -131,6 +131,26 @@ public static class GenerationOptions
         Description = "Share (0..1) of ARTs that ship their services together as release packages rather than each deploying on its own.",
     };
 
+    public static Option<bool> SkipPlanning { get; } = new("--skip-planning")
+    {
+        Description = "Skip the planning intervals and the objectives and risks planned in them. A shorthand for a recipe that disables the planning area.",
+    };
+
+    public static Option<int?> IterationWeeks { get; } = new("--iteration-weeks")
+    {
+        Description = "Length of each iteration in a planning interval, in weeks. Intervals are quarterly, so this also sets how many iterations each holds.",
+    };
+
+    public static Option<int?> ObjectivesPerTeam { get; } = new("--objectives-per-team")
+    {
+        Description = "Average number of objectives a team commits to per planning interval, stretch objectives included.",
+    };
+
+    public static Option<double?> RisksPerTeam { get; } = new("--risks-per-team")
+    {
+        Description = "Average number of risks a team raises per planning interval.",
+    };
+
     /// <summary>
     /// Every option a generating verb takes, in the order they are added to a command.
     /// </summary>
@@ -163,6 +183,10 @@ public static class GenerationOptions
         VersionIntervalDays,
         ChangeFailureRate,
         PackagedArtFraction,
+        SkipPlanning,
+        IterationWeeks,
+        ObjectivesPerTeam,
+        RisksPerTeam,
     ];
 
     public static void AddTo(Command command)
@@ -227,6 +251,13 @@ public static class GenerationOptions
                 VersionIntervalDays = FlagOr(parse, VersionIntervalDays),
                 ChangeFailureRate = FlagOr(parse, ChangeFailureRate),
                 PackagedArtFraction = FlagOr(parse, PackagedArtFraction),
+            },
+            Planning = new PlanningRecipe
+            {
+                Enabled = parse.GetValue(SkipPlanning) ? false : null,
+                IterationWeeks = FlagOr(parse, IterationWeeks),
+                ObjectivesPerTeam = FlagOr(parse, ObjectivesPerTeam),
+                RisksPerTeam = FlagOr(parse, RisksPerTeam),
             },
         };
 

@@ -56,6 +56,11 @@ void ReportProductManagement(GeneratedProductManagement productManagement) =>
         + $"{productManagement.ReleasePackages.Count} release packages, {productManagement.Releases.Count} releases, "
         + $"{productManagement.Deployments.Count} deployments across {productManagement.Environments.Count} environments.");
 
+void ReportPlanning(GeneratedPlanning planning) =>
+    Console.WriteLine(
+        $"Generated {planning.PlanningIntervals.Count} planning intervals, {planning.Objectives.Count} objectives, "
+        + $"{planning.Risks.Count} risks.");
+
 // ---- generate: write the CSVs to a directory for inspection -----------------------------------
 //
 // The organization files are the real thing — its references are natural keys the generator owns, so they
@@ -94,6 +99,9 @@ generateCommand.SetAction((parse, _) =>
 
     if (dataset.ProductManagement is { } productManagement)
         ReportProductManagement(productManagement);
+
+    if (dataset.Planning is { } planning)
+        ReportPlanning(planning);
 
     Console.WriteLine($"Wrote CSVs to {outDir.FullName}");
     return Task.FromResult(0);
@@ -141,6 +149,13 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
         ReportProductManagement(productManagement);
     }
 
+    GeneratedPlanning? planning = null;
+    if (resolved.GeneratePlanning)
+    {
+        planning = new PlanningGenerator(org.Structure, resolved.Planning, context).Generate();
+        ReportPlanning(planning);
+    }
+
     var apiUrl = parse.GetValue(apiOption)!;
     // One group per seed run, so the files it posts can be found together afterwards.
     using var client = new WaydSeedClient(apiUrl, apiKey, submissionGroupId: Guid.NewGuid());
@@ -148,7 +163,7 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
 
     try
     {
-        await runner.Run(org, ppm, productManagement, resolved.CreateUsers, resolved.UserPassword, cancellationToken);
+        await runner.Run(org, ppm, productManagement, planning, resolved.CreateUsers, resolved.UserPassword, cancellationToken);
         return 0;
     }
     catch (SeedException ex)

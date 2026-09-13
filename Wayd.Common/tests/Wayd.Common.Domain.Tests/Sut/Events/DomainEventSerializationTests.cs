@@ -10,6 +10,7 @@ using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -347,16 +348,18 @@ public sealed class DomainEventSerializationTests
     [Fact]
     public void StrategicInitiativeCreatedEvent_RoundTripsThroughDurableSerializer()
     {
-        // Arrange - a LocalDateRange and the roles collection, on an event whose aggregate is the
-        // portfolio rather than the record it names.
-        var portfolioId = Guid.NewGuid();
+        // Arrange - a LocalDateRange and the roles collection.
+        var initiativeId = Guid.NewGuid();
         var original = new StrategicInitiativeCreatedEvent(
-            portfolioId: portfolioId,
-            strategicInitiativeId: Guid.NewGuid(),
+            portfolioId: Guid.NewGuid(),
+            strategicInitiativeId: initiativeId,
+            key: 12,
             name: "Cloud Migration",
+            description: "Move the estate.",
+            status: 1,
             dateRange: new LocalDateRange(new LocalDate(2026, 3, 1), new LocalDate(2026, 12, 31)),
             roles: new Dictionary<int, Guid[]> { [1] = [Guid.NewGuid()] },
-            EventActor.System,
+            actor: EventActor.System,
             timestamp: Instant.FromUtc(2026, 3, 1, 12, 0, 0));
 
         // Act
@@ -365,11 +368,109 @@ public sealed class DomainEventSerializationTests
         // Assert
         roundTripped.PortfolioId.Should().Be(original.PortfolioId);
         roundTripped.StrategicInitiativeId.Should().Be(original.StrategicInitiativeId);
+        roundTripped.Key.Should().Be(12);
         roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Description.Should().Be(original.Description);
+        roundTripped.Status.Should().Be(1);
         roundTripped.DateRange.Start.Should().Be(original.DateRange.Start);
         roundTripped.Roles.Should().BeEquivalentTo(original.Roles);
-        roundTripped.AggregateId.Should().Be(portfolioId);
+        roundTripped.AggregateId.Should().Be(initiativeId);
         roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void StrategicInitiativeCreatedEvent_PayloadWrittenBefore1_1_ReadsNewFieldsAsNotRecorded()
+    {
+        // Arrange - a 1.0 payload, written before Key, Description and Status were added
+        const string payload = """
+            {
+              "PortfolioId": "019f2a10-0000-7000-8000-000000000001",
+              "StrategicInitiativeId": "019f2a10-0000-7000-8000-000000000002",
+              "Name": "Cloud Migration",
+              "DateRange": { "Start": "2026-03-01", "End": "2026-12-31" },
+              "Roles": { "1": ["019f2a10-0000-7000-8000-000000000004"] },
+              "Timestamp": "2026-03-01T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<StrategicInitiativeCreatedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Key.Should().Be(0);
+        restored.Description.Should().BeNull();
+        restored.Status.Should().Be(0);
+        restored.Name.Should().Be("Cloud Migration");
+        restored.DateRange.End.Should().Be(new LocalDate(2026, 12, 31));
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void StrategicInitiativeKpiCheckpointPlanChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - nested records carrying Instants, including a revision holding both ends.
+        var checkpoint = new StrategicInitiativeKpiCheckpointValues(
+            Guid.NewGuid(), 50, 40, Instant.FromUtc(2026, 6, 30, 0, 0), "Q2");
+        var revised = checkpoint with { TargetValue = 60, AtRiskValue = null };
+        var original = new StrategicInitiativeKpiCheckpointPlanChangedEvent(
+            Guid.NewGuid(), 12, Guid.NewGuid(),
+            added: [],
+            removed: [],
+            revised: [new StrategicInitiativeKpiCheckpointRevision(checkpoint, revised)],
+            checkpoints: [revised],
+            EventActor.System,
+            Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Revised.Should().ContainSingle().Which.Should().Be(original.Revised[0]);
+        roundTripped.Checkpoints.Should().Equal(original.Checkpoints);
+        roundTripped.KpiId.Should().Be(original.KpiId);
+    }
+
+    [Fact]
+    public void StrategicInitiativeKpiMeasurementAddedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new StrategicInitiativeKpiMeasurementAddedEvent(
+            Guid.NewGuid(), 12, Guid.NewGuid(), Guid.NewGuid(), 42.5,
+            Instant.FromUtc(2026, 2, 27, 0, 0), Guid.NewGuid(), "Month end.",
+            EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public void WorkflowCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - the status collection, whose elements carry an enum and a nullable description.
+        var original = new WorkflowCreatedEvent(
+            Guid.NewGuid(), 3, "Widget Workflow", null, "test.widget", isSystem: false, sourceWorkflowId: Guid.NewGuid(),
+            statuses:
+            [
+                new WorkflowStatusValues(Guid.NewGuid(), "Proposed", null, StatusCategory.Proposed, 0, 1),
+                new WorkflowStatusValues(Guid.NewGuid(), "Done", "Finished.", StatusCategory.Done, 12, 2),
+            ],
+            EventActor.System,
+            Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Statuses.Should().Equal(original.Statuses);
+        roundTripped.SourceWorkflowId.Should().Be(original.SourceWorkflowId);
+        roundTripped.Description.Should().BeNull();
     }
 
     [Fact]

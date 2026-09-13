@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 
 public sealed record ReorderStrategicInitiativeKpisCommand(
     Guid StrategicInitiativeId,
@@ -19,13 +21,17 @@ public sealed class ReorderStrategicInitiativeKpisCommandValidator : AbstractVal
 
 public sealed class ReorderStrategicInitiativeKpisCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<ReorderStrategicInitiativeKpisCommandHandler> logger)
+    ILogger<ReorderStrategicInitiativeKpisCommandHandler> logger,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<ReorderStrategicInitiativeKpisCommand>
 {
     private const string AppRequestName = nameof(ReorderStrategicInitiativeKpisCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<ReorderStrategicInitiativeKpisCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(ReorderStrategicInitiativeKpisCommand request, CancellationToken cancellationToken)
     {
@@ -40,7 +46,7 @@ public sealed class ReorderStrategicInitiativeKpisCommandHandler(
                 return Result.Failure("Strategic Initiative not found.");
             }
 
-            var reorderResult = strategicInitiative.ReorderKpis(request.OrderedKpiIds);
+            var reorderResult = strategicInitiative.ReorderKpis(request.OrderedKpiIds, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (reorderResult.IsFailure)
             {
                 _logger.LogError("Unable to reorder KPIs on Strategic Initiative {StrategicInitiativeId}.  Error message: {Error}", request.StrategicInitiativeId, reorderResult.Error);

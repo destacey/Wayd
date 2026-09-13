@@ -1,4 +1,5 @@
-﻿using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Validators;
+﻿using Wayd.Common.Domain.Events;
+using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Validators;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
@@ -23,13 +24,17 @@ public sealed class UpdateStrategicInitiativeKpiCommandValidator : AbstractValid
 
 public sealed class UpdateStrategicInitiativeKpiCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<UpdateStrategicInitiativeKpiCommandHandler> logger)
+    ILogger<UpdateStrategicInitiativeKpiCommandHandler> logger,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateStrategicInitiativeKpiCommand>
 {
     private const string AppRequestName = nameof(UpdateStrategicInitiativeKpiCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<UpdateStrategicInitiativeKpiCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(UpdateStrategicInitiativeKpiCommand request, CancellationToken cancellationToken)
     {
@@ -47,7 +52,7 @@ public sealed class UpdateStrategicInitiativeKpiCommandHandler(
                 return Result.Failure("Strategic Initiative not found.");
             }
 
-            var updateResult = strategicInitiative.UpdateKpi(request.KpiId, request.UpsertParameters);
+            var updateResult = strategicInitiative.UpdateKpi(request.KpiId, request.UpsertParameters, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 await _projectPortfolioManagementDbContext.Entry(strategicInitiative).ReloadAsync(cancellationToken);

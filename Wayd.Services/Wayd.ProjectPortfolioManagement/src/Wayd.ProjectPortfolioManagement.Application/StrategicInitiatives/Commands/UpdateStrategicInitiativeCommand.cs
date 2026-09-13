@@ -1,4 +1,5 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+﻿using Wayd.Common.Domain.Events;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
@@ -35,12 +36,17 @@ public sealed class UpdateStrategicInitiativeCommandValidator : AbstractValidato
 
 public sealed class UpdateStrategicInitiativeCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<UpdateStrategicInitiativeCommandHandler> logger)
+    ILogger<UpdateStrategicInitiativeCommandHandler> logger,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(UpdateStrategicInitiativeCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<UpdateStrategicInitiativeCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+
     public async Task<Result> Handle(UpdateStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
         try
@@ -56,14 +62,23 @@ public sealed class UpdateStrategicInitiativeCommandHandler(
                 return Result.Failure("Strategic Initiative not found.");
             }
 
-            var updateResult = strategicInitiative.UpdateDetails(request.Name, request.Description, request.DateRange);
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var timestamp = _dateTimeProvider.Now;
+
+            var updateResult = strategicInitiative.UpdateDetails(request.Name, request.Description, actor, timestamp);
             if (updateResult.IsFailure)
             {
                 return await HandleDomainFailure(strategicInitiative, updateResult, cancellationToken);
             }
 
+            var timelineResult = strategicInitiative.UpdateTimeline(request.DateRange, actor, timestamp);
+            if (timelineResult.IsFailure)
+            {
+                return await HandleDomainFailure(strategicInitiative, timelineResult, cancellationToken);
+            }
+
             var roles = GetRoles(request);
-            var updateRolesResult = strategicInitiative.UpdateRoles(roles);
+            var updateRolesResult = strategicInitiative.UpdateRoles(roles, actor, timestamp);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(strategicInitiative, updateRolesResult, cancellationToken);

@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Models;
+﻿using Wayd.Common.Domain.Events;
+using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Validators;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
@@ -21,13 +22,17 @@ public sealed class CreateStrategicInitiativeKpiCommandValidator : AbstractValid
 
 public sealed class CreateStrategicInitiativeKpiCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<CreateStrategicInitiativeKpiCommandHandler> logger)
+    ILogger<CreateStrategicInitiativeKpiCommandHandler> logger,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateStrategicInitiativeKpiCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateStrategicInitiativeKpiCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<CreateStrategicInitiativeKpiCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateStrategicInitiativeKpiCommand request, CancellationToken cancellationToken)
     {
@@ -41,7 +46,7 @@ public sealed class CreateStrategicInitiativeKpiCommandHandler(
                 return Result.Failure<ObjectIdAndKey>("Strategic Initiative not found.");
             }
 
-            var createResult = strategicInitiative.CreateKpi(request.UpsertParameters);
+            var createResult = strategicInitiative.CreateKpi(request.UpsertParameters, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (createResult.IsFailure)
             {
                 _logger.LogError("Error creating KPI {StrategicInitiativeKpiName} for strategic initiative {StrategicInitiativeId}. Error message: {Error}", request.UpsertParameters.Name, request.StrategicInitiativeId, createResult.Error);

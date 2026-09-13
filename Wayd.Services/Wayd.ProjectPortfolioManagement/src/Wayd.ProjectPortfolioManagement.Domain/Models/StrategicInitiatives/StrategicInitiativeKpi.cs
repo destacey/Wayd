@@ -44,7 +44,7 @@ public sealed class StrategicInitiativeKpi : Kpi
     /// </summary>
     /// <param name="parameters"></param>
     /// <returns></returns>
-    public Result Update(StrategicInitiativeKpiUpsertParameters parameters)
+    internal Result Update(StrategicInitiativeKpiUpsertParameters parameters)
     {
         Guard.Against.Null(parameters, nameof(parameters));
 
@@ -55,7 +55,7 @@ public sealed class StrategicInitiativeKpi : Kpi
     /// Adds a new checkpoint entry to the KPI.
     /// </summary>
     /// <param name="checkpoint">The KPI checkpoint entry to add.</param>
-    public Result AddCheckpoint(StrategicInitiativeKpiCheckpoint checkpoint)
+    internal Result AddCheckpoint(StrategicInitiativeKpiCheckpoint checkpoint)
     {
         Guard.Against.Null(checkpoint, nameof(checkpoint));
 
@@ -70,7 +70,7 @@ public sealed class StrategicInitiativeKpi : Kpi
         return Result.Success();
     }
 
-    public Result ManageCheckpointPlan(IEnumerable<UpsertStrategicInitiativeKpiCheckpoint> checkpoints)
+    internal Result ManageCheckpointPlan(IEnumerable<UpsertStrategicInitiativeKpiCheckpoint> checkpoints)
     {
         Guard.Against.Null(checkpoints, nameof(checkpoints));
 
@@ -124,7 +124,7 @@ public sealed class StrategicInitiativeKpi : Kpi
     /// </summary>
     /// <param name="checkpointId"></param>
     /// <returns></returns>
-    public Result RemoveCheckpoint(Guid checkpointId)
+    internal Result RemoveCheckpoint(Guid checkpointId)
     {
         Guard.Against.NullOrEmpty(checkpointId, nameof(checkpointId));
 
@@ -141,7 +141,7 @@ public sealed class StrategicInitiativeKpi : Kpi
     /// Adds a new measurement entry to the KPI.
     /// </summary>
     /// <param name="measurement">The KPI measurement entry to add.</param>
-    public Result AddMeasurement(StrategicInitiativeKpiMeasurement measurement)
+    internal Result AddMeasurement(StrategicInitiativeKpiMeasurement measurement)
     {
         Guard.Against.Null(measurement, nameof(measurement));
 
@@ -163,7 +163,7 @@ public sealed class StrategicInitiativeKpi : Kpi
     /// </summary>
     /// <param name="measurementId"></param>
     /// <returns></returns>
-    public Result RemoveMeasurement(Guid measurementId)
+    internal Result RemoveMeasurement(Guid measurementId)
     {
         Guard.Against.NullOrEmpty(measurementId, nameof(measurementId));
 

@@ -1,5 +1,6 @@
 import {
   AddStrategicInitiativeKpiMeasurementRequest,
+  PagedResponseOfActivityLogDto,
   CreateStrategicInitiativeKpiRequest,
   ManageStrategicInitiativeKpiCheckpointPlanRequest,
   ManageStrategicInitiativeProjectsRequest,
@@ -79,13 +80,10 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => {
+      invalidatesTags: () => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
-          // The initiative has no activity log of its own; creating one is a change to its portfolio,
-          // which is the aggregate the event names.
-          ppmActivityTag(arg.portfolioId),
         ]
       },
     }),
@@ -105,11 +103,12 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { request, cacheKey }) => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.StrategicInitiative, id: cacheKey },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
+          ppmActivityTag(request.id),
         ]
       },
     }),
@@ -126,11 +125,12 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.StrategicInitiative, id: cacheKey },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -147,11 +147,12 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.StrategicInitiative, id: cacheKey },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -168,11 +169,12 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.StrategicInitiative, id: cacheKey },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
+          ppmActivityTag(id),
         ]
       },
     }),
@@ -189,18 +191,16 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.StrategicInitiative, id: cacheKey },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
+          ppmActivityTag(id),
         ]
       },
     }),
-    deleteStrategicInitiative: builder.mutation<
-      void,
-      { id: string; portfolioId: string }
-    >({
+    deleteStrategicInitiative: builder.mutation<void, { id: string }>({
       queryFn: async ({ id }) => {
         try {
           const data = await getStrategicInitiativesClient().delete(id)
@@ -210,13 +210,10 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // The portfolio id is carried alongside the initiative's own id purely so the portfolio's
-      // activity log can be refreshed — the deletion is recorded against the portfolio.
-      invalidatesTags: (result, error, { portfolioId }) => {
+      invalidatesTags: () => {
         return [
           { type: QueryTags.StrategicInitiative, id: 'LIST' },
           { type: QueryTags.PortfolioStrategicInitiatives, id: 'LIST' },
-          ppmActivityTag(portfolioId),
         ]
       },
     }),
@@ -307,6 +304,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
             type: QueryTags.StrategicInitiativeKpi,
             id: arg.strategicInitiativeId,
           },
+          ppmActivityTag(arg.strategicInitiativeId),
         ]
       },
     }),
@@ -334,6 +332,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
             id: arg.strategicInitiativeId,
           },
           { type: QueryTags.StrategicInitiativeKpi, id: arg.kpiId },
+          ppmActivityTag(arg.strategicInitiativeId),
         ]
       },
     }),
@@ -359,6 +358,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
             type: QueryTags.StrategicInitiativeKpi,
             id: arg.strategicInitiativeId,
           },
+          ppmActivityTag(arg.strategicInitiativeId),
         ]
       },
     }),
@@ -386,6 +386,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           type: QueryTags.StrategicInitiativeKpi,
           id: arg.strategicInitiativeId,
         },
+        ppmActivityTag(arg.strategicInitiativeId),
       ],
     }),
     addStrategicInitiativeKpiMeasurement: builder.mutation<
@@ -420,6 +421,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
             type: QueryTags.StrategicInitiativeKpiMeasurement,
             id: arg.kpiId,
           },
+          ppmActivityTag(arg.strategicInitiativeId),
         ]
       },
     }),
@@ -458,6 +460,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.StrategicInitiativeProject, id: 'LIST' },
         { type: QueryTags.StrategicInitiativeProject, id: arg.id },
+        ppmActivityTag(arg.id),
       ],
     }),
     getStrategicInitiativeKpiCheckpoints: builder.query<
@@ -531,6 +534,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           type: QueryTags.StrategicInitiativeKpiCheckpointPlan,
           id: arg.kpiId,
         },
+        ppmActivityTag(arg.strategicInitiativeId),
       ],
     }),
     getStrategicInitiativeKpiMeasurements: builder.query<
@@ -584,6 +588,28 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           type: QueryTags.StrategicInitiativeKpiCheckpointPlan,
           id: arg.kpiId,
         },
+        ppmActivityTag(arg.strategicInitiativeId),
+      ],
+    }),
+    getStrategicInitiativeActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getStrategicInitiativesClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
       ],
     }),
   }),
@@ -614,4 +640,6 @@ export const {
   useGetStrategicInitiativeKpiCheckpointPlanQuery,
   useManageStrategicInitiativeKpiCheckpointPlanMutation,
   useRemoveStrategicInitiativeKpiMeasurementMutation,
+  useGetStrategicInitiativeActivitiesQuery,
+  useLazyGetStrategicInitiativeActivitiesQuery,
 } = strategicInitiativesApi

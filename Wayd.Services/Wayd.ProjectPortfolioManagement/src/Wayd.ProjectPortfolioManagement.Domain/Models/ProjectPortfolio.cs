@@ -987,17 +987,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<StrategicInitiative>("Strategic initiatives can only be created in active or on-hold portfolios.");
         }
 
-        var initiative = StrategicInitiative.Create(name, description, dateRange, Id, roles);
+        var initiative = StrategicInitiative.Create(name, description, dateRange, Id, roles, actor, timestamp);
         _strategicInitiatives.Add(initiative);
-
-        AddDomainEvent(new StrategicInitiativeCreatedEvent(
-            Id,
-            initiative.Id,
-            initiative.Name,
-            dateRange,
-            RoleManager.ToRoleMap(initiative.Roles),
-            actor,
-            timestamp));
 
         return Result.Success(initiative);
     }
@@ -1030,7 +1021,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         _strategicInitiatives.Remove(strategicInitiative);
 
         AddDomainEvent(new StrategicInitiativeDeletedEvent(
-            Id, strategicInitiative.Id, strategicInitiative.Name, actor, timestamp));
+            Id, strategicInitiative.Id, strategicInitiative.Key, strategicInitiative.Name, actor, timestamp));
 
         return Result.Success();
     }

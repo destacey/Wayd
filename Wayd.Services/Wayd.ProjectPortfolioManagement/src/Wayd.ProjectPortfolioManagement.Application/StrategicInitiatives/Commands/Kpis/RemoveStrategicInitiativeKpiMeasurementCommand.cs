@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 
 public sealed record RemoveStrategicInitiativeKpiMeasurementCommand(Guid StrategicInitiativeId, Guid KpiId, Guid MeasurementId) : ICommand;
 
@@ -19,13 +21,17 @@ public sealed class RemoveStrategicInitiativeKpiMeasurementCommandValidator : Ab
 
 public sealed class RemoveStrategicInitiativeKpiMeasurementCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<RemoveStrategicInitiativeKpiMeasurementCommandHandler> logger)
+    ILogger<RemoveStrategicInitiativeKpiMeasurementCommandHandler> logger,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<RemoveStrategicInitiativeKpiMeasurementCommand>
 {
     private const string AppRequestName = nameof(RemoveStrategicInitiativeKpiMeasurementCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<RemoveStrategicInitiativeKpiMeasurementCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(RemoveStrategicInitiativeKpiMeasurementCommand request, CancellationToken cancellationToken)
     {
@@ -56,7 +62,7 @@ public sealed class RemoveStrategicInitiativeKpiMeasurementCommandHandler(
                 return Result.Failure("KPI not found.");
             }
 
-            var removeResult = kpi.RemoveMeasurement(request.MeasurementId);
+            var removeResult = strategicInitiative.RemoveKpiMeasurement(kpi.Id, request.MeasurementId, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (removeResult.IsFailure)
             {
                 await _projectPortfolioManagementDbContext.Entry(strategicInitiative).ReloadAsync(cancellationToken);

@@ -378,7 +378,7 @@ public class ProjectPortfolioTests
     }
 
     [Fact]
-    public void CreateStrategicInitiative_RaisesAnEventAgainstThePortfolio()
+    public void CreateStrategicInitiative_RaisesTheCreationAgainstTheInitiative_OnceItHasAKey()
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
@@ -391,11 +391,19 @@ public class ProjectPortfolioTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = portfolio.DomainEvents.OfType<StrategicInitiativeCreatedEvent>().Should().ContainSingle().Subject;
-        raised.StrategicInitiativeId.Should().Be(result.Value.Id);
+        var initiative = result.Value;
+        portfolio.DomainEvents.Should().BeEmpty("the portfolio is the initiative's container, not its aggregate");
+
+        initiative.SetPrivate(i => i.Key, 42);
+        initiative.ExecutePostPersistenceActions();
+
+        var raised = initiative.DomainEvents.OfType<StrategicInitiativeCreatedEvent>().Should().ContainSingle().Subject;
+        raised.StrategicInitiativeId.Should().Be(initiative.Id);
+        raised.PortfolioId.Should().Be(portfolio.Id);
+        raised.Key.Should().Be(42);
         raised.Name.Should().Be("Cloud Migration");
-        raised.AggregateId.Should().Be(portfolio.Id, "an initiative has no activity log of its own, so the fact belongs to its portfolio");
-        raised.AggregateType.Should().Be("ProjectPortfolio");
+        raised.AggregateId.Should().Be(initiative.Id);
+        raised.AggregateType.Should().Be("StrategicInitiative");
     }
 
     [Fact]
@@ -415,8 +423,9 @@ public class ProjectPortfolioTests
         result.IsSuccess.Should().BeTrue();
         var raised = portfolio.DomainEvents.OfType<StrategicInitiativeDeletedEvent>().Should().ContainSingle().Subject;
         raised.StrategicInitiativeId.Should().Be(initiative.Id);
+        raised.Key.Should().Be(initiative.Key);
         raised.Name.Should().Be("Cloud Migration", "the row it describes is gone by the time anyone reads the entry");
-        raised.AggregateId.Should().Be(portfolio.Id);
+        raised.AggregateId.Should().Be(initiative.Id);
     }
 
     [Fact]

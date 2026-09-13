@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 
 public sealed record ApproveStrategicInitiativeCommand(Guid Id) : ICommand;
 
@@ -11,12 +13,14 @@ public sealed class ApproveStrategicInitiativeCommandValidator : AbstractValidat
     }
 }
 
-public sealed class ApproveStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ApproveStrategicInitiativeCommandHandler> logger) : ICommandHandler<ApproveStrategicInitiativeCommand>
+public sealed class ApproveStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ApproveStrategicInitiativeCommandHandler> logger, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : ICommandHandler<ApproveStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(ApproveStrategicInitiativeCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<ApproveStrategicInitiativeCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(ApproveStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
@@ -30,7 +34,7 @@ public sealed class ApproveStrategicInitiativeCommandHandler(IProjectPortfolioMa
                 return Result.Failure("Strategic Initiative not found.");
             }
 
-            var approveResult = strategicInitiative.Approve();
+            var approveResult = strategicInitiative.Approve(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (approveResult.IsFailure)
             {
                 // Reset the entity

@@ -8,10 +8,10 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// A strategic initiative was created in a portfolio.
 /// </summary>
 /// <remarks>
-/// The aggregate is the <em>portfolio</em>, not the initiative: an initiative only exists inside one, it
-/// is created and deleted through the portfolio aggregate, and the portfolio's Activity section is where
-/// a reader looks to see what was added to it. Should initiatives grow an activity log of their own, that
-/// is a second event about their own aggregate rather than a change of this one's.
+/// The aggregate is the initiative. The portfolio is its parent container, as it is for a program or a
+/// project, so the entry belongs in the initiative's own Activity section. Entries written before 1.1
+/// declared the portfolio and stay in its section: the aggregate type is recorded on the entry, not read
+/// from the payload.
 /// </remarks>
 public sealed record StrategicInitiativeCreatedEvent : DomainEvent<StrategicInitiativeCreatedEvent>, IDomainEventDescriptor, IPpmEvent
 {
@@ -21,16 +21,22 @@ public sealed record StrategicInitiativeCreatedEvent : DomainEvent<StrategicInit
     public StrategicInitiativeCreatedEvent(
         Guid portfolioId,
         Guid strategicInitiativeId,
+        int key,
         string name,
+        string? description,
+        int status,
         LocalDateRange dateRange,
         Dictionary<int, Guid[]>? roles,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         PortfolioId = portfolioId;
         StrategicInitiativeId = strategicInitiativeId;
+        Key = key;
         Name = name;
+        Description = description;
+        Status = status;
         DateRange = dateRange;
         Roles = roles?.ToDictionary(x => x.Key, x => x.Value.ToArray());
 
@@ -39,7 +45,18 @@ public sealed record StrategicInitiativeCreatedEvent : DomainEvent<StrategicInit
 
     public Guid PortfolioId { get; }
     public Guid StrategicInitiativeId { get; }
+
+    /// <summary>Added in 1.1. Zero on a payload written before it.</summary>
+    public int Key { get; }
+
     public string Name { get; }
+
+    /// <summary>Added in 1.1. Null on a payload written before it; a created initiative always has one.</summary>
+    public string? Description { get; }
+
+    /// <summary>Added in 1.1: the status id it was created in. Zero on a payload written before it.</summary>
+    public int Status { get; }
+
     public LocalDateRange DateRange { get; }
 
     /// <summary>
@@ -48,7 +65,7 @@ public sealed record StrategicInitiativeCreatedEvent : DomainEvent<StrategicInit
     public Dictionary<int, Guid[]>? Roles { get; }
 
     [JsonIgnore]
-    public string AggregateType => "ProjectPortfolio";
+    public string AggregateType => "StrategicInitiative";
     [JsonIgnore]
-    public Guid AggregateId => PortfolioId;
+    public Guid AggregateId => StrategicInitiativeId;
 }

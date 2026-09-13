@@ -7,10 +7,8 @@ import { QueryTags } from '../query-tags'
  * get*Activities query. Invalidating by key matches no cache entry and fails silently — the log simply
  * keeps serving the entries it had before the change.
  *
- * Shared by projects, programs and portfolios: one tag type keyed by id covers all three, and the log a
- * mutation has to refresh is always the record it changed. A portfolio-level change to something it owns
- * — a strategic initiative created or deleted — refreshes the portfolio's log, because that is the
- * aggregate the event names.
+ * Shared by projects, programs, portfolios and strategic initiatives: one tag type keyed by id covers them
+ * all, and the log a mutation has to refresh is always the record it changed.
  *
  * Kept out of the api modules so the ones that need it do not have to import each other: each calls
  * injectEndpoints at module scope, and importing one for a tag helper would run those endpoint

@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Models;
+﻿using Wayd.Common.Domain.Events;
+using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
@@ -29,6 +30,7 @@ public sealed class AddStrategicInitiativeKpiMeasurementCommandValidator : Abstr
 public sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<AddStrategicInitiativeKpiMeasurementCommandHandler> logger,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ICurrentPrincipal currentPrincipal)
     : ICommandHandler<AddStrategicInitiativeKpiMeasurementCommand>
@@ -37,6 +39,7 @@ public sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<AddStrategicInitiativeKpiMeasurementCommandHandler> _logger = logger;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
@@ -76,7 +79,7 @@ public sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
                 return Result.Failure(measurementResult.Error);
             }
 
-            var addResult = kpi.AddMeasurement(measurementResult.Value);
+            var addResult = strategicInitiative.AddKpiMeasurement(kpi.Id, measurementResult.Value, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (addResult.IsFailure)
             {
                 await _projectPortfolioManagementDbContext.Entry(strategicInitiative).ReloadAsync(cancellationToken);

@@ -6,13 +6,21 @@ import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetStrategicInitiativeActivitiesQuery,
   useGetStrategicInitiativeKpisQuery,
   useGetStrategicInitiativeProjectsQuery,
   useGetStrategicInitiativeQuery,
+  useLazyGetStrategicInitiativeActivitiesQuery,
 } from '@/src/store/features/ppm/strategic-initiatives-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { Button, MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, use, useState } from 'react'
 import {
   ChangeStrategicInitiativeStatusForm,
@@ -30,6 +38,7 @@ import StrategicInitiativeFacts from './_components/strategic-initiative-facts'
 enum StrategicInitiativeSections {
   Kpis = 'kpis',
   Projects = 'projects',
+  Activities = 'activities',
 }
 
 enum StrategicInitiativeAction {
@@ -73,6 +82,7 @@ const StrategicInitiativeDetailsPage = (props: {
   const [openManageProjectsForm, setOpenManageProjectsForm] = useState(false)
 
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateStrategicInitiative = hasPermissionClaim(
@@ -100,8 +110,37 @@ const StrategicInitiativeDetailsPage = (props: {
     data: projectData,
     isLoading: isLoadingProjects,
     refetch: refetchProjects,
-  } = useGetStrategicInitiativeProjectsQuery(strategicInitiativeData?.id ?? '', {
-    skip: !strategicInitiativeData?.id,
+  } = useGetStrategicInitiativeProjectsQuery(
+    strategicInitiativeData?.id ?? '',
+    {
+      skip: !strategicInitiativeData?.id,
+    },
+  )
+
+  // The active section lives in the URL, owned by RecordLayout. Read here only
+  // to hold the activity query back until its section is open.
+  const activeSection = (searchParams.get('section') ??
+    StrategicInitiativeSections.Kpis) as StrategicInitiativeSections
+
+  const activitiesQuery = useGetStrategicInitiativeActivitiesQuery(
+    {
+      idOrKey: strategicInitiativeData?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !strategicInitiativeData?.id ||
+        activeSection !== StrategicInitiativeSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetStrategicInitiativeActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: strategicInitiativeData?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `strategic-initiative-${strategicInitiativeData?.key ?? siKey}-activity`,
   })
 
   useDocumentTitle(
@@ -307,10 +346,13 @@ const StrategicInitiativeDetailsPage = (props: {
       label: 'Projects',
       count: projectData?.length,
     },
+    { id: StrategicInitiativeSections.Activities, label: 'Activity' },
   ]
 
   const renderSection = (section: StrategicInitiativeSections) => {
     switch (section) {
+      case StrategicInitiativeSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case StrategicInitiativeSections.Projects:
         return (
           <ProjectViewManager
@@ -363,7 +405,9 @@ const StrategicInitiativeDetailsPage = (props: {
           />
         }
         sectionActions={
-          canManageKpis ? (
+          activeSection === StrategicInitiativeSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : canManageKpis ? (
             <Button onClick={() => setOpenCreateKpiForm(true)}>
               Create KPI
             </Button>

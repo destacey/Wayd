@@ -120,7 +120,7 @@ public sealed class StrategicInitiativeImportDefinition(
             // status walk.
             if (data.ProjectKeys.Count > 0)
             {
-                var managed = initiative.ManageProjects(data.ProjectKeys.Select(k => projectIdsByKey[Normalize(k)]));
+                var managed = initiative.ManageProjects(data.ProjectKeys.Select(k => projectIdsByKey[Normalize(k)]), actor, timestamp);
                 if (managed.IsFailure)
                 {
                     row.Failed($"Could not attach projects to strategic initiative '{name}': {managed.Error}");
@@ -128,14 +128,14 @@ public sealed class StrategicInitiativeImportDefinition(
                 }
             }
 
-            var kpis = AddKpis(initiative, data.Kpis);
+            var kpis = AddKpis(initiative, data.Kpis, actor, timestamp);
             if (kpis.IsFailure)
             {
                 row.Failed(kpis.Error);
                 continue;
             }
 
-            var transition = ApplyStatus(initiative, data.Status);
+            var transition = ApplyStatus(initiative, data.Status, actor, timestamp);
             if (transition.IsFailure)
             {
                 row.Failed($"Could not set strategic initiative '{name}' to {data.Status}: {transition.Error}");
@@ -155,19 +155,19 @@ public sealed class StrategicInitiativeImportDefinition(
     /// Walks a freshly created (Proposed) initiative to its target status through the real transitions.
     /// Activation only follows approval, so reaching Active or beyond replays the whole chain.
     /// </summary>
-    private static Result ApplyStatus(StrategicInitiative initiative, StrategicInitiativeStatus status)
+    private static Result ApplyStatus(StrategicInitiative initiative, StrategicInitiativeStatus status, EventActor actor, Instant timestamp)
     {
         if (status is StrategicInitiativeStatus.Proposed)
             return Result.Success();
 
         if (status is StrategicInitiativeStatus.Canceled)
-            return initiative.Cancel();
+            return initiative.Cancel(actor, timestamp);
 
-        var approve = initiative.Approve();
+        var approve = initiative.Approve(actor, timestamp);
         if (approve.IsFailure || status is StrategicInitiativeStatus.Approved)
             return approve;
 
-        var activate = initiative.Activate();
+        var activate = initiative.Activate(actor, timestamp);
         if (activate.IsFailure || status is StrategicInitiativeStatus.Active)
             return activate;
 
@@ -177,10 +177,10 @@ public sealed class StrategicInitiativeImportDefinition(
         if (status is StrategicInitiativeStatus.OnHold)
             return Result.Failure("Strategic initiatives cannot be imported on hold: the domain has no transition to that status.");
 
-        return initiative.Complete();
+        return initiative.Complete(actor, timestamp);
     }
 
-    private static Result AddKpis(StrategicInitiative initiative, IReadOnlyList<ImportStrategicInitiativeKpiDto> kpis)
+    private static Result AddKpis(StrategicInitiative initiative, IReadOnlyList<ImportStrategicInitiativeKpiDto> kpis, EventActor actor, Instant timestamp)
     {
         foreach (var kpi in kpis)
         {
@@ -193,7 +193,7 @@ public sealed class StrategicInitiativeImportDefinition(
                 kpi.Suffix?.Trim(),
                 kpi.TargetDirection);
 
-            var result = initiative.CreateKpi(parameters);
+            var result = initiative.CreateKpi(parameters, actor, timestamp);
             if (result.IsFailure)
                 return Result.Failure($"Could not create KPI '{kpi.Name}' for strategic initiative '{initiative.Name}': {result.Error}");
         }

@@ -19,7 +19,12 @@ jest.mock('./compare-payload-modal', () => {
   const MockCompareModal = ({ open }: any) =>
     open ? <div>Compare Event Payloads</div> : null
   MockCompareModal.displayName = 'MockCompareModal'
-  return MockCompareModal
+  return {
+    __esModule: true,
+    default: MockCompareModal,
+    isSameEventType: jest.requireActual('./compare-payload-modal')
+      .isSameEventType,
+  }
 })
 
 const createActivity = (
@@ -482,6 +487,36 @@ describe('ActivityLogTimeline', () => {
 
     await user.click(compareButtons[0])
     expect(screen.getByText('Compare Event Payloads')).toBeInTheDocument()
+  })
+
+  it('shows the compare action against an earlier version of the same event', () => {
+    const activities = [
+      createActivity({
+        id: 'act-2',
+        eventType: 'ProjectReparentedEventV2',
+        eventVersion: '2.0',
+        timestamp: new Date('2026-04-01T10:00:00Z'),
+      }),
+      createActivity({
+        id: 'act-1',
+        eventType: 'ProjectReparentedEvent',
+        timestamp: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={2}
+        />
+      </App>,
+    )
+
+    expect(
+      screen.getByRole('button', { name: /Compare changes/i }),
+    ).toBeInTheDocument()
   })
 
   it('does not show the compare action when only events of other types precede it', () => {

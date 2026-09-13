@@ -35,7 +35,7 @@ import {
   ActivityLogDto,
   EventActorKind,
 } from '@/src/services/wayd-api'
-import ComparePayloadModal from './compare-payload-modal'
+import ComparePayloadModal, { isSameEventType } from './compare-payload-modal'
 import ExportActivitiesModal from './export-activities-modal'
 
 const { Text, Paragraph } = Typography
@@ -319,8 +319,8 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
 
   const [isCompareOpen, setIsCompareOpen] = useState(false)
 
-  // Only an earlier event of the same type is comparable: a different type has a different payload shape,
-  // so every field would read as added or removed.
+  // Only an earlier event of the same type, in any version, is comparable: a different type has a different
+  // payload shape, so every field would read as added or removed.
   const previousActivity = useMemo(() => {
     if (!activities || !selectedActivity) return null
     const currentIndex = activities.findIndex(
@@ -330,7 +330,9 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
     return (
       activities
         .slice(currentIndex + 1)
-        .find((a) => a.eventType === selectedActivity.eventType) ?? null
+        .find((a) =>
+          isSameEventType(a.eventType, selectedActivity.eventType),
+        ) ?? null
     )
   }, [activities, selectedActivity])
 

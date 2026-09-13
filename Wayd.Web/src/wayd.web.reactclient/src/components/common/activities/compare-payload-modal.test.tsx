@@ -184,6 +184,52 @@ describe('ComparePayloadModal component', () => {
     expect(screen.getAllByRole('option')).toHaveLength(2)
   })
 
+  it('marks a comparison between different versions of an event', () => {
+    const v1 = createActivity({
+      id: 'v1',
+      eventType: 'TeamReparentedEvent',
+      timestamp: new Date('2026-04-01T09:00:00Z'),
+    })
+    const v2 = createActivity({
+      id: 'v2',
+      eventType: 'TeamReparentedEventV2',
+      eventVersion: '2.0',
+      timestamp: new Date('2026-04-01T10:00:00Z'),
+    })
+
+    render(
+      <ComparePayloadModal
+        open={true}
+        onClose={jest.fn()}
+        currentActivity={v2}
+        allActivities={[v2, v1]}
+      />,
+    )
+
+    expect(
+      screen.getByText(
+        'Comparing different versions of this event: v1.0 and v2.0',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText('v1.0')).toBeInTheDocument()
+    expect(screen.getByText('v2.0')).toBeInTheDocument()
+  })
+
+  it('does not mark a comparison between events of the same version', () => {
+    render(
+      <ComparePayloadModal
+        open={true}
+        onClose={jest.fn()}
+        currentActivity={currActivity}
+        previousActivity={prevActivity}
+      />,
+    )
+
+    expect(
+      screen.queryByText(/Comparing different versions/),
+    ).not.toBeInTheDocument()
+  })
+
   it('displays modified fields in table diff', () => {
     render(
       <ComparePayloadModal

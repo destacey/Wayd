@@ -52,11 +52,11 @@ public sealed class VersionImportDefinitionTests
         _dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
 
         var workflow = StatusWorkflow
-            .CreateSystem("Version Lifecycle", null, ProductWorkflowOwners.Version.Key).Value;
-        _planned = workflow.AddSystemStatus("Planned", null, StatusCategory.Proposed, StatusWorkflow.NoAlias);
-        _ready = workflow.AddSystemStatus("Ready", null, StatusCategory.Active, (int)ProductStatusAlias.Ready);
-        _released = workflow.AddSystemStatus("Released", null, StatusCategory.Done, (int)ProductStatusAlias.Released);
-        workflow.PublishSystem();
+            .CreateSystem("Version Lifecycle", null, ProductWorkflowOwners.Version.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        _planned = workflow.AddSystemStatus("Planned", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _ready = workflow.AddSystemStatus("Ready", null, StatusCategory.Active, (int)ProductStatusAlias.Ready, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _released = workflow.AddSystemStatus("Released", null, StatusCategory.Done, (int)ProductStatusAlias.Released, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.PublishSystem(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         _statusResolver
             .Setup(r => r.Initial(ProductWorkflowOwners.Version.Key, null, It.IsAny<CancellationToken>()))

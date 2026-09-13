@@ -227,11 +227,11 @@ public sealed class StatusHistoryPersistenceTests(SqlServerDbContextFixture fixt
         var productType = await SeedProductType(context);
 
         var replacement = StatusWorkflow.Create(
-            $"Replacement {Guid.CreateVersion7()}", null, ProductWorkflowOwners.Product.Key).Value;
+            $"Replacement {Guid.CreateVersion7()}", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
 
         foreach (var status in workflow.Statuses.OrderBy(x => x.Order))
         {
-            replacement.AddStatus(status.Name, null, status.Category, status.Alias);
+            replacement.AddStatus(status.Name, null, status.Category, status.Alias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         }
 
         replacement.Publish(EventActor.System, Timestamp);

@@ -34,11 +34,11 @@ public sealed class SwitchWorkflowTests
 
     private static StatusWorkflow VersionWorkflow(string name)
     {
-        var workflow = StatusWorkflow.Create(name, null, ProductWorkflowOwners.Version.Key).Value;
-        workflow.AddStatus("Planned", null, StatusCategory.Proposed);
-        workflow.AddStatus("Ready", null, StatusCategory.Active, (int)ProductStatusAlias.Ready);
-        workflow.AddStatus("Released", null, StatusCategory.Done, (int)ProductStatusAlias.Released);
-        workflow.AddStatus("Withdrawn", null, StatusCategory.Removed, (int)ProductStatusAlias.Withdrawn);
+        var workflow = StatusWorkflow.Create(name, null, ProductWorkflowOwners.Version.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        workflow.AddStatus("Planned", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.AddStatus("Ready", null, StatusCategory.Active, (int)ProductStatusAlias.Ready, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.AddStatus("Released", null, StatusCategory.Done, (int)ProductStatusAlias.Released, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.AddStatus("Withdrawn", null, StatusCategory.Removed, (int)ProductStatusAlias.Withdrawn, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         return workflow;
     }
@@ -100,11 +100,11 @@ public sealed class SwitchWorkflowTests
     {
         // Arrange
         var old = VersionWorkflow("Old");
-        var replacement = StatusWorkflow.Create("New", null, ProductWorkflowOwners.Version.Key).Value;
-        replacement.AddStatus("Queued", null, StatusCategory.Proposed);
-        replacement.AddStatus("Cut", null, StatusCategory.Active, (int)ProductStatusAlias.Ready);
-        replacement.AddStatus("Shipped", null, StatusCategory.Done, (int)ProductStatusAlias.Released);
-        replacement.AddStatus("Pulled", null, StatusCategory.Removed, (int)ProductStatusAlias.Withdrawn);
+        var replacement = StatusWorkflow.Create("New", null, ProductWorkflowOwners.Version.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        replacement.AddStatus("Queued", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        replacement.AddStatus("Cut", null, StatusCategory.Active, (int)ProductStatusAlias.Ready, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        replacement.AddStatus("Shipped", null, StatusCategory.Done, (int)ProductStatusAlias.Released, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        replacement.AddStatus("Pulled", null, StatusCategory.Removed, (int)ProductStatusAlias.Withdrawn, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         var sut = VersionOn(old);
         sut.Cut(new LocalDate(2026, 9, 1),
@@ -132,11 +132,11 @@ public sealed class SwitchWorkflowTests
     {
         // Arrange
         var old = VersionWorkflow("Old");
-        old.AddStatus("On Hold", null, StatusCategory.Active);
+        old.AddStatus("On Hold", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         var replacement = VersionWorkflow("New");
-        replacement.AddStatus("Paused", null, StatusCategory.Active);
-        replacement.AddStatus("Deferred", null, StatusCategory.Active);
+        replacement.AddStatus("Paused", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        replacement.AddStatus("Deferred", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         var sut = VersionOn(old);
         var remap = StatusRemap.AutoMap(old, replacement).Value;

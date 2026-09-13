@@ -1,3 +1,5 @@
+using NodaTime;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -26,11 +28,11 @@ public sealed class StatusRemapTests
         string name,
         params (string Name, StatusCategory Category, int Alias)[] statuses)
     {
-        var workflow = StatusWorkflow.Create(name, null, Widget.Key).Value;
+        var workflow = StatusWorkflow.Create(name, null, Widget.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
 
         foreach (var (statusName, category, alias) in statuses)
         {
-            workflow.AddStatus(statusName, null, category, alias);
+            workflow.AddStatus(statusName, null, category, alias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         }
 
         return workflow;
@@ -147,7 +149,7 @@ public sealed class StatusRemapTests
     {
         // Arrange
         var from = Workflow("Widget Workflow", ("Notable", StatusCategory.Active, NotableAlias));
-        var gadget = StatusWorkflow.Create("Gadget Workflow", null, Gadget.Key).Value;
+        var gadget = StatusWorkflow.Create("Gadget Workflow", null, Gadget.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
 
         // Act
         var result = StatusRemap.AutoMap(from, gadget);

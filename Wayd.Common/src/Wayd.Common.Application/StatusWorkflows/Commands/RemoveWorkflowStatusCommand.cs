@@ -15,12 +15,16 @@ public sealed class RemoveWorkflowStatusCommandValidator : AbstractValidator<Rem
 
 public sealed class RemoveWorkflowStatusCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<RemoveWorkflowStatusCommandHandler> logger)
     : ICommandHandler<RemoveWorkflowStatusCommand>
 {
     private const string AppRequestName = nameof(RemoveWorkflowStatusCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RemoveWorkflowStatusCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RemoveWorkflowStatusCommand request, CancellationToken cancellationToken)
@@ -39,7 +43,7 @@ public sealed class RemoveWorkflowStatusCommandHandler(
                 return Result.Failure("Status workflow not found.");
             }
 
-            var result = workflow.RemoveStatus(request.StatusId);
+            var result = workflow.RemoveStatus(request.StatusId, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 workflow.ClearDomainEvents();

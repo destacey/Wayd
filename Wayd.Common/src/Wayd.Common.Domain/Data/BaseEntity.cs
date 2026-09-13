@@ -43,6 +43,11 @@ public abstract class BaseEntity<TId> : IEntity<TId>
         _postPersistenceActions.Remove(action);
     }
 
+    public void ClearPostPersistenceActions()
+    {
+        _postPersistenceActions.Clear();
+    }
+
     public void ExecutePostPersistenceActions()
     {
         foreach (var action in _postPersistenceActions)

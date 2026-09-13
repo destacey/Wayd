@@ -21,12 +21,16 @@ public sealed class RenameWorkflowStatusCommandValidator : AbstractValidator<Ren
 
 public sealed class RenameWorkflowStatusCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<RenameWorkflowStatusCommandHandler> logger)
     : ICommandHandler<RenameWorkflowStatusCommand>
 {
     private const string AppRequestName = nameof(RenameWorkflowStatusCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RenameWorkflowStatusCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RenameWorkflowStatusCommand request, CancellationToken cancellationToken)
@@ -45,7 +49,7 @@ public sealed class RenameWorkflowStatusCommandHandler(
                 return Result.Failure("Status workflow not found.");
             }
 
-            var result = workflow.RenameStatus(request.StatusId, request.Name, request.Description);
+            var result = workflow.RenameStatus(request.StatusId, request.Name, request.Description, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 workflow.ClearDomainEvents();

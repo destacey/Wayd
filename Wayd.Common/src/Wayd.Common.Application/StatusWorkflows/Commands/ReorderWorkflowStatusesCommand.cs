@@ -21,12 +21,16 @@ public sealed class ReorderWorkflowStatusesCommandValidator : AbstractValidator<
 
 public sealed class ReorderWorkflowStatusesCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ReorderWorkflowStatusesCommandHandler> logger)
     : ICommandHandler<ReorderWorkflowStatusesCommand>
 {
     private const string AppRequestName = nameof(ReorderWorkflowStatusesCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ReorderWorkflowStatusesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ReorderWorkflowStatusesCommand request, CancellationToken cancellationToken)
@@ -45,7 +49,7 @@ public sealed class ReorderWorkflowStatusesCommandHandler(
                 return Result.Failure("Status workflow not found.");
             }
 
-            var result = workflow.ReorderStatuses(request.OrderedStatusIds);
+            var result = workflow.ReorderStatuses(request.OrderedStatusIds, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 workflow.ClearDomainEvents();

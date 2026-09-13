@@ -16,12 +16,16 @@ public sealed class UpdateStatusWorkflowCommandValidator : AbstractValidator<Upd
 
 public sealed class UpdateStatusWorkflowCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UpdateStatusWorkflowCommandHandler> logger)
     : ICommandHandler<UpdateStatusWorkflowCommand>
 {
     private const string AppRequestName = nameof(UpdateStatusWorkflowCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateStatusWorkflowCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateStatusWorkflowCommand request, CancellationToken cancellationToken)
@@ -37,7 +41,7 @@ public sealed class UpdateStatusWorkflowCommandHandler(
                 return Result.Failure("Status workflow not found.");
             }
 
-            var result = workflow.Update(request.Name, request.Description);
+            var result = workflow.Update(request.Name, request.Description, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogInformation("Unable to update Status Workflow {WorkflowId}. Error message: {Error}", request.Id, result.Error);

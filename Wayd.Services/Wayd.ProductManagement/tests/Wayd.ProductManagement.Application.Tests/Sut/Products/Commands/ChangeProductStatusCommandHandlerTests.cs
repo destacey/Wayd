@@ -1,8 +1,10 @@
 ﻿using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Moq;
+using NodaTime;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -27,10 +29,10 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
     {
         ProductWorkflowOwners.Register();
 
-        _workflow = StatusWorkflow.CreateSystem("Product Lifecycle", null, ProductWorkflowOwners.Product.Key).Value;
-        _active = _workflow.AddSystemStatus("Active", null, StatusCategory.Active, (int)ProductStatusAlias.Active);
-        _retired = _workflow.AddSystemStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired);
-        _workflow.PublishSystem();
+        _workflow = StatusWorkflow.CreateSystem("Product Lifecycle", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        _active = _workflow.AddSystemStatus("Active", null, StatusCategory.Active, (int)ProductStatusAlias.Active, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _retired = _workflow.AddSystemStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _workflow.PublishSystem(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         _statusResolver
             .Setup(r => r.ForScope(ProductWorkflowOwners.Product.Key, null, It.IsAny<CancellationToken>()))
@@ -117,8 +119,8 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
     public async Task Handle_ShouldRefuseAStatusFromAnotherWorkflow()
     {
         // Arrange
-        var other = StatusWorkflow.CreateSystem("Other", null, ProductWorkflowOwners.Product.Key).Value;
-        var foreign = other.AddSystemStatus("Sunset", null, StatusCategory.Active, (int)ProductStatusAlias.Sunset);
+        var other = StatusWorkflow.CreateSystem("Other", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        var foreign = other.AddSystemStatus("Sunset", null, StatusCategory.Active, (int)ProductStatusAlias.Sunset, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         var product = SeedProduct(status: StatusRef.From(_active));
         var sut = CreateSut();
 

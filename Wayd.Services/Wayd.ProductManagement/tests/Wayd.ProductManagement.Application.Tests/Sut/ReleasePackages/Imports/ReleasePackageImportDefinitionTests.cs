@@ -52,10 +52,10 @@ public sealed class ReleasePackageImportDefinitionTests
         _dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
 
         var workflow = StatusWorkflow
-            .CreateSystem("Release Package Lifecycle", null, ProductWorkflowOwners.ReleasePackage.Key).Value;
-        _assembled = workflow.AddSystemStatus("Assembled", null, StatusCategory.Proposed, StatusWorkflow.NoAlias);
-        _released = workflow.AddSystemStatus("Released", null, StatusCategory.Done, (int)ProductStatusAlias.Released);
-        workflow.PublishSystem();
+            .CreateSystem("Release Package Lifecycle", null, ProductWorkflowOwners.ReleasePackage.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        _assembled = workflow.AddSystemStatus("Assembled", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _released = workflow.AddSystemStatus("Released", null, StatusCategory.Done, (int)ProductStatusAlias.Released, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.PublishSystem(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         _statusResolver
             .Setup(r => r.Initial(ProductWorkflowOwners.ReleasePackage.Key, null, It.IsAny<CancellationToken>()))

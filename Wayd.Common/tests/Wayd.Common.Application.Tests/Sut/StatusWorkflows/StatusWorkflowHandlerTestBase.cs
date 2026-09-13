@@ -48,10 +48,10 @@ public abstract class StatusWorkflowHandlerTestBase
     /// <summary>A draft workflow carrying both required aliases.</summary>
     protected StatusWorkflow SeedWorkflow(string name = "Widget Workflow", bool publish = false)
     {
-        var workflow = StatusWorkflow.Create(name, null, Widget.Key).Value;
-        workflow.AddStatus("Proposed", null, StatusCategory.Proposed);
-        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias);
-        workflow.AddStatus("Terminal", null, StatusCategory.Done, TerminalAlias);
+        var workflow = StatusWorkflow.Create(name, null, Widget.Key, EventActor.System, Now).Value;
+        workflow.AddStatus("Proposed", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Now);
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, Now);
+        workflow.AddStatus("Terminal", null, StatusCategory.Done, TerminalAlias, EventActor.System, Now);
 
         if (publish)
         {

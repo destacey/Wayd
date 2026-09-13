@@ -23,12 +23,16 @@ public sealed class AddWorkflowStatusCommandValidator : AbstractValidator<AddWor
 
 public sealed class AddWorkflowStatusCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<AddWorkflowStatusCommandHandler> logger)
     : ICommandHandler<AddWorkflowStatusCommand, Guid>
 {
     private const string AppRequestName = nameof(AddWorkflowStatusCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AddWorkflowStatusCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(AddWorkflowStatusCommand request, CancellationToken cancellationToken)
@@ -47,7 +51,7 @@ public sealed class AddWorkflowStatusCommandHandler(
                 return Result.Failure<Guid>("Status workflow not found.");
             }
 
-            var result = workflow.AddStatus(request.Name, request.Description, request.Category, request.Alias);
+            var result = workflow.AddStatus(request.Name, request.Description, request.Category, request.Alias, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogInformation(

@@ -15,7 +15,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
     public async Task Create_ShouldAddADraftWorkflow()
     {
         // Arrange
-        var sut = new CreateStatusWorkflowCommandHandler(DbContext, Logger<CreateStatusWorkflowCommandHandler>());
+        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -32,7 +32,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
     {
         // A workflow for an owner type nothing registered could never be resolved at runtime.
         // Arrange
-        var sut = new CreateStatusWorkflowCommandHandler(DbContext, Logger<CreateStatusWorkflowCommandHandler>());
+        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>());
 
         // Act
         var result = await sut.Handle(
@@ -65,8 +65,8 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
     public async Task Publish_ShouldFail_WhenARequiredAliasIsMissing()
     {
         // Arrange
-        var workflow = StatusWorkflow.Create("Partial", null, Widget.Key).Value;
-        workflow.AddStatus("Proposed", null, StatusCategory.Proposed);
+        var workflow = StatusWorkflow.Create("Partial", null, Widget.Key, EventActor.System, Now).Value;
+        workflow.AddStatus("Proposed", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Now);
         DbContext.AddStatusWorkflow(workflow);
 
         var sut = CreatePublishSut();
@@ -139,7 +139,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
         // Cloning is how a published or seeded workflow is changed, so the copy has to be complete.
         // Arrange
         var workflow = SeedWorkflow(publish: true);
-        var sut = new CloneStatusWorkflowCommandHandler(DbContext, Logger<CloneStatusWorkflowCommandHandler>());
+        var sut = new CloneStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CloneStatusWorkflowCommandHandler>());
 
         // Act
         var result = await sut.Handle(

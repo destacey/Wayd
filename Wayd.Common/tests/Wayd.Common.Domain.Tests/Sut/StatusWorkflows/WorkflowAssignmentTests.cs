@@ -3,6 +3,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Tests.Shared.Extensions;
 
 namespace Wayd.Common.Domain.Tests.Sut.StatusWorkflows;
 
@@ -27,11 +28,24 @@ public sealed class WorkflowAssignmentTests
 
     private static StatusWorkflow PublishedWidgetWorkflow(string name = "Widget Workflow")
     {
-        var workflow = StatusWorkflow.Create(name, null, Widget.Key).Value;
-        workflow.AddStatus("Proposed", null, StatusCategory.Proposed);
-        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias);
-        workflow.AddStatus("Terminal", null, StatusCategory.Done, TerminalAlias);
+        var workflow = StatusWorkflow.Create(name, null, Widget.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        workflow.AddStatus("Proposed", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.AddStatus("Terminal", null, StatusCategory.Done, TerminalAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        return workflow;
+    }
+
+    /// <summary>
+    /// Stands in for the first save: assigns the key the workflow's events wait for, raises what was waiting
+    /// on it, and clears it so a test sees only what its own act raises.
+    /// </summary>
+    private static StatusWorkflow Saved(StatusWorkflow workflow)
+    {
+        workflow.SetPrivate(w => w.Key, 7);
+        workflow.ExecutePostPersistenceActions();
+        workflow.ClearDomainEvents();
 
         return workflow;
     }
@@ -77,7 +91,7 @@ public sealed class WorkflowAssignmentTests
     public void Create_ShouldFail_WhenTheWorkflowIsStillDraft()
     {
         // Arrange
-        var draft = StatusWorkflow.Create("Widget Workflow", null, Widget.Key).Value;
+        var draft = StatusWorkflow.Create("Widget Workflow", null, Widget.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
 
         // Act
         var result = WorkflowAssignment.Create(Widget.Key, null, draft, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
@@ -143,7 +157,7 @@ public sealed class WorkflowAssignmentTests
         // Arrange
         var old = PublishedWidgetWorkflow("Old");
         var assignment = WorkflowAssignment.Create(Widget.Key, null, old, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
-        var draft = StatusWorkflow.Create("Still Building", null, Widget.Key).Value;
+        var draft = StatusWorkflow.Create("Still Building", null, Widget.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
         var remap = CompleteRemap(old, PublishedWidgetWorkflow("Other"));
 
         // Act
@@ -251,9 +265,10 @@ public sealed class WorkflowAssignmentTests
     public void Publish_ShouldRaiseAnEvent()
     {
         // Arrange
-        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key).Value;
-        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias);
-        workflow.AddStatus("Terminal", null, StatusCategory.Done, TerminalAlias);
+        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.AddStatus("Terminal", null, StatusCategory.Done, TerminalAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        Saved(workflow);
 
         // Act
         workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
@@ -269,7 +284,7 @@ public sealed class WorkflowAssignmentTests
     public void Archive_ShouldRaiseAnEvent()
     {
         // Arrange
-        var workflow = PublishedWidgetWorkflow();
+        var workflow = Saved(PublishedWidgetWorkflow());
 
         // Act
         workflow.Archive(isAssigned: false, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
@@ -282,8 +297,9 @@ public sealed class WorkflowAssignmentTests
     public void ARefusedPublish_ShouldRaiseNothing()
     {
         // Arrange
-        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key).Value;
-        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias);
+        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        Saved(workflow);
 
         // Act
         var result = workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
@@ -292,6 +308,7 @@ public sealed class WorkflowAssignmentTests
         // An event asserts something happened; a refused publish did not.
         result.IsFailure.Should().BeTrue();
         workflow.DomainEvents.Should().BeEmpty();
+        workflow.PostPersistenceActions.Should().BeEmpty();
     }
 
     #endregion Events

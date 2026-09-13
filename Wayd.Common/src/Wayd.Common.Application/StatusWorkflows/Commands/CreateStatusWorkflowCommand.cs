@@ -18,19 +18,23 @@ public sealed class CreateStatusWorkflowCommandValidator : AbstractValidator<Cre
 
 public sealed class CreateStatusWorkflowCommandHandler(
     IStatusWorkflowDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<CreateStatusWorkflowCommandHandler> logger)
     : ICommandHandler<CreateStatusWorkflowCommand, Guid>
 {
     private const string AppRequestName = nameof(CreateStatusWorkflowCommand);
 
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateStatusWorkflowCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateStatusWorkflowCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var result = StatusWorkflow.Create(request.Name, request.Description, request.OwnerType);
+            var result = StatusWorkflow.Create(request.Name, request.Description, request.OwnerType, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogInformation("Unable to create workflow. Error message: {Error}", result.Error);

@@ -74,10 +74,15 @@ public static class DurableEventRoutes
         // required FK (PlanningIntervalTeam.TeamId → PlanningTeam); ManagePlanningIntervalTeamsCommand now
         // validates team existence and fails cleanly rather than FK-faulting, so async replication is safe.
         typeof(TeamCreatedEvent),
-        typeof(TeamUpdatedEvent),
+        typeof(TeamDetailsUpdatedEvent),
         typeof(TeamActivatedEvent),
         typeof(TeamDeactivatedEvent),
         typeof(TeamDeletedEvent),
+
+        // Superseded by TeamDetailsUpdatedEvent; routed durably for envelopes written before the switch.
+#pragma warning disable CS0618
+        typeof(TeamUpdatedEvent),
+#pragma warning restore CS0618
     ];
 
     /// <summary>

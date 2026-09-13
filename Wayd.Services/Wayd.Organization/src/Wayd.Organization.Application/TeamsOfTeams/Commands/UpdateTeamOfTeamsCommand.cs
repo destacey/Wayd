@@ -64,7 +64,7 @@ public sealed class UpdateTeamOfTeamsCommandHandler : ICommandHandler<UpdateTeam
             if (team is null)
                 return Result.Failure<int>("Team of Teams not found.");
 
-            var updateResult = team.Update(
+            var updateResult = team.UpdateDetails(
                 request.Name,
                 request.Code,
                 request.Description,

@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 
 namespace Wayd.Infrastructure.Tests.Sut.Messaging;
@@ -89,7 +90,7 @@ public sealed class DomainEventEnvelopeSerializationTests
         // every attempt. A handler deduplicates on EventId, so it must be stable across those attempts; an
         // id minted during deserialization would differ each time and silently defeat the deduplication.
         var options = OutboxOptions();
-        var original = new TeamDeletedEvent(Guid.CreateVersion7(), EventActor.System, Instant.FromUnixTimeSeconds(1_700_000_200));
+        var original = new TeamDeletedEvent(Guid.CreateVersion7(), 1, new TeamCode("ABC01"), EventActor.System, Instant.FromUnixTimeSeconds(1_700_000_200));
         var storedPayload = JsonSerializer.Serialize(original, options);
 
         // Act
@@ -107,7 +108,7 @@ public sealed class DomainEventEnvelopeSerializationTests
     {
         // Arrange — background work has no signed-in user; the platform is the actor.
         var options = OutboxOptions();
-        var original = new TeamDeletedEvent(Guid.CreateVersion7(), EventActor.System, Instant.FromUnixTimeSeconds(1_700_000_300));
+        var original = new TeamDeletedEvent(Guid.CreateVersion7(), 1, new TeamCode("ABC01"), EventActor.System, Instant.FromUnixTimeSeconds(1_700_000_300));
 
         // Act
         var json = JsonSerializer.Serialize(original, options);
@@ -125,7 +126,7 @@ public sealed class DomainEventEnvelopeSerializationTests
     {
         // Arrange — a scheduled sync nobody started: the mechanism is known, the person is not.
         var options = OutboxOptions();
-        var original = new TeamDeletedEvent(Guid.CreateVersion7(), EventActor.Sync(null), Instant.FromUnixTimeSeconds(1_700_000_400));
+        var original = new TeamDeletedEvent(Guid.CreateVersion7(), 1, new TeamCode("ABC01"), EventActor.Sync(null), Instant.FromUnixTimeSeconds(1_700_000_400));
 
         // Act
         var json = JsonSerializer.Serialize(original, options);

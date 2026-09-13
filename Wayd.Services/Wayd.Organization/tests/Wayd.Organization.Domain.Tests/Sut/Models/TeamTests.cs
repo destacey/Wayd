@@ -99,6 +99,40 @@ public class TeamTests
     }
 
     [Fact]
+    public void Deactivate_BeforeTheFirstSave_WaitsForTheKey()
+    {
+        // Arrange — a new team has no Key until the save assigns one
+        var fakeTeam = _teamFaker.Generate();
+        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        var inactiveDate = fakeTeam.ActiveDate.PlusDays(30);
+
+        // Act
+        sut.Deactivate(TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now));
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+        sut.PostPersistenceActions.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Deactivate_OnASavedTeam_RaisesEventWithKeyAndCode()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var inactiveDate = team.ActiveDate.PlusDays(30);
+
+        // Act
+        team.Deactivate(TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now));
+
+        // Assert
+        var raised = team.DomainEvents.OfType<TeamDeactivatedEvent>().Should().ContainSingle().Subject;
+        raised.Id.Should().Be(team.Id);
+        raised.Key.Should().Be(team.Key);
+        raised.Code.Should().Be(team.Code);
+        raised.InactiveDate.Should().Be(inactiveDate);
+    }
+
+    [Fact]
     public void Create_WithNullName_Throws()
     {
         // Arrange
@@ -164,7 +198,7 @@ public class TeamTests
     #region Update
 
     [Fact]
-    public void Update_WhenValid_Success()
+    public void UpdateDetails_WhenValid_Success()
     {
         // Arrange
         var team = _teamFaker.Generate();
@@ -174,7 +208,7 @@ public class TeamTests
         var description = "New Description ";
 
         // Act
-        team.Update(name, code, description, EventActor.System, _dateTimeProvider.Now);
+        team.UpdateDetails(name, code, description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         team.Type.Should().Be(TeamType.Team);
@@ -184,11 +218,33 @@ public class TeamTests
         team.IsActive.Should().BeTrue();
 
         team.DomainEvents.Should().NotBeEmpty();
-        team.DomainEvents.Should().ContainSingle(e => e is TeamUpdatedEvent);
+        team.DomainEvents.Should().ContainSingle(e => e is TeamDetailsUpdatedEvent);
     }
 
     [Fact]
-    public void Update_WithNullName_ReturnsFailedResult()
+    public void UpdateDetails_WhenChanged_RaisesEventCarryingBothEnds()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var before = new TeamDetails(team.Code, team.Name, team.Description);
+        var timestamp = _dateTimeProvider.Now;
+
+        // Act
+        team.UpdateDetails("Borealis ", new TeamCode("BOR"), null, EventActor.System, timestamp);
+
+        // Assert
+        var raised = team.DomainEvents.OfType<TeamDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        raised.Id.Should().Be(team.Id);
+        raised.Key.Should().Be(team.Key);
+        raised.Code.Should().Be(new TeamCode("BOR"));
+        raised.Name.Should().Be("Borealis");
+        raised.Description.Should().BeNull();
+        raised.Previous.Should().Be(before);
+        raised.Timestamp.Should().Be(timestamp);
+    }
+
+    [Fact]
+    public void UpdateDetails_WithNullName_ReturnsFailedResult()
     {
         // Arrange
         var team = _teamFaker.Generate();
@@ -196,7 +252,7 @@ public class TeamTests
         string name = null!;
 
         // Act
-        var result = team.Update(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var result = team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -208,13 +264,13 @@ public class TeamTests
     [Theory]
     [InlineData("")]
     [InlineData("  ")]
-    public void Update_WithInvalidName_ReturnsFailedResult(string name)
+    public void UpdateDetails_WithInvalidName_ReturnsFailedResult(string name)
     {
         // Arrange
         var team = _teamFaker.Generate();
 
         // Act
-        var result = team.Update(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var result = team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -224,14 +280,14 @@ public class TeamTests
     }
 
     [Fact]
-    public void Update_WithNullCode_ReturnsFailedResult()
+    public void UpdateDetails_WithNullCode_ReturnsFailedResult()
     {
         // Arrange
         var team = _teamFaker.Generate();
         TeamCode code = null!;
 
         // Act
-        var result = team.Update(team.Name, code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var result = team.UpdateDetails(team.Name, code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -244,24 +300,24 @@ public class TeamTests
     [InlineData("")]
     [InlineData("  ")]
     [InlineData(null)]
-    public void Update_WithInvalidDescription_IsNull(string? description)
+    public void UpdateDetails_WithInvalidDescription_IsNull(string? description)
     {
         // Arrange
         var team = _teamFaker.Generate();
 
         // Act
-        var result = team.Update(team.Name, team.Code, description, EventActor.System, _dateTimeProvider.Now);
+        var result = team.UpdateDetails(team.Name, team.Code, description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         team.Description.Should().BeNull();
 
         team.DomainEvents.Should().NotBeEmpty();
-        team.DomainEvents.Should().ContainSingle(e => e is TeamUpdatedEvent);
+        team.DomainEvents.Should().ContainSingle(e => e is TeamDetailsUpdatedEvent);
     }
 
     [Fact]
-    public void Update_WhenNothingChanged_RaisesNoEvent()
+    public void UpdateDetails_WhenNothingChanged_RaisesNoEvent()
     {
         // Arrange — the values a whole-record save sends back, before the setters normalise them
         var team = _teamFaker.Generate();
@@ -270,7 +326,7 @@ public class TeamTests
         var description = $" {team.Description}";
 
         // Act
-        var result = team.Update(name, code, description, EventActor.System, _dateTimeProvider.Now);
+        var result = team.UpdateDetails(name, code, description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

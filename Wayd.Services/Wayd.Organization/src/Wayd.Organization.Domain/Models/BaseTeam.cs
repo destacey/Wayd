@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
@@ -291,6 +292,23 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
         catch (Exception ex)
         {
             return Result.Failure<TeamMembership>(ex.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Raises an event whose payload carries <see cref="Key"/>. Before the first save the key is still zero
+    /// (the team import deactivates a retired team before it is saved), so the raise waits for the save that
+    /// assigns it. <paramref name="build"/> runs at that point: capture any other value it reads beforehand.
+    /// </summary>
+    protected void AddKeyedDomainEvent(Func<DomainEvent> build)
+    {
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(build()));
+        }
+        else
+        {
+            AddDomainEvent(build());
         }
     }
 }

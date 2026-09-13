@@ -117,6 +117,25 @@ public sealed class WorkTeamChangeEventHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_SupersededUpdated_WhenNewerThanTheCopy_AppliesAndSaves()
+    {
+        // Arrange — an envelope written as the superseded type before the switch, still in the outbox.
+        var id = Guid.NewGuid();
+        _workDbContext.AddWorkTeam(new WorkTeam(new WorkTeamFaker(TeamType.Team).WithId(id).WithName("Atlas").Generate(), Created));
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        await _handler.Handle(new TeamUpdatedEvent(id, new TeamCode("BOR"), "Borealis", "desc", EventActor.System, Renamed), TestContext.Current.CancellationToken);
+#pragma warning restore CS0618
+
+        // Assert
+        var copy = _workDbContext.WorkTeams.Single(t => t.Id == id);
+        copy.Name.Should().Be("Borealis");
+        copy.Code.Should().Be(new TeamCode("BOR"));
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Handle_Updated_WhenTheCreateHasNotArrived_CreatesTheCopyFromTheSource()
     {
         // Arrange — the rename is processed before the create, and the source already holds it.
@@ -140,7 +159,7 @@ public sealed class WorkTeamChangeEventHandlerTests : IDisposable
         SourceReturns(null);
 
         // Act
-        await _handler.Handle(new TeamDeactivatedEvent(Guid.NewGuid(), new LocalDate(2026, 1, 31), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeactivatedEvent(Guid.NewGuid(), 1, new TeamCode("ABC01"), new LocalDate(2026, 1, 31), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkTeams.Should().BeEmpty();
@@ -155,8 +174,8 @@ public sealed class WorkTeamChangeEventHandlerTests : IDisposable
         _workDbContext.AddWorkTeam(new WorkTeam(new WorkTeamFaker(TeamType.Team).WithId(id).WithIsActive(true).Generate(), Created));
 
         // Act
-        await _handler.Handle(new TeamActivatedEvent(id, EventActor.System, Deactivated), TestContext.Current.CancellationToken);
-        await _handler.Handle(new TeamDeactivatedEvent(id, new LocalDate(2026, 1, 31), EventActor.System, Renamed), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamActivatedEvent(id, 1, new TeamCode("ABC01"), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeactivatedEvent(id, 1, new TeamCode("ABC01"), new LocalDate(2026, 1, 31), EventActor.System, Renamed), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkTeams.Single(t => t.Id == id).IsActive.Should().BeTrue();
@@ -170,7 +189,7 @@ public sealed class WorkTeamChangeEventHandlerTests : IDisposable
         _workDbContext.AddWorkTeam(new WorkTeam(new WorkTeamFaker(TeamType.Team).WithId(id).Generate(), Created));
 
         // Act
-        await _handler.Handle(new TeamDeletedEvent(id, EventActor.System, Deactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeletedEvent(id, 1, new TeamCode("ABC01"), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkTeams.Should().BeEmpty();
@@ -183,7 +202,7 @@ public sealed class WorkTeamChangeEventHandlerTests : IDisposable
         // Arrange
 
         // Act
-        await _handler.Handle(new TeamDeletedEvent(Guid.NewGuid(), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
+        await _handler.Handle(new TeamDeletedEvent(Guid.NewGuid(), 1, new TeamCode("ABC01"), EventActor.System, Deactivated), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.SaveChangesCallCount.Should().Be(0);
@@ -208,6 +227,6 @@ public sealed class WorkTeamChangeEventHandlerTests : IDisposable
             actor: EventActor.System,
             timestamp: Created);
 
-    private static TeamUpdatedEvent UpdatedEvent(Guid id, string name, Instant timestamp) =>
-        new(id, new TeamCode("ATL"), name, "desc", EventActor.System, timestamp);
+    private static TeamDetailsUpdatedEvent UpdatedEvent(Guid id, string name, Instant timestamp) =>
+        new(id, 1, new TeamCode("ATL"), name, "desc", new TeamDetails(new TeamCode("ATL"), "Atlas", "desc"), EventActor.System, timestamp);
 }

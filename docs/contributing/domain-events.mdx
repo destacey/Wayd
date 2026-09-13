@@ -161,7 +161,7 @@ will catch for you.
 - [ ] A payload written as the old type is stored in a test and still deserializes —
   `ProjectReparentedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes` is the pattern.
 
-`DomainEventConventionTests` also fails a new event named only for its record (`TeamUpdatedEvent`) and a
+`DomainEventConventionTests` also fails a new event named only for its record (`ProjectUpdatedEvent`) and a
 payload property that looks like personal data (`Email`, `FirstName`, `DisplayName`, …).
 
 ## Consuming an event
@@ -359,8 +359,9 @@ aggregate that has such a caller, which creates the record, mutates it, executes
 actions and asserts the creation event still describes the creation.
 
 Events raised by a **mutation** before the first save are the other half of this, and the mirror-image
-problem: their values are already the ones the caller just set, but `Key` is still zero. `Deployment` and
-`DeploymentEnvironment` defer those raises for that reason (`if (Key == 0)`); the release, version and
+problem: their values are already the ones the caller just set, but `Key` is still zero. `Deployment`,
+`DeploymentEnvironment` and the teams (`BaseTeam.AddKeyedDomainEvent`) defer those raises for that reason
+(`if (Key == 0)`); the release, version and
 package transitions do not yet, so an import that ships a record in the same pass records those events
 with `Key` 0.
 

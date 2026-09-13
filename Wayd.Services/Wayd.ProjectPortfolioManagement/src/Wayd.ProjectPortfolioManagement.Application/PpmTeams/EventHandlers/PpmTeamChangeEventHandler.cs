@@ -35,7 +35,16 @@ public sealed class PpmTeamChangeEventHandler(
         await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
     }
 
+    public async Task Handle(TeamDetailsUpdatedEvent @event, CancellationToken cancellationToken)
+    {
+        await Apply(@event.Id, @event.Timestamp, t => t.ApplyDetails(@event.Name, @event.Code, @event.Timestamp), "details", cancellationToken);
+    }
+
+    // Nothing raises the superseded type, but an envelope written as it before the switch can still be
+    // waiting in the durable outbox; without this it would dead-letter rather than rename the copy.
+#pragma warning disable CS0618
     public async Task Handle(TeamUpdatedEvent @event, CancellationToken cancellationToken)
+#pragma warning restore CS0618
     {
         await Apply(@event.Id, @event.Timestamp, t => t.ApplyDetails(@event.Name, @event.Code, @event.Timestamp), "details", cancellationToken);
     }

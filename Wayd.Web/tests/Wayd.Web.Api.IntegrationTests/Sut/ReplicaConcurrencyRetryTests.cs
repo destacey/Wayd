@@ -47,8 +47,8 @@ public sealed class ReplicaConcurrencyRetryTests(WaydSqlServerApiFactory factory
 
         _factory.ConcurrentWrites.Arm(teamId);
 
-        var rename = new TeamUpdatedEvent(teamId, new TeamCode($"C{key}"), "Borealis", null,
-            EventActor.System, Created.Plus(Duration.FromMinutes(1)));
+        var rename = new TeamDetailsUpdatedEvent(teamId, key, new TeamCode($"C{key}"), "Borealis", null,
+            new TeamDetails(new TeamCode($"C{key}"), "Atlas", null), EventActor.System, Created.Plus(Duration.FromMinutes(1)));
 
         // Act
         using (var publishScope = _factory.Services.CreateScope())

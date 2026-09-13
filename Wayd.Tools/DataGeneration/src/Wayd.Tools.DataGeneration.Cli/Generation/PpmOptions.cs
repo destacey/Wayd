@@ -28,4 +28,11 @@ public sealed class PpmOptions
     /// the window. Capped at the number of available program themes so concurrent programs stay distinct.
     /// </summary>
     public int ConcurrentProgramsPerPortfolio { get; init; } = 5;
+
+    /// <summary>
+    /// Whether value-stream portfolios group their projects into programs. Auto leaves about one project in
+    /// six standalone; On places every project in a program whose window covers it, when one does; Off
+    /// generates no programs, so every project reports straight to its portfolio.
+    /// </summary>
+    public StructureMode Programs { get; init; } = StructureMode.Auto;
 }

@@ -76,9 +76,19 @@ public static class GenerationOptions
         Description = "Number of leaf delivery teams to generate.",
     };
 
-    public static Option<double?> FormerEmployees { get; } = new("--former-employees")
+    public static Option<StructureMode?> ValueStreamTier { get; } = new("--value-stream-tier")
     {
-        Description = "Fraction (0..1) of non-delivery individual contributors generated as former (inactive) employees.",
+        Description = "Whether a value stream gets a team of teams above its ARTs (Auto, On, Off). Auto gives one only to a value stream with enough teams for two ARTs.",
+    };
+
+    public static Option<StructureMode?> ArtTier { get; } = new("--art-tier")
+    {
+        Description = "Whether teams are grouped into ARTs (Auto, On, Off). Auto is on. Off puts teams directly under their value stream, which then plans and ships as one group.",
+    };
+
+    public static Option<double?> AttritionRate { get; } = new("--attrition-rate")
+    {
+        Description = "Share (0..0.5) of positions that change hands in a year across the delivery history. Every leaver is replaced, so this adds former employees without shrinking today's organization.",
     };
 
     public static Option<bool> SkipUsers { get; } = new("--skip-users")
@@ -109,6 +119,11 @@ public static class GenerationOptions
     public static Option<int?> ConcurrentProgramsPerPortfolio { get; } = new("--concurrent-programs-per-portfolio")
     {
         Description = "Average number of thematic programs a portfolio runs at once (Modernization, Integrations, …). Programs group projects by theme, independent of the delivery hierarchy; the total is derived across the window.",
+    };
+
+    public static Option<StructureMode?> Programs { get; } = new("--programs")
+    {
+        Description = "Whether value-stream portfolios group their projects into programs (Auto, On, Off). Auto leaves about one project in six standalone; Off generates no programs.",
     };
 
     public static Option<bool> SkipProductManagement { get; } = new("--skip-product-management")
@@ -172,13 +187,16 @@ public static class GenerationOptions
         DeliveryRatio,
         ValueStreams,
         Teams,
-        FormerEmployees,
+        ValueStreamTier,
+        ArtTier,
+        AttritionRate,
         SkipUsers,
         UserPassword,
         SkipPpm,
         FunctionPortfolios,
         ConcurrentProjectsPerArt,
         ConcurrentProgramsPerPortfolio,
+        Programs,
         SkipProductManagement,
         VersionIntervalDays,
         ChangeFailureRate,
@@ -227,7 +245,9 @@ public static class GenerationOptions
                 DeliveryRatio = FlagOr(parse, DeliveryRatio),
                 ValueStreams = FlagOr(parse, ValueStreams),
                 Teams = FlagOr(parse, Teams),
-                FormerEmployeeFraction = FlagOr(parse, FormerEmployees),
+                ValueStreamTier = FlagOr(parse, ValueStreamTier),
+                ArtTier = FlagOr(parse, ArtTier),
+                AttritionRate = FlagOr(parse, AttritionRate),
             },
             Ppm = new PpmRecipe
             {
@@ -237,6 +257,7 @@ public static class GenerationOptions
                 FunctionPortfolios = FlagOr(parse, FunctionPortfolios),
                 ConcurrentProjectsPerArt = FlagOr(parse, ConcurrentProjectsPerArt),
                 ConcurrentProgramsPerPortfolio = FlagOr(parse, ConcurrentProgramsPerPortfolio),
+                Programs = FlagOr(parse, Programs),
             },
             Users = new UsersRecipe
             {

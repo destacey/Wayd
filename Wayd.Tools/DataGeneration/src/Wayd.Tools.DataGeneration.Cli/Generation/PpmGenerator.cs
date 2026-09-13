@@ -129,10 +129,7 @@ public sealed class PpmGenerator
     {
         foreach (var valueStream in _org.ValueStreams)
         {
-            // The portfolio's leaders are the value stream's VPs, or the ART leads when the value stream is
-            // small enough to have no separate top team.
-            var leadEng = valueStream.EngineeringLeadEmployeeNumber ?? valueStream.Arts.FirstOrDefault()?.EngineeringLeadEmployeeNumber;
-            var leadProduct = valueStream.ProductLeadEmployeeNumber ?? valueStream.Arts.FirstOrDefault()?.ProductLeadEmployeeNumber;
+            var (leadEng, leadProduct) = Leads(valueStream);
 
             // A value-stream portfolio holds active, ongoing work, so it is active from near the window start.
             var portfolioStart = EarlyWindowDate();
@@ -144,7 +141,9 @@ public sealed class PpmGenerator
             // Programs are the portfolio's thematic groupings of projects (Modernization, Integrations, …) —
             // an investment-level structure, independent of the delivery hierarchy. Build them first so the
             // ART's projects can be sorted into one by theme.
-            var programs = BuildPortfolioPrograms(valueStream, portfolioName, portfolioStart, leadEng, leadProduct);
+            var programs = _options.Programs == StructureMode.Off
+                ? null
+                : BuildPortfolioPrograms(valueStream, portfolioName, portfolioStart, leadEng, leadProduct);
 
             foreach (var art in valueStream.Arts)
                 BuildArtProjects(valueStream, art, portfolioName, programs);
@@ -179,10 +178,11 @@ public sealed class PpmGenerator
 
             // Programs are imported active whatever they end up as: a program cannot be completed or
             // canceled until every project inside it is closed, and none of them exists yet.
+            var namedOn = NamedOn(status, end);
             AddProgram(name, $"{theme.Description} Part of the {portfolioName} portfolio.", portfolioName,
                 status: "Active", start: start, end: end,
                 themes: PickThemes(1),
-                sponsors: [leadProduct], owners: [leadEng], managers: [leadEng]);
+                sponsors: [Holder(leadProduct, namedOn)], owners: [Holder(leadEng, namedOn)], managers: [Holder(leadEng, namedOn)]);
 
             // So one that belongs in a closed state is finished off by the finalize file, which runs last.
             // Its projects are closed by then: a project only joins a program whose window covers its own,
@@ -205,7 +205,15 @@ public sealed class PpmGenerator
         return programs;
     }
 
-    private void BuildArtProjects(ValueStreamNode valueStream, ArtNode art, string portfolioName, List<GeneratedProgram> programs)
+    /// <summary>
+    /// Who leads a value stream's work: its VPs, or its first ART's leads when it has no top team, or the
+    /// CTO and CPO when it has neither.
+    /// </summary>
+    private (string? Engineering, string? Product) Leads(ValueStreamNode valueStream) =>
+        (valueStream.EngineeringLeadEmployeeNumber ?? valueStream.Arts.FirstOrDefault()?.EngineeringLeadEmployeeNumber ?? _org.ChiefTechnologyEmployeeNumber,
+         valueStream.ProductLeadEmployeeNumber ?? valueStream.Arts.FirstOrDefault()?.ProductLeadEmployeeNumber ?? _org.ChiefProductEmployeeNumber);
+
+    private void BuildArtProjects(ValueStreamNode valueStream, ArtNode art, string portfolioName, List<GeneratedProgram>? programs)
     {
         if (art.Teams.Count == 0)
             return;
@@ -214,8 +222,8 @@ public sealed class PpmGenerator
         // in flight at any time across the window (concurrency × window ÷ average duration). Each project is a
         // subset of the ART's teams collaborating, and a minority reach into another ART in the same value
         // stream.
-        var projectCount = DeriveProjectCount();
-        var otherArts = valueStream.Arts.Where(a => a.TeamCode != art.TeamCode).ToList();
+        var projectCount = DeriveProjectCount(art);
+        var otherArts = valueStream.Arts.Where(a => !ReferenceEquals(a, art)).ToList();
 
         for (var i = 0; i < projectCount; i++)
         {
@@ -241,12 +249,18 @@ public sealed class PpmGenerator
     /// overlap at any point across the four-year window. Derived from the window length over the average
     /// project duration, so the concurrency knob reads as "in flight at once" rather than "total".
     /// </summary>
-    private int DeriveProjectCount()
+    /// <remarks>
+    /// A group with no ART over it is a whole value stream's teams, so it carries the load of as many
+    /// ARTs as the org would have made of them. Otherwise switching ARTs off would quietly cut the
+    /// portfolio's work to a fraction.
+    /// </remarks>
+    private int DeriveProjectCount(ArtNode art)
     {
         var windowMonths = WindowMonths;
         const double averageDurationMonths = (MinProjectMonths + MaxProjectMonths) / 2.0;
         var turnover = windowMonths / averageDurationMonths;
-        return Math.Max(1, (int)Math.Round(_options.ConcurrentProjectsPerArt * turnover));
+        var arts = art.TeamCode is null ? Math.Max(1, (int)Math.Round(art.Teams.Count / 3.0)) : 1;
+        return Math.Max(1, (int)Math.Round(_options.ConcurrentProjectsPerArt * arts * turnover));
     }
 
     /// <summary>
@@ -297,7 +311,7 @@ public sealed class PpmGenerator
 
             // Owners drawn from senior people already leading value streams, so the roles resolve.
             var leads = _org.ValueStreams
-                .Select(vs => vs.EngineeringLeadEmployeeNumber ?? vs.Arts.FirstOrDefault()?.EngineeringLeadEmployeeNumber)
+                .Select(vs => Leads(vs).Engineering)
                 .Where(n => n is not null)
                 .ToList();
 
@@ -345,10 +359,12 @@ public sealed class PpmGenerator
         var name = $"{verb} {ProjectObject(owningTeam, start, namedForProduct)}";
 
         // The owning team's EM manages and its PO sponsors; the project team is everyone across the
-        // participating teams.
-        var manager = owningTeam.EngineeringManagerEmployeeNumber;
-        var sponsor = owningTeam.ProductOwnerEmployeeNumber;
-        var members = teams.SelectMany(t => t.MemberEmployeeNumbers).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        // participating teams — as those positions were held when the project closed, or today for one still open.
+        var namedOn = NamedOn(status, end);
+        var manager = Holder(owningTeam.EngineeringManagerEmployeeNumber, namedOn);
+        var sponsor = Holder(owningTeam.ProductOwnerEmployeeNumber, namedOn);
+        var positions = teams.SelectMany(t => t.MemberEmployeeNumbers).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var members = positions.Select(p => _org.HolderOn(p, namedOn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         var deliveredBy = teams.Count == 1
             ? $"Delivered by the {owningTeam.Name} team."
@@ -385,8 +401,17 @@ public sealed class PpmGenerator
 
         // Proposed/future projects have no work breakdown yet; everything else gets a dense set of tasks.
         if (!IsProposedStatus(status))
-            BuildTasksForProject(key, start, end, members, status);
+            BuildTasksForProject(key, start, end, positions, status);
     }
+
+    /// <summary>
+    /// The day a record's people are named as of: its end when it closed, since whoever held a role then is
+    /// who ran it, and today otherwise, since open work can only be led by someone still employed.
+    /// </summary>
+    private DateOnly NamedOn(string status, DateOnly end) => IsClosedStatus(status) ? end : Today;
+
+    private string? Holder(string? employeeNumber, DateOnly on) =>
+        employeeNumber is null ? null : _org.HolderOn(employeeNumber, on);
 
     /// <summary>
     /// Chooses which of a portfolio's programs a project belongs to. The project's leading verb points at a
@@ -396,8 +421,8 @@ public sealed class PpmGenerator
     /// </summary>
     private string? PickProgramForProject(IReadOnlyList<GeneratedProgram> programs, string verb, DateOnly projectStart, DateOnly projectEnd)
     {
-        // A minority of projects are standalone regardless of a matching program.
-        if (_faker.Random.Double() < PortfolioDirectFraction)
+        // A minority of projects are standalone regardless of a matching program, unless programs were asked for.
+        if (_options.Programs != StructureMode.On && _faker.Random.Double() < PortfolioDirectFraction)
             return null;
 
         var candidates = programs
@@ -413,7 +438,11 @@ public sealed class PpmGenerator
         return candidates.Count == 0 ? null : candidates[_faker.Random.Int(0, candidates.Count - 1)].Name;
     }
 
-    private void BuildTasksForProject(string projectKey, DateOnly? projectStart, DateOnly? projectEnd, IReadOnlyList<string> members, string projectStatus)
+    /// <remarks>
+    /// Takes the team's positions rather than the project's members: each task is assigned to whoever held
+    /// one when the task finished, or today for a task still open, so a long project can hand its work on.
+    /// </remarks>
+    private void BuildTasksForProject(string projectKey, DateOnly? projectStart, DateOnly? projectEnd, IReadOnlyList<string> positions, string projectStatus)
     {
         var stages = PpmVocabulary.StandardLifecycle.Stages;
         var start = projectStart ?? EarlyWindowDate();
@@ -436,19 +465,20 @@ public sealed class PpmGenerator
             {
                 var rootName = MakeUniqueTaskName($"{stage.Name} workstream {r + 1}", projectKey);
                 var (rootStart, rootEnd) = SubWindow(stageStart, stageEnd);
-                AddTask(projectKey, rootName, stage.Name, parent: null, rootStart, rootEnd, members, completed, stageEnd);
+                AddTask(projectKey, rootName, stage.Name, parent: null, rootStart, rootEnd, positions, completed, stageEnd);
 
                 var childCount = _faker.Random.Int(1, 3);
                 for (var c = 0; c < childCount; c++)
                 {
                     var childName = MakeUniqueTaskName($"{stage.Name} task {r + 1}.{c + 1}", projectKey);
                     var (childStart, childEnd) = SubWindow(rootStart, rootEnd);
-                    AddTask(projectKey, childName, stage.Name, parent: rootName, childStart, childEnd, members, completed, stageEnd);
+                    AddTask(projectKey, childName, stage.Name, parent: rootName, childStart, childEnd, positions, completed, stageEnd);
                 }
             }
 
             // A milestone at the end of each stage.
             var milestoneName = MakeUniqueTaskName($"{stage.Name} complete", projectKey);
+            var milestoneStatus = completed ? "Completed" : (stageEnd < Today ? "Completed" : "NotStarted");
             _tasks.Add(new ProjectTaskModel
             {
                 ProjectKey = projectKey,
@@ -457,14 +487,14 @@ public sealed class PpmGenerator
                 StageName = stage.Name,
                 ParentTaskName = null,
                 Type = "Milestone",
-                Status = completed ? "Completed" : (stageEnd < Today ? "Completed" : "NotStarted"),
+                Status = milestoneStatus,
                 Priority = "High",
                 Progress = null,
                 PlannedStart = null,
                 PlannedEnd = null,
                 PlannedDate = stageEnd,
                 EstimatedEffortHours = null,
-                Assignees = Join([members.FirstOrDefault()]),
+                Assignees = Join([Holder(positions.FirstOrDefault(), milestoneStatus == "Completed" ? stageEnd : Today)]),
             });
 
             // The import applies stage status as data (it does not derive it from tasks), so the generator
@@ -513,7 +543,7 @@ public sealed class PpmGenerator
         return "InProgress";
     }
 
-    private void AddTask(string projectKey, string name, string stageName, string? parent, DateOnly start, DateOnly end, IReadOnlyList<string> members, bool projectCompleted, DateOnly stageEnd)
+    private void AddTask(string projectKey, string name, string stageName, string? parent, DateOnly start, DateOnly end, IReadOnlyList<string> positions, bool projectCompleted, DateOnly stageEnd)
     {
         // Progress and status follow the timeline: done in the past, in progress around now, not started later.
         var (status, progress) = projectCompleted || end < Today
@@ -537,7 +567,7 @@ public sealed class PpmGenerator
             PlannedEnd = end,
             PlannedDate = null,
             EstimatedEffortHours = _faker.Random.Int(8, 120),
-            Assignees = Join([_faker.PickRandom(members.DefaultIfEmpty(null))]),
+            Assignees = Join([Holder(_faker.PickRandom(positions.DefaultIfEmpty(null)), status == "Completed" ? end : Today)]),
         });
     }
 
@@ -549,8 +579,8 @@ public sealed class PpmGenerator
         var (start, end) = InitiativeWindow();
         var status = StatusForWindow(start, end, forInitiative: true);
 
-        var leadEng = valueStream?.EngineeringLeadEmployeeNumber ?? valueStream?.Arts.FirstOrDefault()?.EngineeringLeadEmployeeNumber;
-        var leadProduct = valueStream?.ProductLeadEmployeeNumber ?? valueStream?.Arts.FirstOrDefault()?.ProductLeadEmployeeNumber;
+        var (leadEng, leadProduct) = valueStream is null ? (null, null) : Leads(valueStream);
+        var namedOn = NamedOn(status, end);
 
         // Link a few of the portfolio's own projects to the initiative.
         var linkedKeys = _projects
@@ -569,8 +599,8 @@ public sealed class PpmGenerator
             Start = start,
             End = end,
             ProjectKeys = Join(linkedKeys),
-            Sponsors = Join([leadProduct]),
-            Owners = Join([leadEng]),
+            Sponsors = Join([Holder(leadProduct, namedOn)]),
+            Owners = Join([Holder(leadEng, namedOn)]),
         });
 
         // A couple of KPIs per initiative.

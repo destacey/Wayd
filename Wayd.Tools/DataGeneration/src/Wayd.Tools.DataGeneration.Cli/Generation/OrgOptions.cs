@@ -16,6 +16,21 @@ public enum CompanyType
     Enterprise,
 }
 
+/// <summary>
+/// Whether a piece of structure is generated: decided by the size of what it would group, always, or never.
+/// </summary>
+public enum StructureMode
+{
+    /// <summary>Left to the generator, which decides from size — what a run did before the switch existed.</summary>
+    Auto,
+
+    /// <summary>Always generated.</summary>
+    On,
+
+    /// <summary>Never generated.</summary>
+    Off,
+}
+
 /// <summary>Knobs for the generated organization. Sensible defaults produce a small, realistic tech company.</summary>
 public sealed class OrgOptions
 {
@@ -28,6 +43,18 @@ public sealed class OrgOptions
     /// </summary>
     public int ValueStreams { get; init; } = 3;
 
+    /// <summary>
+    /// Whether a value stream gets a team of teams of its own. Auto gives one only to a value stream with
+    /// enough teams for two ARTs.
+    /// </summary>
+    public StructureMode ValueStreamTier { get; init; } = StructureMode.Auto;
+
+    /// <summary>
+    /// Whether teams are grouped into ARTs. Auto is on. Off puts each value stream's teams directly under its
+    /// team of teams, or at the top of the hierarchy when it has none.
+    /// </summary>
+    public StructureMode ArtTier { get; init; } = StructureMode.Auto;
+
     /// <summary>The kind of company, which sets the default delivery ratio (see <see cref="DeliveryRatio"/>).</summary>
     public CompanyType CompanyType { get; init; } = CompanyType.Tech;
 
@@ -38,8 +65,12 @@ public sealed class OrgOptions
     /// </summary>
     public double? DeliveryRatio { get; init; }
 
-    /// <summary>Fraction (0..1) of non-delivery employees generated as former (inactive) employees.</summary>
-    public double FormerEmployeeFraction { get; init; } = 0.08;
+    /// <summary>
+    /// The share (0..1) of positions that change hands in a year. Over the delivery history each position
+    /// loses people at this rate and each leaver is replaced, so the leavers are generated as former
+    /// (inactive) employees and the replacements as the current ones.
+    /// </summary>
+    public double AttritionRate { get; init; } = 0.1;
 
     /// <summary>The effective share of employees inside the delivery structure — the override, or the type default.</summary>
     public double EffectiveDeliveryRatio => DeliveryRatio ?? CompanyType switch

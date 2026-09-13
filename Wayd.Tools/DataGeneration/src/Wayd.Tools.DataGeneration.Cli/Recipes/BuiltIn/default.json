@@ -14,13 +14,16 @@
     "companyType": "Tech",
     "valueStreams": 3,
     "teams": 18,
-    "formerEmployeeFraction": 0.08
+    "valueStreamTier": "Auto",
+    "artTier": "Auto",
+    "attritionRate": 0.1
   },
   "ppm": {
     "enabled": true,
     "functionPortfolios": 2,
     "concurrentProjectsPerArt": 10,
-    "concurrentProgramsPerPortfolio": 5
+    "concurrentProgramsPerPortfolio": 5,
+    "programs": "Auto"
   },
   "users": {
     "enabled": true,

@@ -119,12 +119,12 @@ public class PlanningGeneratorTests
     public void Generate_RostersEachIntervalWithItsArtAndTheArtsTeams()
     {
         // Arrange
-        var arts = _default.Org.Structure.ValueStreams.SelectMany(v => v.Arts).ToDictionary(a => a.TeamCode);
+        var arts = _default.Org.Structure.ValueStreams.SelectMany(v => v.Arts).ToDictionary(a => a.TeamCode!);
 
         // Act & Assert
         Data.PlanningIntervals.Should().OnlyContain(p =>
             p.TeamCodes.Split(';', StringSplitOptions.None).ToHashSet().SetEquals(
-                arts[p.ArtCode].Teams.Select(t => t.TeamCode).Append(p.ArtCode)));
+                arts[p.ArtCode!].Teams.Select(t => t.TeamCode).Append(p.ArtCode!)));
     }
 
     [Fact]
@@ -251,12 +251,15 @@ public class PlanningGeneratorTests
     public void Generate_ReportsEveryRiskInThePastBySomeoneOnTheTeam()
     {
         // Arrange — the import refuses a report or a close dated after the moment it runs
-        var teams = _default.Org.Structure.ValueStreams.SelectMany(v => v.Arts).SelectMany(a => a.Teams).ToDictionary(t => t.TeamCode);
+        // — someone who held a position on the team, whether or not they still do
+        var structure = _default.Org.Structure;
+        var teams = structure.ValueStreams.SelectMany(v => v.Arts).SelectMany(a => a.Teams).ToDictionary(t => t.TeamCode);
+        string TodaysHolder(string employeeNumber) => structure.Positions![employeeNumber][^1].EmployeeNumber;
 
         Func<string, string, bool> onTeam = (teamCode, employeeNumber) =>
-            teams[teamCode].MemberEmployeeNumbers.Contains(employeeNumber)
-            || teams[teamCode].EngineeringManagerEmployeeNumber == employeeNumber
-            || teams[teamCode].ProductOwnerEmployeeNumber == employeeNumber;
+            teams[teamCode].MemberEmployeeNumbers.Contains(TodaysHolder(employeeNumber))
+            || teams[teamCode].EngineeringManagerEmployeeNumber == TodaysHolder(employeeNumber)
+            || teams[teamCode].ProductOwnerEmployeeNumber == TodaysHolder(employeeNumber);
 
         // Act & Assert
         Data.Risks.Should().OnlyContain(r => r.ReportedAt < StartOfToday);

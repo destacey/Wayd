@@ -12,7 +12,7 @@
     "companyType": "Enterprise",
     "valueStreams": 4,
     "teams": 30,
-    "formerEmployeeFraction": 0.12
+    "attritionRate": 0.08
   },
   "ppm": {
     "functionPortfolios": 5,

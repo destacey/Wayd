@@ -118,13 +118,16 @@ public class RecipeLayeringTests
                 DeliveryRatio = 0.1,
                 ValueStreams = 1,
                 Teams = 1,
-                FormerEmployeeFraction = 0.01,
+                ValueStreamTier = StructureMode.On,
+                ArtTier = StructureMode.On,
+                AttritionRate = 0.01,
             },
             Ppm = new PpmRecipe
             {
                 FunctionPortfolios = 1,
                 ConcurrentProjectsPerArt = 1,
                 ConcurrentProgramsPerPortfolio = 1,
+                Programs = StructureMode.On,
             },
             Users = new UsersRecipe { Password = "Under123$" },
             ProductManagement = new ProductManagementRecipe
@@ -157,13 +160,16 @@ public class RecipeLayeringTests
                 DeliveryRatio = 0.9,
                 ValueStreams = 5,
                 Teams = 55,
-                FormerEmployeeFraction = 0.5,
+                ValueStreamTier = StructureMode.Off,
+                ArtTier = StructureMode.Off,
+                AttritionRate = 0.4,
             },
             Ppm = new PpmRecipe
             {
                 FunctionPortfolios = 6,
                 ConcurrentProjectsPerArt = 11,
                 ConcurrentProgramsPerPortfolio = 4,
+                Programs = StructureMode.Off,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
             ProductManagement = new ProductManagementRecipe
@@ -194,11 +200,14 @@ public class RecipeLayeringTests
         result.Organization.DeliveryRatio.Should().Be(0.9);
         result.Organization.ValueStreams.Should().Be(5);
         result.Organization.Teams.Should().Be(55);
-        result.Organization.FormerEmployeeFraction.Should().Be(0.5);
+        result.Organization.ValueStreamTier.Should().Be(StructureMode.Off);
+        result.Organization.ArtTier.Should().Be(StructureMode.Off);
+        result.Organization.AttritionRate.Should().Be(0.4);
 
         result.Ppm.FunctionPortfolios.Should().Be(6);
         result.Ppm.ConcurrentProjectsPerArt.Should().Be(11);
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
+        result.Ppm.Programs.Should().Be(StructureMode.Off);
 
         result.UserPassword.Should().Be("Over1234$");
 
@@ -232,13 +241,16 @@ public class RecipeLayeringTests
                 DeliveryRatio = 0.9,
                 ValueStreams = 5,
                 Teams = 55,
-                FormerEmployeeFraction = 0.5,
+                ValueStreamTier = StructureMode.Off,
+                ArtTier = StructureMode.Off,
+                AttritionRate = 0.4,
             },
             Ppm = new PpmRecipe
             {
                 FunctionPortfolios = 6,
                 ConcurrentProjectsPerArt = 11,
                 ConcurrentProgramsPerPortfolio = 4,
+                Programs = StructureMode.Off,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
             ProductManagement = new ProductManagementRecipe
@@ -269,11 +281,14 @@ public class RecipeLayeringTests
         result.Organization.DeliveryRatio.Should().Be(0.9);
         result.Organization.ValueStreams.Should().Be(5);
         result.Organization.Teams.Should().Be(55);
-        result.Organization.FormerEmployeeFraction.Should().Be(0.5);
+        result.Organization.ValueStreamTier.Should().Be(StructureMode.Off);
+        result.Organization.ArtTier.Should().Be(StructureMode.Off);
+        result.Organization.AttritionRate.Should().Be(0.4);
 
         result.Ppm.FunctionPortfolios.Should().Be(6);
         result.Ppm.ConcurrentProjectsPerArt.Should().Be(11);
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
+        result.Ppm.Programs.Should().Be(StructureMode.Off);
 
         result.UserPassword.Should().Be("Over1234$");
 

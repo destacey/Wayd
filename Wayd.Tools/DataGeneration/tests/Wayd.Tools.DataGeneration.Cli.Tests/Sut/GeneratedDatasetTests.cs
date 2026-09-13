@@ -135,6 +135,108 @@ public class GeneratedDatasetTests : IDisposable
         namedForAProduct.Should().BeGreaterThan(dataset.Ppm.Projects.Count / 3);
     }
 
+    // ---- People across areas ------------------------------------------------------------------
+    //
+    // Attrition means the org holds people who have left, and every area names people. These are the rules
+    // that keep the two coherent, checked over everything a seed would post rather than per generator.
+
+    private static readonly DateOnly _asOf = new(2026, 6, 15);
+
+    private static GeneratedDataset WithAttrition(Recipe? recipe = null) => GeneratedDataset.From(Resolve(
+        new Recipe
+        {
+            Timeline = new TimelineRecipe { AsOf = _asOf },
+            Organization = new OrganizationRecipe { AttritionRate = 0.2, ArtTier = recipe?.Organization?.ArtTier },
+            Ppm = recipe?.Ppm,
+        }));
+
+    private static IEnumerable<string> People(params string?[] columns) =>
+        columns.SelectMany(c => string.IsNullOrWhiteSpace(c) ? [] : c.Split(';'));
+
+    [Fact]
+    public void From_NamesOnlyPeopleStillEmployedOnOpenWork()
+    {
+        // Arrange — open work led by someone inactive is a record nobody can manage, since PPM mutation needs
+        // delivery leadership held by a person who can still sign in
+        var dataset = WithAttrition();
+        var ppm = dataset.Ppm!;
+        var inactive = dataset.Org.Employees.Where(e => !e.IsActive).Select(e => e.EmployeeNumber).ToHashSet();
+        var finalized = ppm.Finalizations.Select(f => f.Name).ToHashSet();
+
+        // Act
+        var named = ppm.Projects.Where(p => p.Status is not ("Completed" or "Canceled"))
+                .SelectMany(p => People(p.Sponsors, p.Owners, p.Managers, p.Members).Select(n => (Record: p.Key, Person: n)))
+            .Concat(ppm.Programs.Where(p => !finalized.Contains(p.Name))
+                .SelectMany(p => People(p.Sponsors, p.Owners, p.Managers).Select(n => (Record: p.Name, Person: n))))
+            .Concat(ppm.Portfolios.Where(p => !finalized.Contains(p.Name))
+                .SelectMany(p => People(p.Sponsors, p.Owners, p.Managers).Select(n => (Record: p.Name, Person: n))))
+            .Concat(ppm.StrategicInitiatives.Where(i => i.Status is not ("Completed" or "Canceled"))
+                .SelectMany(i => People(i.Sponsors, i.Owners).Select(n => (Record: i.Name, Person: n))))
+            .Concat(ppm.ProjectTasks.Where(t => t.Status != "Completed")
+                .SelectMany(t => People(t.Assignees).Select(n => (Record: $"{t.ProjectKey}/{t.Name}", Person: n))))
+            .Concat(dataset.Planning!.Risks.Where(r => r.Status != "Closed")
+                .SelectMany(r => People(r.AssigneeEmployeeNumber).Select(n => (Record: r.Handle, Person: n))))
+            .ToList();
+
+        // Assert
+        inactive.Should().NotBeEmpty();
+        named.Where(n => inactive.Contains(n.Person)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void From_NamesPeopleOnFinishedWorkWhoWereThereWhileItRan()
+    {
+        // Arrange — the fidelity attrition exists for: completed work owned by people who have since gone,
+        // and never by someone who joined after it finished or left before it began
+        var dataset = WithAttrition();
+        var positions = dataset.Org.Structure.Positions!;
+        Tenure TenureOf(string employeeNumber) => positions[employeeNumber].Single(t => t.EmployeeNumber == employeeNumber);
+
+        var closed = dataset.Ppm!.Projects.Where(p => p.Status is "Completed" or "Canceled").ToList();
+
+        // Act
+        var outside = closed
+            .SelectMany(p => People(p.Sponsors, p.Owners, p.Managers, p.Members).Select(n => (Project: p, Tenure: TenureOf(n))))
+            .Where(x => x.Tenure.HiredOn > x.Project.End || x.Tenure.LeftOn < x.Project.Start)
+            .Select(x => $"{x.Project.Key} ({x.Project.Start}..{x.Project.End}) names {x.Tenure}")
+            .ToList();
+
+        var reportedBeforeJoining = dataset.Planning!.Risks
+            .Where(r => TenureOf(r.ReportedByEmployeeNumber).HiredOn > DateOnly.FromDateTime(r.ReportedAt.UtcDateTime))
+            .Select(r => r.Handle)
+            .ToList();
+
+        // Assert
+        closed.SelectMany(p => People(p.Owners)).Where(n => TenureOf(n).LeftOn != null).Should().NotBeEmpty(
+            "a finished project owned by someone who has since left is what this is meant to produce");
+        outside.Should().BeEmpty();
+        reportedBeforeJoining.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void From_WithArtsAndProgramsOff_StillStaffsEveryArea()
+    {
+        // Arrange — the areas that grouped work by ART plan and ship by value stream instead
+        var recipe = new Recipe
+        {
+            Organization = new OrganizationRecipe { ArtTier = Generation.StructureMode.Off },
+            Ppm = new PpmRecipe { Programs = Generation.StructureMode.Off },
+        };
+
+        // Act
+        var dataset = WithAttrition(recipe);
+        var withArts = WithAttrition();
+
+        // Assert
+        dataset.Ppm!.Programs.Should().BeEmpty();
+        dataset.Ppm.Projects.Should().OnlyContain(p => p.ProgramName == null);
+        dataset.Ppm.Portfolios.Should().OnlyContain(p => p.Owners != null && p.Sponsors != null);
+        dataset.Ppm.Projects.Count.Should().BeGreaterThan(withArts.Ppm!.Projects.Count / 2, "a value stream's teams carry the load of the ARTs they replaced");
+        dataset.Planning!.PlanningIntervals.Should().OnlyContain(p => p.ArtCode == null);
+        dataset.Planning.PlanningIntervals.Select(p => p.Name).Should().OnlyHaveUniqueItems();
+        dataset.ProductManagement!.ReleasePackages.Select(p => p.Version).Should().OnlyHaveUniqueItems();
+    }
+
     [Fact]
     public void WriteTo_CreatesTheDirectoryItIsGiven()
     {

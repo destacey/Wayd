@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "generate:import-templates": "node scripts/generate-import-templates.mjs",
     "test": "jest",
     "test:coverage": "jest --coverage --ci",
     "test:docs": "jest --config jest.docs.config.ts --no-coverage",

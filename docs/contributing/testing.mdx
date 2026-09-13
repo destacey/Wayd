@@ -31,6 +31,10 @@ Integration tests need Docker running. Unit tests never do — including
 `Wayd.Integrations.AzureDevOps.IntegrationTests`, which despite its name needs a live Azure DevOps org
 rather than a container, and skips itself when one is not configured.
 
+Each integration project starts its own container, so the integration run pulls the SQL Server image once
+before any suite starts and runs at most two projects at a time. Set `INTEGRATION_TEST_PARALLELISM` to change
+the limit.
+
 ### Sharing a container
 
 Every integration project shares **one** SQL Server container and one migrated schema across all of its

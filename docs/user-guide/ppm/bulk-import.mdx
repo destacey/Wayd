@@ -11,8 +11,9 @@ Wayd can load PPM data in bulk from CSV files through a set of **import endpoint
 standing up an environment, migrating from another tool, or seeding realistic data. Each import is a single
 `POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a permission.
 
-:::info API only
-Bulk import is an **API feature** — there is no import screen in the app. Calls are made directly to the
+:::info Screen or API
+Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
+which lists each file's columns and hands over a template. Calls can also be made directly to the
 endpoints below (for example with `curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
 which generates these exact CSVs and posts them for you). Exact request/response shapes are also in the
 OpenAPI/Swagger spec served by the API.

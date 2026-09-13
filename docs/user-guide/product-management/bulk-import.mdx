@@ -13,10 +13,10 @@ is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), a
 permission.
 
 :::info Screen or API
-Products, versions, release packages, releases and deployments each have an **Import** button on their
-list page, and environments have one under **Settings → Product Management → Environments**, each
-taking the same CSV described here. The endpoints can also be called directly — with `curl`, a script, or anything else — and their
-exact request/response shapes are in the OpenAPI/Swagger spec served by the API.
+Every import described here can be run from [Settings → Imports](../settings/imports.mdx#importing-a-file),
+which lists each file's columns and hands over a template, taking the same CSV described here. The
+endpoints can also be called directly — with `curl`, a script, or anything else — and their exact
+request/response shapes are in the OpenAPI/Swagger spec served by the API.
 :::
 
 ## How imports work

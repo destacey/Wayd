@@ -10,10 +10,29 @@ audience: [user, agent]
 **Settings → Imports** shows every import file that has been submitted, what became of it, and what you
 can still do about it.
 
-Files are submitted through the import endpoints for each area — see the bulk import guides for
-[Organization](../organizations/bulk-import.mdx), [Planning](../planning/bulk-import.mdx),
-[PPM](../ppm/bulk-import.mdx) and [Product Management](../product-management/bulk-import.mdx). This page
-is where a submitted file goes afterwards.
+It is also where files are submitted from the app. What each file must contain is described in the bulk
+import guides for [Organization](../organizations/bulk-import.mdx), [Planning](../planning/bulk-import.mdx),
+[PPM](../ppm/bulk-import.mdx) and [Product Management](../product-management/bulk-import.mdx), and the same
+files can be posted straight to each area's import endpoint instead.
+
+## Importing a file
+
+Select **Import**, then choose what you are importing. The list holds only the kinds of import you are
+allowed to submit, and the button is hidden when there are none.
+
+For the kind you choose, the dialog shows:
+
+- **What the import does**, and whether it is all-or-nothing or applied row by row, with its row cap.
+- **Every column the file must carry**, whether a row may leave it empty, and what it accepts — a date,
+  an id, or one of a fixed set of values such as a status. The file needs every header even where a cell
+  is blank.
+- **Download Template**, a CSV holding just the header row, ready to fill in.
+
+An import that takes more than one file — release packages and their manifest, releases and their
+contents, strategic initiatives and their KPIs — asks for each separately, and says which are optional.
+
+The column lists come from the API's own description of each import, so they cannot drift from what the
+server reads.
 
 ## Why a run exists at all
 

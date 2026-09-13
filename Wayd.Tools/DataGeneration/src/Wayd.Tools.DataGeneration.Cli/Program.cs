@@ -50,17 +50,6 @@ void ReportRunInputs(ParseResult parse, GenerationContext context)
         + $"(pass{recipe} --random-seed {context.Seed} --as-of {context.AsOf:yyyy-MM-dd} to reproduce this data).");
 }
 
-void ReportProductManagement(GeneratedProductManagement productManagement) =>
-    Console.WriteLine(
-        $"Generated {productManagement.Products.Count} products, {productManagement.Versions.Count} versions, "
-        + $"{productManagement.ReleasePackages.Count} release packages, {productManagement.Releases.Count} releases, "
-        + $"{productManagement.Deployments.Count} deployments across {productManagement.Environments.Count} environments.");
-
-void ReportPlanning(GeneratedPlanning planning) =>
-    Console.WriteLine(
-        $"Generated {planning.PlanningIntervals.Count} planning intervals, {planning.Objectives.Count} objectives, "
-        + $"{planning.Risks.Count} risks.");
-
 // ---- generate: write the CSVs to a directory for inspection -----------------------------------
 //
 // The organization files are the real thing — its references are natural keys the generator owns, so they
@@ -83,25 +72,18 @@ generateCommand.SetAction((parse, _) =>
     ReportRunInputs(parse, context);
 
     var dataset = GeneratedDataset.From(resolved);
-    var org = dataset.Org;
     var outDir = parse.GetValue(outOption)!;
 
     dataset.WriteTo(outDir.FullName);
 
-    Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");
+    foreach (var line in dataset.Summary())
+        Console.WriteLine(line);
 
-    if (dataset.Ppm is { } ppm)
+    if (dataset.Ppm is not null)
     {
-        Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
         Console.WriteLine("Expenditure categories and the project lifecycle are bootstrapped via the API at seed time (not written as CSV).");
         Console.WriteLine("The PPM files name portfolios, programs and categories rather than referencing them by id, so they are for inspection — `seed` resolves those ids from each run as it goes.");
     }
-
-    if (dataset.ProductManagement is { } productManagement)
-        ReportProductManagement(productManagement);
-
-    if (dataset.Planning is { } planning)
-        ReportPlanning(planning);
 
     Console.WriteLine($"Wrote CSVs to {outDir.FullName}");
     return Task.FromResult(0);
@@ -129,41 +111,15 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
     if (!TryResolve(parse, seed, out var resolved))
         return 1;
 
-    var context = resolved.Context;
-    ReportRunInputs(parse, context);
+    ReportRunInputs(parse, resolved.Context);
 
-    var org = new OrgGenerator(resolved.Organization, context).Generate();
-    Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");
-
-    GeneratedPpm? ppm = null;
-    if (resolved.GeneratePpm)
-    {
-        ppm = new PpmGenerator(org.Structure, resolved.Ppm, context).Generate();
-        Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
-    }
-
-    GeneratedProductManagement? productManagement = null;
-    if (resolved.GenerateProductManagement)
-    {
-        productManagement = new ProductManagementGenerator(org.Structure, resolved.ProductManagement, context).Generate();
-        ReportProductManagement(productManagement);
-    }
-
-    GeneratedPlanning? planning = null;
-    if (resolved.GeneratePlanning)
-    {
-        planning = new PlanningGenerator(org.Structure, resolved.Planning, context).Generate();
-        ReportPlanning(planning);
-    }
-
-    var apiUrl = parse.GetValue(apiOption)!;
-    // One group per seed run, so the files it posts can be found together afterwards.
-    using var client = new WaydSeedClient(apiUrl, apiKey, submissionGroupId: Guid.NewGuid());
-    var runner = new SeedRunner(client, Console.WriteLine);
+    var dataset = GeneratedDataset.From(resolved);
+    foreach (var line in dataset.Summary())
+        Console.WriteLine(line);
 
     try
     {
-        await runner.Run(org, ppm, productManagement, planning, resolved.CreateUsers, resolved.UserPassword, cancellationToken);
+        await DatasetSeeder.Seed(dataset, resolved, parse.GetValue(apiOption)!, apiKey, Console.WriteLine, cancellationToken);
         return 0;
     }
     catch (SeedException ex)
@@ -234,17 +190,23 @@ recipesCommand.Add(recipesSchemaCommand);
 // ---- ui: build a recipe in a browser -----------------------------------------------------------
 //
 // A second front end over the same resolver, not a second implementation: the page builds its form from
-// the published recipe schema, generates through the same code `generate` runs, and shows the command
-// that would have done it. Seeding stays here on the CLI, where the token already lives.
+// the published recipe schema, generates and seeds through the same code `generate` and `seed` run, and
+// shows the command that would have done it.
 
 var noBrowserOption = new Option<bool>("--no-browser") { Description = "Print the URL instead of opening a browser." };
+var uiApiOption = new Option<string?>("--api", "-a") { Description = "Base URL of the Wayd API to fill the page's seed form with (e.g. https://localhost:5001)." };
 
-var uiCommand = new Command("ui", "Open a local page for building a recipe and previewing what it generates.");
+var uiCommand = new Command("ui", "Open a local page for building a recipe, previewing what it generates, and seeding it.");
 uiCommand.Add(outOption);
+uiCommand.Add(uiApiOption);
 uiCommand.Add(noBrowserOption);
 uiCommand.SetAction(async (parse, cancellationToken) =>
     await UiServer.Run(
-        parse.GetValue(outOption) ?? new DirectoryInfo("./seed"),
+        new UiSettings(
+            parse.GetValue(outOption) ?? new DirectoryInfo("./seed"),
+            parse.GetValue(uiApiOption),
+            Environment.GetEnvironmentVariable("WAYD_API_KEY"),
+            DatasetSeeder.Seed),
         openBrowser: !parse.GetValue(noBrowserOption),
         cancellationToken));
 

@@ -9,20 +9,32 @@ using Microsoft.Extensions.Logging;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Recipes;
+using Wayd.Tools.DataGeneration.Cli.Seeding;
 
 namespace Wayd.Tools.DataGeneration.Cli.Ui;
 
+/// <summary>What the page is started with.</summary>
+/// <param name="DefaultOutput">Where CSVs are written when the page names no folder.</param>
+/// <param name="DefaultApi">The API the seed form starts filled with, if the command named one.</param>
+/// <param name="EnvironmentApiKey">
+/// The token the shell that started the tool holds in <c>WAYD_API_KEY</c>, used when the page sends none.
+/// </param>
+/// <param name="Seed">How a seed reaches the environment — the real API client, or a stand-in under test.</param>
+public sealed record UiSettings(DirectoryInfo DefaultOutput, string? DefaultApi, string? EnvironmentApiKey, SeedExecutor Seed);
+
 /// <summary>
-/// A local page for building a recipe and previewing what it generates.
+/// A local page for building a recipe, previewing what it generates, and seeding it.
 /// </summary>
 /// <remarks>
 /// The point is not a second way to do the same thing: the page composes a recipe, shows the resolved
-/// JSON and the <c>wayd-data</c> command that would produce it, and writes CSVs through the same code the
-/// CLI runs. One resolver, two front ends — anything the page can express is expressible as a recipe file
-/// and a command line, and it prints both so the page teaches the CLI rather than replacing it.
+/// JSON and the <c>wayd-data</c> command that would produce it, and writes CSVs and seeds through the same
+/// code the CLI runs. One resolver, two front ends — anything the page can express is expressible as a
+/// recipe file and a command line, and it prints both so the page teaches the CLI rather than replacing it.
 /// <para>
-/// Seeding stays on the CLI. Running one means holding a Personal Access Token, and a browser form is a
-/// worse place to put a credential than a shell that already has one in an environment variable.
+/// A seed needs a Personal Access Token. The page accepts one, or falls back to the <c>WAYD_API_KEY</c> the
+/// tool was started with, so a shell that already holds one never has to paste it. Either way the token only
+/// travels from the page to this process on the loopback address: it is used for the run's requests and
+/// never written to the log, a file, or the command the page prints.
 /// </para>
 /// </remarks>
 public static class UiServer
@@ -33,17 +45,39 @@ public static class UiServer
     /// <remarks>
     /// Bound to the loopback address on a port the OS picks, and gated by a token generated per run and
     /// carried in the launch URL — the same shape the Aspire dashboard is opened with. A local page that
-    /// writes files to disk should not be reachable from the network, and should not be usable by
-    /// anything that merely guessed the port.
+    /// writes files to disk and holds a credential should not be reachable from the network, and should not
+    /// be usable by anything that merely guessed the port.
     /// </remarks>
-    public static async Task<int> Run(DirectoryInfo defaultOutput, bool openBrowser, CancellationToken cancellationToken)
+    public static async Task<int> Run(UiSettings settings, bool openBrowser, CancellationToken cancellationToken)
     {
         var token = Guid.NewGuid().ToString("N");
 
+        await using var app = Build(settings, token);
+
+        await app.StartAsync(cancellationToken);
+
+        var url = app.Urls.First();
+        var launchUrl = $"{url}/?t={token}";
+
+        Console.WriteLine($"wayd-data UI: {launchUrl}");
+        Console.WriteLine("Press Ctrl+C to stop.");
+
+        if (openBrowser)
+            OpenBrowser(launchUrl);
+
+        await app.WaitForShutdownAsync(cancellationToken);
+
+        return 0;
+    }
+
+    /// <summary>The page's server, built but not started, on a loopback port the OS picks.</summary>
+    internal static WebApplication Build(UiSettings settings, string token)
+    {
         var builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0));
-        builder.Services.AddSingleton(new UiState(defaultOutput));
+        builder.Services.AddSingleton(settings);
+        builder.Services.AddSingleton(sp => new SeedRuns(sp.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping));
 
         // The endpoints bind the same recipe types the CLI parses, so they have to read them the same
         // way. Minimal APIs default to their own JSON options, which carry no enum converter — and the
@@ -76,20 +110,7 @@ public static class UiServer
 
         MapEndpoints(app);
 
-        await app.StartAsync(cancellationToken);
-
-        var url = app.Urls.First();
-        var launchUrl = $"{url}/?t={token}";
-
-        Console.WriteLine($"wayd-data UI: {launchUrl}");
-        Console.WriteLine("Press Ctrl+C to stop.");
-
-        if (openBrowser)
-            OpenBrowser(launchUrl);
-
-        await app.WaitForShutdownAsync(cancellationToken);
-
-        return 0;
+        return app;
     }
 
     /// <summary>
@@ -141,7 +162,127 @@ public static class UiServer
 
         app.MapPost("/api/preview", (RunRequest request) => Preview(request));
 
-        app.MapPost("/api/generate", (RunRequest request, UiState state) => Generate(request, state));
+        app.MapPost("/api/generate", (RunRequest request, UiSettings settings) => Generate(request, settings));
+
+        // Whether a seed can run without a pasted token, so the form can say so. The token itself never leaves.
+        app.MapGet("/api/seed/defaults", (UiSettings settings) => Results.Json(new
+        {
+            api = settings.DefaultApi,
+            apiKeyFromEnvironment = !string.IsNullOrWhiteSpace(settings.EnvironmentApiKey),
+        }));
+
+        app.MapPost("/api/seed", (SeedRequest request, UiSettings settings, SeedRuns runs) => StartSeed(request, settings, runs));
+
+        app.MapGet("/api/seed/{id:guid}/events", async (Guid id, HttpContext http, SeedRuns runs) =>
+        {
+            if (runs.Find(id) is not { } run)
+            {
+                http.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
+            await StreamEvents(http, run);
+        });
+
+        app.MapPost("/api/seed/{id:guid}/cancel", (Guid id, SeedRuns runs) =>
+            runs.Cancel(id) ? Results.Accepted() : Results.NotFound(new { error = "That seed is not running." }));
+    }
+
+    /// <summary>
+    /// Generates the recipe and starts seeding it in the background, answering straight away with what was
+    /// generated and the run to follow.
+    /// </summary>
+    private static IResult StartSeed(SeedRequest request, UiSettings settings, SeedRuns runs)
+    {
+        var api = string.IsNullOrWhiteSpace(request.Api) ? settings.DefaultApi : request.Api.Trim();
+        if (!Uri.TryCreate(api, UriKind.Absolute, out var apiUri) || apiUri.Scheme is not ("http" or "https"))
+            return Results.BadRequest(new { error = "Enter the API's base URL, such as https://localhost:5001." });
+
+        var apiKey = string.IsNullOrWhiteSpace(request.ApiKey) ? settings.EnvironmentApiKey : request.ApiKey.Trim();
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            return Results.BadRequest(new
+            {
+                error = "A seed needs a Personal Access Token. Paste one, or start wayd-data ui from a shell with WAYD_API_KEY set.",
+            });
+        }
+
+        ResolvedRecipe resolved;
+        int seed;
+        GeneratedDataset dataset;
+        try
+        {
+            (resolved, seed) = Resolve(new RunRequest(request.Recipe, request.Seed, Out: null));
+            dataset = GeneratedDataset.From(resolved);
+        }
+        catch (RecipeException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+
+        var run = runs.TryStart(async (started, cancellationToken) =>
+        {
+            started.Log($"Using seed {seed} as of {resolved.Context.AsOf:yyyy-MM-dd}. Seeding {apiUri.GetLeftPart(UriPartial.Authority)}.");
+            foreach (var line in dataset.Summary())
+                started.Log(line);
+
+            await settings.Seed(dataset, resolved, apiUri.ToString(), apiKey, started.Log, cancellationToken);
+        });
+
+        if (run is null)
+            return Results.Conflict(new { error = "A seed is already running. Let it finish, or cancel it, first." });
+
+        return Results.Json(new
+        {
+            runId = run.Id,
+            seed,
+            asOf = resolved.Context.AsOf.ToString("yyyy-MM-dd"),
+            counts = dataset.Counts,
+        }, statusCode: StatusCodes.Status202Accepted);
+    }
+
+    /// <summary>
+    /// A run's log as server-sent events, from its first line, ending with a <c>done</c> event that says how
+    /// it finished.
+    /// </summary>
+    /// <remarks>
+    /// Read by the page with <c>fetch</c> rather than <c>EventSource</c>, which cannot send a header: the
+    /// alternative would put the page token back into a request URL.
+    /// </remarks>
+    private static async Task StreamEvents(HttpContext http, SeedRun run)
+    {
+        http.Response.ContentType = "text/event-stream";
+        http.Response.Headers.CacheControl = "no-store";
+
+        var cancellationToken = http.RequestAborted;
+        var sent = 0;
+
+        try
+        {
+            while (true)
+            {
+                var (lines, state, error) = run.Read(sent);
+
+                foreach (var line in lines)
+                    await http.Response.WriteAsync($"data: {JsonSerializer.Serialize(new { line })}\n\n", cancellationToken);
+
+                sent += lines.Count;
+
+                if (state != SeedRunState.Running)
+                {
+                    await http.Response.WriteAsync(
+                        $"event: done\ndata: {JsonSerializer.Serialize(new { state = state.ToString(), error })}\n\n", cancellationToken);
+                    return;
+                }
+
+                await http.Response.Body.FlushAsync(cancellationToken);
+                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The page went away. The run carries on, and a page that comes back reads it from the start.
+        }
     }
 
     /// <summary>
@@ -161,7 +302,7 @@ public static class UiServer
         }
     }
 
-    private static IResult Generate(RunRequest request, UiState state)
+    private static IResult Generate(RunRequest request, UiSettings settings)
     {
         try
         {
@@ -169,7 +310,7 @@ public static class UiServer
             var dataset = GeneratedDataset.From(resolved);
 
             var directory = string.IsNullOrWhiteSpace(request.Out)
-                ? state.DefaultOutput.FullName
+                ? settings.DefaultOutput.FullName
                 : request.Out;
 
             dataset.WriteTo(directory);
@@ -223,8 +364,12 @@ public static class UiServer
         }
     }
 
-    private sealed record UiState(DirectoryInfo DefaultOutput);
-
     /// <summary>What the page asks for: a recipe, the seed to run it under, and where to write.</summary>
     private sealed record RunRequest(Recipe? Recipe, int? Seed, string? Out);
+
+    /// <summary>
+    /// What the page asks a seed for: a recipe and its seed, the API, and a token — or none, to use the one
+    /// the tool was started with.
+    /// </summary>
+    private sealed record SeedRequest(Recipe? Recipe, int? Seed, string? Api, string? ApiKey);
 }

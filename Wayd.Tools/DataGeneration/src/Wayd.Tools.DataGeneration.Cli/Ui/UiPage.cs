@@ -70,13 +70,17 @@ internal static class UiPage
   .error { color: var(--error); white-space: pre-wrap; }
   .warn { color: var(--error); }
   .warn:empty { display: none; }
+  /* Not one of the form's own fieldsets, so it is the first of its type in the section and would otherwise
+     lose the divider that separates it from the recipe above. */
+  #seed-panel { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 14px; }
+  #seed-log { max-height: 320px; overflow-y: auto; }
+  .status { font-size: 12.5px; color: var(--muted); }
 </style>
 </head>
 <body>
 <header>
   <h1>wayd-data</h1>
-  <p>Build a recipe, see what it generates, and take the command away with you. Seeding an environment
-     stays on the command line — that needs a token, which belongs in a shell rather than a browser form.</p>
+  <p>Build a recipe, see what it generates, seed it into an environment, and take the command away with you.</p>
 </header>
 
 <main>
@@ -94,15 +98,41 @@ internal static class UiPage
       <input id="out" placeholder="output folder" style="flex:1;min-width:160px">
     </div>
     <p class="error" id="error"></p>
+
+    <fieldset id="seed-panel">
+      <legend>Seed an environment</legend>
+      <p class="hint">Generates this recipe and posts it through the API's imports. What it creates stays
+         there — cancelling stops the seed, not the imports the API has already accepted.</p>
+      <div class="row">
+        <label for="api">API URL</label>
+        <input id="api" placeholder="https://localhost:5001" spellcheck="false">
+      </div>
+      <div class="row">
+        <label for="api-key">Personal access token<div class="desc" id="api-key-desc">Sent only to wayd-data on this machine, and never saved.</div></label>
+        <input id="api-key" type="password" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="actions">
+        <button class="primary" id="seed">Seed</button>
+        <button id="cancel" hidden>Cancel</button>
+        <span class="status" id="seed-status"></span>
+      </div>
+      <p class="error" id="seed-error"></p>
+    </fieldset>
   </section>
 
   <section class="stack">
     <h2>Result</h2>
     <div id="counts"></div>
 
+    <div id="seed-output" hidden>
+      <div class="head"><h3>Seed log</h3></div>
+      <pre id="seed-log"></pre>
+    </div>
+
     <div>
       <div class="head"><h3>Command</h3><button data-copy="cli">Copy</button></div>
       <pre id="cli">wayd-data generate</pre>
+      <p class="hint" id="cli-key-note" hidden>The command reads its token from WAYD_API_KEY, so it never appears on the command line.</p>
       <p class="hint warn" id="cli-note"></p>
     </div>
 
@@ -262,7 +292,10 @@ function fill(values) {
 function render() {
   el('json').textContent = JSON.stringify(recipe, null, 2);
 
-  const parts = ['wayd-data generate'];
+  // With an API to seed, the command is the seed that would do what the page does. Its token is left out:
+  // the CLI reads WAYD_API_KEY, and a pasted token in a copied command ends up in shell history.
+  const seeding = el('api').value.trim() !== '';
+  const parts = [seeding ? 'wayd-data seed' : 'wayd-data generate'];
   // Stated, not truthy. A zero is a value someone typed, and dropping it from the command while leaving
   // it in the recipe means the command no longer reproduces what is on screen.
   const stated = value => value !== undefined && value !== null && value !== '';
@@ -304,8 +337,10 @@ function render() {
     }
   }
 
-  if (stated(el('out').value)) parts.push(`--out ${arg(el('out').value, '--out')}`);
+  if (seeding) parts.push(`--api ${arg(el('api').value.trim(), '--api')}`);
+  else if (stated(el('out').value)) parts.push(`--out ${arg(el('out').value, '--out')}`);
   el('cli').textContent = parts.join(' ');
+  el('cli-key-note').hidden = !seeding;
   el('cli-note').textContent = unportable.length
     ? `${unportable.join(' and ')} holds both an apostrophe and a $ or a backtick. No quoting means the `
       + `same thing in bash and in PowerShell, so fix that argument by hand after pasting.`
@@ -317,6 +352,98 @@ function humanise(name) {
   const spaced = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
   return spaced.replace(/^./, c => c.toUpperCase()).replace(/\bppm\b/gi, 'PPM').replace(/\bart\b/gi, 'ART');
 }
+
+// ---- Seeding ----------------------------------------------------------------------------------
+
+const seedLog = line => {
+  el('seed-output').hidden = false;
+  el('seed-log').textContent += `${line}\n`;
+  el('seed-log').scrollTop = el('seed-log').scrollHeight;
+};
+
+let runId = null;
+
+function setSeeding(running) {
+  el('seed').disabled = running;
+  el('cancel').hidden = !running;
+  el('cancel').disabled = false;
+}
+
+async function startSeed() {
+  el('seed-error').textContent = '';
+  read();
+
+  const apiUrl = el('api').value.trim();
+  if (apiUrl && !confirm(`Seed this data into ${apiUrl}? Everything it imports stays there.`)) return;
+
+  setSeeding(true);
+  el('seed-status').textContent = 'Generating…';
+  try {
+    const started = await api('/api/seed', {
+      method: 'POST',
+      body: JSON.stringify({ recipe, seed, api: apiUrl || null, apiKey: el('api-key').value || null }),
+    });
+    runId = started.runId;
+    seed = started.seed;
+    showCounts(started);
+    render();
+
+    el('seed-log').textContent = '';
+    el('seed-status').textContent = 'Seeding…';
+    const done = await follow(runId);
+
+    el('seed-status').textContent = { Succeeded: 'Seed complete.', Canceled: 'Seed canceled.' }[done.state] || 'Seed failed.';
+    if (done.error) el('seed-error').textContent = done.error;
+  } catch (err) {
+    el('seed-status').textContent = '';
+    el('seed-error').textContent = err.message;
+  } finally {
+    runId = null;
+    setSeeding(false);
+  }
+}
+
+// The log arrives as server-sent events, read through fetch so the page token stays in a header.
+async function follow(id) {
+  const res = await fetch(`/api/seed/${id}/events`, { headers: { 'X-Wayd-Ui-Token': token } });
+  if (!res.ok || !res.body) throw new Error(`Could not follow the seed (${res.status}).`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf('\n\n')) >= 0) {
+      const frame = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+
+      const event = /^event: (.*)$/m.exec(frame)?.[1] ?? 'message';
+      const data = JSON.parse(/^data: (.*)$/m.exec(frame)[1]);
+      if (event === 'done') return data;
+      seedLog(data.line);
+    }
+  }
+
+  return { state: 'Failed', error: 'The connection to wayd-data closed before the seed finished. Is it still running?' };
+}
+
+el('seed').addEventListener('click', startSeed);
+el('api').addEventListener('change', render);
+el('cancel').addEventListener('click', async () => {
+  if (!runId) return;
+  el('cancel').disabled = true;
+  el('seed-status').textContent = 'Canceling…';
+  try {
+    await api(`/api/seed/${runId}/cancel`, { method: 'POST' });
+  } catch (err) {
+    el('seed-error').textContent = err.message;
+  }
+});
 
 function showCounts(result) {
   const rows = Object.entries(result.counts)
@@ -370,6 +497,13 @@ el('builtin').addEventListener('change', async () => {
 (async () => {
   schema = await api('/api/schema');
   buildForm();
+
+  const defaults = await api('/api/seed/defaults');
+  el('api').value = defaults.api || '';
+  if (defaults.apiKeyFromEnvironment) {
+    el('api-key').placeholder = 'using WAYD_API_KEY';
+    el('api-key-desc').textContent = 'Leave empty to use the WAYD_API_KEY wayd-data was started with. A token pasted here is sent only to wayd-data on this machine, and never saved.';
+  }
 
   const recipes = await api('/api/recipes');
   for (const { name } of recipes) el('builtin').append(new Option(name, name));

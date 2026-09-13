@@ -8,7 +8,8 @@ audience: [developer, agent]
 # Data Generation (`wayd-data`)
 
 `wayd-data` is a developer tool that **generates a realistic company** — people and a management tree, a
-cross-functional delivery hierarchy, and a full project-portfolio dataset on top of it — and **seeds it into
+cross-functional delivery hierarchy, a full project-portfolio dataset, and a product catalog with its
+delivery history on top of it — and **seeds it into
 a Wayd environment through the public HTTP API**. Use it to stand up a believable environment for exploring
 features or demoing, without hand-crafting data. Every seed run also exercises the real API end to end, so
 it doubles as an integration smoke test.
@@ -16,9 +17,11 @@ it doubles as an integration smoke test.
 **Project:** `Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli` (the executable is `wayd-data`).
 
 :::info Scope
-Generates the organization (people + team hierarchy) and the PPM dataset (portfolios, programs, projects,
-tasks, strategic themes, and strategic initiatives with KPIs). Use the `org-only` recipe, or `--skip-ppm`,
-for the organization on its own.
+Generates the organization (people + team hierarchy), the PPM dataset (portfolios, programs, projects,
+tasks, strategic themes, and strategic initiatives with KPIs), and the Product Management dataset
+(products, versions, release packages, releases, deployment environments and deployments). Use the
+`org-only` recipe for the organization on its own, or `--skip-ppm` / `--skip-product-management` to leave
+out one area.
 Planning and work items are not generated. Database **reset** is a separate, out-of-band operation (an
 Aspire dashboard command), not part of this tool.
 :::
@@ -34,9 +37,10 @@ recipe for you and shows the command it corresponds to.
 
 :::note `generate` writes files to read, not files to post
 The organization files are postable as they stand — every reference in them is a natural key the generator
-owns. The PPM files are the generated model: they name portfolios, programs and categories rather than
-pointing at ids, because those ids only exist once a run has created the records. `seed` resolves them
-stage by stage as it goes; there is no way to write a postable PPM file ahead of a run.
+owns. The PPM and Product Management files are the generated model: they name portfolios, products and
+versions rather than pointing at ids, because those ids only exist once a run has created the records.
+`seed` resolves them stage by stage as it goes; there is no way to write a postable file for either ahead of
+a run.
 :::
 
 ```bash
@@ -101,7 +105,7 @@ $ wayd-data recipes
   demo           A fixed dataset for demos and screenshots.
   enterprise     A large non-delivery-led business.
   large-tech     A scaled product organization.
-  org-only       The organization on its own, with no PPM dataset over it.
+  org-only       The organization on its own, with no PPM or Product Management dataset over it.
   startup        A young company: one product line, a handful of teams.
 ```
 
@@ -173,8 +177,9 @@ Each area block carries an `enabled` flag, so switching one off is part of the f
 { "extends": "default", "ppm": { "enabled": false } }
 ```
 
-That is exactly what the `org-only` built-in is. `--skip-ppm` still works as a shorthand, and only ever
-turns the area off — leaving it out never switches an area back on over a recipe that disabled it.
+The `org-only` built-in disables both `ppm` and `productManagement`. `--skip-ppm` and
+`--skip-product-management` are shorthands for one area each, and only ever turn it off — leaving one out
+never switches an area back on over a recipe that disabled it.
 
 The organization is the exception: it cannot be disabled, and saying so is an error rather than a silent
 no-op. Every other area is generated *over* it — portfolios and projects name people by employee number,
@@ -311,7 +316,11 @@ anything you can compose in the page, you can also say on a command line.
 | `--function-portfolios` | `2` | Cross-cutting business-function portfolios, on top of one per value stream |
 | `--concurrent-projects-per-art` | `10` | Projects an ART has *in flight at once*; the total generated is derived from this across the window |
 | `--concurrent-programs-per-portfolio` | `5` | Thematic programs a portfolio runs at once; the total generated is derived from this across the window |
-| `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (org **and** PPM) |
+| `--skip-product-management` | off | Skip the product catalog and its delivery history |
+| `--version-interval-days` | `14` | Average days between two versions of a service; web and mobile apps ship less often, libraries and tools far less |
+| `--change-failure-rate` | `0.12` | Share (0..0.6) of production deployments that fail or are rolled back, averaged over the history |
+| `--packaged-art-fraction` | `0.25` | Share (0..1) of ARTs that ship their services together as release packages; at least one ART when above zero |
+| `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (every area) |
 | `--as-of` | today | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
 | `--out`, `-o` | `./seed` | (`generate` and `ui`) output directory |
 | `--no-browser` | off | (`ui` only) print the URL instead of opening a browser |
@@ -393,7 +402,10 @@ delivery teams:
   of everyone across the participating teams. Each project gets the shared **Standard Delivery** lifecycle
   and an expenditure category. Volume is set by `--concurrent-projects-per-art` (how many an ART runs at
   once); the total is derived from the four-year window and typical 2–9-month durations, so an ART
-  accumulates a deep history and a full runway rather than a handful of projects.
+  accumulates a deep history and a full runway rather than a handful of projects. Most ART projects are
+  named after a component the owning team builds ("Migrate Loyalty Gateway"), so they read against the
+  [product catalog](#the-product-management-dataset); a component retired before a project starts is never
+  its subject.
 - **Project tasks** — a dense work breakdown (stages → root tasks → child tasks, plus a milestone per
   stage) for every project that has started; proposed and future projects have none yet. Each **stage's
   status** is rolled up from its tasks (all done → Completed, some in flight → In Progress, none started →
@@ -432,6 +444,51 @@ and then closed by a final `finalize` pass, after their contents exist. The gene
 rows automatically; you'll see a "Finalizing …" line at the end of a seed run when any apply.
 :::
 
+### The Product Management dataset
+
+Unless `--skip-product-management` is passed, the generator builds a product catalog over the same
+delivery hierarchy, and the history of how it shipped. Wayd has no link between a product and a team, so
+the connection is in the names: a component is named for the team that owns it and its description says so.
+
+- **Catalog** — a **Product Line** per value stream ("Growth Cloud"), a **Product** per ART, and under it
+  the components each team owns. Every team owns something it deploys — a **Service** or a web
+  **Application** — and some also publish a **Library** or a **Tool**; about one product in three has a
+  mobile app. Tags use the seeded `Platform` category. A few components are **Sunset** (shipping rarely
+  since a sunset date) or **Retired** (nothing after a retirement date), and a few **Concept** services have
+  only a planned first version.
+- **Environments** — each product line gets `-dev`, `-test`, `-staging` and `-prod` environments. About half
+  also have a `-uat` environment retired partway through the history, which only finished deployments
+  point at.
+- **Versions** — each component ships on its own cadence (`--version-interval-days` for a service; web
+  apps about 1.4×, mobile 2×, libraries and tools 3× or more). Every team works at its own tempo, and teams
+  speed up across the history. A version released before today has a target, cut and released date (a
+  quarter of them slipped a few days); one cut but not released is **Ready**; ones up to 90 days ahead are
+  **Planned**. Nothing ships in a weekend or the year-end change freeze.
+- **Deployments** — every shipped service or web-app version walks its line's environments, promoting the
+  same build from dev to production, and production receives it on the day the version was released. A
+  failure outside production is retried with a new build. In production a deployment fails or is rolled back
+  at `--change-failure-rate`, scaled by team and falling from about 1.5× at the start of the history to 0.6×
+  by today; a rollback is followed by a hotfix patch version a few days later. One recent version per line
+  is still deploying to staging.
+- **Release packages** — `--packaged-art-fraction` of the ARTs ship their services together on a train
+  every few weeks instead. Each package's manifest lists every service, **Changed** or **CarriedForward**,
+  and the package, not the services, is what walks the environments. Every manifest line names a version
+  that exists, so it is linked rather than stored as text.
+- **Releases** — each product line announces monthly or quarterly: the last version of each customer-facing
+  component and every package shipped in the period, released a few days after the period closes. The
+  current and next period are still planned.
+
+What that is for is the [delivery metrics](../../user-guide/product-management/delivery.mdx#delivery-metrics)
+page: deployment frequency climbs toward today and change failure rate falls, rather than both sitting flat.
+Wayd does not compute lead time yet, but the data already carries what it would read — every production
+deployment follows its version's cut date.
+
+:::note The feature flag
+Product Management is seeded **disabled**, and every one of its endpoints — the imports included — answers
+404 until it is enabled. When the area runs, `seed` switches the `product-management` flag on first and
+says so in the log.
+:::
+
 ## Reproducibility
 
 Every run resolves a concrete seed (random when `--random-seed` is omitted) and prints it:
@@ -460,8 +517,10 @@ the database IDs.
 ## How it works (and why)
 
 The tool **never touches the database directly** — it POSTs CSV to the API's import endpoints (the same
-endpoints documented in the [Organization](../../user-guide/organizations/bulk-import.mdx) and
-[PPM](../../user-guide/ppm/bulk-import.mdx) Bulk Import guides), and each import handler creates rows
+endpoints documented in the [Organization](../../user-guide/organizations/bulk-import.mdx),
+[PPM](../../user-guide/ppm/bulk-import.mdx) and
+[Product Management](../../user-guide/product-management/bulk-import.mdx) Bulk Import guides), and each
+import handler creates rows
 **through the owning domain's commands**. This is deliberate: Wayd domains keep
 aligned local copies of shared concepts (creating an `Organization.Team` replicates it into the PPM,
 Planning, and Work read models via domain events). Going through the domain path means one `SaveChanges`
@@ -487,12 +546,21 @@ employees → teams → team hierarchy → roles (created as needed) → team st
   → expenditure categories + lifecycle (settings bootstrap)
   → strategic themes → portfolios → programs → projects → project tasks → project stage statuses
   → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
+
+product-management feature flag → deployment environments
+                                → products → versions → release packages (+ manifests) → releases (+ contents)
+                                                      → deployments (after environments and packages)
 ```
+
+Product Management depends on nothing in the organization or PPM areas — it references no employees — so
+it only needs its own order. Versions come before packages because a manifest line links to a version only
+if the version already exists, and releases come last because a release is accepted as released only once
+everything it carries has been saved as shipped.
 
 ### One area can be more than one file
 
-An import rejects a file past its row cap outright, and the atomic ones — which is all of the PPM imports —
-cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a
+An import rejects a file past its row cap outright, and the atomic ones — which is all of the PPM and
+Product Management imports — cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a
 run that is applied as one transaction; it is the server's guard against an arbitrary client, and the seed
 is a client like any other.
 
@@ -510,6 +578,11 @@ because rows within a project are not independent — a child names its parent b
 the same file, and the per-project task number advances as rows are applied. Cutting a project across two
 files hands the second one a child whose parent it never saw. A single project larger than the cap is left
 whole and rejected rather than split, because a named failure beats a file that imports a broken tree.
+
+Versions, release packages, releases and deployments are batched the same way — by product, by package
+(with that package's manifest lines), by release (with its contents) and by what was deployed. Deployments
+are the one that needs it: a `large-tech` seed produces more than 10,000. Products and environments are
+always one file each, because a product's parent has to be a row in the same file.
 
 ### Post, wait, read back, substitute
 

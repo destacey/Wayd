@@ -31,6 +31,7 @@
         <ProjectReference Include="..\..\src\Wayd.ProjectPortfolioManagement.Application\Wayd.ProjectPortfolioManagement.Application.csproj" />
         <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
         <ProjectReference Include="..\..\..\..\Wayd.Common\tests\Wayd.Common.Domain.Tests\Wayd.Common.Domain.Tests.csproj" />
+        <ProjectReference Include="..\..\..\..\Wayd.Common\tests\Wayd.Tests.Shared\Wayd.Tests.Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>

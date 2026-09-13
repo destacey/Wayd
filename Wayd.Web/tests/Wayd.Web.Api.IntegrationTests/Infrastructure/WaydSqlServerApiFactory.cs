@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.MsSql;
 using Wayd.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Tests.Shared.Infrastructure;
 using Wayd.Web.Api.Services;
 
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
@@ -30,9 +31,6 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 /// <remarks>Requires Docker to be running on the machine executing the tests.</remarks>
 public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    // Pinned CU, matching the existing Organization integration fixture, so schema builds identically everywhere.
-    private const string SqlServerImage = "mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04";
-
     // A dedicated application database (not the container's default `master`). Production never runs on
     // master, and Wolverine's Weasel envelope-table provisioning targets a real application database — so
     // the integration host must too, or the durable-outbox schema is never provisioned.
@@ -43,7 +41,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
     private static readonly ImportResponseTiming _defaultImportResponseTiming =
         new(TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(250));
 
-    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerImage).Build();
+    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerTestImage.Name).Build();
 
     private string _connectionString = null!;
 

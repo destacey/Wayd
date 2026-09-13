@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Tests.Shared.Infrastructure;
 using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -21,9 +22,7 @@ namespace Wayd.Infrastructure.IntegrationTests.Infrastructure;
 /// <remarks>Requires Docker on the machine running the tests.</remarks>
 public sealed class SqlServerDbContextFixture : IAsyncLifetime
 {
-    private const string SqlServerImage = "mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04";
-
-    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerImage).Build();
+    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerTestImage.Name).Build();
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;

@@ -54,6 +54,9 @@ made one suite take six containers to run 44 tests.
 The consequence is that tests **share a database**. Scope assertions to data the test itself created
 (a fresh `Guid`, a unique key) rather than assuming an empty schema or querying for "the only row".
 
+Every suite runs the same SQL Server image, pinned once as `SqlServerTestImage.Name` in `Wayd.Tests.Shared`.
+Start a new fixture's container from that constant rather than naming a tag of its own.
+
 ### Authenticated HTTP requests
 
 `Wayd.Web.Api.IntegrationTests` boots the real API against its container, so a test can call an endpoint

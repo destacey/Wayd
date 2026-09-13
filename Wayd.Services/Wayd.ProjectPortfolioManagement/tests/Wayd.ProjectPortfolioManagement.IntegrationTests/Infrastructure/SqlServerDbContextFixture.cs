@@ -9,6 +9,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Tests.Shared.Infrastructure;
 using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.ProjectPortfolioManagement.IntegrationTests.Infrastructure;
@@ -33,11 +34,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     // A fixed instant so audit/system columns are deterministic and no test ever reaches for DateTime.UtcNow.
     public static readonly Instant FixedNow = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
-    // Pinned to a concrete CU rather than a floating tag, so the schema is built against the same SQL Server
-    // engine on every machine and CI run. Bump deliberately.
-    private const string SqlServerImage = "mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04";
-
-    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerImage).Build();
+    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerTestImage.Name).Build();
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;

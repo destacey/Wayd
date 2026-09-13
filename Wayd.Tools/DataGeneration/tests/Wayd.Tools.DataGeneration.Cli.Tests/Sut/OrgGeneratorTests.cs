@@ -9,7 +9,7 @@ public class OrgGeneratorTests
 {
     /// <summary>A pinned context, so a test never depends on the day it runs on.</summary>
     private static GenerationContext Context(int seed = 1234) =>
-        new() { AsOf = new DateTime(2026, 6, 15), Seed = seed };
+        new() { AsOf = new DateOnly(2026, 6, 15), Seed = seed };
 
     private static GeneratedOrg Generate(OrgOptions? options = null, GenerationContext? context = null) =>
         new OrgGenerator(options ?? new OrgOptions { ValueStreams = 3, Teams = 20 }, context ?? Context()).Generate();
@@ -310,14 +310,15 @@ public class OrgGeneratorTests
         // pinned seed still produced a different dataset tomorrow while the tool claimed otherwise. A test
         // cannot stage two different days in one process, so it pins asOf far enough into the past that
         // anything still reading the real clock lands outside the window and is caught.
-        var asOf = new DateTime(2020, 6, 15);
+        var asOf = new DateOnly(2020, 6, 15);
         var context = new GenerationContext { AsOf = asOf, Seed = 42 };
 
         // Act
         var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 20 }, context).Generate();
 
         // Assert — nobody was hired after the run's today, and nobody before the company existed
-        org.Employees.Should().OnlyContain(e => e.HireDate <= asOf && e.HireDate >= context.FoundedOn);
+        org.Employees.Should().OnlyContain(e => e.HireDate <= asOf.ToDateTime(TimeOnly.MinValue)
+            && e.HireDate >= context.FoundedOn.ToDateTime(TimeOnly.MinValue));
         org.Teams.Should().OnlyContain(t => t.ActiveDate <= asOf && t.ActiveDate >= context.FoundedOn);
     }
 
@@ -328,8 +329,8 @@ public class OrgGeneratorTests
         var options = new OrgOptions { ValueStreams = 3, Teams = 20 };
 
         // Act
-        var a = new OrgGenerator(options, new GenerationContext { AsOf = new DateTime(2026, 6, 15), Seed = 42 }).Generate();
-        var b = new OrgGenerator(options, new GenerationContext { AsOf = new DateTime(2020, 6, 15), Seed = 42 }).Generate();
+        var a = new OrgGenerator(options, new GenerationContext { AsOf = new DateOnly(2026, 6, 15), Seed = 42 }).Generate();
+        var b = new OrgGenerator(options, new GenerationContext { AsOf = new DateOnly(2020, 6, 15), Seed = 42 }).Generate();
 
         // Assert
         a.Employees.Max(e => e.HireDate).Should().BeAfter(b.Employees.Max(e => e.HireDate)!.Value);
@@ -365,7 +366,7 @@ public class OrgGeneratorTests
         var org = Generate(context: context);
 
         // Assert
-        org.Employees.Should().OnlyContain(e => e.HireDate >= context.FoundedOn);
+        org.Employees.Should().OnlyContain(e => e.HireDate >= context.FoundedOn.ToDateTime(TimeOnly.MinValue));
         org.Teams.Should().OnlyContain(t => t.ActiveDate >= context.FoundedOn);
     }
 

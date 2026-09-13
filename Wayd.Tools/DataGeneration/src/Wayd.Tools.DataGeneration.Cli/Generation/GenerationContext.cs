@@ -23,7 +23,7 @@ public sealed class GenerationContext
     /// The date the run treats as today. Defaults to the real one, so generated data straddles now; pin it
     /// together with <see cref="Seed"/> for byte-identical output, since either alone is insufficient.
     /// </summary>
-    public required DateTime AsOf { get; init; }
+    public required DateOnly AsOf { get; init; }
 
     /// <summary>The root seed. Generators take a derived one from <see cref="SeedFor"/> rather than this.</summary>
     public required int Seed { get; init; }
@@ -41,13 +41,13 @@ public sealed class GenerationContext
     public int RunwayYears { get; init; } = 2;
 
     /// <summary>The floor: no generated date may fall before the company existed.</summary>
-    public DateTime FoundedOn => AsOf.AddYears(-CompanyAgeYears);
+    public DateOnly FoundedOn => AsOf.AddYears(-CompanyAgeYears);
 
     /// <summary>The start of the delivery window that work is placed on.</summary>
-    public DateTime WindowStart => AsOf.AddYears(-HistoryYears);
+    public DateOnly WindowStart => AsOf.AddYears(-HistoryYears);
 
     /// <summary>The end of the delivery window that work is placed on.</summary>
-    public DateTime WindowEnd => AsOf.AddYears(RunwayYears);
+    public DateOnly WindowEnd => AsOf.AddYears(RunwayYears);
 
     /// <summary>
     /// The seed one named area generates from, derived from the root seed and the area's name.

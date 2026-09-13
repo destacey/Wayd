@@ -5,28 +5,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 
 public class GenerationContextTests
 {
-    private static GenerationContext Context(DateTime? asOf = null, int seed = 1234) =>
-        new() { AsOf = asOf ?? new DateTime(2026, 6, 15), Seed = seed };
+    private static GenerationContext Context(DateOnly? asOf = null, int seed = 1234) =>
+        new() { AsOf = asOf ?? new DateOnly(2026, 6, 15), Seed = seed };
 
     [Fact]
     public void FoundedOn_IsTheFloorTheWholeCompanyPredatesNothingBefore()
     {
         // Arrange & Act
-        var context = Context(new DateTime(2026, 6, 15));
+        var context = Context(new DateOnly(2026, 6, 15));
 
         // Assert — five years of company history behind the run's today
-        context.FoundedOn.Should().Be(new DateTime(2021, 6, 15));
+        context.FoundedOn.Should().Be(new DateOnly(2021, 6, 15));
     }
 
     [Fact]
     public void Window_SpansHistoryBehindAndRunwayAhead()
     {
         // Arrange & Act
-        var context = Context(new DateTime(2026, 6, 15));
+        var context = Context(new DateOnly(2026, 6, 15));
 
         // Assert
-        context.WindowStart.Should().Be(new DateTime(2024, 6, 15));
-        context.WindowEnd.Should().Be(new DateTime(2028, 6, 15));
+        context.WindowStart.Should().Be(new DateOnly(2024, 6, 15));
+        context.WindowEnd.Should().Be(new DateOnly(2028, 6, 15));
     }
 
     [Fact]
@@ -94,9 +94,9 @@ public class GenerationContextTests
         // Arrange & Act — pinned so a framework change or a randomized string hash cannot silently
         // re-derive every area's seed and reproduce nothing. If this fails, a pinned seed stopped meaning
         // what it meant, and the value is the thing to check rather than the assertion.
-        var derived = new GenerationContext { AsOf = new DateTime(2026, 6, 15), Seed = 4242 }.SeedFor("ppm");
+        var derived = new GenerationContext { AsOf = new DateOnly(2026, 6, 15), Seed = 4242 }.SeedFor("ppm");
 
         // Assert
-        derived.Should().Be(new GenerationContext { AsOf = new DateTime(2020, 1, 1), Seed = 4242 }.SeedFor("ppm"));
+        derived.Should().Be(new GenerationContext { AsOf = new DateOnly(2020, 1, 1), Seed = 4242 }.SeedFor("ppm"));
     }
 }

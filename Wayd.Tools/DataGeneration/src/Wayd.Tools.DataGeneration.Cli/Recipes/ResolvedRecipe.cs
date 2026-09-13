@@ -50,7 +50,7 @@ public sealed record ResolvedRecipe(
         {
             // The one knob a recipe may legitimately leave open: an unpinned run anchors on the real
             // today, so its data still straddles now.
-            AsOf = (timeline.AsOf ?? DateTime.UtcNow).Date,
+            AsOf = timeline.AsOf ?? DateOnly.FromDateTime(DateTime.UtcNow),
             Seed = seed,
             CompanyAgeYears = Required(timeline.CompanyAgeYears, "timeline.companyAgeYears"),
             TeamStructureAgeYears = Required(timeline.TeamStructureAgeYears, "timeline.teamStructureAgeYears"),

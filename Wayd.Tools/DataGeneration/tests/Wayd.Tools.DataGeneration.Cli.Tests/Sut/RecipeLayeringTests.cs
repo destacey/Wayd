@@ -106,7 +106,7 @@ public class RecipeLayeringTests
         {
             Timeline = new TimelineRecipe
             {
-                AsOf = new DateTime(2000, 1, 1),
+                AsOf = new DateOnly(2000, 1, 1),
                 CompanyAgeYears = 1,
                 TeamStructureAgeYears = 1,
                 HistoryYears = 1,
@@ -133,7 +133,7 @@ public class RecipeLayeringTests
         {
             Timeline = new TimelineRecipe
             {
-                AsOf = new DateTime(2026, 6, 15),
+                AsOf = new DateOnly(2026, 6, 15),
                 CompanyAgeYears = 9,
                 TeamStructureAgeYears = 8,
                 HistoryYears = 7,
@@ -160,7 +160,7 @@ public class RecipeLayeringTests
         var result = ResolvedRecipe.From(over.LayerOver(under), seed: 1);
 
         // Assert
-        result.Context.AsOf.Should().Be(new DateTime(2026, 6, 15));
+        result.Context.AsOf.Should().Be(new DateOnly(2026, 6, 15));
         result.Context.CompanyAgeYears.Should().Be(9);
         result.Context.TeamStructureAgeYears.Should().Be(8);
         result.Context.HistoryYears.Should().Be(7);
@@ -188,7 +188,7 @@ public class RecipeLayeringTests
         {
             Timeline = new TimelineRecipe
             {
-                AsOf = new DateTime(2026, 6, 15),
+                AsOf = new DateOnly(2026, 6, 15),
                 CompanyAgeYears = 9,
                 TeamStructureAgeYears = 8,
                 HistoryYears = 7,
@@ -215,7 +215,7 @@ public class RecipeLayeringTests
         var result = ResolvedRecipe.From(new Recipe().LayerOver(under), seed: 1);
 
         // Assert
-        result.Context.AsOf.Should().Be(new DateTime(2026, 6, 15));
+        result.Context.AsOf.Should().Be(new DateOnly(2026, 6, 15));
         result.Context.CompanyAgeYears.Should().Be(9);
         result.Context.TeamStructureAgeYears.Should().Be(8);
         result.Context.HistoryYears.Should().Be(7);
@@ -242,9 +242,9 @@ public class RecipeLayeringTests
 
         // Act — bracketed by the clock, because reading UtcNow again in the assertion would disagree
         // with the resolver's own reading on a run that crosses UTC midnight
-        var before = DateTime.UtcNow.Date;
+        var before = DateOnly.FromDateTime(DateTime.UtcNow);
         var result = ResolvedRecipe.From(recipe, seed: 1);
-        var after = DateTime.UtcNow.Date;
+        var after = DateOnly.FromDateTime(DateTime.UtcNow);
 
         // Assert
         result.Context.AsOf.Should().BeOneOf(before, after);

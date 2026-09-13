@@ -36,14 +36,14 @@ public sealed class PpmGenerator
     private readonly List<string> _themeNames = [];
 
     /// <summary>A generated program with the theme and window a project is matched against.</summary>
-    private sealed record GeneratedProgram(string Name, PpmVocabulary.ProgramTheme Theme, DateTime Start, DateTime End, string Status);
+    private sealed record GeneratedProgram(string Name, PpmVocabulary.ProgramTheme Theme, DateOnly Start, DateOnly End, string Status);
 
     // Today anchors the window that work is placed on: history behind it, runway ahead. Instance state
     // read from the run's context — as statics off DateTime.UtcNow they could not be pinned, so a fixed
     // seed still produced different data tomorrow.
-    private DateTime Today => _context.AsOf;
-    private DateTime WindowStart => _context.WindowStart;
-    private DateTime WindowEnd => _context.WindowEnd;
+    private DateOnly Today => _context.AsOf;
+    private DateOnly WindowStart => _context.WindowStart;
+    private DateOnly WindowEnd => _context.WindowEnd;
 
     /// <summary>How long the window is, which the concurrency-to-total derivations divide by duration.</summary>
     private double WindowMonths => (_context.HistoryYears + _context.RunwayYears) * 12.0;
@@ -150,7 +150,7 @@ public sealed class PpmGenerator
     /// distinct theme, spread across the window so some have finished, some are active, and some lie ahead.
     /// Returns them so the portfolio's projects can be matched into one by theme.
     /// </summary>
-    private List<GeneratedProgram> BuildPortfolioPrograms(ValueStreamNode valueStream, string portfolioName, DateTime portfolioStart, string? leadEng, string? leadProduct)
+    private List<GeneratedProgram> BuildPortfolioPrograms(ValueStreamNode valueStream, string portfolioName, DateOnly portfolioStart, string? leadEng, string? leadProduct)
     {
         var total = DeriveProgramCount();
 
@@ -386,7 +386,7 @@ public sealed class PpmGenerator
     /// eligible (a project cannot sit in a program that had ended or not yet started). If none fits, a small
     /// share of projects stay portfolio-direct anyway, so the answer may be null.
     /// </summary>
-    private string? PickProgramForProject(IReadOnlyList<GeneratedProgram> programs, string verb, DateTime projectStart, DateTime projectEnd)
+    private string? PickProgramForProject(IReadOnlyList<GeneratedProgram> programs, string verb, DateOnly projectStart, DateOnly projectEnd)
     {
         // A minority of projects are standalone regardless of a matching program.
         if (_faker.Random.Double() < PortfolioDirectFraction)
@@ -405,7 +405,7 @@ public sealed class PpmGenerator
         return candidates.Count == 0 ? null : candidates[_faker.Random.Int(0, candidates.Count - 1)].Name;
     }
 
-    private void BuildTasksForProject(string projectKey, DateTime? projectStart, DateTime? projectEnd, IReadOnlyList<string> members, string projectStatus)
+    private void BuildTasksForProject(string projectKey, DateOnly? projectStart, DateOnly? projectEnd, IReadOnlyList<string> members, string projectStatus)
     {
         var stages = PpmVocabulary.StandardLifecycle.Stages;
         var start = projectStart ?? EarlyWindowDate();
@@ -413,7 +413,7 @@ public sealed class PpmGenerator
         var completed = string.Equals(projectStatus, "Completed", StringComparison.OrdinalIgnoreCase);
 
         // Slice the project window across the stages in order, so tasks land in a sensible timeline.
-        var totalDays = Math.Max(stages.Count, (int)(end - start).TotalDays);
+        var totalDays = Math.Max(stages.Count, end.DayNumber - start.DayNumber);
         var perStage = Math.Max(1, totalDays / stages.Count);
 
         for (var p = 0; p < stages.Count; p++)
@@ -505,7 +505,7 @@ public sealed class PpmGenerator
         return "InProgress";
     }
 
-    private void AddTask(string projectKey, string name, string stageName, string? parent, DateTime start, DateTime end, IReadOnlyList<string> members, bool projectCompleted, DateTime stageEnd)
+    private void AddTask(string projectKey, string name, string stageName, string? parent, DateOnly start, DateOnly end, IReadOnlyList<string> members, bool projectCompleted, DateOnly stageEnd)
     {
         // Progress and status follow the timeline: done in the past, in progress around now, not started later.
         var (status, progress) = projectCompleted || end < Today
@@ -589,7 +589,7 @@ public sealed class PpmGenerator
     private readonly Dictionary<string, HashSet<string>> _taskNamesByProject = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Adds a portfolio row, deduping its name, and returns the stored name so callers reference the right one.</summary>
-    private string AddPortfolio(string name, string description, string status, DateTime? activatedOn,
+    private string AddPortfolio(string name, string description, string status, DateOnly? activatedOn,
         IReadOnlyList<string?> sponsors, IReadOnlyList<string?> owners, IReadOnlyList<string?> managers)
     {
         name = MakeUnique(name, _portfolioNames);
@@ -607,7 +607,7 @@ public sealed class PpmGenerator
         return name;
     }
 
-    private void AddProgram(string name, string description, string portfolioName, string status, DateTime? start, DateTime? end,
+    private void AddProgram(string name, string description, string portfolioName, string status, DateOnly? start, DateOnly? end,
         IReadOnlyList<string> themes, IReadOnlyList<string?> sponsors, IReadOnlyList<string?> owners, IReadOnlyList<string?> managers)
     {
         _programs.Add(new ProgramModel
@@ -630,33 +630,33 @@ public sealed class PpmGenerator
     // ---- Timeline + status --------------------------------------------------------------------
 
     /// <summary>A project's date range: somewhere in the four-year window, 2-9 months long.</summary>
-    private (DateTime Start, DateTime End) ProjectWindow()
+    private (DateOnly Start, DateOnly End) ProjectWindow()
     {
-        var start = _faker.Date.Between(WindowStart, WindowEnd.AddMonths(-MinProjectMonths));
+        var start = Between(WindowStart, WindowEnd.AddMonths(-MinProjectMonths));
         var end = start.AddMonths(_faker.Random.Int(MinProjectMonths, MaxProjectMonths));
         if (end > WindowEnd) end = WindowEnd;
-        return (start.Date, end.Date);
+        return (start, end);
     }
 
     /// <summary>
     /// A program's date range: 1-3 years long, starting at or after the portfolio's start and never running
     /// past the window end. Programs need to overlap projects generously, so they are long and start early.
     /// </summary>
-    private (DateTime Start, DateTime End) ProgramWindow(DateTime portfolioStart)
+    private (DateOnly Start, DateOnly End) ProgramWindow(DateOnly portfolioStart)
     {
-        var start = _faker.Date.Between(portfolioStart, LaterOf(portfolioStart, WindowEnd.AddMonths(-MinProgramMonths))).Date;
+        var start = Between(portfolioStart, LaterOf(portfolioStart, WindowEnd.AddMonths(-MinProgramMonths)));
         var end = start.AddMonths(_faker.Random.Int(MinProgramMonths, MaxProgramMonths));
         if (end > WindowEnd) end = WindowEnd;
-        return (start.Date, end.Date);
+        return (start, end);
     }
 
     /// <summary>An initiative's date range: longer than a project, spanning much of the window.</summary>
-    private (DateTime Start, DateTime End) InitiativeWindow()
+    private (DateOnly Start, DateOnly End) InitiativeWindow()
     {
-        var start = _faker.Date.Between(WindowStart, Today.AddMonths(-3));
+        var start = Between(WindowStart, Today.AddMonths(-3));
         var end = start.AddMonths(_faker.Random.Int(12, 30));
         if (end > WindowEnd) end = WindowEnd;
-        return (start.Date, end.Date);
+        return (start, end);
     }
 
     /// <summary>
@@ -664,7 +664,7 @@ public sealed class PpmGenerator
     /// the past, in flight if it spans today, and not yet started if it lies in the future. A minority of
     /// past work is canceled rather than completed.
     /// </summary>
-    private string StatusForWindow(DateTime start, DateTime end, bool forInitiative = false)
+    private string StatusForWindow(DateOnly start, DateOnly end, bool forInitiative = false)
     {
         if (end < Today)
             return _faker.Random.Double() < 0.15 ? "Canceled" : "Completed";
@@ -685,7 +685,7 @@ public sealed class PpmGenerator
         string.Equals(status, "Proposed", StringComparison.OrdinalIgnoreCase)
         || string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase);
 
-    private DateTime EarlyWindowDate() => _faker.Date.Between(WindowStart, WindowStart.AddMonths(3)).Date;
+    private DateOnly EarlyWindowDate() => Between(WindowStart, WindowStart.AddMonths(3));
 
     /// <summary>
     /// When something was proposed, given when it started: a few weeks to a few months earlier. Deliberately
@@ -697,26 +697,33 @@ public sealed class PpmGenerator
     /// date the proposal in the future too — and nothing was proposed on a day that has not happened.
     /// Work that starts later was still proposed by now, so it falls in the recent past instead.
     /// </remarks>
-    private DateTime ProposedBefore(DateTime? activatedOn)
+    private DateOnly ProposedBefore(DateOnly? activatedOn)
     {
-        var proposed = (activatedOn ?? Today).AddDays(-_faker.Random.Int(20, 120)).Date;
+        var proposed = (activatedOn ?? Today).AddDays(-_faker.Random.Int(20, 120));
 
-        return proposed <= Today ? proposed : Today.AddDays(-_faker.Random.Int(0, 120)).Date;
+        return proposed <= Today ? proposed : Today.AddDays(-_faker.Random.Int(0, 120));
     }
 
-    private (DateTime Start, DateTime End) SubWindow(DateTime start, DateTime end)
+    private (DateOnly Start, DateOnly End) SubWindow(DateOnly start, DateOnly end)
     {
         if (end <= start)
             return (start, start.AddDays(1));
 
-        var totalDays = (int)(end - start).TotalDays;
+        var totalDays = end.DayNumber - start.DayNumber;
         var s = start.AddDays(_faker.Random.Int(0, Math.Max(0, totalDays / 2)));
         var e = s.AddDays(_faker.Random.Int(1, Math.Max(1, totalDays / 2)));
         if (e > end) e = end;
-        return (s.Date, e.Date);
+        return (s, e);
     }
 
-    private static DateTime LaterOf(DateTime a, DateTime b) => a > b ? a : b;
+    private static DateOnly LaterOf(DateOnly a, DateOnly b) => a > b ? a : b;
+
+    /// <summary>
+    /// A date between two others. Goes through Bogus's DateTime overload rather than its DateOnly one so
+    /// the draws match what a pinned seed has always produced.
+    /// </summary>
+    private DateOnly Between(DateOnly start, DateOnly end) =>
+        DateOnly.FromDateTime(_faker.Date.Between(start.ToDateTime(TimeOnly.MinValue), end.ToDateTime(TimeOnly.MinValue)));
 
     // ---- Naming + helpers ---------------------------------------------------------------------
 

@@ -31,7 +31,7 @@ public static class GenerationOptions
         Description = "Fixed random seed for reproducible output.",
     };
 
-    public static Option<DateTime?> AsOf { get; } = new("--as-of")
+    public static Option<DateOnly?> AsOf { get; } = new("--as-of")
     {
         Description = "The date the run treats as today, which the whole timeline is anchored on. Defaults to today, so generated data straddles now. Pin it together with --random-seed for byte-identical output — either alone is not enough.",
     };

@@ -72,7 +72,7 @@ public abstract class AreaRecipe
 public sealed class TimelineRecipe
 {
     /// <summary>The date the run treats as today. Null anchors on the real one.</summary>
-    public DateTime? AsOf { get; init; }
+    public DateOnly? AsOf { get; init; }
 
     /// <summary>How far back the company's history reaches.</summary>
     public int? CompanyAgeYears { get; init; }

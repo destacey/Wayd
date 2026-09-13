@@ -29,8 +29,8 @@ public sealed class PortfolioCsvRow
     public required string Name { get; init; }
     public required string Description { get; init; }
     public required string Status { get; init; }
-    public required DateTime CreatedOn { get; init; }
-    public DateTime? ActivatedOn { get; init; }
+    public required DateOnly CreatedOn { get; init; }
+    public DateOnly? ActivatedOn { get; init; }
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
     public string? Managers { get; init; }
@@ -46,12 +46,12 @@ public sealed class ProgramCsvRow
     public required string Status { get; init; }
 
     /// <summary>The timeline the program plans to run over, which its transitions read but never set.</summary>
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
+    public DateOnly? Start { get; init; }
+    public DateOnly? End { get; init; }
 
     /// <summary>When the program actually moved. No closing date: an import cannot close a program.</summary>
-    public required DateTime CreatedOn { get; init; }
-    public DateTime? ActivatedOn { get; init; }
+    public required DateOnly CreatedOn { get; init; }
+    public DateOnly? ActivatedOn { get; init; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; init; }
@@ -76,16 +76,16 @@ public sealed class ProjectCsvRow
     public string? BusinessCase { get; init; }
     public string? ExpectedBenefits { get; init; }
     /// <summary>The timeline the project plans to run over, which is not the same as when it moved.</summary>
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
+    public DateOnly? Start { get; init; }
+    public DateOnly? End { get; init; }
 
     /// <summary>
     /// When the project actually moved. Each replayed transition is stamped with the matching one, so these
     /// are what the project's status history ends up dated by.
     /// </summary>
-    public required DateTime CreatedOn { get; init; }
-    public DateTime? ActivatedOn { get; init; }
-    public DateTime? ClosedOn { get; init; }
+    public required DateOnly CreatedOn { get; init; }
+    public DateOnly? ActivatedOn { get; init; }
+    public DateOnly? ClosedOn { get; init; }
 
     /// <summary>Semicolon-separated strategic theme ids.</summary>
     public string? StrategicThemes { get; init; }
@@ -122,9 +122,9 @@ public sealed class ProjectTaskCsvRow
     public required string Status { get; init; }
     public required string Priority { get; init; }
     public decimal? Progress { get; init; }
-    public DateTime? PlannedStart { get; init; }
-    public DateTime? PlannedEnd { get; init; }
-    public DateTime? PlannedDate { get; init; }
+    public DateOnly? PlannedStart { get; init; }
+    public DateOnly? PlannedEnd { get; init; }
+    public DateOnly? PlannedDate { get; init; }
     public decimal? EstimatedEffortHours { get; init; }
     public string? Assignees { get; init; }
 }
@@ -146,8 +146,8 @@ public sealed class StrategicInitiativeCsvRow
     public required string Description { get; init; }
     public required Guid PortfolioId { get; init; }
     public required string Status { get; init; }
-    public DateTime Start { get; init; }
-    public DateTime End { get; init; }
+    public DateOnly Start { get; init; }
+    public DateOnly End { get; init; }
     public string? ProjectKeys { get; init; }
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
@@ -176,5 +176,5 @@ public sealed class PpmFinalizationCsvRow
     public required string Type { get; init; }
     public required Guid Id { get; init; }
     public required string Status { get; init; }
-    public DateTime? EndDate { get; init; }
+    public DateOnly? EndDate { get; init; }
 }

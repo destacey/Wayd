@@ -10,7 +10,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 /// </summary>
 public class UserGeneratorTests
 {
-    private static readonly DateTime _asOf = DateTime.UtcNow.Date;
+    private static readonly DateOnly _asOf = DateOnly.FromDateTime(DateTime.UtcNow);
 
     private static (GeneratedOrg Org, GeneratedPpm Ppm) Generate()
     {

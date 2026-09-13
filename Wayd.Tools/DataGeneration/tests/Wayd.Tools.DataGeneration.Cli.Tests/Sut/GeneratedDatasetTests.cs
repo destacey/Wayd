@@ -29,7 +29,7 @@ public class GeneratedDatasetTests : IDisposable
     {
         // Arrange — the guarantee the two front ends rest on: the page and the CLI resolve the same
         // recipe and must get the same company, or the command the page prints is a lie
-        var recipe = new Recipe { Timeline = new TimelineRecipe { AsOf = new DateTime(2026, 6, 15) } };
+        var recipe = new Recipe { Timeline = new TimelineRecipe { AsOf = new DateOnly(2026, 6, 15) } };
 
         // Act
         var first = GeneratedDataset.From(Resolve(recipe));

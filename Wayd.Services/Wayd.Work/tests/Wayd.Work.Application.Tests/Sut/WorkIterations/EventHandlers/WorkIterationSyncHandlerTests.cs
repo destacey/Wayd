@@ -53,7 +53,7 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
         // Assert
         var copy = _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == source.Id).Subject;
         copy.Name.Should().Be("Sprint 1");
-        copy.Watermarks.Record.Should().Be(Created);
+        copy.Watermarks.Should().Be(WorkIterationWatermarks.At(Created));
         _workDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -87,14 +87,14 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenNewerThanTheCopy_UpdatesAndSaves()
+    public async Task Handle_DetailsUpdated_WhenNewerThanTheCopy_UpdatesAndSaves()
     {
         // Arrange
         var id = Guid.CreateVersion7();
         _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithName("Old Name").WithDateRange(Range).Generate(), Created));
 
         // Act
-        await _handler.Handle(UpdatedEvent(id, "New Name", FirstEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(DetailsUpdatedEvent(id, "New Name", FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkIterations.Single(i => i.Id == id).Name.Should().Be("New Name");
@@ -102,15 +102,15 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenDeliveredOutOfOrder_KeepsTheLaterEdit()
+    public async Task Handle_DetailsUpdated_WhenDeliveredOutOfOrder_KeepsTheLaterEdit()
     {
         // Arrange
         var id = Guid.CreateVersion7();
         _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate(), Created));
 
         // Act
-        await _handler.Handle(UpdatedEvent(id, "Sprint 1b", SecondEdit), TestContext.Current.CancellationToken);
-        await _handler.Handle(UpdatedEvent(id, "Sprint 1a", FirstEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(DetailsUpdatedEvent(id, "Sprint 1b", SecondEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(DetailsUpdatedEvent(id, "Sprint 1a", FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkIterations.Single(i => i.Id == id).Name.Should().Be("Sprint 1b");
@@ -118,27 +118,97 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenTheCreateHasNotArrived_CreatesTheCopyFromTheSource()
+    public async Task Handle_StateChangedAndDetailsUpdated_WhenDeliveredOutOfOrder_ApplyBoth()
+    {
+        // Arrange — a state change at FirstEdit arrives after a rename at SecondEdit; neither replaces the other.
+        var id = Guid.CreateVersion7();
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithState(IterationState.Future).WithDateRange(Range).Generate(), Created));
+
+        // Act
+        await _handler.Handle(DetailsUpdatedEvent(id, "Renamed", SecondEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationStateChangedEvent(id, 1, IterationState.Future, IterationState.Active, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        var copy = _workDbContext.WorkIterations.Single(i => i.Id == id);
+        copy.Name.Should().Be("Renamed");
+        copy.State.Should().Be(IterationState.Active);
+    }
+
+    [Fact]
+    public async Task Handle_DateRangeChanged_WhenNewerThanTheCopy_UpdatesAndSaves()
+    {
+        // Arrange
+        var id = Guid.CreateVersion7();
+        var moved = new IterationDateRange(Range.Start, Instant.FromUtc(2026, 1, 21, 0, 0));
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate(), Created));
+
+        // Act
+        await _handler.Handle(new IterationDateRangeChangedEvent(id, 1, Range, moved, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.WorkIterations.Single(i => i.Id == id).DateRange.Should().Be(moved);
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_TeamChanged_WhenNewerThanTheCopy_UpdatesAndSaves()
+    {
+        // Arrange
+        var id = Guid.CreateVersion7();
+        var teamId = Guid.NewGuid();
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithTeamId(null).WithDateRange(Range).Generate(), Created));
+
+        // Act
+        await _handler.Handle(new IterationTeamChangedEvent(id, 1, null, teamId, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.WorkIterations.Single(i => i.Id == id).TeamId.Should().Be(teamId);
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_SupersededUpdated_AppliesEveryGroupItCarries()
+    {
+        // Arrange — an envelope written as the superseded type before the switch, still in the outbox.
+        var id = Guid.CreateVersion7();
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithName("Old Name").WithState(IterationState.Future).WithTeamId(null).WithDateRange(Range).Generate(), Created));
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        await _handler.Handle(new IterationUpdatedEvent(id, 1, "New Name", IterationType.Iteration, IterationState.Active, Range, null, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+#pragma warning restore CS0618
+
+        // Assert
+        var copy = _workDbContext.WorkIterations.Single(i => i.Id == id);
+        copy.Name.Should().Be("New Name");
+        copy.State.Should().Be(IterationState.Active);
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_DetailsUpdated_WhenTheCreateHasNotArrived_CreatesTheCopyFromTheSource()
     {
         // Arrange
         var source = new WorkIterationFaker().WithName("New Name").WithDateRange(Range).Generate();
         SourceReturns(source);
 
         // Act
-        await _handler.Handle(UpdatedEvent(source.Id, "New Name", FirstEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(DetailsUpdatedEvent(source.Id, "New Name", FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
-        _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == source.Id).Which.Name.Should().Be("New Name");
+        var copy = _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == source.Id).Subject;
+        copy.Name.Should().Be("New Name");
+        copy.Watermarks.Should().Be(WorkIterationWatermarks.At(FirstEdit));
     }
 
     [Fact]
-    public async Task Handle_Updated_WhenDeliveredAfterTheIterationWasDeleted_CreatesNothing()
+    public async Task Handle_StateChanged_WhenDeliveredAfterTheIterationWasDeleted_CreatesNothing()
     {
         // Arrange
         SourceReturns(null);
 
         // Act
-        await _handler.Handle(UpdatedEvent(Guid.CreateVersion7(), "Whatever", FirstEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationStateChangedEvent(Guid.CreateVersion7(), 1, IterationState.Future, IterationState.Active, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkIterations.Should().BeEmpty();
@@ -189,15 +259,6 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
             actor: EventActor.System,
             timestamp: Created);
 
-    private static IterationUpdatedEvent UpdatedEvent(Guid id, string name, Instant timestamp) =>
-        new(
-            id: id,
-            key: 1,
-            name: name,
-            type: IterationType.Iteration,
-            state: IterationState.Active,
-            dateRange: Range,
-            teamId: null,
-            actor: EventActor.System,
-            timestamp: timestamp);
+    private static IterationDetailsUpdatedEvent DetailsUpdatedEvent(Guid id, string name, Instant timestamp) =>
+        new(id, 1, name, IterationType.Iteration, new IterationDetails("Sprint 1", IterationType.Iteration), EventActor.System, timestamp);
 }

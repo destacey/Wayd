@@ -39,7 +39,7 @@ public sealed class SyncWorkIterationsCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == source.Id)
-            .Which.Watermarks.Record.Should().Be(Read);
+            .Which.Watermarks.Should().Be(WorkIterationWatermarks.At(Read));
     }
 
     [Fact]
@@ -79,9 +79,7 @@ public sealed class SyncWorkIterationsCommandHandlerTests : IDisposable
         // Arrange
         var id = Guid.NewGuid();
         var copy = new WorkIteration(new WorkIterationFaker().WithId(id).WithName("Sprint 1").Generate(), Created);
-        var renamed = new WorkIterationFaker().WithId(id).WithKey(copy.Key).WithName("Sprint 2").WithType(copy.Type)
-            .WithState(copy.State).WithDateRange(copy.DateRange).WithTeamId(copy.TeamId).Generate();
-        copy.ApplyRecord(renamed, EventActor.System, AfterTheRead);
+        copy.ApplyDetails("Sprint 2", copy.Type, EventActor.System, AfterTheRead);
         _workDbContext.AddWorkIteration(copy);
         var readBeforeTheRename = new WorkIterationFaker().WithId(id).WithKey(copy.Key).WithName("Sprint 1").WithType(copy.Type)
             .WithState(copy.State).WithDateRange(copy.DateRange).WithTeamId(copy.TeamId).Generate();

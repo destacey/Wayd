@@ -4,6 +4,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using NodaTime;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -161,6 +162,55 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
             workflow!.OwnerType.Should().Be(owner.Key);
             workflow.State.Should().Be(StatusWorkflowState.Published);
         }
+    }
+
+    [Fact]
+    public async Task Seeder_ShouldRecordTheCreationOfEachWorkflowItSeeds()
+    {
+        // Arrange — the shared database may already hold the seeded defaults, so the deployment default is
+        // removed to make the seeder create it again, as on a fresh install.
+        ProductWorkflowOwners.Register();
+        var ct = TestContext.Current.CancellationToken;
+        var ownerType = ProductWorkflowOwners.Deployment.Key;
+
+        await using (var setup = _fixture.CreateContext())
+        {
+            await SeedAll(setup);
+
+            var existingId = await setup.StatusWorkflows
+                .Where(w => w.OwnerType == ownerType && w.IsSystem)
+                .Select(w => w.Id)
+                .SingleAsync(ct);
+
+            await setup.WorkflowAssignments.Where(a => a.OwnerType == ownerType && a.ScopeId == null).ExecuteDeleteAsync(ct);
+            await setup.StatusWorkflows.Where(w => w.Id == existingId).ExecuteDeleteAsync(ct);
+            await setup.ActivityLogs.Where(a => a.AggregateId == existingId).ExecuteDeleteAsync(ct);
+        }
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        await new ProductManagementWorkflowSeeder().Initialize(context, DateTimeProvider(), ct);
+
+        // Assert
+        await using var verify = _fixture.CreateContext();
+        var workflow = await verify.StatusWorkflows
+            .Include(w => w.Statuses)
+            .SingleAsync(w => w.OwnerType == ownerType && w.IsSystem, ct);
+
+        var entries = await verify.ActivityLogs.AsNoTracking()
+            .Where(a => a.AggregateId == workflow.Id)
+            .OrderBy(a => a.Timestamp).ThenBy(a => a.Ordinal)
+            .ToListAsync(ct);
+
+        entries.Select(e => e.EventType).Should().Equal(
+            [
+                nameof(WorkflowCreatedEvent),
+                .. workflow.Statuses.Select(_ => nameof(WorkflowStatusAddedEvent)),
+                nameof(WorkflowPublishedEventV2),
+            ],
+            "the seeded workflow's history starts with its creation and holds every step of it, as one created through the API does");
+        entries.Should().OnlyContain(e => e.AggregateType == "Workflow" && e.ActorKind == EventActorKind.System);
+        entries.First().Payload.Should().Contain($"\"key\":{workflow.Key}", "the events were raised once the key was assigned");
     }
 
     #endregion Workflow seeding

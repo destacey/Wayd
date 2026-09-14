@@ -1,8 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Infrastructure.Persistence.Activities;
 using Wayd.ProductManagement.Domain;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
@@ -32,8 +33,9 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
         ProductWorkflowOwners.Register();
 
         var seeded = false;
+        var created = new List<SeededWorkflow>();
 
-        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Product, "Default Product Workflow",
+        seeded |= await SeedIfAbsent(dbContext, created, ProductWorkflowOwners.Product, "Default Product Workflow",
             "The lifecycle of a product node.",
             [
                 ("Concept", "Proposed but not yet in use.", StatusCategory.Proposed, ProductStatusAlias.None),
@@ -42,7 +44,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Retired", "Withdrawn from service.", StatusCategory.Done, ProductStatusAlias.Retired),
             ], dateTimeProvider, cancellationToken);
 
-        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Version, "Default Version Workflow",
+        seeded |= await SeedIfAbsent(dbContext, created, ProductWorkflowOwners.Version, "Default Version Workflow",
             "The lifecycle of a versioned cut of one product.",
             [
                 ("Planned", "Scheduled but not yet cut.", StatusCategory.Proposed, ProductStatusAlias.None),
@@ -54,7 +56,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
         // Shares the version vocabulary but not its meaning: an announcement is drafted and announced
         // where a version is cut and shipped. Ready is the resting state before the announcement goes
         // out, not evidence that anything was cut.
-        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Release, "Default Release Workflow",
+        seeded |= await SeedIfAbsent(dbContext, created, ProductWorkflowOwners.Release, "Default Release Workflow",
             "The lifecycle of a release as announced to customers.",
             [
                 ("Planned", "Drafted but not yet announced.", StatusCategory.Proposed, ProductStatusAlias.None),
@@ -63,7 +65,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Withdrawn", "Retracted after being announced.", StatusCategory.Removed, ProductStatusAlias.Withdrawn),
             ], dateTimeProvider, cancellationToken);
 
-        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.ReleasePackage, "Default Release Package Workflow",
+        seeded |= await SeedIfAbsent(dbContext, created, ProductWorkflowOwners.ReleasePackage, "Default Release Package Workflow",
             "The lifecycle of a coordinated shipment of several component releases.",
             [
                 ("Planned", "Assembled but not yet ready.", StatusCategory.Proposed, ProductStatusAlias.None),
@@ -72,7 +74,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Withdrawn", "Pulled after being assembled.", StatusCategory.Removed, ProductStatusAlias.Withdrawn),
             ], dateTimeProvider, cancellationToken);
 
-        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Deployment, "Default Deployment Workflow",
+        seeded |= await SeedIfAbsent(dbContext, created, ProductWorkflowOwners.Deployment, "Default Deployment Workflow",
             "The outcome of one version or package reaching one environment.",
             [
                 ("In Progress", "Under way, with no outcome yet.", StatusCategory.Active, ProductStatusAlias.InProgress),
@@ -81,14 +83,61 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Rolled Back", "Reached its environment and was reverted.", StatusCategory.Removed, ProductStatusAlias.RolledBack),
             ], dateTimeProvider, cancellationToken);
 
-        if (seeded)
+        if (!seeded)
         {
+            return;
+        }
+
+        // One transaction: a workflow committed without its activity would stay that way, because the
+        // assignment it is saved with stops every later run from seeding it again.
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
             await dbContext.SaveChangesAsync(cancellationToken);
+            RecordCreationActivity(dbContext, created);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+        });
+    }
+
+    private sealed record SeededWorkflow(StatusWorkflow Workflow, Action[] RaiseCreationEvents);
+
+    /// <summary>
+    /// Writes the events a seeded workflow's creation raised straight into the activity log, as a workflow created
+    /// through the API records them.
+    /// </summary>
+    /// <remarks>
+    /// Not left for <c>SaveChanges</c> to drain: draining also publishes, and Wolverine cannot route during
+    /// <c>InitializeDatabases</c>, which runs before the host starts. The events wait for the workflow's key, so
+    /// they are raised only once it has been saved.
+    /// </remarks>
+    private static void RecordCreationActivity(WaydDbContext dbContext, List<SeededWorkflow> created)
+    {
+        var ordinal = 0;
+
+        foreach (var (workflow, raiseCreationEvents) in created)
+        {
+            foreach (var raise in raiseCreationEvents)
+            {
+                raise();
+            }
+
+            foreach (var domainEvent in workflow.DomainEvents)
+            {
+                dbContext.ActivityLogs.Add(
+                    ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, workflow, ordinal++, correlationId: null));
+            }
+
+            workflow.ClearDomainEvents();
         }
     }
 
     private static async Task<bool> SeedIfAbsent(
         WaydDbContext dbContext,
+        List<SeededWorkflow> created,
         WorkflowOwnerDescriptor owner,
         string name,
         string description,
@@ -129,8 +178,9 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 throw new InvalidOperationException($"The seeded '{name}' is invalid: {publication.Error}");
             }
 
-            // Cleared for the reason the assignment's event is below. Every one of these waits for the
-            // key, so they are post-persistence actions rather than pending events.
+            // Every creation event waits for the key, so each is a post-persistence action. They are taken
+            // off the workflow so SaveChanges cannot publish them, and recorded by RecordCreationActivity.
+            created.Add(new SeededWorkflow(workflow, [.. workflow.PostPersistenceActions]));
             workflow.ClearDomainEvents();
             workflow.ClearPostPersistenceActions();
 

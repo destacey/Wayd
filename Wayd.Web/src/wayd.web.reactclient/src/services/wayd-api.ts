@@ -41991,6 +41991,7 @@ export enum ActivityCategory {
     StateChanged = "StateChanged",
     Health = "Health",
     Removed = "Removed",
+    Baseline = "Baseline",
 }
 
 export enum EventActorKind {

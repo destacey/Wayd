@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
@@ -139,6 +140,32 @@ public sealed class DomainEventEnvelopeTests
         logs.Should().HaveCount(2);
         logs.Select(l => l.CorrelationId).Should().AllBe("corr-shared", "one save is one chain of consequences");
         logs.Select(l => l.EventVersion).Should().AllBe("1.0");
+    }
+
+    [Fact]
+    public async Task SaveChanges_RecordsABaselineWithoutPublishingIt()
+    {
+        // Arrange
+        var harness = new Harness(correlationId: "corr-baseline");
+        var entity = new EventRaisingEntity();
+        var baseline = new ProjectBaselinedEvent(Guid.CreateVersion7(), new ProjectKey("APOLLO"), "Apollo", "A project.",
+            1, 1, null, Guid.CreateVersion7(), null, null, null, [], [], null, null, Instant.FromUnixTimeSeconds(8));
+        entity.Raise(baseline);
+        harness.Context.Entities.Add(entity);
+
+        // Act
+        await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        harness.PublishedInline.Should().BeEmpty("a baseline carries the whole record and reaches no consumer");
+        harness.PublishedToOutbox.Should().BeEmpty();
+
+        var log = await harness.Context.ActivityLogs.SingleAsync(TestContext.Current.CancellationToken);
+        log.Id.Should().Be(baseline.EventId);
+        log.Category.Should().Be(ActivityCategory.Baseline);
+        log.AggregateType.Should().Be("Project");
+        log.AggregateId.Should().Be(baseline.Id);
+        log.ActorKind.Should().Be(EventActorKind.System);
     }
 
     [Fact]

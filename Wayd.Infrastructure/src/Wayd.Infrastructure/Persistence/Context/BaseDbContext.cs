@@ -638,6 +638,12 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                 Set<ActivityLogEntry>().Add(activityLog);
                 enrolledActivity = true;
 
+                // Recorded, never delivered: a baseline ships the whole record, which no consumer may receive.
+                if (domainEvent is IBaselineEvent)
+                {
+                    continue;
+                }
+
                 if (DurableEventRoutes.IsDurable(domainEvent))
                 {
                     // Enroll THIS DbContext instance (not the outbox's own scoped context) exactly once, so the

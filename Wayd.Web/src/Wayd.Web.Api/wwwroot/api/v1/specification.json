@@ -38247,7 +38247,8 @@
           "StatusChanged",
           "StateChanged",
           "Health",
-          "Removed"
+          "Removed",
+          "Baseline"
         ],
         "enum": [
           "Created",
@@ -38256,7 +38257,8 @@
           "StatusChanged",
           "StateChanged",
           "Health",
-          "Removed"
+          "Removed",
+          "Baseline"
         ]
       },
       "EventActorKind": {

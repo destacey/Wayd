@@ -76196,6 +76196,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Runtime.Serialization.EnumMember(Value = @"Removed")]
         Removed = 6,
 
+        [System.Runtime.Serialization.EnumMember(Value = @"Baseline")]
+        Baseline = 7,
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

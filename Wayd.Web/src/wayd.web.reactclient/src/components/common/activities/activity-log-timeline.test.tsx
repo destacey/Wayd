@@ -100,6 +100,7 @@ describe('ActivityLogTimeline', () => {
     [ActivityCategory.StateChanged, 'State Change'],
     [ActivityCategory.Health, 'Health'],
     [ActivityCategory.Removed, 'Removed'],
+    [ActivityCategory.Baseline, 'Baseline'],
   ])('badges the %s category as %s', (category, expectedBadge) => {
     render(
       <ActivityLogTimeline
@@ -130,6 +131,95 @@ describe('ActivityLogTimeline', () => {
       1,
     )
     expect(screen.queryByText('Created')).not.toBeInTheDocument()
+  })
+
+  it('explains a baseline as the start of tracking when it is selected', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 'act-1',
+            eventType: 'ProjectBaselinedEvent',
+            summary: 'Project Baselined',
+            category: ActivityCategory.Baseline,
+            actorKind: EventActorKind.System,
+          }),
+        ]}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.getByText('Tracking started')).toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        'Tracking started. Earlier entries may be incomplete.',
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it('marks where tracking started when entries precede the baseline', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 'act-3',
+            eventType: 'ProjectDetailsUpdatedEvent',
+            summary: 'Project Details Updated',
+            category: ActivityCategory.Updated,
+            timestamp: new Date('2026-09-14T09:00:00Z'),
+          }),
+          createActivity({
+            id: 'act-2',
+            eventType: 'ProjectBaselinedEvent',
+            summary: 'Project Baselined',
+            category: ActivityCategory.Baseline,
+            timestamp: new Date('2026-09-13T09:00:00Z'),
+          }),
+          createActivity({
+            id: 'act-1',
+            eventType: 'ProjectStatusChangedEvent',
+            summary: 'Project Status Changed',
+            category: ActivityCategory.StatusChanged,
+            timestamp: new Date('2025-01-10T09:00:00Z'),
+          }),
+        ]}
+        isLoading={false}
+      />,
+    )
+
+    expect(
+      screen.getByText('Tracking started. Earlier entries may be incomplete.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Tracking started')).not.toBeInTheDocument()
+  })
+
+  it('marks where tracking started when older entries are not loaded yet', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 'act-2',
+            eventType: 'ProjectDetailsUpdatedEvent',
+            summary: 'Project Details Updated',
+            category: ActivityCategory.Updated,
+          }),
+          createActivity({
+            id: 'act-1',
+            eventType: 'ProjectBaselinedEvent',
+            summary: 'Project Baselined',
+            category: ActivityCategory.Baseline,
+          }),
+        ]}
+        isLoading={false}
+        totalCount={3}
+        hasMore={true}
+        onLoadMore={jest.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByText('Tracking started. Earlier entries may be incomplete.'),
+    ).toBeInTheDocument()
   })
 
   it('selects the first activity by default and displays its properties in the inspector pane', () => {
@@ -574,4 +664,3 @@ describe('ActivityLogTimeline', () => {
     ).not.toBeInTheDocument()
   })
 })
-

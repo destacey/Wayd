@@ -35,4 +35,10 @@ public enum ActivityCategory
 
     /// <summary>The record stopped existing.</summary>
     Removed = 7,
+
+    /// <summary>
+    /// Tracking began for a record that already existed, recording what it looked like at that moment.
+    /// Declared only by a <see cref="BaselineEvent{TSelf, TCreated}"/>.
+    /// </summary>
+    Baseline = 8,
 }

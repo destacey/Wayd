@@ -1,5 +1,7 @@
 ﻿using NodaTime;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Infrastructure.Persistence.Activities;
 
 namespace Wayd.Infrastructure.Tests.Sut.Persistence.Activities;
@@ -78,6 +80,22 @@ public sealed class ActivityLogEntryFactoryTests
 
         // Assert
         entry.Category.Should().Be(ActivityCategory.Created);
+    }
+
+    [Fact]
+    public void CreateActivityLogEntry_ForABaseline_SummarisesAsTheRecordBaselined()
+    {
+        // Arrange
+        var raised = new ProjectBaselinedEvent(Guid.CreateVersion7(), new ProjectKey("APOLLO"), "Apollo", "A project.",
+            1, 1, null, Guid.CreateVersion7(), null, null, null, [], [], null, null, Instant.FromUtc(2026, 9, 13, 8, 0));
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.Summary.Should().Be("Project Baselined");
+        entry.DomainArea.Should().Be("Ppm");
+        entry.EventVersion.Should().Be("1.1");
     }
 
     private sealed record ProjectPortfolioStubEventV2(string AggregateType, Guid AggregateId)

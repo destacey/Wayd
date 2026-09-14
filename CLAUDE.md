@@ -276,7 +276,7 @@ payload; the self-typed base makes a missing one a compile error.
 changed: edits to descriptive fields are a `DetailsUpdated` event, a transition is its own event, and a bare
 `XxxUpdatedEvent` is never right. Every consumer is served from those same events, including another module
 keeping a copy of the record (`WorkProject` is built from Created, DetailsUpdated, KeyChanged and Deleted).
-Never add an event that ships the whole record to a copy. A payload starts as `Id`/`Key`, and a field must pass four ordered tests.
+Never add an event that ships the whole record to a copy — the one exception is a **baseline** (`BaselineEvent<TSelf, TCreated>`), which mirrors the creation event's payload, takes a deterministic id, and is recorded but never published ([Baselining a record](docs/contributing/domain-events.mdx#baselining-a-record-that-predates-its-events)). A payload starts as `Id`/`Key`, and a field must pass four ordered tests.
 People are ids, never names or emails, because the log can't be corrected. A field goes in only when a kind
 of consumer (not a current subscriber) can't do without it. A change carries both ends. Another aggregate
 goes in by id, unless the value is frozen at the moment, like `ScoringModelName` on a recorded score. The

@@ -41,7 +41,8 @@ Raise only when the call changed something — see
 that record: the activity log, a handler reacting to the change, a notification, and another module keeping
 its own copy of the record. A copy is built from the creation event, the details, the transitions and the
 deletion. The Work module keeps `WorkProject` from exactly that: `ProjectCreatedEvent`,
-`ProjectDetailsUpdatedEvent`, `ProjectKeyChangedEventV2` and `ProjectDeletedEvent`. Never add an event whose purpose is to ship the whole record to a copy.
+`ProjectDetailsUpdatedEvent`, `ProjectKeyChangedEventV2` and `ProjectDeletedEvent`. Never add an event whose purpose is to ship the whole record to a copy. The one event that carries a whole record is a
+[baseline](#baselining-a-record-that-predates-its-events), and it is never delivered to anything.
 How the copy applies them when they arrive late, twice or out of order is in
 [Consuming an event](#consuming-an-event).
 Assume every event is published, whatever `DurableEventRoutes` says today — the routing table is a
@@ -163,6 +164,18 @@ will catch for you.
 - [ ] Every consumer handles both generations.
 - [ ] A payload written as the old type is stored in a test and still deserializes —
   `ProjectReparentedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes` is the pattern.
+
+**Baselining an aggregate**
+
+- [ ] The type is `{Aggregate}BaselinedEvent` in the creation event's folder, a `sealed record` deriving from
+  `BaselineEvent<TSelf, TCreated>` with the aggregate's creation event as `TCreated`. It passes the creation
+  event's aggregate type and version to the base, and takes no actor and no event id.
+  *`BaselineEventConventionTests`.*
+- [ ] Its properties and constructor are the creation event's, name for name and type for type, minus the
+  actor, plus `recordCreatedOn` and `recordCreatedById` passed to the base. *`BaselineEventConventionTests`.*
+- [ ] It implements no module marker. *`BaselineEventConventionTests`.*
+- [ ] When the creation event gains a field or a generation, the baseline gains the same one in the same
+  change. *`BaselineEventConventionTests`.*
 
 `DomainEventConventionTests` also fails a new event named only for its record (`ProjectUpdatedEvent`) and a
 payload property that looks like personal data (`Email`, `FirstName`, `DisplayName`, …).
@@ -432,6 +445,62 @@ Only `Project` has such a record. `Program` and `ProjectPortfolio` assign their 
 sections start from the release that introduced them — there is no row to share an id with and nothing to
 backfill from. Adding a history table to either is a separate decision, not a gap in this one.
 
+### Baselining a record that predates its events
+
+Most records existed before their aggregate raised a creation event, so their history in the log starts
+partway through: a change to a state the log never recorded. A **baseline** records that tracking began and
+what the record looked like at that moment. From it onwards, a record's history starts from a known state,
+and once the aggregate raises an event for every change it can be read, and replayed, without a gap.
+
+It is called a baseline, not a snapshot, because in event sourcing a snapshot is a cached fold of a
+stream, kept to save replaying it. A baseline is the opposite: it is the start of the stream, like an
+opening balance.
+
+**The shape is the creation event's.** `ProjectBaselinedEvent` carries exactly `ProjectCreatedEvent`'s
+payload at the same version, so anything folding a history starts the same way from either. The two differ
+in meaning only. A creation event says the record came into existence. A baseline says it already existed
+when tracking began. `BaselineEvent<TSelf, TCreated>` names the creation event, and
+`BaselineEventConventionTests` fails a baseline whose properties, version, generation or aggregate type
+drift from it. So a field added to the creation event is added to the baseline in the same change.
+
+**It adds only when and by whom the record was created.** A creation event records these as its own
+`Timestamp` and actor, and a baseline has neither, so `BaselineEvent` declares `RecordCreatedOn` and
+`RecordCreatedById` once for every baseline. `RecordCreatedById` is an employee id, like `ReportedById`. The
+writer reads the values from the record's `SystemCreated` and `SystemCreatedBy` shadow properties, and maps the
+creating account to its linked employee. Both are null when they were not recorded or no employee is linked.
+They are the only fields outside the creation event's payload, and they describe the creation, not the record at
+the baseline's `Timestamp`.
+
+**It is the bounded exception to "never ship the whole record".** That rule exists because a routed event
+carrying the whole record becomes a second, drifting copy that consumers depend on. A baseline is recorded
+in the activity log and never delivered: `BaseDbContext` writes its entry and publishes it nowhere, neither
+inline nor to the outbox. A baseline implements no module marker such as `IPpmEvent`, because a projection
+handling the marker would receive it. Nothing is lost by this, since nothing happened to the record for a
+consumer to react to. Tests 1 and 4 still apply: people and other aggregates are carried by id, as they
+are in the creation event it mirrors.
+
+**Its id is derived, so it can only be written once.** `EventId` is a name-based UUID (version 5) of the
+aggregate type and id, from `BaselineEventId.For`. Writing a record's baseline a second time produces the
+same id and collides with the first row in `ActivityLogs` rather than adding a duplicate. This is the same
+property the status backfill gets [by sharing the history row's id](#sharing-an-id-with-the-record-a-transition-writes).
+The aggregate type is part of the name because replicas reuse their source record's id. The id does not
+depend on the type's generation, so a record keeps one baseline across generations.
+
+**It is recorded by the system, at the moment it is written.** The actor is always `EventActor.System`: the
+platform started tracking, and no person changed the record. The timestamp is when the baseline was written,
+because that is the moment the payload describes. A record can therefore have older entries than its
+baseline, such as replayed status transitions. The Activity section badges the baseline **Baseline**, not
+Created. It explains the entry when it is selected, and marks the entries below it as possibly incomplete.
+
+**It is versioned with its creation event.** There is one baseline type per aggregate. When the creation
+event takes a minor version, the baseline takes the same one. When the creation event gets a new
+generation, the baseline gets one too, and the old baseline is frozen and marked `[Obsolete]` like any
+superseded type.
+
+A baseline records the state before tracking, so it is only as trustworthy as the tracking after it. An
+aggregate that can still change without raising an event makes a baseline look like the start of a
+complete history when it is not.
+
 ## Activity log
 
 Every domain event drained by `SaveChanges` is also captured as an `ActivityLogEntry` row — automatically,
@@ -462,6 +531,7 @@ Pick by what happened, not by the words in the name:
 | `StateChanged` | State Change | Being put into or taken out of use | `TeamDeactivated`, `WorkflowPublished`, `StrategicThemeArchived`, `EnvironmentRetired` |
 | `Health` | Health | A health signal recorded, changed or withdrawn | `ProjectHealthCheckAdded`, `ProjectHealthCheckRemoved` |
 | `Removed` | Removed | The record ceasing to exist | `ProjectDeleted`, `ProductRemoved` |
+| `Baseline` | Baseline | Tracking beginning for a record that already existed | `ProjectBaselined` — declared by `BaselineEvent`, never chosen |
 
 Status and state are the two that need care. A **status** is a position in the record's lifecycle —
 proposed, active, completed; planned, cut, released — and moving it is progress, even when the move is a

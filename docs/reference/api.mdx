@@ -179,7 +179,15 @@ GET {record route}/{idOrKey}/activities?page=1&pageSize=50
 
 `page` is 1-based and `pageSize` is clamped to 1–100. The response is a `PagedResponse<ActivityLogDto>`, newest first. Reading a record's activity requires the same **View** permission as reading the record itself, and the handler resolves the record before reading its history — an unknown id or key returns 404 rather than an empty page.
 
-It is available on `teams`, `teams-of-teams`, `sprints`, `portfolios`, `programs`, `projects`, `strategic-themes`, `products`, `versions`, `releases`, `release-packages`, `deployments`, `status-workflows` and `work-processes`. See [Activity Log](../user-guide/activity-log.mdx) for what the corresponding UI does.
+It is available on `teams`, `teams-of-teams`, `planning-intervals`, `sprints`, `risks`, `portfolios`, `programs`, `projects`, `strategic-initiatives`, `strategic-themes`, `products`, `versions`, `releases`, `release-packages`, `deployments`, `status-workflows` and `work-processes`. See [Activity Log](../user-guide/activity-log.mdx) for what the corresponding UI does.
+
+A planning interval objective is reached through the interval that holds it, so its history hangs off that route rather than a top-level one:
+
+```
+GET planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/activities?page=1&pageSize=50
+```
+
+An objective belonging to a different interval returns 404, as an unknown one does.
 
 ## PPM Ranking Endpoints
 

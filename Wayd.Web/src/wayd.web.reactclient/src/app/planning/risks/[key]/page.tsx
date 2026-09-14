@@ -1,13 +1,23 @@
 'use client'
 
-import { use, useState } from 'react'
+import { Suspense, use, useState } from 'react'
 import { Button } from 'antd'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
 import EditRiskForm from '@/src/components/common/planning/edit-risk-form'
 import { authorizePage } from '@/src/components/hoc'
-import { notFound } from 'next/navigation'
-import { useGetRiskQuery } from '@/src/store/features/planning/risks-api'
+import { notFound, useSearchParams } from 'next/navigation'
+import {
+  useGetRiskActivitiesQuery,
+  useGetRiskQuery,
+  useLazyGetRiskActivitiesQuery,
+} from '@/src/store/features/planning/risks-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import RiskExposureTag from '@/src/components/common/planning/risk-exposure-tag'
 import RiskFacts from './_components/risk-facts'
@@ -16,7 +26,13 @@ import RiskDetailsLoading from './loading'
 
 enum RiskSections {
   Narrative = 'narrative',
+  Activities = 'activities',
 }
+
+const sections: RecordSection[] = [
+  { id: RiskSections.Narrative, label: 'Risk' },
+  { id: RiskSections.Activities, label: 'Activity' },
+]
 
 const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
@@ -26,7 +42,26 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const [openUpdateRiskForm, setOpenUpdateRiskForm] = useState<boolean>(false)
 
+  // The active section lives in the URL, owned by RecordLayout. Read here only
+  // to hold back the activity query until its section is open.
+  const searchParams = useSearchParams()
+  const activeSection = (searchParams.get('section') ??
+    RiskSections.Narrative) as RiskSections
+
   const { data: risk, isLoading, refetch } = useGetRiskQuery(riskKey)
+
+  const activitiesQuery = useGetRiskActivitiesQuery(
+    { idOrKey: risk?.id ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
+    { skip: !risk?.id || activeSection !== RiskSections.Activities },
+  )
+  const [fetchActivityLogPage] = useLazyGetRiskActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: risk?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `risk-${risk?.key ?? riskKey}-activity`,
+  })
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateRisks = hasPermissionClaim('Permissions.Risks.Update')
@@ -54,11 +89,14 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       ? `/organizations/teams/${risk.team.key}`
       : `/organizations/team-of-teams/${risk.team?.key}`
 
-  // One section, so RecordLayout renders no rail and the narrative gets the
-  // full content column.
-  const sections: RecordSection[] = [
-    { id: RiskSections.Narrative, label: 'Risk' },
-  ]
+  const renderSection = (section: RiskSections) => {
+    switch (section) {
+      case RiskSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
+      default:
+        return <RiskNarrative risk={risk} />
+    }
+  }
 
   return (
     <>
@@ -81,8 +119,13 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           ),
         }}
         facts={<RiskFacts risk={risk} />}
+        sectionActions={
+          activeSection === RiskSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
-        {() => <RiskNarrative risk={risk} />}
+        {(section) => renderSection(section as RiskSections)}
       </RecordLayout>
       {openUpdateRiskForm && (
         <EditRiskForm
@@ -95,8 +138,19 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   )
 }
 
+// useSearchParams suspends a prerendered route up to the nearest boundary. In
+// development routes render on demand, so a missing one only fails the
+// production build.
+const RiskDetailsPageWithSuspense = (props: {
+  params: Promise<{ key: string }>
+}) => (
+  <Suspense fallback={<RiskDetailsLoading />}>
+    <RiskDetailsPage {...props} />
+  </Suspense>
+)
+
 const RiskDetailsPageWithAuthorization = authorizePage(
-  RiskDetailsPage,
+  RiskDetailsPageWithSuspense,
   'Permission',
   'Permissions.Risks.View',
 )

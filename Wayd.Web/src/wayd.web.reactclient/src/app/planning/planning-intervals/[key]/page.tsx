@@ -23,10 +23,18 @@ import { IterationState } from '@/src/components/types'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useGetPlanningIntervalActivitiesQuery,
   useGetPlanningIntervalBacklogQuery,
   useGetPlanningIntervalQuery,
   useGetPlanningIntervalTeamsQuery,
+  useLazyGetPlanningIntervalActivitiesQuery,
 } from '@/src/store/features/planning/planning-interval-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { Button, Flex } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useSearchParams } from 'next/navigation'
@@ -46,6 +54,7 @@ enum PlanningIntervalSections {
   Risks = 'risks',
   Backlog = 'backlog',
   HealthReport = 'health-report',
+  Activities = 'activities',
 }
 
 const sections: RecordSection[] = [
@@ -54,6 +63,7 @@ const sections: RecordSection[] = [
   { id: PlanningIntervalSections.Objectives, label: 'Objectives' },
   { id: PlanningIntervalSections.Risks, label: 'Risks' },
   { id: PlanningIntervalSections.Backlog, label: 'Backlog' },
+  { id: PlanningIntervalSections.Activities, label: 'Activity' },
 ]
 
 const reports: RecordSection[] = [
@@ -81,7 +91,7 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
   )
 
   // The active section lives in the URL, owned by RecordLayout. Read here only
-  // to hold back the teams query until a section actually needs it.
+  // to hold back queries until a section actually needs them.
   const searchParams = useSearchParams()
   const activeSection = (searchParams.get('section') ??
     PlanningIntervalSections.Overview) as PlanningIntervalSections
@@ -108,6 +118,27 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
     refetch: refetchBacklog,
   } = useGetPlanningIntervalBacklogQuery(piKey, {
     skip: activeSection !== PlanningIntervalSections.Backlog,
+  })
+
+  const activitiesQuery = useGetPlanningIntervalActivitiesQuery(
+    {
+      idOrKey: planningInterval?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !planningInterval?.id ||
+        activeSection !== PlanningIntervalSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetPlanningIntervalActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: planningInterval?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `planning-interval-${planningInterval?.key ?? piKey}-activity`,
   })
 
   const closeEditForm = (wasSaved: boolean) => {
@@ -173,10 +204,15 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
       <Button onClick={() => setOpenCreateObjectiveForm(true)}>
         Create Objective
       </Button>
+    ) : activeSection === PlanningIntervalSections.Activities ? (
+      <ActivityLogExportButton activityLog={activityLog} />
     ) : null
 
   const renderSection = (section: PlanningIntervalSections) => {
     switch (section) {
+      case PlanningIntervalSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
+
       case PlanningIntervalSections.Objectives:
         return (
           <PlanningIntervalObjectivesSection

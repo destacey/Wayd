@@ -96,6 +96,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.HealthChecksHealthReport, id: objectiveId },
         { type: QueryTags.PlanningIntervalObjective, id: 'LIST' },
         { type: QueryTags.PlanningIntervalObjective, id: objectiveId },
+        { type: QueryTags.ActivityLog, id: objectiveId },
       ],
     }),
 
@@ -122,6 +123,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.HealthChecksHealthReport, id: objectiveId },
         { type: QueryTags.PlanningIntervalObjective, id: 'LIST' },
         { type: QueryTags.PlanningIntervalObjective, id: objectiveId },
+        { type: QueryTags.ActivityLog, id: objectiveId },
       ],
     }),
 
@@ -147,6 +149,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.HealthChecksHealthReport, id: objectiveId },
         { type: QueryTags.PlanningIntervalObjective, id: 'LIST' },
         { type: QueryTags.PlanningIntervalObjective, id: objectiveId },
+        { type: QueryTags.ActivityLog, id: objectiveId },
       ],
     }),
   }),

@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   CreateRiskRequest,
   ObjectIdAndKey,
+  PagedResponseOfActivityLogDto,
   RiskCategoryDto,
   RiskDetailsDto,
   RiskListDto,
@@ -50,12 +51,13 @@ export const risksApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => {
+      invalidatesTags: (result) => {
         return [
           { type: QueryTags.Risk, id: 'LIST' },
           { type: QueryTags.MyRisk },
           { type: QueryTags.PlanningIntervalRisk },
           // team risks, team of team risks
+          ...(result ? [{ type: QueryTags.ActivityLog, id: result.id }] : []),
         ]
       },
     }),
@@ -72,15 +74,37 @@ export const risksApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { request, cacheKey }) => {
         return [
           { type: QueryTags.Risk, id: cacheKey },
           { type: QueryTags.Risk, id: 'LIST' },
           { type: QueryTags.MyRisk },
           { type: QueryTags.PlanningIntervalRisk },
           // team risks, team of team risks
+          { type: QueryTags.ActivityLog, id: request.riskId },
         ]
       },
+    }),
+    getRiskActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getRisksClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
     }),
     getRiskStatusOptions: builder.query<OptionModel<number>[], void>({
       queryFn: async () => {
@@ -162,6 +186,8 @@ export const {
   useGetMyRisksQuery,
   useCreateRiskMutation,
   useUpdateRiskMutation,
+  useGetRiskActivitiesQuery,
+  useLazyGetRiskActivitiesQuery,
   useGetRiskStatusOptionsQuery,
   useGetRiskCategoriesQuery,
   useGetRiskCategoryOptionsQuery,

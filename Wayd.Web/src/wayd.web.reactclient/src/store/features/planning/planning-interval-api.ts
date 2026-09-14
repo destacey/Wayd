@@ -5,6 +5,7 @@ import {
   ManagePlanningIntervalObjectiveWorkItemsRequest,
   MapPlanningIntervalSprintsRequest,
   ObjectIdAndKey,
+  PagedResponseOfActivityLogDto,
   PlanningIntervalCalendarDto,
   PlanningIntervalDetailsDto,
   PlanningIntervalIterationDetailsDto,
@@ -99,6 +100,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
         return [
           { type: QueryTags.PlanningInterval, id: 'LIST' },
           { type: QueryTags.PlanningInterval, id: arg.cacheKey },
+          { type: QueryTags.ActivityLog, id: arg.request.id },
         ]
       },
     }),
@@ -124,6 +126,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
           { type: QueryTags.PlanningInterval, id: arg.cacheKey },
           { type: QueryTags.PlanningIntervalCalendar, id: arg.cacheKey },
           { type: QueryTags.PlanningIntervalIteration, id: arg.cacheKey },
+          { type: QueryTags.ActivityLog, id: arg.request.id },
         ]
       },
     }),
@@ -409,6 +412,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
         { type: QueryTags.PlanningIntervalIteration, id: arg.cacheKey },
         { type: QueryTags.PlanningIntervalTeam, id: arg.cacheKey },
         { type: QueryTags.PlanningIntervalIterationSprints, id: arg.cacheKey },
+        { type: QueryTags.ActivityLog, id: arg.planningIntervalId },
       ],
     }),
     getPlanningIntervalObjectives: builder.query<
@@ -488,6 +492,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
             type: QueryTags.PlanningIntervalTeamPredictability,
             id: `${arg.planningIntervalKey}:${arg.request.teamId}`,
           },
+          ...(result ? [{ type: QueryTags.ActivityLog, id: result.id }] : []),
         ]
       },
     }),
@@ -525,6 +530,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
             type: QueryTags.PlanningIntervalTeamPredictability,
             id: `${arg.planningIntervalKey}:${arg.teamId}`,
           },
+          { type: QueryTags.ActivityLog, id: arg.request.objectiveId },
         ]
       },
     }),
@@ -544,8 +550,14 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => {
-        return [{ type: QueryTags.PlanningIntervalObjective }]
+      invalidatesTags: (result, error, arg) => {
+        return [
+          { type: QueryTags.PlanningIntervalObjective },
+          ...Object.keys(arg.objectives).map((objectiveId) => ({
+            type: QueryTags.ActivityLog,
+            id: objectiveId,
+          })),
+        ]
       },
     }),
     deletePlanningIntervalObjective: builder.mutation<
@@ -582,6 +594,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
             type: QueryTags.PlanningIntervalTeamPredictability,
             id: `${arg.planningIntervalKey}:${arg.teamId}`,
           },
+          { type: QueryTags.ActivityLog, id: arg.objectiveId },
         ]
       },
     }),
@@ -763,6 +776,60 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
         },
       ],
     }),
+    getPlanningIntervalActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getPlanningIntervalsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
+    getPlanningIntervalObjectiveActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      {
+        planningIntervalIdOrKey: string | number
+        objectiveIdOrKey: string | number
+        page?: number
+        pageSize?: number
+      }
+    >({
+      queryFn: async ({
+        planningIntervalIdOrKey,
+        objectiveIdOrKey,
+        page,
+        pageSize,
+      }) => {
+        try {
+          const data =
+            await getPlanningIntervalsClient().getObjectiveActivities(
+              String(planningIntervalIdOrKey),
+              String(objectiveIdOrKey),
+              page,
+              pageSize,
+            )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { objectiveIdOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(objectiveIdOrKey) },
+      ],
+    }),
   }),
 })
 
@@ -798,4 +865,8 @@ export const {
   useGetPlanningIntervalObjectiveStatusesQuery,
   useGetPlanningIntervalObjectiveStatusOptionsQuery,
   useGetPlanningIntervalRisksQuery,
+  useGetPlanningIntervalActivitiesQuery,
+  useLazyGetPlanningIntervalActivitiesQuery,
+  useGetPlanningIntervalObjectiveActivitiesQuery,
+  useLazyGetPlanningIntervalObjectiveActivitiesQuery,
 } = planningIntervalApi

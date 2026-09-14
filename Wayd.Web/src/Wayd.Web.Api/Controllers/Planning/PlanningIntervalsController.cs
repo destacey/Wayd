@@ -1,6 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using CsvHelper;
 using Mapster;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Extensions;
@@ -64,6 +65,20 @@ public class PlanningIntervalsController : ControllerBase
 
         return planningInterval is not null
             ? Ok(planningInterval)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
+    [OpenApiOperation("Get activity history for the planning interval.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetPlanningIntervalActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
             : NotFound();
     }
 
@@ -620,6 +635,20 @@ public class PlanningIntervalsController : ControllerBase
 
         return objective is not null
             ? Ok(objective)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
+    [OpenApiOperation("Get activity history for the planning interval objective.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetObjectiveActivities(string idOrKey, string objectiveIdOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetPlanningIntervalObjectiveActivitiesQuery(new IdOrKey(idOrKey), new IdOrKey(objectiveIdOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
             : NotFound();
     }
 

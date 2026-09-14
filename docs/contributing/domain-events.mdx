@@ -488,9 +488,9 @@ depend on the type's generation, so a record keeps one baseline across generatio
 
 **It is recorded by the system, at the moment it is written.** The actor is always `EventActor.System`: the
 platform started tracking, and no person changed the record. The timestamp is when the baseline was written,
-because that is the moment the payload describes. A record can therefore have older entries than its
-baseline, such as replayed status transitions. The Activity section badges the baseline **Baseline**, not
-Created. It explains the entry when it is selected, and marks the entries below it as possibly incomplete.
+because that is the moment the payload describes. The Activity section badges the baseline **Baseline**, not
+Created, and explains the entry when it is selected. Should a record ever have entries older than its baseline,
+the section marks them as possibly incomplete.
 
 **It is versioned with its creation event.** There is one baseline type per aggregate. When the creation
 event takes a minor version, the baseline takes the same one. When the creation event gets a new
@@ -500,6 +500,35 @@ superseded type.
 A baseline records the state before tracking, so it is only as trustworthy as the tracking after it. An
 aggregate that can still change without raising an event makes a baseline look like the start of a
 complete history when it is not.
+
+### Backfilling baselines
+
+The `Backfill-Baseline-Activity` migration gave every record of the nine evented aggregates that had no creation
+entry a baseline: projects, programs, portfolios, strategic initiatives, strategic themes, iterations, teams
+(teams of teams included), status workflows and products. Soft-deleted teams were skipped. A record that already
+had a creation entry was left untouched.
+
+For a record it baselined, the migration first **removed every entry the record already had**. Those entries were
+partial history ahead of an unknown starting state and could never be replayed, so each record's history now begins
+at its baseline. The status transitions it removed are still in `ProjectStatusHistory` for projects and in
+`StatusWorkflows.StatusTransitions` for workflow-driven records such as products.
+
+It writes each payload by hand in T-SQL, frozen at the shape its baseline type had when it shipped.
+`BackfillBaselineActivityMigrationTests` proves every aggregate's row matches the entry `ActivityLogEntryFactory`
+builds for the same event: payload, computed properties, envelope and derived id. It also proves a second run writes
+nothing.
+
+**Baselining an aggregate that gains events later** is a new migration of the same shape. Add its
+`{Aggregate}BaselinedEvent`, select the records with neither its creation nor its baseline entry, clear their
+entries, write the baselines, and extend the migration test with the new aggregate. Do this only once the aggregate
+raises an event for every change.
+
+**A seeder that creates an evented aggregate records its creation too.** The backfill runs once, before any seeder,
+so a record a seeder creates on a fresh install is never baselined. Seeders run during `InitializeDatabases`,
+before Wolverine can route, so they cannot let `SaveChanges` drain and publish the events. Instead, a seeder
+takes the aggregate's deferred creation events off it, saves, raises them once the key exists, and writes them
+straight into the activity log through `ActivityLogEntryFactory`, all in one transaction.
+`ProductManagementWorkflowSeeder` is the pattern.
 
 ## Activity log
 

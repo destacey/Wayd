@@ -66,7 +66,6 @@ const BaselineNotice: FC<BaselineNoticeProps> = ({ payload }) => {
           <span>
             This record existed before its activity was recorded. This entry
             shows how it looked when tracking began, not a change made to it.
-            Entries before it may be incomplete.
           </span>
           {created?.isValid() && (
             <Text>

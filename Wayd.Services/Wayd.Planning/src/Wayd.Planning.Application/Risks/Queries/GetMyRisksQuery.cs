@@ -1,5 +1,5 @@
 ﻿using Wayd.Planning.Application.Risks.Dtos;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.Risks.Queries;
 

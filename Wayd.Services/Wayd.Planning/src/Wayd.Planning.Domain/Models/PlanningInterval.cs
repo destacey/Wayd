@@ -1,9 +1,10 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Interfaces;
-using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Interfaces;
 using Wayd.Planning.Domain.Models.Iterations;
 using NodaTime;
@@ -21,7 +22,6 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
 
     private PlanningInterval(string name, string? description, LocalDateRange dateRange)
     {
-        // TODO generate a new Guid, rather than depend on the DB.  This can be used when creating new Iterations.
         Name = name;
         Description = description;
         DateRange = dateRange;
@@ -135,16 +135,31 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
         return IterationState.Future;
     }
 
-    /// <summary>Updates the specified name.</summary>
-    /// <param name="name">The name.</param>
-    /// <param name="description">The description.</param>
-    /// <param name="objectivesLocked">if set to <c>true</c> [objectives locked].</param>
-    /// <returns></returns>
-    public Result Update(string name, string? description, bool objectivesLocked)
+    /// <summary>
+    /// Updates the name and description, and locks or unlocks the objectives. Locking is a change of state in
+    /// its own right, so it raises its own event.
+    /// </summary>
+    public Result Update(string name, string? description, bool objectivesLocked, EventActor actor, Instant timestamp)
     {
+        var previousDetails = new PlanningIntervalDetails(Name, Description);
+        var previousObjectivesLocked = ObjectivesLocked;
+
         Name = name;
         Description = description;
         ObjectivesLocked = objectivesLocked;
+
+        // Compared after assignment because the text setters trim.
+        var details = new PlanningIntervalDetails(Name, Description);
+        if (details != previousDetails)
+            AddKeyedDomainEvent(() => new PlanningIntervalDetailsUpdatedEvent(Id, Key, details.Name, details.Description, previousDetails, actor, timestamp));
+
+        if (ObjectivesLocked != previousObjectivesLocked)
+        {
+            if (ObjectivesLocked)
+                AddKeyedDomainEvent(() => new PlanningIntervalObjectivesLockedEvent(Id, Key, actor, timestamp));
+            else
+                AddKeyedDomainEvent(() => new PlanningIntervalObjectivesUnlockedEvent(Id, Key, actor, timestamp));
+        }
 
         return Result.Success();
     }
@@ -154,9 +169,10 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// </summary>
     /// <param name="dateRange"></param>
     /// <returns></returns>
-    public Result ManageDates(LocalDateRange dateRange, List<UpsertPlanningIntervalIteration> iterations)
+    public Result ManageDates(LocalDateRange dateRange, List<UpsertPlanningIntervalIteration> iterations, EventActor actor, Instant timestamp)
     {
-        DateRange = dateRange;
+        var previousDateRange = DateRange;
+        var previousMappings = SprintMappings();
 
         //TODO: we are currently allowing gaps in the date ranges, but we should not allow that
 
@@ -165,24 +181,30 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
         if (iterationNames.Distinct().Count() != iterationNames.Count)
             return Result.Failure("Iteration names must be unique within the PI.");
 
-        // verify iteration dates are within the PI date range and don't overlap
+        // Checked against the incoming range, and nothing is assigned until they all pass: a rejected call
+        // leaves the interval as it was.
         foreach (var iteration in iterations)
         {
-            if (iteration.DateRange.Start < DateRange.Start)
+            if (iteration.DateRange.Start < dateRange.Start)
                 return Result.Failure("Iteration date ranges cannot start before the Planning Interval date range.");
-            if (iteration.DateRange.End > DateRange.End)
+            if (iteration.DateRange.End > dateRange.End)
                 return Result.Failure("Iteration date ranges cannot end after the Planning Interval date range.");
 
             if (Iterations.Where(i => i.Id != iteration.Id).Any(x => x.DateRange.Overlaps(iteration.DateRange)))
                 return Result.Failure("Iteration date ranges cannot overlap.");
         }
 
+        DateRange = dateRange;
+
+        var newDateRange = DateRange;
+        if (!newDateRange.Equals(previousDateRange))
+            AddKeyedDomainEvent(() => new PlanningIntervalDateRangeChangedEvent(Id, Key, previousDateRange, newDateRange, actor, timestamp));
+
         // remove any iterations that are not in the list
-        var initialIterationIds = _iterations.Select(i => i.Id).ToList();
         var removedIterations = _iterations.Where(i => !iterations.Any(x => x.Id == i.Id)).ToList();
         foreach (var removedIteration in removedIterations)
         {
-            var deleteResult = DeleteIteration(removedIteration.Id);
+            var deleteResult = DeleteIteration(removedIteration.Id, actor, timestamp);
             if (deleteResult.IsFailure)
                 return Result.Failure(deleteResult.Error);
         }
@@ -190,7 +212,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
         // update existing iterations
         foreach (var iteration in iterations.Where(x => !x.IsNew))
         {
-            var updateResult = UpdateIteration(iteration.Id!.Value, iteration.Name, iteration.Category, iteration.DateRange);
+            var updateResult = UpdateIteration(iteration.Id!.Value, iteration.Name, iteration.Category, iteration.DateRange, actor, timestamp);
             if (updateResult.IsFailure)
                 return Result.Failure(updateResult.Error);
         }
@@ -198,10 +220,12 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
         // add new iterations
         foreach (var iteration in iterations.Where(x => x.IsNew))
         {
-            var addResult = AddIteration(iteration.Name, iteration.Category, iteration.DateRange);
+            var addResult = AddIteration(iteration.Name, iteration.Category, iteration.DateRange, actor, timestamp);
             if (addResult.IsFailure)
                 return Result.Failure(addResult.Error);
         }
+
+        RaiseSprintMappingsChanged(previousMappings, actor, timestamp);
 
         return Result.Success();
     }
@@ -209,9 +233,11 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <summary>Manages the planning interval teams.</summary>
     /// <param name="teamIds">The team ids.</param>
     /// <returns></returns>
-    public Result ManageTeams(IEnumerable<Guid> teamIds)
+    public Result ManageTeams(IEnumerable<Guid> teamIds, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(teamIds, nameof(teamIds));
+
+        var previousMappings = SprintMappings();
 
         var removedTeams = _teams.Where(x => !teamIds.Contains(x.TeamId)).ToList();
         foreach (var removedTeam in removedTeams)
@@ -228,11 +254,21 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
             }
         }
 
-        var addedTeams = teamIds.Where(x => !_teams.Any(y => y.TeamId == x)).ToList();
+        var addedTeams = teamIds.Where(x => !_teams.Any(y => y.TeamId == x)).Distinct().ToList();
         foreach (var addedTeam in addedTeams)
         {
             _teams.Add(new PlanningIntervalTeam(Id, addedTeam));
         }
+
+        if (removedTeams.Count > 0 || addedTeams.Count > 0)
+        {
+            Guid[] added = [.. addedTeams];
+            Guid[] removed = [.. removedTeams.Select(t => t.TeamId)];
+            Guid[] current = [.. _teams.Select(t => t.TeamId)];
+            AddKeyedDomainEvent(() => new PlanningIntervalTeamsChangedEvent(Id, Key, added, removed, current, actor, timestamp));
+        }
+
+        RaiseSprintMappingsChanged(previousMappings, actor, timestamp);
 
         return Result.Success();
     }
@@ -245,7 +281,12 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <param name="iterationWeeks">Specifies the default length of each iteration.  The length of final iteration will also depend on the planning interval end date.</param>
     /// <param name="iterationPrefix">By default each iteration is named based on its sequence.  Providing a prefix can reduce confusion with iterations in other planning intervals.</param>
     /// <returns></returns>
-    public Result InitializeIterations(int iterationWeeks, string? iterationPrefix)
+    public Result InitializeIterations(int iterationWeeks, string? iterationPrefix, EventActor actor, Instant timestamp)
+    {
+        return InitializeIterationsCore(iterationWeeks, iterationPrefix, iteration => RaiseIterationAdded(iteration, actor, timestamp));
+    }
+
+    private Result InitializeIterationsCore(int iterationWeeks, string? iterationPrefix, Action<PlanningIntervalIteration> added)
     {
         if (Iterations.Count != 0)
             return Result.Failure("Unable to generate new iterations for a Planning Interval that has iterations.");
@@ -265,9 +306,11 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
                 isLastIteration = true;
             }
 
-            var addIterationResult = AddIteration(iterationName, iterationCategory, new LocalDateRange(iterationStart, iterationEnd));
+            var addIterationResult = AddIterationCore(iterationName, iterationCategory, new LocalDateRange(iterationStart, iterationEnd));
             if (addIterationResult.IsFailure)
                 return Result.Failure(addIterationResult.Error);
+
+            added(addIterationResult.Value);
 
             if (isLastIteration)
                 break;
@@ -279,43 +322,83 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
         return Result.Success();
     }
 
-    public Result AddIteration(string name, IterationCategory category, LocalDateRange dateRange)
+    public Result AddIteration(string name, IterationCategory category, LocalDateRange dateRange, EventActor actor, Instant timestamp)
     {
-        if (Iterations.Any(x => x.Name == name))
-            return Result.Failure("Iteration name already exists.");
+        var result = AddIterationCore(name, category, dateRange);
+        if (result.IsFailure)
+            return Result.Failure(result.Error);
 
-        if (Iterations.Any(x => x.DateRange.Overlaps(dateRange)))
-            return Result.Failure("Iteration date range overlaps with existing iteration date range.");
-
-        if (dateRange.Start < DateRange.Start)
-            return Result.Failure("Iteration date range cannot start before the Planning Interval date range.");
-
-        if (dateRange.End > DateRange.End)
-            return Result.Failure("Iteration date range cannot end after the Planning Interval date range.");
-
-        var iteration = new PlanningIntervalIteration(Id, name, category, dateRange);
-        _iterations.Add(iteration);
+        RaiseIterationAdded(result.Value, actor, timestamp);
 
         return Result.Success();
     }
 
-    private Result UpdateIteration(Guid iterationId, string name, IterationCategory category, LocalDateRange dateRange)
+    private Result<PlanningIntervalIteration> AddIterationCore(string name, IterationCategory category, LocalDateRange dateRange)
+    {
+        if (Iterations.Any(x => x.Name == name))
+            return Result.Failure<PlanningIntervalIteration>("Iteration name already exists.");
+
+        if (Iterations.Any(x => x.DateRange.Overlaps(dateRange)))
+            return Result.Failure<PlanningIntervalIteration>("Iteration date range overlaps with existing iteration date range.");
+
+        if (dateRange.Start < DateRange.Start)
+            return Result.Failure<PlanningIntervalIteration>("Iteration date range cannot start before the Planning Interval date range.");
+
+        if (dateRange.End > DateRange.End)
+            return Result.Failure<PlanningIntervalIteration>("Iteration date range cannot end after the Planning Interval date range.");
+
+        var iteration = new PlanningIntervalIteration(Id, name, category, dateRange);
+        _iterations.Add(iteration);
+
+        return Result.Success(iteration);
+    }
+
+    private void RaiseIterationAdded(PlanningIntervalIteration iteration, EventActor actor, Instant timestamp)
+    {
+        var iterationId = iteration.Id;
+        var name = iteration.Name;
+        var category = iteration.Category;
+        var dateRange = iteration.DateRange;
+
+        AddKeyedDomainEvent(() => new PlanningIntervalIterationAddedEvent(Id, Key, iterationId, name, category, dateRange, actor, timestamp));
+    }
+
+    private Result UpdateIteration(Guid iterationId, string name, IterationCategory category, LocalDateRange dateRange, EventActor actor, Instant timestamp)
     {
         var existingIteration = _iterations.FirstOrDefault(x => x.Id == iterationId);
         if (existingIteration == null)
             return Result.Failure($"Iteration {iterationId} not found.");
 
+        var previousDetails = new PlanningIntervalIterationDetails(existingIteration.Name, existingIteration.Category);
+        var previousDateRange = existingIteration.DateRange;
+
         var updateResult = existingIteration.Update(name, category, dateRange);
-        return updateResult.IsSuccess ? Result.Success() : Result.Failure(updateResult.Error);
+        if (updateResult.IsFailure)
+            return Result.Failure(updateResult.Error);
+
+        // Compared after the update because the name setter trims.
+        var details = new PlanningIntervalIterationDetails(existingIteration.Name, existingIteration.Category);
+        if (details != previousDetails)
+            AddKeyedDomainEvent(() => new PlanningIntervalIterationDetailsUpdatedEvent(Id, Key, iterationId, details.Name, details.Category, previousDetails, actor, timestamp));
+
+        var newDateRange = existingIteration.DateRange;
+        if (!newDateRange.Equals(previousDateRange))
+            AddKeyedDomainEvent(() => new PlanningIntervalIterationDateRangeChangedEvent(Id, Key, iterationId, previousDateRange, newDateRange, actor, timestamp));
+
+        return Result.Success();
     }
 
-    private Result DeleteIteration(Guid iterationId)
+    private Result DeleteIteration(Guid iterationId, EventActor actor, Instant timestamp)
     {
         var existingIteration = _iterations.FirstOrDefault(x => x.Id == iterationId);
         if (existingIteration == null)
             return Result.Failure($"Iteration {iterationId} not found.");
 
         _iterations.Remove(existingIteration);
+        _iterationSprints.RemoveAll(s => s.PlanningIntervalIterationId == iterationId);
+
+        var name = existingIteration.Name;
+        AddKeyedDomainEvent(() => new PlanningIntervalIterationRemovedEvent(Id, Key, iterationId, name, actor, timestamp));
 
         return Result.Success();
     }
@@ -330,7 +413,18 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <param name="iterationId">The iteration ID within this PI.</param>
     /// <param name="sprint">The sprint entity to map.</param>
     /// <returns>A result indicating success or failure with an error message.</returns>
-    public Result MapSprintToIteration(Guid iterationId, Iteration sprint)
+    public Result MapSprintToIteration(Guid iterationId, Iteration sprint, EventActor actor, Instant timestamp)
+    {
+        var previousMappings = SprintMappings();
+
+        var result = MapSprintToIterationCore(iterationId, sprint);
+        if (result.IsSuccess)
+            RaiseSprintMappingsChanged(previousMappings, actor, timestamp);
+
+        return result;
+    }
+
+    private Result MapSprintToIterationCore(Guid iterationId, Iteration sprint)
     {
         Guard.Against.Null(sprint, nameof(sprint));
 
@@ -381,7 +475,18 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// </summary>
     /// <param name="sprintId">The sprint ID to unmap.</param>
     /// <returns>A result indicating success or failure with an error message.</returns>
-    public Result UnmapSprint(Guid sprintId)
+    public Result UnmapSprint(Guid sprintId, EventActor actor, Instant timestamp)
+    {
+        var previousMappings = SprintMappings();
+
+        var result = UnmapSprintCore(sprintId);
+        if (result.IsSuccess)
+            RaiseSprintMappingsChanged(previousMappings, actor, timestamp);
+
+        return result;
+    }
+
+    private Result UnmapSprintCore(Guid sprintId)
     {
         var mapping = _iterationSprints.FirstOrDefault(s => s.SprintId == sprintId);
         if (mapping is null)
@@ -402,7 +507,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     }
 
     /// <summary>
-    /// Synchronizes team sprint mappings to the desired state.
+    /// Synchronizes team sprint mappings to the desired state, raising one event for the whole change.
     /// This is a sync/replace operation that:
     /// - Maps sprints as specified in the dictionary
     /// - Unmaps sprints not included in the desired state
@@ -412,10 +517,12 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <param name="iterationSprintMappings">Dictionary where key is iteration ID and value is sprint ID (null to unmap).</param>
     /// <param name="sprints">Dictionary of available sprints keyed by ID.</param>
     /// <returns>A result indicating success or failure with an error message.</returns>
-    public Result SyncTeamSprintMappings(Guid teamId, Dictionary<Guid, Guid?> iterationSprintMappings, Dictionary<Guid, Iteration> sprints)
+    public Result SyncTeamSprintMappings(Guid teamId, Dictionary<Guid, Guid?> iterationSprintMappings, Dictionary<Guid, Iteration> sprints, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(iterationSprintMappings, nameof(iterationSprintMappings));
         Guard.Against.Null(sprints, nameof(sprints));
+
+        var previousMappings = SprintMappings();
 
         // Process each mapping in the dictionary
         foreach (var (iterationId, sprintId) in iterationSprintMappings)
@@ -430,7 +537,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
 
                 foreach (var sprintMapping in teamSprintsInIteration)
                 {
-                    var unmapResult = UnmapSprint(sprintMapping.SprintId);
+                    var unmapResult = UnmapSprintCore(sprintMapping.SprintId);
                     if (unmapResult.IsFailure)
                         return unmapResult;
                 }
@@ -441,7 +548,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
                 if (!sprints.TryGetValue(sprintId.Value, out var sprint))
                     return Result.Failure($"Sprint {sprintId.Value} not found.");
 
-                var mapResult = MapSprintToIteration(iterationId, sprint);
+                var mapResult = MapSprintToIterationCore(iterationId, sprint);
                 if (mapResult.IsFailure)
                     return mapResult;
             }
@@ -460,12 +567,33 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
 
         foreach (var currentSprint in currentTeamSprints)
         {
-            var unmapResult = UnmapSprint(currentSprint.SprintId);
+            var unmapResult = UnmapSprintCore(currentSprint.SprintId);
             if (unmapResult.IsFailure)
                 return unmapResult;
         }
 
+        RaiseSprintMappingsChanged(previousMappings, actor, timestamp);
+
         return Result.Success();
+    }
+
+    private PlanningIntervalSprintMapping[] SprintMappings()
+        => [.. _iterationSprints.Select(s => new PlanningIntervalSprintMapping(s.PlanningIntervalIterationId, s.SprintId))];
+
+    /// <summary>
+    /// Raises one event for the net change since <paramref name="previous"/>, if there was one. Compared as sets,
+    /// so a mapping removed and put back within the same call is no change.
+    /// </summary>
+    private void RaiseSprintMappingsChanged(PlanningIntervalSprintMapping[] previous, EventActor actor, Instant timestamp)
+    {
+        var current = SprintMappings();
+
+        PlanningIntervalSprintMapping[] added = [.. current.Except(previous)];
+        PlanningIntervalSprintMapping[] removed = [.. previous.Except(current)];
+        if (added.Length == 0 && removed.Length == 0)
+            return;
+
+        AddKeyedDomainEvent(() => new PlanningIntervalSprintMappingsChangedEvent(Id, Key, added, removed, current, actor, timestamp));
     }
 
     #endregion Sprint Mappings
@@ -473,14 +601,14 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     #region Objectives
 
     /// <summary>Creates a PI objective for a team.</summary>
-    public Result<PlanningIntervalObjective> CreateObjective(PlanningTeam team, string name, string? description, bool isStretch, LocalDate? startDate, LocalDate? targetDate, int? order)
+    public Result<PlanningIntervalObjective> CreateObjective(PlanningTeam team, string name, string? description, bool isStretch, LocalDate? startDate, LocalDate? targetDate, int? order, EventActor actor, Instant timestamp)
     {
         try
         {
             if (!CanCreateObjectives())
                 return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
 
-            var objective = new PlanningIntervalObjective(Id, team.Id, name, description, ObjectiveTypeFor(team), isStretch, startDate, targetDate, order);
+            var objective = PlanningIntervalObjective.Create(Id, team.Id, name, description, ObjectiveTypeFor(team), isStretch, startDate, targetDate, order, actor, timestamp);
             _objectives.Add(objective);
 
             return Result.Success(objective);
@@ -494,14 +622,14 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <summary>
     /// Adds an objective whose status, progress and closed date are already known, as an import does.
     /// </summary>
-    public Result<PlanningIntervalObjective> ImportObjective(PlanningTeam team, string name, string? description, ObjectiveStatus status, double progress, bool isStretch, LocalDate? startDate, LocalDate? targetDate, Instant? closedDate, int? order)
+    public Result<PlanningIntervalObjective> ImportObjective(PlanningTeam team, string name, string? description, ObjectiveStatus status, double progress, bool isStretch, LocalDate? startDate, LocalDate? targetDate, Instant? closedDate, int? order, EventActor actor, Instant timestamp)
     {
         try
         {
             if (!CanCreateObjectives())
                 return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
 
-            var objective = PlanningIntervalObjective.Import(Id, team.Id, name, description, ObjectiveTypeFor(team), status, progress, isStretch, startDate, targetDate, closedDate, order);
+            var objective = PlanningIntervalObjective.Import(Id, team.Id, name, description, ObjectiveTypeFor(team), status, progress, isStretch, startDate, targetDate, closedDate, order, actor, timestamp);
             _objectives.Add(objective);
 
             return Result.Success(objective);
@@ -516,7 +644,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// Updates an objective. Once objectives are locked the name and stretch flag are frozen; the rest
     /// stays editable so progress can still be reported against the committed plan.
     /// </summary>
-    public Result<PlanningIntervalObjective> UpdateObjective(Guid piObjectiveId, string name, string? description, ObjectiveStatus status, double progress, LocalDate? startDate, LocalDate? targetDate, bool isStretch, Instant timestamp)
+    public Result<PlanningIntervalObjective> UpdateObjective(Guid piObjectiveId, string name, string? description, ObjectiveStatus status, double progress, LocalDate? startDate, LocalDate? targetDate, bool isStretch, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -530,7 +658,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
                 isStretch = existingObjective.IsStretch;
             }
 
-            var updateResult = existingObjective.Update(name, description, status, progress, startDate, targetDate, isStretch, timestamp);
+            var updateResult = existingObjective.Update(name, description, status, progress, startDate, targetDate, isStretch, actor, timestamp);
             if (updateResult.IsFailure)
                 return Result.Failure<PlanningIntervalObjective>(updateResult.Error);
 
@@ -545,14 +673,14 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <summary>
     /// Reorders objectives. Every id must belong to this planning interval, or nothing changes.
     /// </summary>
-    public Result UpdateObjectivesOrder(IReadOnlyDictionary<Guid, int?> orders)
+    public Result UpdateObjectivesOrder(IReadOnlyDictionary<Guid, int?> orders, EventActor actor, Instant timestamp)
     {
         var missing = orders.Keys.Where(id => _objectives.All(o => o.Id != id)).ToList();
         if (missing.Count > 0)
             return Result.Failure($"Objectives not found in this Planning Interval: {string.Join(", ", missing)}.");
 
         foreach (var (id, order) in orders)
-            _objectives.First(o => o.Id == id).UpdateOrder(order);
+            _objectives.First(o => o.Id == id).UpdateOrder(order, actor, timestamp);
 
         return Result.Success();
     }
@@ -562,7 +690,10 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
             ? PlanningIntervalObjectiveType.Team
             : PlanningIntervalObjectiveType.TeamOfTeams;
 
-    public Result DeleteObjective(Guid piObjectiveId)
+    /// <summary>
+    /// Raises the objective's deletion. The caller removes it in the same save, which is what drains the event.
+    /// </summary>
+    public Result DeleteObjective(Guid piObjectiveId, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -573,8 +704,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
             if (existingObjective == null)
                 return Result.Failure($"Planning Interval Objective {piObjectiveId} not found.");
 
-            // TODO: deleting it here is not soft deleting it
-            //_objectives.Remove(existingObjective);
+            existingObjective.Delete(actor, timestamp);
 
             return Result.Success();
         }
@@ -586,18 +716,53 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
 
     #endregion Objectives
 
-    /// <summary>Creates the specified name.</summary>
-    /// <param name="name">The name.</param>
-    /// <param name="description">The description.</param>
-    /// <param name="dateRange">The date range.</param>
-    /// <returns></returns>
-    public static Result<PlanningInterval> Create(string name, string? description, LocalDateRange dateRange, int iterationWeeks, string? iterationPrefix)
+    /// <summary>
+    /// Raises an event whose payload carries <see cref="Key"/>, which the first save assigns; a change made
+    /// before it waits for the key. <paramref name="build"/> runs at that point, so capture what it reads.
+    /// </summary>
+    private void AddKeyedDomainEvent(Func<DomainEvent> build)
+    {
+        if (Key == 0)
+            AddPostPersistenceAction(() => AddDomainEvent(build()));
+        else
+            AddDomainEvent(build());
+    }
+
+    /// <summary>
+    /// Creates a planning interval and generates its iterations. The iterations are part of the creation, so
+    /// they raise no events of their own.
+    /// </summary>
+    public static Result<PlanningInterval> Create(string name, string? description, LocalDateRange dateRange, int iterationWeeks, string? iterationPrefix, EventActor actor, Instant timestamp)
     {
         var planningInterval = new PlanningInterval(name, description, dateRange);
-        var result = planningInterval.InitializeIterations(iterationWeeks, iterationPrefix);
+        var result = planningInterval.InitializeIterationsCore(iterationWeeks, iterationPrefix, _ => { });
+        if (result.IsFailure)
+            return Result.Failure<PlanningInterval>(result.Error);
 
-        return result.IsFailure
-            ? Result.Failure<PlanningInterval>(result.Error)
-            : planningInterval;
+        // Captured now, not when the action runs: the event records the interval as created, so a caller that
+        // changes it before the first save cannot rewrite the creation. Only Key waits for that save.
+        var createdName = planningInterval.Name;
+        var createdDescription = planningInterval.Description;
+        var createdDateRange = planningInterval.DateRange;
+        var createdObjectivesLocked = planningInterval.ObjectivesLocked;
+        PlanningIntervalIterationValues[] createdIterations = [.. planningInterval.Iterations
+            .Select(i => new PlanningIntervalIterationValues(i.Id, i.Name, i.Category, i.DateRange))];
+        Guid[] createdTeamIds = [.. planningInterval._teams.Select(t => t.TeamId)];
+        var createdSprintMappings = planningInterval.SprintMappings();
+
+        planningInterval.AddPostPersistenceAction(() => planningInterval.AddDomainEvent(new PlanningIntervalCreatedEvent(
+            planningInterval.Id,
+            planningInterval.Key,
+            createdName,
+            createdDescription,
+            createdDateRange,
+            createdObjectivesLocked,
+            createdIterations,
+            createdTeamIds,
+            createdSprintMappings,
+            actor,
+            timestamp)));
+
+        return planningInterval;
     }
 }

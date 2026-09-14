@@ -1,4 +1,4 @@
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
@@ -59,9 +59,10 @@ public sealed class UpdatePlanningIntervalObjectiveCommandValidator : CustomVali
     }
 }
 
-public sealed class UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectiveCommand, int>
+public sealed class UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectiveCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdatePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
@@ -88,6 +89,7 @@ public sealed class UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
                 request.StartDate,
                 request.TargetDate,
                 request.IsStretch,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {

@@ -8,9 +8,11 @@ using Wayd.Common.Domain.Imports;
 using Wayd.Planning.Application.Risks.Dtos;
 using Wayd.Planning.Application.Risks.Imports;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
+using Moq;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Planning.Application.Tests.Sut.Risks.Imports;
 
@@ -28,7 +30,7 @@ public sealed class RiskImportDefinitionTests : IDisposable
 
     public RiskImportDefinitionTests()
     {
-        _definition = new RiskImportDefinition(_dbContext, new ImportPayloadSerializer());
+        _definition = new RiskImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), new ImportPayloadSerializer());
 
         _team = new PlanningTeamFaker(TeamType.Team).Generate();
         _reporter = new EmployeeFaker().Generate();

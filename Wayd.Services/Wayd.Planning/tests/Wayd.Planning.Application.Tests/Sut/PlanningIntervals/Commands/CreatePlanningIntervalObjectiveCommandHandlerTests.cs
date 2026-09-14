@@ -3,9 +3,10 @@ using Moq;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.PlanningIntervals.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.Commands;
 
@@ -26,7 +27,7 @@ public sealed class CreatePlanningIntervalObjectiveCommandHandlerTests : IDispos
         _dbContext.AddPlanningInterval(_interval);
         _dbContext.AddPlanningTeam(_team);
 
-        _handler = new CreatePlanningIntervalObjectiveCommandHandler(_dbContext, _logger.Object);
+        _handler = new CreatePlanningIntervalObjectiveCommandHandler(_dbContext, Mock.Of<ICurrentUser>(), Mock.Of<IDateTimeProvider>(), _logger.Object);
     }
 
     public void Dispose() => _dbContext.Dispose();

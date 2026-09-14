@@ -21,10 +21,14 @@ public sealed class DeletePlanningIntervalObjectiveHealthCheckCommandValidator
 
 public sealed class DeletePlanningIntervalObjectiveHealthCheckCommandHandler(
     IPlanningDbContext planningDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<DeletePlanningIntervalObjectiveHealthCheckCommandHandler> logger)
     : ICommandHandler<DeletePlanningIntervalObjectiveHealthCheckCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeletePlanningIntervalObjectiveHealthCheckCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeletePlanningIntervalObjectiveHealthCheckCommand request, CancellationToken cancellationToken)
@@ -39,7 +43,8 @@ public sealed class DeletePlanningIntervalObjectiveHealthCheckCommandHandler(
             return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
         }
 
-        var removeResult = objective.RemoveHealthCheck(request.HealthCheckId);
+        var removeResult = objective.RemoveHealthCheck(request.HealthCheckId,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
         if (removeResult.IsFailure)
         {
             _logger.LogError("Unable to remove health check {HealthCheckId} from objective {ObjectiveId}.  Error: {Error}", request.HealthCheckId, request.PlanningIntervalObjectiveId, removeResult.Error);

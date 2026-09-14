@@ -1,6 +1,6 @@
 ﻿using Wayd.Common.Extensions;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Queries;
 

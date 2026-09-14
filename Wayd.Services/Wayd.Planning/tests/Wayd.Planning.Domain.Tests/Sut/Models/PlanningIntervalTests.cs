@@ -1,12 +1,14 @@
 ﻿using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Models;
-using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Domain.Tests.Sut.Models;
 
@@ -23,7 +25,7 @@ public class PlanningIntervalTests
     private void SetObjectiveStatus(PlanningInterval planningInterval, Guid objectiveId, ObjectiveStatus status, bool isStretch)
     {
         var objective = planningInterval.Objectives.Single(o => o.Id == objectiveId);
-        planningInterval.UpdateObjective(objectiveId, objective.Name, objective.Description, status, objective.Progress, objective.StartDate, objective.TargetDate, isStretch, _dateTimeProvider.Now);
+        planningInterval.UpdateObjective(objectiveId, objective.Name, objective.Description, status, objective.Progress, objective.StartDate, objective.TargetDate, isStretch, EventActor.System, _dateTimeProvider.Now);
     }
 
     #region StateOn
@@ -95,7 +97,7 @@ public class PlanningIntervalTests
     {
         // Arrange
         var sut = _planningIntervalFaker.Generate();
-        sut.Update(sut.Name, sut.Description, false);
+        sut.Update(sut.Name, sut.Description, false, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = sut.CalculatePredictability(_dateTimeProvider.Today);
@@ -194,7 +196,7 @@ public class PlanningIntervalTests
         for (int i = 0; i < objectiveCount; i++)
         {
             var isStretch = i >= objectiveCount - 2;
-            var status = isStretch ? Enums.ObjectiveStatus.InProgress : Enums.ObjectiveStatus.Completed;
+            var status = isStretch ? ObjectiveStatus.InProgress : ObjectiveStatus.Completed;
             SetObjectiveStatus(sut, objectiveIds[i], status, isStretch);
         }
 
@@ -218,7 +220,7 @@ public class PlanningIntervalTests
         {
             var isStretch = i >= objectiveCount - 2;
             var isComplete = i < 3;
-            var status = isComplete ? Enums.ObjectiveStatus.Completed : Enums.ObjectiveStatus.InProgress;
+            var status = isComplete ? ObjectiveStatus.Completed : ObjectiveStatus.InProgress;
             SetObjectiveStatus(sut, objectiveIds[i], status, isStretch);
         }
 
@@ -243,7 +245,7 @@ public class PlanningIntervalTests
         {
             var isStretch = i >= objectiveCount - 2;
             var isComplete = i < 3;
-            var status = isStretch ? Enums.ObjectiveStatus.Completed : Enums.ObjectiveStatus.InProgress;
+            var status = isStretch ? ObjectiveStatus.Completed : ObjectiveStatus.InProgress;
             SetObjectiveStatus(sut, objectiveIds[i], status, isStretch);
         }
 
@@ -264,11 +266,11 @@ public class PlanningIntervalTests
     {
         // Arrange
         var sut = _planningIntervalFaker.Generate();
-        sut.ManageDates(new LocalDateRange(new LocalDate(2023, 10, 2), new LocalDate(2023, 11, 26)), []);
+        sut.ManageDates(new LocalDateRange(new LocalDate(2023, 10, 2), new LocalDate(2023, 11, 26)), [], EventActor.System, _dateTimeProvider.Now);
         var expectedIterations = 4;
 
         // Act
-        var result = sut.InitializeIterations(2, "Iteration ");
+        var result = sut.InitializeIterations(2, "Iteration ", EventActor.System, _dateTimeProvider.Now);
         var iterations = sut.Iterations.ToList();
 
         // Assert
@@ -297,11 +299,11 @@ public class PlanningIntervalTests
     {
         // Arrange
         var sut = _planningIntervalFaker.Generate();
-        sut.ManageDates(new LocalDateRange(new LocalDate(2023, 10, 2), new LocalDate(2023, 11, 27)), []);
+        sut.ManageDates(new LocalDateRange(new LocalDate(2023, 10, 2), new LocalDate(2023, 11, 27)), [], EventActor.System, _dateTimeProvider.Now);
         var expectedIterations = 5;
 
         // Act
-        var result = sut.InitializeIterations(2, "Iteration ");
+        var result = sut.InitializeIterations(2, "Iteration ", EventActor.System, _dateTimeProvider.Now);
         var iterations = sut.Iterations.ToList();
 
         // Assert
@@ -342,10 +344,10 @@ public class PlanningIntervalTests
             UpsertPlanningIntervalIteration.Create(null, "Iteration 3", IterationCategory.InnovationAndPlanning, new LocalDateRange(new LocalDate(2023, 3, 1), new LocalDate(2023, 3, 31))),
         ];
 
-        sut.ManageDates(new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 3, 31)), iterations);
+        sut.ManageDates(new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 3, 31)), iterations, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = sut.InitializeIterations(4, "Iteration ");
+        var result = sut.InitializeIterations(4, "Iteration ", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -364,7 +366,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.WithDateRange(piDates).Generate();
 
         // Act
-        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)));
+        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)), EventActor.System, _dateTimeProvider.Now);
         var iterations = sut.Iterations.ToList();
 
         // Assert
@@ -383,10 +385,10 @@ public class PlanningIntervalTests
         var piDates = new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 3, 31));
         var sut = _planningIntervalFaker.WithDateRange(piDates).Generate();
 
-        sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)));
+        sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)), EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)));
+        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -400,10 +402,10 @@ public class PlanningIntervalTests
         var piDates = new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 3, 31));
         var sut = _planningIntervalFaker.WithDateRange(piDates).Generate();
 
-        sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)));
+        sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 1), new LocalDate(2023, 1, 31)), EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = sut.AddIteration("Iteration 2", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 31), new LocalDate(2023, 2, 15)));
+        var result = sut.AddIteration("Iteration 2", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 1, 31), new LocalDate(2023, 2, 15)), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -418,7 +420,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.WithDateRange(piDates).Generate();
 
         // Act
-        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2020, 12, 31), new LocalDate(2023, 1, 30)));
+        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2020, 12, 31), new LocalDate(2023, 1, 30)), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -433,7 +435,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.WithDateRange(piDates).Generate();
 
         // Act
-        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 3, 20), new LocalDate(2023, 4, 1)));
+        var result = sut.AddIteration("Iteration 1", IterationCategory.Development, new LocalDateRange(new LocalDate(2023, 3, 20), new LocalDate(2023, 4, 1)), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -453,7 +455,7 @@ public class PlanningIntervalTests
         var expectedEndDate = new LocalDate(2023, 3, 31);
 
         // Act
-        var result = sut.ManageDates(new LocalDateRange(expectedStartDate, expectedEndDate), []);
+        var result = sut.ManageDates(new LocalDateRange(expectedStartDate, expectedEndDate), [], EventActor.System, _dateTimeProvider.Now);
         var iterations = sut.Iterations.ToList();
 
         // Assert
@@ -479,7 +481,7 @@ public class PlanningIntervalTests
         };
 
         // Act
-        var result = sut.ManageDates(new LocalDateRange(expectedStartDate, expectedEndDate), iterations);
+        var result = sut.ManageDates(new LocalDateRange(expectedStartDate, expectedEndDate), iterations, EventActor.System, _dateTimeProvider.Now);
         var updatedIterations = sut.Iterations.ToList();
 
         // Assert
@@ -517,7 +519,7 @@ public class PlanningIntervalTests
         iterations.Last().Name = iterations.First().Name;
 
         // Act
-        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations);
+        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -542,7 +544,7 @@ public class PlanningIntervalTests
         iterations.First().DateRange = new LocalDateRange(startDate.Plus(Period.FromDays(-1)), iterations.First().DateRange.End);
 
         // Act
-        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations);
+        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -567,7 +569,7 @@ public class PlanningIntervalTests
         iterations.Last().DateRange = new LocalDateRange(iterations.Last().DateRange.Start, endDate.Plus(Period.FromDays(1)));
 
         // Act
-        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations);
+        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -594,7 +596,7 @@ public class PlanningIntervalTests
         secondIteration.DateRange = new LocalDateRange(secondIteration.DateRange.Start.Plus(Period.FromDays(-1)), secondIteration.DateRange.End);
 
         // Act
-        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations);
+        var result = sut.ManageDates(new LocalDateRange(sut.DateRange.Start, sut.DateRange.End), iterations, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -626,7 +628,7 @@ public class PlanningIntervalTests
             .Generate();
 
         // Act
-        var result = sut.MapSprintToIteration(iterationId, sprint);
+        var result = sut.MapSprintToIteration(iterationId, sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -654,7 +656,7 @@ public class PlanningIntervalTests
             .Generate();
 
         // Act
-        var result = sut.MapSprintToIteration(iterationId, iteration);
+        var result = sut.MapSprintToIteration(iterationId, iteration, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -682,7 +684,7 @@ public class PlanningIntervalTests
             .Generate();
 
         // Act
-        var result = sut.MapSprintToIteration(iterationId, sprint);
+        var result = sut.MapSprintToIteration(iterationId, sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -709,7 +711,7 @@ public class PlanningIntervalTests
             .Generate();
 
         // Act
-        var result = sut.MapSprintToIteration(iterationId, sprint);
+        var result = sut.MapSprintToIteration(iterationId, sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -736,7 +738,7 @@ public class PlanningIntervalTests
             .Generate();
 
         // Act
-        var result = sut.MapSprintToIteration(nonExistentIterationId, sprint);
+        var result = sut.MapSprintToIteration(nonExistentIterationId, sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -760,11 +762,11 @@ public class PlanningIntervalTests
         var sprint = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
 
         // Map sprint first time
-        var firstResult = sut.MapSprintToIteration(iterationId, sprint);
+        var firstResult = sut.MapSprintToIteration(iterationId, sprint, EventActor.System, _dateTimeProvider.Now);
         firstResult.IsSuccess.Should().BeTrue();
 
         // Act - Map same sprint to same iteration again
-        var secondResult = sut.MapSprintToIteration(iterationId, sprint);
+        var secondResult = sut.MapSprintToIteration(iterationId, sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Assert - Operation is idempotent, should succeed
         secondResult.IsSuccess.Should().BeTrue();
@@ -791,12 +793,12 @@ public class PlanningIntervalTests
             .WithTeamId(teamId)
             .Generate();
 
-        sut.MapSprintToIteration(firstIterationId, sprint);
+        sut.MapSprintToIteration(firstIterationId, sprint, EventActor.System, _dateTimeProvider.Now);
         sut.IterationSprints.Should().HaveCount(1);
         sut.IterationSprints.First().PlanningIntervalIterationId.Should().Be(firstIterationId);
 
         // Act - Map same sprint to second iteration (should move it)
-        var result = sut.MapSprintToIteration(secondIterationId, sprint);
+        var result = sut.MapSprintToIteration(secondIterationId, sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -822,7 +824,7 @@ public class PlanningIntervalTests
         var sprint2 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
 
         // Map first sprint successfully
-        sut.MapSprintToIteration(iterationId, sprint1);
+        sut.MapSprintToIteration(iterationId, sprint1, EventActor.System, _dateTimeProvider.Now);
 
         // Set up Sprint navigation property (simulates EF Core loading)
         foreach (var mapping in sut.IterationSprints)
@@ -835,7 +837,7 @@ public class PlanningIntervalTests
         sut.IterationSprints.First().SprintId.Should().Be(sprint1.Id);
 
         // Act - Map second sprint from same team to same iteration (should replace)
-        var result = sut.MapSprintToIteration(iterationId, sprint2);
+        var result = sut.MapSprintToIteration(iterationId, sprint2, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -861,10 +863,10 @@ public class PlanningIntervalTests
             .WithTeamId(teamId)
             .Generate();
 
-        sut.MapSprintToIteration(iterationId, sprint);
+        sut.MapSprintToIteration(iterationId, sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = sut.UnmapSprint(sprint.Id);
+        var result = sut.UnmapSprint(sprint.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -884,7 +886,7 @@ public class PlanningIntervalTests
         var nonExistentSprintId = Guid.NewGuid();
 
         // Act
-        var result = sut.UnmapSprint(nonExistentSprintId);
+        var result = sut.UnmapSprint(nonExistentSprintId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -910,9 +912,9 @@ public class PlanningIntervalTests
         var sprint2 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
         var sprint3 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
 
-        sut.MapSprintToIteration(firstIterationId, sprint1);
-        sut.MapSprintToIteration(firstIterationId, sprint2);
-        sut.MapSprintToIteration(secondIterationId, sprint3);
+        sut.MapSprintToIteration(firstIterationId, sprint1, EventActor.System, _dateTimeProvider.Now);
+        sut.MapSprintToIteration(firstIterationId, sprint2, EventActor.System, _dateTimeProvider.Now);
+        sut.MapSprintToIteration(secondIterationId, sprint3, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var firstIterationSprints = sut.GetSprintsForIteration(firstIterationId);
@@ -963,8 +965,8 @@ public class PlanningIntervalTests
         var team1Sprint = new IterationFaker().AsSprint().WithTeamId(team1Id).Generate();
         var team2Sprint = new IterationFaker().AsSprint().WithTeamId(team2Id).Generate();
 
-        sut.MapSprintToIteration(iterationId, team1Sprint);
-        sut.MapSprintToIteration(iterationId, team2Sprint);
+        sut.MapSprintToIteration(iterationId, team1Sprint, EventActor.System, _dateTimeProvider.Now);
+        sut.MapSprintToIteration(iterationId, team2Sprint, EventActor.System, _dateTimeProvider.Now);
 
         // Set up the Sprint navigation properties (simulates EF Core loading)
         foreach (var mapping in sut.IterationSprints)
@@ -976,7 +978,7 @@ public class PlanningIntervalTests
         }
 
         // Act - Remove team1, keep team2
-        var result = sut.ManageTeams(new[] { team2Id });
+        var result = sut.ManageTeams(new[] { team2Id }, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1000,7 +1002,7 @@ public class PlanningIntervalTests
         var target = sut.DateRange.End;
 
         // Act
-        var result = sut.CreateObjective(team, "  Ship it  ", "  ", true, start, target, 2);
+        var result = sut.CreateObjective(team, "  Ship it  ", "  ", true, start, target, 2, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1028,7 +1030,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.WithObjectivesLocked(true).Generate();
 
         // Act
-        var result = sut.CreateObjective(team, "Ship it", null, false, null, null, null);
+        var result = sut.CreateObjective(team, "Ship it", null, false, null, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1044,7 +1046,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.Generate();
 
         // Act
-        var result = sut.CreateObjective(team, "   ", null, false, null, null, null);
+        var result = sut.CreateObjective(team, "   ", null, false, null, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1060,7 +1062,7 @@ public class PlanningIntervalTests
         var closed = _dateTimeProvider.Now;
 
         // Act
-        var result = sut.ImportObjective(team, "Imported", "From a file", ObjectiveStatus.Completed, 100, false, null, null, closed, 7);
+        var result = sut.ImportObjective(team, "Imported", "From a file", ObjectiveStatus.Completed, 100, false, null, null, closed, 7, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1080,7 +1082,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.Generate();
 
         // Act
-        var result = sut.ImportObjective(team, "Imported", null, ObjectiveStatus.InProgress, 150, false, null, null, null, null);
+        var result = sut.ImportObjective(team, "Imported", null, ObjectiveStatus.InProgress, 150, false, null, null, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1098,7 +1100,7 @@ public class PlanningIntervalTests
         var target = sut.DateRange.End;
 
         // Act
-        var result = sut.UpdateObjective(objective.Id, "Renamed", "Described", ObjectiveStatus.InProgress, 40, start, target, true, _dateTimeProvider.Now);
+        var result = sut.UpdateObjective(objective.Id, "Renamed", "Described", ObjectiveStatus.InProgress, 40, start, target, true, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1123,7 +1125,7 @@ public class PlanningIntervalTests
         var originalStretch = objective.IsStretch;
 
         // Act
-        var result = sut.UpdateObjective(objective.Id, "Renamed", "Described", ObjectiveStatus.InProgress, 40, null, null, !originalStretch, _dateTimeProvider.Now);
+        var result = sut.UpdateObjective(objective.Id, "Renamed", "Described", ObjectiveStatus.InProgress, 40, null, null, !originalStretch, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1147,7 +1149,7 @@ public class PlanningIntervalTests
         var now = _dateTimeProvider.Now;
 
         // Act
-        var result = sut.UpdateObjective(objective.Id, objective.Name, null, closedStatus, 100, null, null, false, now);
+        var result = sut.UpdateObjective(objective.Id, objective.Name, null, closedStatus, 100, null, null, false, EventActor.System, now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1162,10 +1164,10 @@ public class PlanningIntervalTests
         var team = new PlanningTeamFaker(TeamType.Team).Generate();
         var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
         var objective = sut.Objectives.Single();
-        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Completed, 100, null, null, false, _dateTimeProvider.Now);
+        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Completed, 100, null, null, false, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.InProgress, 60, null, null, false, _dateTimeProvider.Now);
+        var result = sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.InProgress, 60, null, null, false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1182,10 +1184,10 @@ public class PlanningIntervalTests
         var objective = sut.Objectives.Single();
         var firstClose = _dateTimeProvider.Now;
         var secondClose = firstClose.Plus(Duration.FromDays(1));
-        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Missed, 0, null, null, false, firstClose);
+        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Missed, 0, null, null, false, EventActor.System, firstClose);
 
         // Act
-        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Canceled, 0, null, null, false, secondClose);
+        sut.UpdateObjective(objective.Id, objective.Name, null, ObjectiveStatus.Canceled, 0, null, null, false, EventActor.System, secondClose);
 
         // Assert
         objective.ClosedDate.Should().Be(secondClose);
@@ -1199,7 +1201,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
 
         // Act
-        var result = sut.UpdateObjective(Guid.NewGuid(), "Renamed", null, ObjectiveStatus.InProgress, 0, null, null, false, _dateTimeProvider.Now);
+        var result = sut.UpdateObjective(Guid.NewGuid(), "Renamed", null, ObjectiveStatus.InProgress, 0, null, null, false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1216,7 +1218,7 @@ public class PlanningIntervalTests
         var orders = new Dictionary<Guid, int?> { [ids[0]] = 3, [ids[1]] = null, [ids[2]] = 1 };
 
         // Act
-        var result = sut.UpdateObjectivesOrder(orders);
+        var result = sut.UpdateObjectivesOrder(orders, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1235,7 +1237,7 @@ public class PlanningIntervalTests
         var orders = new Dictionary<Guid, int?> { [known.Id] = 5, [Guid.NewGuid()] = 1 };
 
         // Act
-        var result = sut.UpdateObjectivesOrder(orders);
+        var result = sut.UpdateObjectivesOrder(orders, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1244,6 +1246,358 @@ public class PlanningIntervalTests
     }
 
     #endregion Objectives
+
+    #region Events
+
+    private static readonly EventActor Actor = EventActor.User("user-1", Guid.CreateVersion7());
+
+    private PlanningInterval ExistingWithIterations(params Guid[] teamIds)
+    {
+        var dates = new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 3, 29));
+        var sut = _planningIntervalFaker
+            .WithDateRange(dates)
+            .WithTeams(teamIds)
+            .WithIterations(dates, 4, "Iteration ")
+            .Generate();
+        sut.ClearDomainEvents();
+        return sut;
+    }
+
+    private static List<UpsertPlanningIntervalIteration> Unchanged(PlanningInterval sut)
+        => [.. sut.Iterations.Select(i => UpsertPlanningIntervalIteration.Create(i.Id, i.Name, i.Category, i.DateRange))];
+
+    [Fact]
+    public void Create_RaisesCreatedWithItsIterationsOnceTheKeyIsAssigned()
+    {
+        // Arrange
+        var dates = new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 3, 29));
+
+        // Act
+        var sut = PlanningInterval.Create(" PI 26.1 ", null, dates, 4, "Iteration ", Actor, _dateTimeProvider.Now).Value;
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty("the key is assigned by the first save, and the iterations are part of the creation");
+
+        sut.SetPrivate(p => p.Key, 12);
+        sut.ExecutePostPersistenceActions();
+
+        var created = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalCreatedEvent>().Subject;
+        created.Id.Should().Be(sut.Id);
+        created.Key.Should().Be(12);
+        created.Name.Should().Be("PI 26.1");
+        created.DateRange.Should().Be(dates);
+        created.ObjectivesLocked.Should().BeFalse();
+        created.TeamIds.Should().BeEmpty();
+        created.SprintMappings.Should().BeEmpty();
+        created.Iterations.Should().BeEquivalentTo(
+            sut.Iterations.Select(i => new PlanningIntervalIterationValues(i.Id, i.Name, i.Category, i.DateRange)),
+            o => o.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void Create_ThenTeamsAssignedBeforeTheFirstSave_CreatedEventStillDescribesTheCreation()
+    {
+        // Arrange
+        var dates = new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 3, 29));
+        var sut = PlanningInterval.Create("PI 26.1", null, dates, 4, "Iteration ", Actor, _dateTimeProvider.Now).Value;
+        var teamId = Guid.NewGuid();
+
+        // Act
+        sut.ManageTeams([teamId], Actor, _dateTimeProvider.Now);
+        sut.DomainEvents.Should().BeEmpty("the teams change waits for the key too");
+        sut.SetPrivate(p => p.Key, 4);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        sut.DomainEvents.OfType<PlanningIntervalCreatedEvent>().Should().ContainSingle().Which.TeamIds.Should().BeEmpty();
+        var teams = sut.DomainEvents.OfType<PlanningIntervalTeamsChangedEvent>().Should().ContainSingle().Subject;
+        teams.Key.Should().Be(4);
+        teams.Added.Should().Equal(teamId);
+        teams.TeamIds.Should().Equal(teamId);
+    }
+
+    [Fact]
+    public void Update_Renamed_RaisesDetailsUpdatedWithWhatItReplaced()
+    {
+        // Arrange
+        var sut = _planningIntervalFaker.WithName("PI 26.1").WithDescription(null).Generate();
+
+        // Act
+        sut.Update("PI 26.1 (Atlas)", "Atlas train", sut.ObjectivesLocked, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalDetailsUpdatedEvent>().Subject;
+        raised.Name.Should().Be("PI 26.1 (Atlas)");
+        raised.Description.Should().Be("Atlas train");
+        raised.Previous.Should().Be(new PlanningIntervalDetails("PI 26.1", null));
+    }
+
+    [Fact]
+    public void Update_NameThatOnlyDiffersByWhitespace_RaisesNothing()
+    {
+        // Arrange
+        var sut = _planningIntervalFaker.WithName("PI 26.1").WithDescription("Atlas").Generate();
+
+        // Act
+        sut.Update(" PI 26.1 ", "Atlas ", false, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Update_ObjectivesLocked_RaisesObjectivesLocked()
+    {
+        // Arrange
+        var sut = _planningIntervalFaker.WithObjectivesLocked(false).Generate();
+
+        // Act
+        sut.Update(sut.Name, sut.Description, true, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalObjectivesLockedEvent>().Subject;
+        raised.Id.Should().Be(sut.Id);
+        raised.Key.Should().Be(sut.Key);
+    }
+
+    [Fact]
+    public void Update_ObjectivesUnlocked_RaisesObjectivesUnlocked()
+    {
+        // Arrange
+        var sut = _planningIntervalFaker.WithObjectivesLocked(true).Generate();
+
+        // Act
+        sut.Update(sut.Name, sut.Description, false, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalObjectivesUnlockedEvent>();
+    }
+
+    [Fact]
+    public void ManageDates_NothingChanged_RaisesNothing()
+    {
+        // Arrange
+        var sut = ExistingWithIterations();
+
+        // Act
+        var result = sut.ManageDates(sut.DateRange, Unchanged(sut), Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ManageDates_EndMoved_RaisesDateRangeChanged()
+    {
+        // Arrange
+        var sut = ExistingWithIterations();
+        var previous = sut.DateRange;
+        var extended = new LocalDateRange(previous.Start, previous.End.PlusDays(7));
+
+        // Act
+        var result = sut.ManageDates(extended, Unchanged(sut), Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalDateRangeChangedEvent>().Subject;
+        raised.PreviousDateRange.Should().Be(previous);
+        raised.DateRange.Should().Be(extended);
+    }
+
+    [Fact]
+    public void ManageDates_IterationRenamedAndMoved_RaisesEachChangeOnItsOwn()
+    {
+        // Arrange
+        var sut = ExistingWithIterations();
+        var iterations = Unchanged(sut);
+        var last = iterations.Last();
+        var previousRange = last.DateRange;
+        last.Name = "IP";
+        last.DateRange = new LocalDateRange(previousRange.Start.PlusDays(1), previousRange.End);
+
+        // Act
+        var result = sut.ManageDates(sut.DateRange, iterations, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().HaveCount(2);
+
+        var details = sut.DomainEvents.OfType<PlanningIntervalIterationDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        details.IterationId.Should().Be(last.Id!.Value);
+        details.Name.Should().Be("IP");
+        details.Previous!.Name.Should().Be("Iteration 3");
+
+        var moved = sut.DomainEvents.OfType<PlanningIntervalIterationDateRangeChangedEvent>().Should().ContainSingle().Subject;
+        moved.PreviousDateRange.Should().Be(previousRange);
+        moved.DateRange.Should().Be(last.DateRange);
+    }
+
+    [Fact]
+    public void ManageDates_IterationRemoved_RaisesRemovedAndDropsItsSprintMappings()
+    {
+        // Arrange
+        var teamId = Guid.NewGuid();
+        var sut = ExistingWithIterations(teamId);
+        var removed = sut.Iterations.Last();
+        var sprint = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        sut.MapSprintToIteration(removed.Id, sprint, Actor, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        var iterations = Unchanged(sut).Where(i => i.Id != removed.Id).ToList();
+
+        // Act
+        var result = sut.ManageDates(sut.DateRange, iterations, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.IterationSprints.Should().BeEmpty();
+
+        var raised = sut.DomainEvents.OfType<PlanningIntervalIterationRemovedEvent>().Should().ContainSingle().Subject;
+        raised.IterationId.Should().Be(removed.Id);
+        raised.Name.Should().Be(removed.Name);
+
+        var mappings = sut.DomainEvents.OfType<PlanningIntervalSprintMappingsChangedEvent>().Should().ContainSingle().Subject;
+        mappings.Removed.Should().Equal(new PlanningIntervalSprintMapping(removed.Id, sprint.Id));
+        mappings.SprintMappings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddIteration_RaisesIterationAdded()
+    {
+        // Arrange
+        var dates = new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 3, 29));
+        var sut = _planningIntervalFaker.WithDateRange(dates).Generate();
+        var range = new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 18));
+
+        // Act
+        sut.AddIteration("Iteration 1", IterationCategory.Development, range, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalIterationAddedEvent>().Subject;
+        raised.IterationId.Should().Be(sut.Iterations.Single().Id);
+        raised.Name.Should().Be("Iteration 1");
+        raised.Category.Should().Be(IterationCategory.Development);
+        raised.DateRange.Should().Be(range);
+    }
+
+    [Fact]
+    public void ManageTeams_TeamsAddedAndRemoved_RaisesTeamsChangedWithTheChangeAndTheResult()
+    {
+        // Arrange
+        var kept = Guid.NewGuid();
+        var dropped = Guid.NewGuid();
+        var joined = Guid.NewGuid();
+        var sut = _planningIntervalFaker.WithTeams(kept, dropped).Generate();
+
+        // Act
+        sut.ManageTeams([kept, joined], Actor, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalTeamsChangedEvent>().Subject;
+        raised.Added.Should().Equal(joined);
+        raised.Removed.Should().Equal(dropped);
+        raised.TeamIds.Should().BeEquivalentTo([kept, joined]);
+    }
+
+    [Fact]
+    public void ManageTeams_SameTeams_RaisesNothing()
+    {
+        // Arrange
+        var teamId = Guid.NewGuid();
+        var sut = _planningIntervalFaker.WithTeams(teamId).Generate();
+
+        // Act
+        sut.ManageTeams([teamId], Actor, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SyncTeamSprintMappings_RaisesOneEventForTheWholeChange()
+    {
+        // Arrange
+        var teamId = Guid.NewGuid();
+        var sut = ExistingWithIterations(teamId);
+        var iterationIds = sut.Iterations.Select(i => i.Id).ToList();
+        var sprint1 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint2 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+
+        // Act
+        var result = sut.SyncTeamSprintMappings(teamId,
+            new Dictionary<Guid, Guid?> { [iterationIds[0]] = sprint1.Id, [iterationIds[1]] = sprint2.Id },
+            new Dictionary<Guid, Wayd.Planning.Domain.Models.Iterations.Iteration> { [sprint1.Id] = sprint1, [sprint2.Id] = sprint2 },
+            Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalSprintMappingsChangedEvent>().Subject;
+        raised.Added.Should().BeEquivalentTo([
+            new PlanningIntervalSprintMapping(iterationIds[0], sprint1.Id),
+            new PlanningIntervalSprintMapping(iterationIds[1], sprint2.Id)]);
+        raised.Removed.Should().BeEmpty();
+        raised.SprintMappings.Should().BeEquivalentTo(raised.Added);
+    }
+
+    [Fact]
+    public void MapSprintToIteration_AlreadyMappedThere_RaisesNothing()
+    {
+        // Arrange
+        var teamId = Guid.NewGuid();
+        var sut = ExistingWithIterations(teamId);
+        var iterationId = sut.Iterations.First().Id;
+        var sprint = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        sut.MapSprintToIteration(iterationId, sprint, Actor, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.MapSprintToIteration(iterationId, sprint, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateObjectivesOrder_RaisesOrderChangedOnEachObjectiveThatMoved()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 3).Generate();
+        var ids = sut.Objectives.Select(o => o.Id).ToList();
+        sut.UpdateObjectivesOrder(new Dictionary<Guid, int?> { [ids[0]] = 1, [ids[1]] = 2, [ids[2]] = 3 }, Actor, _dateTimeProvider.Now);
+        foreach (var objective in sut.Objectives)
+            objective.ClearDomainEvents();
+
+        // Act
+        sut.UpdateObjectivesOrder(new Dictionary<Guid, int?> { [ids[0]] = 2, [ids[1]] = 1, [ids[2]] = 3 }, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        sut.Objectives.Single(o => o.Id == ids[0]).DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<PlanningIntervalObjectiveOrderChangedEvent>().Which.Order.Should().Be(2);
+        sut.Objectives.Single(o => o.Id == ids[1]).DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<PlanningIntervalObjectiveOrderChangedEvent>().Which.Order.Should().Be(1);
+        sut.Objectives.Single(o => o.Id == ids[2]).DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DeleteObjective_RaisesTheObjectivesDeletion()
+    {
+        // Arrange
+        var team = new PlanningTeamFaker(TeamType.Team).Generate();
+        var sut = _planningIntervalFaker.WithObjectives(team, 1).Generate();
+        var objective = sut.Objectives.Single();
+
+        // Act
+        var result = sut.DeleteObjective(objective.Id, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        objective.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PlanningIntervalObjectiveDeletedEvent>()
+            .Which.Name.Should().Be(objective.Name);
+    }
+
+    #endregion Events
 }
 
 

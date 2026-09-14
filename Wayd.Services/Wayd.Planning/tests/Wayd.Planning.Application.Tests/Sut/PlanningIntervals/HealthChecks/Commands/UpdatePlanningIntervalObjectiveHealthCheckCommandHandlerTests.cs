@@ -6,9 +6,10 @@ using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.HealthChecks.Commands;
 
@@ -31,14 +32,14 @@ public class UpdatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         _objectiveFaker = new PlanningIntervalObjectiveFaker(Guid.NewGuid(), team, ObjectiveStatus.NotStarted, false);
 
         _handler = new UpdatePlanningIntervalObjectiveHealthCheckCommandHandler(
-            _dbContext, _mockDateTimeProvider.Object, _mockLogger.Object);
+            _dbContext, _mockDateTimeProvider.Object, Mock.Of<ICurrentUser>(), _mockLogger.Object);
     }
 
     private (PlanningIntervalObjective objective, PlanningIntervalObjectiveHealthCheck healthCheck) Seed()
     {
         var employee = _employeeFaker.Generate();
         var objective = _objectiveFaker.Generate();
-        var hc = objective.AddHealthCheck(HealthStatus.Healthy, employee.Id, _now.Plus(Duration.FromDays(7)), "old", _now).Value;
+        var hc = objective.AddHealthCheck(HealthStatus.Healthy, employee.Id, _now.Plus(Duration.FromDays(7)), "old", EventActor.System, _now).Value;
 
         // Hydrate the ReportedBy navigation that EF would normally populate via Include — needed for
         // the handler's Mapster .Adapt<>() call after the update.

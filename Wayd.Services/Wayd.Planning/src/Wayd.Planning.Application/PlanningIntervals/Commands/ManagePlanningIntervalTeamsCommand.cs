@@ -7,11 +7,15 @@ public sealed class ManagePlanningIntervalTeamsCommandHandler : ICommandHandler<
     private const string AppRequestName = nameof(ManagePlanningIntervalTeamsCommand);
 
     private readonly IPlanningDbContext _planningDbContext;
+    private readonly ICurrentUser _currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger<ManagePlanningIntervalTeamsCommandHandler> _logger;
 
-    public ManagePlanningIntervalTeamsCommandHandler(IPlanningDbContext planningDbContext, ILogger<ManagePlanningIntervalTeamsCommandHandler> logger)
+    public ManagePlanningIntervalTeamsCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<ManagePlanningIntervalTeamsCommandHandler> logger)
     {
         _planningDbContext = planningDbContext;
+        _currentUser = currentUser;
+        _dateTimeProvider = dateTimeProvider;
         _logger = logger;
     }
 
@@ -28,7 +32,7 @@ public sealed class ManagePlanningIntervalTeamsCommandHandler : ICommandHandler<
             if (planningInterval == null)
             {
                 _logger.LogWarning("Planning Interval {PlanningIntervalId} not found.", request.Id);
-                return Result.Failure<int>($"Planning Interval {request.Id} not found.");
+                return Result.Failure($"Planning Interval {request.Id} not found.");
             }
 
             var requestedTeamIds = request.TeamIds?.Distinct().ToList() ?? [];
@@ -52,7 +56,8 @@ public sealed class ManagePlanningIntervalTeamsCommandHandler : ICommandHandler<
                 }
             }
 
-            var result = planningInterval.ManageTeams(requestedTeamIds);
+            var result = planningInterval.ManageTeams(requestedTeamIds,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 

@@ -52,11 +52,13 @@ public sealed class CreatePlanningIntervalObjectiveCommandValidator : CustomVali
     }
 }
 
-public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
+public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreatePlanningIntervalObjectiveCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreatePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreatePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
@@ -86,7 +88,8 @@ public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
                 return Result.Failure<ObjectIdAndKey>("Team not found.");
             }
 
-            var result = planningInterval.CreateObjective(team, request.Name, request.Description, request.IsStretch, request.StartDate, request.TargetDate, request.Order);
+            var result = planningInterval.CreateObjective(team, request.Name, request.Description, request.IsStretch, request.StartDate, request.TargetDate, request.Order,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Unable to create PI objective for Planning Interval {PlanningIntervalId}.  Error: {Error}", request.PlanningIntervalId, result.Error);

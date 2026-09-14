@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Queries;
 

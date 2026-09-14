@@ -1,5 +1,5 @@
 ﻿using Wayd.Planning.Application.PlanningIntervals.Commands;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 

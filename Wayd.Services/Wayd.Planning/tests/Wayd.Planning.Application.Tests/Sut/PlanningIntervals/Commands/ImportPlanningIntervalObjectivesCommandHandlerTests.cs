@@ -8,7 +8,7 @@ using Wayd.Planning.Application.PlanningIntervals.Commands;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Imports;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.Commands;
 
@@ -24,6 +24,8 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
     {
         _definition = new PlanningIntervalObjectiveImportDefinition(
             _dbContext,
+            Mock.Of<IDateTimeProvider>(),
+            Mock.Of<ICurrentUser>(),
             new ImportPayloadSerializer());
 
         _dispatcher

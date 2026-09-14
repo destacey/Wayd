@@ -3,7 +3,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Extensions;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Dtos;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.Risks.Queries;
 

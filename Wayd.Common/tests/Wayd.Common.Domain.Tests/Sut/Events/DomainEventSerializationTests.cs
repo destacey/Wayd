@@ -8,6 +8,9 @@ using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
+using Wayd.Common.Domain.Events.Planning.Risks;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
@@ -471,6 +474,86 @@ public sealed class DomainEventSerializationTests
         roundTripped.Statuses.Should().Equal(original.Statuses);
         roundTripped.SourceWorkflowId.Should().Be(original.SourceWorkflowId);
         roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void PlanningIntervalCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - iteration records carrying an enum and a LocalDateRange, and the team and sprint collections.
+        var iterationId = Guid.NewGuid();
+        var original = new PlanningIntervalCreatedEvent(
+            Guid.NewGuid(), 7, "PI 26.1", null,
+            new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 3, 29)),
+            objectivesLocked: false,
+            iterations:
+            [
+                new PlanningIntervalIterationValues(iterationId, "Iteration 1", IterationCategory.Development,
+                    new LocalDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 2, 1))),
+            ],
+            teamIds: [Guid.NewGuid()],
+            sprintMappings: [new PlanningIntervalSprintMapping(iterationId, Guid.NewGuid())],
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Iterations.Should().Equal(original.Iterations);
+        roundTripped.TeamIds.Should().Equal(original.TeamIds);
+        roundTripped.SprintMappings.Should().Equal(original.SprintMappings);
+        roundTripped.DateRange.Should().Be(original.DateRange);
+        roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void PlanningIntervalObjectiveStatusChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - nullable Instants at both ends.
+        var original = new PlanningIntervalObjectiveStatusChangedEvent(
+            Guid.NewGuid(), 31, ObjectiveStatus.Completed, ObjectiveStatus.InProgress,
+            previousClosedDate: Instant.FromUtc(2026, 2, 27, 16, 30), closedDate: null,
+            EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public void PlanningIntervalObjectiveCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - nullable LocalDates, a nullable Instant and a fractional progress.
+        var original = new PlanningIntervalObjectiveCreatedEvent(
+            Guid.NewGuid(), 31, Guid.NewGuid(), Guid.NewGuid(), "Ship the thing", "Because.",
+            PlanningIntervalObjectiveType.Team, ObjectiveStatus.Completed, 62.5, isStretch: true,
+            new LocalDate(2026, 1, 12), targetDate: null, Instant.FromUtc(2026, 2, 27, 16, 30), order: 2,
+            EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public void RiskCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - the ROAM grades, a follow-up LocalDate and optional people.
+        var original = new RiskCreatedEvent(
+            Guid.NewGuid(), 14, "Vendor slip", null, Guid.NewGuid(), Instant.FromUtc(2026, 2, 1, 9, 0), Guid.NewGuid(),
+            RiskStatus.Open, RiskCategory.Owned, RiskGrade.High, RiskGrade.Medium, assigneeId: null,
+            new LocalDate(2026, 2, 8), "Escalated", closedDate: null,
+            EventActor.System, Instant.FromUtc(2026, 2, 1, 9, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
     }
 
     [Fact]

@@ -2,9 +2,11 @@ namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
 public sealed record DeletePlanningIntervalObjectiveCommand(Guid PlanningIntervalId, Guid PlanningIntervalObjectiveId) : ICommand;
 
-public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
+public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeletePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeletePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
@@ -27,7 +29,8 @@ public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
                 return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
             }
 
-            var deleteResult = planningInterval.DeleteObjective(request.PlanningIntervalObjectiveId);
+            var deleteResult = planningInterval.DeleteObjective(request.PlanningIntervalObjectiveId,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Unable to delete Planning Interval Objective {PlanningIntervalObjectiveId} from Planning Interval {PlanningIntervalId}.  Error: {Error}", request.PlanningIntervalObjectiveId, request.PlanningIntervalId, deleteResult.Error);

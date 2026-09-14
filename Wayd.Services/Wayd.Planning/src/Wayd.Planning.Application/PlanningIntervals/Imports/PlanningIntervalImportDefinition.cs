@@ -4,6 +4,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Models;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Domain.Models;
@@ -24,11 +25,15 @@ namespace Wayd.Planning.Application.PlanningIntervals.Imports;
 /// </remarks>
 public sealed class PlanningIntervalImportDefinition(
     IPlanningDbContext planningDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportPlanningIntervalDto>(serializer)
 {
     public const string ImportKey = "planning.planning-intervals";
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Planning Intervals";
@@ -56,6 +61,9 @@ public sealed class PlanningIntervalImportDefinition(
     private async Task<Result> CreatePlanningIntervals(
         ImportPassContext<ImportPlanningIntervalDto> context, CancellationToken cancellationToken)
     {
+        var timestamp = _dateTimeProvider.Now;
+        var actor = EventActor.Import(_currentUser.GetUserId());
+
         var names = context.Rows.Select(r => Normalize(r.Data.Name)).ToList();
 
         // Only live intervals take a name: a deleted one's name is free to reuse.
@@ -100,7 +108,9 @@ public sealed class PlanningIntervalImportDefinition(
                 row.Data.Description,
                 new LocalDateRange(row.Data.Start, row.Data.End),
                 row.Data.IterationWeeks,
-                row.Data.IterationPrefix);
+                row.Data.IterationPrefix,
+                actor,
+                timestamp);
 
             if (created.IsFailure)
             {
@@ -110,7 +120,7 @@ public sealed class PlanningIntervalImportDefinition(
 
             var planningInterval = created.Value;
 
-            var roster = planningInterval.ManageTeams(row.Data.TeamIds);
+            var roster = planningInterval.ManageTeams(row.Data.TeamIds, actor, timestamp);
             if (roster.IsFailure)
             {
                 row.Failed($"The teams could not be assigned to the planning interval: {roster.Error}");

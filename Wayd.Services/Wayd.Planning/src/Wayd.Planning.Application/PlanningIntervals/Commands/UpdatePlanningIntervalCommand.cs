@@ -31,12 +31,14 @@ public sealed class UpdatePlanningIntervalCommandValidator : CustomValidator<Upd
 public sealed class UpdatePlanningIntervalCommandHandler : ICommandHandler<UpdatePlanningIntervalCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext;
+    private readonly ICurrentUser _currentUser;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger<UpdatePlanningIntervalCommandHandler> _logger;
 
-    public UpdatePlanningIntervalCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdatePlanningIntervalCommandHandler> logger)
+    public UpdatePlanningIntervalCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdatePlanningIntervalCommandHandler> logger)
     {
         _planningDbContext = planningDbContext;
+        _currentUser = currentUser;
         _dateTimeProvider = dateTimeProvider;
         _logger = logger;
     }
@@ -53,7 +55,9 @@ public sealed class UpdatePlanningIntervalCommandHandler : ICommandHandler<Updat
             var updateResult = planningInterval.Update(
                 request.Name,
                 request.Description,
-                request.ObjectivesLocked
+                request.ObjectivesLocked,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+                _dateTimeProvider.Now
                 );
 
             if (updateResult.IsFailure)

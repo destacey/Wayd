@@ -36,17 +36,21 @@ public sealed class ManagePlanningIntervalDatesCommandValidator : CustomValidato
 }
 
 
-public sealed class ManagePlanningIntervalDatesCommandHandler(IPlanningDbContext planningDbContext, ILogger<ManagePlanningIntervalDatesCommandHandler> logger) : ICommandHandler<ManagePlanningIntervalDatesCommand>
+public sealed class ManagePlanningIntervalDatesCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<ManagePlanningIntervalDatesCommandHandler> logger) : ICommandHandler<ManagePlanningIntervalDatesCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ManagePlanningIntervalDatesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ManagePlanningIntervalDatesCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            // The sprint mappings go with a removed iteration, so they are loaded to be removed and recorded.
             var planningInterval = await _planningDbContext.PlanningIntervals
                 .Include(x => x.Iterations)
+                .Include(x => x.IterationSprints)
                 .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
             if (planningInterval is null)
@@ -58,7 +62,8 @@ public sealed class ManagePlanningIntervalDatesCommandHandler(IPlanningDbContext
             var iterations = request.Iterations
                 .Select(i => UpsertPlanningIntervalIteration.Create(i.IterationId, i.Name, i.Category, i.DateRange)).ToList();
 
-            var result = planningInterval.ManageDates(request.DateRange, iterations);
+            var result = planningInterval.ManageDates(request.DateRange, iterations,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 
@@ -67,8 +72,8 @@ public sealed class ManagePlanningIntervalDatesCommandHandler(IPlanningDbContext
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling {CommandName} command.", nameof(ManagePlanningIntervalTeamsCommand));
-            return Result.Failure($"Error handling {nameof(ManagePlanningIntervalTeamsCommand)} command.");
+            _logger.LogError(ex, "Error handling {CommandName} command.", nameof(ManagePlanningIntervalDatesCommand));
+            return Result.Failure($"Error handling {nameof(ManagePlanningIntervalDatesCommand)} command.");
         }
     }
 }

@@ -34,11 +34,13 @@ public sealed class CreatePlanningIntervalCommandValidator : CustomValidator<Cre
     }
 }
 
-public sealed class CreatePlanningIntervalCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreatePlanningIntervalCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalCommand, ObjectIdAndKey>
+public sealed class CreatePlanningIntervalCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreatePlanningIntervalCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreatePlanningIntervalCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreatePlanningIntervalCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreatePlanningIntervalCommand request, CancellationToken cancellationToken)
@@ -50,7 +52,9 @@ public sealed class CreatePlanningIntervalCommandHandler(IPlanningDbContext plan
                 request.Description,
                 request.DateRange,
                 request.IterationWeeks,
-                request.IterationPrefix
+                request.IterationPrefix,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+                _dateTimeProvider.Now
                 );
             if (createResult.IsFailure)
             {

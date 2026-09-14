@@ -36,12 +36,14 @@ public sealed class CreatePlanningIntervalObjectiveHealthCheckCommandHandler(
     IPlanningDbContext planningDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<CreatePlanningIntervalObjectiveHealthCheckCommandHandler> logger)
     : ICommandHandler<CreatePlanningIntervalObjectiveHealthCheckCommand, Guid>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreatePlanningIntervalObjectiveHealthCheckCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreatePlanningIntervalObjectiveHealthCheckCommand request, CancellationToken cancellationToken)
@@ -60,7 +62,8 @@ public sealed class CreatePlanningIntervalObjectiveHealthCheckCommandHandler(
             return Result.Failure<Guid>($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
         }
 
-        var addResult = objective.AddHealthCheck(request.Status, employeeId.Value, request.Expiration, request.Note, _dateTimeProvider.Now);
+        var addResult = objective.AddHealthCheck(request.Status, employeeId.Value, request.Expiration, request.Note,
+            EventActor.User(_currentUser.GetUserId(), employeeId.Value), _dateTimeProvider.Now);
         if (addResult.IsFailure)
         {
             _logger.LogError("Unable to add health check to objective {ObjectiveId}.  Error: {Error}", request.PlanningIntervalObjectiveId, addResult.Error);

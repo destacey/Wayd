@@ -1,6 +1,6 @@
 ﻿using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Common.Extensions;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 

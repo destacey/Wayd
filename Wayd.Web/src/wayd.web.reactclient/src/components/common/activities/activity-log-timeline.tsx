@@ -26,7 +26,7 @@ import {
   theme,
 } from 'antd'
 import dayjs from 'dayjs'
-import { FC, useMemo, useState } from 'react'
+import { FC, Fragment, useMemo, useState } from 'react'
 import { PersonAvatar, PersonPopover } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
 import { useRemainingHeight } from '@/src/hooks'
@@ -35,6 +35,7 @@ import {
   ActivityLogDto,
   EventActorKind,
 } from '@/src/services/wayd-api'
+import BaselineNotice, { BASELINE_RECORD_KEYS } from './baseline-notice'
 import ComparePayloadModal, { isSameEventType } from './compare-payload-modal'
 import ExportActivitiesModal from './export-activities-modal'
 
@@ -115,6 +116,7 @@ const eventBadges: Record<ActivityCategory, { color: string; label: string }> =
     [ActivityCategory.StateChanged]: { color: 'purple', label: 'State Change' },
     [ActivityCategory.Health]: { color: 'cyan', label: 'Health' },
     [ActivityCategory.Removed]: { color: 'red', label: 'Removed' },
+    [ActivityCategory.Baseline]: { color: 'default', label: 'Baseline' },
   }
 
 // A category added to the API before the client is redeployed still renders, as the most general kind.
@@ -217,6 +219,7 @@ const getActorDisplay = (
 
 const parsePayloadDetails = (
   payload: string,
+  additionalExcludedKeys: string[] = [],
 ): Record<string, unknown> | null => {
   if (!payload) return null
   try {
@@ -231,6 +234,7 @@ const parsePayloadDetails = (
       'aggregateid',
       'aggregatetype',
       'correlationid',
+      ...additionalExcludedKeys.map((k) => k.toLowerCase()),
     ])
 
     const filtered: Record<string, unknown> = {}
@@ -372,12 +376,22 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
     )
   }
 
+  const canLoadMore =
+    hasMore ??
+    (totalCount !== undefined ? activities.length < totalCount : false)
+
   const selectedBadge = selectedActivity
     ? getEventBadge(selectedActivity.category)
     : null
 
+  // A baseline's record-creation fields are presented by its notice, not repeated as raw properties.
   const selectedDetails = selectedActivity
-    ? parsePayloadDetails(selectedActivity.payload)
+    ? parsePayloadDetails(
+        selectedActivity.payload,
+        selectedActivity.category === ActivityCategory.Baseline
+          ? BASELINE_RECORD_KEYS
+          : [],
+      )
     : null
 
   let formattedRawPayload = ''
@@ -484,131 +498,163 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                 />
               </Flex>
             ) : (
-              filteredActivities.map((entry) => {
+              filteredActivities.map((entry, index) => {
                 const isSelected = selectedActivity?.id === entry.id
                 const badge = getEventBadge(entry.category)
                 const title = formatEventTitle(entry.eventType, entry.summary)
                 const timestampDayjs = dayjs(entry.timestamp)
+                const marksTrackingStart =
+                  entry.category === ActivityCategory.Baseline &&
+                  (index < filteredActivities.length - 1 || canLoadMore)
 
                 return (
-                  <Flex
-                    key={entry.id}
-                    vertical
-                    gap={4}
-                    onClick={() => setSelectedId(entry.id)}
-                    style={{
-                      padding: `${token.paddingSM}px ${token.paddingMD}px`,
-                      cursor: 'pointer',
-                      borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                      borderLeft: isSelected
-                        ? `3px solid ${token.colorPrimary}`
-                        : '3px solid transparent',
-                      background: isSelected
-                        ? token.controlItemBgActive
-                        : undefined,
-                      transition: 'background-color 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor =
-                          token.colorFillAlter
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = ''
-                      }
-                    }}
-                  >
-                    <Flex justify="space-between" align="center" gap="small">
-                      <Flex align="center" gap="small" style={{ minWidth: 0 }}>
-                        <Tag
-                          color={badge.color}
-                          variant="filled"
-                          style={{ margin: 0, fontSize: token.fontSizeSM - 1 }}
+                  <Fragment key={entry.id}>
+                    <Flex
+                      vertical
+                      gap={4}
+                      onClick={() => setSelectedId(entry.id)}
+                      style={{
+                        padding: `${token.paddingSM}px ${token.paddingMD}px`,
+                        cursor: 'pointer',
+                        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                        borderLeft: isSelected
+                          ? `3px solid ${token.colorPrimary}`
+                          : '3px solid transparent',
+                        background: isSelected
+                          ? token.controlItemBgActive
+                          : undefined,
+                        transition: 'background-color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor =
+                            token.colorFillAlter
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = ''
+                        }
+                      }}
+                    >
+                      <Flex justify="space-between" align="center" gap="small">
+                        <Flex
+                          align="center"
+                          gap="small"
+                          style={{ minWidth: 0 }}
                         >
-                          {badge.label}
-                        </Tag>
-                        <Text
-                          strong={isSelected}
-                          ellipsis
-                          style={{
-                            fontSize: token.fontSize,
-                            color: isSelected
-                              ? token.colorPrimaryText
-                              : token.colorText,
-                          }}
+                          <Tag
+                            color={badge.color}
+                            variant="filled"
+                            style={{
+                              margin: 0,
+                              fontSize: token.fontSizeSM - 1,
+                            }}
+                          >
+                            {badge.label}
+                          </Tag>
+                          <Text
+                            strong={isSelected}
+                            ellipsis
+                            style={{
+                              fontSize: token.fontSize,
+                              color: isSelected
+                                ? token.colorPrimaryText
+                                : token.colorText,
+                            }}
+                          >
+                            {title}
+                          </Text>
+                        </Flex>
+                        <Tooltip
+                          title={timestampDayjs.format('MMM D, YYYY h:mm:ss A')}
                         >
-                          {title}
-                        </Text>
+                          <Text
+                            type="secondary"
+                            style={{
+                              fontSize: token.fontSizeSM,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {timestampDayjs.format('MMM D, YYYY h:mm A')}
+                          </Text>
+                        </Tooltip>
                       </Flex>
-                      <Tooltip
-                        title={timestampDayjs.format('MMM D, YYYY h:mm:ss A')}
+
+                      {/* Actor info line */}
+                      <Flex align="center" gap="small" style={{ marginTop: 2 }}>
+                        {entry.employee ? (
+                          <Flex align="center" gap={6}>
+                            <PersonPopover
+                              name={entry.employee.name}
+                              employeeId={entry.employee.id}
+                            >
+                              <PersonAvatar
+                                name={entry.employee.name}
+                                colorKey={
+                                  entry.employee.id ??
+                                  String(entry.employee.key)
+                                }
+                                size={18}
+                                showTooltip={false}
+                                style={{ fontSize: 10 }}
+                              />
+                            </PersonPopover>
+                            <Text
+                              type="secondary"
+                              style={{ fontSize: token.fontSizeSM }}
+                              ellipsis
+                            >
+                              {entry.employee.name}
+                            </Text>
+                          </Flex>
+                        ) : (
+                          <Tag
+                            color={actorTagColor(entry.actorKind)}
+                            variant="filled"
+                            style={{
+                              margin: 0,
+                              fontSize: 10,
+                              lineHeight: '16px',
+                            }}
+                          >
+                            {entry.actorKind}
+                          </Tag>
+                        )}
+
+                        {entry.summary && entry.summary !== title && (
+                          <Text
+                            type="secondary"
+                            ellipsis
+                            style={{
+                              fontSize: token.fontSizeSM,
+                              maxWidth: 200,
+                            }}
+                          >
+                            · {entry.summary}
+                          </Text>
+                        )}
+                      </Flex>
+                    </Flex>
+                    {marksTrackingStart && (
+                      <Flex
+                        justify="center"
+                        style={{
+                          padding: `${token.paddingXS}px ${token.paddingMD}px`,
+                          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                          background: token.colorFillQuaternary,
+                        }}
                       >
                         <Text
                           type="secondary"
-                          style={{
-                            fontSize: token.fontSizeSM,
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                          }}
+                          style={{ fontSize: token.fontSizeSM }}
                         >
-                          {timestampDayjs.format('MMM D, YYYY h:mm A')}
+                          Tracking started. Earlier entries may be incomplete.
                         </Text>
-                      </Tooltip>
-                    </Flex>
-
-                    {/* Actor info line */}
-                    <Flex align="center" gap="small" style={{ marginTop: 2 }}>
-                      {entry.employee ? (
-                        <Flex align="center" gap={6}>
-                          <PersonPopover
-                            name={entry.employee.name}
-                            employeeId={entry.employee.id}
-                          >
-                            <PersonAvatar
-                              name={entry.employee.name}
-                              colorKey={
-                                entry.employee.id ?? String(entry.employee.key)
-                              }
-                              size={18}
-                              showTooltip={false}
-                              style={{ fontSize: 10 }}
-                            />
-                          </PersonPopover>
-                          <Text
-                            type="secondary"
-                            style={{ fontSize: token.fontSizeSM }}
-                            ellipsis
-                          >
-                            {entry.employee.name}
-                          </Text>
-                        </Flex>
-                      ) : (
-                        <Tag
-                          color={actorTagColor(entry.actorKind)}
-                          variant="filled"
-                          style={{
-                            margin: 0,
-                            fontSize: 10,
-                            lineHeight: '16px',
-                          }}
-                        >
-                          {entry.actorKind}
-                        </Tag>
-                      )}
-
-                      {entry.summary && entry.summary !== title && (
-                        <Text
-                          type="secondary"
-                          ellipsis
-                          style={{ fontSize: token.fontSizeSM, maxWidth: 200 }}
-                        >
-                          · {entry.summary}
-                        </Text>
-                      )}
-                    </Flex>
-                  </Flex>
+                      </Flex>
+                    )}
+                  </Fragment>
                 )
               })
             )}
@@ -616,12 +662,6 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
 
           {/* Load More Toolbar */}
           {(() => {
-            const canLoadMore =
-              hasMore ??
-              (totalCount !== undefined && activities
-                ? activities.length < totalCount
-                : false)
-
             if (canLoadMore && onLoadMore) {
               const remaining =
                 totalCount !== undefined && activities
@@ -760,6 +800,10 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                   </Flex>
                 </Flex>
               </Flex>
+
+              {selectedActivity.category === ActivityCategory.Baseline && (
+                <BaselineNotice payload={selectedActivity.payload} />
+              )}
 
               {/* Actor Card */}
               {(() => {
@@ -1016,4 +1060,3 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
 }
 
 export default ActivityLogTimeline
-

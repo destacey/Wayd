@@ -204,6 +204,7 @@ jest.mock('dayjs', () => {
       if (!date) return ''
       return new Date(date).toISOString()
     },
+    isValid: () => !isNaN(new Date(date ?? Date.now()).getTime()),
     valueOf: () => {
       if (!date) return 0
       return new Date(date).valueOf()

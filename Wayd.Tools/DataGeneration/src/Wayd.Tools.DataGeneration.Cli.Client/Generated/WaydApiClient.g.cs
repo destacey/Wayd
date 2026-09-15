@@ -8331,7 +8331,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -8794,7 +8794,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -8828,6 +8828,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -11614,7 +11618,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row is created active unless IsActive is false, in which case it is created and then retired — for the environments a historical backfill's deployments still point at.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -11874,7 +11878,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row is created active unless IsActive is false, in which case it is created and then retired — for the environments a historical backfill's deployments still point at.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -11908,6 +11912,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -12371,7 +12379,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names its version or package by id and its environment by name, and is walked to the outcome it describes with the timestamps it carries: no outcome leaves it in flight, Succeeded and Failed complete it, and RolledBack records a success and then the rollback. A build number is never resolved to a version.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -12948,7 +12956,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names its version or package by id and its environment by name, and is walked to the outcome it describes with the timestamps it carries: no outcome leaves it in flight, Succeeded and Failed complete it, and RolledBack records a success and then the rollback. A build number is never resolved to a version.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -12982,6 +12990,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -13529,7 +13541,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -14198,7 +14210,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -14232,6 +14244,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -17051,7 +17067,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -17623,7 +17639,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Takes two files: one row per package, and one row per manifest line naming the ImportId of the package it belongs to. Both are required — a package cannot be assembled without a manifest.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, FileParameter manifestFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -17667,6 +17683,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -18226,7 +18246,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -18832,7 +18852,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Takes two files: one row per release, and one row per thing it announces, naming the ImportId of the release it belongs to. The contents file is optional — an empty release is a legitimate state. A release marked released is refused while anything it carries has not shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, FileParameter contentsFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -18874,6 +18894,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -19804,7 +19828,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -20409,7 +20433,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -20443,6 +20467,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -22307,7 +22335,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -22317,7 +22345,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Completes or cancels programs and closes or archives portfolios, after their contents have been imported.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> FinalizeImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> FinalizeImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -22843,7 +22871,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -22877,6 +22905,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -22970,7 +23002,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Completes or cancels programs and closes or archives portfolios, after their contents have been imported.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> FinalizeImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> FinalizeImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -23004,6 +23036,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -24632,7 +24668,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -25116,7 +25152,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -25150,6 +25186,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -28039,7 +28079,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -28049,7 +28089,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project it belongs to, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportTasksAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportTasksAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -28059,7 +28099,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportStagesAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportStagesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -28888,7 +28928,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -28922,6 +28962,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -29015,7 +29059,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project it belongs to, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportTasksAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportTasksAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -29049,6 +29093,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -29142,7 +29190,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportStagesAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportStagesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -29176,6 +29224,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -33504,7 +33556,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -34079,7 +34131,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, FileParameter kpiFile = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -34121,6 +34173,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -37140,7 +37196,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -37331,7 +37387,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -37994,7 +38050,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// One row is one planning interval, with the teams that ran it in a semicolon-separated TeamIds column. Iterations are generated from IterationWeeks and IterationPrefix; there is no column for them. Creates only — a row whose Name is already taken is rejected, so TeamIds never replaces an existing roster, and a blank TeamIds simply leaves the new interval with no teams.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -38028,6 +38084,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -40609,7 +40669,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Each row names the planning interval it belongs to in PlanningIntervalId, so one file can cover many planning intervals.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportObjectivesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -40643,6 +40703,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -43119,7 +43183,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -43742,7 +43806,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -43776,6 +43840,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -56203,7 +56271,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -56578,7 +56646,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -56612,6 +56680,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -58213,21 +58285,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportMembersAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportMembersAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessDto> ImportTeamMembershipsAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ImportProcessDto> ImportTeamMembershipsAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -58935,7 +59007,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -58969,6 +59041,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -59059,7 +59135,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportMembersAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportMembersAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -59093,6 +59169,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -59183,7 +59263,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportTeamMembershipsAsync(System.Guid? submissionGroupId = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportTeamMembershipsAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -59217,6 +59297,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (submissionGroupId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -64730,6 +64814,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ApplyAsync(System.Guid id, System.Guid? submissionGroupId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Queue an import again, this time also reattempting the rows it rejected.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65292,6 +65383,111 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 202)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<ResumedImport>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ApplyAsync(System.Guid id, System.Guid? submissionGroupId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/imports/{id}/apply"
+                    urlBuilder_.Append("api/imports/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/apply");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -76713,6 +76909,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportProcessStatus>))]
         public ImportProcessStatus Status { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isPreflight")]
+        public bool IsPreflight { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("appliedImportProcessId")]
+        public System.Guid? AppliedImportProcessId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("submissionGroupId")]
         public System.Guid? SubmissionGroupId { get; set; } = default!;
@@ -89546,6 +89748,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("maxRows")]
         public int MaxRows { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("preflightMaxRows")]
+        public int PreflightMaxRows { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("canSubmit")]
         public bool CanSubmit { get; set; } = default!;

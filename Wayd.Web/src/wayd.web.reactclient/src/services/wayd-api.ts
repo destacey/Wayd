@@ -4570,12 +4570,17 @@ export class StrategicThemesClient {
     /**
      * Submit a csv file of strategic themes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/strategic-management/strategic-themes/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -6147,12 +6152,17 @@ export class DeploymentEnvironmentsClient {
     /**
      * Submit a csv file of deployment environments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/deployment-environments/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -6708,12 +6718,17 @@ export class DeploymentsClient {
     /**
      * Submit a csv file of deployments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/deployments/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -7371,12 +7386,17 @@ export class ProductsClient {
     /**
      * Submit a csv file of products to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/products/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -9246,13 +9266,18 @@ export class ReleasePackagesClient {
     /**
      * Submit a csv file of release packages to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      * @param manifestFile (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, manifestFile?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -9867,13 +9892,18 @@ export class ReleasesClient {
     /**
      * Submit a csv file of releases to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      * @param contentsFile (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, contentsFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/releases/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -10734,12 +10764,17 @@ export class VersionsClient {
     /**
      * Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/product-management/versions/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -12036,12 +12071,17 @@ export class PortfoliosClient {
     /**
      * Submit a csv file of portfolios to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -12119,12 +12159,17 @@ export class PortfoliosClient {
     /**
      * Submit a csv file of PPM finalizations to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    finalizeImport(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    finalizeImport(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/finalize/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -13431,12 +13476,17 @@ export class ProgramsClient {
     /**
      * Submit a csv file of programs to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/programs/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -15468,12 +15518,17 @@ export class ProjectsClient {
     /**
      * Submit a csv file of projects to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -15551,12 +15606,17 @@ export class ProjectsClient {
     /**
      * Submit a csv file of project tasks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    importTasks(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    importTasks(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/tasks/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -15634,12 +15694,17 @@ export class ProjectsClient {
     /**
      * Submit a csv file of project stage statuses to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    importStages(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    importStages(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/stages/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -18479,13 +18544,18 @@ export class StrategicInitiativesClient {
     /**
      * Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      * @param kpiFile (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, kpiFile?: FileParameter | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -20728,12 +20798,17 @@ export class PlanningIntervalsClient {
     /**
      * Submit a csv file of planning intervals to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -22528,12 +22603,17 @@ export class PlanningIntervalsClient {
     /**
      * Submit a csv file of planning interval objectives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    importObjectives(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    importObjectives(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/objectives/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -24350,12 +24430,17 @@ export class RisksClient {
     /**
      * Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/planning/risks/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -31334,12 +31419,17 @@ export class EmployeesClient {
     /**
      * Import employees from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/employees/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -32541,12 +32631,17 @@ export class TeamsClient {
     /**
      * Submit a csv file of teams to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    import(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/teams/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -32624,12 +32719,17 @@ export class TeamsClient {
     /**
      * Submit a csv file of team staffing rows to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    importMembers(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    importMembers(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/teams/members/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -32707,12 +32807,17 @@ export class TeamsClient {
     /**
      * Import the team hierarchy (parent/child team memberships) from a csv file. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
      * @param file (optional) 
      */
-    importTeamMemberships(submissionGroupId?: string | null | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+    importTeamMemberships(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
         let url_ = this.baseUrl + "/api/organization/teams/team-memberships/import?";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -36486,6 +36591,77 @@ export class ImportsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ResumedImport>(null as any);
+    }
+
+    /**
+     * Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     */
+    apply(id: string, submissionGroupId?: string | null | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/imports/{id}/apply?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processApply(_response);
+        });
+    }
+
+    protected processApply(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -42310,6 +42486,8 @@ export interface ImportProcessDto {
     displayName: string;
     atomicity: ImportAtomicity;
     status: ImportProcessStatus;
+    isPreflight: boolean;
+    appliedImportProcessId?: string | undefined;
     submissionGroupId?: string | undefined;
     submittedByUserId: string;
     submittedByName?: string | undefined;
@@ -46530,6 +46708,7 @@ export interface ImportDefinitionDto {
     displayName: string;
     atomicity: ImportAtomicity;
     maxRows: number;
+    preflightMaxRows: number;
     canSubmit: boolean;
 }
 

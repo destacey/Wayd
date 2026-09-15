@@ -12,9 +12,20 @@ import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
-import { useGetPlanningIntervalObjectiveQuery } from '@/src/store/features/planning/planning-interval-api'
+import {
+  useGetPlanningIntervalObjectiveActivitiesQuery,
+  useGetPlanningIntervalObjectiveQuery,
+  useLazyGetPlanningIntervalObjectiveActivitiesQuery,
+} from '@/src/store/features/planning/planning-interval-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+  type ActivityLogQueryArg,
+} from '@/src/components/common/activities'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, use, useState } from 'react'
 import PlanningIntervalObjectiveLoading from './loading'
 import PlanningIntervalObjectiveFacts from './_components/planning-interval-objective-facts'
@@ -25,11 +36,13 @@ enum ObjectiveSections {
   Overview = 'overview',
   WorkItems = 'work-items',
   HealthReport = 'health-report',
+  Activities = 'activities',
 }
 
 const sections: RecordSection[] = [
   { id: ObjectiveSections.Overview, label: 'Overview' },
   { id: ObjectiveSections.WorkItems, label: 'Work Items' },
+  { id: ObjectiveSections.Activities, label: 'Activity' },
 ]
 
 const reports: RecordSection[] = [
@@ -56,6 +69,40 @@ const PlanningIntervalObjectivePage = (props: {
   })
 
   useDocumentTitle(`${objective?.name ?? objectiveKey} - PI Objective`)
+
+  // The active section lives in the URL, owned by RecordLayout. Read here only
+  // to hold back the activity query until its section is open.
+  const searchParams = useSearchParams()
+  const activeSection = (searchParams.get('section') ??
+    ObjectiveSections.Overview) as ObjectiveSections
+
+  const planningIntervalId = objective?.planningInterval.id ?? ''
+  const activitiesQuery = useGetPlanningIntervalObjectiveActivitiesQuery(
+    {
+      planningIntervalIdOrKey: planningIntervalId,
+      objectiveIdOrKey: objective?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip: !objective?.id || activeSection !== ObjectiveSections.Activities,
+    },
+  )
+  const [fetchObjectiveActivities] =
+    useLazyGetPlanningIntervalObjectiveActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: objective?.id,
+    query: activitiesQuery,
+    fetchPage: ({ idOrKey, page, pageSize }: ActivityLogQueryArg) =>
+      fetchObjectiveActivities({
+        planningIntervalIdOrKey: planningIntervalId,
+        objectiveIdOrKey: idOrKey,
+        page,
+        pageSize,
+      }),
+    exportFilename: `objective-${objective?.key ?? objectiveKey}-activity`,
+  })
 
   const router = useRouter()
   const { hasPermissionClaim } = useAuth()
@@ -124,6 +171,8 @@ const PlanningIntervalObjectivePage = (props: {
 
   const renderSection = (section: ObjectiveSections) => {
     switch (section) {
+      case ObjectiveSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case ObjectiveSections.WorkItems:
         return (
           <PlanningIntervalObjectiveWorkItemsSection
@@ -173,6 +222,11 @@ const PlanningIntervalObjectivePage = (props: {
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
         facts={<PlanningIntervalObjectiveFacts objective={objective} />}
+        sectionActions={
+          activeSection === ObjectiveSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section as ObjectiveSections)}
       </RecordLayout>

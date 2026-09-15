@@ -1,4 +1,4 @@
-﻿using Wayd.Planning.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.Risks.Commands;
 
@@ -46,12 +46,14 @@ public sealed class UpdateRiskCommandValidator : CustomValidator<UpdateRiskComma
 public sealed class UpdateRiskCommandHandler : ICommandHandler<UpdateRiskCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext;
+    private readonly ICurrentUser _currentUser;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger<UpdateRiskCommandHandler> _logger;
 
-    public UpdateRiskCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateRiskCommandHandler> logger)
+    public UpdateRiskCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRiskCommandHandler> logger)
     {
         _planningDbContext = planningDbContext;
+        _currentUser = currentUser;
         _dateTimeProvider = dateTimeProvider;
         _logger = logger;
     }
@@ -75,6 +77,7 @@ public sealed class UpdateRiskCommandHandler : ICommandHandler<UpdateRiskCommand
                 request.AssigneeId,
                 request.FollowUpDate,
                 request.Response,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now
                 );
 

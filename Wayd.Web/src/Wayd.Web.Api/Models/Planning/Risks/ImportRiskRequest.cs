@@ -1,7 +1,7 @@
 ﻿using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.Risks.Dtos;
 using Wayd.Common.Extensions;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Web.Api.Models.Planning.Risks;
 

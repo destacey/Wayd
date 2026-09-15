@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace Wayd.Planning.Domain.Enums;
+namespace Wayd.Common.Domain.Enums.Planning;
 
 // max length of 32 characters
 public enum ObjectiveStatus

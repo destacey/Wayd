@@ -1,6 +1,8 @@
 'use client'
 
-import { useConfirmModal } from '@/src/hooks'
+import { useAppDispatch, useConfirmModal } from '@/src/hooks'
+import { apiSlice } from '@/src/store/features/apiSlice'
+import { QueryTags } from '@/src/store/features/query-tags'
 import { TeamListItem } from '@/src/app/organizations/types'
 import {
   getPlanningIntervalsClient,
@@ -63,6 +65,7 @@ const ManagePlanningIntervalTeamsForm = ({
   const [teams, setTeams] = useState<PlanningIntervalTeamModel[]>([])
   const [targetKeys, setTargetKeys] = useState<string[]>([])
   const messageApi = useMessage()
+  const dispatch = useAppDispatch()
 
   // TODO: should this be in a custom hook? The teams index page has a similar call.
   const getTeams = useCallback(async () => {
@@ -98,6 +101,9 @@ const ManagePlanningIntervalTeamsForm = ({
           teamIds: targetKeys,
         }
         await getPlanningIntervalsClient().manageTeams(id, request)
+        dispatch(
+          apiSlice.util.invalidateTags([{ type: QueryTags.ActivityLog, id }]),
+        )
 
         messageApi.success(`Successfully updated PI teams.`)
         return true

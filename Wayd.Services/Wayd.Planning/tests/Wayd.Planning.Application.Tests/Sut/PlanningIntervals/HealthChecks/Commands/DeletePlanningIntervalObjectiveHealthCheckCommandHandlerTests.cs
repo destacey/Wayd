@@ -5,8 +5,10 @@ using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.HealthChecks.Commands;
 
@@ -25,14 +27,14 @@ public class DeletePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         var team = new PlanningTeamFaker(TeamType.Team).Generate();
         _objectiveFaker = new PlanningIntervalObjectiveFaker(Guid.NewGuid(), team, ObjectiveStatus.NotStarted, false);
 
-        _handler = new DeletePlanningIntervalObjectiveHealthCheckCommandHandler(_dbContext, _mockLogger.Object);
+        _handler = new DeletePlanningIntervalObjectiveHealthCheckCommandHandler(_dbContext, Mock.Of<ICurrentUser>(), Mock.Of<IDateTimeProvider>(), _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_WhenHealthCheckExists_RemovesAndSaves()
     {
         var objective = _objectiveFaker.Generate();
-        var hc = objective.AddHealthCheck(HealthStatus.Healthy, Guid.NewGuid(), _now.Plus(Duration.FromDays(7)), null, _now).Value;
+        var hc = objective.AddHealthCheck(HealthStatus.Healthy, Guid.NewGuid(), _now.Plus(Duration.FromDays(7)), null, EventActor.System, _now).Value;
         _dbContext.AddPlanningIntervalObjective(objective);
 
         var command = new DeletePlanningIntervalObjectiveHealthCheckCommand(objective.Id, hc.Id);

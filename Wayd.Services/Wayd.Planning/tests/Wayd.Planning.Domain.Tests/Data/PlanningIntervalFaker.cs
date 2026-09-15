@@ -3,6 +3,8 @@ using Wayd.Planning.Domain.Models;
 using Wayd.Tests.Shared.Data;
 using NodaTime.Extensions;
 using Wayd.TestData.Core;
+using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Domain.Tests.Data;
 
@@ -62,7 +64,7 @@ public static class PlanningIntervalFakerExtensions
 
     public static PlanningIntervalFaker WithIterations(this PlanningIntervalFaker faker, LocalDateRange planningIntervalDates, int iterationWeeks = 2, string? iterationPrefix = "Iteration ")
     {
-        var planningInterval = PlanningInterval.Create("Test", null, planningIntervalDates, iterationWeeks, iterationPrefix);
+        var planningInterval = PlanningInterval.Create("Test", null, planningIntervalDates, iterationWeeks, iterationPrefix, EventActor.System, SystemClock.Instance.GetCurrentInstant());
 
         foreach (var iteration in planningInterval.Value.Iterations.ToList())
         {
@@ -77,7 +79,7 @@ public static class PlanningIntervalFakerExtensions
 
     public static PlanningIntervalFaker WithObjectives(this PlanningIntervalFaker faker, PlanningTeam team, int objectivesCount = 0)
     {
-        faker.RuleFor("_objectives", f => new PlanningIntervalObjectiveFaker(faker.PlanningIntervalId, team, Enums.ObjectiveStatus.NotStarted, false).Generate(objectivesCount));
+        faker.RuleFor("_objectives", f => new PlanningIntervalObjectiveFaker(faker.PlanningIntervalId, team, ObjectiveStatus.NotStarted, false).Generate(objectivesCount));
         return faker;
     }
 

@@ -32,7 +32,7 @@ public sealed class ImportPlanningIntervalsCommandTests : IDisposable
 
     public ImportPlanningIntervalsCommandTests()
     {
-        _definition = new PlanningIntervalImportDefinition(_dbContext, new ImportPayloadSerializer());
+        _definition = new PlanningIntervalImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), new ImportPayloadSerializer());
 
         _dispatcher
             .Setup(d => d.Send(It.IsAny<SubmitImportCommand>(), It.IsAny<CancellationToken>()))

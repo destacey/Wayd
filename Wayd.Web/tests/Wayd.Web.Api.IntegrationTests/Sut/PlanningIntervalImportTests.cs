@@ -12,7 +12,7 @@ using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Planning.Application.Persistence;
 using Wayd.Planning.Application.PlanningIntervals.Commands;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 
 namespace Wayd.Web.Api.IntegrationTests.Sut;

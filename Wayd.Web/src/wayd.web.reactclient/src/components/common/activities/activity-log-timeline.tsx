@@ -870,6 +870,19 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                       borderRadius: token.borderRadius,
                       overflow: 'hidden',
                     }}
+                    // A payload carrying a collection serializes to one long line, and the table's auto
+                    // layout hands the column holding it nearly the whole width — squeezing the field names
+                    // down to a letter per line. The floor keeps them readable; they still wrap between
+                    // words, so a long name takes two lines rather than widening the table.
+                    styles={{
+                      label: {
+                        width: 180,
+                        minWidth: 140,
+                        wordBreak: 'normal',
+                        overflowWrap: 'normal',
+                        verticalAlign: 'top',
+                      },
+                    }}
                     items={Object.entries(selectedDetails).map(
                       ([key, val]) => ({
                         key,

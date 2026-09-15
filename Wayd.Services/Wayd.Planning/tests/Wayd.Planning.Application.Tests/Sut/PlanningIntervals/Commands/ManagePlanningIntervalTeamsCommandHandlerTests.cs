@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.PlanningIntervals.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.Commands;
 
@@ -20,7 +21,7 @@ public sealed class ManagePlanningIntervalTeamsCommandHandlerTests : IDisposable
 
     public ManagePlanningIntervalTeamsCommandHandlerTests()
     {
-        _handler = new ManagePlanningIntervalTeamsCommandHandler(_planningDbContext, Mock.Of<ILogger<ManagePlanningIntervalTeamsCommandHandler>>());
+        _handler = new ManagePlanningIntervalTeamsCommandHandler(_planningDbContext, Mock.Of<ICurrentUser>(), Mock.Of<IDateTimeProvider>(), Mock.Of<ILogger<ManagePlanningIntervalTeamsCommandHandler>>());
     }
 
     public void Dispose() => _planningDbContext.Dispose();

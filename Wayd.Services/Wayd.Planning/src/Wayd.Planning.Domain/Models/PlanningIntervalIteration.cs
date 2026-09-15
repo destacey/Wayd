@@ -2,7 +2,6 @@
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Interfaces;
-using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Interfaces;
 using NodaTime;
 

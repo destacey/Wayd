@@ -1,8 +1,10 @@
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Planning.Application.Risks.Dtos;
 
 namespace Wayd.Planning.Application.Risks.Imports;
@@ -21,12 +23,16 @@ namespace Wayd.Planning.Application.Risks.Imports;
 /// </remarks>
 public sealed class RiskImportDefinition(
     IPlanningDbContext planningDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportRiskDto>(serializer)
 {
     public const string ImportKey = "planning.risks";
 
     // Employees come from the same context: IPlanningDbContext extends IWaydDbContext.
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Risks";
@@ -56,6 +62,9 @@ public sealed class RiskImportDefinition(
     /// </remarks>
     private async Task<Result> CreateRisks(ImportPassContext<ImportRiskDto> context, CancellationToken cancellationToken)
     {
+        var timestamp = _dateTimeProvider.Now;
+        var actor = EventActor.Import(_currentUser.GetUserId());
+
         var teamIds = context.Rows.Select(r => r.Data.TeamId).Distinct().ToList();
 
         var employeeIds = context.Rows
@@ -115,7 +124,9 @@ public sealed class RiskImportDefinition(
                 risk.AssigneeId,
                 risk.FollowUpDate,
                 risk.Response,
-                risk.ClosedDate);
+                risk.ClosedDate,
+                actor,
+                timestamp);
 
             await _planningDbContext.Risks.AddAsync(created, cancellationToken);
             row.Created(created.Id);

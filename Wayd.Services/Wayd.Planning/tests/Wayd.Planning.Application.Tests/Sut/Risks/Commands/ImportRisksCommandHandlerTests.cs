@@ -9,7 +9,7 @@ using Wayd.Planning.Application.Risks.Commands;
 using Wayd.Planning.Application.Risks.Dtos;
 using Wayd.Planning.Application.Risks.Imports;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Tests.Shared;
 
 namespace Wayd.Planning.Application.Tests.Sut.Risks.Commands;
@@ -22,7 +22,7 @@ public sealed class ImportRisksCommandHandlerTests : IDisposable
 
     public ImportRisksCommandHandlerTests()
     {
-        _definition = new RiskImportDefinition(_dbContext, new ImportPayloadSerializer());
+        _definition = new RiskImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), new ImportPayloadSerializer());
 
         _dispatcher
             .Setup(d => d.Send(It.IsAny<SubmitImportCommand>(), It.IsAny<CancellationToken>()))

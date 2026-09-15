@@ -1,6 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using Wayd.Common.Application.Models;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Planning.Application.Risks.Commands;
 
@@ -41,12 +41,13 @@ public sealed class CreateRiskCommandValidator : CustomValidator<CreateRiskComma
     }
 }
 
-public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateRiskCommandHandler> logger, ICurrentPrincipal currentPrincipal) : ICommandHandler<CreateRiskCommand, ObjectIdAndKey>
+public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateRiskCommandHandler> logger, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser) : ICommandHandler<CreateRiskCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateRiskCommandHandler> _logger = logger;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateRiskCommand request, CancellationToken cancellationToken)
     {
@@ -58,18 +59,22 @@ public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContex
 
         try
         {
+            var now = _dateTimeProvider.Now;
+
             var risk = Risk.Create(
                 request.Summary,
                 request.Description,
                 request.TeamId,
-                _dateTimeProvider.Now,
+                now,
                 currentUserEmployeeId.Value,
                 request.Category,
                 request.Impact,
                 request.Likelihood,
                 request.AssigneeId,
                 request.FollowUpDate,
-                request.Response
+                request.Response,
+                EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
+                now
                 );
 
             await _planningDbContext.Risks.AddAsync(risk, cancellationToken);

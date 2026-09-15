@@ -72,11 +72,15 @@ public sealed class MapPlanningIntervalSprintsCommandValidator : CustomValidator
 
 public sealed class MapPlanningIntervalSprintsCommandHandler(
 IPlanningDbContext planningDbContext,
+ICurrentUser currentUser,
+IDateTimeProvider dateTimeProvider,
 ILogger<MapPlanningIntervalSprintsCommandHandler> logger) : ICommandHandler<MapPlanningIntervalSprintsCommand>
 {
     private const string AppRequestName = nameof(MapPlanningIntervalSprintsCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<MapPlanningIntervalSprintsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(MapPlanningIntervalSprintsCommand request, CancellationToken cancellationToken)
@@ -121,7 +125,9 @@ ILogger<MapPlanningIntervalSprintsCommandHandler> logger) : ICommandHandler<MapP
             var syncResult = planningInterval.SyncTeamSprintMappings(
                 request.TeamId,
                 request.IterationSprintMappings,
-                sprints);
+                sprints,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+                _dateTimeProvider.Now);
 
             if (syncResult.IsFailure)
             {

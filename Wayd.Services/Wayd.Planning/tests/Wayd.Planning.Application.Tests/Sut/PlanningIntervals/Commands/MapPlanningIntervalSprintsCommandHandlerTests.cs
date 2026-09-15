@@ -6,11 +6,15 @@ using Wayd.Planning.Domain.Tests.Data;
 using Wayd.Tests.Shared.Extensions;
 using Moq;
 using NodaTime;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.Commands;
 
 public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
 {
+    private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 9, 30);
+
     private readonly FakePlanningDbContext _dbContext;
     private readonly MapPlanningIntervalSprintsCommandHandler _handler;
     private readonly Mock<ILogger<MapPlanningIntervalSprintsCommandHandler>> _mockLogger;
@@ -23,7 +27,7 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
         _dbContext = new FakePlanningDbContext();
         _mockLogger = new Mock<ILogger<MapPlanningIntervalSprintsCommandHandler>>();
 
-        _handler = new MapPlanningIntervalSprintsCommandHandler(_dbContext, _mockLogger.Object);
+        _handler = new MapPlanningIntervalSprintsCommandHandler(_dbContext, Mock.Of<ICurrentUser>(), Mock.Of<IDateTimeProvider>(), _mockLogger.Object);
 
         _planningIntervalFaker = new PlanningIntervalFaker();
         _iterationFaker = new IterationFaker();
@@ -140,7 +144,7 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
         var iterationId = planningInterval.Iterations.First().Id;
 
         // Map sprint first
-        planningInterval.MapSprintToIteration(iterationId, sprint);
+        planningInterval.MapSprintToIteration(iterationId, sprint, EventActor.System, Now);
         planningInterval.IterationSprints.Should().HaveCount(1);
 
         // Set up Sprint navigation property for domain logic
@@ -193,8 +197,8 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
         var iteration2Id = planningInterval.Iterations.Last().Id;
 
         // Map sprint1 and sprint2 initially
-        planningInterval.MapSprintToIteration(iteration1Id, sprint1);
-        planningInterval.MapSprintToIteration(iteration2Id, sprint2);
+        planningInterval.MapSprintToIteration(iteration1Id, sprint1, EventActor.System, Now);
+        planningInterval.MapSprintToIteration(iteration2Id, sprint2, EventActor.System, Now);
         planningInterval.IterationSprints.Should().HaveCount(2);
 
         // Set up Sprint navigation properties for domain logic
@@ -395,8 +399,8 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
         var iterationId = planningInterval.Iterations.First().Id;
 
         // Map both teams' sprints
-        planningInterval.MapSprintToIteration(iterationId, team1Sprint);
-        planningInterval.MapSprintToIteration(iterationId, team2Sprint);
+        planningInterval.MapSprintToIteration(iterationId, team1Sprint, EventActor.System, Now);
+        planningInterval.MapSprintToIteration(iterationId, team2Sprint, EventActor.System, Now);
         planningInterval.IterationSprints.Should().HaveCount(2);
 
         // Set up Sprint navigation properties

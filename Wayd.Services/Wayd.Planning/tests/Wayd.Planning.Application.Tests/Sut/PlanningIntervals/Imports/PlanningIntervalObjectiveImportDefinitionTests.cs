@@ -8,9 +8,11 @@ using Wayd.Common.Domain.Imports;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Imports;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
+using Moq;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.Imports;
 
@@ -28,6 +30,8 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
     {
         _definition = new PlanningIntervalObjectiveImportDefinition(
             _dbContext,
+            Mock.Of<IDateTimeProvider>(),
+            Mock.Of<ICurrentUser>(),
             new ImportPayloadSerializer());
 
         _interval = new PlanningIntervalFaker().Generate();

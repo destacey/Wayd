@@ -1,5 +1,5 @@
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models;
 using Wayd.Tests.Shared.Data;
 using Wayd.TestData.Core;

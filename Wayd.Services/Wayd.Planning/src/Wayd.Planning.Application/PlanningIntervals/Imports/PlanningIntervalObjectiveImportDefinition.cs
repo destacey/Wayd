@@ -4,6 +4,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Domain.Models;
 
@@ -14,11 +15,15 @@ namespace Wayd.Planning.Application.PlanningIntervals.Imports;
 /// </summary>
 public sealed class PlanningIntervalObjectiveImportDefinition(
     IPlanningDbContext planningDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportPlanningIntervalObjectiveDto>(serializer)
 {
     public const string ImportKey = "planning.planning-interval-objectives";
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Planning Interval Objectives";
@@ -38,6 +43,9 @@ public sealed class PlanningIntervalObjectiveImportDefinition(
     private async Task<Result> CreateObjectives(
         ImportPassContext<ImportPlanningIntervalObjectiveDto> context, CancellationToken cancellationToken)
     {
+        var timestamp = _dateTimeProvider.Now;
+        var actor = EventActor.Import(_currentUser.GetUserId());
+
         var intervalIds = context.Rows.Select(r => r.Data.PlanningIntervalId).Distinct().ToList();
 
         // Tracked, not AsNoTracking: ImportObjective adds to the interval's own collection, and the
@@ -84,7 +92,9 @@ public sealed class PlanningIntervalObjectiveImportDefinition(
                 objective.StartDate,
                 objective.TargetDate,
                 objective.ClosedDateUtc,
-                objective.Order);
+                objective.Order,
+                actor,
+                timestamp);
 
             if (created.IsFailure)
             {

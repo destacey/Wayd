@@ -5,6 +5,7 @@ using Wayd.Planning.Application.PlanningIntervals.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.Commands;
 
@@ -22,7 +23,7 @@ public sealed class UpdatePlanningIntervalObjectivesOrderCommandHandlerTests : I
         _interval = new PlanningIntervalFaker().WithObjectives(team, 3).Generate();
         _dbContext.AddPlanningInterval(_interval);
 
-        _handler = new UpdatePlanningIntervalObjectivesOrderCommandHandler(_dbContext, _logger.Object);
+        _handler = new UpdatePlanningIntervalObjectivesOrderCommandHandler(_dbContext, Mock.Of<ICurrentUser>(), Mock.Of<IDateTimeProvider>(), _logger.Object);
     }
 
     public void Dispose() => _dbContext.Dispose();

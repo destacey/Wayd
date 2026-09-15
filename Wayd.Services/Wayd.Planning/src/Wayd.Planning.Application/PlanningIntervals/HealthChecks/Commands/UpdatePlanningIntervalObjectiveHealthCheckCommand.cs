@@ -40,10 +40,12 @@ public sealed class UpdatePlanningIntervalObjectiveHealthCheckCommandValidator
 public sealed class UpdatePlanningIntervalObjectiveHealthCheckCommandHandler(
     IPlanningDbContext planningDbContext,
     IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<UpdatePlanningIntervalObjectiveHealthCheckCommandHandler> logger)
     : ICommandHandler<UpdatePlanningIntervalObjectiveHealthCheckCommand, PlanningIntervalObjectiveHealthCheckDetailsDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdatePlanningIntervalObjectiveHealthCheckCommandHandler> _logger = logger;
 
@@ -60,7 +62,8 @@ public sealed class UpdatePlanningIntervalObjectiveHealthCheckCommandHandler(
             return Result.Failure<PlanningIntervalObjectiveHealthCheckDetailsDto>($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
         }
 
-        var updateResult = objective.UpdateHealthCheck(request.HealthCheckId, request.Status, request.Expiration, request.Note, _dateTimeProvider.Now);
+        var updateResult = objective.UpdateHealthCheck(request.HealthCheckId, request.Status, request.Expiration, request.Note,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
         if (updateResult.IsFailure)
         {
             await _planningDbContext.Entry(objective).ReloadAsync(cancellationToken);

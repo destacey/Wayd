@@ -5,7 +5,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.PlanningIntervals.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
 
@@ -26,7 +26,7 @@ public sealed class UpdatePlanningIntervalObjectiveCommandHandlerTests : IDispos
         _dateTimeProvider.Setup(d => d.Now).Returns(_now);
         _team = new PlanningTeamFaker(TeamType.Team).Generate();
 
-        _handler = new UpdatePlanningIntervalObjectiveCommandHandler(_dbContext, _dateTimeProvider.Object, _logger.Object);
+        _handler = new UpdatePlanningIntervalObjectiveCommandHandler(_dbContext, Mock.Of<ICurrentUser>(), _dateTimeProvider.Object, _logger.Object);
     }
 
     public void Dispose() => _dbContext.Dispose();

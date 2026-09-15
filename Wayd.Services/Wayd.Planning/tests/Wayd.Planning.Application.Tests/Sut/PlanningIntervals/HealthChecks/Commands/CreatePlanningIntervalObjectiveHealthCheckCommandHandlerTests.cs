@@ -7,7 +7,7 @@ using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Tests.Data;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningIntervals.HealthChecks.Commands;
@@ -33,7 +33,7 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         _objectiveFaker = new PlanningIntervalObjectiveFaker(Guid.NewGuid(), team, ObjectiveStatus.NotStarted, false);
 
         _handler = new CreatePlanningIntervalObjectiveHealthCheckCommandHandler(
-            _dbContext, _mockDateTimeProvider.Object, _mockCurrentPrincipal.Object, _mockLogger.Object);
+            _dbContext, _mockDateTimeProvider.Object, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(), _mockLogger.Object);
     }
 
     [Fact]

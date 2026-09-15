@@ -200,6 +200,35 @@ async function checkPrecondition(
 }
 
 /**
+ * The readable parts of an RFC 7807 problem details body, or undefined for any other body.
+ *
+ * Kept whole rather than cut at the generic length: the refusal reason and the per-field
+ * validation errors are what a caller needs to correct the request, and the API puts them
+ * after the boilerplate title that a short cut would keep instead.
+ */
+function describeProblem(data: unknown): string | undefined {
+  if (typeof data !== 'object' || data === null) return undefined;
+  const { title, detail, errors } = data as { title?: unknown; detail?: unknown; errors?: unknown };
+  if (typeof title !== 'string' && typeof detail !== 'string' && (typeof errors !== 'object' || errors === null)) {
+    return undefined;
+  }
+
+  const parts: string[] = [];
+  if (typeof title === 'string') parts.push(title);
+  if (typeof detail === 'string' && detail !== 'See the errors property for details.') parts.push(detail);
+  if (typeof errors === 'object' && errors !== null) {
+    for (const [field, messages] of Object.entries(errors)) {
+      const text = Array.isArray(messages) ? messages.join(' ') : String(messages);
+      parts.push(field ? `${field}: ${text}` : text);
+    }
+  }
+
+  const MAX_LEN = 4000;
+  const joined = parts.join('\n');
+  return joined.length > MAX_LEN ? `${joined.substring(0, MAX_LEN)}...` : joined;
+}
+
+/**
  * Formats Axios errors for better readability.
  */
 export function formatApiError(error: AxiosError): string {
@@ -211,11 +240,16 @@ export function formatApiError(error: AxiosError): string {
     if (typeof responseData === 'string') {
       message += `Response: ${responseData.substring(0, MAX_LEN)}${responseData.length > MAX_LEN ? '...' : ''}`;
     } else if (responseData) {
-      try {
-        const jsonString = JSON.stringify(responseData);
-        message += `Response: ${jsonString.substring(0, MAX_LEN)}${jsonString.length > MAX_LEN ? '...' : ''}`;
-      } catch {
-        message += 'Response: [Could not serialize data]';
+      const problem = describeProblem(responseData);
+      if (problem) {
+        message += problem;
+      } else {
+        try {
+          const jsonString = JSON.stringify(responseData);
+          message += `Response: ${jsonString.substring(0, MAX_LEN)}${jsonString.length > MAX_LEN ? '...' : ''}`;
+        } catch {
+          message += 'Response: [Could not serialize data]';
+        }
       }
     } else {
       message += 'No response body received.';

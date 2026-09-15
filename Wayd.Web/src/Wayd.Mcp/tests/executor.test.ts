@@ -46,6 +46,38 @@ describe('formatApiError', () => {
     assert.match(message, /Portfolio not found/);
   });
 
+  test('keeps a problem details body\'s reason and validation errors whole', () => {
+    // Arrange
+    // The API puts what went wrong after a boilerplate title, and a 422 lists it under `errors`, so
+    // cutting the body at the generic length left only "See the erro..." — nothing a caller could fix.
+    const error = axiosErrorWith({
+      response: {
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        data: {
+          type: 'https://tools.ietf.org/html/rfc4918#section-11.2',
+          title: 'One or more validation errors occurred.',
+          status: 422,
+          detail: 'See the errors property for details.',
+          instance: 'POST /api/strategic-management/strategic-themes/import',
+          errors: { State: ["State must be one of 'Proposed', 'Active' or 'Archived'. (Import Id: T1)"] },
+          traceId: '00-' + 'a'.repeat(200),
+        },
+        headers: {},
+        config: {} as any,
+      },
+    });
+
+    // Act
+    const message = formatApiError(error);
+
+    // Assert
+    assert.match(message, /Status 422/);
+    assert.match(message, /State: State must be one of 'Proposed', 'Active' or 'Archived'\. \(Import Id: T1\)/);
+    assert.doesNotMatch(message, /See the errors property/, 'the pointer to errors adds nothing once they are shown');
+    assert.doesNotMatch(message, /traceId/, 'transport noise should not crowd out the reason');
+  });
+
   test('truncates long response bodies', () => {
     // Arrange
     const error = axiosErrorWith({

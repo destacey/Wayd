@@ -239,7 +239,7 @@ Two rules the tools enforce and the `wayd-delivery` skill explains: a version sh
 
 Every CSV file submitted to Wayd becomes a run, whether it came from Settings → Imports or an API call, so these tools follow and control either.
 
-**Files are imported through a preflight.** `Imports_Preflight` always sends `validateOnly=true`, so it checks every row and creates nothing; there is no tool that submits a file for real. The only way in is `Imports_Apply` on the finished preflight, which is annotated destructive, so an agent has seen every row's outcome before a client is asked to confirm. Applying the same preflight twice duplicates what the first import created where the import has no natural key.
+**Files are imported through a preflight.** `Imports_Preflight` always sends `validateOnly=true`, so it checks every row and creates nothing; there is no tool that submits a file for real. The only way in is `Imports_Apply` on the finished preflight, which is annotated destructive, so an agent has seen every row's outcome before a client is asked to confirm. Before posting, it reads `/api/imports/definitions` and sends nothing to a Wayd older than 0.210.0, which ignores `validateOnly` and would import the file for real. Applying the same preflight twice duplicates what the first import created where the import has no natural key.
 
 `Imports_GetFileFormat` is answered from the OpenAPI document this package was built against, without a request, so it describes the columns of the Wayd release the package matches.
 

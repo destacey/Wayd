@@ -68,6 +68,11 @@ export interface McpToolDefinition {
     pathSelector?: { parameter: string; paths: Record<string, string> };
     /** Query values sent on every call, which no argument can set or override. */
     fixedQuery?: Record<string, string | number | boolean>;
+    /**
+     * A GET sent before the call. When `refusal` returns a message for its answer (`undefined` if the
+     * endpoint does not exist), the call is not sent and the message is returned as an error instead.
+     */
+    precondition?: { path: string; refusal: (data: unknown, args: JsonObject) => string | undefined };
     /** Answers the call from the server itself, without a request to the API. */
     localHandler?: (args: JsonObject) => CallToolResult;
     requestBodyContentType?: string;

@@ -284,6 +284,10 @@ describe('executeApiTool', () => {
     let captured: { url: string; data: unknown } | undefined;
     const previousAdapter = axios.defaults.adapter;
     axios.defaults.adapter = async (config) => {
+      if (config.method === 'get') {
+        const definitions = [{ key: 'product-management.release-packages', canSubmit: true, preflightMaxRows: 10000 }];
+        return { data: definitions, status: 200, statusText: 'OK', headers: {}, config };
+      }
       captured = { url: axios.getUri(config), data: config.data };
       return { data: {}, status: 202, statusText: 'Accepted', headers: {}, config };
     };
@@ -318,6 +322,41 @@ describe('executeApiTool', () => {
     assert.equal(await file.text(), 'ImportId,Name\nP1,Package');
     assert.equal(await manifest.text(), 'PackageImportId\nP1');
     assert.equal(captured.data.has('kpiFile'), false, 'an omitted file must send no part');
+  });
+
+  test('sends no preflight to a Wayd too old to honour validateOnly', async () => {
+    // Arrange
+    // An API from before preflights ignores the query parameter and imports the file for real, so
+    // the tool must refuse before posting. Its definitions lack preflightMaxRows.
+    const definition = toolDefinitionMap.get('Imports_Preflight');
+    assert.ok(definition, 'expected the Imports_Preflight definition');
+
+    let posted = false;
+    const previousAdapter = axios.defaults.adapter;
+    axios.defaults.adapter = async (config) => {
+      if (config.method !== 'get') posted = true;
+      const definitions = [{ key: 'ppm.projects', canSubmit: true, maxRows: 10000 }];
+      return { data: definitions, status: 200, statusText: 'OK', headers: {}, config };
+    };
+
+    // Act
+    let result;
+    try {
+      result = await executeApiTool(
+        'Imports_Preflight',
+        definition,
+        { importType: 'ppm.projects', file: 'ImportId,Name\nP1,Project' },
+        securitySchemes
+      );
+    } finally {
+      axios.defaults.adapter = previousAdapter;
+    }
+
+    // Assert
+    assert.equal(posted, false, 'the file must not be posted to an API that would import it');
+    assert.equal(result.isError, true);
+    const [firstBlock] = result.content;
+    assert.match((firstBlock as { text: string }).text, /Nothing was sent/);
   });
 
   test('refuses a preflight for an import type it does not know', async () => {

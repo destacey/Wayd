@@ -84,6 +84,25 @@ export const definitions: [string, McpToolDefinition][] = [
       paths: Object.fromEntries(Object.entries(importFormats).map(([key, format]) => [key, format.path])),
     },
     fixedQuery: { validateOnly: true },
+    // An API from before preflights ignores validateOnly and imports the file for real. preflightMaxRows
+    // arrived with it, so an instance whose definitions lack it is refused before anything is sent.
+    precondition: {
+      path: '/api/imports/definitions',
+      refusal: (data, { importType }) => {
+        const importDefinitions = Array.isArray(data) ? data : undefined;
+        if (!importDefinitions?.every(d => typeof d?.preflightMaxRows === 'number')) {
+          return 'Nothing was sent: this Wayd instance is too old to check a file without importing it, and would have imported the file for real. Preflights need Wayd 0.210.0 or later.';
+        }
+        const match = importDefinitions.find(d => d?.key === importType);
+        if (!match) {
+          return `Nothing was sent: this Wayd instance offers you no '${importType}' import.`;
+        }
+        if (!match.canSubmit) {
+          return `Nothing was sent: you do not have permission to submit ${match.displayName ?? importType} imports.`;
+        }
+        return undefined;
+      },
+    },
     executionParameters: [
       { name: 'file', in: 'formFile' },
       ...[...extraFiles.keys()].map(name => ({ name, in: 'formFile' })),

@@ -131,6 +131,13 @@ export async function executeApiTool(
       ...(requestBodyData !== undefined && { data: requestBodyData }),
     };
 
+    if (definition.precondition) {
+      const refusal = await checkPrecondition(definition, validatedArgs, headers);
+      if (refusal) {
+        return { content: [{ type: 'text', text: refusal }], isError: true };
+      }
+    }
+
     console.error(`Executing tool "${toolName}": ${config.method} ${config.url}`);
     const response = await axios(config);
 
@@ -164,6 +171,31 @@ export async function executeApiTool(
 
     console.error(`Error during execution of tool '${toolName}':`, errorMessage);
     return { content: [{ type: 'text', text: errorMessage }], isError: true };
+  }
+}
+
+/**
+ * Sends a definition's precondition GET and returns the refusal message, if any. A 404 is handed to the
+ * check as no answer, since an endpoint the API lacks is usually what a precondition exists to detect.
+ */
+async function checkPrecondition(
+  definition: McpToolDefinition,
+  args: JsonObject,
+  headers: Record<string, string>
+): Promise<string | undefined> {
+  const { path, refusal } = definition.precondition!;
+  const getHeaders = Object.fromEntries(Object.entries(headers).filter(([name]) => name !== 'content-type'));
+  const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+
+  console.error(`Checking precondition for tool "${definition.name}": GET ${url}`);
+  try {
+    const response = await axios({ method: 'GET', url, headers: getHeaders });
+    return refusal(response.data, args);
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return refusal(undefined, args);
+    }
+    throw error;
   }
 }
 

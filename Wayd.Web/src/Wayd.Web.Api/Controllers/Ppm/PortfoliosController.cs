@@ -102,7 +102,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(ProjectPortfolioImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportPortfolioRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportPortfolioRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -126,7 +126,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
                 rows.Add(new SubmittedImportRow<ImportProjectPortfolioDto>(portfolio.ImportId, portfolio.ToImportProjectPortfolioDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportProjectPortfoliosCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectPortfoliosCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -151,7 +151,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(PpmFinalizationImportDefinition.ImportKey)]
-    public async Task<ActionResult> FinalizeImport([FromForm, CsvRows(typeof(ImportPpmFinalizationRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> FinalizeImport([FromForm, CsvRows(typeof(ImportPpmFinalizationRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -175,7 +175,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
                 rows.Add(new SubmittedImportRow<FinalizePpmItemDto>(item.ImportId, item.ToFinalizePpmItemDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportPpmFinalizationsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportPpmFinalizationsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

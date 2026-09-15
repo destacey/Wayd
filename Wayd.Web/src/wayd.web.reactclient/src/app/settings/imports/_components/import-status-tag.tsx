@@ -2,10 +2,7 @@
 
 import { Tag } from 'antd'
 import { SyncOutlined } from '@ant-design/icons'
-import {
-  ImportProcessStatus,
-  ImportRowStatus,
-} from '@/src/services/wayd-api'
+import { ImportProcessStatus, ImportRowStatus } from '@/src/services/wayd-api'
 
 const PROCESS_COLOR: Record<ImportProcessStatus, string> = {
   [ImportProcessStatus.Queued]: 'default',
@@ -43,27 +40,55 @@ const ROW_LABEL: Record<ImportRowStatus, string> = {
   [ImportRowStatus.Cancelled]: 'Cancelled',
 }
 
+// A preflight applies nothing, so "Applied" would claim a record exists that does not.
+const PREFLIGHT_ROW_LABEL: Record<ImportRowStatus, string> = {
+  [ImportRowStatus.Pending]: 'Not Checked',
+  [ImportRowStatus.Succeeded]: 'Passed',
+  [ImportRowStatus.Failed]: 'Rejected',
+  [ImportRowStatus.Cancelled]: 'Cancelled',
+}
+
 /** True while the run is still the worker's to finish. */
 export const isRunning = (status: ImportProcessStatus) =>
   status === ImportProcessStatus.Queued ||
   status === ImportProcessStatus.Processing ||
   status === ImportProcessStatus.Cancelling
 
-export const ImportStatusTag = ({ status }: { status: ImportProcessStatus }) => (
+export const ImportStatusTag = ({
+  status,
+}: {
+  status: ImportProcessStatus
+}) => (
   <Tag
     color={PROCESS_COLOR[status]}
     icon={
-      status === ImportProcessStatus.Processing ? <SyncOutlined spin /> : undefined
+      status === ImportProcessStatus.Processing ? (
+        <SyncOutlined spin />
+      ) : undefined
     }
   >
     {PROCESS_LABEL[status]}
   </Tag>
 )
 
-export const ImportRowStatusTag = ({ status }: { status: ImportRowStatus }) => (
-  <Tag color={ROW_COLOR[status]}>{ROW_LABEL[status]}</Tag>
-)
+/** Marks a run that checked its file and applied none of it. */
+export const PreflightTag = () => <Tag color="blue">Preflight</Tag>
 
-export const importRowStatusLabel = (status: ImportRowStatus) => ROW_LABEL[status]
+export const importRowStatusLabel = (
+  status: ImportRowStatus,
+  isPreflight = false,
+) => (isPreflight ? PREFLIGHT_ROW_LABEL : ROW_LABEL)[status]
+
+export const ImportRowStatusTag = ({
+  status,
+  isPreflight = false,
+}: {
+  status: ImportRowStatus
+  isPreflight?: boolean
+}) => (
+  <Tag color={ROW_COLOR[status]}>
+    {importRowStatusLabel(status, isPreflight)}
+  </Tag>
+)
 export const importStatusLabel = (status: ImportProcessStatus) =>
   PROCESS_LABEL[status]

@@ -56,6 +56,8 @@ export interface SubmitImportRequest {
   importKey: ImportKey
   /** The chosen files, keyed by the multipart field each is posted as. */
   files: Partial<Record<string, File>>
+  /** Checks every row as the import would and applies none of them. */
+  validateOnly?: boolean
 }
 
 type ImportedRecordTag = QueryTags | { type: QueryTags; id: string }
@@ -130,56 +132,83 @@ const upload = (file: File | undefined) =>
  */
 const SUBMITTERS: Record<
   ImportKey,
-  (files: SubmitImportRequest['files']) => Promise<ImportProcessDto>
+  (
+    files: SubmitImportRequest['files'],
+    validateOnly: boolean,
+  ) => Promise<ImportProcessDto>
 > = {
-  employees: ({ file }) => getEmployeesClient().import(undefined, upload(file)),
-  teams: ({ file }) => getTeamsClient().import(undefined, upload(file)),
-  'team-members': ({ file }) =>
-    getTeamsClient().importMembers(undefined, upload(file)),
-  'team-memberships': ({ file }) =>
-    getTeamsClient().importTeamMemberships(undefined, upload(file)),
-  'planning.planning-intervals': ({ file }) =>
-    getPlanningIntervalsClient().import(undefined, upload(file)),
-  'planning.planning-interval-objectives': ({ file }) =>
-    getPlanningIntervalsClient().importObjectives(undefined, upload(file)),
-  'planning.risks': ({ file }) =>
-    getRisksClient().import(undefined, upload(file)),
-  'ppm.portfolios': ({ file }) =>
-    getPortfoliosClient().import(undefined, upload(file)),
-  'ppm.programs': ({ file }) =>
-    getProgramsClient().import(undefined, upload(file)),
-  'ppm.projects': ({ file }) =>
-    getProjectsClient().import(undefined, upload(file)),
-  'ppm.project-tasks': ({ file }) =>
-    getProjectsClient().importTasks(undefined, upload(file)),
-  'ppm.project-stages': ({ file }) =>
-    getProjectsClient().importStages(undefined, upload(file)),
-  'ppm.finalizations': ({ file }) =>
-    getPortfoliosClient().finalizeImport(undefined, upload(file)),
-  'ppm.strategic-initiatives': ({ file, kpiFile }) =>
+  employees: ({ file }, validateOnly) =>
+    getEmployeesClient().import(undefined, validateOnly, upload(file)),
+  teams: ({ file }, validateOnly) =>
+    getTeamsClient().import(undefined, validateOnly, upload(file)),
+  'team-members': ({ file }, validateOnly) =>
+    getTeamsClient().importMembers(undefined, validateOnly, upload(file)),
+  'team-memberships': ({ file }, validateOnly) =>
+    getTeamsClient().importTeamMemberships(
+      undefined,
+      validateOnly,
+      upload(file),
+    ),
+  'planning.planning-intervals': ({ file }, validateOnly) =>
+    getPlanningIntervalsClient().import(undefined, validateOnly, upload(file)),
+  'planning.planning-interval-objectives': ({ file }, validateOnly) =>
+    getPlanningIntervalsClient().importObjectives(
+      undefined,
+      validateOnly,
+      upload(file),
+    ),
+  'planning.risks': ({ file }, validateOnly) =>
+    getRisksClient().import(undefined, validateOnly, upload(file)),
+  'ppm.portfolios': ({ file }, validateOnly) =>
+    getPortfoliosClient().import(undefined, validateOnly, upload(file)),
+  'ppm.programs': ({ file }, validateOnly) =>
+    getProgramsClient().import(undefined, validateOnly, upload(file)),
+  'ppm.projects': ({ file }, validateOnly) =>
+    getProjectsClient().import(undefined, validateOnly, upload(file)),
+  'ppm.project-tasks': ({ file }, validateOnly) =>
+    getProjectsClient().importTasks(undefined, validateOnly, upload(file)),
+  'ppm.project-stages': ({ file }, validateOnly) =>
+    getProjectsClient().importStages(undefined, validateOnly, upload(file)),
+  'ppm.finalizations': ({ file }, validateOnly) =>
+    getPortfoliosClient().finalizeImport(undefined, validateOnly, upload(file)),
+  'ppm.strategic-initiatives': ({ file, kpiFile }, validateOnly) =>
     getStrategicInitiativesClient().import(
       undefined,
+      validateOnly,
       upload(file),
       upload(kpiFile),
     ),
-  'strategic.themes': ({ file }) =>
-    getStrategicThemesClient().import(undefined, upload(file)),
-  'product-management.products': ({ file }) =>
-    getProductsClient().import(undefined, upload(file)),
-  'product-management.versions': ({ file }) =>
-    getVersionsClient().import(undefined, upload(file)),
-  'product-management.releases': ({ file, contentsFile }) =>
-    getReleasesClient().import(undefined, upload(file), upload(contentsFile)),
-  'product-management.release-packages': ({ file, manifestFile }) =>
+  'strategic.themes': ({ file }, validateOnly) =>
+    getStrategicThemesClient().import(undefined, validateOnly, upload(file)),
+  'product-management.products': ({ file }, validateOnly) =>
+    getProductsClient().import(undefined, validateOnly, upload(file)),
+  'product-management.versions': ({ file }, validateOnly) =>
+    getVersionsClient().import(undefined, validateOnly, upload(file)),
+  'product-management.releases': ({ file, contentsFile }, validateOnly) =>
+    getReleasesClient().import(
+      undefined,
+      validateOnly,
+      upload(file),
+      upload(contentsFile),
+    ),
+  'product-management.release-packages': (
+    { file, manifestFile },
+    validateOnly,
+  ) =>
     getReleasePackagesClient().import(
       undefined,
+      validateOnly,
       upload(file),
       upload(manifestFile),
     ),
-  'product-management.deployment-environments': ({ file }) =>
-    getDeploymentEnvironmentsClient().import(undefined, upload(file)),
-  'product-management.deployments': ({ file }) =>
-    getDeploymentsClient().import(undefined, upload(file)),
+  'product-management.deployment-environments': ({ file }, validateOnly) =>
+    getDeploymentEnvironmentsClient().import(
+      undefined,
+      validateOnly,
+      upload(file),
+    ),
+  'product-management.deployments': ({ file }, validateOnly) =>
+    getDeploymentsClient().import(undefined, validateOnly, upload(file)),
 }
 
 export const importsApi = apiSlice.injectEndpoints({
@@ -261,9 +290,9 @@ export const importsApi = apiSlice.injectEndpoints({
       providesTags: [QueryTags.ImportDefinition],
     }),
     submitImport: builder.mutation<ImportProcessDto, SubmitImportRequest>({
-      queryFn: async ({ importKey, files }) => {
+      queryFn: async ({ importKey, files, validateOnly = false }) => {
         try {
-          const data = await SUBMITTERS[importKey](files)
+          const data = await SUBMITTERS[importKey](files, validateOnly)
           return { data }
         } catch (error) {
           // A refused file is an outcome the dialog shows, not a failure to log; the client
@@ -279,10 +308,30 @@ export const importsApi = apiSlice.injectEndpoints({
       },
       // A refused file creates no run and changes no record, so there is nothing to refetch. The records
       // only include the rows if the run finished within the wait; one still running refreshes them from
-      // its import page when it lands.
+      // its import page when it lands. A preflight changes no record at all.
       invalidatesTags: (result, error, { importKey }) =>
+        !result
+          ? []
+          : result.isPreflight
+            ? [QueryTags.ImportProcess]
+            : [QueryTags.ImportProcess, ...IMPORTED_RECORD_TAGS[importKey]],
+    }),
+    applyImportPreflight: builder.mutation<ImportProcessDto, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getImportsClient().apply(id)
+          return { data }
+        } catch (error) {
+          if (!isApiError(error) || error.status !== 400) {
+            console.error('API Error:', error)
+          }
+          return { error }
+        }
+      },
+      // The new run's records only exist if it finished within the wait; its page refreshes them otherwise.
+      invalidatesTags: (result) =>
         result
-          ? [QueryTags.ImportProcess, ...IMPORTED_RECORD_TAGS[importKey]]
+          ? [QueryTags.ImportProcess, ...importedRecordTags(result.importType)]
           : [],
     }),
     cancelImportProcess: builder.mutation<void, string>({
@@ -343,6 +392,7 @@ export const {
   useGetImportProcessRowsQuery,
   useGetImportDefinitionsQuery,
   useSubmitImportMutation,
+  useApplyImportPreflightMutation,
   useCancelImportProcessMutation,
   useResumeImportProcessMutation,
   useRetryFailedImportRowsMutation,

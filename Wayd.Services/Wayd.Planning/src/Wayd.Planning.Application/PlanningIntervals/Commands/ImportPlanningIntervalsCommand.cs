@@ -16,7 +16,7 @@ namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 /// </remarks>
 public sealed record ImportPlanningIntervalsCommand(
     IReadOnlyList<SubmittedImportRow<ImportPlanningIntervalDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -71,7 +71,7 @@ public sealed class ImportPlanningIntervalsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(PlanningIntervalImportDefinition.ImportKey, rows, command.SubmissionGroupId),
+            new SubmitImportCommand(PlanningIntervalImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly),
             cancellationToken);
     }
 }

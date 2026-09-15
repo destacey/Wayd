@@ -2,6 +2,7 @@
 
 import { FC, useMemo, useState } from 'react'
 import { Alert, Flex, Segmented, Typography } from 'antd'
+import Link from 'next/link'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
@@ -34,6 +35,7 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
   const [chosenFilter, setChosenFilter] = useState<RowFilter | null>(null)
 
   const running = isRunning(importProcess.status)
+  const { isPreflight } = importProcess
 
   // Opens on the rejected rows when there are any: that is the reason someone opens this at all, and
   // paging through thousands of applied rows to find six is the wrong default. Derived rather than set
@@ -71,11 +73,16 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
       },
       {
         id: 'status',
-        accessorFn: (row) => importRowStatusLabel(row.status),
+        accessorFn: (row) => importRowStatusLabel(row.status, isPreflight),
         header: 'Status',
         size: 130,
         meta: { filterType: 'set' },
-        cell: ({ row }) => <ImportRowStatusTag status={row.original.status} />,
+        cell: ({ row }) => (
+          <ImportRowStatusTag
+            status={row.original.status}
+            isPreflight={isPreflight}
+          />
+        ),
       },
       {
         id: 'error',
@@ -96,7 +103,7 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
         meta: { columnType: 'dateTime' },
       },
     ],
-    [],
+    [isPreflight],
   )
 
   const rowOverflow = rows && rows.totalCount > rows.rows.length
@@ -110,17 +117,52 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
         <Alert
           type="info"
           showIcon
-          title="This import is still running. The page updates as it goes."
+          title={
+            isPreflight
+              ? 'This check is still running. The page updates as it goes.'
+              : 'This import is still running. The page updates as it goes.'
+          }
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {importProcess.appliedImportProcessId && (
+        <Alert
+          type="success"
+          showIcon
+          title="This file has been imported."
+          description="The rows this check covered were submitted for real. The import has its own page with its own outcome."
+          action={
+            <Link
+              href={`/settings/imports/${importProcess.appliedImportProcessId}`}
+            >
+              View Import
+            </Link>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {isPreflight && !running && (
+        <Alert
+          type="info"
+          showIcon
+          title="This was a preflight. Nothing was imported."
+          description="Every row went through the same checks an import runs, against the data as it stood at the time. It is advice, not a promise: records can change before the file is imported, so the import checks every row again."
           style={{ marginBottom: 16 }}
         />
       )}
 
       <Flex gap={12} wrap style={{ marginBottom: 16 }}>
         <MetricCard
-          title="Applied"
+          title={isPreflight ? 'Passed' : 'Applied'}
           value={importProcess.succeededRowCount}
           cardStyle={METRIC_CARD_FLEX}
-          tooltip="Rows this import created a record for. These are never reapplied by a resume or a retry."
+          tooltip={
+            isPreflight
+              ? 'Rows that passed every check. Importing the file would create a record for each, if nothing changes first.'
+              : 'Rows this import created a record for. These are never reapplied by a resume or a retry.'
+          }
         />
         <MetricCard
           title="Rejected"
@@ -131,13 +173,21 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
               ? { color: 'var(--ant-color-error)' }
               : undefined
           }
-          tooltip="Rows that changed nothing. Their reason is listed below, and their data is kept so they can be retried once the file is fixed."
+          tooltip={
+            isPreflight
+              ? 'Rows an import would reject. Their reason is listed below.'
+              : 'Rows that changed nothing. Their reason is listed below, and their data is kept so they can be retried once the file is fixed.'
+          }
         />
         <MetricCard
-          title="Not Applied"
+          title={isPreflight ? 'Not Checked' : 'Not Applied'}
           value={importProcess.unappliedRowCount}
           cardStyle={METRIC_CARD_FLEX}
-          tooltip="Rows the run never reached — it was stopped or it failed partway. A resume picks up exactly these."
+          tooltip={
+            isPreflight
+              ? 'Rows the check never reached — it was stopped or it failed partway.'
+              : 'Rows the run never reached — it was stopped or it failed partway. A resume picks up exactly these.'
+          }
         />
       </Flex>
 
@@ -156,10 +206,15 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
         onChange={setChosenFilter}
         options={[
           { label: 'All', value: 'all' },
-          { label: 'Rejected', value: ImportRowStatus.Failed },
-          { label: 'Applied', value: ImportRowStatus.Succeeded },
-          { label: 'Not Applied', value: ImportRowStatus.Pending },
-          { label: 'Cancelled', value: ImportRowStatus.Cancelled },
+          ...[
+            ImportRowStatus.Failed,
+            ImportRowStatus.Succeeded,
+            ImportRowStatus.Pending,
+            ImportRowStatus.Cancelled,
+          ].map((status) => ({
+            label: importRowStatusLabel(status, isPreflight),
+            value: status,
+          })),
         ]}
       />
 

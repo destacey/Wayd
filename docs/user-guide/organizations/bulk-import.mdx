@@ -36,6 +36,12 @@ A few rules apply to every import:
   (`200 OK`) with its counts, and a large one comes back still queued or running (`202 Accepted`) with a
   `Location` to follow. Either way the body is the same run, and it has its own page under
   [Settings → Imports](../settings/imports.mdx).
+- **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
+  **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
+  through the import's own checks without anything being created: each comes back passed or rejected
+  with its reason, and an all-or-nothing file reports every rejection rather than stopping at the first
+  step that finds one. It is advice, not a promise — the data can change before you import — and a
+  finished check can be imported for real from its page without posting the file again.
 - **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
   query parameter — any GUID you choose — and records it on the run. Post a set of files under one value
   and [Settings → Imports](../settings/imports.mdx#what-you-see) shows them as one batch with summed
@@ -110,7 +116,8 @@ Employees
 A file over its cap is rejected before anything is queued, with a message naming the cap. Split a larger
 export into several files and post them one at a time, waiting for each run; one `submissionGroupId`
 across the parts keeps them findable as one import. The caps differ because an all-or-nothing file is one
-database transaction, and 10,000 rows bounds it.
+database transaction, and 10,000 rows bounds it. A check of an employees file is one transaction too, so a
+[preflight](../settings/imports.mdx#checking-a-file-first) takes at most 10,000 employees at a time.
 
 The rules every file shares — request size, `ImportId` length, how rows are chunked, how long the post
 waits, retries, stalls and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).

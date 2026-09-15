@@ -135,7 +135,7 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(DeploymentImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportDeploymentRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportDeploymentRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -165,7 +165,7 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
                 rows.Add(new SubmittedImportRow<ImportDeploymentDto>(deployment.ImportId, deployment.ToImportDeploymentDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportDeploymentsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportDeploymentsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

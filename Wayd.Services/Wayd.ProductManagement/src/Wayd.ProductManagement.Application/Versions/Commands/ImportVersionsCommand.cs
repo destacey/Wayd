@@ -14,7 +14,7 @@ namespace Wayd.ProductManagement.Application.Versions.Commands;
 /// </remarks>
 public sealed record ImportVersionsCommand(
     IReadOnlyList<SubmittedImportRow<ImportVersionDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -65,6 +65,6 @@ public sealed class ImportVersionsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(VersionImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
+            new SubmitImportCommand(VersionImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly), cancellationToken);
     }
 }

@@ -73,6 +73,8 @@ const rollup = (groupId: string, runs: ImportProcessDto[]): ImportListRow => {
     displayName: groupLabel(runs.length),
     atomicity: ImportAtomicity.PerRow,
     status,
+    // Only a batch of nothing but preflights applied nothing; one real run among them makes it real.
+    isPreflight: runs.every((r) => r.isPreflight),
     submissionGroupId: groupId,
     // Files submitted together are submitted by one caller; the first run's is the batch's.
     submittedByUserId: runs[0].submittedByUserId,
@@ -82,7 +84,9 @@ const rollup = (groupId: string, runs: ImportProcessDto[]): ImportListRow => {
     submittedOn: latest(runs.map((r) => r.submittedOn))!,
     startedOn: earliest(runs.map((r) => r.startedOn)),
     // A batch has finished only once its last run has; until then it has no finish to show.
-    completedOn: allFinished ? latest(runs.map((r) => r.completedOn)) : undefined,
+    completedOn: allFinished
+      ? latest(runs.map((r) => r.completedOn))
+      : undefined,
     lastProgressOn: latest(runs.map((r) => r.lastProgressOn)),
     totalRowCount,
     succeededRowCount,

@@ -14,7 +14,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 /// </remarks>
 public sealed record ImportProjectStagesCommand(
     IReadOnlyList<SubmittedImportRow<ImportProjectStageDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -65,6 +65,6 @@ public sealed class ImportProjectStagesCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(ProjectStageImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
+            new SubmitImportCommand(ProjectStageImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly), cancellationToken);
     }
 }

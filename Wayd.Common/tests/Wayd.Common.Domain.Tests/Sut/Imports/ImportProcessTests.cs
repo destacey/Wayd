@@ -26,6 +26,80 @@ public sealed class ImportProcessTests
     }
 
     [Fact]
+    public void CreatePreflight_StartsQueuedAndMarkedAsAPreflight()
+    {
+        // Arrange
+        var rows = new[] { ImportProcessRow.Create("r-1", 1, "{}") };
+
+        // Act
+        var process = ImportProcess.CreatePreflight("employees", "user-1", null, rows, _submitted);
+
+        // Assert
+        process.IsPreflight.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Queued);
+        process.TotalRowCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void Requeue_RefusesAPreflight()
+    {
+        // Arrange
+        var rows = new[] { ImportProcessRow.Create("r-1", 1, "{}") };
+        var process = ImportProcess.CreatePreflight("employees", "user-1", null, rows, _submitted);
+        process.Start(ImportProcessFakerExtensions.AttemptCorrelationId, _started);
+        process.Cancel(_later);
+
+        // Act
+        var result = process.Requeue(_later);
+
+        // Assert — its rows describe rolled-back work, so there is no progress for a second attempt to continue
+        result.IsFailure.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Cancelled);
+    }
+
+    [Fact]
+    public void RecordApplied_LinksAFinishedPreflightToTheLatestRealRun()
+    {
+        // Arrange — applied twice, as after a real run that failed for a reason since fixed
+        var rows = new[] { ImportProcessRow.Create("r-1", 1, "{}") };
+        var process = ImportProcess.CreatePreflight("employees", "user-1", null, rows, _submitted);
+        process.Start(ImportProcessFakerExtensions.AttemptCorrelationId, _started);
+        process.Complete(_later);
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+
+        // Act
+        var firstResult = process.RecordApplied(first);
+        var secondResult = process.RecordApplied(second);
+
+        // Assert
+        firstResult.IsSuccess.Should().BeTrue();
+        secondResult.IsSuccess.Should().BeTrue();
+        process.AppliedImportProcessId.Should().Be(second);
+    }
+
+    [Fact]
+    public void RecordApplied_RefusesARealRunAndAnUnfinishedPreflight()
+    {
+        // Arrange
+        var real = new ImportProcessFaker().AsProcessingWith(rowCount: 1, _started);
+        real.Complete(_later);
+        var rows = new[] { ImportProcessRow.Create("r-1", 1, "{}") };
+        var running = ImportProcess.CreatePreflight("employees", "user-1", null, rows, _submitted);
+        running.Start(ImportProcessFakerExtensions.AttemptCorrelationId, _started);
+
+        // Act
+        var realResult = real.RecordApplied(Guid.NewGuid());
+        var runningResult = running.RecordApplied(Guid.NewGuid());
+
+        // Assert
+        realResult.IsFailure.Should().BeTrue();
+        runningResult.IsFailure.Should().BeTrue();
+        real.AppliedImportProcessId.Should().BeNull();
+        running.AppliedImportProcessId.Should().BeNull();
+    }
+
+    [Fact]
     public void Start_ClaimsTheRunAndSetsTheHeartbeat()
     {
         // Arrange

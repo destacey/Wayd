@@ -87,7 +87,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(StrategicThemeImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportStrategicThemeRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportStrategicThemeRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -112,7 +112,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
                     theme.ImportId, theme.ToImportStrategicThemeDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportStrategicThemesCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportStrategicThemesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

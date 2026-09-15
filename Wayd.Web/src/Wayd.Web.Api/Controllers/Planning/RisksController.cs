@@ -116,7 +116,7 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(RiskImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportRiskRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportRiskRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -144,7 +144,7 @@ public class RisksController : ControllerBase
                 rows.Add(new SubmittedImportRow<ImportRiskDto>(risk.ImportId, risk.ToImportRiskDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportRisksCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportRisksCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

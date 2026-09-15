@@ -128,6 +128,19 @@ public sealed class ImportProcessRow : BaseEntity
         Payload = null;
     }
 
+    /// <summary>
+    /// Records that a preflight put the row through every pass without rejecting it. Unlike
+    /// <see cref="MarkSucceeded"/> it keeps the payload, which applying the preflight submits, and records no
+    /// created record, because the one the preflight made was rolled back.
+    /// </summary>
+    public void MarkPassedPreflight(string? warning, Instant timestamp)
+    {
+        Status = ImportRowStatus.Succeeded;
+        Warning = warning;
+        AttemptedOn = timestamp;
+        Error = null;
+    }
+
     /// <summary>Keeps the payload, which is what a retry re-executes.</summary>
     public void MarkFailed(string error, Instant timestamp)
     {

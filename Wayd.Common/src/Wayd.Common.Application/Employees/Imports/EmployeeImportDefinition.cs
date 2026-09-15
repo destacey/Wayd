@@ -39,6 +39,9 @@ public sealed class EmployeeImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Employees;
 
+    // The atomic imports' ceiling: the one transaction size already accepted for holding locks on a whole file.
+    public override int PreflightMaxRows => 10_000;
+
     protected override IReadOnlyList<ImportPass<ImportEmployeeDto>> Steps =>
     [
         new("CreateEmployees", ImportPassScope.Chunked, CreateEmployees),

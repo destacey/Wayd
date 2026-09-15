@@ -3219,6 +3219,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -4489,6 +4497,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -5029,6 +5045,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -5643,6 +5667,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -7328,6 +7360,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -7921,6 +7961,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -8734,6 +8782,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -9847,6 +9903,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -9948,6 +10012,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -11107,6 +11179,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -12927,6 +13007,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -13028,6 +13116,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -13129,6 +13225,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -15701,6 +15805,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -17679,6 +17791,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -19416,6 +19536,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -21093,6 +21221,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -27235,6 +27371,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -28247,6 +28391,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -28347,6 +28499,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -28447,6 +28607,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
@@ -31925,6 +32093,77 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResumedImport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/imports/{id}/apply": {
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.",
+        "operationId": "Imports_Apply",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
                 }
               }
             }
@@ -38620,6 +38859,7 @@
           "displayName",
           "atomicity",
           "status",
+          "isPreflight",
           "submittedByUserId",
           "submittedOn",
           "totalRowCount",
@@ -38647,6 +38887,15 @@
           },
           "status": {
             "$ref": "#/components/schemas/ImportProcessStatus"
+          },
+          "isPreflight": {
+            "type": "boolean"
+          },
+          "appliedImportProcessId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
           },
           "submissionGroupId": {
             "type": "string",
@@ -55208,6 +55457,7 @@
           "displayName",
           "atomicity",
           "maxRows",
+          "preflightMaxRows",
           "canSubmit"
         ],
         "properties": {
@@ -55221,6 +55471,10 @@
             "$ref": "#/components/schemas/ImportAtomicity"
           },
           "maxRows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "preflightMaxRows": {
             "type": "integer",
             "format": "int32"
           },

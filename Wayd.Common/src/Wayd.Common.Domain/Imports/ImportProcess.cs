@@ -34,11 +34,13 @@ public sealed class ImportProcess : BaseEntity
         string submittedByUserId,
         Guid? submissionGroupId,
         IEnumerable<ImportProcessRow> rows,
+        bool isPreflight,
         Instant timestamp)
     {
         ImportType = importType;
         SubmittedByUserId = submittedByUserId;
         SubmissionGroupId = submissionGroupId;
+        IsPreflight = isPreflight;
         SubmittedOn = timestamp;
         Status = ImportProcessStatus.Queued;
         _rows.AddRange(rows);
@@ -49,6 +51,20 @@ public sealed class ImportProcess : BaseEntity
     public string ImportType { get; private set; } = default!;
 
     public ImportProcessStatus Status { get; private set; }
+
+    /// <summary>
+    /// A run that puts every row through the import's checks and applies none of them. Its row outcomes are
+    /// what a real run would have recorded against the data as it stood, and its payloads are kept whatever
+    /// the outcome, because they are what applying it for real submits.
+    /// </summary>
+    public bool IsPreflight { get; private set; }
+
+    /// <summary>
+    /// The real run most recently created from this preflight, so its page can say it was already imported
+    /// and link to the outcome. Not a guard: applying again stays possible, because the run it points to may
+    /// have failed for a reason that has since been fixed.
+    /// </summary>
+    public Guid? AppliedImportProcessId { get; private set; }
 
     /// <summary>Groups the runs submitted together, so a seed of fifteen files reads as one entry.</summary>
     public Guid? SubmissionGroupId { get; private set; }
@@ -101,7 +117,15 @@ public sealed class ImportProcess : BaseEntity
         Guid? submissionGroupId,
         IEnumerable<ImportProcessRow> rows,
         Instant timestamp) =>
-        new(importType, submittedByUserId, submissionGroupId, rows, timestamp);
+        new(importType, submittedByUserId, submissionGroupId, rows, isPreflight: false, timestamp);
+
+    public static ImportProcess CreatePreflight(
+        string importType,
+        string submittedByUserId,
+        Guid? submissionGroupId,
+        IEnumerable<ImportProcessRow> rows,
+        Instant timestamp) =>
+        new(importType, submittedByUserId, submissionGroupId, rows, isPreflight: true, timestamp);
 
     /// <summary>
     /// Claims the run for a worker. Rejecting anything but <see cref="ImportProcessStatus.Queued"/> is what
@@ -212,6 +236,20 @@ public sealed class ImportProcess : BaseEntity
         return Result.Success();
     }
 
+    /// <summary>Links a finished preflight to the real run created from its rows.</summary>
+    public Result RecordApplied(Guid importProcessId)
+    {
+        if (!IsPreflight)
+            return Result.Failure("Only a preflight can be applied.");
+
+        if (!IsTerminal)
+            return Result.Failure($"This preflight is {Status}; wait for it to finish before applying it.");
+
+        AppliedImportProcessId = importProcessId;
+
+        return Result.Success();
+    }
+
     /// <summary>
     /// Returns a terminal run to the queue so its unapplied rows can be attempted again — the recovery path
     /// after a cancellation or a stalled worker. Rows already applied are untouched.
@@ -225,6 +263,10 @@ public sealed class ImportProcess : BaseEntity
     {
         if (!IsTerminal)
             return Result.Failure($"Only a finished import can be requeued, but this one is {Status}.");
+
+        // Its rows record outcomes against work that was rolled back, so there is no progress to carry on from.
+        if (IsPreflight)
+            return Result.Failure("A preflight cannot be resumed. Apply it to import the file for real.");
 
         Status = ImportProcessStatus.Queued;
         CompletedOn = null;

@@ -14,7 +14,7 @@ namespace Wayd.ProductManagement.Application.Products.Commands;
 /// </remarks>
 public sealed record ImportProductsCommand(
     IReadOnlyList<SubmittedImportRow<ImportProductDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the two things that are true of a file rather than of any row.
@@ -115,6 +115,6 @@ public sealed class ImportProductsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(ProductImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
+            new SubmitImportCommand(ProductImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly), cancellationToken);
     }
 }

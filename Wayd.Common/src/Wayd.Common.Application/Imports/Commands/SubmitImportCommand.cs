@@ -56,10 +56,12 @@ public sealed record SubmittedImportRow<TRow>(string? ImportId, TRow Data);
 /// wants the outcome in the response waits on the run after this returns — not inside it, where the queued
 /// message is held back until the handler completes.
 /// </remarks>
+/// <param name="ValidateOnly">Records the run as a preflight, which reports each row's outcome and applies none.</param>
 public sealed record SubmitImportCommand(
     string ImportType,
     IReadOnlyList<SubmittedImportRow> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null,
+    bool ValidateOnly = false) : ICommand<Guid>;
 
 public sealed class SubmitImportCommandHandler(
     IImportDbContext importDbContext,
@@ -97,6 +99,10 @@ public sealed class SubmitImportCommandHandler(
             return Result.Failure<Guid>(
                 $"This file has {command.Rows.Count:N0} rows; {definition.DisplayName} accepts at most {definition.MaxRows:N0} at a time.");
 
+        if (command.ValidateOnly && command.Rows.Count > definition.PreflightMaxRows)
+            return Result.Failure<Guid>(
+                $"This file has {command.Rows.Count:N0} rows; a {definition.DisplayName} preflight checks at most {definition.PreflightMaxRows:N0} at a time. Split the file to check it.");
+
         var rows = BuildRows(command.Rows);
 
         // Caught here rather than at SaveChanges, where the storage bound would surface as a 500 naming a
@@ -112,8 +118,9 @@ public sealed class SubmitImportCommandHandler(
         if (duplicate is not null)
             return Result.Failure<Guid>($"The import id '{duplicate.Key}' appears on more than one row; each must be unique within a file.");
 
-        var process = ImportProcess.Create(
-            definition.Key, _currentUser.GetUserId(), command.SubmissionGroupId, rows, _dateTimeProvider.Now);
+        var process = command.ValidateOnly
+            ? ImportProcess.CreatePreflight(definition.Key, _currentUser.GetUserId(), command.SubmissionGroupId, rows, _dateTimeProvider.Now)
+            : ImportProcess.Create(definition.Key, _currentUser.GetUserId(), command.SubmissionGroupId, rows, _dateTimeProvider.Now);
 
         await _importDbContext.ImportProcesses.AddAsync(process, cancellationToken);
         await _importDbContext.SaveChangesAsync(cancellationToken);
@@ -122,7 +129,8 @@ public sealed class SubmitImportCommandHandler(
         // attributes it the same way rather than some of them relying on ambient identity.
         await _dispatcher.Publish(new RunImportProcessCommand(process.Id), process.SubmittedByUserId, cancellationToken);
         _logger.LogInformation(
-            "Queued import {ImportProcessId} ({ImportType}, {RowCount} rows).", process.Id, definition.Key, rows.Count);
+            "Queued import {ImportProcessId} ({ImportType}, {RowCount} rows, preflight: {IsPreflight}).",
+            process.Id, definition.Key, rows.Count, process.IsPreflight);
 
         return Result.Success(process.Id);
     }

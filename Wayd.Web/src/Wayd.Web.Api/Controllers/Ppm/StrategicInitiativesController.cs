@@ -100,7 +100,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [CsvImport(StrategicInitiativeImportDefinition.ImportKey)]
     public async Task<ActionResult> Import(
         [FromForm, CsvRows(typeof(ImportStrategicInitiativeRequest))] IFormFile file,
-        [FromForm, CsvRows(typeof(ImportStrategicInitiativeKpiRequest), Label = "KPIs")] IFormFile? kpiFile, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+        [FromForm, CsvRows(typeof(ImportStrategicInitiativeKpiRequest), Label = "KPIs")] IFormFile? kpiFile, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -173,7 +173,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
                 return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
             }
 
-            var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

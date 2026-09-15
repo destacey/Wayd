@@ -97,6 +97,57 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithValidateOnly_RecordsAPreflightAndQueuesIt()
+    {
+        // Arrange & Act
+        var result = await CreateHandler().Handle(
+            new SubmitImportCommand("test-import", Rows(3), ValidateOnly: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _db.ImportProcesses.Single().IsPreflight.Should().BeTrue();
+        _dispatcher.Verify(
+            d => d.Publish(It.Is<RunImportProcessCommand>(c => c.ImportProcessId == result.Value), "user-1", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutValidateOnly_RecordsARealRun()
+    {
+        // Arrange & Act
+        await Submit(Rows(1));
+
+        // Assert
+        _db.ImportProcesses.Single().IsPreflight.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_RejectsAPreflightOverItsOwnRowCapButNotARealRunOfTheSameFile()
+    {
+        // Arrange — a preflight holds its locks for the whole file, so it can be capped below a real run
+        var definition = new TestImportDefinition(new ImportPayloadSerializer()) { PreflightMaxRowsOverride = 2 };
+        var clock = new Mock<IDateTimeProvider>();
+        clock.SetupGet(c => c.Now).Returns(_now);
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+        var handler = new SubmitImportCommandHandler(
+            _db, new ImportDefinitionRegistry([definition]), currentUser.Object, clock.Object, _dispatcher.Object,
+            NullLogger<SubmitImportCommandHandler>.Instance);
+
+        // Act
+        var preflight = await handler.Handle(
+            new SubmitImportCommand("test-import", Rows(3), ValidateOnly: true), TestContext.Current.CancellationToken);
+        var real = await handler.Handle(
+            new SubmitImportCommand("test-import", Rows(3)), TestContext.Current.CancellationToken);
+
+        // Assert
+        preflight.IsFailure.Should().BeTrue();
+        preflight.Error.Should().Contain("preflight").And.Contain("2");
+        real.IsSuccess.Should().BeTrue();
+        _db.ImportProcesses.Should().ContainSingle().Which.IsPreflight.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Handle_RejectsDuplicateImportIdsAndNamesTheOffendingKey()
     {
         // Arrange

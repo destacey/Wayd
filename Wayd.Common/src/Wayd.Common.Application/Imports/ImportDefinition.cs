@@ -24,6 +24,7 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
 
     public virtual ImportAtomicity Atomicity => ImportAtomicity.PerRow;
     public virtual int MaxRows => 50_000;
+    public virtual int PreflightMaxRows => MaxRows;
     public virtual int ChunkSize => 500;
 
     /// <summary>The ordered steps this import runs. Declared once; the runner drives them.</summary>

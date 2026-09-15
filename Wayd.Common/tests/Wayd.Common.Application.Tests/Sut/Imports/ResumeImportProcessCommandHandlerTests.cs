@@ -217,6 +217,28 @@ public sealed class ResumeImportProcessCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_RefusesAPreflight()
+    {
+        // Arrange — its rows record outcomes against rolled-back work, so nothing is left to carry on from
+        var rows = new[] { ImportProcessRow.Create("r1", 1, _definition.SerializeRow(new TestImportRow("Row 1"))) };
+        var process = ImportProcess.CreatePreflight(_definition.Key, "user-1", null, rows, _now);
+        _db.AddImportProcess(process);
+        process.Start("trace-1", _now);
+        process.Rows.Single().MarkFailed("Rejected.", _now);
+        process.RecordProgress(succeeded: 0, failed: 1, _now);
+        process.Complete(_now);
+
+        // Act
+        var result = await Resume(process.Id, retryFailed: true);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("preflight");
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task Handle_RefusesACallerWithoutThePermissionTheImportDeclares()
     {
         // Arrange

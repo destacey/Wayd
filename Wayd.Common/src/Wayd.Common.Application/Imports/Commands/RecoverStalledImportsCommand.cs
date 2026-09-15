@@ -97,7 +97,9 @@ public sealed class RecoverStalledImportsCommandHandler(
         foreach (var process in stalled)
         {
             process.Fail(
-                "The worker applying this import stopped responding. Rows that were applied are unchanged; the rest can be resumed.",
+                process.IsPreflight
+                    ? "The worker checking this file stopped responding. Nothing was imported; a file this large may need splitting to check it."
+                    : "The worker applying this import stopped responding. Rows that were applied are unchanged; the rest can be resumed.",
                 now);
 
             _logger.LogError(

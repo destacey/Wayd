@@ -16,7 +16,7 @@ namespace Wayd.Organization.Application.Teams.Commands;
 /// </remarks>
 public sealed record ImportTeamMembersCommand(
     IReadOnlyList<SubmittedImportRow<ImportTeamMemberDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, not the file they arrived in.
@@ -62,6 +62,6 @@ public sealed class ImportTeamMembersCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(TeamMemberImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
+            new SubmitImportCommand(TeamMemberImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly), cancellationToken);
     }
 }

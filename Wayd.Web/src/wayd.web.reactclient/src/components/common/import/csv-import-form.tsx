@@ -11,7 +11,11 @@ import {
 import { useSubmitImportMutation } from '@/src/store/features/admin/imports-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { downloadCsv, generateCsv } from '@/src/utils/csv-utils'
-import { DownloadOutlined, InboxOutlined } from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  DownloadOutlined,
+  InboxOutlined,
+} from '@ant-design/icons'
 import {
   Alert,
   Button,
@@ -75,12 +79,33 @@ const describeFailure = (error: unknown): string => {
   return apiError.detail ?? 'The import failed. Check the file and try again.'
 }
 
-/** Sums up a run that finished without applying every row. The row-by-row reasons are on its page. */
+/**
+ * Sums up a run that finished without applying every row, or any preflight. The row-by-row reasons are on
+ * its page.
+ */
 const describeRun = (run: ImportProcessDto) => {
   const rejected =
     run.failedRowCount > 0
       ? `${run.failedRowCount} row${run.failedRowCount === 1 ? ' was' : 's were'} rejected.`
       : ''
+
+  if (run.isPreflight) {
+    const title =
+      run.status === ImportProcessStatus.Cancelled
+        ? 'The check was stopped'
+        : run.failedRowCount === 0
+          ? run.totalRowCount === 1
+            ? 'The row passed'
+            : `All ${run.totalRowCount} rows passed`
+          : `${run.succeededRowCount} of ${run.totalRowCount} rows passed`
+
+    return {
+      title,
+      description: [rejected, run.error, 'Nothing has been imported.']
+        .filter(Boolean)
+        .join(' '),
+    }
+  }
 
   const title =
     run.status === ImportProcessStatus.Cancelled
@@ -91,6 +116,13 @@ const describeRun = (run: ImportProcessDto) => {
 
   return { title, description: [rejected, run.error].filter(Boolean).join(' ') }
 }
+
+const alertTypeFor = (run: ImportProcessDto) =>
+  run.isPreflight && run.status === ImportProcessStatus.Succeeded
+    ? 'success'
+    : run.succeededRowCount > 0
+      ? 'warning'
+      : 'error'
 
 type ImportModule = (typeof importTemplates)[ImportKey]['module']
 
@@ -137,7 +169,8 @@ const templateFileName = (
  *
  * The endpoint waits a few seconds for the run, so most files come back finished. One that applied every
  * row closes the form; one that did not stays open to say so, linking to the rows; one still running
- * hands over to its page, which follows it to the end.
+ * hands over to its page, which follows it to the end. Check File posts the same files as a preflight,
+ * which always stays open to report, since it imported nothing.
  */
 const CsvImportForm = ({
   definitions,
@@ -152,7 +185,7 @@ const CsvImportForm = ({
   // Browser Files rather than antd's UploadFile wrappers: the client needs the real thing, and the
   // wrapper's originFileObj may or may not be set.
   const [files, setFiles] = useState<Partial<Record<string, File>>>({})
-  const [isImporting, setIsImporting] = useState(false)
+  const [submitting, setSubmitting] = useState<'import' | 'check' | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [finishedRun, setFinishedRun] = useState<ImportProcessDto | null>(null)
 
@@ -212,23 +245,32 @@ const CsvImportForm = ({
     )
   }
 
-  const handleOk = async () => {
+  const submit = async (validateOnly: boolean) => {
     if (!importKey || !definition || !isReady) return
 
-    setIsImporting(true)
+    setSubmitting(validateOnly ? 'check' : 'import')
     resetResult()
 
     try {
-      const run = await submitImport({ importKey, files }).unwrap()
+      const run = await submitImport({
+        importKey,
+        files,
+        validateOnly,
+      }).unwrap()
 
       if (!run.isTerminal) {
-        messageApi.info('The import is still running. Opening its page.')
+        messageApi.info(
+          validateOnly
+            ? 'The check is still running. Opening its page.'
+            : 'The import is still running. Opening its page.',
+        )
         onFormComplete()
         router.push(`/settings/imports/${run.id}`)
         return
       }
 
-      if (run.status === ImportProcessStatus.Succeeded) {
+      // A preflight always stays open to report, clean or not: closing would hide that nothing was imported.
+      if (!validateOnly && run.status === ImportProcessStatus.Succeeded) {
         messageApi.success(`${definition.displayName} imported.`)
         onFormComplete()
         return
@@ -240,20 +282,39 @@ const CsvImportForm = ({
       // toast disappears before anyone can copy it out.
       setFailure(describeFailure(error))
     } finally {
-      setIsImporting(false)
+      setSubmitting(null)
     }
   }
+
+  const preflightCapNote =
+    definition && definition.preflightMaxRows < definition.maxRows
+      ? ` A check covers up to ${definition.preflightMaxRows.toLocaleString()}.`
+      : ''
 
   return (
     <Modal
       title="Import"
       open
       width={760}
-      onOk={handleOk}
+      onOk={() => submit(false)}
       okText="Import"
-      okButtonProps={{ disabled: !isReady }}
-      confirmLoading={isImporting}
+      okButtonProps={{ disabled: !isReady || submitting === 'check' }}
+      confirmLoading={submitting === 'import'}
       onCancel={onFormCancel}
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <>
+          <CancelBtn />
+          <Button
+            icon={<CheckCircleOutlined />}
+            onClick={() => submit(true)}
+            disabled={!isReady || submitting === 'import'}
+            loading={submitting === 'check'}
+          >
+            Check File
+          </Button>
+          <OkBtn />
+        </>
+      )}
       keyboard={false}
       destroyOnHidden
     >
@@ -293,7 +354,7 @@ const CsvImportForm = ({
               type="info"
               showIcon
               title="All or nothing"
-              description={`The file applies as one unit: if any row is rejected, nothing is created. Up to ${definition.maxRows.toLocaleString()} rows.`}
+              description={`The file applies as one unit: if any row is rejected, nothing is created. Up to ${definition.maxRows.toLocaleString()} rows.${preflightCapNote}`}
               style={{ marginBottom: 16 }}
             />
           ) : (
@@ -301,7 +362,7 @@ const CsvImportForm = ({
               type="info"
               showIcon
               title="Row by row"
-              description={`Each row applies on its own: a rejected row changes nothing, and the rest are still imported. Up to ${definition.maxRows.toLocaleString()} rows.`}
+              description={`Each row applies on its own: a rejected row changes nothing, and the rest are still imported. Up to ${definition.maxRows.toLocaleString()} rows.${preflightCapNote}`}
               style={{ marginBottom: 16 }}
             />
           )}
@@ -393,7 +454,7 @@ const CsvImportForm = ({
 
       {finishedRun && (
         <Alert
-          type={finishedRun.succeededRowCount > 0 ? 'warning' : 'error'}
+          type={alertTypeFor(finishedRun)}
           showIcon
           {...describeRun(finishedRun)}
           action={

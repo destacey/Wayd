@@ -14,7 +14,7 @@ namespace Wayd.ProductManagement.Application.Deployments.Commands;
 /// </remarks>
 public sealed record ImportDeploymentsCommand(
     IReadOnlyList<SubmittedImportRow<ImportDeploymentDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves.
@@ -60,6 +60,6 @@ public sealed class ImportDeploymentsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(DeploymentImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
+            new SubmitImportCommand(DeploymentImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly), cancellationToken);
     }
 }

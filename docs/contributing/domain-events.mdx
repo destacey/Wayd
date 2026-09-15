@@ -377,7 +377,7 @@ actions and asserts the creation event still describes the creation.
 Events raised by a **mutation** before the first save are the other half of this, and the mirror-image
 problem: their values are already the ones the caller just set, but `Key` is still zero. `Deployment`,
 `DeploymentEnvironment`, the teams (`BaseTeam.AddKeyedDomainEvent`), `Iteration`, `StrategicTheme`,
-`StrategicInitiative`, `StatusWorkflow`, `PlanningInterval`, `PlanningIntervalObjective` and `Risk` defer those raises for
+`StrategicInitiative`, `StatusWorkflow`, `ScoringModel`, `PlanningInterval`, `PlanningIntervalObjective` and `Risk` defer those raises for
 that reason (`if (Key == 0)`); the release, version and
 package transitions do not yet, so an import that ships a record in the same pass records those events
 with `Key` 0.
@@ -525,7 +525,8 @@ entries, write the baselines, and give the migration a test that compares each r
 (`BaselineActivityAssertions` holds the comparison). Do this only once the aggregate raises an event for every change.
 `Backfill-Planning-Baseline-Activity` is the first: it baselined planning intervals, planning interval objectives and
 risks, skipping soft-deleted records and an interval's soft-deleted iterations along with the sprint mappings that
-still pointed at them.
+still pointed at them. `Backfill-Scoring-Model-Baseline-Activity` baselined scoring models; it builds each scale's levels into a
+temporary table first, because SQL Server cannot aggregate an expression that contains another aggregate.
 
 **A seeder that creates an evented aggregate records its creation too.** The backfill runs once, before any seeder,
 so a record a seeder creates on a fresh install is never baselined. Seeders run during `InitializeDatabases`,

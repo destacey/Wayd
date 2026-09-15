@@ -46,6 +46,38 @@ describe('formatApiError', () => {
     assert.match(message, /Portfolio not found/);
   });
 
+  test('keeps a problem details body\'s reason and validation errors whole', () => {
+    // Arrange
+    // The API puts what went wrong after a boilerplate title, and a 422 lists it under `errors`, so
+    // cutting the body at the generic length left only "See the erro..." — nothing a caller could fix.
+    const error = axiosErrorWith({
+      response: {
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        data: {
+          type: 'https://tools.ietf.org/html/rfc4918#section-11.2',
+          title: 'One or more validation errors occurred.',
+          status: 422,
+          detail: 'See the errors property for details.',
+          instance: 'POST /api/strategic-management/strategic-themes/import',
+          errors: { State: ["State must be one of 'Proposed', 'Active' or 'Archived'. (Import Id: T1)"] },
+          traceId: '00-' + 'a'.repeat(200),
+        },
+        headers: {},
+        config: {} as any,
+      },
+    });
+
+    // Act
+    const message = formatApiError(error);
+
+    // Assert
+    assert.match(message, /Status 422/);
+    assert.match(message, /State: State must be one of 'Proposed', 'Active' or 'Archived'\. \(Import Id: T1\)/);
+    assert.doesNotMatch(message, /See the errors property/, 'the pointer to errors adds nothing once they are shown');
+    assert.doesNotMatch(message, /traceId/, 'transport noise should not crowd out the reason');
+  });
+
   test('truncates long response bodies', () => {
     // Arrange
     const error = axiosErrorWith({
@@ -271,5 +303,146 @@ describe('executeApiTool', () => {
     const decoded = decodeURIComponent(capturedUrl);
     assert.match(decoded, /status=1&status=2/, 'array params must repeat the bare key');
     assert.doesNotMatch(decoded, /status\[\]/, 'bracket syntax does not bind server-side');
+  });
+
+  test('posts a preflight to the chosen import as multipart, always validate-only', async () => {
+    // Arrange
+    // One tool fronts every import endpoint, so the route comes from the argument. validateOnly
+    // is what keeps the tool from importing anything, so an argument trying to turn it off must
+    // not reach the query.
+    const definition = toolDefinitionMap.get('Imports_Preflight');
+    assert.ok(definition, 'expected the Imports_Preflight definition');
+
+    let captured: { url: string; data: unknown } | undefined;
+    const previousAdapter = axios.defaults.adapter;
+    axios.defaults.adapter = async (config) => {
+      if (config.method === 'get') {
+        const definitions = [{ key: 'product-management.release-packages', canSubmit: true, preflightMaxRows: 10000 }];
+        return { data: definitions, status: 200, statusText: 'OK', headers: {}, config };
+      }
+      captured = { url: axios.getUri(config), data: config.data };
+      return { data: {}, status: 202, statusText: 'Accepted', headers: {}, config };
+    };
+
+    // Act
+    try {
+      await executeApiTool(
+        'Imports_Preflight',
+        definition,
+        {
+          importType: 'product-management.release-packages',
+          file: 'ImportId,Name\nP1,Package',
+          manifestFile: 'PackageImportId\nP1',
+          validateOnly: false,
+        },
+        securitySchemes
+      );
+    } finally {
+      axios.defaults.adapter = previousAdapter;
+    }
+
+    // Assert
+    assert.ok(captured, 'no request was sent');
+    // Tests run without a configured base URL, so the captured URL is relative.
+    const url = new URL(captured.url, 'http://wayd.invalid');
+    assert.equal(url.pathname, '/api/product-management/release-packages/import');
+    assert.deepEqual(url.searchParams.getAll('validateOnly'), ['true']);
+    assert.ok(captured.data instanceof FormData, 'the files must go as multipart form data');
+    const file = captured.data.get('file');
+    const manifest = captured.data.get('manifestFile');
+    assert.ok(file instanceof Blob && manifest instanceof Blob, 'each file argument must be a file part');
+    assert.equal(await file.text(), 'ImportId,Name\nP1,Package');
+    assert.equal(await manifest.text(), 'PackageImportId\nP1');
+    assert.equal(captured.data.has('kpiFile'), false, 'an omitted file must send no part');
+  });
+
+  test('sends no preflight to a Wayd too old to honour validateOnly', async () => {
+    // Arrange
+    // An API from before preflights ignores the query parameter and imports the file for real, so
+    // the tool must refuse before posting. Its definitions lack preflightMaxRows.
+    const definition = toolDefinitionMap.get('Imports_Preflight');
+    assert.ok(definition, 'expected the Imports_Preflight definition');
+
+    let posted = false;
+    const previousAdapter = axios.defaults.adapter;
+    axios.defaults.adapter = async (config) => {
+      if (config.method !== 'get') posted = true;
+      const definitions = [{ key: 'ppm.projects', canSubmit: true, maxRows: 10000 }];
+      return { data: definitions, status: 200, statusText: 'OK', headers: {}, config };
+    };
+
+    // Act
+    let result;
+    try {
+      result = await executeApiTool(
+        'Imports_Preflight',
+        definition,
+        { importType: 'ppm.projects', file: 'ImportId,Name\nP1,Project' },
+        securitySchemes
+      );
+    } finally {
+      axios.defaults.adapter = previousAdapter;
+    }
+
+    // Assert
+    assert.equal(posted, false, 'the file must not be posted to an API that would import it');
+    assert.equal(result.isError, true);
+    const [firstBlock] = result.content;
+    assert.match((firstBlock as { text: string }).text, /Nothing was sent/);
+  });
+
+  test('refuses a preflight for an import type it does not know', async () => {
+    // Arrange
+    const definition = toolDefinitionMap.get('Imports_Preflight');
+    assert.ok(definition, 'expected the Imports_Preflight definition');
+
+    // Act
+    const result = await executeApiTool(
+      'Imports_Preflight',
+      definition,
+      { importType: '../admin', file: 'ImportId' },
+      securitySchemes
+    );
+
+    // Assert
+    assert.equal(result.isError, true);
+    const [firstBlock] = result.content;
+    assert.match((firstBlock as { text: string }).text, /importType/);
+  });
+
+  test('describes an import file format without calling the API', async () => {
+    // Arrange
+    const definition = toolDefinitionMap.get('Imports_GetFileFormat');
+    assert.ok(definition, 'expected the Imports_GetFileFormat definition');
+
+    let requested = false;
+    const previousAdapter = axios.defaults.adapter;
+    axios.defaults.adapter = async (config) => {
+      requested = true;
+      return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
+    };
+
+    // Act
+    let result;
+    try {
+      result = await executeApiTool(
+        'Imports_GetFileFormat',
+        definition,
+        { importType: 'product-management.release-packages' },
+        securitySchemes
+      );
+    } finally {
+      axios.defaults.adapter = previousAdapter;
+    }
+
+    // Assert
+    assert.equal(requested, false, 'the format is known locally and must not hit the network');
+    assert.notEqual(result.isError, true);
+    const [firstBlock] = result.content;
+    const answer = JSON.parse((firstBlock as { text: string }).text);
+    const manifest = answer.files.find((f: { argument: string }) => f.argument === 'manifestFile');
+    assert.ok(manifest, 'a release package import takes a manifest file');
+    assert.equal(manifest.required, true);
+    assert.match(manifest.header, /^PackageImportId,/);
   });
 });

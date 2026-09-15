@@ -113,10 +113,24 @@ Portfolio
 | All projects (cross-portfolio) | `Projects_GetProjects` | Optional `role` filter: `1=Sponsor, 2=Owner, 3=Manager, 4=Member` |
 | Project details | `Projects_GetProject` | |
 | Project status change history | `Projects_GetStatusHistory` | Takes project `id` (**UUID only** — unlike most project endpoints, it does not accept a key) |
+| Everything that changed on a record | `Portfolios_GetActivities` / `Programs_GetActivities` / `Projects_GetActivities` / `StrategicInitiatives_GetActivities` | Accept an ID or key. See [Activity history](#activity-history). |
 | All project lifecycles | `ProjectLifecycles_GetProjectLifecycles` | Optional `state` filter: `1=Proposed, 2=Active, 3=Archived` |
 | Project lifecycle details (with stages) | `ProjectLifecycles_GetProjectLifecycle` | `idOrKey` accepts UUID or integer key |
 
 Before filtering by status, call `Projects_GetStatuses` (or `Programs_GetProgramStatuses` / `Portfolios_GetPortfolioStatuses`) to resolve the integer enum values.
+
+### Activity history
+
+Every change to a portfolio, program, project or strategic initiative is recorded as an entry in its activity history, newest first. Use it for "what changed?", "who moved this date?" or "when did the owner change?" — questions the record itself cannot answer, because it only holds its current state.
+
+- **Each entry is one fact.** `category` says what kind (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), `summary` says it in a line, and `timestamp`, `actorKind` and `employee` say when and by whom. An `actorKind` of Import or Sync means no person made the change directly.
+- **`payload` is a JSON string** holding the event's fields. Parse it for detail. A change carries both ends — `PreviousDateRange` beside the new range, `From*`/`To*` on a status change, `Added`/`Removed` beside the resulting set on a role or theme change — so one entry answers what moved without reading an earlier one.
+- **People in a payload are employee ids**, not user ids, so they will not match `Users_GetUsers` UUIDs. The entry's own `employee` carries the actor's name.
+- **A Baseline entry is where tracking began** for a record that existed before its changes were recorded. It holds what the record looked like at that moment. Nothing earlier is available, so do not report the baseline as the record's creation.
+- **Each record has its own history.** A project's covers its details, key, program, lifecycle, timeline, roles, themes, status, health checks and scores, but not its tasks or stages. A program's does not include its projects' changes.
+- **Paged**, 50 entries by default and at most 100 per page; check `hasNextPage` before concluding something never happened.
+
+Prefer `Projects_GetStatusHistory` when only status matters: it carries the reason a revert was made.
 
 ### "What am I working on?"
 

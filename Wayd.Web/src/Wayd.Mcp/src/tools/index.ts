@@ -22,6 +22,9 @@ import { definitions as storyMaps } from './story-maps.js';
 import { definitions as tasks } from './tasks.js';
 import { definitions as teams } from './teams.js';
 import { definitions as users } from './users.js';
+import { definitions as activities } from './activities.js';
+import { definitions as imports } from './imports.js';
+import { definitions as importFiles } from './import-files.js';
 
 export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...portfolios,
@@ -47,4 +50,7 @@ export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...tasks,
   ...teams,
   ...users,
+  ...activities,
+  ...imports,
+  ...importFiles,
 ]);

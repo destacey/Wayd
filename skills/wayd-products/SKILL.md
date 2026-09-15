@@ -143,6 +143,11 @@ Any status is reachable from any other; there is no transition graph for product
 frozen onto the history at the moment of the change, so renaming a status later does not rewrite what
 past entries read as.
 
+For everything else that changed on a product — details, type, parent, tags, external link — use
+`Products_GetActivities`. It returns entries newest first, each with a `category`, a `summary`, who made
+the change and when, and a `payload` JSON string carrying the value before and after. A `Baseline`
+entry marks where tracking began for a product that already existed; nothing before it is recorded.
+
 ---
 
 ## Environments and metrics

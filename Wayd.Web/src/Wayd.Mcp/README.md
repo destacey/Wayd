@@ -145,6 +145,7 @@ Eight self-contained skills are available:
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
 | `wayd-teams` | Team lookup — resolve a team name to an ID |
 | `wayd-users` | User lookup — resolve a user name to a UUID for assignees and project roles |
+| `wayd-imports` | CSV imports — write a file in the right format, preflight it, import the rows it checked, and follow or re-run import runs |
 
 ### Installing the skills
 
@@ -154,11 +155,11 @@ From your project root:
 npx skills add destacey/Wayd
 ```
 
-Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-products`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, or `/wayd-users`.
+Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-products`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, `/wayd-users`, or `/wayd-imports`.
 
 ## Confirmation before status changes
 
-Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something. Clients that honour the annotation prompt for confirmation before running them.
+Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something and those that import, stop, resume, or retry an import run. Clients that honour the annotation prompt for confirmation before running them.
 
 Two caveats worth knowing:
 
@@ -173,23 +174,25 @@ This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, 
 
 ## Available Tools
 
+Records that raise domain events expose an **activity history** — every recorded change, newest first, with who made it and the before and after values. A record that predates tracking starts with a `Baseline` entry holding what it looked like when tracking began.
+
 ### Project Portfolio Management
 
 | Category | Operations |
 | --- | --- |
-| **Portfolios** | List, get details, get programs, get projects, get strategic initiatives, get ranking scoreboard. Create, update. Status: activate, close, archive |
-| **Strategic Initiatives** | List, get details, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel |
-| **Programs** | List, get details, get projects. Create, update. Status: activate, complete, cancel |
+| **Portfolios** | List, get details, get activity history, get programs, get projects, get strategic initiatives, get ranking scoreboard. Create, update. Status: activate, close, archive |
+| **Strategic Initiatives** | List, get details, get activity history, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel |
+| **Programs** | List, get details, get activity history, get projects. Create, update. Status: activate, complete, cancel |
 | **Project Lifecycles** | List (with state filter), get details |
 | **Expenditure Categories** | Get options (for project create/update) |
-| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
+| **Projects** | List (with role filter), get details, get activity history, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
 | **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
 
 ### Planning
 
 | Category | Operations |
 | --- | --- |
-| **Planning Intervals** | List, get details, calendar, predictability, teams, iterations, objectives, risks, objective health check history, get/create objective health check |
+| **Planning Intervals** | List, get details, activity history, calendar, predictability, teams, iterations, objectives, objective activity history, risks, objective health check history, get/create objective health check |
 | **Roadmaps** | List, get details, get items and activities |
 | **Story Maps** | List, get full map. Create, update, archive, delete maps. Manage goals, steps, tasks, checklists, swim lanes, personas, and work item links |
 
@@ -197,7 +200,7 @@ This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, 
 
 | Category | Operations |
 | --- | --- |
-| **Products** | List (by parent, type, status category, or tags), get details, get status history, get status options. Create, update, retype, reparent, change status, link externally, tag, untag, delete |
+| **Products** | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options. Create, update, retype, reparent, change status, link externally, tag, untag, delete |
 | **Product Types** | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it |
 | **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate the tags themselves |
 | **Deployment Environments** | List (by active state or category), create, update, retire or reinstate |
@@ -213,10 +216,10 @@ Four records that are deliberately kept apart: a **release** is what was announc
 
 | Category | Operations |
 | --- | --- |
-| **Releases** | List (by product, status category, or containing version), get details, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert |
-| **Versions** | List (by product or status category), get details, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert |
-| **Release Packages** | List (by status category, containing product, or containing version), get details, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw |
-| **Deployments** | List (by version, package, environment, environment category, or start date), get details, get status history. Start. Outcome: succeed, fail, roll back |
+| **Releases** | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert |
+| **Versions** | List (by product or status category), get details, get activity history, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert |
+| **Release Packages** | List (by status category, containing product, or containing version), get details, get activity history, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw |
+| **Deployments** | List (by version, package, environment, environment category, or start date), get details, get activity history, get status history. Start. Outcome: succeed, fail, roll back |
 
 Two rules the tools enforce and the `wayd-delivery` skill explains: a version shipping inside one of a release's packages cannot also be carried directly on that release, and a release cannot be announced while anything it carries has not shipped. `Releases_SetContents` and `ReleasePackages_SetManifest` are **whole-set replacements** — read the record first and send back everything it should end up with.
 
@@ -224,8 +227,21 @@ Two rules the tools enforce and the `wayd-delivery` skill explains: a version sh
 
 | Category | Operations |
 | --- | --- |
-| **Teams** | List, get details |
+| **Teams** | List, get details, get activity history |
 | **Users** | List, get details |
+
+### Imports
+
+| Category | Operations |
+| --- | --- |
+| **Import files** | Get a kind of import's file format (columns, required cells, accepted values). Preflight a CSV file |
+| **Import runs** | List import types, list runs (by status, type, submitter, or submission group), get a run, get its row outcomes. Stop, resume, retry rejected rows, apply a preflight |
+
+Every CSV file submitted to Wayd becomes a run, whether it came from Settings → Imports or an API call, so these tools follow and control either.
+
+**Files are imported through a preflight.** `Imports_Preflight` always sends `validateOnly=true`, so it checks every row and creates nothing; there is no tool that submits a file for real. The only way in is `Imports_Apply` on the finished preflight, which is annotated destructive, so an agent has seen every row's outcome before a client is asked to confirm. Before posting, it reads `/api/imports/definitions` and sends nothing to a Wayd older than 0.210.0, which ignores `validateOnly` and would import the file for real. Applying the same preflight twice duplicates what the first import created where the import has no natural key.
+
+`Imports_GetFileFormat` is answered from the OpenAPI document this package was built against, without a request, so it describes the columns of the Wayd release the package matches.
 
 ## Links
 

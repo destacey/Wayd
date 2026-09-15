@@ -11,11 +11,14 @@ on:
             # deleted from the reference page triggers no workflow at all.
             - "docs/getting-started/mcp-server.mdx"
             - "skills/**"
+            # The import tools are generated from the API's OpenAPI document.
+            - "Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json"
     pull_request:
         paths:
             - "Wayd.Web/src/Wayd.Mcp/**"
             - "docs/getting-started/mcp-server.mdx"
             - "skills/**"
+            - "Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json"
 
 jobs:
     build:

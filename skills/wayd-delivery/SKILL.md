@@ -182,6 +182,14 @@ second kind.
 - `Deployments_GetDeployments` with `versionId` — deployments of the version *itself*, which will be
   empty if it only ever shipped inside a package.
 
+### Answering "what changed on this, and who changed it?"
+
+`Releases_GetActivities`, `Versions_GetActivities`, `ReleasePackages_GetActivities` and
+`Deployments_GetActivities` return a record's changes newest first. They cover more than the status history:
+contents and manifest changes, date corrections and target moves. Each entry's `payload` is a JSON
+string carrying both the old and new value, so a moved target date shows where it moved from. Check
+`hasNextPage` before concluding something never happened.
+
 ### Answering "what is cut but not yet shipped?"
 
 `Versions_GetVersions` — unshipped versions come first. This is a version question, not a release one.

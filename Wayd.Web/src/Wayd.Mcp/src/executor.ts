@@ -40,11 +40,24 @@ export async function executeApiTool(
       return { content: [{ type: 'text', text: `Internal error during validation setup: ${msg}` }], isError: true };
     }
 
+    if (definition.localHandler) {
+      return definition.localHandler(validatedArgs);
+    }
+
     // Prepare URL, query parameters, headers, and request body
     let urlPath = definition.pathTemplate;
+    if (definition.pathSelector) {
+      const key = String(validatedArgs[definition.pathSelector.parameter]);
+      const selected = definition.pathSelector.paths[key];
+      if (!selected) {
+        throw new Error(`'${key}' is not a valid ${definition.pathSelector.parameter}.`);
+      }
+      urlPath = selected;
+    }
     const queryParams: Record<string, any> = {};
     const headers: Record<string, string> = { Accept: 'application/json' };
     let requestBodyData: any = undefined;
+    let formData: FormData | undefined = undefined;
 
     // Apply parameters to the URL path, query, or headers
     definition.executionParameters.forEach((param) => {
@@ -56,6 +69,9 @@ export async function executeApiTool(
           queryParams[param.name] = value;
         } else if (param.in === 'header') {
           headers[param.name.toLowerCase()] = String(value);
+        } else if (param.in === 'formFile') {
+          formData ??= new FormData();
+          formData.append(param.name, new Blob([String(value)], { type: 'text/csv' }), `${param.name}.csv`);
         }
       }
     });
@@ -68,8 +84,14 @@ export async function executeApiTool(
     // Construct the full URL
     const requestUrl = API_BASE_URL ? `${API_BASE_URL}${urlPath}` : urlPath;
 
+    // Applied after the arguments, so a caller can never override one.
+    Object.assign(queryParams, definition.fixedQuery);
+
     // Handle request body if needed
-    if (definition.requestBodyContentType && typeof validatedArgs['requestBody'] !== 'undefined') {
+    if (formData) {
+      // No content-type header: axios sets multipart/form-data with the boundary the body needs.
+      requestBodyData = formData;
+    } else if (definition.requestBodyContentType && typeof validatedArgs['requestBody'] !== 'undefined') {
       requestBodyData = validatedArgs['requestBody'];
       headers['content-type'] = definition.requestBodyContentType;
     }
@@ -109,6 +131,13 @@ export async function executeApiTool(
       ...(requestBodyData !== undefined && { data: requestBodyData }),
     };
 
+    if (definition.precondition) {
+      const refusal = await checkPrecondition(definition, validatedArgs, headers);
+      if (refusal) {
+        return { content: [{ type: 'text', text: refusal }], isError: true };
+      }
+    }
+
     console.error(`Executing tool "${toolName}": ${config.method} ${config.url}`);
     const response = await axios(config);
 
@@ -146,6 +175,60 @@ export async function executeApiTool(
 }
 
 /**
+ * Sends a definition's precondition GET and returns the refusal message, if any. A 404 is handed to the
+ * check as no answer, since an endpoint the API lacks is usually what a precondition exists to detect.
+ */
+async function checkPrecondition(
+  definition: McpToolDefinition,
+  args: JsonObject,
+  headers: Record<string, string>
+): Promise<string | undefined> {
+  const { path, refusal } = definition.precondition!;
+  const getHeaders = Object.fromEntries(Object.entries(headers).filter(([name]) => name !== 'content-type'));
+  const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+
+  console.error(`Checking precondition for tool "${definition.name}": GET ${url}`);
+  try {
+    const response = await axios({ method: 'GET', url, headers: getHeaders });
+    return refusal(response.data, args);
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return refusal(undefined, args);
+    }
+    throw error;
+  }
+}
+
+/**
+ * The readable parts of an RFC 7807 problem details body, or undefined for any other body.
+ *
+ * Kept whole rather than cut at the generic length: the refusal reason and the per-field
+ * validation errors are what a caller needs to correct the request, and the API puts them
+ * after the boilerplate title that a short cut would keep instead.
+ */
+function describeProblem(data: unknown): string | undefined {
+  if (typeof data !== 'object' || data === null) return undefined;
+  const { title, detail, errors } = data as { title?: unknown; detail?: unknown; errors?: unknown };
+  if (typeof title !== 'string' && typeof detail !== 'string' && (typeof errors !== 'object' || errors === null)) {
+    return undefined;
+  }
+
+  const parts: string[] = [];
+  if (typeof title === 'string') parts.push(title);
+  if (typeof detail === 'string' && detail !== 'See the errors property for details.') parts.push(detail);
+  if (typeof errors === 'object' && errors !== null) {
+    for (const [field, messages] of Object.entries(errors)) {
+      const text = Array.isArray(messages) ? messages.join(' ') : String(messages);
+      parts.push(field ? `${field}: ${text}` : text);
+    }
+  }
+
+  const MAX_LEN = 4000;
+  const joined = parts.join('\n');
+  return joined.length > MAX_LEN ? `${joined.substring(0, MAX_LEN)}...` : joined;
+}
+
+/**
  * Formats Axios errors for better readability.
  */
 export function formatApiError(error: AxiosError): string {
@@ -157,11 +240,16 @@ export function formatApiError(error: AxiosError): string {
     if (typeof responseData === 'string') {
       message += `Response: ${responseData.substring(0, MAX_LEN)}${responseData.length > MAX_LEN ? '...' : ''}`;
     } else if (responseData) {
-      try {
-        const jsonString = JSON.stringify(responseData);
-        message += `Response: ${jsonString.substring(0, MAX_LEN)}${jsonString.length > MAX_LEN ? '...' : ''}`;
-      } catch {
-        message += 'Response: [Could not serialize data]';
+      const problem = describeProblem(responseData);
+      if (problem) {
+        message += problem;
+      } else {
+        try {
+          const jsonString = JSON.stringify(responseData);
+          message += `Response: ${jsonString.substring(0, MAX_LEN)}${jsonString.length > MAX_LEN ? '...' : ''}`;
+        } catch {
+          message += 'Response: [Could not serialize data]';
+        }
       }
     } else {
       message += 'No response body received.';

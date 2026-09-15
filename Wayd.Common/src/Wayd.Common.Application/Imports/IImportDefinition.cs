@@ -29,6 +29,13 @@ public interface IImportDefinition
     /// <summary>Above this many rows the submission is rejected outright, before anything is persisted.</summary>
     int MaxRows { get; }
 
+    /// <summary>
+    /// The same bound for a preflight. A preflight saves the passes a later pass reads back inside one
+    /// transaction that is rolled back at the end, so a chunked import cannot release its locks chunk by
+    /// chunk the way a real run does, and the file size is the lock time.
+    /// </summary>
+    int PreflightMaxRows { get; }
+
     /// <summary>How many rows a chunked pass takes at a time.</summary>
     int ChunkSize { get; }
 

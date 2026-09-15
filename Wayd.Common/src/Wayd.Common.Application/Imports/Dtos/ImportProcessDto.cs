@@ -22,6 +22,8 @@ public sealed record ImportProcessDto(
     string DisplayName,
     ImportAtomicity Atomicity,
     ImportProcessStatus Status,
+    bool IsPreflight,
+    Guid? AppliedImportProcessId,
     Guid? SubmissionGroupId,
     string SubmittedByUserId,
     string? SubmittedByName,

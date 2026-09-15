@@ -34,10 +34,40 @@ public sealed class FakeImportDbContext : IImportDbContext, IDisposable
 
     public void Dispose() => _tracker.Dispose();
 
+    /// <summary>Saves made while a preflight scope was open — the ones a real provider rolls back.</summary>
+    public int PreflightSaveChangesCallCount { get; private set; }
+
+    public bool IsPreflightOpen { get; private set; }
+
+    public int PreflightsBegun { get; private set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+        if (IsPreflightOpen)
+            PreflightSaveChangesCallCount++;
+
         return Task.FromResult(0);
+    }
+
+    /// <summary>
+    /// Records only that a scope was open. There is no transaction to roll back here, so what a preflight
+    /// leaves behind is asserted against a real provider.
+    /// </summary>
+    public Task<IAsyncDisposable> BeginPreflight(CancellationToken cancellationToken)
+    {
+        IsPreflightOpen = true;
+        PreflightsBegun++;
+        return Task.FromResult<IAsyncDisposable>(new PreflightScope(this));
+    }
+
+    private sealed class PreflightScope(FakeImportDbContext context) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            context.IsPreflightOpen = false;
+            return ValueTask.CompletedTask;
+        }
     }
 
     /// <summary>Supplies a real but empty ChangeTracker, so the runner's discard is a no-op here.</summary>

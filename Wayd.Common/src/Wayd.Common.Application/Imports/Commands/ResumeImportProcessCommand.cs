@@ -57,6 +57,10 @@ public sealed class ResumeImportProcessCommandHandler(
         if (!process.IsTerminal)
             return Result.Failure<ResumedImport>($"This import is {process.Status}; wait for it to finish before resuming it.");
 
+        // Checked before the rows are reset, which would otherwise answer "nothing left to apply" first.
+        if (process.IsPreflight)
+            return Result.Failure<ResumedImport>("A preflight cannot be resumed. Apply it to import the file for real.");
+
         var skipped = ResetRows(process, command.RetryFailedRows);
 
         // Counted after the reset, so this covers both the rows just returned to Pending and the ones a

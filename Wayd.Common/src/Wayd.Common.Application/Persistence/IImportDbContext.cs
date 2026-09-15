@@ -27,4 +27,16 @@ public interface IImportDbContext
     ChangeTracker ChangeTracker { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Opens a transaction that is rolled back when the scope is disposed, and holds back every event raised
+    /// until then, so a preflight can save what its later passes read back and leave nothing behind.
+    /// </summary>
+    /// <remarks>
+    /// Holding events back is not optional. Durable events are handed to their queue as soon as they are
+    /// saved, and their handlers commit on a connection of their own, so a rollback alone would still
+    /// deliver them. Disposing the scope also clears the change tracker: whatever it tracked was saved
+    /// inside the rolled-back transaction and no longer exists.
+    /// </remarks>
+    Task<IAsyncDisposable> BeginPreflight(CancellationToken cancellationToken);
 }

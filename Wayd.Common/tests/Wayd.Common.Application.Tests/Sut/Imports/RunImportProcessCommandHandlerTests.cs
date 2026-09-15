@@ -35,7 +35,7 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
     private ImportProcess QueueRun(int rowCount, params string[] failing) =>
         QueueRun(rowCount, failing, failingInLink: []);
 
-    private ImportProcess QueueRun(int rowCount, string[] failing, string[] failingInLink)
+    private ImportProcess QueueRun(int rowCount, string[] failing, string[] failingInLink, bool preflight = false)
     {
         var rows = Enumerable.Range(1, rowCount).Select(i =>
         {
@@ -45,7 +45,9 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
             return ImportProcessRow.Create(importId, i, payload);
         });
 
-        var process = ImportProcess.Create("test-import", "user-1", null, rows, _now);
+        var process = preflight
+            ? ImportProcess.CreatePreflight("test-import", "user-1", null, rows, _now)
+            : ImportProcess.Create("test-import", "user-1", null, rows, _now);
         _db.AddImportProcess(process);
         return process;
     }
@@ -348,6 +350,136 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
         _definition.Calls.Select(c => (c.Pass, string.Join(",", c.ImportIds)))
             .Should().Equal(("Create", "r3,r4"), ("Link", "r1,r2,r3,r4"));
         process.Status.Should().Be(ImportProcessStatus.Succeeded);
+    }
+
+    [Fact]
+    public async Task Handle_Preflight_RecordsEachRowsOutcomeWithoutAppliedState()
+    {
+        // Arrange
+        var process = QueueRun(3, failing: ["r2"], failingInLink: [], preflight: true);
+
+        // Act
+        await Run(process);
+
+        // Assert — the passed rows keep the payload that applying submits, and no record id: theirs was rolled back
+        process.Status.Should().Be(ImportProcessStatus.PartiallySucceeded);
+        process.SucceededRowCount.Should().Be(2);
+        process.FailedRowCount.Should().Be(1);
+        process.Rows.Single(r => r.ImportId == "r2").Error.Should().Contain("marked to fail");
+        process.Rows.Where(r => r.ImportId != "r2").Should().AllSatisfy(r =>
+        {
+            r.Status.Should().Be(ImportRowStatus.Succeeded);
+            r.Payload.Should().NotBeNull();
+            r.CreatedEntityId.Should().BeNull();
+        });
+    }
+
+    [Fact]
+    public async Task Handle_Preflight_RunsInsideAPreflightScopeAndSavesOnlyThePassesALaterPassReadsBack()
+    {
+        // Arrange — 5 rows, chunk size 2: three Create chunks a later pass depends on, then the last pass
+        var process = QueueRun(5, failing: [], failingInLink: [], preflight: true);
+
+        // Act
+        await Run(process);
+
+        // Assert — a save per Create chunk; the Link pass is staged and discarded
+        _db.PreflightsBegun.Should().Be(1);
+        _db.IsPreflightOpen.Should().BeFalse();
+        _definition.Calls.Select(c => c.Pass).Should().Equal("Create", "Create", "Create", "Link");
+        _db.PreflightSaveChangesCallCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Handle_Preflight_OfAnAtomicImportReportsRejectionsPastTheFirstPassThatMadeOne()
+    {
+        // Arrange — a real run would stop after Create; a preflight carries the other rows into Link
+        var process = QueueRun(4, failing: ["r2"], failingInLink: ["r4"], preflight: true);
+        _definition.AtomicityOverride = ImportAtomicity.Atomic;
+
+        // Act
+        await Run(process);
+
+        // Assert — each rejection names its own reason, and the run says the file would apply nothing
+        _definition.Calls.Select(c => (c.Pass, string.Join(",", c.ImportIds)))
+            .Should().Equal(("Create", "r1,r2,r3,r4"), ("Link", "r1,r3,r4"));
+        process.Rows.Single(r => r.ImportId == "r2").Error.Should().NotContain("last pass");
+        process.Rows.Single(r => r.ImportId == "r4").Error.Should().Contain("last pass");
+        process.Rows.Where(r => r.ImportId is "r1" or "r3").Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Succeeded));
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        process.Error.Should().Contain("none of it");
+    }
+
+    [Fact]
+    public async Task Handle_Preflight_FailsTheRunWhenAPassCannotExecuteAndSettlesNoRows()
+    {
+        // Arrange
+        var process = QueueRun(2, failing: [], failingInLink: [], preflight: true);
+        _definition.PassFailure = "The lookup table is missing.";
+
+        // Act
+        await Run(process);
+
+        // Assert
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        process.Error.Should().Contain("The lookup table is missing.");
+        process.Rows.Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Pending));
+        _db.IsPreflightOpen.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_Preflight_StopsWhenCancellationIsRequested()
+    {
+        // Arrange — the stop lands while the first chunk is running
+        var process = QueueRun(6, failing: [], failingInLink: [], preflight: true);
+        _definition.BeforePass = () =>
+        {
+            process.RequestCancellation(_now);
+            _definition.BeforePass = null;
+        };
+
+        // Act
+        await Run(process);
+
+        // Assert — no row got through every pass, so none is reported as passing
+        _definition.Calls.Should().ContainSingle();
+        process.Status.Should().Be(ImportProcessStatus.Cancelled);
+        process.Rows.Should().AllSatisfy(r => r.Status.Should().Be(ImportRowStatus.Cancelled));
+    }
+
+    [Fact]
+    public async Task Handle_Preflight_ReleasesARunThatThrewAndClosesItsScope()
+    {
+        // Arrange
+        var process = QueueRun(2, failing: [], failingInLink: [], preflight: true);
+        _definition.BeforePass = () => throw new InvalidOperationException("Transient failure.");
+
+        // Act
+        var act = () => Run(process);
+
+        // Assert — the rollback ran before the release, and every row is still due from the first pass
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        _db.IsPreflightOpen.Should().BeFalse();
+        process.Status.Should().Be(ImportProcessStatus.Queued);
+        process.Rows.Should().AllSatisfy(r => r.CompletedPassCount.Should().Be(0));
+    }
+
+    [Fact]
+    public async Task Handle_Preflight_EndedByRepeatedFailures_SaysNothingWasImportedRatherThanOfferingAResume()
+    {
+        // Arrange
+        var process = QueueRun(2, failing: [], failingInLink: [], preflight: true);
+        _definition.BeforePass = () => throw new InvalidOperationException("Permanent failure.");
+
+        for (var attempt = 1; attempt < ImportProcess.MaxAttempts; attempt++)
+            await FluentActions.Awaiting(() => Run(process)).Should().ThrowAsync<InvalidOperationException>();
+
+        // Act
+        await Run(process);
+
+        // Assert
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        process.Error.Should().Contain("Nothing was imported").And.NotContain("resumed");
     }
 
     [Fact]

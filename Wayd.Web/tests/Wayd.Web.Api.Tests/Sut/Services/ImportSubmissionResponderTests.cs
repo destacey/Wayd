@@ -25,7 +25,7 @@ public sealed class ImportSubmissionResponderTests
         new StubController { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
 
     private static ImportProcessDto Run(ImportProcessStatus status) => new(
-        _importProcessId, "test-import", "Test Import", ImportAtomicity.Atomic, status, null, "user-1", "User One",
+        _importProcessId, "test-import", "Test Import", ImportAtomicity.Atomic, status, IsPreflight: false, AppliedImportProcessId: null, null, "user-1", "User One",
         Instant.FromUtc(2026, 9, 10, 9, 0), null, null, null,
         TotalRowCount: 25, SucceededRowCount: 0, FailedRowCount: status == ImportProcessStatus.Failed ? 25 : 0,
         Error: null, CanManage: true);

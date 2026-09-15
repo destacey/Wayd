@@ -11,6 +11,8 @@ public sealed class ImportProcessFaker : PrivateConstructorFaker<ImportProcess>
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.ImportType, "employees");
         RuleFor(x => x.Status, ImportProcessStatus.Queued);
+        RuleFor(x => x.IsPreflight, false);
+        RuleFor(x => x.AppliedImportProcessId, (Guid?)null);
         RuleFor(x => x.SubmissionGroupId, (Guid?)null);
         RuleFor(x => x.LastAttemptCorrelationId, (string?)null);
         RuleFor(x => x.SubmittedByUserId, f => f.Random.Guid().ToString());

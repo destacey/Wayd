@@ -69,6 +69,9 @@ public sealed class RunImportProcessCommandHandler(
 
         try
         {
+            if (process.IsPreflight)
+                return await RunPreflight(process, definition, cancellationToken);
+
             for (var passIndex = 0; passIndex <= lastPassIndex && !stoppedEarly; passIndex++)
             {
                 var pass = definition.Passes[passIndex];
@@ -162,6 +165,179 @@ public sealed class RunImportProcessCommandHandler(
     }
 
     /// <summary>
+    /// Puts every row through the import's passes and applies none of them.
+    /// </summary>
+    /// <remarks>
+    /// Only a pass that a later pass reads back is saved, inside a transaction rolled back at the end; the
+    /// last pass is staged and thrown away. Saving it would add nothing a row could report — a save that
+    /// fails fails the whole chunk, never one row — and would spend identity values, leaving a gap in the
+    /// visible keys of every record the file would have created.
+    /// <para>
+    /// The passes run against copies of the rows, never the tracked ones. Their outcomes are written only
+    /// after the rollback, so the run's own rows hold no locks the details page or a cancellation would wait
+    /// on, and the progress a pass records against rolled-back work is never persisted.
+    /// </para>
+    /// <para>
+    /// An atomic import does not stop at the first pass that rejects a row, as a real run must: a preflight
+    /// exists to report every row, so the rows that were not rejected carry on through the later passes.
+    /// </para>
+    /// </remarks>
+    private async Task<Result> RunPreflight(ImportProcess process, IImportDefinition definition, CancellationToken cancellationToken)
+    {
+        var rehearsal = process.Rows
+            .Select(r => ImportProcessRow.Create(r.ImportId, r.RowNumber, r.Payload!))
+            .ToList();
+
+        var lastPassIndex = definition.Passes.Count - 1;
+        var stoppedEarly = false;
+        string? passFailure = null;
+
+        await using (await _importDbContext.BeginPreflight(cancellationToken))
+        {
+            for (var passIndex = 0; passIndex <= lastPassIndex && !stoppedEarly && passFailure is null; passIndex++)
+            {
+                var pass = definition.Passes[passIndex];
+
+                var eligible = rehearsal
+                    .Where(r => r.Status == ImportRowStatus.Pending && r.CompletedPassCount == passIndex)
+                    .ToList();
+                if (eligible.Count == 0)
+                    break;
+
+                // Chunked exactly as a real run would be, so a pass sees the same rows together.
+                List<IReadOnlyList<ImportProcessRow>> chunks =
+                    pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
+                        ? [eligible]
+                        : Chunk(eligible, definition.ChunkSize);
+
+                for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
+                {
+                    if (await IsCancellationRequested(process.Id, cancellationToken))
+                    {
+                        stoppedEarly = true;
+                        break;
+                    }
+
+                    var passResult = await definition.ExecutePass(
+                        process.Id, passIndex, chunks[chunkIndex], chunkIndex == chunks.Count - 1, cancellationToken);
+
+                    if (passResult.IsFailure)
+                    {
+                        passFailure = $"Pass '{pass.Name}' could not run: {passResult.Error}";
+                        break;
+                    }
+
+                    RecordRehearsalOutcomes(chunks[chunkIndex], passResult.Value, passIndex);
+
+                    if (passIndex < lastPassIndex)
+                        await _importDbContext.SaveChangesAsync(cancellationToken);
+
+                    // Lets go of what was saved, and discards what the last pass staged.
+                    _importDbContext.ChangeTracker.Clear();
+                }
+            }
+        }
+
+        // The scope cleared the tracker, so the run is read back as the database has it — which may no longer
+        // be Processing, if the stall sweep gave up on a preflight that outlasted its grace period.
+        var run = await _importDbContext.ImportProcesses
+            .Include(p => p.Rows)
+            .FirstAsync(p => p.Id == process.Id, cancellationToken);
+
+        if (run.IsTerminal)
+        {
+            _logger.LogWarning("Preflight {ImportProcessId} was settled as {Status} before it finished.", run.Id, run.Status);
+            return Result.Success();
+        }
+
+        if (passFailure is not null)
+            return await FailRun(run, passFailure, cancellationToken);
+
+        var (passed, rejected) = SettlePreflightRows(run, rehearsal, definition.Passes.Count);
+        run.RecordProgress(passed, rejected, _dateTimeProvider.Now);
+
+        if (stoppedEarly)
+            return await CancelRun(run, cancellationToken);
+
+        if (definition.Atomicity == ImportAtomicity.Atomic && rejected > 0)
+        {
+            // The count is left to the run's own totals, which every reader of this message already shows.
+            run.Fail(
+                "This import applies as one unit, so importing this file would apply none of it until every rejected row is fixed.",
+                _dateTimeProvider.Now);
+            await _importDbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Preflight {ImportProcessId} finished: {Passed} passed, {Rejected} rejected; the atomic import would apply nothing.",
+                run.Id, passed, rejected);
+
+            return Result.Success();
+        }
+
+        return await CompleteRun(run, cancellationToken);
+    }
+
+    /// <summary>Advances the rehearsal copies. Settling them is left to <see cref="SettlePreflightRows"/>.</summary>
+    private void RecordRehearsalOutcomes(IReadOnlyList<ImportProcessRow> rows, ImportPassResult result, int passIndex)
+    {
+        var byImportId = rows.ToDictionary(r => r.ImportId, StringComparer.Ordinal);
+        var now = _dateTimeProvider.Now;
+
+        foreach (var outcome in result.Rows)
+        {
+            if (!byImportId.TryGetValue(outcome.ImportId, out var row))
+                continue;
+
+            if (outcome.Failed)
+            {
+                row.MarkFailed(outcome.Error ?? "The row was rejected.", now);
+                continue;
+            }
+
+            // A later pass may find the record by the id an earlier one created, inside the same transaction.
+            if (outcome.CreatedEntityId is { } createdEntityId)
+                row.RecordCreatedEntity(createdEntityId);
+
+            if (outcome.Warning is not null)
+                row.RecordWarning(outcome.Warning);
+
+            row.RecordPassCompleted(passIndex);
+        }
+    }
+
+    /// <summary>
+    /// Copies each rehearsal's outcome onto the run's own row and returns how many passed and were rejected.
+    /// A row that did not get through every pass without being rejected was never reached, and is left for
+    /// the cancellation to mark.
+    /// </summary>
+    private (int Passed, int Rejected) SettlePreflightRows(ImportProcess run, List<ImportProcessRow> rehearsal, int passCount)
+    {
+        var byImportId = rehearsal.ToDictionary(r => r.ImportId, StringComparer.Ordinal);
+        var now = _dateTimeProvider.Now;
+        var passed = 0;
+        var rejected = 0;
+
+        foreach (var row in run.Rows)
+        {
+            if (!byImportId.TryGetValue(row.ImportId, out var outcome))
+                continue;
+
+            if (outcome.Status == ImportRowStatus.Failed)
+            {
+                row.MarkFailed(outcome.Error!, now);
+                rejected++;
+            }
+            else if (outcome.CompletedPassCount == passCount)
+            {
+                row.MarkPassedPreflight(outcome.Warning, now);
+                passed++;
+            }
+        }
+
+        return (passed, rejected);
+    }
+
+    /// <summary>
     /// Settles a run whose attempt threw: released for another attempt while it has attempts left, otherwise
     /// ended. Returns whether it was released.
     /// </summary>
@@ -203,7 +379,9 @@ public sealed class RunImportProcessCommandHandler(
 
         var reference = process.LastAttemptCorrelationId is { } traceId ? $" Reference: {traceId}." : string.Empty;
         process.Fail(
-            $"An unexpected error stopped this import on each of {process.AttemptCount} attempts. Rows it had already applied are unchanged, and the rest can be resumed.{reference}",
+            process.IsPreflight
+                ? $"An unexpected error stopped this preflight on each of {process.AttemptCount} attempts. Nothing was imported; check the file again once the cause is fixed.{reference}"
+                : $"An unexpected error stopped this import on each of {process.AttemptCount} attempts. Rows it had already applied are unchanged, and the rest can be resumed.{reference}",
             _dateTimeProvider.Now);
         await _importDbContext.SaveChangesAsync(CancellationToken.None);
 

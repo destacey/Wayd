@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.Activities;
@@ -45,6 +46,9 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     /// event recording a record's own deletion is raised on exactly the entity being deleted.
     /// </summary>
     private readonly List<IEntity> _deletedEntities = [];
+
+    /// <summary>Set while a preflight's rolled-back transaction is open. See <see cref="BeginPreflight"/>.</summary>
+    private bool _holdEventsBack;
 
     protected BaseDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IDbContextOutbox outbox, IRequestCorrelationIdProvider requestCorrelationIdProvider)
         : base(options)
@@ -184,6 +188,44 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         }
 
         return result;
+    }
+
+    public async Task<IAsyncDisposable> BeginPreflight(CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is not null)
+            throw new InvalidOperationException("A preflight cannot start inside a transaction that is already open.");
+
+        var transaction = await Database.BeginTransactionAsync(cancellationToken);
+        _holdEventsBack = true;
+
+        return new PreflightScope(this, transaction);
+    }
+
+    private sealed class PreflightScope(BaseDbContext context, IDbContextTransaction transaction) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                // Not the caller's token: a cancelled preflight has to roll back all the same.
+                await transaction.RollbackAsync(CancellationToken.None);
+            }
+            catch (Exception)
+            {
+                // Swallowed so it cannot replace the exception that is usually why the rollback failed: a
+                // broken connection or an aborted transaction. Nothing is lost by it, because the transaction
+                // is never committed — the server discards it when the connection or the dispose below ends it.
+            }
+            finally
+            {
+                await transaction.DisposeAsync();
+
+                // The tracked entities, and any events still queued on them, describe rows that no longer exist.
+                context.ChangeTracker.Clear();
+                context._deletedEntities.Clear();
+                context._holdEventsBack = false;
+            }
+        }
     }
 
     private List<AuditTrail> HandleAuditingBeforeSaveChanges(string userId, string correlationId)
@@ -640,6 +682,13 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
                 // Recorded, never delivered: a baseline ships the whole record, which no consumer may receive.
                 if (domainEvent is IBaselineEvent)
+                {
+                    continue;
+                }
+
+                // The activity entry rolls back with the preflight's transaction; a delivered event would not,
+                // because its handlers commit on their own connection.
+                if (_holdEventsBack)
                 {
                     continue;
                 }

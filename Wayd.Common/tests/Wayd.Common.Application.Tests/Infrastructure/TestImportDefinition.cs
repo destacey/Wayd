@@ -29,6 +29,9 @@ public sealed class TestImportDefinition(IImportPayloadSerializer serializer) : 
     public override string PermissionResource => PermissionResourceOverride;
     public override int ChunkSize => 2;
 
+    public int PreflightMaxRowsOverride { get; init; } = 50_000;
+    public override int PreflightMaxRows => PreflightMaxRowsOverride;
+
     /// <summary>Rows each pass was handed, in order, so a test can assert on how the runner fed them.</summary>
     public List<(string Pass, string[] ImportIds, bool IsFinalChunk)> Calls { get; } = [];
 

@@ -41,6 +41,24 @@ public sealed class ImportProcessRowTests
     }
 
     [Fact]
+    public void MarkPassedPreflight_KeepsThePayloadAndRecordsNoCreatedRecord()
+    {
+        // Arrange — the preflight's record was rolled back, and applying the preflight submits this payload
+        var row = new ImportProcessRowFaker().Generate();
+        var payload = row.Payload;
+
+        // Act
+        row.MarkPassedPreflight("Manager could not be resolved.", _attempted);
+
+        // Assert
+        row.Status.Should().Be(ImportRowStatus.Succeeded);
+        row.Payload.Should().Be(payload);
+        row.CreatedEntityId.Should().BeNull();
+        row.Warning.Should().Be("Manager could not be resolved.");
+        row.AttemptedOn.Should().Be(_attempted);
+    }
+
+    [Fact]
     public void MarkFailed_KeepsThePayloadSoARetryCanReExecuteIt()
     {
         // Arrange

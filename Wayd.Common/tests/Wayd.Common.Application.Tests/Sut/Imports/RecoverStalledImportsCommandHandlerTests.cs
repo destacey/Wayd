@@ -98,6 +98,23 @@ public sealed class RecoverStalledImportsCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_TellsAStalledPreflightNothingWasImportedRatherThanOfferingAResume()
+    {
+        // Arrange — a preflight's work was rolled back, and it cannot be resumed
+        var rows = new[] { ImportProcessRow.Create("r1", 1, "{}") };
+        var process = ImportProcess.CreatePreflight("test-import", "user-1", null, rows, _now - Duration.FromHours(2));
+        _db.AddImportProcess(process);
+        process.Start("trace-1", _now - Duration.FromHours(2));
+
+        // Act
+        await Recover();
+
+        // Assert
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+        process.Error.Should().Contain("Nothing was imported").And.NotContain("resumed");
+    }
+
+    [Fact]
     public async Task Handle_LeavesTheUnappliedRowsOfAStalledRunPending()
     {
         // Arrange — Resume is the recovery path, and it claims rows by status

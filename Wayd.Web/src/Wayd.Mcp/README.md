@@ -158,7 +158,7 @@ Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-deliver
 
 ## Confirmation before status changes
 
-Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something. Clients that honour the annotation prompt for confirmation before running them.
+Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something and those that import, stop, resume, or retry an import run. Clients that honour the annotation prompt for confirmation before running them.
 
 Two caveats worth knowing:
 
@@ -228,6 +228,14 @@ Two rules the tools enforce and the `wayd-delivery` skill explains: a version sh
 | --- | --- |
 | **Teams** | List, get details, get activity history |
 | **Users** | List, get details |
+
+### Imports
+
+| Category | Operations |
+| --- | --- |
+| **Import runs** | List import types, list runs (by status, type, submitter, or submission group), get a run, get its row outcomes. Stop, resume, retry rejected rows, apply a preflight |
+
+Every CSV file submitted to Wayd becomes a run, whether it came from Settings → Imports or an API call, so these tools follow and control either. `Imports_Apply` imports the rows a preflight checked; applying the same preflight twice duplicates what the first import created where the import has no natural key.
 
 ## Links
 

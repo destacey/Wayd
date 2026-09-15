@@ -23,6 +23,7 @@ The MCP server exposes 150+ tools across Wayd's core modules:
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)** | List/view roadmaps and their items (activities, milestones, timeboxes). |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)** | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links. |
 | **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. Review a team's activity history. |
+| **[Imports](../user-guide/settings/imports.mdx)** | Follow import runs and their row outcomes. Stop, resume, or retry a run, and import a checked file. |
 
 ## Prerequisites
 
@@ -363,9 +364,23 @@ Environments are **retired, never deleted**, because historical deployments stil
 | `Users_GetUsers` | List all users |
 | `Users_GetUser` | Get user details |
 
+### Imports
+
+Every CSV file submitted to Wayd becomes a run with an outcome for each row — whether it was submitted from [Settings → Imports](../user-guide/settings/imports.mdx) or straight to the API — so these tools can follow and control either. You see the kinds of import you are allowed to submit.
+
+| Tool | Description |
+|------|-------------|
+| `Imports_GetDefinitions` | The kinds of import you may see, with their row limits and whether you may submit them |
+| `Imports_GetList` | Import runs, newest first, filtered by status, kind, submitter, or submission group |
+| `Imports_GetById` | One run's status and counts |
+| `Imports_GetRows` | A run's row outcomes, with the reason each rejected row was refused |
+| `Imports_Cancel` | Stop a run that is still going — rows already applied stay applied |
+| `Imports_Resume` / `Imports_RetryFailed` | Queue a finished run again for the rows it never reached, or for its rejected rows too |
+| `Imports_Apply` | Import the rows a preflight checked |
+
 ## Changes That Ask First
 
-Most tools only read data. The ones that change something a colleague relies on — changing a record's status, updating a portfolio, program, or project, or deleting anything — are flagged so your AI assistant asks for confirmation before running them.
+Most tools only read data. The ones that change something a colleague relies on — changing a record's status, updating a portfolio, program, or project, deleting anything, or importing, stopping, or re-running an import — are flagged so your AI assistant asks for confirmation before running them.
 
 Whether you actually see a prompt depends on the assistant you're using: the flag is a signal, and clients decide how to honour it. Your permissions are always enforced by Wayd itself regardless of what any client does.
 

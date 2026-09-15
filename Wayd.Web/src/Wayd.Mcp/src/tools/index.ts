@@ -23,6 +23,7 @@ import { definitions as tasks } from './tasks.js';
 import { definitions as teams } from './teams.js';
 import { definitions as users } from './users.js';
 import { definitions as activities } from './activities.js';
+import { definitions as imports } from './imports.js';
 
 export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...portfolios,
@@ -49,4 +50,5 @@ export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...teams,
   ...users,
   ...activities,
+  ...imports,
 ]);

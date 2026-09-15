@@ -27,12 +27,16 @@ public sealed class AddScoringScaleLevelCommandValidator : AbstractValidator<Add
 
 public sealed class AddScoringScaleLevelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<AddScoringScaleLevelCommandHandler> logger)
     : ICommandHandler<AddScoringScaleLevelCommand, Guid>
 {
     private const string AppRequestName = nameof(AddScoringScaleLevelCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AddScoringScaleLevelCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(AddScoringScaleLevelCommand request, CancellationToken cancellationToken)
@@ -48,7 +52,7 @@ public sealed class AddScoringScaleLevelCommandHandler(
                 return Result.Failure<Guid>("Scoring Model not found.");
             }
 
-            var addResult = model.AddScaleLevel(request.ScaleId, request.Label, request.Value);
+            var addResult = model.AddScaleLevel(request.ScaleId, request.Label, request.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (addResult.IsFailure)
             {
                 _logger.LogError("Unable to add rating level to Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, addResult.Error);

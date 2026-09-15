@@ -82,12 +82,16 @@ public sealed class CreateScoringModelCommandValidator : AbstractValidator<Creat
 
 public sealed class CreateScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<CreateScoringModelCommandHandler> logger)
     : ICommandHandler<CreateScoringModelCommand, Guid>
 {
     private const string AppRequestName = nameof(CreateScoringModelCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateScoringModelCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateScoringModelCommand request, CancellationToken cancellationToken)
@@ -111,10 +115,11 @@ public sealed class CreateScoringModelCommandHandler(
             var model = ScoringModel.Create(
                 request.Name,
                 request.Description,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+                _dateTimeProvider.Now,
                 scales,
                 criteria,
-                outputs
-                );
+                outputs);
 
             await _waydDbContext.ScoringModels.AddAsync(model, cancellationToken);
             await _waydDbContext.SaveChangesAsync(cancellationToken);

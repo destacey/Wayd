@@ -25,12 +25,16 @@ public sealed class RemoveScoringScaleLevelCommandValidator : AbstractValidator<
 
 public sealed class RemoveScoringScaleLevelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<RemoveScoringScaleLevelCommandHandler> logger)
     : ICommandHandler<RemoveScoringScaleLevelCommand>
 {
     private const string AppRequestName = nameof(RemoveScoringScaleLevelCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RemoveScoringScaleLevelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RemoveScoringScaleLevelCommand request, CancellationToken cancellationToken)
@@ -46,7 +50,7 @@ public sealed class RemoveScoringScaleLevelCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var removeResult = model.RemoveScaleLevel(request.ScaleId, request.LevelId);
+            var removeResult = model.RemoveScaleLevel(request.ScaleId, request.LevelId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (removeResult.IsFailure)
             {
                 _logger.LogError("Unable to remove rating level from Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, removeResult.Error);

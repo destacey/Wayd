@@ -26,12 +26,16 @@ public sealed class UpdateScoringModelCommandValidator : AbstractValidator<Updat
 
 public sealed class UpdateScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UpdateScoringModelCommandHandler> logger)
     : ICommandHandler<UpdateScoringModelCommand>
 {
     private const string AppRequestName = nameof(UpdateScoringModelCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateScoringModelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateScoringModelCommand request, CancellationToken cancellationToken)
@@ -46,10 +50,7 @@ public sealed class UpdateScoringModelCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var updateResult = model.Update(
-                request.Name,
-                request.Description
-                );
+            var updateResult = model.Update(request.Name, request.Description, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 _logger.LogError("Unable to update Scoring Model {ScoringModelId}.  Error message: {Error}", model.Id, updateResult.Error);

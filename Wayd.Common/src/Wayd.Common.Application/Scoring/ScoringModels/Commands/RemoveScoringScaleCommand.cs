@@ -21,12 +21,16 @@ public sealed class RemoveScoringScaleCommandValidator : AbstractValidator<Remov
 
 public sealed class RemoveScoringScaleCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<RemoveScoringScaleCommandHandler> logger)
     : ICommandHandler<RemoveScoringScaleCommand>
 {
     private const string AppRequestName = nameof(RemoveScoringScaleCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RemoveScoringScaleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RemoveScoringScaleCommand request, CancellationToken cancellationToken)
@@ -43,7 +47,7 @@ public sealed class RemoveScoringScaleCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var removeResult = model.RemoveScale(request.ScaleId);
+            var removeResult = model.RemoveScale(request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (removeResult.IsFailure)
             {
                 _logger.LogError("Unable to remove scale from Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, removeResult.Error);

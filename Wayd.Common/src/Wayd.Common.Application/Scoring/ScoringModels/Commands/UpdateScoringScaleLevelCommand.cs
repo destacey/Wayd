@@ -31,12 +31,16 @@ public sealed class UpdateScoringScaleLevelCommandValidator : AbstractValidator<
 
 public sealed class UpdateScoringScaleLevelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UpdateScoringScaleLevelCommandHandler> logger)
     : ICommandHandler<UpdateScoringScaleLevelCommand>
 {
     private const string AppRequestName = nameof(UpdateScoringScaleLevelCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateScoringScaleLevelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateScoringScaleLevelCommand request, CancellationToken cancellationToken)
@@ -52,7 +56,7 @@ public sealed class UpdateScoringScaleLevelCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var updateResult = model.UpdateScaleLevel(request.ScaleId, request.LevelId, request.Label, request.Value);
+            var updateResult = model.UpdateScaleLevel(request.ScaleId, request.LevelId, request.Label, request.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 _logger.LogError("Unable to update rating level on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, updateResult.Error);

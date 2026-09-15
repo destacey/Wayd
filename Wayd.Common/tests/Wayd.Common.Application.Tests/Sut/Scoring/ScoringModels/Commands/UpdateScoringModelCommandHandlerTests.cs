@@ -1,19 +1,28 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using NodaTime;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Scoring.ScoringModels.Commands;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Scoring;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Common.Application.Tests.Sut.Scoring.ScoringModels.Commands;
 
 public class UpdateScoringModelCommandHandlerTests
 {
     private readonly FakeWaydDbContext _dbContext = new();
+    private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 1, 15, 9, 30)));
     private readonly ScoringModelFaker _faker = new();
 
     private UpdateScoringModelCommandHandler CreateHandler() =>
-        new(_dbContext, NullLogger<UpdateScoringModelCommandHandler>.Instance);
+        new(_dbContext, _currentUser.Object, _dateTimeProvider, NullLogger<UpdateScoringModelCommandHandler>.Instance);
 
     private ScoringModel SeedProposedModel()
     {
@@ -37,6 +46,26 @@ public class UpdateScoringModelCommandHandlerTests
         model.Name.Should().Be("Renamed");
         model.Description.Should().Be("New description.");
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_AttributesTheEventToTheUser_AndTheirEmployeeWhenLinked(bool linked)
+    {
+        // Arrange
+        var model = SeedProposedModel();
+        var employeeId = linked ? Guid.NewGuid() : (Guid?)null;
+        _currentUser.Setup(u => u.GetUserId()).Returns("user-42");
+        _currentUser.Setup(u => u.GetEmployeeId()).Returns(employeeId);
+        var command = new UpdateScoringModelCommand(model.Id, "Renamed", "New description.");
+
+        // Act
+        await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        var raised = model.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<ScoringModelDetailsUpdatedEvent>().Subject;
+        raised.Actor.Should().Be(EventActor.User("user-42", employeeId));
     }
 
     [Fact]

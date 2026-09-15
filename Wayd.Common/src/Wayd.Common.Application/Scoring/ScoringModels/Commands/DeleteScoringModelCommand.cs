@@ -14,11 +14,15 @@ public sealed class DeleteScoringModelCommandValidator : AbstractValidator<Delet
 
 public sealed class DeleteScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<DeleteScoringModelCommandHandler> logger)
     : ICommandHandler<DeleteScoringModelCommand>
 {
     private const string AppRequestName = nameof(DeleteScoringModelCommand);
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeleteScoringModelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteScoringModelCommand request, CancellationToken cancellationToken)
@@ -33,7 +37,8 @@ public sealed class DeleteScoringModelCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            if (!model.CanBeDeleted())
+            var deleteResult = model.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            if (deleteResult.IsFailure)
             {
                 _logger.LogInformation("Scoring Model {ScoringModelId} cannot be deleted.", request.Id);
                 return Result.Failure("Scoring Model cannot be deleted.");

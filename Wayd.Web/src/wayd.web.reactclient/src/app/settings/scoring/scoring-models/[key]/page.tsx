@@ -6,10 +6,20 @@ import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { useGetScoringModelQuery } from '@/src/store/features/scoring/scoring-models-api'
+import {
+  useGetScoringModelActivitiesQuery,
+  useGetScoringModelQuery,
+  useLazyGetScoringModelActivitiesQuery,
+} from '@/src/store/features/scoring/scoring-models-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { isApiError } from '@/src/utils'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import ChangeScoringModelStateForm, {
   ScoringModelStateAction,
@@ -27,6 +37,7 @@ enum ScoringModelSections {
   Criteria = 'criteria',
   RatingScale = 'rating-scale',
   Outputs = 'outputs',
+  Activities = 'activities',
   Test = 'test',
 }
 
@@ -49,6 +60,33 @@ const ScoringModelDetailsPage = (props: {
     error,
     refetch,
   } = useGetScoringModelQuery(key.toString())
+
+  // The active section lives in the URL (?section=), owned by RecordLayout. Read
+  // here to hold the activity query back until its section is open, and because
+  // sectionActions renders for whichever section that is.
+  const searchParams = useSearchParams()
+  const activeSection =
+    searchParams.get('section') ?? ScoringModelSections.Criteria
+
+  const activitiesQuery = useGetScoringModelActivitiesQuery(
+    {
+      idOrKey: scoringModel?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip:
+        !scoringModel?.id || activeSection !== ScoringModelSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetScoringModelActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: scoringModel?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `scoring-model-${scoringModel?.key ?? key}-activity`,
+  })
 
   const { hasPermissionClaim } = useAuth()
   const canUpdate = hasPermissionClaim('Permissions.ScoringModels.Update')
@@ -135,6 +173,7 @@ const ScoringModelDetailsPage = (props: {
       label: 'Outputs',
       count: scoringModel?.outputs?.length,
     },
+    { id: ScoringModelSections.Activities, label: 'Activity' },
   ]
 
   // Test is a tool rather than record content — it previews what the model
@@ -170,6 +209,8 @@ const ScoringModelDetailsPage = (props: {
             loadData={refetch}
           />
         )
+      case ScoringModelSections.Activities:
+        return <ActivityLogTimeline {...activityLog.timelineProps} />
       case ScoringModelSections.Test:
         return <ScoringModelTestPanel scoringModel={scoringModel!} />
       default:
@@ -205,6 +246,11 @@ const ScoringModelDetailsPage = (props: {
             ) : undefined,
         }}
         facts={<ScoringModelFacts scoringModel={scoringModel} />}
+        sectionActions={
+          activeSection === ScoringModelSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
         {(section) => renderSection(section)}
       </RecordLayout>

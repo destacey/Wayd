@@ -21,12 +21,16 @@ public sealed class RemoveScoringModelOutputCommandValidator : AbstractValidator
 
 public sealed class RemoveScoringModelOutputCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<RemoveScoringModelOutputCommandHandler> logger)
     : ICommandHandler<RemoveScoringModelOutputCommand>
 {
     private const string AppRequestName = nameof(RemoveScoringModelOutputCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RemoveScoringModelOutputCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RemoveScoringModelOutputCommand request, CancellationToken cancellationToken)
@@ -42,7 +46,7 @@ public sealed class RemoveScoringModelOutputCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var removeResult = model.RemoveOutput(request.OutputId);
+            var removeResult = model.RemoveOutput(request.OutputId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (removeResult.IsFailure)
             {
                 _logger.LogError("Unable to remove output from Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, removeResult.Error);

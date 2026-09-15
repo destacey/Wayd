@@ -22,12 +22,16 @@ public sealed class AddScoringScaleCommandValidator : AbstractValidator<AddScori
 
 public sealed class AddScoringScaleCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<AddScoringScaleCommandHandler> logger)
     : ICommandHandler<AddScoringScaleCommand, Guid>
 {
     private const string AppRequestName = nameof(AddScoringScaleCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AddScoringScaleCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(AddScoringScaleCommand request, CancellationToken cancellationToken)
@@ -43,7 +47,7 @@ public sealed class AddScoringScaleCommandHandler(
                 return Result.Failure<Guid>("Scoring Model not found.");
             }
 
-            var addResult = model.AddScale(request.Name);
+            var addResult = model.AddScale(request.Name, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (addResult.IsFailure)
             {
                 _logger.LogError("Unable to add scale to Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, addResult.Error);

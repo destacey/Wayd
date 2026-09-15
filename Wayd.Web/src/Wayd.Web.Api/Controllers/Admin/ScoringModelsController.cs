@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Scoring.ScoringModels.Commands;
+﻿using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Scoring.ScoringModels.Commands;
 using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Application.Scoring.ScoringModels.Queries;
 using Wayd.Common.Domain.Scoring.Enums;
@@ -38,6 +40,20 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, ID
 
         return model is not null
             ? Ok(model)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
+    [OpenApiOperation("Get activity history for the scoring model.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetScoringModelActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
             : NotFound();
     }
 

@@ -14,11 +14,15 @@ public sealed class ArchiveScoringModelCommandValidator : AbstractValidator<Arch
 
 public sealed class ArchiveScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ArchiveScoringModelCommandHandler> logger)
     : ICommandHandler<ArchiveScoringModelCommand>
 {
     private const string AppRequestName = nameof(ArchiveScoringModelCommand);
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ArchiveScoringModelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ArchiveScoringModelCommand request, CancellationToken cancellationToken)
@@ -33,7 +37,7 @@ public sealed class ArchiveScoringModelCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var archiveResult = model.Archive();
+            var archiveResult = model.Archive(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (archiveResult.IsFailure)
             {
                 _logger.LogError("Unable to archive Scoring Model {ScoringModelId}.  Error message: {Error}", request.Id, archiveResult.Error);

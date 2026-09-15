@@ -1,20 +1,27 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using NodaTime;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Scoring.ScoringModels.Commands;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Scoring.Enums;
 using Wayd.Common.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Common.Application.Tests.Sut.Scoring.ScoringModels.Commands;
 
 public class ActivateScoringModelCommandHandlerTests
 {
     private readonly FakeWaydDbContext _dbContext = new();
+    private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 1, 15, 9, 30)));
     private readonly ScoringModelFaker _faker = new();
 
     private ActivateScoringModelCommandHandler CreateHandler() =>
-        new(_dbContext, NullLogger<ActivateScoringModelCommandHandler>.Instance);
+        new(_dbContext, _currentUser.Object, _dateTimeProvider, NullLogger<ActivateScoringModelCommandHandler>.Instance);
 
     private ScoringModel SeedProposedModel()
     {

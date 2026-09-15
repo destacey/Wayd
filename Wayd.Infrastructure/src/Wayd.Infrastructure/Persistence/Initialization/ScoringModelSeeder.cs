@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NodaTime;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Scoring;
+using Wayd.Infrastructure.Persistence.Activities;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
 
@@ -12,9 +15,44 @@ public class ScoringModelSeeder : ICustomSeeder
         if (await dbContext.ScoringModels.AnyAsync(cancellationToken))
             return;
 
-        dbContext.ScoringModels.Add(CreateWsjfModel());
+        var model = CreateWsjfModel(dateTimeProvider.Now);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        // The creation event waits for the key, so it is a post-persistence action. It is taken off the model so
+        // SaveChanges cannot publish it: Wolverine cannot route during InitializeDatabases, which runs before the
+        // host starts.
+        Action[] raiseCreationEvents = [.. model.PostPersistenceActions];
+        model.ClearDomainEvents();
+        model.ClearPostPersistenceActions();
+
+        dbContext.ScoringModels.Add(model);
+
+        // One transaction: a model committed without its activity would stay that way, because any model
+        // existing stops every later run from seeding.
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            foreach (var raise in raiseCreationEvents)
+            {
+                raise();
+            }
+
+            var ordinal = 0;
+            foreach (var domainEvent in model.DomainEvents)
+            {
+                dbContext.ActivityLogs.Add(
+                    ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, model, ordinal++, correlationId: null));
+            }
+
+            model.ClearDomainEvents();
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     /// <summary>
@@ -23,7 +61,7 @@ public class ScoringModelSeeder : ICustomSeeder
     /// Job Size is rated on the same scale, and WSJF = Cost of Delay / Job Size is the primary score.
     /// Seeded in the Proposed state so an admin can review and activate it.
     /// </summary>
-    private static ScoringModel CreateWsjfModel()
+    private static ScoringModel CreateWsjfModel(Instant timestamp)
     {
         // Modified-Fibonacci relative scale, the conventional choice for WSJF inputs.
         (string Label, decimal Value)[] relativeScale =
@@ -41,6 +79,8 @@ public class ScoringModelSeeder : ICustomSeeder
             "WSJF",
             "Weighted Shortest Job First. Prioritizes by Cost of Delay relative to Job Size; "
                 + "the highest WSJF score is the most economically valuable to deliver next.",
+            EventActor.System,
+            timestamp,
             scales:
             [
                 ("Relative (Fibonacci)", relativeScale),

@@ -20,12 +20,16 @@ public sealed class ReorderScoringModelCriteriaCommandValidator : AbstractValida
 
 public sealed class ReorderScoringModelCriteriaCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ReorderScoringModelCriteriaCommandHandler> logger)
     : ICommandHandler<ReorderScoringModelCriteriaCommand>
 {
     private const string AppRequestName = nameof(ReorderScoringModelCriteriaCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ReorderScoringModelCriteriaCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ReorderScoringModelCriteriaCommand request, CancellationToken cancellationToken)
@@ -41,7 +45,7 @@ public sealed class ReorderScoringModelCriteriaCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var reorderResult = model.ReorderCriteria(request.OrderedCriterionIds);
+            var reorderResult = model.ReorderCriteria(request.OrderedCriterionIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (reorderResult.IsFailure)
             {
                 _logger.LogError("Unable to reorder criteria on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, reorderResult.Error);

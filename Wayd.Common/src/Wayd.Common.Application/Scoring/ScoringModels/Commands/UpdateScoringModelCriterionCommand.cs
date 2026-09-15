@@ -40,12 +40,16 @@ public sealed class UpdateScoringModelCriterionCommandValidator : AbstractValida
 
 public sealed class UpdateScoringModelCriterionCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UpdateScoringModelCriterionCommandHandler> logger)
     : ICommandHandler<UpdateScoringModelCriterionCommand>
 {
     private const string AppRequestName = nameof(UpdateScoringModelCriterionCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateScoringModelCriterionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateScoringModelCriterionCommand request, CancellationToken cancellationToken)
@@ -63,7 +67,7 @@ public sealed class UpdateScoringModelCriterionCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var updateResult = model.UpdateCriterion(request.CriterionId, request.Name, request.Token, request.Description, request.Weight, request.ScaleId);
+            var updateResult = model.UpdateCriterion(request.CriterionId, request.Name, request.Token, request.Description, request.Weight, request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 _logger.LogError("Unable to update criterion on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, updateResult.Error);

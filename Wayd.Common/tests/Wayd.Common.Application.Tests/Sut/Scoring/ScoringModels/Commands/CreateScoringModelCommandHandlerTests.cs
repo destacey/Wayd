@@ -1,18 +1,25 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using NodaTime;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Scoring.ScoringModels.Commands;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Scoring.Enums;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Common.Application.Tests.Sut.Scoring.ScoringModels.Commands;
 
 public class CreateScoringModelCommandHandlerTests
 {
     private readonly FakeWaydDbContext _dbContext = new();
+    private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 1, 15, 9, 30)));
 
     private CreateScoringModelCommandHandler CreateHandler() =>
-        new(_dbContext, NullLogger<CreateScoringModelCommandHandler>.Instance);
+        new(_dbContext, _currentUser.Object, _dateTimeProvider, NullLogger<CreateScoringModelCommandHandler>.Instance);
 
     [Fact]
     public async Task Handle_ShouldPersistModelAndReturnItsId()

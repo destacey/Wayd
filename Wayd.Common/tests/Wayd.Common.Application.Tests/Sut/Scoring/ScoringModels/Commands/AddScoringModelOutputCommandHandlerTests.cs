@@ -1,15 +1,22 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using NodaTime;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Scoring.ScoringModels.Commands;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Common.Application.Tests.Sut.Scoring.ScoringModels.Commands;
 
 public class AddScoringModelOutputCommandHandlerTests
 {
     private readonly FakeWaydDbContext _dbContext = new();
+    private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 1, 15, 9, 30)));
     private readonly ScoringModelFaker _faker = new();
 
     private static readonly (string Name, (string Label, decimal Value)[] Levels)[] Scales =
@@ -22,7 +29,7 @@ public class AddScoringModelOutputCommandHandlerTests
     ];
 
     private AddScoringModelOutputCommandHandler CreateHandler() =>
-        new(_dbContext, NullLogger<AddScoringModelOutputCommandHandler>.Instance);
+        new(_dbContext, _currentUser.Object, _dateTimeProvider, NullLogger<AddScoringModelOutputCommandHandler>.Instance);
 
     // A model with criteria but no outputs yet, so the command under test adds the first (primary) output.
     private ScoringModel SeedModelWithoutOutputs()

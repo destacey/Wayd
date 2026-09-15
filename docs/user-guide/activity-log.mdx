@@ -22,7 +22,7 @@ Every record whose changes raise domain events carries an **Activity** section i
 | [Project Portfolios](./ppm/index.mdx) | Portfolios, Programs, Projects, Strategic Initiatives |
 | [Strategic Management](./strategic-management/index.mdx) | Strategic Themes |
 | [Product Management](./product-management/index.mdx) | Products, Versions, Releases, Release Packages, Deployments |
-| [Administration](./settings/index.mdx) | Status Workflows, Work Processes |
+| [Administration](./settings/index.mdx) | Scoring Models, Status Workflows, Work Processes |
 
 Seeing a record's activity needs only the same **View** permission that lets you open the record.
 
@@ -69,6 +69,6 @@ Programs and portfolios keep no status history of their own, so their Activity s
 
 Strategic initiatives and status workflows likewise record each kind of change only from the release that began recording it. The one exception is an initiative's creation and deletion, which earlier releases recorded on its **portfolio**: those entries have been moved onto the initiative.
 
-Planning intervals, PI objectives and risks that existed before their changes were recorded begin with a **Baseline** entry: the record as it stood when recording began. Locking or unlocking a planning interval's objectives is recorded once, on the planning interval, rather than on each objective.
+Planning intervals, PI objectives, risks and scoring models that existed before their changes were recorded begin with a **Baseline** entry: the record as it stood when recording began. Locking or unlocking a planning interval's objectives is recorded once, on the planning interval, rather than on each objective.
 
 Where an edit changes several things at once, you see one entry per kind of change rather than one per field: replacing a project's team records a single entry holding the team as it stands afterwards, not one entry per person added or removed. Status changes are the exception, because each transition is its own step — a project imported as Completed shows the moves through Active and into Completed separately, exactly as they happened.

@@ -13,6 +13,7 @@ using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Events.Planning.Risks;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Events.Scoring;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
@@ -474,6 +475,45 @@ public sealed class DomainEventSerializationTests
         roundTripped.Statuses.Should().Equal(original.Statuses);
         roundTripped.SourceWorkflowId.Should().Be(original.SourceWorkflowId);
         roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void ScoringModelCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - scales nesting their levels, decimals, and nullable weights, descriptions and scale ids.
+        var scaleId = Guid.NewGuid();
+        var original = new ScoringModelCreatedEvent(
+            Guid.NewGuid(), 3, "WSJF", "Weighted shortest job first.",
+            scales: [new ScoringScaleValues(scaleId, "Impact", 1,
+                [new ScoringRatingLevelValues(Guid.NewGuid(), "High", 8.5m, 1), new ScoringRatingLevelValues(Guid.NewGuid(), "Low", 1m, 2)])],
+            criteria:
+            [
+                new ScoringCriterionValues(Guid.NewGuid(), "Business Value", "BV", "Value delivered.", 1.25m, scaleId, 1),
+                new ScoringCriterionValues(Guid.NewGuid(), "Job Size", "JS", null, null, null, 2),
+            ],
+            outputs: [new ScoringOutputValues(Guid.NewGuid(), "WSJF", "WSJF", "BV / JS", true, 1)],
+            EventActor.System,
+            Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public void ScoringModelPrimaryOutputChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a nullable previous end.
+        var original = new ScoringModelPrimaryOutputChangedEvent(
+            Guid.NewGuid(), 3, previousOutputId: null, outputId: Guid.NewGuid(), EventActor.System, Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
     }
 
     [Fact]

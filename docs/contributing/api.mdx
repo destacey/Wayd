@@ -92,7 +92,29 @@ class or adding an import, rebuild the API, then run `npm run generate:import-te
 client — `import-templates.generated.test.ts` fails until you do. A new import also needs its submitter
 and cache tags in `store/features/admin/imports-api.ts`, and a new API module a group in
 `csv-import-form.tsx`; all three are keyed by generated types, so the compiler asks for them.
-`ImportEndpointPermissionTests` fails an import endpoint missing either attribute.
+`ImportEndpointPermissionTests` fails an import endpoint missing either attribute, or missing the
+`submissionGroupId` and `validateOnly` query parameters every import endpoint takes.
+
+#### What a preflight asks of an import definition
+
+`validateOnly=true` records the run as a preflight, which `RunImportProcessCommand` drives through the
+definition's real passes inside `IImportDbContext.BeginPreflight` — a transaction rolled back at the end,
+with every raised event held back rather than delivered. Only the passes a later pass reads back are
+saved; the last pass is staged and discarded, so a single-pass import writes nothing and spends no
+identity values. A pass therefore has to keep to the constraints the runner already sets, because a
+preflight breaks silently where they are ignored:
+
+- **Write through the context the pass was given.** A pass that opens its own transaction, resolves a
+  second context, or dispatches a command that saves in its own scope commits outside the rollback, and a
+  preflight leaves that work behind.
+- **Read earlier passes back from the database**, never from entities an earlier pass left tracked. The
+  runner clears the tracker between chunks, and in a preflight that is also what discards the last pass.
+- **Report a rejection on the row.** A preflight of an all-or-nothing import carries the accepted rows into
+  the later passes after a rejection, which a real run never does, so a pass must leave what it staged for
+  those rows consistent when it rejects another one.
+
+`ImportPreflightTests` (Testcontainers) proves the rollback, the held-back events and the unspent identity
+values; a new kind of pass that writes differently needs its own case there.
 
 ## API Conventions
 

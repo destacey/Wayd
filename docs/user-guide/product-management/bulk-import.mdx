@@ -41,6 +41,12 @@ A few rules apply to every import:
   `Location` to follow. Either way the body is the same run, and its page under
   [Settings → Imports](../settings/imports.mdx) shows what became of each row. Importing from the app
   tells you the outcome in the dialog, and takes you to that page when a file is still running.
+- **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
+  **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
+  through the import's own checks without anything being created: each comes back passed or rejected
+  with its reason, and an all-or-nothing file reports every rejection rather than stopping at the first
+  step that finds one. It is advice, not a promise — the data can change before you import — and a
+  finished check can be imported for real from its page without posting the file again.
 - **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
   query parameter — any GUID you choose — and records it on the run, so a set of files posted under one
   value shows as one batch in [Settings → Imports](../settings/imports.mdx#what-you-see), with summed

@@ -4,6 +4,7 @@ import { QueryTags } from '../query-tags'
 import {
   CreateScoringModelRequest,
   EvaluateScoringModelRequest,
+  PagedResponseOfActivityLogDto,
   ScoringModelCriterionRequest,
   ScoringModelDetailsDto,
   ScoringModelEvaluationDto,
@@ -78,6 +79,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.ScoringModel, id: 'LIST' },
         { type: QueryTags.ScoringModel, id: arg.id },
+        { type: QueryTags.ActivityLog, id: arg.id },
       ],
     }),
     deleteScoringModel: builder.mutation<void, string>({
@@ -105,6 +107,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.ScoringModel, id: 'LIST' },
         { type: QueryTags.ScoringModel, id: arg },
+        { type: QueryTags.ActivityLog, id: arg },
       ],
     }),
     archiveScoringModel: builder.mutation<void, string>({
@@ -120,6 +123,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.ScoringModel, id: 'LIST' },
         { type: QueryTags.ScoringModel, id: arg },
+        { type: QueryTags.ActivityLog, id: arg },
       ],
     }),
     addScoringModelCriterion: builder.mutation<
@@ -138,7 +142,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     updateScoringModelCriterion: builder.mutation<
       void,
@@ -157,7 +164,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     removeScoringModelCriterion: builder.mutation<
       void,
@@ -175,7 +185,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     reorderScoringModelCriteria: builder.mutation<
       void,
@@ -193,7 +206,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     addScoringScale: builder.mutation<
       string,
@@ -211,7 +227,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     updateScoringScale: builder.mutation<
       void,
@@ -230,7 +249,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     removeScoringScale: builder.mutation<
       void,
@@ -248,7 +270,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     reorderScoringScales: builder.mutation<
       void,
@@ -266,7 +291,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     addScoringScaleLevel: builder.mutation<
       string,
@@ -285,7 +313,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     updateScoringScaleLevel: builder.mutation<
       void,
@@ -309,7 +340,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     removeScoringScaleLevel: builder.mutation<
       void,
@@ -328,7 +362,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     reorderScoringScaleLevels: builder.mutation<
       void,
@@ -347,7 +384,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     addScoringModelOutput: builder.mutation<
       string,
@@ -365,7 +405,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     updateScoringModelOutput: builder.mutation<
       void,
@@ -384,7 +427,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     removeScoringModelOutput: builder.mutation<
       void,
@@ -402,7 +448,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
     }),
     reorderScoringModelOutputs: builder.mutation<
       void,
@@ -420,7 +469,31 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ScoringModel },
+        { type: QueryTags.ActivityLog, id: arg.scoringModelId },
+      ],
+    }),
+    getScoringModelActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getScoringModelsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
     }),
     evaluateScoringModel: builder.mutation<
       ScoringModelEvaluationDto,
@@ -445,6 +518,8 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
 export const {
   useGetScoringModelsQuery,
   useGetScoringModelQuery,
+  useGetScoringModelActivitiesQuery,
+  useLazyGetScoringModelActivitiesQuery,
   useCreateScoringModelMutation,
   useUpdateScoringModelMutation,
   useDeleteScoringModelMutation,

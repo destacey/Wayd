@@ -145,6 +145,7 @@ Eight self-contained skills are available:
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
 | `wayd-teams` | Team lookup — resolve a team name to an ID |
 | `wayd-users` | User lookup — resolve a user name to a UUID for assignees and project roles |
+| `wayd-imports` | CSV imports — write a file in the right format, preflight it, import the rows it checked, and follow or re-run import runs |
 
 ### Installing the skills
 
@@ -154,7 +155,7 @@ From your project root:
 npx skills add destacey/Wayd
 ```
 
-Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-products`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, or `/wayd-users`.
+Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-products`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, `/wayd-users`, or `/wayd-imports`.
 
 ## Confirmation before status changes
 

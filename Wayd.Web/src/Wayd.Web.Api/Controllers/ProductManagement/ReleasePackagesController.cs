@@ -135,7 +135,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     public async Task<ActionResult> Import(
         [FromForm, CsvRows(typeof(ImportReleasePackageRequest))] IFormFile file,
         [FromForm, CsvRows(typeof(ImportReleasePackageComponentRequest), Label = "Manifest")] IFormFile manifestFile,
-        [FromQuery] Guid? submissionGroupId,
+        [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly,
         [FromServices] ImportSubmissionResponder responder,
         CancellationToken cancellationToken)
     {
@@ -213,7 +213,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
                 return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
             }
 
-            var result = await _dispatcher.Send(new ImportReleasePackagesCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportReleasePackagesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

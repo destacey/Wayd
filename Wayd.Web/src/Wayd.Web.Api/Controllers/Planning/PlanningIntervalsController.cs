@@ -135,7 +135,7 @@ public class PlanningIntervalsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(PlanningIntervalImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportPlanningIntervalRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportPlanningIntervalRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -164,7 +164,7 @@ public class PlanningIntervalsController : ControllerBase
                     planningInterval.ImportId, planningInterval.ToImportPlanningIntervalDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportPlanningIntervalsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportPlanningIntervalsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -810,7 +810,7 @@ public class PlanningIntervalsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(PlanningIntervalObjectiveImportDefinition.ImportKey)]
-    public async Task<ActionResult> ImportObjectives([FromForm, CsvRows(typeof(ImportPlanningIntervalObjectivesRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportObjectives([FromForm, CsvRows(typeof(ImportPlanningIntervalObjectivesRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -840,7 +840,7 @@ public class PlanningIntervalsController : ControllerBase
             }
 
             var result = await _dispatcher.Send(
-                new ImportPlanningIntervalObjectivesCommand(rows, submissionGroupId), cancellationToken);
+                new ImportPlanningIntervalObjectivesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

@@ -143,7 +143,7 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(ProductImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportProductRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportProductRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -173,7 +173,7 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
                 rows.Add(new SubmittedImportRow<ImportProductDto>(product.ImportId, product.ToImportProductDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportProductsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProductsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

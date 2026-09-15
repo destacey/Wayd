@@ -69,7 +69,7 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(DeploymentEnvironmentImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportDeploymentEnvironmentRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportDeploymentEnvironmentRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -94,7 +94,7 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
                     environment.ImportId, environment.ToImportDeploymentEnvironmentDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportDeploymentEnvironmentsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportDeploymentEnvironmentsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

@@ -15,7 +15,7 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 /// </remarks>
 public sealed record ImportStrategicThemesCommand(
     IReadOnlyList<SubmittedImportRow<ImportStrategicThemeDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -64,6 +64,6 @@ public sealed class ImportStrategicThemesCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(StrategicThemeImportDefinition.ImportKey, rows, command.SubmissionGroupId), cancellationToken);
+            new SubmitImportCommand(StrategicThemeImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly), cancellationToken);
     }
 }

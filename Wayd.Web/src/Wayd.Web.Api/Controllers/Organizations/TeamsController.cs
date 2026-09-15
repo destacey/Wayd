@@ -95,7 +95,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(TeamImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportTeamRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportTeamRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -119,7 +119,7 @@ public class TeamsController(
                 rows.Add(new SubmittedImportRow<ImportTeamDto>(team.ImportId, team.ToImportTeamDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportTeamsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -139,7 +139,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(TeamMemberImportDefinition.ImportKey)]
-    public async Task<ActionResult> ImportMembers([FromForm, CsvRows(typeof(ImportTeamMemberRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportMembers([FromForm, CsvRows(typeof(ImportTeamMemberRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -164,7 +164,7 @@ public class TeamsController(
                     member.ImportId, member.ToImportTeamMemberDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportTeamMembersCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamMembersCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -184,7 +184,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(TeamMembershipImportDefinition.ImportKey)]
-    public async Task<ActionResult> ImportTeamMemberships([FromForm, CsvRows(typeof(ImportTeamMembershipRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportTeamMemberships([FromForm, CsvRows(typeof(ImportTeamMembershipRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -209,7 +209,7 @@ public class TeamsController(
                     membership.ImportId, membership.ToImportTeamMembershipDto()));
             }
 
-            var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

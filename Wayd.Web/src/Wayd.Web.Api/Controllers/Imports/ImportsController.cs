@@ -5,6 +5,7 @@ using Wayd.Common.Application.Imports.Queries;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Web.Api.Extensions;
+using Wayd.Web.Api.Services;
 
 namespace Wayd.Web.Api.Controllers.Imports;
 
@@ -121,6 +122,24 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
 
         return result.IsSuccess
             ? Accepted(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id:guid}/apply")]
+    [OpenApiOperation("Import the file a preflight checked, for real. Returns the new run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Apply(
+        Guid id,
+        [FromQuery] Guid? submissionGroupId,
+        [FromServices] ImportSubmissionResponder responder,
+        CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new ApplyImportPreflightCommand(id, submissionGroupId), cancellationToken);
+
+        return result.IsSuccess
+            ? await responder.Respond(this, result.Value, cancellationToken)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

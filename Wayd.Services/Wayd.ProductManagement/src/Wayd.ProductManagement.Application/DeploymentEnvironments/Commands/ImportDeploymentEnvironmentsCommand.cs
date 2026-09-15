@@ -14,7 +14,7 @@ namespace Wayd.ProductManagement.Application.DeploymentEnvironments.Commands;
 /// </remarks>
 public sealed record ImportDeploymentEnvironmentsCommand(
     IReadOnlyList<SubmittedImportRow<ImportDeploymentEnvironmentDto>> Rows,
-    Guid? SubmissionGroupId = null) : ICommand<Guid>;
+    Guid? SubmissionGroupId = null, bool ValidateOnly = false) : ICommand<Guid>;
 
 /// <summary>
 /// Validates the rows themselves, and the one thing that is true of a file rather than of any row.
@@ -66,7 +66,7 @@ public sealed class ImportDeploymentEnvironmentsCommandHandler(
             .ToList();
 
         return await _dispatcher.Send(
-            new SubmitImportCommand(DeploymentEnvironmentImportDefinition.ImportKey, rows, command.SubmissionGroupId),
+            new SubmitImportCommand(DeploymentEnvironmentImportDefinition.ImportKey, rows, command.SubmissionGroupId, command.ValidateOnly),
             cancellationToken);
     }
 }

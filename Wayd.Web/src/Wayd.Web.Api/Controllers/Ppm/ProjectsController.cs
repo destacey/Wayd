@@ -140,7 +140,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(ProjectImportDefinition.ImportKey)]
-    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportProjectRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportProjectRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -163,7 +163,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
                 rows.Add(new SubmittedImportRow<ImportProjectDto>(project.ImportId, project.ToImportProjectDto()));
             }
-            var result = await _dispatcher.Send(new ImportProjectsCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -187,7 +187,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(ProjectTaskImportDefinition.ImportKey)]
-    public async Task<ActionResult> ImportTasks([FromForm, CsvRows(typeof(ImportProjectTaskRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportTasks([FromForm, CsvRows(typeof(ImportProjectTaskRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -210,7 +210,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
                 rows.Add(new SubmittedImportRow<ImportProjectTaskDto>(task.ImportId, task.ToImportProjectTaskDto()));
             }
-            var result = await _dispatcher.Send(new ImportProjectTasksCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectTasksCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)
@@ -235,7 +235,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(ProjectStageImportDefinition.ImportKey)]
-    public async Task<ActionResult> ImportStages([FromForm, CsvRows(typeof(ImportProjectStageRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportStages([FromForm, CsvRows(typeof(ImportProjectStageRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -258,7 +258,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
                 rows.Add(new SubmittedImportRow<ImportProjectStageDto>(stage.ImportId, stage.ToImportProjectStageDto()));
             }
-            var result = await _dispatcher.Send(new ImportProjectStagesCommand(rows, submissionGroupId), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectStagesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 
             return result.IsSuccess
                 ? await responder.Respond(this, result.Value, cancellationToken)

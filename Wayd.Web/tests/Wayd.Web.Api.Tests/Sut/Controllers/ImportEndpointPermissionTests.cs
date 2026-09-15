@@ -165,4 +165,20 @@ public sealed class ImportEndpointPermissionTests
         // Assert
         withoutGroup.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Endpoints_OfferAPreflightFromTheQueryString()
+    {
+        // Arrange & Act — every import type can be checked without applying it, and the Imports page
+        // offers that for whichever one is chosen
+        var withoutPreflight = ImportEndpoints()
+            .Where(m => !m.GetParameters().Any(p =>
+                p.Name == "validateOnly"
+                && p.ParameterType == typeof(bool)
+                && p.GetCustomAttribute<FromQueryAttribute>() is not null))
+            .Select(m => $"{m.DeclaringType!.Name}.{m.Name}");
+
+        // Assert
+        withoutPreflight.Should().BeEmpty();
+    }
 }

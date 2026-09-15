@@ -19,6 +19,12 @@ public interface ISeedArea
     IReadOnlyList<string> DependsOn { get; }
 
     /// <summary>
+    /// The key of the import this area splits into files by its published row cap, or null for an area
+    /// that never splits. Declared so a seed can check every cap it needs before posting anything.
+    /// </summary>
+    string? BatchedImport { get; }
+
+    /// <summary>
     /// Whether this area has anything to do for the current context — a seed with no programs skips the
     /// program area rather than posting an empty file, which the endpoints reject.
     /// </summary>

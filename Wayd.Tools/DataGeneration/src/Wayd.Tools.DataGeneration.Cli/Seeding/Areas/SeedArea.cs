@@ -14,20 +14,28 @@ public abstract class SeedArea(string name, params string[] dependsOn) : ISeedAr
 
     public IReadOnlyList<string> DependsOn { get; } = dependsOn;
 
+    public virtual string? BatchedImport => null;
+
     public abstract bool ShouldRun(SeedContext context);
 
     public abstract Task Run(SeedContext context, CancellationToken cancellationToken);
 
     /// <summary>
-    /// The most rows a seed puts in one file. The atomic imports reject anything past 10,000 outright,
-    /// since an atomic run cannot be split server-side and the cap is what bounds it; this leaves room
-    /// under that rather than sitting on it, because a batch is sized by whole groups and the last one
-    /// added can overshoot a tighter limit.
+    /// Splits rows into files within the row cap the server publishes for <see cref="BatchedImport"/>.
     /// </summary>
-    private const int MaxRowsPerFile = 8_000;
+    protected IReadOnlyList<IReadOnlyList<TRow>> Batch<TRow, TKey>(
+        SeedContext context, IEnumerable<TRow> rows, Func<TRow, TKey> groupBy)
+        where TKey : notnull
+    {
+        var importKey = BatchedImport
+            ?? throw new InvalidOperationException($"Area '{Name}' batches its rows but declares no {nameof(BatchedImport)}.");
+
+        return Batch(rows, groupBy, context.ImportLimits.MaxRows(importKey));
+    }
 
     /// <summary>
-    /// Splits rows into files small enough for one import run, keeping every row of a group together.
+    /// Splits rows into files of at most <paramref name="maxRowsPerFile"/> rows, keeping every row of a
+    /// group together.
     /// </summary>
     /// <remarks>
     /// The group is not a convenience: the imports that need batching are whole-set precisely because
@@ -40,7 +48,7 @@ public abstract class SeedArea(string name, params string[] dependsOn) : ISeedAr
     /// </para>
     /// </remarks>
     protected static IReadOnlyList<IReadOnlyList<TRow>> Batch<TRow, TKey>(
-        IEnumerable<TRow> rows, Func<TRow, TKey> groupBy)
+        IEnumerable<TRow> rows, Func<TRow, TKey> groupBy, int maxRowsPerFile)
         where TKey : notnull
     {
         List<IReadOnlyList<TRow>> batches = [];
@@ -50,7 +58,8 @@ public abstract class SeedArea(string name, params string[] dependsOn) : ISeedAr
         {
             var members = group.ToList();
 
-            if (current.Count > 0 && current.Count + members.Count > MaxRowsPerFile)
+            // Checked before the group is added, so a file only passes the cap when one group alone does.
+            if (current.Count > 0 && current.Count + members.Count > maxRowsPerFile)
             {
                 batches.Add(current);
                 current = [];

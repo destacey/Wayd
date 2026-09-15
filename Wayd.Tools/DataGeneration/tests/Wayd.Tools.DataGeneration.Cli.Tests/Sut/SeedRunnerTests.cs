@@ -146,6 +146,26 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public void Areas_DeclareTheImportEachBatchedAreaSplits()
+    {
+        // Arrange & Act — the areas whose files can outgrow one run; each needs its import's published cap
+        var batched = SeedRunner.Areas.Where(a => a.BatchedImport is not null).Select(a => a.Name);
+
+        // Assert
+        batched.Should().BeEquivalentTo(
+        [
+            PpmArea.ProjectTasks,
+            ProductManagementArea.Versions,
+            ProductManagementArea.ReleasePackages,
+            ProductManagementArea.Releases,
+            ProductManagementArea.Deployments,
+            PlanningArea.PlanningIntervals,
+            PlanningArea.Objectives,
+            PlanningArea.Risks,
+        ]);
+    }
+
+    [Fact]
     public void Areas_DeclareTheHierarchyAfterTheTeamsItLinks()
     {
         // Arrange & Act & Assert

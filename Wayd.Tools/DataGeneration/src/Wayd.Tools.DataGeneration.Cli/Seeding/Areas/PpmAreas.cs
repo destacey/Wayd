@@ -208,6 +208,8 @@ public sealed class ProjectsArea() : PpmSeedArea(
 public sealed class ProjectTasksArea() : PpmSeedArea(
     PpmArea.ProjectTasks, PpmArea.Projects, OrganizationArea.Employees)
 {
+    public override string BatchedImport => "ppm.project-tasks";
+
     public override bool ShouldRun(SeedContext context) => context.Ppm?.ProjectTasks.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -235,7 +237,7 @@ public sealed class ProjectTasksArea() : PpmSeedArea(
 
         // Batched by project, because a dense breakdown across a few hundred projects runs past what one
         // atomic import accepts. Each batch is its own run, so a failure names the file it happened in.
-        var batches = Batch(rows, r => r.ProjectKey);
+        var batches = Batch(context, rows, r => r.ProjectKey);
         context.Log($"Importing {tasks.Count} project tasks in {batches.Count} batch(es)...");
 
         Dictionary<string, Guid> created = [];

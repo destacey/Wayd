@@ -30,6 +30,8 @@ public abstract class PlanningSeedArea(string name, params string[] dependsOn) :
 public sealed class PlanningIntervalsArea() : PlanningSeedArea(
     PlanningArea.PlanningIntervals, OrganizationArea.Teams, OrganizationArea.Staffing)
 {
+    public override string BatchedImport => "planning.planning-intervals";
+
     public override bool ShouldRun(SeedContext context) => context.Planning?.PlanningIntervals.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -48,7 +50,7 @@ public sealed class PlanningIntervalsArea() : PlanningSeedArea(
             TeamIds = string.Join(';', context.Ids(OrganizationArea.Teams, p.TeamCodes.Split(';'))),
         }).ToList();
 
-        var batches = Batch(rows, r => r.ImportId);
+        var batches = Batch(context, rows, r => r.ImportId);
         context.Log($"Importing {rows.Count} planning intervals in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "planning intervals", batches,
@@ -62,6 +64,8 @@ public sealed class PlanningIntervalsArea() : PlanningSeedArea(
 public sealed class PlanningIntervalObjectivesArea() : PlanningSeedArea(
     PlanningArea.Objectives, PlanningArea.PlanningIntervals, OrganizationArea.Teams)
 {
+    public override string BatchedImport => "planning.planning-interval-objectives";
+
     public override bool ShouldRun(SeedContext context) => context.Planning?.Objectives.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -84,7 +88,7 @@ public sealed class PlanningIntervalObjectivesArea() : PlanningSeedArea(
             Order = o.Order,
         }).ToList();
 
-        var batches = Batch(rows, r => r.PlanningIntervalId);
+        var batches = Batch(context, rows, r => r.PlanningIntervalId);
         context.Log($"Importing {rows.Count} planning interval objectives in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "objectives", batches,
@@ -98,6 +102,8 @@ public sealed class PlanningIntervalObjectivesArea() : PlanningSeedArea(
 public sealed class RisksArea() : PlanningSeedArea(
     PlanningArea.Risks, OrganizationArea.Teams, OrganizationArea.Employees, OrganizationArea.Staffing)
 {
+    public override string BatchedImport => "planning.risks";
+
     public override bool ShouldRun(SeedContext context) => context.Planning?.Risks.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -122,7 +128,7 @@ public sealed class RisksArea() : PlanningSeedArea(
             ClosedDateUtc = r.ClosedAt is { } closed ? PlanningCsv.Timestamp(closed) : null,
         }).ToList();
 
-        var batches = Batch(rows, r => r.TeamId);
+        var batches = Batch(context, rows, r => r.TeamId);
         context.Log($"Importing {rows.Count} risks in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "risks", batches,

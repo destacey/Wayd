@@ -5,13 +5,13 @@ using Wayd.Tools.DataGeneration.Cli.Seeding.Areas;
 namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 
 /// <summary>
-/// Splitting a set of rows into files an import will accept. The atomic imports reject anything past
-/// 10,000 rows outright, so a seed large enough to pass that has to send more than one file — and the
-/// split has to fall on a group boundary, because the rows within a group reference each other.
+/// Splitting a set of rows into files an import will accept. An import rejects a file past the row cap it
+/// publishes, so a seed large enough to pass that has to send more than one file — and the split has to
+/// fall on a group boundary, because the rows within a group reference each other.
 /// </summary>
 public class SeedAreaTests
 {
-    /// <summary>The server-side cap the batches have to stay under.</summary>
+    /// <summary>The cap the atomic imports publish today.</summary>
     private const int ImportRowLimit = 10_000;
 
     private sealed record Row(string ProjectKey, int Number);
@@ -23,8 +23,8 @@ public class SeedAreaTests
 
         public override Task Run(SeedContext context, CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public static IReadOnlyList<IReadOnlyList<Row>> Split(IEnumerable<Row> rows) =>
-            Batch(rows, r => r.ProjectKey);
+        public static IReadOnlyList<IReadOnlyList<Row>> Split(IEnumerable<Row> rows, int maxRowsPerFile = ImportRowLimit) =>
+            Batch(rows, r => r.ProjectKey, maxRowsPerFile);
     }
 
     /// <summary>
@@ -58,6 +58,36 @@ public class SeedAreaTests
         // Assert
         batches.Count.Should().BeGreaterThan(1);
         batches.Should().AllSatisfy(b => b.Count.Should().BeLessThanOrEqualTo(ImportRowLimit));
+    }
+
+    [Fact]
+    public void Batch_SplitsOnTheLimitItWasGiven()
+    {
+        // Arrange — a set far under the atomic cap, so only the limit passed in can cause a split
+        var rows = Rows(groups: 40, averagePerGroup: 25);
+
+        // Act
+        var batches = Harness.Split(rows, maxRowsPerFile: 200);
+
+        // Assert
+        batches.Count.Should().BeGreaterThan(1);
+        batches.Should().AllSatisfy(b => b.Count.Should().BeLessThanOrEqualTo(200));
+    }
+
+    [Fact]
+    public void Batch_FillsAFileUpToTheLimitItself()
+    {
+        // Arrange — groups of exactly ten, so a file can land on the limit precisely; no margin is kept
+        // under it, because a group is only added when it fits
+        var rows = Enumerable.Range(0, 30)
+            .SelectMany(g => Enumerable.Range(0, 10).Select(n => new Row($"P{g:D4}", n)))
+            .ToList();
+
+        // Act
+        var batches = Harness.Split(rows, maxRowsPerFile: 100);
+
+        // Assert
+        batches.Select(b => b.Count).Should().Equal(100, 100, 100);
     }
 
     [Fact]

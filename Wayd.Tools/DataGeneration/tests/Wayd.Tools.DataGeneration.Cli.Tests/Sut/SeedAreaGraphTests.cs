@@ -8,6 +8,8 @@ public class SeedAreaGraphTests
     /// <summary>A stand-in area: the graph only reads the name and the dependencies.</summary>
     private sealed record FakeArea(string Name, IReadOnlyList<string> DependsOn) : ISeedArea
     {
+        public string? BatchedImport => null;
+
         public bool ShouldRun(SeedContext context) => true;
 
         public Task Run(SeedContext context, CancellationToken cancellationToken) => Task.CompletedTask;

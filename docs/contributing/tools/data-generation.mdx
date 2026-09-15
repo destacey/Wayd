@@ -73,6 +73,10 @@ dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli
 
 No password is ever handled by the tool, and a token is scoped, expiring, and revocable on its own.
 
+A token acts with its account's permissions, so create it as an administrator. Before posting anything, the
+seed checks that the token can submit every import it splits into several files, and stops naming any it
+cannot — see [One area can be more than one file](#one-area-can-be-more-than-one-file).
+
 :::tip Re-seeding
 The import is **additive** and rejects duplicates, so it expects a clean database. To re-seed, reset the
 database first (Aspire dashboard → the reset command), then run `seed` again.
@@ -664,13 +668,19 @@ Management and Planning imports — cap at 10,000 rows. An atomic import cannot 
 run that is applied as one transaction; it is the server's guard against an arbitrary client, and the seed
 is a client like any other.
 
+The seed does not keep its own copy of those caps. Before posting anything it reads each import's `maxRows`
+from `GET /api/imports/definitions` and fills every file up to it, so an import that changes its cap
+changes how the seed splits with no change here. Every import the seed splits must be one the token can
+submit, so a token missing one of those permissions fails the run up front, naming each import, before any
+area has posted a file.
+
 The task file is the one that passes it: a dense breakdown across a few hundred projects runs to around
 12,000 rows at default options. So that area sends several files, and the run log says so:
 
 ```
-Importing 11573 project tasks in 2 batch(es)...
-  batch 1 of 2: 7988 tasks
-  batch 2 of 2: 3585 tasks
+Importing 11517 project tasks in 2 batch(es)...
+  batch 1 of 2: 9974 tasks
+  batch 2 of 2: 1543 tasks
 ```
 
 The split falls on **project boundaries**, and that is not a convenience. The task import is whole-set

@@ -30,6 +30,7 @@ public sealed class WaydSeedClient : IDisposable
     private readonly RolesClient _applicationRolesClient;
     private readonly UsersClient _usersClient;
     private readonly FeatureFlagsClient _featureFlagsClient;
+    private readonly ImportsClient _importsClient;
     private readonly ImportAwaiter _awaiter;
 
     /// <summary>
@@ -57,7 +58,8 @@ public sealed class WaydSeedClient : IDisposable
         _applicationRolesClient = new RolesClient(root, _httpClient);
         _usersClient = new UsersClient(root, _httpClient);
         _featureFlagsClient = new FeatureFlagsClient(root, _httpClient);
-        _awaiter = new ImportAwaiter(new ImportsClient(root, _httpClient), PollInterval, ImportTimeout);
+        _importsClient = new ImportsClient(root, _httpClient);
+        _awaiter = new ImportAwaiter(_importsClient, PollInterval, ImportTimeout);
     }
 
     /// <summary>The group every run this client submits is filed under; each run carries it.</summary>
@@ -155,6 +157,10 @@ public sealed class WaydSeedClient : IDisposable
 
         return created;
     }
+
+    /// <summary>Reads the row cap of every import type this token can see.</summary>
+    public async Task<ImportLimits> GetImportLimits(CancellationToken cancellationToken) =>
+        new(await _importsClient.GetDefinitionsAsync(cancellationToken));
 
     /// <summary>The provider a password-backed account signs in through.</summary>
     private const string LocalLoginProvider = "Wayd";

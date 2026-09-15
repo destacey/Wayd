@@ -70,15 +70,17 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
             UserPassword = userPassword,
         };
 
+        var areas = SeedAreaGraph.Order(Areas).Where(a => a.ShouldRun(context)).ToList();
+
+        // Checked before the first post: a cap missing halfway through would leave the environment holding
+        // the areas that ran before it.
+        context.ImportLimits = await _client.GetImportLimits(cancellationToken);
+        context.ImportLimits.Require(areas.Select(a => a.BatchedImport).OfType<string>());
+
         _log($"Submitting every file under import group {_client.SubmissionGroupId}.");
 
-        foreach (var area in SeedAreaGraph.Order(Areas))
-        {
-            if (!area.ShouldRun(context))
-                continue;
-
+        foreach (var area in areas)
             await area.Run(context, cancellationToken);
-        }
 
         _log("Seed complete.");
     }

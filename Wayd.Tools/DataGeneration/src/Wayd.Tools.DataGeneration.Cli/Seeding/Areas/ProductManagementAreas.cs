@@ -105,6 +105,8 @@ public sealed class ProductsArea() : ProductManagementSeedArea(
 public sealed class VersionsArea() : ProductManagementSeedArea(
     ProductManagementArea.Versions, ProductManagementArea.Products)
 {
+    public override string BatchedImport => "product-management.versions";
+
     public override bool ShouldRun(SeedContext context) => context.ProductManagement?.Versions.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -123,7 +125,7 @@ public sealed class VersionsArea() : ProductManagementSeedArea(
         }).ToList();
 
         // Rows are independent, so the product grouping only keeps one product's history in one file.
-        var batches = Batch(rows, r => r.ProductId);
+        var batches = Batch(context, rows, r => r.ProductId);
         context.Log($"Importing {versions.Count} versions in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "versions", batches,
@@ -140,6 +142,8 @@ public sealed class VersionsArea() : ProductManagementSeedArea(
 public sealed class ReleasePackagesArea() : ProductManagementSeedArea(
     ProductManagementArea.ReleasePackages, ProductManagementArea.Products, ProductManagementArea.Versions)
 {
+    public override string BatchedImport => "product-management.release-packages";
+
     public override bool ShouldRun(SeedContext context) => context.ProductManagement?.ReleasePackages.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -159,7 +163,7 @@ public sealed class ReleasePackagesArea() : ProductManagementSeedArea(
             ReleasedDate = p.ReleasedDate,
         }).ToList();
 
-        var batches = Batch(rows, r => r.ImportId);
+        var batches = Batch(context, rows, r => r.ImportId);
         context.Log($"Importing {rows.Count} release packages and {data.ReleasePackageComponents.Count} manifest lines in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "release packages", batches, batch =>
@@ -187,6 +191,8 @@ public sealed class ReleasePackagesArea() : ProductManagementSeedArea(
 public sealed class ReleasesArea() : ProductManagementSeedArea(
     ProductManagementArea.Releases, ProductManagementArea.Products, ProductManagementArea.Versions, ProductManagementArea.ReleasePackages)
 {
+    public override string BatchedImport => "product-management.releases";
+
     public override bool ShouldRun(SeedContext context) => context.ProductManagement?.Releases.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -208,7 +214,7 @@ public sealed class ReleasesArea() : ProductManagementSeedArea(
             Notes = r.Notes,
         }).ToList();
 
-        var batches = Batch(rows, r => r.ImportId);
+        var batches = Batch(context, rows, r => r.ImportId);
         context.Log($"Importing {rows.Count} releases and {data.ReleaseContents.Count} contents in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "releases", batches, batch =>
@@ -241,6 +247,8 @@ public sealed class ReleasesArea() : ProductManagementSeedArea(
 public sealed class DeploymentsArea() : ProductManagementSeedArea(
     ProductManagementArea.Deployments, ProductManagementArea.Environments, ProductManagementArea.Versions, ProductManagementArea.ReleasePackages)
 {
+    public override string BatchedImport => "product-management.deployments";
+
     public override bool ShouldRun(SeedContext context) => context.ProductManagement?.Deployments.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
@@ -261,7 +269,7 @@ public sealed class DeploymentsArea() : ProductManagementSeedArea(
             Reason = d.Reason,
         }).ToList();
 
-        var batches = Batch(rows, r => (r.VersionId, r.PackageId));
+        var batches = Batch(context, rows, r => (r.VersionId, r.PackageId));
         context.Log($"Importing {rows.Count} deployments in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "deployments", batches,

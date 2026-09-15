@@ -54,6 +54,9 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
     /// <summary>Holds import runs at Queued; inert unless a test holds it.</summary>
     public ImportClaimGate ImportClaims { get; } = new();
 
+    /// <summary>Records what every save adds; inert unless a test is recording.</summary>
+    public SaveRecorder Saves { get; } = new();
+
     /// <summary>How long an import submission waits on its run before answering 202.</summary>
     public ImportResponseTiming ImportResponseTiming { get; private set; } = _defaultImportResponseTiming;
 
@@ -134,7 +137,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         HandlerCodegenMode.Apply();
 
         builder.ConfigureServices(services =>
-            services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites, ImportClaims)));
+            services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites, ImportClaims, Saves)));
 
         builder.ConfigureTestServices(services =>
         {

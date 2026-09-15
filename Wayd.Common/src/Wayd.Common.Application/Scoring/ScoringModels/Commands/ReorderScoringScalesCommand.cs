@@ -21,12 +21,16 @@ public sealed class ReorderScoringScalesCommandValidator : AbstractValidator<Reo
 
 public sealed class ReorderScoringScalesCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ReorderScoringScalesCommandHandler> logger)
     : ICommandHandler<ReorderScoringScalesCommand>
 {
     private const string AppRequestName = nameof(ReorderScoringScalesCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ReorderScoringScalesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ReorderScoringScalesCommand request, CancellationToken cancellationToken)
@@ -42,7 +46,7 @@ public sealed class ReorderScoringScalesCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var reorderResult = model.ReorderScales(request.OrderedScaleIds);
+            var reorderResult = model.ReorderScales(request.OrderedScaleIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (reorderResult.IsFailure)
             {
                 _logger.LogError("Unable to reorder scales on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, reorderResult.Error);

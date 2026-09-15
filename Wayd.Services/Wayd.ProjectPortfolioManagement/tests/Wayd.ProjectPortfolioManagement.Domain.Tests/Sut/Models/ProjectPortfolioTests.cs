@@ -1467,7 +1467,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        var proposedModel = ScoringModel.Create("Proposed", "Not yet active.");
+        var proposedModel = ScoringModel.Create("Proposed", "Not yet active.", EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = portfolio.AssignScoringModel(proposedModel, AnAuthorizedActor(), _dateTimeProvider.Now);

@@ -36,12 +36,16 @@ public sealed class AddScoringModelCriterionCommandValidator : AbstractValidator
 
 public sealed class AddScoringModelCriterionCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<AddScoringModelCriterionCommandHandler> logger)
     : ICommandHandler<AddScoringModelCriterionCommand, Guid>
 {
     private const string AppRequestName = nameof(AddScoringModelCriterionCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AddScoringModelCriterionCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(AddScoringModelCriterionCommand request, CancellationToken cancellationToken)
@@ -59,7 +63,7 @@ public sealed class AddScoringModelCriterionCommandHandler(
                 return Result.Failure<Guid>("Scoring Model not found.");
             }
 
-            var addResult = model.AddCriterion(request.Name, request.Token, request.Description, request.Weight, request.ScaleId);
+            var addResult = model.AddCriterion(request.Name, request.Token, request.Description, request.Weight, request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (addResult.IsFailure)
             {
                 _logger.LogError("Unable to add criterion to Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, addResult.Error);

@@ -1,3 +1,5 @@
+using NodaTime;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Scoring.Enums;
 using Wayd.Tests.Shared.Data;
@@ -49,9 +51,12 @@ public static class ScoringModelFakerExtensions
         return faker;
     }
 
+    private static readonly Instant Timestamp = Instant.FromUtc(2026, 1, 15, 9, 30);
+
     /// <summary>
     /// Generates a proposed model with the specified scales, criteria, and outputs, built via the
     /// aggregate's own methods so invariants and ordering hold. Criteria reference a scale by name.
+    /// The events raised while building it are cleared, so a test sees only what it raises itself.
     /// </summary>
     public static ScoringModel AsProposedWith(
         this ScoringModelFaker faker,
@@ -59,11 +64,12 @@ public static class ScoringModelFakerExtensions
         (string Name, string Token, decimal? Weight, string? ScaleName)[] criteria,
         (string Name, string Token, string Formula, bool IsPrimary)[] outputs)
     {
-        var model = faker.Generate();
-        return model
+        var model = faker.Generate()
             .WithScales(scales)
             .WithCriteria(criteria)
             .WithOutputs(outputs);
+        model.ClearDomainEvents();
+        return model;
     }
 
     /// <summary>
@@ -76,7 +82,8 @@ public static class ScoringModelFakerExtensions
         (string Name, string Token, string Formula, bool IsPrimary)[] outputs)
     {
         var model = faker.AsProposedWith(scales, criteria, outputs);
-        model.Activate();
+        model.Activate(EventActor.System, Timestamp);
+        model.ClearDomainEvents();
         return model;
     }
 
@@ -121,10 +128,10 @@ public static class ScoringModelFakerExtensions
     {
         foreach (var (name, levels) in scales)
         {
-            var scale = model.AddScale(name).Value;
+            var scale = model.AddScale(name, EventActor.System, Timestamp).Value;
             foreach (var (label, value) in levels)
             {
-                model.AddScaleLevel(scale.Id, label, value);
+                model.AddScaleLevel(scale.Id, label, value, EventActor.System, Timestamp);
             }
         }
         return model;
@@ -143,7 +150,7 @@ public static class ScoringModelFakerExtensions
             Guid? scaleId = scaleName is null
                 ? null
                 : model.Scales.FirstOrDefault(s => s.Name == scaleName)?.Id;
-            model.AddCriterion(name, token, null, weight, scaleId);
+            model.AddCriterion(name, token, null, weight, scaleId, EventActor.System, Timestamp);
         }
         return model;
     }
@@ -157,7 +164,7 @@ public static class ScoringModelFakerExtensions
     {
         foreach (var (name, token, formula, isPrimary) in outputs)
         {
-            model.AddOutput(name, token, formula, isPrimary);
+            model.AddOutput(name, token, formula, isPrimary, EventActor.System, Timestamp);
         }
         return model;
     }

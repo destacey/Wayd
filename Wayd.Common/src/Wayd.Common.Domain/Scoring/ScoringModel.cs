@@ -1,6 +1,9 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using NodaTime;
 using Wayd.Common.Domain.Data;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Scoring;
 using Wayd.Common.Domain.Scoring.Enums;
 
 namespace Wayd.Common.Domain.Scoring;
@@ -86,15 +89,40 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Updates the model details. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result Update(string name, string description)
+    public Result Update(string name, string description, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
             return Result.Failure(NotProposedError);
         }
 
+        // Compared after assignment, never against the arguments: the setters trim.
+        var before = new ScoringModelDetails(Name, Description);
+
         Name = name;
         Description = description;
+
+        var after = new ScoringModelDetails(Name, Description);
+        if (before != after)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelDetailsUpdatedEvent(Id, Key, after.Name, after.Description, before, actor, timestamp));
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Raises the deletion event, refusing a model that is not proposed. The caller removes the model in the
+    /// same save, which is what drains the event.
+    /// </summary>
+    public Result Delete(EventActor actor, Instant timestamp)
+    {
+        if (!CanBeDeleted())
+        {
+            return Result.Failure("Only proposed scoring models can be deleted.");
+        }
+
+        AddDomainEvent(new ScoringModelDeletedEvent(Id, Key, Name, actor, timestamp));
 
         return Result.Success();
     }
@@ -106,7 +134,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// scale-referencing criterion to point at a scale with at least two levels, and a valid set of
     /// outputs with exactly one primary, where each output formula references only tokens defined before it.
     /// </summary>
-    public Result Activate()
+    public Result Activate(EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -132,13 +160,15 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
 
         State = ScoringModelState.Active;
 
+        AddKeyedDomainEvent(() => new ScoringModelActivatedEvent(Id, Key, actor, timestamp));
+
         return Result.Success();
     }
 
     /// <summary>
     /// Archives the model, preventing it from being assigned. Existing scores and assignments are not affected.
     /// </summary>
-    public Result Archive()
+    public Result Archive(EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Active)
         {
@@ -146,6 +176,8 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
         }
 
         State = ScoringModelState.Archived;
+
+        AddKeyedDomainEvent(() => new ScoringModelArchivedEvent(Id, Key, actor, timestamp));
 
         return Result.Success();
     }
@@ -158,7 +190,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// Adds a new criterion to the model. Only allowed when the model is in the Proposed state.
     /// The criterion is appended at the end of the existing criteria.
     /// </summary>
-    public Result<ScoringModelCriterion> AddCriterion(string name, string token, string? description, decimal? weight, Guid? scaleId)
+    public Result<ScoringModelCriterion> AddCriterion(string name, string token, string? description, decimal? weight, Guid? scaleId, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -182,13 +214,18 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
         var criterion = new ScoringModelCriterion(Id, name, token.Trim(), description, weight, scaleId, order);
         _criteria.Add(criterion);
 
+        var values = CriterionValues(criterion);
+        AddKeyedDomainEvent(() => new ScoringModelCriterionAddedEvent(
+            Id, Key, values.CriterionId, values.Name, values.Token, values.Description, values.Weight, values.ScaleId, values.Order,
+            actor, timestamp));
+
         return Result.Success(criterion);
     }
 
     /// <summary>
     /// Updates the details of an existing criterion. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result UpdateCriterion(Guid criterionId, string name, string token, string? description, decimal? weight, Guid? scaleId)
+    public Result UpdateCriterion(Guid criterionId, string name, string token, string? description, decimal? weight, Guid? scaleId, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -213,14 +250,42 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return scaleResult;
         }
 
-        return criterion.Update(name, token.Trim(), description, weight, scaleId);
+        var beforeDetails = new ScoringCriterionDetails(criterion.Name, criterion.Token, criterion.Description);
+        var (beforeWeight, beforeScaleId) = (criterion.Weight, criterion.ScaleId);
+
+        var updateResult = criterion.Update(name, token.Trim(), description, weight, scaleId);
+        if (updateResult.IsFailure)
+        {
+            return updateResult;
+        }
+
+        var afterDetails = new ScoringCriterionDetails(criterion.Name, criterion.Token, criterion.Description);
+        if (beforeDetails != afterDetails)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelCriterionDetailsUpdatedEvent(
+                Id, Key, criterionId, afterDetails.Name, afterDetails.Token, afterDetails.Description, beforeDetails, actor, timestamp));
+        }
+
+        var afterWeight = criterion.Weight;
+        if (beforeWeight != afterWeight)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelCriterionWeightChangedEvent(Id, Key, criterionId, beforeWeight, afterWeight, actor, timestamp));
+        }
+
+        var afterScaleId = criterion.ScaleId;
+        if (beforeScaleId != afterScaleId)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelCriterionScaleChangedEvent(Id, Key, criterionId, beforeScaleId, afterScaleId, actor, timestamp));
+        }
+
+        return Result.Success();
     }
 
     /// <summary>
     /// Removes a criterion from the model and reorders the remaining criteria.
     /// Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result RemoveCriterion(Guid criterionId)
+    public Result RemoveCriterion(Guid criterionId, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -237,6 +302,9 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
 
         ReorderCriteria();
 
+        var (criterionName, criterionToken) = (criterion.Name, criterion.Token);
+        AddKeyedDomainEvent(() => new ScoringModelCriterionRemovedEvent(Id, Key, criterionId, criterionName, criterionToken, actor, timestamp));
+
         return Result.Success();
     }
 
@@ -244,7 +312,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// Reorders the criteria based on the provided ordered list of criterion IDs.
     /// Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result ReorderCriteria(List<Guid> orderedCriterionIds)
+    public Result ReorderCriteria(List<Guid> orderedCriterionIds, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(orderedCriterionIds, nameof(orderedCriterionIds));
 
@@ -263,6 +331,8 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Duplicate criterion IDs are not allowed.");
         }
 
+        var previousOrder = CriterionOrder();
+
         for (int i = 0; i < orderedCriterionIds.Count; i++)
         {
             var criterion = _criteria.FirstOrDefault(c => c.Id == orderedCriterionIds[i]);
@@ -274,8 +344,16 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             criterion.Order = i + 1;
         }
 
+        var order = CriterionOrder();
+        if (!previousOrder.SequenceEqual(order))
+        {
+            AddKeyedDomainEvent(() => new ScoringModelCriteriaReorderedEvent(Id, Key, previousOrder, order, actor, timestamp));
+        }
+
         return Result.Success();
     }
+
+    private Guid[] CriterionOrder() => [.. _criteria.OrderBy(c => c.Order).Select(c => c.Id)];
 
     /// <summary>
     /// Resets criteria ordering to eliminate gaps after removal.
@@ -297,7 +375,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Adds a new named rating scale to the model. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result<ScoringScale> AddScale(string name)
+    public Result<ScoringScale> AddScale(string name, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -315,13 +393,16 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
         var scale = new ScoringScale(Id, name.Trim(), order);
         _scales.Add(scale);
 
+        var (scaleId, scaleName) = (scale.Id, scale.Name);
+        AddKeyedDomainEvent(() => new ScoringModelScaleAddedEvent(Id, Key, scaleId, scaleName, order, actor, timestamp));
+
         return Result.Success(scale);
     }
 
     /// <summary>
     /// Renames an existing scale. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result UpdateScale(Guid scaleId, string name)
+    public Result UpdateScale(Guid scaleId, string name, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -340,14 +421,28 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return nameResult;
         }
 
-        return scale.Update(name.Trim());
+        var previousName = scale.Name;
+
+        var updateResult = scale.Update(name.Trim());
+        if (updateResult.IsFailure)
+        {
+            return updateResult;
+        }
+
+        var newName = scale.Name;
+        if (previousName != newName)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelScaleRenamedEvent(Id, Key, scaleId, previousName, newName, actor, timestamp));
+        }
+
+        return Result.Success();
     }
 
     /// <summary>
     /// Removes a scale and reorders the remaining scales. Only allowed when the model is in the Proposed
     /// state, and only when no criterion references the scale.
     /// </summary>
-    public Result RemoveScale(Guid scaleId)
+    public Result RemoveScale(Guid scaleId, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -369,6 +464,9 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
 
         ReorderScales();
 
+        var scaleName = scale.Name;
+        AddKeyedDomainEvent(() => new ScoringModelScaleRemovedEvent(Id, Key, scaleId, scaleName, actor, timestamp));
+
         return Result.Success();
     }
 
@@ -376,7 +474,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// Reorders the scales based on the provided ordered list of scale IDs.
     /// Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result ReorderScales(List<Guid> orderedScaleIds)
+    public Result ReorderScales(List<Guid> orderedScaleIds, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(orderedScaleIds, nameof(orderedScaleIds));
 
@@ -395,6 +493,8 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Duplicate scale IDs are not allowed.");
         }
 
+        var previousOrder = ScaleOrder();
+
         for (int i = 0; i < orderedScaleIds.Count; i++)
         {
             var scale = _scales.FirstOrDefault(s => s.Id == orderedScaleIds[i]);
@@ -406,8 +506,16 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             scale.Order = i + 1;
         }
 
+        var order = ScaleOrder();
+        if (!previousOrder.SequenceEqual(order))
+        {
+            AddKeyedDomainEvent(() => new ScoringModelScalesReorderedEvent(Id, Key, previousOrder, order, actor, timestamp));
+        }
+
         return Result.Success();
     }
+
+    private Guid[] ScaleOrder() => [.. _scales.OrderBy(s => s.Order).Select(s => s.Id)];
 
     private void ReorderScales()
     {
@@ -426,7 +534,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Adds a rating level to a scale. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result<ScoringRatingLevel> AddScaleLevel(Guid scaleId, string label, decimal value)
+    public Result<ScoringRatingLevel> AddScaleLevel(Guid scaleId, string label, decimal value, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -439,13 +547,19 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<ScoringRatingLevel>("Scale not found.");
         }
 
-        return Result.Success(scale.AddLevel(label, value));
+        var level = scale.AddLevel(label, value);
+
+        var (levelId, levelLabel, levelValue, levelOrder) = (level.Id, level.Label, level.Value, level.Order);
+        AddKeyedDomainEvent(() => new ScoringModelScaleLevelAddedEvent(
+            Id, Key, scaleId, levelId, levelLabel, levelValue, levelOrder, actor, timestamp));
+
+        return Result.Success(level);
     }
 
     /// <summary>
     /// Updates a rating level on a scale. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result UpdateScaleLevel(Guid scaleId, Guid levelId, string label, decimal value)
+    public Result UpdateScaleLevel(Guid scaleId, Guid levelId, string label, decimal value, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -458,13 +572,41 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Scale not found.");
         }
 
-        return scale.UpdateLevel(levelId, label, value);
+        var level = scale.Levels.FirstOrDefault(l => l.Id == levelId);
+        if (level is null)
+        {
+            return Result.Failure("Rating level not found.");
+        }
+
+        var (previousLabel, previousValue) = (level.Label, level.Value);
+
+        var updateResult = scale.UpdateLevel(levelId, label, value);
+        if (updateResult.IsFailure)
+        {
+            return updateResult;
+        }
+
+        var (newLabel, newValue) = (level.Label, level.Value);
+
+        if (previousLabel != newLabel)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelScaleLevelRelabeledEvent(
+                Id, Key, scaleId, levelId, previousLabel, newLabel, actor, timestamp));
+        }
+
+        if (previousValue != newValue)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelScaleLevelValueChangedEvent(
+                Id, Key, scaleId, levelId, previousValue, newValue, actor, timestamp));
+        }
+
+        return Result.Success();
     }
 
     /// <summary>
     /// Removes a rating level from a scale. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result RemoveScaleLevel(Guid scaleId, Guid levelId)
+    public Result RemoveScaleLevel(Guid scaleId, Guid levelId, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -477,13 +619,28 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Scale not found.");
         }
 
-        return scale.RemoveLevel(levelId);
+        var level = scale.Levels.FirstOrDefault(l => l.Id == levelId);
+        if (level is null)
+        {
+            return Result.Failure("Rating level not found.");
+        }
+
+        var removeResult = scale.RemoveLevel(levelId);
+        if (removeResult.IsFailure)
+        {
+            return removeResult;
+        }
+
+        var levelLabel = level.Label;
+        AddKeyedDomainEvent(() => new ScoringModelScaleLevelRemovedEvent(Id, Key, scaleId, levelId, levelLabel, actor, timestamp));
+
+        return Result.Success();
     }
 
     /// <summary>
     /// Reorders the rating levels within a scale. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result ReorderScaleLevels(Guid scaleId, List<Guid> orderedLevelIds)
+    public Result ReorderScaleLevels(Guid scaleId, List<Guid> orderedLevelIds, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -496,8 +653,24 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Scale not found.");
         }
 
-        return scale.ReorderLevels(orderedLevelIds);
+        var previousOrder = LevelOrder(scale);
+
+        var reorderResult = scale.ReorderLevels(orderedLevelIds);
+        if (reorderResult.IsFailure)
+        {
+            return reorderResult;
+        }
+
+        var order = LevelOrder(scale);
+        if (!previousOrder.SequenceEqual(order))
+        {
+            AddKeyedDomainEvent(() => new ScoringModelScaleLevelsReorderedEvent(Id, Key, scaleId, previousOrder, order, actor, timestamp));
+        }
+
+        return Result.Success();
     }
+
+    private static Guid[] LevelOrder(ScoringScale scale) => [.. scale.Levels.OrderBy(l => l.Order).Select(l => l.Id)];
 
     #endregion Scale Level Management
 
@@ -508,7 +681,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// The formula may reference criterion tokens and the tokens of outputs already defined. If this is
     /// the first output, it becomes primary by default; marking it primary transfers the flag.
     /// </summary>
-    public Result<ScoringModelOutput> AddOutput(string name, string token, string formula, bool isPrimary)
+    public Result<ScoringModelOutput> AddOutput(string name, string token, string formula, bool isPrimary, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -532,6 +705,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
         }
 
         var makePrimary = isPrimary || _outputs.Count == 0;
+        var previousPrimaryId = PrimaryOutputId();
 
         var output = new ScoringModelOutput(Id, name, token.Trim(), formula.Trim(), makePrimary, order);
         _outputs.Add(output);
@@ -541,13 +715,19 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             DemoteOtherPrimaries(output);
         }
 
+        var (outputId, outputName, outputToken, outputFormula) = (output.Id, output.Name, output.Token, output.Formula);
+        AddKeyedDomainEvent(() => new ScoringModelOutputAddedEvent(
+            Id, Key, outputId, outputName, outputToken, outputFormula, order, actor, timestamp));
+
+        RaiseIfPrimaryOutputChanged(previousPrimaryId, actor, timestamp);
+
         return Result.Success(output);
     }
 
     /// <summary>
     /// Updates an existing output. Only allowed when the model is in the Proposed state.
     /// </summary>
-    public Result UpdateOutput(Guid outputId, string name, string token, string formula, bool isPrimary)
+    public Result UpdateOutput(Guid outputId, string name, string token, string formula, bool isPrimary, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -575,6 +755,10 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
 
         var makePrimary = isPrimary || (output.IsPrimary && _outputs.Count == 1);
 
+        var beforeDetails = new ScoringOutputDetails(output.Name, output.Token);
+        var previousFormula = output.Formula;
+        var previousPrimaryId = PrimaryOutputId();
+
         var updateResult = output.Update(name, token.Trim(), formula.Trim(), makePrimary);
         if (updateResult.IsFailure)
         {
@@ -586,6 +770,22 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             DemoteOtherPrimaries(output);
         }
 
+        var afterDetails = new ScoringOutputDetails(output.Name, output.Token);
+        if (beforeDetails != afterDetails)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelOutputDetailsUpdatedEvent(
+                Id, Key, outputId, afterDetails.Name, afterDetails.Token, beforeDetails, actor, timestamp));
+        }
+
+        var newFormula = output.Formula;
+        if (previousFormula != newFormula)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelOutputFormulaChangedEvent(
+                Id, Key, outputId, previousFormula, newFormula, actor, timestamp));
+        }
+
+        RaiseIfPrimaryOutputChanged(previousPrimaryId, actor, timestamp);
+
         return Result.Success();
     }
 
@@ -593,7 +793,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// Removes an output and reorders the remaining outputs. Only allowed when the model is in the
     /// Proposed state. If the primary output is removed, the first remaining output becomes primary.
     /// </summary>
-    public Result RemoveOutput(Guid outputId)
+    public Result RemoveOutput(Guid outputId, EventActor actor, Instant timestamp)
     {
         if (State != ScoringModelState.Proposed)
         {
@@ -607,6 +807,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
         }
 
         var wasPrimary = output.IsPrimary;
+        var previousPrimaryId = PrimaryOutputId();
 
         _outputs.Remove(output);
 
@@ -618,6 +819,11 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             first?.SetPrimary(true);
         }
 
+        var (outputName, outputToken) = (output.Name, output.Token);
+        AddKeyedDomainEvent(() => new ScoringModelOutputRemovedEvent(Id, Key, outputId, outputName, outputToken, actor, timestamp));
+
+        RaiseIfPrimaryOutputChanged(previousPrimaryId, actor, timestamp);
+
         return Result.Success();
     }
 
@@ -626,7 +832,7 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     /// is in the Proposed state. The new order must keep each output's formula referencing only tokens
     /// that precede it.
     /// </summary>
-    public Result ReorderOutputs(List<Guid> orderedOutputIds)
+    public Result ReorderOutputs(List<Guid> orderedOutputIds, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(orderedOutputIds, nameof(orderedOutputIds));
 
@@ -665,12 +871,37 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             availableSoFar.Add(output.Token);
         }
 
+        var previousOrder = OutputOrder();
+
         for (int i = 0; i < orderedOutputIds.Count; i++)
         {
             _outputs.First(o => o.Id == orderedOutputIds[i]).Order = i + 1;
         }
 
+        var order = OutputOrder();
+        if (!previousOrder.SequenceEqual(order))
+        {
+            AddKeyedDomainEvent(() => new ScoringModelOutputsReorderedEvent(Id, Key, previousOrder, order, actor, timestamp));
+        }
+
         return Result.Success();
+    }
+
+    private Guid[] OutputOrder() => [.. _outputs.OrderBy(o => o.Order).Select(o => o.Id)];
+
+    /// <summary>
+    /// The primary output, or null when none is. Exactly one is required to activate, but a proposed model can
+    /// have none: an edit that clears the flag on the primary leaves it so.
+    /// </summary>
+    private Guid? PrimaryOutputId() => _outputs.FirstOrDefault(o => o.IsPrimary)?.Id;
+
+    private void RaiseIfPrimaryOutputChanged(Guid? previousPrimaryId, EventActor actor, Instant timestamp)
+    {
+        var primaryId = PrimaryOutputId();
+        if (previousPrimaryId != primaryId)
+        {
+            AddKeyedDomainEvent(() => new ScoringModelPrimaryOutputChangedEvent(Id, Key, previousPrimaryId, primaryId, actor, timestamp));
+        }
     }
 
     private void ReorderOutputsInternal()
@@ -877,6 +1108,8 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
     public static ScoringModel Create(
         string name,
         string description,
+        EventActor actor,
+        Instant timestamp,
         IEnumerable<(string Name, IEnumerable<(string Label, decimal Value)> Levels)>? scales = null,
         IEnumerable<(string Name, string Token, string? Description, decimal? Weight, string? ScaleName)>? criteria = null,
         IEnumerable<(string Name, string Token, string Formula, bool IsPrimary)>? outputs = null)
@@ -931,6 +1164,46 @@ public sealed class ScoringModel : BaseAuditableEntity, IHasIdAndKey
             }
         }
 
+        model.RaiseCreated(actor, timestamp);
+
         return model;
+    }
+
+    /// <summary>
+    /// Raises the creation event once the first save has assigned <see cref="Key"/>. Everything else is
+    /// captured now, so a caller that edits the model before that save does not rewrite its creation.
+    /// </summary>
+    private void RaiseCreated(EventActor actor, Instant timestamp)
+    {
+        var (name, description) = (Name, Description);
+        ScoringScaleValues[] scales = [.. _scales.OrderBy(s => s.Order).Select(s => new ScoringScaleValues(
+            s.Id,
+            s.Name,
+            s.Order,
+            [.. s.Levels.OrderBy(l => l.Order).Select(l => new ScoringRatingLevelValues(l.Id, l.Label, l.Value, l.Order))]))];
+        ScoringCriterionValues[] criteria = [.. _criteria.OrderBy(c => c.Order).Select(CriterionValues)];
+        ScoringOutputValues[] outputs = [.. _outputs.OrderBy(o => o.Order)
+            .Select(o => new ScoringOutputValues(o.Id, o.Name, o.Token, o.Formula, o.IsPrimary, o.Order))];
+
+        AddPostPersistenceAction(() => AddDomainEvent(new ScoringModelCreatedEvent(
+            Id, Key, name, description, scales, criteria, outputs, actor, timestamp)));
+    }
+
+    private static ScoringCriterionValues CriterionValues(ScoringModelCriterion c) =>
+        new(c.Id, c.Name, c.Token, c.Description, c.Weight, c.ScaleId, c.Order);
+
+    /// <summary>
+    /// Raises an event that carries <see cref="Key"/>, waiting for the first save to assign it.
+    /// </summary>
+    /// <remarks>
+    /// The factory runs when the event is raised, so everything else it carries must be captured in locals by
+    /// the caller — only Key may be read inside it.
+    /// </remarks>
+    private void AddKeyedDomainEvent(Func<DomainEvent> build)
+    {
+        if (Key == 0)
+            AddPostPersistenceAction(() => AddDomainEvent(build()));
+        else
+            AddDomainEvent(build());
     }
 }

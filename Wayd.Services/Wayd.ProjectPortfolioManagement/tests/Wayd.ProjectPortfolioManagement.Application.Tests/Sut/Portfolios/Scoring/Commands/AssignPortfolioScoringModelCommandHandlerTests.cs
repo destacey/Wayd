@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Application.Common;
@@ -103,7 +104,7 @@ public class AssignPortfolioScoringModelCommandHandlerTests : IDisposable
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        var proposedModel = ScoringModel.Create("Proposed", "Not active yet.");
+        var proposedModel = ScoringModel.Create("Proposed", "Not active yet.", EventActor.System, _dateTimeProvider.Now);
         _dbContext.AddPortfolio(portfolio);
         _dbContext.AddScoringModel(proposedModel);
 

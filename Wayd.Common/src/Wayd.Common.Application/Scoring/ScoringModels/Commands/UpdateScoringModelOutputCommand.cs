@@ -42,12 +42,16 @@ public sealed class UpdateScoringModelOutputCommandValidator : AbstractValidator
 
 public sealed class UpdateScoringModelOutputCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UpdateScoringModelOutputCommandHandler> logger)
     : ICommandHandler<UpdateScoringModelOutputCommand>
 {
     private const string AppRequestName = nameof(UpdateScoringModelOutputCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateScoringModelOutputCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateScoringModelOutputCommand request, CancellationToken cancellationToken)
@@ -64,7 +68,7 @@ public sealed class UpdateScoringModelOutputCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var updateResult = model.UpdateOutput(request.OutputId, request.Name, request.Token, request.Formula, request.IsPrimary);
+            var updateResult = model.UpdateOutput(request.OutputId, request.Name, request.Token, request.Formula, request.IsPrimary, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 _logger.LogError("Unable to update output on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, updateResult.Error);

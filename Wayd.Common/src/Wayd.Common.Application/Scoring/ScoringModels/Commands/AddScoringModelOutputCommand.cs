@@ -38,12 +38,16 @@ public sealed class AddScoringModelOutputCommandValidator : AbstractValidator<Ad
 
 public sealed class AddScoringModelOutputCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<AddScoringModelOutputCommandHandler> logger)
     : ICommandHandler<AddScoringModelOutputCommand, Guid>
 {
     private const string AppRequestName = nameof(AddScoringModelOutputCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AddScoringModelOutputCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(AddScoringModelOutputCommand request, CancellationToken cancellationToken)
@@ -60,7 +64,7 @@ public sealed class AddScoringModelOutputCommandHandler(
                 return Result.Failure<Guid>("Scoring Model not found.");
             }
 
-            var addResult = model.AddOutput(request.Name, request.Token, request.Formula, request.IsPrimary);
+            var addResult = model.AddOutput(request.Name, request.Token, request.Formula, request.IsPrimary, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (addResult.IsFailure)
             {
                 _logger.LogError("Unable to add output to Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, addResult.Error);

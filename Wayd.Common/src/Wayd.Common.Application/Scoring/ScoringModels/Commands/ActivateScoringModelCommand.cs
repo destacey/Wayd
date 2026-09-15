@@ -14,11 +14,15 @@ public sealed class ActivateScoringModelCommandValidator : AbstractValidator<Act
 
 public sealed class ActivateScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ActivateScoringModelCommandHandler> logger)
     : ICommandHandler<ActivateScoringModelCommand>
 {
     private const string AppRequestName = nameof(ActivateScoringModelCommand);
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ActivateScoringModelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ActivateScoringModelCommand request, CancellationToken cancellationToken)
@@ -36,7 +40,7 @@ public sealed class ActivateScoringModelCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var activateResult = model.Activate();
+            var activateResult = model.Activate(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

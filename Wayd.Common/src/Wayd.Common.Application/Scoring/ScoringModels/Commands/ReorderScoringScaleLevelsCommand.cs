@@ -25,12 +25,16 @@ public sealed class ReorderScoringScaleLevelsCommandValidator : AbstractValidato
 
 public sealed class ReorderScoringScaleLevelsCommandHandler(
     IWaydDbContext waydDbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ReorderScoringScaleLevelsCommandHandler> logger)
     : ICommandHandler<ReorderScoringScaleLevelsCommand>
 {
     private const string AppRequestName = nameof(ReorderScoringScaleLevelsCommand);
 
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ReorderScoringScaleLevelsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ReorderScoringScaleLevelsCommand request, CancellationToken cancellationToken)
@@ -46,7 +50,7 @@ public sealed class ReorderScoringScaleLevelsCommandHandler(
                 return Result.Failure("Scoring Model not found.");
             }
 
-            var reorderResult = model.ReorderScaleLevels(request.ScaleId, request.OrderedLevelIds);
+            var reorderResult = model.ReorderScaleLevels(request.ScaleId, request.OrderedLevelIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (reorderResult.IsFailure)
             {
                 _logger.LogError("Unable to reorder rating levels on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, reorderResult.Error);

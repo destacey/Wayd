@@ -38,7 +38,7 @@ A preflight is **advice, not a promise**. Each row is checked again when it is a
 7. **Fix and check again**, or present the result. Fix the file, or the data a row depends on, then run a new preflight. A preflight cannot be resumed or retried.
 8. **`Imports_Apply`** with the preflight's `id`, once the user agrees. It answers with a **new** run; follow it as in step 5 and read its rows the same way.
 
-A file refused outright — a missing header, a cell that is the wrong type, too many rows, an empty file — comes back as an HTTP 400 or 422 and **becomes no run**. A cell problem names the row by its `ImportId`.
+A file refused outright — a missing header, a cell that is the wrong type, too many rows, an empty file — comes back as an HTTP 400 or 422 and **becomes no run**. The error lists each problem by column and names the row, usually by its `ImportId`.
 
 ---
 

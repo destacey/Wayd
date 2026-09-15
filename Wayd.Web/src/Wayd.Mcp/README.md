@@ -173,23 +173,25 @@ This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, 
 
 ## Available Tools
 
+Records that raise domain events expose an **activity history** — every recorded change, newest first, with who made it and the before and after values. A record that predates tracking starts with a `Baseline` entry holding what it looked like when tracking began.
+
 ### Project Portfolio Management
 
 | Category | Operations |
 | --- | --- |
-| **Portfolios** | List, get details, get programs, get projects, get strategic initiatives, get ranking scoreboard. Create, update. Status: activate, close, archive |
-| **Strategic Initiatives** | List, get details, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel |
-| **Programs** | List, get details, get projects. Create, update. Status: activate, complete, cancel |
+| **Portfolios** | List, get details, get activity history, get programs, get projects, get strategic initiatives, get ranking scoreboard. Create, update. Status: activate, close, archive |
+| **Strategic Initiatives** | List, get details, get activity history, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel |
+| **Programs** | List, get details, get activity history, get projects. Create, update. Status: activate, complete, cancel |
 | **Project Lifecycles** | List (with state filter), get details |
 | **Expenditure Categories** | Get options (for project create/update) |
-| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
+| **Projects** | List (with role filter), get details, get activity history, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
 | **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
 
 ### Planning
 
 | Category | Operations |
 | --- | --- |
-| **Planning Intervals** | List, get details, calendar, predictability, teams, iterations, objectives, risks, objective health check history, get/create objective health check |
+| **Planning Intervals** | List, get details, activity history, calendar, predictability, teams, iterations, objectives, objective activity history, risks, objective health check history, get/create objective health check |
 | **Roadmaps** | List, get details, get items and activities |
 | **Story Maps** | List, get full map. Create, update, archive, delete maps. Manage goals, steps, tasks, checklists, swim lanes, personas, and work item links |
 
@@ -197,7 +199,7 @@ This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, 
 
 | Category | Operations |
 | --- | --- |
-| **Products** | List (by parent, type, status category, or tags), get details, get status history, get status options. Create, update, retype, reparent, change status, link externally, tag, untag, delete |
+| **Products** | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options. Create, update, retype, reparent, change status, link externally, tag, untag, delete |
 | **Product Types** | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it |
 | **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate the tags themselves |
 | **Deployment Environments** | List (by active state or category), create, update, retire or reinstate |
@@ -213,10 +215,10 @@ Four records that are deliberately kept apart: a **release** is what was announc
 
 | Category | Operations |
 | --- | --- |
-| **Releases** | List (by product, status category, or containing version), get details, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert |
-| **Versions** | List (by product or status category), get details, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert |
-| **Release Packages** | List (by status category, containing product, or containing version), get details, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw |
-| **Deployments** | List (by version, package, environment, environment category, or start date), get details, get status history. Start. Outcome: succeed, fail, roll back |
+| **Releases** | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert |
+| **Versions** | List (by product or status category), get details, get activity history, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert |
+| **Release Packages** | List (by status category, containing product, or containing version), get details, get activity history, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw |
+| **Deployments** | List (by version, package, environment, environment category, or start date), get details, get activity history, get status history. Start. Outcome: succeed, fail, roll back |
 
 Two rules the tools enforce and the `wayd-delivery` skill explains: a version shipping inside one of a release's packages cannot also be carried directly on that release, and a release cannot be announced while anything it carries has not shipped. `Releases_SetContents` and `ReleasePackages_SetManifest` are **whole-set replacements** — read the record first and send back everything it should end up with.
 
@@ -224,7 +226,7 @@ Two rules the tools enforce and the `wayd-delivery` skill explains: a version sh
 
 | Category | Operations |
 | --- | --- |
-| **Teams** | List, get details |
+| **Teams** | List, get details, get activity history |
 | **Users** | List, get details |
 
 ## Links

@@ -13,6 +13,7 @@ description: Guides agents working with Wayd Planning Intervals — iterations, 
 - Generating PI health reports or predictability summaries
 - Reviewing or logging health checks on individual PI objectives (Healthy / AtRisk / Unhealthy)
 - Reviewing PI risks
+- Finding out what changed on a PI or an objective, and who changed it
 
 ---
 
@@ -107,6 +108,13 @@ Notes for logging a check:
 - `note` is optional, max 1024 characters.
 - The body redundantly requires `planningIntervalObjectiveId` in addition to the path `objectiveId` — they must match.
 - Logging a new check automatically expires the previously active check; only one non-expired check can exist at a time.
+
+### Activity history
+
+- A PI's changes (details, dates, teams, iterations, sprint mappings, objectives locked or unlocked): `PlanningIntervals_GetActivities` with `idOrKey`
+- One objective's changes (details, status, progress, order, stretch, timeline, health checks): `PlanningIntervals_GetObjectiveActivities` with `idOrKey` + `objectiveIdOrKey`
+
+Both return entries newest first, paged (at most 100 per page). Each entry has a `category`, a `summary`, who made the change and when, and a `payload` JSON string holding both the old and new value. A `Baseline` entry marks where tracking began for an objective or PI that already existed; nothing before it is recorded. People inside a payload are employee ids.
 
 ### Predictability
 

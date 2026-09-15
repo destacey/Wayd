@@ -10,6 +10,7 @@ description: Guides agents working with Wayd Teams via the Wayd MCP server. Use 
 - Listing all teams in the organization
 - Looking up a specific team's details
 - Resolving a team name to an integer ID for use in other tools (e.g. Planning Interval team filters)
+- Finding out when a team was created, renamed, activated or deactivated
 
 ---
 
@@ -34,6 +35,10 @@ description: Guides agents working with Wayd Teams via the Wayd MCP server. Use 
 ### Getting a specific team
 
 `Teams_GetTeam` requires `id` (integer). If you only have a name, call `Teams_GetTeams` first to resolve name → ID.
+
+### Activity history
+
+`Teams_GetActivities` with `idOrKey` (the team's integer ID or its UUID) returns the team's recorded changes, newest first: creation, detail changes, activation and deactivation. Membership changes are not part of it. Each entry's `payload` is a JSON string carrying the value before and after, and a `Baseline` entry marks where tracking began for a team that already existed.
 
 ### Common usage patterns
 

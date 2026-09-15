@@ -17,12 +17,12 @@ The MCP server exposes 150+ tools across Wayd's core modules:
 
 | Module | Capabilities |
 |--------|-------------|
-| **[PPM](../user-guide/ppm/index.mdx)** | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, and status history. Get critical path. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
-| **[Strategic Initiatives](../user-guide/ppm/strategic-initiatives.mdx)** | List/view initiatives, their statuses, and the projects delivering them. Review KPIs, checkpoints, and the checkpoint plan with health and trend. Record and remove KPI measurements. Change initiative status. |
-| **[Planning](../user-guide/planning/index.mdx)** | List/view planning intervals, iterations, objectives, risks. Get PI predictability and health reports. Review and log objective health checks. View calendars. |
+| **[PPM](../user-guide/ppm/index.mdx)** | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, status history, and activity history. Get critical path. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
+| **[Strategic Initiatives](../user-guide/ppm/strategic-initiatives.mdx)** | List/view initiatives, their statuses, activity history, and the projects delivering them. Review KPIs, checkpoints, and the checkpoint plan with health and trend. Record and remove KPI measurements. Change initiative status. |
+| **[Planning](../user-guide/planning/index.mdx)** | List/view planning intervals, iterations, objectives, risks, and the activity history of intervals and objectives. Get PI predictability and health reports. Review and log objective health checks. View calendars. |
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)** | List/view roadmaps and their items (activities, milestones, timeboxes). |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)** | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links. |
-| **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. |
+| **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. Review a team's activity history. |
 
 ## Prerequisites
 
@@ -145,6 +145,8 @@ npx skills add destacey/wayd
 
 ## Available Tools
 
+Most records expose an **activity history**: every recorded change, newest first, with who made it and what the value was before and after. A record that existed before Wayd began tracking its changes starts with a baseline entry showing what it looked like at that point.
+
 ### Project Portfolio Management
 
 | Tool | Description |
@@ -164,6 +166,7 @@ npx skills add destacey/wayd
 | `Projects_GetProjectPlanTree` | Get full plan as a hierarchical tree (WBS) |
 | `Projects_GetProjectPlanSummary` | Get plan metrics (overdue, due this week, totals) |
 | `Projects_GetStatusHistory` | Get a project's status change history |
+| `Portfolios_GetActivities` / `Programs_GetActivities` / `Projects_GetActivities` | Every recorded change to a portfolio, program, or project, newest first |
 | `Projects_GetMyProjectsSummary` | Your own project involvement, counted by role |
 | `Projects_GetMyProjectsTaskMetrics` | Your open task counts (overdue, due this week, upcoming) |
 | `Projects_GetProjectsPlanSummaries` | Plan metrics for many projects in one call |
@@ -195,6 +198,7 @@ npx skills add destacey/wayd
 | `StrategicInitiatives_GetStrategicInitiatives` | List initiatives with status/portfolio filters |
 | `StrategicInitiatives_GetStrategicInitiative` | Get initiative details |
 | `StrategicInitiatives_GetStatuses` | Resolve initiative status values |
+| `StrategicInitiatives_GetActivities` | Every recorded change to an initiative, including its KPIs and measurements |
 | `StrategicInitiatives_GetProjects` | Projects delivering an initiative |
 | `Portfolios_GetPortfolioStrategicInitiatives` | Initiatives in a portfolio |
 | `StrategicInitiatives_GetKpis` / `StrategicInitiatives_GetKpi` | Review an initiative's KPIs |
@@ -224,6 +228,7 @@ npx skills add destacey/wayd
 |------|-------------|
 | `PlanningIntervals_GetList` | List all planning intervals |
 | `PlanningIntervals_GetPlanningInterval` | Get PI details |
+| `PlanningIntervals_GetActivities` / `PlanningIntervals_GetObjectiveActivities` | Every recorded change to a PI, or to one of its objectives |
 | `PlanningIntervals_GetCalendar` | Get PI calendar |
 | `PlanningIntervals_GetPredictability` | Get predictability scores |
 | `PlanningIntervals_GetTeams` | Get teams in a PI |
@@ -283,6 +288,7 @@ The catalog is one typed tree of what your organization owns — products, platf
 | `Products_GetProducts` | List products, filtered by parent, type, status category, or tags |
 | `Products_GetProduct` | Get product details |
 | `Products_GetStatusHistory` | A product's status change history |
+| `Products_GetActivities` | Every recorded change to a product |
 | `Products_GetStatusOptions` | Resolve the status values a product accepts |
 | `Products_Create` / `Products_Update` | Create a product, or change its name and description |
 | `Products_Retype` | Change a product's type |
@@ -311,6 +317,7 @@ Where the catalog records what exists, delivery records what shipped. The word "
 |------|-------------|
 | `Releases_GetReleases` / `Releases_GetRelease` | List releases, or get one |
 | `Releases_GetStatusHistory` | A release's status change history |
+| `Releases_GetActivities` | Every recorded change to a release |
 | `Releases_Plan` / `Releases_Update` | Plan a release, or update its details |
 | `Releases_SetContents` | Set what the release announces — its versions and packages together |
 | `Releases_MarkReleased` | Announce a release |
@@ -318,6 +325,7 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `Releases_CorrectDates` / `Releases_MoveTargetDate` | Correct recorded dates, or move the target |
 | `Versions_GetVersions` / `Versions_GetVersion` | List versions, or get one |
 | `Versions_GetStatusHistory` | A version's status change history |
+| `Versions_GetActivities` | Every recorded change to a version |
 | `Versions_Plan` / `Versions_Update` | Plan a version, or update its details |
 | `Versions_Cut` | Cut the version — the artifact now exists |
 | `Versions_MarkReleased` | Mark a version released |
@@ -325,11 +333,13 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `Versions_CorrectDates` / `Versions_MoveTargetDate` | Correct recorded dates, or move the target |
 | `ReleasePackages_GetReleasePackages` / `ReleasePackages_GetReleasePackage` | List packages, or get one |
 | `ReleasePackages_GetStatusHistory` | A package's status change history |
+| `ReleasePackages_GetActivities` | Every recorded change to a package |
 | `ReleasePackages_Assemble` | Assemble a package |
 | `ReleasePackages_SetManifest` | Replace what the package contains |
 | `ReleasePackages_MarkReleased` / `ReleasePackages_Withdraw` | Mark a package released, or withdraw it |
 | `Deployments_GetDeployments` / `Deployments_GetDeployment` | List deployments, or get one |
 | `Deployments_GetStatusHistory` | A deployment's status change history |
+| `Deployments_GetActivities` | When a deployment started and how it ended |
 | `Deployments_Start` | Record a deployment starting — of a version or a package, never both |
 | `Deployments_Succeed` / `Deployments_Fail` / `Deployments_RollBack` | Record how a deployment ended |
 | `DeploymentEnvironments_GetDeploymentEnvironments` | List environments, by active state or category |
@@ -349,6 +359,7 @@ Environments are **retired, never deleted**, because historical deployments stil
 |------|-------------|
 | `Teams_GetTeams` | List teams with optional inactive filter |
 | `Teams_GetTeam` | Get team details |
+| `Teams_GetActivities` | Every recorded change to a team |
 | `Users_GetUsers` | List all users |
 | `Users_GetUser` | Get user details |
 

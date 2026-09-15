@@ -6,8 +6,14 @@ import useImportActions from './use-import-actions'
 const mockCancel = jest.fn()
 const mockResume = jest.fn()
 const mockRetryFailed = jest.fn()
+const mockApply = jest.fn()
+const mockPush = jest.fn()
 const mockSuccess = jest.fn()
 const mockError = jest.fn()
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}))
 
 interface ConfirmConfig {
   title?: string
@@ -48,6 +54,9 @@ jest.mock('@/src/store/features/admin/imports-api', () => ({
   useRetryFailedImportRowsMutation: () => [
     (id: string) => ({ unwrap: () => mockRetryFailed(id) }),
   ],
+  useApplyImportPreflightMutation: () => [
+    (id: string) => ({ unwrap: () => mockApply(id) }),
+  ],
 }))
 
 jest.mock('@/src/components/contexts/messaging', () => ({
@@ -57,6 +66,7 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 const importProcess = {
   id: 'import-1',
   displayName: 'Employee Import',
+  totalRowCount: 25,
   failedRowCount: 3,
   unappliedRowCount: 2,
 }
@@ -65,14 +75,29 @@ const resumed = (overrides: Partial<ResumedImport> = {}): ResumedImport =>
   ({ queuedRowCount: 2, skippedRowCount: 0, ...overrides }) as ResumedImport
 
 /** Renders one button per action so a test can invoke it. */
-const Harness = () => {
-  const { handleCancel, handleResume, handleRetryFailed } = useImportActions()
+const Harness = ({ preflight = false }: { preflight?: boolean }) => {
+  const { handleCancel, handleResume, handleRetryFailed, handleApply } =
+    useImportActions()
 
   return (
     <>
-      <Button onClick={() => handleCancel(importProcess)}>stop</Button>
+      <Button
+        onClick={() =>
+          handleCancel({ ...importProcess, isPreflight: preflight })
+        }
+      >
+        stop
+      </Button>
       <Button onClick={() => handleResume(importProcess)}>resume</Button>
       <Button onClick={() => handleRetryFailed(importProcess)}>retry</Button>
+      <Button onClick={() => handleApply(importProcess)}>apply</Button>
+      <Button
+        onClick={() =>
+          handleApply({ ...importProcess, appliedImportProcessId: 'import-9' })
+        }
+      >
+        apply again
+      </Button>
     </>
   )
 }
@@ -96,11 +121,26 @@ describe('useImportActions', () => {
     clickAction('stop')
 
     // Assert — stopping is not an undo, and the dialog has to say so
-    expect(lastConfirm?.content).toMatch(/Rows already applied will stay applied/)
+    expect(lastConfirm?.content).toMatch(
+      /Rows already applied will stay applied/,
+    )
     expect(mockCancel).not.toHaveBeenCalled()
 
     await lastConfirm?.onOk?.()
     await waitFor(() => expect(mockCancel).toHaveBeenCalledWith('import-1'))
+  })
+
+  it('does not promise a resume when stopping a preflight', () => {
+    // Arrange
+    render(<Harness preflight />)
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'stop' }))
+
+    // Assert
+    expect(lastConfirm?.title).toBe('Stop Check')
+    expect(lastConfirm?.content).toMatch(/Nothing has been imported/)
+    expect(lastConfirm?.content).not.toMatch(/resumed afterwards/)
   })
 
   it('resumes without a confirmation', async () => {
@@ -121,7 +161,9 @@ describe('useImportActions', () => {
 
     // Assert
     await waitFor(() =>
-      expect(mockSuccess).toHaveBeenCalledWith('Import resumed. 2 rows queued.'),
+      expect(mockSuccess).toHaveBeenCalledWith(
+        'Import resumed. 2 rows queued.',
+      ),
     )
   })
 
@@ -166,7 +208,64 @@ describe('useImportActions', () => {
     expect(lastConfirm?.content).toMatch(/3 rejected rows/)
 
     await lastConfirm?.onOk?.()
-    await waitFor(() => expect(mockRetryFailed).toHaveBeenCalledWith('import-1'))
+    await waitFor(() =>
+      expect(mockRetryFailed).toHaveBeenCalledWith('import-1'),
+    )
+  })
+
+  it('confirms before importing a preflight, and opens the run it starts', async () => {
+    // Arrange
+    mockApply.mockResolvedValue({ id: 'import-2', isTerminal: false })
+
+    // Act
+    clickAction('apply')
+
+    // Assert — the rejected rows go in too, and the dialog has to say so
+    expect(lastConfirm?.content).toMatch(/Import the 25 rows/)
+    expect(lastConfirm?.content).toMatch(/rejected 3 of them/)
+    expect(mockApply).not.toHaveBeenCalled()
+
+    await lastConfirm?.onOk?.()
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith('/settings/imports/import-2'),
+    )
+    expect(mockApply).toHaveBeenCalledWith('import-1')
+  })
+
+  it('warns before importing a preflight that was already imported', async () => {
+    // Arrange
+    mockApply.mockResolvedValue({ id: 'import-10', isTerminal: true })
+
+    // Act
+    clickAction('apply again')
+
+    // Assert — still allowed, since the earlier run may have failed, but not without saying what it risks
+    expect(lastConfirm?.title).toBe('Import File Again')
+    expect(lastConfirm?.content).toMatch(/already been imported/)
+    expect(lastConfirm?.content).toMatch(/created a second time/)
+
+    await lastConfirm?.onOk?.()
+    await waitFor(() => expect(mockApply).toHaveBeenCalledWith('import-1'))
+  })
+
+  it('shows why a preflight could not be imported', async () => {
+    // Arrange — past its retention window, say
+    mockApply.mockRejectedValue({
+      status: 400,
+      detail: 'This preflight has passed its retention window.',
+    })
+
+    // Act
+    clickAction('apply')
+    await lastConfirm?.onOk?.()
+
+    // Assert
+    await waitFor(() =>
+      expect(mockError).toHaveBeenCalledWith(
+        'This preflight has passed its retention window.',
+      ),
+    )
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('surfaces a failure rather than reporting success', async () => {

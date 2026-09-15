@@ -51,6 +51,7 @@ const definition = (
   displayName,
   atomicity: ImportAtomicity.Atomic,
   maxRows: 10_000,
+  preflightMaxRows: 10_000,
   canSubmit: true,
   ...overrides,
 })
@@ -59,6 +60,7 @@ const definitions = [
   definition('strategic.themes', 'Strategic Themes'),
   definition('product-management.release-packages', 'Release Packages', {
     atomicity: ImportAtomicity.PerRow,
+    maxRows: 50_000,
   }),
   definition('employees', 'Employees', { canSubmit: false }),
   // Known to the server but not to this client: nothing to post it with, so it is not offered.
@@ -68,12 +70,14 @@ const definitions = [
 const run = (
   status: ImportProcessStatus,
   counts: { succeeded?: number; failed?: number } = {},
+  isPreflight = false,
 ): ImportProcessDto => ({
   id: 'run-1',
   importType: 'strategic.themes',
   displayName: 'Strategic Themes',
   atomicity: ImportAtomicity.Atomic,
   status,
+  isPreflight,
   submittedByUserId: 'user-1',
   submittedOn: new Date('2026-09-10T09:00:00Z'),
   totalRowCount: 25,
@@ -119,16 +123,22 @@ const fileInputs = () =>
 
 const importButton = () => screen.getByRole('button', { name: 'Import' })
 
-const importThemesFile = async () => {
+const checkButton = () => screen.getByRole('button', { name: /Check File/ })
+
+const submitThemesFile = async (button: () => HTMLElement) => {
   await chooseImport('Strategic Themes')
   await userEvent.upload(fileInputs()[0], csv('themes.csv'))
 
   // Inside act: the outcome is set after the import resolves, and jest.setup stubs the MessageChannel
   // React schedules with, so an update landing outside act is never rendered.
   await act(async () => {
-    fireEvent.click(importButton())
+    fireEvent.click(button())
   })
 }
+
+const importThemesFile = () => submitThemesFile(importButton)
+
+const checkThemesFile = () => submitThemesFile(checkButton)
 
 describe('CsvImportForm', () => {
   beforeEach(() => {
@@ -264,7 +274,60 @@ describe('CsvImportForm', () => {
     expect(submitImport).toHaveBeenCalledWith({
       importKey: 'product-management.release-packages',
       files: { file: packages, manifestFile: manifest },
+      validateOnly: false,
     })
+  })
+
+  it('checks a file as a preflight and stays open to say nothing was imported', async () => {
+    // Arrange
+    answerWith(run(ImportProcessStatus.Succeeded, { succeeded: 25 }, true))
+    renderForm()
+
+    // Act
+    await checkThemesFile()
+
+    // Assert — even a clean check stays open: closing would hide that it applied nothing
+    expect(submitImport).toHaveBeenCalledWith(
+      expect.objectContaining({ validateOnly: true }),
+    )
+    expect(screen.getByText('All 25 rows passed')).toBeInTheDocument()
+    expect(screen.getByText('Nothing has been imported.')).toBeInTheDocument()
+    expect(onFormComplete).not.toHaveBeenCalled()
+    expect(successMessage).not.toHaveBeenCalled()
+  })
+
+  it('reports how many rows a preflight rejected', async () => {
+    // Arrange
+    answerWith(
+      run(
+        ImportProcessStatus.PartiallySucceeded,
+        { succeeded: 20, failed: 5 },
+        true,
+      ),
+    )
+    renderForm()
+
+    // Act
+    await checkThemesFile()
+
+    // Assert
+    expect(screen.getByText('20 of 25 rows passed')).toBeInTheDocument()
+    expect(
+      screen.getByText('5 rows were rejected. Nothing has been imported.'),
+    ).toBeInTheDocument()
+  })
+
+  it('says when a check covers fewer rows than an import accepts', async () => {
+    // Arrange
+    renderForm()
+
+    // Act
+    await chooseImport('Release Packages')
+
+    // Assert — only where the two differ
+    expect(
+      screen.getByText(/A check covers up to 10,000\./),
+    ).toBeInTheDocument()
   })
 
   it('says whether a rejected row stops the whole file', async () => {

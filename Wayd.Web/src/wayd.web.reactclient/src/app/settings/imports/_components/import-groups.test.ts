@@ -17,6 +17,7 @@ const run = (overrides: Partial<ImportProcessDto> = {}): ImportProcessDto => {
     displayName: 'Employees',
     atomicity: ImportAtomicity.PerRow,
     status: ImportProcessStatus.Succeeded,
+    isPreflight: false,
     submittedByUserId: 'user-1',
     submittedByName: 'Dana Reyes',
     submittedOn: new Date('2026-09-11T23:38:00Z'),
@@ -140,6 +141,22 @@ describe('buildImportRows', () => {
 
     // Assert
     expect(rollup.canManage).toBe(false)
+  })
+
+  it('marks a rollup as a preflight only when every run in it was one', () => {
+    // Arrange & Act
+    const [checks] = buildImportRows([
+      run({ submissionGroupId: GROUP, isPreflight: true }),
+      run({ submissionGroupId: GROUP, isPreflight: true }),
+    ])
+    const [mixed] = buildImportRows([
+      run({ submissionGroupId: `${GROUP}-2`, isPreflight: true }),
+      run({ submissionGroupId: `${GROUP}-2`, isPreflight: false }),
+    ])
+
+    // Assert — one real run means the batch applied something
+    expect(checks.isPreflight).toBe(true)
+    expect(mixed.isPreflight).toBe(false)
   })
 
   describe('status', () => {

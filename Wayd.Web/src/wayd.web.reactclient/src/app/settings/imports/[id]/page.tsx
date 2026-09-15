@@ -14,7 +14,11 @@ import { notFound } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import ImportDetails from '../_components/import-details'
 import ImportFacts from '../_components/import-facts'
-import { ImportStatusTag, isRunning } from '../_components/import-status-tag'
+import {
+  ImportStatusTag,
+  isRunning,
+  PreflightTag,
+} from '../_components/import-status-tag'
 import useImportActions from '../_components/use-import-actions'
 import ImportDetailsLoading from './loading'
 
@@ -49,13 +53,14 @@ const ImportDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   }
 
   // A run that answered its submission while still running lands after the submission refreshed the
-  // records it imports, so a page that watched it finish refreshes them again.
+  // records it imports, so a page that watched it finish refreshes them again. A preflight changed none.
   const dispatch = useAppDispatch()
   const [sawRunning, setSawRunning] = useState(false)
   if (running && !sawRunning) {
     setSawRunning(true)
   }
-  const finishedWhileWatched = sawRunning && !!importProcess && !running
+  const finishedWhileWatched =
+    sawRunning && !!importProcess && !running && !importProcess.isPreflight
   const importType = importProcess?.importType
 
   useEffect(() => {
@@ -64,7 +69,8 @@ const ImportDetailsPage = (props: { params: Promise<{ id: string }> }) => {
     }
   }, [finishedWhileWatched, importType, dispatch])
 
-  const { handleCancel, handleResume, handleRetryFailed } = useImportActions()
+  const { handleCancel, handleResume, handleRetryFailed, handleApply } =
+    useImportActions()
 
   useDocumentTitle(
     importProcess ? `${importProcess.displayName} - Import` : 'Import',
@@ -94,6 +100,13 @@ const ImportDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         danger: true,
         onClick: () => handleCancel(importProcess),
       })
+    } else if (importProcess.isPreflight) {
+      // A preflight is never resumed: its rows describe rolled-back work. Importing starts a real run.
+      actionItems.push({
+        key: 'apply',
+        label: 'Import File',
+        onClick: () => handleApply(importProcess),
+      })
     } else {
       if (importProcess.unappliedRowCount > 0) {
         actionItems.push({
@@ -119,8 +132,13 @@ const ImportDetailsPage = (props: { params: Promise<{ id: string }> }) => {
       record={{
         name: importProcess.displayName,
         parent: { label: 'Imports', href: '/settings/imports' },
-        subtitle: 'Import',
-        tags: <ImportStatusTag status={importProcess.status} />,
+        subtitle: importProcess.isPreflight ? 'Import Preflight' : 'Import',
+        tags: (
+          <>
+            {importProcess.isPreflight && <PreflightTag />}
+            <ImportStatusTag status={importProcess.status} />
+          </>
+        ),
         descriptor: `Submitted ${formatDateTime(importProcess.submittedOn)}`,
         actions:
           actionItems.length > 0 ? (

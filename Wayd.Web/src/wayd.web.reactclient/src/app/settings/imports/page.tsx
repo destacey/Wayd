@@ -25,6 +25,7 @@ import {
   ImportStatusTag,
   importStatusLabel,
   isRunning,
+  PreflightTag,
 } from './_components/import-status-tag'
 import useImportActions from './_components/use-import-actions'
 
@@ -62,7 +63,8 @@ const ImportsPage = () => {
     },
   )
 
-  const { handleCancel, handleResume, handleRetryFailed } = useImportActions()
+  const { handleCancel, handleResume, handleRetryFailed, handleApply } =
+    useImportActions()
 
   const imports = data?.processes
   const activeCount = imports?.filter((i) => isRunning(i.status)).length ?? 0
@@ -72,14 +74,16 @@ const ImportsPage = () => {
     setIsPolling(activeCount > 0)
   }
 
+  // A preflight's rejections are what it was run to find, not a failed import waiting on someone.
+  const realImports = imports?.filter((i) => !i.isPreflight)
   const failedCount =
-    imports?.filter(
+    realImports?.filter(
       (i) =>
         i.status === ImportProcessStatus.Failed ||
         i.status === ImportProcessStatus.PartiallySucceeded,
     ).length ?? 0
   const rejectedRowCount =
-    imports?.reduce((total, i) => total + i.failedRowCount, 0) ?? 0
+    realImports?.reduce((total, i) => total + i.failedRowCount, 0) ?? 0
 
   const columns = useMemo<ColumnDef<ImportListRow, any>[]>(() => {
     return [
@@ -100,6 +104,16 @@ const ImportsPage = () => {
               label: 'Stop',
               danger: true,
               onClick: () => handleCancel(importProcess),
+            })
+
+            return items
+          }
+
+          if (importProcess.isPreflight) {
+            items.push({
+              key: 'apply',
+              label: 'Import File',
+              onClick: () => handleApply(importProcess),
             })
 
             return items
@@ -165,6 +179,11 @@ const ImportsPage = () => {
               <Link href={`/settings/imports/${row.original.id}`}>
                 {row.original.displayName}
               </Link>
+            )}
+            {row.original.isPreflight && (
+              <span style={{ marginInlineStart: 8 }}>
+                <PreflightTag />
+              </span>
             )}
           </Flex>
         ),
@@ -246,7 +265,7 @@ const ImportsPage = () => {
         meta: { columnType: 'dateTime' },
       },
     ]
-  }, [handleCancel, handleResume, handleRetryFailed])
+  }, [handleCancel, handleResume, handleRetryFailed, handleApply])
 
   const overflow = data && data.totalCount > (imports?.length ?? 0)
 

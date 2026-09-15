@@ -23,7 +23,7 @@ The MCP server exposes 150+ tools across Wayd's core modules:
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)** | List/view roadmaps and their items (activities, milestones, timeboxes). |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)** | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links. |
 | **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. Review a team's activity history. |
-| **[Imports](../user-guide/settings/imports.mdx)** | Follow import runs and their row outcomes. Stop, resume, or retry a run, and import a checked file. |
+| **[Imports](../user-guide/settings/imports.mdx)** | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run. |
 
 ## Prerequisites
 
@@ -371,12 +371,16 @@ Every CSV file submitted to Wayd becomes a run with an outcome for each row — 
 | Tool | Description |
 |------|-------------|
 | `Imports_GetDefinitions` | The kinds of import you may see, with their row limits and whether you may submit them |
+| `Imports_GetFileFormat` | The columns a kind of import's CSV files must carry, and the values each accepts |
+| `Imports_Preflight` | Check a CSV file against your data without importing anything |
 | `Imports_GetList` | Import runs, newest first, filtered by status, kind, submitter, or submission group |
 | `Imports_GetById` | One run's status and counts |
 | `Imports_GetRows` | A run's row outcomes, with the reason each rejected row was refused |
 | `Imports_Cancel` | Stop a run that is still going — rows already applied stay applied |
 | `Imports_Resume` / `Imports_RetryFailed` | Queue a finished run again for the rows it never reached, or for its rejected rows too |
 | `Imports_Apply` | Import the rows a preflight checked |
+
+Your assistant can't import a file in one step. It first runs a **preflight**, which checks every row the way a real import would and creates nothing, then shows you what would be imported and what would be refused. Only then can it import those rows with `Imports_Apply`, which asks for confirmation. A preflight reports what would have happened when it ran; each row is checked again when it is imported.
 
 ## Changes That Ask First
 

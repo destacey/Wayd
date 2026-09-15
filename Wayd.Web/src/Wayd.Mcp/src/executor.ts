@@ -40,11 +40,24 @@ export async function executeApiTool(
       return { content: [{ type: 'text', text: `Internal error during validation setup: ${msg}` }], isError: true };
     }
 
+    if (definition.localHandler) {
+      return definition.localHandler(validatedArgs);
+    }
+
     // Prepare URL, query parameters, headers, and request body
     let urlPath = definition.pathTemplate;
+    if (definition.pathSelector) {
+      const key = String(validatedArgs[definition.pathSelector.parameter]);
+      const selected = definition.pathSelector.paths[key];
+      if (!selected) {
+        throw new Error(`'${key}' is not a valid ${definition.pathSelector.parameter}.`);
+      }
+      urlPath = selected;
+    }
     const queryParams: Record<string, any> = {};
     const headers: Record<string, string> = { Accept: 'application/json' };
     let requestBodyData: any = undefined;
+    let formData: FormData | undefined = undefined;
 
     // Apply parameters to the URL path, query, or headers
     definition.executionParameters.forEach((param) => {
@@ -56,6 +69,9 @@ export async function executeApiTool(
           queryParams[param.name] = value;
         } else if (param.in === 'header') {
           headers[param.name.toLowerCase()] = String(value);
+        } else if (param.in === 'formFile') {
+          formData ??= new FormData();
+          formData.append(param.name, new Blob([String(value)], { type: 'text/csv' }), `${param.name}.csv`);
         }
       }
     });
@@ -68,8 +84,14 @@ export async function executeApiTool(
     // Construct the full URL
     const requestUrl = API_BASE_URL ? `${API_BASE_URL}${urlPath}` : urlPath;
 
+    // Applied after the arguments, so a caller can never override one.
+    Object.assign(queryParams, definition.fixedQuery);
+
     // Handle request body if needed
-    if (definition.requestBodyContentType && typeof validatedArgs['requestBody'] !== 'undefined') {
+    if (formData) {
+      // No content-type header: axios sets multipart/form-data with the boundary the body needs.
+      requestBodyData = formData;
+    } else if (definition.requestBodyContentType && typeof validatedArgs['requestBody'] !== 'undefined') {
       requestBodyData = validatedArgs['requestBody'];
       headers['content-type'] = definition.requestBodyContentType;
     }

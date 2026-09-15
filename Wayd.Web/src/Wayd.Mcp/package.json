@@ -16,7 +16,7 @@
     "start": "node build/index.js",
     "inspect": "npm run build && npx -y @modelcontextprotocol/inspector node build/index.js",
     "build": "npm run generate && tsc && shx chmod 755 build/index.js",
-    "generate": "tsx scripts/generate-zod-schemas.ts",
+    "generate": "tsx scripts/generate-import-formats.ts && tsx scripts/generate-zod-schemas.ts",
     "lint": "eslint src tests scripts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json && tsc --noEmit -p tests/tsconfig.json",
     "test": "npm run build && npm run test:only",

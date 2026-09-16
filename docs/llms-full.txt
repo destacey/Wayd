@@ -554,6 +554,20 @@ Environments are RETIRED (PUT /{id}/active), never deleted — historical deploy
 
 NOTHING IN DELIVERY IS DELETABLE, and no delivery resource carries a Delete permission: versions, releases and packages are withdrawn, environments retired, deployments never removed. The terminal actions are all Update.
 
+### Delivery Overview
+
+Version activity over a window, for one product subtree or the whole catalog. GET product-management/delivery-overview (from, to, productId) and /recent.
+
+Measures: versions released per week, and mean days from cut to released. Both count VERSIONS ONLY — a release package is a bundle of versions, and counting one would count the same shipment twice.
+
+Rules: scoping to a product covers that node AND every descendant, so a non-releasable grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut — they carry no latency, and counting them as zero would make the average improve as history is backfilled; the measured and released counts are both returned. A previous-window figure is null rather than zero when nothing shipped then, since a rise from zero is not a trend. Activity is the catalog subtree flattened depth-first with a Depth per row, so the view indents rather than groups — grouping listed a node that is both releasable and a parent twice. A grouping carries no days at all. The recent feed reads status transitions, not the records' dates, which carry no time of day; it includes release packages, and drops them when scoped to a product.
+
+### Rollout
+
+What is running in each environment. GET product-management/deployment-environments/rollout (includeInactive).
+
+Rules: an entry is the latest deployment that SUCCEEDED AND STAYED SUCCEEDED, not the latest deployment — a rollback replaces its own deployment's status, so admitting only Succeeded leaves the version before it as the answer, and a failed attempt does the same. Every entry is keyed on the PRODUCT: a package deployment is expanded into its manifest and each component competes for its own product's slot. Keying on the package instead reports every bundle ever deployed as running, because successive bundles carry the same components and no bundle supersedes a differently-numbered one. Derived, never stored. Retired environments are excluded by default.
+
 ### Delivery Metrics
 
 Computed over a window from production deployments:

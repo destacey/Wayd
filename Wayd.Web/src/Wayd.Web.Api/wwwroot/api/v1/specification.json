@@ -4478,6 +4478,57 @@
         ]
       }
     },
+    "/api/product-management/deployment-environments/rollout": {
+      "get": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Get what is running in each environment, in rollout order.",
+        "description": "Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. A package is reported as itself rather than expanded into its manifest.",
+        "operationId": "DeploymentEnvironments_GetRollout",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvironmentRolloutDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/deployment-environments/import": {
       "post": {
         "tags": [
@@ -39554,6 +39605,107 @@
           "Production",
           "Other"
         ]
+      },
+      "EnvironmentRolloutDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "category",
+          "ringOrder",
+          "isActive",
+          "running"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EnvironmentCategory"
+          },
+          "ringOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolloutItemDto"
+            }
+          }
+        }
+      },
+      "RolloutItemDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deploymentId",
+          "deploymentKey",
+          "product",
+          "versionLabel",
+          "deployedAt",
+          "hasFailedAttemptSince"
+        ],
+        "properties": {
+          "deploymentId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "deploymentKey": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "version": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "versionLabel": {
+            "type": "string"
+          },
+          "package": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "artifactId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deployedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hasFailedAttemptSince": {
+            "type": "boolean"
+          }
+        }
       },
       "CreateDeploymentEnvironmentRequest": {
         "type": "object",

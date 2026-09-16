@@ -6150,6 +6150,67 @@ export class DeploymentEnvironmentsClient {
     }
 
     /**
+     * Get what is running in each environment, in rollout order.
+     * @param includeInactive (optional) 
+     */
+    getRollout(includeInactive?: boolean | null | undefined, cancelToken?: CancelToken): Promise<EnvironmentRolloutDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/deployment-environments/rollout?";
+        if (includeInactive !== undefined && includeInactive !== null)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRollout(_response);
+        });
+    }
+
+    protected processGetRollout(response: AxiosResponse): Promise<EnvironmentRolloutDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EnvironmentRolloutDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EnvironmentRolloutDto[]>(null as any);
+    }
+
+    /**
      * Submit a csv file of deployment environments to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
      * @param validateOnly (optional) 
@@ -42671,6 +42732,28 @@ export enum EnvironmentCategory {
     Staging = "Staging",
     Production = "Production",
     Other = "Other",
+}
+
+export interface EnvironmentRolloutDto {
+    id: string;
+    key: number;
+    name: string;
+    category: EnvironmentCategory;
+    ringOrder: number;
+    isActive: boolean;
+    running: RolloutItemDto[];
+}
+
+export interface RolloutItemDto {
+    deploymentId: string;
+    deploymentKey: number;
+    product: NavigationDto;
+    version?: NavigationDto | undefined;
+    versionLabel: string;
+    package?: NavigationDto | undefined;
+    artifactId?: string | undefined;
+    deployedAt: Date;
+    hasFailedAttemptSince: boolean;
 }
 
 export interface CreateDeploymentEnvironmentRequest {

@@ -14,6 +14,10 @@
 # trait convention that can drift out of sync with what the project really needs. Directory.Build.targets
 # derives the Category trait from the same signal, so a test's trait and the job it runs in agree.
 #
+# This runs on the Linux CI runner AND on a developer's machine, where on Windows that means Git Bash.
+# Keep the text processing to POSIX sed/tr: Git Bash's grep refuses `-P` outside a unibyte or UTF-8
+# locale, and a matcher that silently finds nothing here selects no projects and tests nothing.
+#
 # The selection is handed to `dotnet test` as a generated solution filter (.slnf). Two alternatives do
 # not work here: `dotnet test` takes only ONE project argument (MSB1008 on a list), and a solution-wide
 # `--filter` exits non-zero under xUnit v3 for every assembly that contains no matching test.
@@ -23,7 +27,11 @@ mode="${1:?usage: dotnet-test-projects.sh <unit|integration>}"
 collect_coverage="${COLLECT_COVERAGE:-false}"
 cd "$(dirname "$0")/../.."
 
-mapfile -t all_projects < <(grep -oP '(?<=<Project Path=")[^"]+' Wayd.slnx)
+# Extracted with sed rather than `grep -oP`: PCRE is a GNU extension, absent from BSD/macOS grep and
+# refused by Git Bash's grep unless the locale is unibyte or UTF-8. On a Windows dev box it therefore
+# matched nothing and the run selected no projects. Splitting on '<' first keeps one element per line,
+# so the greedy `.*` cannot reach past the element it is matching.
+mapfile -t all_projects < <(tr '<' '\n' < Wayd.slnx | sed -n 's/^Project .*Path="\([^"]*\)".*/\1/p')
 
 selected=()
 for proj in "${all_projects[@]}"; do
@@ -64,7 +72,13 @@ parallel_args=()
 if [[ "$mode" == "integration" ]]; then
     # Pull the image once, up front. Otherwise every suite that starts at the same time downloads it at the
     # same time, and the download eats into each container's start-up time.
-    image="$(grep -oP '(?<=Name = ")[^"]+' Wayd.Common/tests/Wayd.Tests.Containers/SqlServerTestImage.cs)"
+    # sed, not `grep -oP` -- see the note on the project list above. Matched against the whole const
+    # declaration so an unrelated `Name = "..."` appearing later cannot be picked up instead.
+    image="$(sed -n 's/.*const string Name = "\([^"]*\)".*/\1/p' Wayd.Common/tests/Wayd.Tests.Containers/SqlServerTestImage.cs)"
+    if [[ -z "$image" ]]; then
+        echo "Could not read the SQL Server image from SqlServerTestImage.cs — the const was renamed or moved." >&2
+        exit 1
+    fi
     echo "Pulling $image"
     docker pull --quiet "$image"
 

@@ -367,11 +367,12 @@ Environments are also ordered into **rings**, so progressive rollout is represen
 Each deployment freezes the category of the environment it went into, so reclassifying an environment changes where *future* deployments count and leaves past ones as they were. A staging environment promoted to production does not retroactively inflate your deployment frequency. The category is changed on the ordinary Edit form, but Wayd records the change as an event of its own rather than folding it into the edit, so the change in what gets counted from then on stays traceable.
 :::
 
-Environments are managed under **Settings → Product Management → Environments**. Delivery names the
-schema and the concept rather than a separate area of the app, so environments sit under the same
-section as the catalog. They can also be loaded from a file — see
-[Bulk Import](./bulk-import.mdx#environments-import) — which is the quick way to define every environment
-a historical set of deployments ever reached.
+Environments are managed under **Product Management → Environments**, alongside the rest of delivery
+rather than in Settings. An environment is a record, not a setting: it has an activity trail, a
+deployment count, and a retire-and-reinstate lifecycle, and every deployment points at one. Creating,
+editing and retiring are still gated on the environment permissions. They can also be loaded from a
+file — see [Bulk Import](./bulk-import.mdx#environments-import) — which is the quick way to define
+every environment a historical set of deployments ever reached.
 
 ### Retiring an Environment
 

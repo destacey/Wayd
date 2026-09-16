@@ -546,7 +546,7 @@ A deployment is never edited and never deleted — no such endpoint exists. Once
 ### Deployment Environments
 
 Named deploy targets, globally scoped and ordered into rings for progressive rollout. Properties:
-- Name, Category (Development/Testing/Staging/Production), Ring Order
+- Name, Category (Development/Testing/Staging/Production/Other), Ring Order
 
 Rules: Named DeploymentEnvironment because Environment would shadow System.Environment. Category is a fixed enum, not a workflow — a classification rather than a state. Every production-scoped measure counts on the category, not the free-text name. Reclassifying raises its own event because it changes what is counted from then on; past deployments keep the category they froze.
 

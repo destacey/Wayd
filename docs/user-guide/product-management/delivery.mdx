@@ -357,7 +357,9 @@ ship in?" without a second copy of the relationship that could disagree with the
 
 An **environment** is a named target a release is deployed into. Environments are defined once for the organization, and any product can deploy into any of them.
 
-Each environment carries a **category**: Development, Testing, Staging, or Production. The category, not the name, is what every production-scoped measure counts on — pipeline environment names are free text and endlessly varied (`prod`, `Production`, `prd`, `live`, somebody's `prod-canary`), so the category is what makes "deployments to production" answerable.
+Each environment carries a **category**: Development, Testing, Staging, Production, or Other. The category, not the name, is what every production-scoped measure counts on — pipeline environment names are free text and endlessly varied (`prod`, `Production`, `prd`, `live`, somebody's `prod-canary`), so the category is what makes "deployments to production" answerable.
+
+**Other** is for a target that fits none of the stages — a sandbox, a demo box, a training environment. It counts toward no delivery measure. Reach for it rather than filing such an environment under Development or Production, both of which are wrong in a way nothing will tell you about: one hides it, the other inflates every production-scoped figure.
 
 Environments are also ordered into **rings**, so progressive rollout is representable.
 

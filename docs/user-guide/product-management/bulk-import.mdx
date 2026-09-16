@@ -430,7 +430,7 @@ hand is the tedious part. In the app the button is under **Settings → Product 
 |---|---|---|
 | `ImportId` | No | The row's key **within this file only**. Never stored. |
 | `Name` | Yes | What the organization calls it — `Production`, `prod-eu`, `QA2`. Max 64 chars. Must not already exist. |
-| `Category` | Yes | `Development`, `Testing`, `Staging` or `Production` (case-insensitive). What every production-scoped measure counts on. |
+| `Category` | Yes | `Development`, `Testing`, `Staging`, `Production` or `Other` (case-insensitive). What every production-scoped measure counts on. |
 | `RingOrder` | Yes | Position in a progressive rollout, lowest first. Zero or more. |
 | `IsActive` | No | Blank or `true` leaves the environment in use. `false` creates it and then **retires** it — see below. |
 

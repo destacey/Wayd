@@ -165,6 +165,16 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               'product.metrics',
               '/product-management/metrics',
             ),
+            { key: 'product-environments-divider', type: 'divider' },
+            // After the chain rather than beside Deployments: environments are the roster the chain
+            // draws on, so slotting them between "where it went" and "how that went" would break the
+            // sequence the items above are ordered to read as.
+            restrictedPermissionMenuItem(
+              'Permissions.DeploymentEnvironments.View',
+              'Environments',
+              'product.environments',
+              '/product-management/environments',
+            ),
           ],
         ),
       ]

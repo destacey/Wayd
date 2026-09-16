@@ -114,6 +114,8 @@ const DeploymentEnvironmentsPage = () => {
         data={environmentData ?? []}
         onRefresh={refetch}
         isLoading={isLoading}
+        // Keeps the key it had under Settings. It names a localStorage entry, not a route, and
+        // changing it would silently discard every user's saved column layout for this grid.
         persistStateKey="settings-product-management-environments"
         csvFileName="deployment-environments"
         emptyMessage="No deployment environments have been created."

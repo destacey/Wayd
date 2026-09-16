@@ -147,6 +147,32 @@ describe('useAppMenuItems', () => {
     expect(keys).not.toContain('product.versions')
   })
 
+  it('guards Environments on the environment permission, not the Delivery one', () => {
+    // Environments moved out of Settings into this section, but kept their own claim: recording
+    // that a deployment ran and defining the targets it can run into are separate rights.
+    mockFlags['product-management'] = true
+    mockClaims.held = new Set(['Permissions.Delivery.View'])
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('product.deployments')
+    expect(keys).not.toContain('product.environments')
+  })
+
+  it('includes Environments for someone holding only the environment permission', () => {
+    mockFlags['product-management'] = true
+    mockClaims.held = new Set(['Permissions.DeploymentEnvironments.View'])
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('product.environments')
+    // The section survives on the environment claim alone.
+    expect(keys).toContain('product')
+    expect(keys).not.toContain('product.deployments')
+  })
+
   it('guards Versions on its own permission, not the catalog one', () => {
     // One section, but not one permission: someone who can see products need not be able to see
     // delivery records, and offering the entry anyway leads to a page that refuses them.

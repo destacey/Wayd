@@ -166,9 +166,19 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               '/product-management/metrics',
             ),
             { key: 'product-environments-divider', type: 'divider' },
-            // After the chain rather than beside Deployments: environments are the roster the chain
-            // draws on, so slotting them between "where it went" and "how that went" would break the
-            // sequence the items above are ordered to read as.
+            // After the chain rather than beside Deployments: these answer "where can it go" and
+            // "what is there now", so slotting them between "where it went" and "how that went"
+            // would break the sequence the items above are ordered to read as.
+            //
+            // Rollout is guarded on Delivery rather than the environment claim: it is the deployment
+            // record read by environment, and someone who may define targets need not be able to see
+            // what shipped to them.
+            restrictedPermissionMenuItem(
+              'Permissions.Delivery.View',
+              'Rollout',
+              'product.rollout',
+              '/product-management/rollout',
+            ),
             restrictedPermissionMenuItem(
               'Permissions.DeploymentEnvironments.View',
               'Environments',

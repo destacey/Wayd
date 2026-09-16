@@ -12,7 +12,7 @@ import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
 import Link from 'next/link'
 import { ReactElement } from 'react'
-import { buildProductTree, ProductTreeNode } from './product-tree'
+import { buildProductTree, ProductTreeNode } from '../../_components'
 
 export interface ProductsGridProps {
   products: ProductDto[]

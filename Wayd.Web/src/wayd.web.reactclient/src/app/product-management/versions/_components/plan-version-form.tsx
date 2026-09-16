@@ -7,15 +7,14 @@ import {
   MarkVersionReleasedRequest,
   PlanVersionRequest,
 } from '@/src/services/wayd-api'
-import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import {
   useCutVersionMutation,
   useMarkVersionReleasedMutation,
   usePlanVersionMutation,
 } from '@/src/store/features/product-management/versions-api'
-import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { DatePicker, Form, Input, Modal, Select } from 'antd'
+import { ProductTreeSelect } from '../../_components'
+import { DatePicker, Form, Input, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
 
 const { Item } = Form
@@ -57,7 +56,6 @@ const PlanVersionForm = ({
   const [planVersion] = usePlanVersionMutation()
   const [cutVersion] = useCutVersionMutation()
   const [markReleased] = useMarkVersionReleasedMutation()
-  const { data: products, isLoading } = useGetProductsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<PlanVersionFormValues>({
@@ -138,11 +136,6 @@ const PlanVersionForm = ({
 
   const cutDate = Form.useWatch('cutDate', form)
 
-  const productOptions = (products ?? [])
-    .filter((product) => product.isReleasable)
-    .map((product) => ({ value: product.id, label: product.name }))
-    .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
-
   return (
     <Modal
       title="Add Version"
@@ -168,13 +161,7 @@ const PlanVersionForm = ({
           rules={[{ required: true, message: 'Product is required' }]}
           extra="Only products that can be released are listed. A product's type decides this."
         >
-          <Select
-            options={productOptions}
-            loading={isLoading}
-            placeholder="Select a product"
-            showSearch
-            optionFilterProp="label"
-          />
+          <ProductTreeSelect selectable="releasable" allowClear={false} />
         </Item>
         <Item
           label="Version"

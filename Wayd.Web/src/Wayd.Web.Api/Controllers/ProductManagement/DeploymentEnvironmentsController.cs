@@ -45,6 +45,23 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
         return Ok(environments);
     }
 
+    [HttpGet("rollout")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
+    [OpenApiOperation(
+        "Get what is running in each environment, in rollout order.",
+        "Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. A package is reported as itself rather than expanded into its manifest.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<EnvironmentRolloutDto>>> GetRollout(
+        [FromQuery] bool? includeInactive,
+        CancellationToken cancellationToken)
+    {
+        var rollout = await _dispatcher.Send(
+            new GetEnvironmentRolloutQuery(includeInactive ?? false), cancellationToken);
+
+        return Ok(rollout);
+    }
+
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.DeploymentEnvironments)]
     [OpenApiOperation("Create a deployment environment.", "")]

@@ -12,6 +12,11 @@ namespace Wayd.Common.Domain.Enums.ProductManagement;
 /// environment does not move through these, and deployment frequency has no denominator until each
 /// environment maps to one. Reclassifying an environment retroactively changes every production-scoped
 /// measure, which is why it raises its own event rather than passing as an ordinary edit.
+/// <para>
+/// <see cref="Other"/> exists so a target that fits none of the stages — a sandbox, a demo box — is not
+/// forced into one that counts. Without it the only options are a bucket that inflates production-scoped
+/// measures and one that hides the environment entirely, and both are wrong silently.
+/// </para>
 /// </remarks>
 public enum EnvironmentCategory
 {
@@ -25,5 +30,8 @@ public enum EnvironmentCategory
     Staging = 3,
 
     [Display(Name = "Production", Description = "Live environments serving real users. The denominator for delivery metrics.", Order = 4)]
-    Production = 4
+    Production = 4,
+
+    [Display(Name = "Other", Description = "A target that is none of the above — a sandbox, a demo, a training environment.", Order = 5)]
+    Other = 5
 }

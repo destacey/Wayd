@@ -27,6 +27,7 @@ const environmentCategoryValue: Record<EnvironmentCategory, number> = {
   [EnvironmentCategory.Testing]: 2,
   [EnvironmentCategory.Staging]: 3,
   [EnvironmentCategory.Production]: 4,
+  [EnvironmentCategory.Other]: 5,
 }
 
 const DeploymentsPage: FC = () => {

@@ -392,6 +392,7 @@ public sealed class DeploymentTests
     [InlineData(EnvironmentCategory.Development)]
     [InlineData(EnvironmentCategory.Testing)]
     [InlineData(EnvironmentCategory.Staging)]
+    [InlineData(EnvironmentCategory.Other)]
     public void IsChangeFailure_ShouldBeFalse_ForAFailureOutsideProduction(EnvironmentCategory category)
     {
         // Arrange

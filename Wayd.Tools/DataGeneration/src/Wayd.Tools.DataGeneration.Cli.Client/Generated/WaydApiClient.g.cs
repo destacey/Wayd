@@ -77453,6 +77453,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Runtime.Serialization.EnumMember(Value = @"Production")]
         Production = 3,
 
+        [System.Runtime.Serialization.EnumMember(Value = @"Other")]
+        Other = 4,
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -77513,7 +77516,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// Development, Testing, Staging or Production, case-insensitively.
+        /// Development, Testing, Staging, Production or Other,
+        /// <br/>case-insensitively.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]

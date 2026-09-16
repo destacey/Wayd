@@ -141,6 +141,15 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               '/product-management/releases',
             ),
             { key: 'settings-product-divider', type: 'divider' },
+            // Leads the engineering chain rather than the whole section: it summarises what the
+            // items below record, so it reads as their overview rather than as a sibling of the
+            // catalog. Guarded on Delivery — it reads version records, not products.
+            restrictedPermissionMenuItem(
+              'Permissions.Delivery.View',
+              'Delivery',
+              'product.delivery',
+              '/product-management/delivery',
+            ),
             restrictedPermissionMenuItem(
               'Permissions.Delivery.View',
               'Versions',

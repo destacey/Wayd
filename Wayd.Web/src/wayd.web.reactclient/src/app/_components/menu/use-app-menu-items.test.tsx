@@ -147,6 +147,28 @@ describe('useAppMenuItems', () => {
     expect(keys).not.toContain('product.versions')
   })
 
+  it('includes Delivery for someone holding the Delivery permission', () => {
+    // The section's overview reads version records, so it follows the Delivery claim rather than
+    // the catalog one.
+    mockFlags['product-management'] = true
+    mockClaims.held = new Set(['Permissions.Delivery.View'])
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    expect(keysOf(result.current.menuItems)).toContain('product.delivery')
+  })
+
+  it('withholds Delivery from someone who can only see the catalog', () => {
+    mockFlags['product-management'] = true
+    mockClaims.held = new Set(['Permissions.Products.View'])
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('product.products')
+    expect(keys).not.toContain('product.delivery')
+  })
+
   it('guards Rollout on Delivery, not the environment permission', () => {
     // Rollout is the deployment record read by environment, so it follows the deployments it reads.
     // Someone who may define targets need not be able to see what shipped to them.

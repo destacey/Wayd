@@ -42670,6 +42670,7 @@ export enum EnvironmentCategory {
     Testing = "Testing",
     Staging = "Staging",
     Production = "Production",
+    Other = "Other",
 }
 
 export interface CreateDeploymentEnvironmentRequest {
@@ -42691,7 +42692,8 @@ hand-authored file still works. */
     importId?: string | undefined;
     /** What your organization calls it — "Production", "prod-eu", "QA2". */
     name: string;
-    /** Development, Testing, Staging or Production, case-insensitively. */
+    /** Development, Testing, Staging, Production or Other,
+case-insensitively. */
     category: string;
     /** Position in a progressive rollout, lowest first. */
     ringOrder: number;

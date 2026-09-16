@@ -39544,13 +39544,15 @@
           "Development",
           "Testing",
           "Staging",
-          "Production"
+          "Production",
+          "Other"
         ],
         "enum": [
           "Development",
           "Testing",
           "Staging",
-          "Production"
+          "Production",
+          "Other"
         ]
       },
       "CreateDeploymentEnvironmentRequest": {
@@ -39611,7 +39613,7 @@
           },
           "category": {
             "type": "string",
-            "description": "Development, Testing, Staging or Production, case-insensitively.",
+            "description": "Development, Testing, Staging, Production or Other,\ncase-insensitively.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "Category",
@@ -39619,7 +39621,8 @@
               "Development",
               "Testing",
               "Staging",
-              "Production"
+              "Production",
+              "Other"
             ]
           },
           "ringOrder": {

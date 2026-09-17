@@ -3,14 +3,10 @@
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { ProductDto, ReparentProductRequest } from '@/src/services/wayd-api'
-import {
-  useGetProductsQuery,
-  useReparentProductMutation,
-} from '@/src/store/features/product-management/products-api'
-import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { buildMoveTargetTree, ProductTreeNode } from './product-tree'
+import { useReparentProductMutation } from '@/src/store/features/product-management/products-api'
+import { ProductTreeSelect } from '../../_components'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Modal, TreeSelect } from 'antd'
+import { Form, Modal } from 'antd'
 
 const { Item } = Form
 
@@ -22,12 +18,6 @@ export interface ReparentProductFormProps {
 
 interface ReparentProductFormValues {
   parentId?: string
-}
-
-interface TreeSelectNode {
-  value: string
-  title: string
-  children: TreeSelectNode[]
 }
 
 /**
@@ -46,7 +36,6 @@ const ReparentProductForm = ({
   const messageApi = useMessage()
 
   const [reparentProduct] = useReparentProductMutation()
-  const { data: products, isLoading } = useGetProductsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<ReparentProductFormValues>({
@@ -83,17 +72,6 @@ const ReparentProductForm = ({
       permission: 'Permissions.Products.Update',
     })
 
-  const toTreeData = (nodes: ProductTreeNode[]): TreeSelectNode[] =>
-    nodes
-      .map((node) => ({
-        value: node.id,
-        title: node.name,
-        children: toTreeData(node.children),
-      }))
-      .sort((a, b) => caseInsensitiveCompare(a.title, b.title))
-
-  const treeData = toTreeData(buildMoveTargetTree(products ?? [], product.id))
-
   return (
     <Modal
       title="Move Product"
@@ -118,21 +96,9 @@ const ReparentProductForm = ({
           label="Parent"
           extra="Clear this to make it a root product."
         >
-          <TreeSelect
-            treeData={treeData}
-            loading={isLoading}
+          <ProductTreeSelect
+            excludeSubtreeOf={product.id}
             placeholder="Select a parent"
-            notFoundContent="No products found"
-            treeLine
-            treeDefaultExpandAll
-            allowClear
-            showSearch={{
-              filterTreeNode: (input, node) =>
-                node.title
-                  ?.toString()
-                  .toLowerCase()
-                  .includes(input.toLowerCase()) ?? false,
-            }}
           />
         </Item>
       </Form>

@@ -1054,8 +1054,14 @@ export const importTemplates = {
             type: 'text',
             required: true,
             description:
-              'Development, Testing, Staging or Production, case-insensitively.',
-            values: ['Development', 'Testing', 'Staging', 'Production'],
+              'Development, Testing, Staging, Production or Other, case-insensitively.',
+            values: [
+              'Development',
+              'Testing',
+              'Staging',
+              'Production',
+              'Other',
+            ],
           },
           {
             name: 'RingOrder',

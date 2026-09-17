@@ -1,13 +1,12 @@
 'use client'
 
-import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { PlanReleaseRequest } from '@/src/services/wayd-api'
 import { usePlanReleaseMutation } from '@/src/store/features/product-management/releases-api'
-import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { DatePicker, Form, Input, Modal, Select } from 'antd'
+import { ProductTreeSelect } from '../../_components'
+import { DatePicker, Form, Input, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
 
 const { Item } = Form
@@ -44,7 +43,6 @@ const PlanReleaseForm = ({
   const messageApi = useMessage()
 
   const [planRelease] = usePlanReleaseMutation()
-  const { data: products, isLoading } = useGetProductsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<PlanReleaseFormValues>({
@@ -85,10 +83,6 @@ const PlanReleaseForm = ({
       permission: 'Permissions.Releases.Create',
     })
 
-  const productOptions = (products ?? [])
-    .map((product) => ({ value: product.id, label: product.name }))
-    .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
-
   return (
     <Modal
       title="Add Release"
@@ -113,14 +107,7 @@ const PlanReleaseForm = ({
           name="productId"
           extra="Leave empty for a release spanning product lines. A release with no product is left out when releases are filtered by product."
         >
-          <Select
-            options={productOptions}
-            loading={isLoading}
-            placeholder="Select a product"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-          />
+          <ProductTreeSelect />
         </Item>
         <Item
           label="Version"

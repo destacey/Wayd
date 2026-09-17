@@ -1,5 +1,7 @@
 'use client'
 
+import WaydTooltip from '@/src/components/common/wayd-tooltip'
+import { QuestionCircleOutlined } from '@ant-design/icons'
 import { Col, Flex, Grid, Row, Typography } from 'antd'
 import { ReactNode } from 'react'
 
@@ -12,6 +14,13 @@ export interface PageTitleProps {
   tags?: ReactNode | null
   actions?: ReactNode | null
   extra?: ReactNode | null
+  /**
+   * What the page shows, behind a help icon beside the title.
+   *
+   * Beside rather than on the heading: a tooltip anchored to the title alone is undiscoverable,
+   * since nothing about a heading says it can be hovered.
+   */
+  tooltip?: string
 }
 
 // TODO: align actions to the right/end when not the xs or sm breakpoint
@@ -21,6 +30,7 @@ const PageTitle = ({
   tags,
   actions,
   extra,
+  tooltip,
 }: PageTitleProps) => {
   const screens = useBreakpoint()
   const isSuperSmall = !screens.sm // xs screens (< 576px)
@@ -33,9 +43,18 @@ const PageTitle = ({
           <Col xs={24} sm={24} md={titleMdSize}>
             <Flex vertical={isSuperSmall} gap={isSuperSmall ? 8 : 12} align={isSuperSmall ? 'flex-start' : 'center'}>
               <div>
-                <Title level={2} style={{ margin: '0px', fontWeight: '400' }}>
-                  {title}
-                </Title>
+                <Flex align="center" gap={8}>
+                  <Title level={2} style={{ margin: '0px', fontWeight: '400' }}>
+                    {title}
+                  </Title>
+                  {tooltip && (
+                    <WaydTooltip title={tooltip} helpCursor>
+                      <Text type="secondary" aria-label="About this page">
+                        <QuestionCircleOutlined />
+                      </Text>
+                    </WaydTooltip>
+                  )}
+                </Flex>
                 {subtitle && <Text>{subtitle}</Text>}
               </div>
               {tags && <div>{tags}</div>}

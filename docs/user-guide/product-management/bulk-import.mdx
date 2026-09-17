@@ -424,13 +424,13 @@ they carry need their own released dates in the same run.
 Loads [environments](./delivery.mdx#environments), the targets deployments are recorded against. This is
 the one piece of reference data with an import, because a historical backfill of deployments names every
 environment that ever existed — including the ones long since decommissioned — and defining those by
-hand is the tedious part. In the app the button is under **Settings → Product Management → Environments**.
+hand is the tedious part. In the app the button is under **Product Management → Environments**.
 
 | Column | Required | Notes |
 |---|---|---|
 | `ImportId` | No | The row's key **within this file only**. Never stored. |
 | `Name` | Yes | What the organization calls it — `Production`, `prod-eu`, `QA2`. Max 64 chars. Must not already exist. |
-| `Category` | Yes | `Development`, `Testing`, `Staging` or `Production` (case-insensitive). What every production-scoped measure counts on. |
+| `Category` | Yes | `Development`, `Testing`, `Staging`, `Production` or `Other` (case-insensitive). What every production-scoped measure counts on. |
 | `RingOrder` | Yes | Position in a progressive rollout, lowest first. Zero or more. |
 | `IsActive` | No | Blank or `true` leaves the environment in use. `false` creates it and then **retires** it — see below. |
 

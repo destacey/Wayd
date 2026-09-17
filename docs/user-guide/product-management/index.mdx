@@ -73,14 +73,18 @@ Every area of Product Management now has both a screen and an API.
 | Releases and versions | Yes | Yes |
 | Release packages | Yes | Yes |
 | Deployments and environments | Yes | Yes |
+| Delivery overview and version activity | Yes | Yes |
+| Rollout — what is running where | Yes | Yes |
 | Delivery metrics | Yes | Yes |
 
-Delivery metrics reports the two measures this module can compute from what it records. The other two are shown as unavailable, each with the reason, rather than approximated — see [Delivery Metrics](./delivery.mdx#delivery-metrics).
+Two pages read the records rather than adding to them. **[Delivery](./delivery.mdx#delivery)** measures what was cut and shipped from the version record, which needs no deployments at all. **[Rollout](./delivery.mdx#rollout)** derives what is running in each environment from the deployment record, so it can never drift out of step with it.
+
+Delivery metrics reports the two DORA measures this module can compute from what it records. The other two are shown as unavailable, each with the reason, rather than approximated — see [Delivery Metrics](./delivery.mdx#delivery-metrics).
 
 ## Sections
 
 - **[Products](./products.mdx)** — The catalog: creating products, the tree, types, statuses, tags, moving, and external links
-- **[Delivery](./delivery.mdx)** — Releases, versions, packages, deployments, environments, and the delivery metrics computed from them
+- **[Delivery](./delivery.mdx)** — Releases, versions, packages, deployments, environments, the rollout and version-activity views, and the delivery metrics computed from them
 - **[Bulk Import](./bulk-import.mdx)** — Loading the catalog from CSV through the import API
 
 ## Permissions

@@ -99,15 +99,6 @@ const buildSettingsMenuItems = (
           undefined,
           undefined,
           [
-            // Environments are delivery infrastructure, but they are configured in the same module
-            // as the catalog and sit under the same section here. "Delivery" names the schema and
-            // the concept; it is not a separate area of the app.
-            restrictedPermissionMenuItem(
-              'Permissions.DeploymentEnvironments.View',
-              'Environments',
-              'product-management.environments',
-              '/settings/product-management/environments',
-            ),
             restrictedPermissionMenuItem(
               'Permissions.ProductTagCategories.View',
               'Product Tags',

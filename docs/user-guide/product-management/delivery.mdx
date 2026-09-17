@@ -357,7 +357,9 @@ ship in?" without a second copy of the relationship that could disagree with the
 
 An **environment** is a named target a release is deployed into. Environments are defined once for the organization, and any product can deploy into any of them.
 
-Each environment carries a **category**: Development, Testing, Staging, or Production. The category, not the name, is what every production-scoped measure counts on — pipeline environment names are free text and endlessly varied (`prod`, `Production`, `prd`, `live`, somebody's `prod-canary`), so the category is what makes "deployments to production" answerable.
+Each environment carries a **category**: Development, Testing, Staging, Production, or Other. The category, not the name, is what every production-scoped measure counts on — pipeline environment names are free text and endlessly varied (`prod`, `Production`, `prd`, `live`, somebody's `prod-canary`), so the category is what makes "deployments to production" answerable.
+
+**Other** is for a target that fits none of the stages — a sandbox, a demo box, a training environment. It counts toward no delivery measure. Reach for it rather than filing such an environment under Development or Production, both of which are wrong in a way nothing will tell you about: one hides it, the other inflates every production-scoped figure.
 
 Environments are also ordered into **rings**, so progressive rollout is representable.
 
@@ -365,11 +367,12 @@ Environments are also ordered into **rings**, so progressive rollout is represen
 Each deployment freezes the category of the environment it went into, so reclassifying an environment changes where *future* deployments count and leaves past ones as they were. A staging environment promoted to production does not retroactively inflate your deployment frequency. The category is changed on the ordinary Edit form, but Wayd records the change as an event of its own rather than folding it into the edit, so the change in what gets counted from then on stays traceable.
 :::
 
-Environments are managed under **Settings → Product Management → Environments**. Delivery names the
-schema and the concept rather than a separate area of the app, so environments sit under the same
-section as the catalog. They can also be loaded from a file — see
-[Bulk Import](./bulk-import.mdx#environments-import) — which is the quick way to define every environment
-a historical set of deployments ever reached.
+Environments are managed under **Product Management → Environments**, alongside the rest of delivery
+rather than in Settings. An environment is a record, not a setting: it has an activity trail, a
+deployment count, and a retire-and-reinstate lifecycle, and every deployment points at one. Creating,
+editing and retiring are still gated on the environment permissions. They can also be loaded from a
+file — see [Bulk Import](./bulk-import.mdx#environments-import) — which is the quick way to define
+every environment a historical set of deployments ever reached.
 
 ### Retiring an Environment
 
@@ -439,6 +442,65 @@ it, which is the point of having both.
 A deployment's **Category** is the environment's category *as it stood when the deployment ran*, not
 the environment's category today. A row can therefore legitimately show a different category from the
 environment it names — see [Reclassifying does not rewrite history](#environments) above.
+
+## Rollout
+
+**Rollout** answers what is running in each environment right now. It is derived from the deployment record rather than stored, so it can never drift out of step with it — there is nothing to keep in sync and nothing to correct.
+
+Each entry is the latest deployment that **succeeded and stayed succeeded**, which is not the same as the latest deployment. A failed attempt never reached the environment, so the version before it is still what is there. A rollback replaces its own deployment's status, so the version before *it* wins again. Both cases are the point of having this page separately from Deployments: the newest row there tells you what happened last, and this tells you what is live.
+
+Where a later attempt on the same product failed or was rolled back, the entry is marked. The running version is still the honest answer, but on its own it would hide that someone has since tried to move past it and could not.
+
+:::note A package is expanded, not listed
+A package deployment is broken into its [manifest](#release-packages) and each component competes for its own product's slot, so every row on this page is a product. Listing the package itself instead would report **every bundle ever deployed** as running: successive bundles carry the same components, and no bundle supersedes a differently-numbered one.
+
+An entry that arrived inside a package names it, so the deployment the version rode in on stays visible.
+:::
+
+Retired environments are left out by default. They still hold the history of everything that ever reached them, but nothing is running there. **Show retired** brings them back, tagged, so an empty card is not read as a gap.
+
+## Delivery
+
+**Delivery** measures version activity over a window — what was **cut and shipped**, rather than what reached an environment. It is the overview for the records below it, and it is deliberately answerable without any deployment records at all.
+
+Scope is a product node, defaulting to all products. Selecting a node covers **that node and everything beneath it**, so picking a grouping rolls up its children rather than reporting nothing — a product line has no versions of its own. The picker leaves out any branch with nothing releasable beneath it, since scoping to one could only ever report zero.
+
+| Measure | What it counts |
+| --- | --- |
+| Versions released | Versions marked released in the window, as a weekly rate |
+| Cut to released | Mean days from cutting a version to releasing it |
+
+**Neither counts release packages.** A package is a bundle of versions, not a version, and counting one would count the same shipment twice — its components are each released in their own right.
+
+Each tile carries its counts beside the rate, so two windows are combined by summing the parts rather than averaging the rates; an average of averages weights a quiet week the same as a busy one. Each also compares against the window immediately before. Where nothing shipped then, the tile says there is nothing to compare against rather than showing a rise from zero, which would invent a trend out of a product's first fortnight.
+
+### Version Activity
+
+A day-by-day grid of versions released per product, drawn as the catalog tree and indented by depth. Every node appears exactly once — a node that is both releasable and a parent would otherwise be listed twice, as a row and again as a heading over its own children.
+
+A grouping is shown so the hierarchy reads, but it has **no day cells at all**: it can never have versions cut against it, and an empty row would claim it had a quiet fortnight rather than that the question does not apply to it. A grouping with nothing releasable anywhere beneath it is left out entirely.
+
+Products that shipped nothing are kept. A missing row reads as "not in scope" rather than "nothing shipped", and the quiet product is usually the one worth noticing.
+
+Shading is an **absolute** scale — none, one, two, three, four, and five or more — not one relative to the busiest day on screen. A relative scale silently redefines every shade when the window changes, so the same cell means "a quiet day" in one window and "the busiest day" in another, and two screenshots cannot be compared. The legend names what each shade stands for.
+
+### Recent Delivery Activity
+
+What has happened to versions **and packages** lately, most recent first: released, cut and awaiting release, withdrawn. A package entry says how many components it carried and links to its manifest rather than listing them.
+
+Read from [status history](#version-status-history) rather than the records' own dates, for two reasons. The dates are dates — they carry no time of day, so two things that happened on one afternoon could not be ordered. And a date says the state a record is in now, while a transition says the moment it changed, which is what a feed is a list of.
+
+:::note Packages drop out when you scope to a product
+A package spans several products, so attributing one to a single node would put the same shipment under each of them. Scoping the page to a product therefore leaves packages out of the feed, and the entries you see are versions alone.
+:::
+
+:::caution Cut to released excludes what it cannot measure
+A version can be marked released without ever having been cut, and [that is deliberate](#recording-a-version) — demanding a cut first would make importing historical versions impossible. Those versions carry no latency, so they are left out rather than counted as zero, which would make the average improve every time more history was loaded. The tile says how many of the window's releases it actually speaks for.
+:::
+
+:::note What this page does not say
+Neither measure says anything about whether a deployment worked. A version has no failed state — its lifecycle is Planned, Ready, Released and Withdrawn — and failure belongs to the [deployment](#deployments), where it is scoped to production. Measuring it from version records would be inventing an answer. See [Delivery Metrics](#delivery-metrics) for what the deployment record supports.
+:::
 
 ## Activity
 

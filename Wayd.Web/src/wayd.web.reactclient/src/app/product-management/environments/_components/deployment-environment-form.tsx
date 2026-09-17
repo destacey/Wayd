@@ -38,6 +38,7 @@ const categoryOptions = [
   { value: EnvironmentCategory.Testing, label: 'Testing' },
   { value: EnvironmentCategory.Staging, label: 'Staging' },
   { value: EnvironmentCategory.Production, label: 'Production' },
+  { value: EnvironmentCategory.Other, label: 'Other' },
 ]
 
 /**

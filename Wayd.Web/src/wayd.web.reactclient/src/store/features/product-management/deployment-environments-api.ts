@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   CreateDeploymentEnvironmentRequest,
   DeploymentEnvironmentDto,
+  EnvironmentRolloutDto,
   ObjectIdAndKey,
   SetDeploymentEnvironmentActiveRequest,
   UpdateDeploymentEnvironmentRequest,
@@ -41,6 +42,32 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
       },
       providesTags: () => [
         { type: QueryTags.DeploymentEnvironment, id: 'LIST' },
+      ],
+    }),
+    /**
+     * What each environment is running, derived from its deployments.
+     *
+     * Tagged against deployments as well as environments: the answer changes when a deployment
+     * completes, not only when an environment is added or retired.
+     */
+    getEnvironmentRollout: builder.query<
+      EnvironmentRolloutDto[],
+      { includeInactive?: boolean } | undefined
+    >({
+      queryFn: async (request = {}) => {
+        try {
+          const data = await getDeploymentEnvironmentsClient().getRollout(
+            request.includeInactive,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [
+        { type: QueryTags.DeploymentEnvironment, id: 'LIST' },
+        { type: QueryTags.Deployment, id: 'LIST' },
       ],
     }),
     createDeploymentEnvironment: builder.mutation<
@@ -108,6 +135,7 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
 
 export const {
   useGetDeploymentEnvironmentsQuery,
+  useGetEnvironmentRolloutQuery,
   useCreateDeploymentEnvironmentMutation,
   useUpdateDeploymentEnvironmentMutation,
   useSetDeploymentEnvironmentActiveMutation,

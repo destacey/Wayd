@@ -24,7 +24,8 @@ public sealed class ImportDeploymentEnvironmentRequest
     public string Name { get; set; } = default!;
 
     /// <summary>
-    /// <c>Development</c>, <c>Testing</c>, <c>Staging</c> or <c>Production</c>, case-insensitively.
+    /// <c>Development</c>, <c>Testing</c>, <c>Staging</c>, <c>Production</c> or <c>Other</c>,
+    /// case-insensitively.
     /// </summary>
     [CsvValues(typeof(EnvironmentCategory))]
     public string Category { get; set; } = default!;
@@ -59,7 +60,7 @@ public sealed class ImportDeploymentEnvironmentRequestValidator : CustomValidato
             .NotEmpty()
             .Must(c => Enum.TryParse<EnvironmentCategory>(c.Trim(), ignoreCase: true, out var category)
                 && Enum.IsDefined(category))
-                .WithMessage("Category must be one of 'Development', 'Testing', 'Staging' or 'Production'.");
+                .WithMessage("Category must be one of 'Development', 'Testing', 'Staging', 'Production' or 'Other'.");
 
         RuleFor(e => e.RingOrder)
             .GreaterThanOrEqualTo(0);

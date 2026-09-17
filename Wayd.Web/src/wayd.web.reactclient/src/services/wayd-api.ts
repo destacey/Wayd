@@ -6010,6 +6010,159 @@ export class DeliveryMetricsClient {
     }
 }
 
+export class DeliveryOverviewClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get version activity over a window.
+     * @param from (optional) An instant rather than a date, though the window is a date range and the versions it counts
+    carry dates. The generated client types every date parameter as a JavaScript Date and
+    sends toISOString(), which no LocalDate binder accepts — so a date-typed
+    parameter here is unreachable from the client that calls it. Truncated to its UTC date below,
+    matching how the other windowed endpoints take their bounds.
+     * @param to (optional) 
+     * @param productId (optional) 
+     */
+    getDeliveryOverview(from?: Date | undefined, to?: Date | undefined, productId?: string | null | undefined, cancelToken?: CancelToken): Promise<DeliveryOverviewDto> {
+        let url_ = this.baseUrl + "/api/product-management/delivery-overview?";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (productId !== undefined && productId !== null)
+            url_ += "productId=" + encodeURIComponent("" + productId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeliveryOverview(_response);
+        });
+    }
+
+    protected processGetDeliveryOverview(response: AxiosResponse): Promise<DeliveryOverviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeliveryOverviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeliveryOverviewDto>(null as any);
+    }
+
+    /**
+     * Get what has happened to versions and packages lately.
+     * @param take (optional) 
+     * @param productId (optional) 
+     */
+    getRecentDeliveryEvents(take?: number | null | undefined, productId?: string | null | undefined, cancelToken?: CancelToken): Promise<RecentDeliveryEventDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/delivery-overview/recent?";
+        if (take !== undefined && take !== null)
+            url_ += "take=" + encodeURIComponent("" + take) + "&";
+        if (productId !== undefined && productId !== null)
+            url_ += "productId=" + encodeURIComponent("" + productId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRecentDeliveryEvents(_response);
+        });
+    }
+
+    protected processGetRecentDeliveryEvents(response: AxiosResponse): Promise<RecentDeliveryEventDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<RecentDeliveryEventDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RecentDeliveryEventDto[]>(null as any);
+    }
+}
+
 export class DeploymentEnvironmentsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -6147,6 +6300,67 @@ export class DeploymentEnvironmentsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get what is running in each environment, in rollout order.
+     * @param includeInactive (optional) 
+     */
+    getRollout(includeInactive?: boolean | null | undefined, cancelToken?: CancelToken): Promise<EnvironmentRolloutDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/deployment-environments/rollout?";
+        if (includeInactive !== undefined && includeInactive !== null)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRollout(_response);
+        });
+    }
+
+    protected processGetRollout(response: AxiosResponse): Promise<EnvironmentRolloutDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EnvironmentRolloutDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EnvironmentRolloutDto[]>(null as any);
     }
 
     /**
@@ -42655,6 +42869,78 @@ export interface UnavailableMetricDto {
     reason: string;
 }
 
+export interface DeliveryOverviewDto {
+    scope: DeliveryScopeDto;
+    frequency: ReleaseFrequencyDto;
+    cutToReleased: CutToReleasedDto;
+    activity: ProductActivityDto[];
+}
+
+export interface DeliveryScopeDto {
+    product?: NavigationDto | undefined;
+    releasableNodeCount: number;
+}
+
+export interface ReleaseFrequencyDto {
+    count: number;
+    windowDays: number;
+    perWeek: number;
+    previousPerWeek?: number | undefined;
+}
+
+export interface CutToReleasedDto {
+    averageDays?: number | undefined;
+    measuredCount: number;
+    releasedCount: number;
+    previousAverageDays?: number | undefined;
+}
+
+export interface ProductActivityDto {
+    product: NavigationDto;
+    depth: number;
+    isReleasable: boolean;
+    days: DailyReleaseCountDto[];
+    totalReleased: number;
+}
+
+export interface DailyReleaseCountDto {
+    date: Date;
+    released: number;
+    withdrawn: number;
+}
+
+export interface RecentDeliveryEventDto {
+    recordId: string;
+    recordKey: number;
+    kind: DeliveryRecordKind;
+    product?: NavigationDto | undefined;
+    label: string;
+    statusName: string;
+    alias: ProductStatusAlias;
+    changedOn: Date;
+    releasedDate?: Date | undefined;
+    componentCount?: number | undefined;
+}
+
+export enum DeliveryRecordKind {
+    Version = "Version",
+    ReleasePackage = "ReleasePackage",
+}
+
+export enum ProductStatusAlias {
+    None = "None",
+    Active = "Active",
+    Sunset = "Sunset",
+    Retired = "Retired",
+    Ready = "Ready",
+    Released = "Released",
+    Withdrawn = "Withdrawn",
+    InProgress = "InProgress",
+    Succeeded = "Succeeded",
+    Failed = "Failed",
+    RolledBack = "RolledBack",
+}
+
 export interface DeploymentEnvironmentDto {
     id: string;
     key: number;
@@ -42670,6 +42956,29 @@ export enum EnvironmentCategory {
     Testing = "Testing",
     Staging = "Staging",
     Production = "Production",
+    Other = "Other",
+}
+
+export interface EnvironmentRolloutDto {
+    id: string;
+    key: number;
+    name: string;
+    category: EnvironmentCategory;
+    ringOrder: number;
+    isActive: boolean;
+    running: RolloutItemDto[];
+}
+
+export interface RolloutItemDto {
+    deploymentId: string;
+    deploymentKey: number;
+    product: NavigationDto;
+    version?: NavigationDto | undefined;
+    versionLabel: string;
+    package?: NavigationDto | undefined;
+    artifactId?: string | undefined;
+    deployedAt: Date;
+    hasFailedAttemptSince: boolean;
 }
 
 export interface CreateDeploymentEnvironmentRequest {
@@ -42691,7 +43000,8 @@ hand-authored file still works. */
     importId?: string | undefined;
     /** What your organization calls it — "Production", "prod-eu", "QA2". */
     name: string;
-    /** Development, Testing, Staging or Production, case-insensitively. */
+    /** Development, Testing, Staging, Production or Other,
+case-insensitively. */
     category: string;
     /** Position in a progressive rollout, lowest first. */
     ringOrder: number;
@@ -42749,20 +43059,6 @@ export enum StatusCategory {
     Active = "Active",
     Done = "Done",
     Removed = "Removed",
-}
-
-export enum ProductStatusAlias {
-    None = "None",
-    Active = "Active",
-    Sunset = "Sunset",
-    Retired = "Retired",
-    Ready = "Ready",
-    Released = "Released",
-    Withdrawn = "Withdrawn",
-    InProgress = "InProgress",
-    Succeeded = "Succeeded",
-    Failed = "Failed",
-    RolledBack = "RolledBack",
 }
 
 export interface StatusTransitionDto {

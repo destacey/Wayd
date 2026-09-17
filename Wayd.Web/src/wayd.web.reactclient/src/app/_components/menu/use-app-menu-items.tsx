@@ -141,6 +141,15 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               '/product-management/releases',
             ),
             { key: 'settings-product-divider', type: 'divider' },
+            // Leads the engineering chain rather than the whole section: it summarises what the
+            // items below record, so it reads as their overview rather than as a sibling of the
+            // catalog. Guarded on Delivery — it reads version records, not products.
+            restrictedPermissionMenuItem(
+              'Permissions.Delivery.View',
+              'Delivery',
+              'product.delivery',
+              '/product-management/delivery',
+            ),
             restrictedPermissionMenuItem(
               'Permissions.Delivery.View',
               'Versions',
@@ -164,6 +173,26 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               'Delivery Metrics',
               'product.metrics',
               '/product-management/metrics',
+            ),
+            { key: 'product-environments-divider', type: 'divider' },
+            // After the chain rather than beside Deployments: these answer "where can it go" and
+            // "what is there now", so slotting them between "where it went" and "how that went"
+            // would break the sequence the items above are ordered to read as.
+            //
+            // Rollout is guarded on Delivery rather than the environment claim: it is the deployment
+            // record read by environment, and someone who may define targets need not be able to see
+            // what shipped to them.
+            restrictedPermissionMenuItem(
+              'Permissions.Delivery.View',
+              'Rollout',
+              'product.rollout',
+              '/product-management/rollout',
+            ),
+            restrictedPermissionMenuItem(
+              'Permissions.DeploymentEnvironments.View',
+              'Environments',
+              'product.environments',
+              '/product-management/environments',
             ),
           ],
         ),

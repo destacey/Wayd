@@ -6,11 +6,11 @@ import { useModalForm } from '@/src/hooks'
 import { CreateProductRequest } from '@/src/services/wayd-api'
 import {
   useCreateProductMutation,
-  useGetProductsQuery,
 } from '@/src/store/features/product-management/products-api'
 import { useGetProductTypesQuery } from '@/src/store/features/product-management/product-types-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import { ProductTreeSelect } from '../../_components'
 import { Form, Modal, Select } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 
@@ -51,7 +51,6 @@ const CreateProductForm = ({
 
   // Active types only: an inactive one is retired from new use and the API refuses it.
   const { data: productTypes } = useGetProductTypesQuery(true)
-  const { data: products } = useGetProductsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateProductFormValues>({
@@ -91,10 +90,6 @@ const CreateProductForm = ({
     .map((t) => ({ value: t.id, label: t.name }))
     .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
 
-  const parentOptions = (products ?? [])
-    .map((p) => ({ value: p.id, label: p.name }))
-    .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
-
   return (
     <Modal
       title="Create Product"
@@ -115,13 +110,7 @@ const CreateProductForm = ({
         initialValues={defaultParentId ? { parentId: defaultParentId } : undefined}
       >
         <Item name="parentId" label="Parent">
-          <Select
-            options={parentOptions}
-            placeholder="Select a parent"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-          />
+          <ProductTreeSelect placeholder="Select a parent" />
         </Item>
         <Item
           label="Type"

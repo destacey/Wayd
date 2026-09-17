@@ -4372,6 +4372,138 @@
         ]
       }
     },
+    "/api/product-management/delivery-overview": {
+      "get": {
+        "tags": [
+          "DeliveryOverview"
+        ],
+        "summary": "Get version activity over a window.",
+        "description": "Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency.",
+        "operationId": "DeliveryOverview_GetDeliveryOverview",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "An instant rather than a date, though the window is a date range and the versions it counts\ncarry dates. The generated client types every date parameter as a JavaScript Date and\nsends toISOString(), which no LocalDate binder accepts — so a date-typed\nparameter here is unreachable from the client that calls it. Truncated to its UTC date below,\nmatching how the other windowed endpoints take their bounds.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryOverviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/delivery-overview/recent": {
+      "get": {
+        "tags": [
+          "DeliveryOverview"
+        ],
+        "summary": "Get what has happened to versions and packages lately.",
+        "description": "Read from status transitions rather than the records' own dates, which carry no time of day and say the state a record is in rather than the moment it changed. Scoping to a product covers its subtree and excludes packages, which span several products.",
+        "operationId": "DeliveryOverview_GetRecentDeliveryEvents",
+        "parameters": [
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecentDeliveryEventDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/deployment-environments": {
       "get": {
         "tags": [
@@ -4466,6 +4598,57 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployment-environments/rollout": {
+      "get": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Get what is running in each environment, in rollout order.",
+        "description": "Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. A package is reported as itself rather than expanded into its manifest.",
+        "operationId": "DeploymentEnvironments_GetRollout",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvironmentRolloutDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -39495,6 +39678,267 @@
           }
         }
       },
+      "DeliveryOverviewDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scope",
+          "frequency",
+          "cutToReleased",
+          "activity"
+        ],
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/DeliveryScopeDto"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/ReleaseFrequencyDto"
+          },
+          "cutToReleased": {
+            "$ref": "#/components/schemas/CutToReleasedDto"
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductActivityDto"
+            }
+          }
+        }
+      },
+      "DeliveryScopeDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "releasableNodeCount"
+        ],
+        "properties": {
+          "product": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "releasableNodeCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReleaseFrequencyDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "windowDays",
+          "perWeek"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "windowDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "perWeek": {
+            "type": "number",
+            "format": "double"
+          },
+          "previousPerWeek": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "CutToReleasedDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "measuredCount",
+          "releasedCount"
+        ],
+        "properties": {
+          "averageDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "measuredCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "releasedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "previousAverageDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "ProductActivityDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "product",
+          "depth",
+          "isReleasable",
+          "days",
+          "totalReleased"
+        ],
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isReleasable": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyReleaseCountDto"
+            }
+          },
+          "totalReleased": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DailyReleaseCountDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "released",
+          "withdrawn"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "released": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "withdrawn": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RecentDeliveryEventDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recordId",
+          "recordKey",
+          "kind",
+          "label",
+          "statusName",
+          "alias",
+          "changedOn"
+        ],
+        "properties": {
+          "recordId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "recordKey": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DeliveryRecordKind"
+          },
+          "product": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "statusName": {
+            "type": "string"
+          },
+          "alias": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          },
+          "changedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "componentCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "DeliveryRecordKind": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Version",
+          "ReleasePackage"
+        ],
+        "enum": [
+          "Version",
+          "ReleasePackage"
+        ]
+      },
+      "ProductStatusAlias": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "None",
+          "Active",
+          "Sunset",
+          "Retired",
+          "Ready",
+          "Released",
+          "Withdrawn",
+          "InProgress",
+          "Succeeded",
+          "Failed",
+          "RolledBack"
+        ],
+        "enum": [
+          "None",
+          "Active",
+          "Sunset",
+          "Retired",
+          "Ready",
+          "Released",
+          "Withdrawn",
+          "InProgress",
+          "Succeeded",
+          "Failed",
+          "RolledBack"
+        ]
+      },
       "DeploymentEnvironmentDto": {
         "type": "object",
         "additionalProperties": false,
@@ -39544,14 +39988,117 @@
           "Development",
           "Testing",
           "Staging",
-          "Production"
+          "Production",
+          "Other"
         ],
         "enum": [
           "Development",
           "Testing",
           "Staging",
-          "Production"
+          "Production",
+          "Other"
         ]
+      },
+      "EnvironmentRolloutDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "category",
+          "ringOrder",
+          "isActive",
+          "running"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EnvironmentCategory"
+          },
+          "ringOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RolloutItemDto"
+            }
+          }
+        }
+      },
+      "RolloutItemDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deploymentId",
+          "deploymentKey",
+          "product",
+          "versionLabel",
+          "deployedAt",
+          "hasFailedAttemptSince"
+        ],
+        "properties": {
+          "deploymentId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "deploymentKey": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "version": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "versionLabel": {
+            "type": "string"
+          },
+          "package": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "artifactId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deployedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hasFailedAttemptSince": {
+            "type": "boolean"
+          }
+        }
       },
       "CreateDeploymentEnvironmentRequest": {
         "type": "object",
@@ -39611,7 +40158,7 @@
           },
           "category": {
             "type": "string",
-            "description": "Development, Testing, Staging or Production, case-insensitively.",
+            "description": "Development, Testing, Staging, Production or Other,\ncase-insensitively.",
             "minLength": 1,
             "nullable": false,
             "x-csv-column": "Category",
@@ -39619,7 +40166,8 @@
               "Development",
               "Testing",
               "Staging",
-              "Production"
+              "Production",
+              "Other"
             ]
           },
           "ringOrder": {
@@ -39824,36 +40372,6 @@
           "Active",
           "Done",
           "Removed"
-        ]
-      },
-      "ProductStatusAlias": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "None",
-          "Active",
-          "Sunset",
-          "Retired",
-          "Ready",
-          "Released",
-          "Withdrawn",
-          "InProgress",
-          "Succeeded",
-          "Failed",
-          "RolledBack"
-        ],
-        "enum": [
-          "None",
-          "Active",
-          "Sunset",
-          "Retired",
-          "Ready",
-          "Released",
-          "Withdrawn",
-          "InProgress",
-          "Succeeded",
-          "Failed",
-          "RolledBack"
         ]
       },
       "StatusTransitionDto": {

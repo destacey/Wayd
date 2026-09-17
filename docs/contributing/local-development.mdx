@@ -29,6 +29,26 @@ down when Visual Studio is launching one so Windows doesn't get two tabs.
 Set `WAYD_NO_LAUNCH_BROWSER=true` to keep it from opening. On Linux it honours `$BROWSER` when your
 desktop sets one, falling back to `xdg-open`.
 
+### Use the proxy ports, not the ones the processes bind
+
+Aspire's orchestrator (`dcp`) listens on the **configured** ports and forwards to whatever port each
+service actually bound. Use those:
+
+| Service | Address |
+| --- | --- |
+| Client | `http://localhost:3000` |
+| API | `http://localhost:5150`, `https://localhost:7021` |
+
+Reaching a service on the port its process bound — which is dynamic, and is what a port scan or the
+process list will show you — works for the API but breaks the client: the browser then sends an
+origin the API's CORS allowlist does not contain, so **every request fails**, including the login
+page's own call to `/api/auth/providers`. The symptom is a page that renders with nothing on it and a
+console full of CORS errors, which reads like a code fault and is not one.
+
+A stale `NEXT_PUBLIC_API_BASE_URL` in `.env.local` produces the same symptom for a different reason,
+and is worth ruling out second rather than first: `NEXT_PUBLIC_*` values are **inlined at build
+time**, so removing one does nothing until `.next` is cleared and the client rebuilt.
+
 ## Common Tasks
 
 ### Adding a Database Migration

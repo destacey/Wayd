@@ -79,13 +79,9 @@ describe('SettingsMenu', () => {
       expect(groups()).toEqual(allGroups)
     })
 
-    it('hides Product Management, and the environments in it, when the flag is off', () => {
+    it('hides Product Management, and the product tags in it, when the flag is off', () => {
       // Arrange — the whole area is unreachable behind the flag, so a heading over an unopenable
       // page would be worse than no heading.
-      //
-      // Environments live in this group rather than a "Delivery" one of their own: delivery names
-      // the schema and the concept, not an area of the app, and the API puts every one of these
-      // endpoints under product-management too.
       mockFlags['product-management'] = false
 
       // Act
@@ -93,6 +89,16 @@ describe('SettingsMenu', () => {
 
       // Assert
       expect(groups()).not.toContain('Product Management')
+      expect(screen.queryByText('Product Tags')).not.toBeInTheDocument()
+    })
+
+    it('does not offer environments, which live in the Product Management area', () => {
+      // Arrange — an environment is a record with an activity trail, a deployment count and a
+      // retire lifecycle, not a setting, so it sits with the rest of delivery.
+      // Act
+      renderMenu()
+
+      // Assert
       expect(screen.queryByText('Environments')).not.toBeInTheDocument()
     })
 

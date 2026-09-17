@@ -1,14 +1,13 @@
 'use client'
 
 import { MarkdownEditor } from '@/src/components/common/markdown'
-import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { ReleaseDto, UpdateReleaseRequest } from '@/src/services/wayd-api'
 import { useUpdateReleaseMutation } from '@/src/store/features/product-management/releases-api'
-import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, Modal, Select } from 'antd'
+import { ProductTreeSelect } from '../../_components'
+import { Form, Input, Modal } from 'antd'
 
 const { Item } = Form
 
@@ -40,7 +39,6 @@ const EditReleaseForm = ({
   const messageApi = useMessage()
 
   const [updateRelease] = useUpdateReleaseMutation()
-  const { data: products, isLoading } = useGetProductsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditReleaseFormValues>({
@@ -87,10 +85,6 @@ const EditReleaseForm = ({
       permission: 'Permissions.Releases.Update',
     })
 
-  const productOptions = (products ?? [])
-    .map((product) => ({ value: product.id, label: product.name }))
-    .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
-
   return (
     <Modal
       title="Edit Release"
@@ -120,14 +114,7 @@ const EditReleaseForm = ({
           name="productId"
           extra="Clear it for a release spanning product lines. A release with no product is left out when releases are filtered by product."
         >
-          <Select
-            options={productOptions}
-            loading={isLoading}
-            placeholder="Select a product"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-          />
+          <ProductTreeSelect />
         </Item>
         <Item
           label="Version"

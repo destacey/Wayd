@@ -24,6 +24,7 @@ import {
   RoadmapsClient,
   StrategicThemesClient,
   DeliveryMetricsClient,
+  DeliveryOverviewClient,
   DeploymentEnvironmentsClient,
   DeploymentsClient,
   PortfoliosClient,
@@ -468,6 +469,8 @@ export const getDeploymentEnvironmentsClient = () =>
   new DeploymentEnvironmentsClient('', axiosClient)
 export const getDeliveryMetricsClient = () =>
   new DeliveryMetricsClient('', axiosClient)
+export const getDeliveryOverviewClient = () =>
+  new DeliveryOverviewClient('', axiosClient)
 
 // PPM
 export const getExpenditureCategoriesClient = () =>

@@ -651,9 +651,9 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         // Each entity's events are drained in the order they were raised and numbered in that order below, so
         // one aggregate's history reads back the way it happened. Between entities there is no such order:
         // ChangeTracker.Entries is in EF's own tracking order, and the drain cannot see when in the handler
-        // each aggregate was touched. That is invisible today — every activity view reads one AggregateId —
-        // and only becomes a question if a feed ever spans records, which would need the order captured where
-        // the events are raised rather than here.
+        // each aggregate was touched. A record's Activity section can span aggregates (an event naming it as a
+        // related aggregate), so two entries from one save that tie on Timestamp show there in tracking order,
+        // not the order they were raised. Fixing that needs the order captured where events are raised.
         var entitiesWithEvents = TrackedAndDeletedEntities()
             .Where(e => e.DomainEvents.Count > 0)
             .ToArray();

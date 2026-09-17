@@ -11,6 +11,8 @@ namespace Wayd.Common.Domain.Activities;
 /// </summary>
 public sealed class ActivityLogEntry : BaseEntity
 {
+    private readonly List<ActivityLogRelatedAggregate> _relatedAggregates = [];
+
     private ActivityLogEntry() { }
 
     public ActivityLogEntry(
@@ -26,7 +28,8 @@ public sealed class ActivityLogEntry : BaseEntity
         string? correlationId,
         string payload,
         string? summary = null,
-        string eventVersion = "1.0")
+        string eventVersion = "1.0",
+        IEnumerable<AggregateReference>? relatedAggregates = null)
     {
         Id = Guard.Against.Default(id, nameof(id));
         EventType = Guard.Against.NullOrWhiteSpace(eventType, nameof(eventType)).Trim();
@@ -46,7 +49,27 @@ public sealed class ActivityLogEntry : BaseEntity
         CorrelationId = string.IsNullOrWhiteSpace(correlationId) ? null : correlationId.Trim();
         Payload = Guard.Against.Null(payload, nameof(payload));
         Summary = string.IsNullOrWhiteSpace(summary) ? null : summary.Trim();
+
+        foreach (var related in relatedAggregates ?? [])
+        {
+            var reference = new ActivityLogRelatedAggregate(
+                Guard.Against.NullOrWhiteSpace(related.AggregateType, nameof(relatedAggregates)).Trim(),
+                Guard.Against.Default(related.AggregateId, nameof(relatedAggregates)));
+
+            // Types compare ignoring case because the database does: two casings of one record are one key in the
+            // related table, and would fail its insert after the change they record was already committed.
+            if (IsSameRecord(reference.AggregateType, reference.AggregateId, AggregateType, AggregateId)
+                || _relatedAggregates.Any(r => IsSameRecord(r.AggregateType, r.AggregateId, reference.AggregateType, reference.AggregateId)))
+            {
+                continue;
+            }
+
+            _relatedAggregates.Add(reference);
+        }
     }
+
+    private static bool IsSameRecord(string type, Guid id, string otherType, Guid otherId) =>
+        id == otherId && string.Equals(type, otherType, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Where this entry sits among the entries written by the same unit of work.</summary>
     /// <remarks>
@@ -92,6 +115,15 @@ public sealed class ActivityLogEntry : BaseEntity
 
     /// <summary>The identifier of the target entity.</summary>
     public Guid AggregateId { get; private init; }
+
+    /// <summary>
+    /// Other records this entry concerns, whose Activity sections list it alongside their own entries.
+    /// </summary>
+    /// <remarks>
+    /// Never includes the entry's own aggregate. Not loaded unless included: reading a record's activity
+    /// matches on these rows in the query and never needs them materialized.
+    /// </remarks>
+    public IReadOnlyCollection<ActivityLogRelatedAggregate> RelatedAggregates => _relatedAggregates.AsReadOnly();
 
     /// <summary>The mechanism that performed the change.</summary>
     public EventActorKind ActorKind { get; private init; }

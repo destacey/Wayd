@@ -22,8 +22,8 @@ jest.mock('./compare-payload-modal', () => {
   return {
     __esModule: true,
     default: MockCompareModal,
-    isSameEventType: jest.requireActual('./compare-payload-modal')
-      .isSameEventType,
+    isComparableActivity: jest.requireActual('./compare-payload-modal')
+      .isComparableActivity,
   }
 })
 
@@ -45,6 +45,7 @@ const createActivity = (
     type: 'Team',
   }),
   summary: 'Team Created',
+  isRelated: false,
   ...overrides,
 })
 
@@ -638,6 +639,123 @@ describe('ActivityLogTimeline', () => {
     expect(
       screen.queryByRole('button', { name: /Compare changes/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it('does not compare an event with the same kind of event raised on another record', () => {
+    const activities = [
+      createActivity({
+        id: 'act-2',
+        eventType: 'ProductReparentedEventV2',
+        aggregateType: 'Product',
+        aggregateId: 'child-a',
+        isRelated: true,
+        timestamp: new Date('2026-04-01T10:00:00Z'),
+      }),
+      createActivity({
+        id: 'act-1',
+        eventType: 'ProductReparentedEventV2',
+        aggregateType: 'Product',
+        aggregateId: 'child-b',
+        isRelated: true,
+        timestamp: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ]
+
+    render(
+      <App>
+        <ActivityLogTimeline
+          activities={activities}
+          isLoading={false}
+          totalCount={2}
+        />
+      </App>,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: /Compare changes/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('names and links the record a related entry was raised on', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 'act-1',
+            eventType: 'ProductReparentedEventV2',
+            summary: 'Product Reparented',
+            aggregateType: 'Product',
+            isRelated: true,
+            raisedOn: { id: 'child-id', key: 12, name: 'Trio VMS' },
+          }),
+        ]}
+        isLoading={false}
+        raisedOnHref={(record) => `/product-management/products/${record.key}`}
+      />,
+    )
+
+    expect(screen.getByText('· on Trio VMS')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Trio VMS' })).toHaveAttribute(
+      'href',
+      '/product-management/products/12',
+    )
+  })
+
+  it('describes a related entry whose record could not be resolved', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[
+          createActivity({
+            id: 'act-1',
+            aggregateType: 'ProjectPortfolio',
+            isRelated: true,
+          }),
+        ]}
+        isLoading={false}
+      />,
+    )
+
+    expect(
+      screen.getByText('· on another project portfolio'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('does not mark an entry raised on the record itself', () => {
+    render(
+      <ActivityLogTimeline
+        activities={[createActivity({ id: 'act-1', isRelated: false })]}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.queryByText(/^· on /)).not.toBeInTheDocument()
+    expect(screen.queryByText('Raised on:')).not.toBeInTheDocument()
+  })
+
+  it('matches a search against the record a related entry was raised on', async () => {
+    const user = userEvent.setup()
+    const activities = [
+      createActivity({
+        id: 'act-1',
+        summary: 'Product Reparented',
+        isRelated: true,
+        raisedOn: { id: 'child-id', key: 12, name: 'Trio VMS' },
+      }),
+      createActivity({ id: 'act-2', summary: 'Team Created' }),
+    ]
+
+    render(<ActivityLogTimeline activities={activities} isLoading={false} />)
+
+    await user.type(
+      screen.getByPlaceholderText('Search events, actors, or types...'),
+      'trio',
+    )
+
+    expect(
+      screen.getAllByText('Product Reparented').length,
+    ).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText('Team Created')).not.toBeInTheDocument()
   })
 
   it('does not show the compare action when viewing the oldest/initial event', () => {

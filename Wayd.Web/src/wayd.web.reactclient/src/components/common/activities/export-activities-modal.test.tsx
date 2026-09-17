@@ -5,7 +5,9 @@ import {
   ActivityLogDto,
   EventActorKind,
 } from '@/src/services/wayd-api'
-import ExportActivitiesModal from './export-activities-modal'
+import ExportActivitiesModal, {
+  formatEventForExport,
+} from './export-activities-modal'
 
 const mockDownloadJsonWithTimestamp = jest.fn()
 jest.mock('@/src/utils/json-utils', () => ({
@@ -48,12 +50,37 @@ const createActivity = (
     code: 'ALPHA',
   }),
   summary: 'Team Created',
+  isRelated: false,
   ...overrides,
 })
 
 describe('ExportActivitiesModal', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  it('exports which record a related entry was raised on', () => {
+    const exported = formatEventForExport(
+      createActivity({
+        aggregateId: 'child-id',
+        isRelated: true,
+        raisedOn: { id: 'child-id', key: 12, name: 'Trio VMS' },
+      }),
+    )
+
+    expect(exported.isRelated).toBe(true)
+    expect(exported.raisedOn).toEqual({
+      id: 'child-id',
+      key: 12,
+      name: 'Trio VMS',
+    })
+  })
+
+  it('exports an entry raised on the record itself as not related', () => {
+    const exported = formatEventForExport(createActivity())
+
+    expect(exported.isRelated).toBe(false)
+    expect(exported.raisedOn).toBeUndefined()
   })
 
   it('renders modal with All events and Date range options', () => {

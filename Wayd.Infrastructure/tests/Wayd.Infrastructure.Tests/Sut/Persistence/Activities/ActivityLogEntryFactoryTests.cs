@@ -98,6 +98,91 @@ public sealed class ActivityLogEntryFactoryTests
         entry.EventVersion.Should().Be("1.1");
     }
 
+    [Fact]
+    public void CreateActivityLogEntry_ForAnEventNamingRelatedAggregates_RecordsThem()
+    {
+        // Arrange
+        var first = new AggregateReference("ProjectPortfolio", Guid.CreateVersion7());
+        var second = new AggregateReference("ProjectPortfolio", Guid.CreateVersion7());
+        var raised = new RelatedStubEvent("ProjectPortfolio", Guid.CreateVersion7(), [first, second]);
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.RelatedAggregates.Should().BeEquivalentTo([first, second]);
+    }
+
+    [Fact]
+    public void CreateActivityLogEntry_DropsTheEventsOwnAggregateAndRepeats_FromItsRelatedAggregates()
+    {
+        // Arrange — a record is never related to itself, and a record named twice is one row.
+        var ownId = Guid.CreateVersion7();
+        var other = new AggregateReference("ProjectPortfolio", Guid.CreateVersion7());
+        var raised = new RelatedStubEvent("ProjectPortfolio", ownId,
+            [new AggregateReference("ProjectPortfolio", ownId), other, other with { }]);
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.RelatedAggregates.Should().ContainSingle().Which.Should().BeEquivalentTo(other);
+    }
+
+    [Fact]
+    public void CreateActivityLogEntry_TreatsTypesDifferingOnlyInCaseAsTheSameRecord()
+    {
+        // Arrange — the database compares types ignoring case, so either casing is one key in the related table.
+        var ownId = Guid.CreateVersion7();
+        var otherId = Guid.CreateVersion7();
+        var raised = new RelatedStubEvent("ProjectPortfolio", ownId,
+        [
+            new AggregateReference("projectportfolio", ownId),
+            new AggregateReference("Program", otherId),
+            new AggregateReference("PROGRAM", otherId),
+        ]);
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.RelatedAggregates.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new AggregateReference("Program", otherId));
+    }
+
+    [Fact]
+    public void CreateActivityLogEntry_KeepsARecordOfAnotherTypeSharingTheOwnersId()
+    {
+        // Arrange — the log files entries by type and id together, so only both matching makes it the owner.
+        var sharedId = Guid.CreateVersion7();
+        var raised = new RelatedStubEvent("ProjectPortfolio", sharedId, [new AggregateReference("Program", sharedId)]);
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.RelatedAggregates.Should().ContainSingle().Which.AggregateType.Should().Be("Program");
+    }
+
+    [Fact]
+    public void CreateActivityLogEntry_ForAnEventNamingNoRelatedAggregates_RecordsNone()
+    {
+        // Arrange
+        var raised = new StrategicInitiativeStubEvent("ProjectPortfolio", Guid.CreateVersion7());
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, raised, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.RelatedAggregates.Should().BeEmpty();
+    }
+
+    private sealed record RelatedStubEvent(string AggregateType, Guid AggregateId, IReadOnlyCollection<AggregateReference> RelatedAggregates)
+        : DomainEvent<RelatedStubEvent>(EventActor.System, "1.0"), IDomainEventDescriptor, IRelatedAggregateEvent
+    {
+        public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+    }
+
     private sealed record ProjectPortfolioStubEventV2(string AggregateType, Guid AggregateId)
         : DomainEvent<ProjectPortfolioStubEventV2>(EventActor.System, "2.0"), IDomainEventDescriptor, IAggregateEvent
     {

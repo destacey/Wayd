@@ -74,8 +74,12 @@ internal static partial class ActivityLogEntryFactory
             correlationId,
             payload,
             summary,
-            domainEvent.EventVersion);
+            domainEvent.EventVersion,
+            RelatedAggregatesOf(domainEvent));
     }
+
+    private static IEnumerable<AggregateReference>? RelatedAggregatesOf(DomainEvent domainEvent) =>
+        (domainEvent as IRelatedAggregateEvent)?.RelatedAggregates;
 
     private static string ResolveDomainArea(string entityNamespace, string eventNamespace)
     {
@@ -184,6 +188,7 @@ internal static partial class ActivityLogEntryFactory
             correlationId,
             JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), ActivityJsonOptions),
             FormatSummary(eventType, aggregateEvent.AggregateType),
-            domainEvent.EventVersion);
+            domainEvent.EventVersion,
+            RelatedAggregatesOf(domainEvent));
     }
 }

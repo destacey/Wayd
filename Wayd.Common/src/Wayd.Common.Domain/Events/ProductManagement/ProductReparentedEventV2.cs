@@ -17,7 +17,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// breaks every consumer written against the old shape.
 /// </para>
 /// </remarks>
-public sealed record ProductReparentedEventV2 : DomainEvent<ProductReparentedEventV2>, IDomainEventDescriptor, IProductManagementEvent
+public sealed record ProductReparentedEventV2 : DomainEvent<ProductReparentedEventV2>, IDomainEventDescriptor, IProductManagementEvent, IRelatedAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
@@ -46,4 +46,9 @@ public sealed record ProductReparentedEventV2 : DomainEvent<ProductReparentedEve
     public string AggregateType => "Product";
     [JsonIgnore]
     public Guid AggregateId => Id;
+
+    /// <summary>Both parents, so each one's Activity shows a child arriving or leaving.</summary>
+    [JsonIgnore]
+    public IReadOnlyCollection<AggregateReference> RelatedAggregates =>
+        [.. new[] { FromParentId, ToParentId }.OfType<Guid>().Select(parentId => new AggregateReference(AggregateType, parentId))];
 }

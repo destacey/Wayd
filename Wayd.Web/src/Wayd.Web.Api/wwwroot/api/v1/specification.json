@@ -38878,7 +38878,8 @@
           "aggregateId",
           "actorKind",
           "timestamp",
-          "eventVersion"
+          "eventVersion",
+          "isRelated"
         ],
         "properties": {
           "id": {
@@ -38933,6 +38934,17 @@
           "summary": {
             "type": "string",
             "nullable": true
+          },
+          "isRelated": {
+            "type": "boolean"
+          },
+          "raisedOn": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           }
         }
       },

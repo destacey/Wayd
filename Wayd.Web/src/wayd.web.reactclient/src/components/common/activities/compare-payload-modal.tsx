@@ -65,6 +65,19 @@ const METADATA_KEYS = new Set([
 export const isSameEventType = (a: string, b: string): boolean =>
   a.replace(/V\d+$/, '') === b.replace(/V\d+$/, '')
 
+/**
+ * Whether an entry is a meaningful baseline for another: the same kind of event, raised on the same record. A
+ * record's Activity also lists entries raised on related records, and two products each moving under this one
+ * are the same event type about different products, so diffing them reports every field as changed.
+ */
+export const isComparableActivity = (
+  a: ActivityLogDto,
+  b: ActivityLogDto,
+): boolean =>
+  isSameEventType(a.eventType, b.eventType) &&
+  a.aggregateType === b.aggregateType &&
+  a.aggregateId === b.aggregateId
+
 const formatFieldLabel = (key: string): string => {
   return key
     .replace(/([A-Z])/g, ' $1')
@@ -196,8 +209,8 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
   const [copiedPrev, setCopiedPrev] = useState(false)
   const [copiedCurr, setCopiedCurr] = useState(false)
 
-  // Earlier events of the current event's type only, in any version; another type's payload has a different
-  // shape.
+  // Earlier events of the current event's type on the same record only, in any version; another type's payload
+  // has a different shape.
   const earlierActivities = useMemo(() => {
     if (!currentActivity || !allActivities || allActivities.length === 0) {
       return previousActivity ? [previousActivity] : []
@@ -215,9 +228,7 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
               new Date(currentActivity.timestamp).getTime(),
           )
 
-    return earlier.filter((a) =>
-      isSameEventType(a.eventType, currentActivity.eventType),
-    )
+    return earlier.filter((a) => isComparableActivity(a, currentActivity))
   }, [currentActivity, allActivities, previousActivity])
 
   const [selectedBaseId, setSelectedBaseId] = useState<string | null>(null)

@@ -34,9 +34,12 @@ import {
   ActivityCategory,
   ActivityLogDto,
   EventActorKind,
+  NavigationDto,
 } from '@/src/services/wayd-api'
 import BaselineNotice, { BASELINE_RECORD_KEYS } from './baseline-notice'
-import ComparePayloadModal, { isSameEventType } from './compare-payload-modal'
+import ComparePayloadModal, {
+  isComparableActivity,
+} from './compare-payload-modal'
 import ExportActivitiesModal from './export-activities-modal'
 
 const { Text, Paragraph } = Typography
@@ -70,6 +73,10 @@ export interface ActivityLogTimelineProps {
   onPageChange?: (page: number, pageSize: number) => void
   /** Custom message when there is no activity history. */
   emptyDescription?: string
+  /**
+   * Where the record a related entry was raised on lives. Omitted, the record is named without a link.
+   */
+  raisedOnHref?: (record: NavigationDto) => string
 }
 
 const formatFieldLabel = (key: string): string => {
@@ -88,6 +95,14 @@ const formatEventTitle = (
   }
   return formatFieldLabel(eventType.replace(/Event$/, ''))
 }
+
+/**
+ * The record a related entry was raised on, in words. Unresolved when the module reading the log could not
+ * name it, typically because the record has since been removed.
+ */
+const raisedOnLabel = (activity: ActivityLogDto): string =>
+  activity.raisedOn?.name ??
+  `another ${formatFieldLabel(activity.aggregateType).toLowerCase()}`
 
 const actorTagColor = (kind: EventActorKind): string => {
   switch (kind) {
@@ -261,12 +276,14 @@ export const isActivityMatchingQuery = (
   const actorKind = (act.actorKind ?? '').toLowerCase()
   const employeeName = (act.employee?.name ?? '').toLowerCase()
   const badgeLabel = getEventBadge(act.category).label.toLowerCase()
+  const raisedOn = act.isRelated ? raisedOnLabel(act).toLowerCase() : ''
   return (
     summary.includes(q) ||
     eventType.includes(q) ||
     actorKind.includes(q) ||
     employeeName.includes(q) ||
-    badgeLabel.includes(q)
+    badgeLabel.includes(q) ||
+    raisedOn.includes(q)
   )
 }
 
@@ -283,6 +300,7 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
   onExportClose,
   showExportButton = false,
   emptyDescription = 'No activity has been recorded for this record.',
+  raisedOnHref,
 }) => {
   const { token } = theme.useToken()
   const { message: messageApi } = App.useApp()
@@ -323,8 +341,8 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
 
   const [isCompareOpen, setIsCompareOpen] = useState(false)
 
-  // Only an earlier event of the same type, in any version, is comparable: a different type has a different
-  // payload shape, so every field would read as added or removed.
+  // Only an earlier event of the same type on the same record, in any version, is comparable: a different type
+  // has a different payload shape, so every field would read as added or removed.
   const previousActivity = useMemo(() => {
     if (!activities || !selectedActivity) return null
     const currentIndex = activities.findIndex(
@@ -334,9 +352,7 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
     return (
       activities
         .slice(currentIndex + 1)
-        .find((a) =>
-          isSameEventType(a.eventType, selectedActivity.eventType),
-        ) ?? null
+        .find((a) => isComparableActivity(a, selectedActivity)) ?? null
     )
   }, [activities, selectedActivity])
 
@@ -623,6 +639,19 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                           </Tag>
                         )}
 
+                        {entry.isRelated && (
+                          <Text
+                            type="secondary"
+                            ellipsis
+                            style={{
+                              fontSize: token.fontSizeSM,
+                              maxWidth: 200,
+                            }}
+                          >
+                            · on {raisedOnLabel(entry)}
+                          </Text>
+                        )}
+
                         {entry.summary && entry.summary !== title && (
                           <Text
                             type="secondary"
@@ -797,6 +826,22 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                       <Text type="secondary">Target: </Text>
                       <Text>{selectedActivity.aggregateType}</Text>
                     </Tag>
+                    {selectedActivity.isRelated && (
+                      <Tooltip title="Raised on another record, and listed here because it concerns this one too.">
+                        <Tag style={{ margin: 0 }}>
+                          <Text type="secondary">Raised on: </Text>
+                          {selectedActivity.raisedOn && raisedOnHref ? (
+                            <EntityLink
+                              href={raisedOnHref(selectedActivity.raisedOn)}
+                            >
+                              {selectedActivity.raisedOn.name}
+                            </EntityLink>
+                          ) : (
+                            <Text>{raisedOnLabel(selectedActivity)}</Text>
+                          )}
+                        </Tag>
+                      </Tooltip>
+                    )}
                   </Flex>
                 </Flex>
               </Flex>

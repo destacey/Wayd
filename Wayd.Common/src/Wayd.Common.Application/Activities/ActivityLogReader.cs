@@ -20,14 +20,28 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
         var take = Math.Clamp(pageSize, 1, 100);
         var skip = (pageNumber - 1) * take;
 
+        var hasType = !string.IsNullOrWhiteSpace(aggregateType);
+
+        var own = _dbContext.ActivityLogs.Where(a => a.AggregateId == aggregateId);
+
+        var related = _dbContext.ActivityLogs
+            .SelectMany(a => a.RelatedAggregates, (a, r) => new { a.Id, r.AggregateId, r.AggregateType })
+            .Where(r => r.AggregateId == aggregateId);
+
+        // Filtered here rather than inside the predicates as "no type or this type": that form reaches SQL as
+        // an OR on a parameter, which keeps the optimizer from seeking the index on it.
+        if (hasType)
+        {
+            own = own.Where(a => a.AggregateType == aggregateType);
+            related = related.Where(r => r.AggregateType == aggregateType);
+        }
+
+        // Two id sets unioned rather than one predicate ORing the entry's columns with an EXISTS over its
+        // related rows. Each half can seek its own (AggregateId, AggregateType) index; the OR spans two
+        // tables, so no single index answers it.
         var query = _dbContext.ActivityLogs
             .AsNoTracking()
-            .Where(a => a.AggregateId == aggregateId);
-
-        if (!string.IsNullOrWhiteSpace(aggregateType))
-        {
-            query = query.Where(a => a.AggregateType == aggregateType);
-        }
+            .Where(a => own.Select(o => o.Id).Concat(related.Select(r => r.Id)).Contains(a.Id));
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -46,6 +60,16 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
             .Take(take)
             .ToListAsync(cancellationToken);
 
-        return new PagedResponse<ActivityLogDto>(items.Adapt<List<ActivityLogDto>>(), totalCount, pageNumber, take);
+        var dtos = items
+            .Select(entry => entry.Adapt<ActivityLogDto>() with
+            {
+                // Ignoring case to agree with the query, which matched the type under the database's case-insensitive
+                // collation; an ordinal compare marks a record's own entries related when the caller's casing differs.
+                IsRelated = entry.AggregateId != aggregateId
+                    || (hasType && !string.Equals(entry.AggregateType, aggregateType, StringComparison.OrdinalIgnoreCase)),
+            })
+            .ToList();
+
+        return new PagedResponse<ActivityLogDto>(dtos, totalCount, pageNumber, take);
     }
 }

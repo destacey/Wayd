@@ -42658,6 +42658,8 @@ export interface ActivityLogDto {
     eventVersion: string;
     payload: string;
     summary?: string | undefined;
+    isRelated: boolean;
+    raisedOn?: NavigationDto | undefined;
 }
 
 export enum ActivityCategory {

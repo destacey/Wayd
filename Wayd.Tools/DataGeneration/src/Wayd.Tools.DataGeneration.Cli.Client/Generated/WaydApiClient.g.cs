@@ -11603,8 +11603,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency.
         /// </remarks>
+        /// <param name="from">An instant rather than a date, though the window is a date range and the versions it counts
+        /// <br/>carry dates. The generated client types every date parameter as a JavaScript Date and
+        /// <br/>sends toISOString(), which no LocalDate binder accepts — so a date-typed
+        /// <br/>parameter here is unreachable from the client that calls it. Truncated to its UTC date below,
+        /// <br/>matching how the other windowed endpoints take their bounds.</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<DeliveryOverviewDto> GetDeliveryOverviewAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what has happened to versions and packages lately.
+        /// </summary>
+        /// <remarks>
+        /// Read from status transitions rather than the records' own dates, which carry no time of day and say the state a record is in rather than the moment it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecentDeliveryEventDto>> GetRecentDeliveryEventsAsync(int? take = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -11663,6 +11678,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency.
         /// </remarks>
+        /// <param name="from">An instant rather than a date, though the window is a date range and the versions it counts
+        /// <br/>carry dates. The generated client types every date parameter as a JavaScript Date and
+        /// <br/>sends toISOString(), which no LocalDate binder accepts — so a date-typed
+        /// <br/>parameter here is unreachable from the client that calls it. Truncated to its UTC date below,
+        /// <br/>matching how the other windowed endpoints take their bounds.</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<DeliveryOverviewDto> GetDeliveryOverviewAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -11720,6 +11740,102 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<DeliveryOverviewDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what has happened to versions and packages lately.
+        /// </summary>
+        /// <remarks>
+        /// Read from status transitions rather than the records' own dates, which carry no time of day and say the state a record is in rather than the moment it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecentDeliveryEventDto>> GetRecentDeliveryEventsAsync(int? take = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/delivery-overview/recent"
+                    urlBuilder_.Append("api/product-management/delivery-overview/recent");
+                    urlBuilder_.Append('?');
+                    if (take != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("take")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(take, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (productId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("productId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(productId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<RecentDeliveryEventDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -77185,6 +77301,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("summary")]
         public string? Summary { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("isRelated")]
+        public bool IsRelated { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("raisedOn")]
+        public NavigationDto? RaisedOn { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -77879,8 +78001,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Product { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("parent")]
-        public NavigationDto? Parent { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("depth")]
+        public int Depth { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isReleasable")]
+        public bool IsReleasable { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -77905,6 +78030,102 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("withdrawn")]
         public int Withdrawn { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecentDeliveryEventDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("recordId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid RecordId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recordKey")]
+        public int RecordKey { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DeliveryRecordKind>))]
+        public DeliveryRecordKind Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("product")]
+        public NavigationDto? Product { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Label { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("statusName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string StatusName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("alias")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProductStatusAlias>))]
+        public ProductStatusAlias Alias { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("changedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset ChangedOn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("componentCount")]
+        public int? ComponentCount { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DeliveryRecordKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Version")]
+        Version = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ReleasePackage")]
+        ReleasePackage = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ProductStatusAlias
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"None")]
+        None = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Sunset")]
+        Sunset = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Retired")]
+        Retired = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Ready")]
+        Ready = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Released")]
+        Released = 5,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Withdrawn")]
+        Withdrawn = 6,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"InProgress")]
+        InProgress = 7,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Succeeded")]
+        Succeeded = 8,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Failed")]
+        Failed = 9,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"RolledBack")]
+        RolledBack = 10,
 
     }
 
@@ -78264,45 +78485,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Removed")]
         Removed = 3,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum ProductStatusAlias
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"None")]
-        None = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
-        Active = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Sunset")]
-        Sunset = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Retired")]
-        Retired = 3,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Ready")]
-        Ready = 4,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Released")]
-        Released = 5,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Withdrawn")]
-        Withdrawn = 6,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"InProgress")]
-        InProgress = 7,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Succeeded")]
-        Succeeded = 8,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Failed")]
-        Failed = 9,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"RolledBack")]
-        RolledBack = 10,
 
     }
 

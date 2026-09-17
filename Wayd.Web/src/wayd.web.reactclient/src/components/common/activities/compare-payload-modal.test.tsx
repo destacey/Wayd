@@ -52,6 +52,7 @@ const createActivity = (
     description: 'Updated description',
   }),
   summary: 'Team Updated',
+  isRelated: false,
   ...overrides,
 })
 
@@ -182,6 +183,35 @@ describe('ComparePayloadModal component', () => {
 
     fireEvent.mouseDown(screen.getByRole('combobox'))
     expect(screen.getAllByRole('option')).toHaveLength(2)
+  })
+
+  it('compares only against earlier events raised on the same record', () => {
+    const otherRecord = createActivity({
+      id: 'other-record-1',
+      eventType: 'TeamUpdatedEvent',
+      aggregateId: '33333333-3333-3333-3333-333333333333',
+      isRelated: true,
+      timestamp: new Date('2026-04-01T09:30:00Z'),
+      payload: JSON.stringify({ name: 'Another Record Payload' }),
+    })
+
+    render(
+      <ComparePayloadModal
+        open={true}
+        onClose={jest.fn()}
+        currentActivity={currActivity}
+        allActivities={[currActivity, otherRecord, prevActivity]}
+      />,
+    )
+
+    // The nearest earlier event of the type belongs to another record, so the base skips it
+    expect(screen.getByText('Old Core Team')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Another Record Payload'),
+    ).not.toBeInTheDocument()
+
+    // One comparable event leaves nothing to choose between, so no picker is offered
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   })
 
   it('marks a comparison between different versions of an event', () => {

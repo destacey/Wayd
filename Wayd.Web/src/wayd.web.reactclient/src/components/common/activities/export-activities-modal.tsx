@@ -54,6 +54,14 @@ export const formatEventForExport = (event: ActivityLogDto) => {
     domainArea: event.domainArea,
     aggregateType: event.aggregateType,
     aggregateId: event.aggregateId,
+    isRelated: event.isRelated,
+    raisedOn: event.raisedOn
+      ? {
+          id: event.raisedOn.id,
+          key: event.raisedOn.key,
+          name: event.raisedOn.name,
+        }
+      : undefined,
     timestamp: event.timestamp,
     actorKind: event.actorKind,
     employee: event.employee

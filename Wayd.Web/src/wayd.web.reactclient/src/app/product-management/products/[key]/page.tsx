@@ -286,7 +286,14 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
 
     if (section === ProductSections.Activities) {
-      return <ActivityLogTimeline {...activityLog.timelineProps} />
+      return (
+        <ActivityLogTimeline
+          {...activityLog.timelineProps}
+          raisedOnHref={(record) =>
+            `/product-management/products/${record.key}`
+          }
+        />
+      )
     }
 
     if (section === ProductSections.Releases) {

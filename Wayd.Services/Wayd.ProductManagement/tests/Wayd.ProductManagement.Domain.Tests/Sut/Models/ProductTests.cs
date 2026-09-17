@@ -345,6 +345,37 @@ public sealed class ProductTests
     }
 
     [Fact]
+    public void Reparent_ShouldRelateTheEventToBothParents()
+    {
+        // Arrange
+        var oldParentId = Guid.CreateVersion7();
+        var newParentId = Guid.CreateVersion7();
+        var sut = _faker.WithParentId(oldParentId).Generate();
+
+        // Act
+        sut.Reparent(newParentId, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.OfType<ProductReparentedEventV2>().Single().RelatedAggregates
+            .Should().BeEquivalentTo([new AggregateReference("Product", oldParentId), new AggregateReference("Product", newParentId)]);
+    }
+
+    [Fact]
+    public void Reparent_FromRoot_ShouldRelateTheEventToTheNewParentOnly()
+    {
+        // Arrange
+        var newParentId = Guid.CreateVersion7();
+        var sut = _faker.Generate();
+
+        // Act
+        sut.Reparent(newParentId, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.OfType<ProductReparentedEventV2>().Single().RelatedAggregates
+            .Should().ContainSingle().Which.Should().Be(new AggregateReference("Product", newParentId));
+    }
+
+    [Fact]
     public void Reparent_ToRoot_ShouldSucceed()
     {
         // Arrange

@@ -271,6 +271,12 @@ as, recorded on `ActivityLogEntry.Category` — pick by what happened, not by th
 [Categorising an entry](docs/contributing/domain-events.mdx#categorising-an-entry)). Static so it never enters a
 payload; the self-typed base makes a missing one a compile error.
 
+**A fact that concerns another record is still one event.** Implement `IRelatedAggregateEvent`, with
+`RelatedAggregates` computed from payload ids and `[JsonIgnore]`d, so the one entry is listed on each named
+record's Activity section; never raise a mirror event for the other side. Adopting it on an existing event
+needs a backfill migration, and only records read under the same permission may be related — see
+[An event about more than one record](docs/contributing/domain-events.mdx#an-event-about-more-than-one-record).
+
 **Designing an event or adding a field follows the steps in
 [domain-events.mdx](docs/contributing/domain-events.mdx#designing-an-event).** Name the part of the record that
 changed: edits to descriptive fields are a `DetailsUpdated` event, a transition is its own event, and a bare

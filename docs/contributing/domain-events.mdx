@@ -151,6 +151,11 @@ will catch for you.
 
 - [ ] Nothing to register for the activity log; capture is automatic, and the entry records the category
   the type declares.
+- [ ] Where the fact concerns another record too, the event implements `IRelatedAggregateEvent`, computed
+  from payload ids and marked `[JsonIgnore]`, and a migration backfills the entries already written. The
+  related record's query handler resolves `RaisedOn`. See
+  [An event about more than one record](#an-event-about-more-than-one-record). *Testcontainers test for the
+  backfill.*
 - [ ] Add the type to `DurableEventRoutes` only when a consumer needs asynchronous delivery. A durable
   handler is delivered at least once and in no guaranteed order, so it follows
   [Consuming an event](#consuming-an-event).
@@ -598,9 +603,10 @@ numbering across aggregates needs an ambient counter, in a layer that resolves n
 a property of recording a fact, not of the fact.
 
 Within one aggregate that order is faithful, because its events are drained from an ordered list in the
-order they were raised, and every activity view reads a single aggregate. Between aggregates in one command
-there is no defined order — `ChangeTracker` is in EF's own tracking order — which only becomes a question
-if a feed ever spans records.
+order they were raised. Between aggregates in one command there is no defined order — `ChangeTracker` is in
+EF's own tracking order. That shows only where a record's Activity section lists
+[entries raised on other records](#an-event-about-more-than-one-record): two such entries from one save that
+tie on `Timestamp` appear in tracking order rather than the order they were raised.
 
 ### Reading the activity log
 
@@ -633,3 +639,40 @@ a `TeamOfTeams` raises the same `Team*` events, so its entries carry `"Team"` an
 them; and `StatusWorkflow`'s events name the aggregate `"Workflow"`. Reading with the entity's own class
 name would silently return nothing. Adding an Activity section to a new record means checking what its
 events actually declare — `grep 'AggregateType =>'` lists every value in use.
+
+### An event about more than one record
+
+Some facts concern a record besides the one they are raised on. A product moving from one parent to another
+changes the product, but both parents gained or lost a child, and each parent's Activity section should say
+so. An event says this by implementing `IRelatedAggregateEvent` and listing those records in
+`RelatedAggregates`. The factory stores them in `App.ActivityLogRelatedAggregates` beside the entry, and
+`IActivityLogReader` returns an entry for any record it was raised on **or** names.
+
+```csharp
+[JsonIgnore]
+public IReadOnlyCollection<AggregateReference> RelatedAggregates =>
+    [.. new[] { FromParentId, ToParentId }.OfType<Guid>().Select(parentId => new AggregateReference(AggregateType, parentId))];
+```
+
+**One event filed under several records, never a second event for the other side.** Nothing happened to
+the parent that its own event could describe, and a mirror event would reach every consumer as a second
+occurrence. The different point of view belongs to the reader, not to the event.
+
+**Compute the list from ids the payload already carries, and mark it `[JsonIgnore]`.** Kept out of the
+payload, adopting it changes no published shape, so it needs no version bump. Derived from the payload,
+entries written before the event adopted it can be backfilled from what they recorded —
+`Backfill-Product-Reparent-Related-Activity` is the pattern, and a backfill is part of adopting it. An
+`AggregateReference` uses the same type name the related record's own events declare, or its section's
+typed read will not find the entry. The event's own aggregate and repeats are dropped.
+
+**Relate only records read under the same permission.** A related entry is shown with its full payload on
+the other record's Activity section, which is authorized by that record's permission. Relating a record
+guarded by a different permission would show one to readers who were only allowed the other.
+
+On the read side, `ActivityLogDto.IsRelated` marks an entry raised on another record, and `AggregateType`
+and `AggregateId` are then that record. The log holds ids only, so the module's query handler names it: it
+sets `RaisedOn` for the records it can resolve, as `GetProductActivitiesQueryHandler` does, and the page
+passes `raisedOnHref` to `ActivityLogTimeline` to link it. An entry whose record cannot be resolved, because
+it has since been removed, is still listed and described by its type. The timeline compares an entry only
+with earlier entries raised on the same record, since two related records' events share a type but not a
+subject.

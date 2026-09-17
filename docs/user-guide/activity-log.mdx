@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Activity Log
 
-The **Activity** section on a record shows what has happened to it — every business event the record raised, newest first. It answers "who changed this, and when" without anyone having to remember.
+The **Activity** section on a record shows what has happened to it — every business event the record raised, and events on other records that concern it, newest first. It answers "who changed this, and when" without anyone having to remember.
 
 Activity is recorded automatically. There is nothing to switch on, and no way to edit or delete an entry: the log is append-only.
 
@@ -42,6 +42,8 @@ Each timeline entry shows an icon for the kind of change (created, updated, acti
 Selecting an entry opens its detail, which adds the event type, the module it came from, the kind of record it targeted, and the **payload** — the full data the event carried, as recorded at the time.
 
 A change records what it replaced as well as the result: a timeline change carries the previous dates, a lifecycle change the lifecycle it moved from, a details edit the name and description it overwrote, and a role or theme change who and what was added and removed. One entry is enough to see what an edit altered. Entries recorded by earlier releases may carry only the result.
+
+Some changes concern more than the record they were made on. Moving a product under a new parent changes the product, but both its old and new parent lost or gained a child, so the move appears in all three Activity sections. On a record other than the one changed, the entry says which record it was made **on**, and its detail links to it. Where that record has since been removed, the entry stays and names only its kind. Today this applies to products moving between parents.
 
 Two entries can be compared: **Compare** on an event shows its payload beside the previous one for the same record, with changed fields called out. It is most useful across different kinds of change, or for older entries that recorded only the result.
 

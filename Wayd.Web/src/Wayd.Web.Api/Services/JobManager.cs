@@ -1,11 +1,10 @@
-﻿using Hangfire;
+using Hangfire;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
-using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.Iterations.Queries;
 using Wayd.Planning.Application.PlanningTeams.Commands;
@@ -83,27 +82,6 @@ public class JobManager(
         }
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunWorkSync));
     }
-
-    [DisableConcurrentExecution(60 * 3)]
-    public async Task RunSyncTeamsWithGraphTables(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncTeamsWithGraphTables));
-
-        var teamNodesresult = await _dispatcher.Send(new SyncTeamNodesCommand(), cancellationToken);
-        if (teamNodesresult.IsFailure)
-        {
-            _logger.LogError("Failed to sync teams with graph tables: {Error}", teamNodesresult.Error);
-        }
-
-        var teamMembershipEdgesResult = await _dispatcher.Send(new SyncTeamMembershipEdgesCommand(), cancellationToken);
-        if (teamMembershipEdgesResult.IsFailure)
-        {
-            _logger.LogError("Failed to sync team memberships with graph tables: {Error}", teamMembershipEdgesResult.Error);
-        }
-
-        _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncTeamsWithGraphTables));
-    }
-
     [DisableConcurrentExecution(60 * 3)]
     public async Task RunSyncIterations(CancellationToken cancellationToken)
     {

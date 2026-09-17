@@ -1,4 +1,4 @@
-﻿namespace Wayd.Organization.Application.Teams.Commands;
+namespace Wayd.Organization.Application.Teams.Commands;
 
 public sealed record RemoveTeamMembershipCommand(Guid TeamId, Guid TeamMembershipId) : ICommand;
 
@@ -54,12 +54,6 @@ public sealed class RemoveTeamMembershipCommandHandler : ICommandHandler<RemoveT
             await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogDebug("{RequestName}: removed Team Membership {TeamMembershipId} for Team of Teams {TeamId}", RequestName, request.TeamMembershipId, request.TeamId);
-
-            // Sync the deleted TeamMembership with the graph database
-            // TODO: move to more of an event based approach
-            await _organizationDbContext.DeleteTeamMembershipEdge(request.TeamMembershipId, cancellationToken);
-
-            _logger.LogDebug("{RequestName}: synced TeamMembershipEdge for Team Membership {TeamMembershipId}", RequestName, request.TeamMembershipId);
 
             return Result.Success();
         }

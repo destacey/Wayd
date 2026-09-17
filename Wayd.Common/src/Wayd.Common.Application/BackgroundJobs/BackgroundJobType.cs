@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Wayd.Common.Application.BackgroundJobs;
 
@@ -20,9 +20,6 @@ public enum BackgroundJobType
 
 
     // Data Replication Jobs
-
-    [Display(Name = "Team Graph Sync", Description = "Synchronize the latest team data into the Graph tables.", Order = 1004, GroupName = "Data Replication Jobs")]
-    TeamGraphSync = 1000,
 
     [Display(Name = "Strategic Themes Sync", Description = "Synchronize the latest strategic themes data.", Order = 1003, GroupName = "Data Replication Jobs")]
     StrategicThemesSync = 1001,

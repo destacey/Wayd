@@ -19,6 +19,9 @@ public sealed class DefaultRecurringJobsTests
         _jobService
             .Setup(s => s.AddOrUpdate(It.IsAny<string>(), It.IsAny<Expression<Func<Task>>>(), It.IsAny<Func<string>>()))
             .Callback((string jobId, Expression<Func<Task>> _, Func<string> cron) => _added.Add((jobId, cron())));
+        _jobService
+            .Setup(s => s.RemoveRecurringJobsInvoking(It.IsAny<string>()))
+            .Returns([]);
     }
 
     private IServiceProvider CreateServices()
@@ -27,11 +30,28 @@ public sealed class DefaultRecurringJobsTests
         services.AddSingleton(new Mock<JobStorage>().Object);
         services.AddSingleton(_jobService.Object);
         services.AddSingleton(new Mock<IJobManager>().Object);
+        services.AddLogging();
         return services.BuildServiceProvider();
     }
 
     private void ScheduledJobsAre(params RecurringJobDto[] jobs) =>
         _jobService.Setup(s => s.GetRecurringJobs()).Returns(jobs);
+
+    [Fact]
+    public void EnsureDefaultRecurringJobs_RemovesSchedulesForTheRetiredTeamGraphSync()
+    {
+        // Arrange — the method left IJobManager with the graph tables; a schedule for it fails every trigger
+        ScheduledJobsAre();
+        _jobService
+            .Setup(s => s.RemoveRecurringJobsInvoking("RunSyncTeamsWithGraphTables"))
+            .Returns(["team-graph-sync"]);
+
+        // Act
+        CreateServices().EnsureDefaultRecurringJobs();
+
+        // Assert
+        _jobService.Verify(s => s.RemoveRecurringJobsInvoking("RunSyncTeamsWithGraphTables"), Times.Once);
+    }
 
     [Fact]
     public void EnsureDefaultRecurringJobs_SchedulesBothImportSweepsWhenNothingRunsThem()

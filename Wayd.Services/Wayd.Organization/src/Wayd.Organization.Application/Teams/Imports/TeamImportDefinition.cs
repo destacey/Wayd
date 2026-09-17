@@ -9,7 +9,6 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Persistence;
-using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.Domain.Enums;
 using Wayd.Organization.Domain.Models;
 
@@ -22,11 +21,6 @@ namespace Wayd.Organization.Application.Teams.Imports;
 /// Atomic, matching the single save the command it replaces did. Creating a team publishes events that
 /// replicate it into the PPM, Planning and Work projections, so a half-applied file leaves those areas
 /// holding half an organization.
-/// <para>
-/// The second pass exists because the graph tables have to be written <em>after</em> the relational save —
-/// a node row cannot reference a team that is not there yet. Passes run in order with a save between them,
-/// which is exactly that seam; it re-reads the teams by code rather than carrying them over.
-/// </para>
 /// </remarks>
 public sealed class TeamImportDefinition(
     IOrganizationDbContext organizationDbContext,
@@ -53,7 +47,6 @@ public sealed class TeamImportDefinition(
     protected override IReadOnlyList<ImportPass<ImportTeamDto>> Steps =>
     [
         new("CreateTeams", ImportPassScope.WholeSet, CreateTeams),
-        new("SyncGraphNodes", ImportPassScope.WholeSet, SyncGraphNodes),
     ];
 
     /// <summary>
@@ -147,33 +140,6 @@ public sealed class TeamImportDefinition(
 
         return Result.Success();
     }
-
-    /// <summary>
-    /// Mirrors each created team into the graph tables, now that the relational rows exist.
-    /// </summary>
-    private async Task<Result> SyncGraphNodes(ImportPassContext<ImportTeamDto> context, CancellationToken cancellationToken)
-    {
-        var createdIds = context.Accepted
-            .Where(r => r.CreatedEntityId.HasValue)
-            .Select(r => r.CreatedEntityId!.Value)
-            .ToList();
-
-        if (createdIds.Count == 0)
-            return Result.Success();
-
-        var teams = await _organizationDbContext.BaseTeams
-            .AsNoTracking()
-            .Where(t => createdIds.Contains(t.Id))
-            .ToListAsync(cancellationToken);
-
-        foreach (var team in teams)
-        {
-            await _organizationDbContext.UpsertTeamNode(TeamNode.From(team), cancellationToken);
-        }
-
-        return Result.Success();
-    }
-
     // Team and TeamOfTeams each define their own Deactivate(TeamDeactivatableArgs); there is no shared
     // BaseTeam method, so dispatch on the concrete type.
     private static Result Deactivate(BaseTeam team, LocalDate inactiveDate, EventActor actor, Instant timestamp)

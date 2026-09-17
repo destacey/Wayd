@@ -1,4 +1,3 @@
-﻿using Wayd.Organization.Application.Teams.Models;
 
 namespace Wayd.Organization.Application.Persistence;
 
@@ -10,9 +9,4 @@ public interface IOrganizationDbContext : IWaydDbContext
     DbSet<TeamOperatingModel> TeamOperatingModels { get; }
     DbSet<TeamMemberRole> TeamMemberRoles { get; }
     DbSet<TeamMember> TeamMembers { get; }
-
-    // Graph Table Syncs
-    Task<int> UpsertTeamNode(TeamNode teamNode, CancellationToken cancellationToken);
-    Task<int> UpsertTeamMembershipEdge(TeamMembershipEdge teamMembershipEdge, CancellationToken cancellationToken);
-    Task<int> DeleteTeamMembershipEdge(Guid id, CancellationToken cancellationToken);
 }

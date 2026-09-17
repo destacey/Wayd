@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.Common.Domain.AppIntegrations;
@@ -6,7 +6,6 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Organization.Application.Persistence;
-using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.Domain.Models;
 using Wayd.Tests.Shared.Infrastructure;
 
@@ -82,52 +81,6 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
         throw new NotImplementedException("Entry tracking is not needed for unit tests. If you need this, consider using integration tests with a real DbContext.");
     }
 
-    #region Graph Table Sync Methods
-
-    /// <summary>
-    /// Gets the number of times <see cref="UpsertTeamNode"/> has been called. Useful for asserting that a
-    /// handler synced each new team into the graph tables exactly once.
-    /// </summary>
-    public int UpsertTeamNodeCallCount { get; private set; }
-
-    /// <summary>
-    /// Records the call as a no-op. The real graph sync requires SQL graph tables, but handlers legitimately
-    /// call this after a relational save, so the fake counts calls rather than throwing.
-    /// </summary>
-    public Task<int> UpsertTeamNode(TeamNode teamNode, CancellationToken cancellationToken)
-    {
-        UpsertTeamNodeCallCount++;
-        return Task.FromResult(1);
-    }
-
-    /// <summary>
-    /// Gets the number of times <see cref="UpsertTeamMembershipEdge"/> has been called. Useful for asserting
-    /// that a handler synced each new membership edge into the graph tables exactly once.
-    /// </summary>
-    public int UpsertTeamMembershipEdgeCallCount { get; private set; }
-
-    /// <summary>
-    /// Records the call as a no-op. The real graph sync requires SQL graph tables, but handlers legitimately
-    /// call this after a relational save, so the fake counts calls rather than throwing.
-    /// </summary>
-    public Task<int> UpsertTeamMembershipEdge(TeamMembershipEdge teamMembershipEdge, CancellationToken cancellationToken)
-    {
-        UpsertTeamMembershipEdgeCallCount++;
-        return Task.FromResult(1);
-    }
-
-    /// <summary>
-    /// Graph table sync operations are not supported in the fake context.
-    /// These require actual database operations with SQL graph tables.
-    /// Use integration tests with a real DbContext for testing graph functionality.
-    /// </summary>
-    public Task<int> DeleteTeamMembershipEdge(Guid id, CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException("Graph table sync operations are not supported in FakeOrganizationDbContext. Use integration tests with a real DbContext for graph-specific functionality.");
-    }
-
-    #endregion
-
     #region Helper Methods for Test Setup
 
     // BaseTeam
@@ -193,8 +146,6 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
         _externalIdentityMappings.Clear();
         _personalAccessTokens.Clear();
         SaveChangesCallCount = 0;
-        UpsertTeamNodeCallCount = 0;
-        UpsertTeamMembershipEdgeCallCount = 0;
     }
 
     /// <summary>

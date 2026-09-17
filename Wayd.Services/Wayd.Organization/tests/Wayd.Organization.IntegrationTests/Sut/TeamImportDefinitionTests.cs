@@ -11,7 +11,6 @@ using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Imports;
-using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
@@ -20,10 +19,9 @@ namespace Wayd.Organization.IntegrationTests.Sut;
 /// The team import against a real SQL Server container.
 /// </summary>
 /// <remarks>
-/// Two things only a real provider shows. The graph sync looks its teams back up through
-/// <c>BaseTeams</c>, which is EF's TPH base set and so contains rows added through <c>Teams</c> and
-/// <c>TeamOfTeams</c> — the in-memory fake keeps three unrelated lists, so the lookup finds nothing there
-/// however correct the pass is. And the node write itself is raw SQL against a SQL Server graph table.
+/// What only a real provider shows: the import looks teams up through <c>BaseTeams</c>, which is EF's TPH
+/// base set and so contains rows added through <c>Teams</c> and <c>TeamOfTeams</c> — the in-memory fake
+/// keeps three unrelated lists, so a lookup there finds nothing however correct the pass is.
 /// </remarks>
 [Collection(SqlServerTestCollection.Name)]
 public sealed class TeamImportDefinitionTests
@@ -86,7 +84,7 @@ public sealed class TeamImportDefinitionTests
     }
 
     [Fact]
-    public async Task ARun_CreatesEachTeamAndMirrorsItIntoTheGraph()
+    public async Task ARun_CreatesEachTeam()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -101,13 +99,10 @@ public sealed class TeamImportDefinitionTests
         // Act
         var process = await RunImport(context, definition, rows, cancellationToken);
 
-        // Assert — the second pass finds its teams through the TPH base set, which only exists here
+        // Assert
         process.Status.Should().Be(ImportProcessStatus.Succeeded);
 
         await using var assertContext = _fixture.CreateContext();
-        var nodes = await assertContext.Set<TeamNode>().CountAsync(cancellationToken);
-        nodes.Should().Be(2);
-
         var teams = await assertContext.BaseTeams.CountAsync(cancellationToken);
         teams.Should().Be(2);
     }

@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
@@ -68,9 +68,6 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
             case BackgroundJobType.WorkDiffSync:
                 _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Manual, null, cancellationToken));
                 break;
-            case BackgroundJobType.TeamGraphSync:
-                _jobService.Enqueue(() => jobManager.RunSyncTeamsWithGraphTables(cancellationToken));
-                break;
             case BackgroundJobType.IterationsSync:
                 _jobService.Enqueue(() => jobManager.RunSyncIterations(cancellationToken));
                 break;
@@ -130,7 +127,6 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
                 BackgroundJobType.PeopleDiffSync => () => jobManager.RunPeopleSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
-                BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),
                 BackgroundJobType.PortfolioRankRebalance => () => jobManager.RunPortfolioRankRebalance(cancellationToken),
                 BackgroundJobType.ImportStallRecovery => () => jobManager.RunImportStallRecovery(cancellationToken),
                 BackgroundJobType.ImportRetentionSweep => () => jobManager.RunImportRetentionSweep(cancellationToken),

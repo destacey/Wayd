@@ -7,7 +7,6 @@ using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Persistence;
 using Wayd.Organization.Application.Teams.Dtos;
-using Wayd.Organization.Application.Teams.Models;
 
 namespace Wayd.Organization.Application.Teams.Imports;
 
@@ -21,11 +20,6 @@ namespace Wayd.Organization.Application.Teams.Imports;
 /// loads every referenced team tracked with its memberships so EF's relationship fixup keeps both ends of
 /// each new edge consistent, which is what the domain's cycle and overlap checks read. Chunk it and those
 /// checks go blind to the half of the file they cannot see.
-/// <para>
-/// The second pass exists because the graph tables have to be written <em>after</em> the relational save.
-/// Passes run in order with a save between them, so a pass is exactly the seam for that — it re-reads the
-/// memberships rather than carrying them over, the same way the employee import finds its managers.
-/// </para>
 /// </remarks>
 public sealed class TeamMembershipImportDefinition(
     IOrganizationDbContext organizationDbContext,
@@ -50,7 +44,6 @@ public sealed class TeamMembershipImportDefinition(
     protected override IReadOnlyList<ImportPass<ImportTeamMembershipDto>> Steps =>
     [
         new("AddMemberships", ImportPassScope.WholeSet, AddMemberships),
-        new("SyncGraphEdges", ImportPassScope.WholeSet, SyncGraphEdges),
     ];
 
     /// <summary>
@@ -125,55 +118,5 @@ public sealed class TeamMembershipImportDefinition(
 
         return Result.Success();
     }
-
-    /// <summary>
-    /// Mirrors each new edge into the graph tables, after the relational save the runner performs between
-    /// passes. Mirrors the single-item AddTeamMembership handlers.
-    /// </summary>
-    /// <remarks>
-    /// TODO: move to an event-based approach, the same TODO the single-item handlers carry.
-    /// </remarks>
-    private async Task<Result> SyncGraphEdges(ImportPassContext<ImportTeamMembershipDto> context, CancellationToken cancellationToken)
-    {
-        var membershipIds = context.Accepted
-            .Select(r => r.CreatedEntityId)
-            .Where(id => id is not null)
-            .Select(id => id!.Value)
-            .ToHashSet();
-
-        if (membershipIds.Count == 0)
-            return Result.Success();
-
-        // Reached through the teams rather than a memberships DbSet, which the context does not expose.
-        // Both ends are needed anyway: the edge is built from the child and parent, not from the
-        // membership's navigations, which is what the single-item handlers do for the same reason.
-        var codes = context.Accepted
-            .SelectMany(r => new[] { Normalize(r.Data.ChildCode), Normalize(r.Data.ParentCode) })
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var codeValues = codes.Select(c => new TeamCode(c)).ToList();
-
-        var teamsByCode = (await _organizationDbContext.BaseTeams
-                .Include(t => t.ParentMemberships)
-                .Where(t => codeValues.Contains(t.Code))
-                .ToListAsync(cancellationToken))
-            .ToDictionary(t => t.Code.Value, t => t, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var row in context.Accepted)
-        {
-            var child = teamsByCode[Normalize(row.Data.ChildCode)];
-            var parent = (TeamOfTeams)teamsByCode[Normalize(row.Data.ParentCode)];
-            var membership = child.ParentMemberships.SingleOrDefault(m => m.Id == row.CreatedEntityId);
-
-            if (membership is null)
-                return Result.Failure($"The membership created for '{row.Data.ChildCode}' could not be read back.");
-
-            await _organizationDbContext.UpsertTeamMembershipEdge(
-                TeamMembershipEdge.From(membership, child, parent), cancellationToken);
-        }
-
-        return Result.Success();
-    }
-
     private static string Normalize(string teamCode) => teamCode.Trim().ToUpperInvariant();
 }

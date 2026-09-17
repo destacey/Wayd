@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace Wayd.Common.Application.BackgroundJobs;
 
@@ -20,6 +20,12 @@ public interface IJobService : IScopedService
 
     /// <summary>Removes a recurring registration. Returns false when no job with that id exists.</summary>
     bool RemoveRecurringJob(string recurringJobId);
+
+    /// <summary>
+    /// Removes every recurring registration whose stored invocation names <paramref name="methodName"/>,
+    /// whether or not that method still exists. Returns the ids removed.
+    /// </summary>
+    IReadOnlyList<string> RemoveRecurringJobsInvoking(string methodName);
 
     string Enqueue(Expression<Action> methodCall);
 

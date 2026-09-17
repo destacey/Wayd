@@ -11,7 +11,6 @@ using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Imports;
-using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
 
@@ -27,15 +26,13 @@ namespace Wayd.Organization.IntegrationTests.Sut;
 /// domain's cycle check reads. An in-memory fake has no fixup at all, so against one the tests pass whether
 /// or not that mechanism works. These do not.
 /// <para>
-/// They also cover the two things a fake cannot see: that the <c>TeamCode</c> value-converter lookup
-/// translates to SQL, and that the graph-edge sync actually writes a row to the SQL graph table.
+/// They also cover what a fake cannot see: that the <c>TeamCode</c> value-converter lookup translates to SQL.
 /// </para>
 /// </remarks>
 [Collection(SqlServerTestCollection.Name)]
 public sealed class TeamMembershipImportDefinitionTests
 {
     private const int AddPass = 0;
-    private const int SyncPass = 1;
 
     private static readonly LocalDate ActiveDate = new(2024, 1, 1);
     private static readonly LocalDate MembershipStart = new(2024, 6, 1);
@@ -57,8 +54,8 @@ public sealed class TeamMembershipImportDefinitionTests
     }
 
     /// <summary>
-    /// Seeds through the domain factories and the graph-node upsert, the way the create handlers do, so the
-    /// rows are in the shape the application actually produces.
+    /// Seeds through the domain factories, the way the create handlers do, so the rows are in the shape the
+    /// application actually produces.
     /// </summary>
     private async Task SeedHierarchyTeams(CancellationToken cancellationToken)
     {
@@ -76,10 +73,6 @@ public sealed class TeamMembershipImportDefinitionTests
         await context.TeamOfTeams.AddAsync(valueStream, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        // Edges reference nodes, so the graph rows have to exist before the sync pass runs.
-        await context.UpsertTeamNode(TeamNode.From(team), cancellationToken);
-        await context.UpsertTeamNode(TeamNode.From(art), cancellationToken);
-        await context.UpsertTeamNode(TeamNode.From(valueStream), cancellationToken);
     }
 
     private static ImportProcessRow[] Rows(TeamMembershipImportDefinition definition, params (string Child, string Parent)[] edges) =>
@@ -256,30 +249,6 @@ public sealed class TeamMembershipImportDefinitionTests
 
         team.ParentMemberships.Should().BeEmpty();
     }
-
-    [Fact]
-    public async Task SyncGraphEdges_WritesTheEdgeToTheGraphTable()
-    {
-        // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await _fixture.ResetOrganizationData(cancellationToken);
-        await SeedHierarchyTeams(cancellationToken);
-
-        await using var context = _fixture.CreateContext();
-        var definition = CreateDefinition(context);
-        var rows = Rows(definition, ("TEAM", "ART"));
-        await RunPass(context, definition, AddPass, rows, cancellationToken);
-
-        // Act
-        await RunPass(context, definition, SyncPass, rows, cancellationToken);
-
-        // Assert — the graph write is raw SQL against a SQL Server graph table, so only a real provider
-        // shows it happened at all
-        await using var assertContext = _fixture.CreateContext();
-        var edges = await assertContext.Set<TeamMembershipEdge>().CountAsync(cancellationToken);
-        edges.Should().Be(1);
-    }
-
     [Fact]
     public async Task ARunLetsGoOfWhatItAppliedOnceItIsSaved()
     {

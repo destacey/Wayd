@@ -76,5 +76,71 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
         result.Value.Should().BeEquivalentTo(expectedResponse);
     }
 
+    [Fact]
+    public async Task Handle_NamesTheProductARelatedEntryWasRaisedOn()
+    {
+        // Arrange
+        var parent = _productFaker.Generate();
+        var child = _productFaker.Generate();
+        _dbContext.AddProduct(parent);
+        _dbContext.AddProduct(child);
+
+        var own = Activity(parent.Id, isRelated: false);
+        var moved = Activity(child.Id, isRelated: true);
+
+        _activityLogReader
+            .Setup(r => r.Read(parent.Id, "Product", 1, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResponse<ActivityLogDto>([moved, own], 2, 1, 50));
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProductActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var items = result.Value!.Items;
+        items.Single(i => i.Id == moved.Id).RaisedOn.Should().BeEquivalentTo(new { child.Id, child.Key, child.Name });
+        items.Single(i => i.Id == own.Id).RaisedOn.Should().BeNull("an entry raised on this product needs no pointer back to it");
+        result.Value.TotalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesRaisedOnEmpty_WhenTheRelatedProductNoLongerExists()
+    {
+        // Arrange
+        var parent = _productFaker.Generate();
+        _dbContext.AddProduct(parent);
+
+        var fromRemoved = Activity(Guid.CreateVersion7(), isRelated: true);
+
+        _activityLogReader
+            .Setup(r => r.Read(parent.Id, "Product", 1, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResponse<ActivityLogDto>([fromRemoved], 1, 1, 50));
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProductActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var item = result.Value!.Items.Should().ContainSingle().Subject;
+        item.IsRelated.Should().BeTrue();
+        item.RaisedOn.Should().BeNull();
+    }
+
+    private static ActivityLogDto Activity(Guid aggregateId, bool isRelated) => new()
+    {
+        Id = Guid.NewGuid(),
+        EventType = "ProductReparentedEventV2",
+        DomainArea = "ProductManagement",
+        AggregateType = "Product",
+        AggregateId = aggregateId,
+        ActorKind = EventActorKind.User,
+        Timestamp = Instant.FromUnixTimeSeconds(100),
+        Payload = "{}",
+        Summary = "Product Reparented",
+        IsRelated = isRelated,
+    };
+
     public void Dispose() => _dbContext.Dispose();
 }

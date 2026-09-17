@@ -16,6 +16,10 @@ namespace Wayd.Web.Api.Services;
 /// Each is added only when absent, and matched on the method rather than an id, so a schedule an admin
 /// already made under a name of their own keeps its cron and is not joined by a second. Deleting one only
 /// lasts until the next start.
+/// <para>
+/// It also removes schedules for jobs that no longer exist. A recurring registration outlives the method
+/// it names, and one for a removed method fails on every trigger until someone deletes it by hand.
+/// </para>
 /// </remarks>
 public static class DefaultRecurringJobs
 {
@@ -28,6 +32,13 @@ public static class DefaultRecurringJobs
     // The window is 30 days, so a payload cleared a day late is nothing; once a night, off the working
     // day, is plenty.
     private const string ImportRetentionSweepCron = "0 3 * * *";
+
+    // Methods removed from IJobManager that a deployment may still have scheduled. An entry can be dropped
+    // once every deployment has started at least once with it in place.
+    private static readonly string[] _retiredActions =
+    [
+        "RunSyncTeamsWithGraphTables",
+    ];
 
     private static readonly (string JobId, string Action, string Cron, Func<IJobManager, Expression<Func<Task>>> MethodCall)[] _defaults =
     [
@@ -45,6 +56,15 @@ public static class DefaultRecurringJobs
         using var scope = services.CreateScope();
         var jobService = scope.ServiceProvider.GetRequiredService<IJobService>();
         var jobManager = scope.ServiceProvider.GetRequiredService<IJobManager>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DefaultRecurringJobs));
+
+        foreach (var action in _retiredActions)
+        {
+            foreach (var jobId in jobService.RemoveRecurringJobsInvoking(action))
+            {
+                logger.LogInformation("Removed recurring job {JobId}: it invokes {Action}, which no longer exists", jobId, action);
+            }
+        }
 
         var scheduledActions = jobService.GetRecurringJobs()
             .Select(j => j.Action)

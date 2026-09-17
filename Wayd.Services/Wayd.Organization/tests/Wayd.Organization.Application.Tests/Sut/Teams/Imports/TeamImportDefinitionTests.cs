@@ -21,7 +21,6 @@ namespace Wayd.Organization.Application.Tests.Sut.Teams.Imports;
 public sealed class TeamImportDefinitionTests : IDisposable
 {
     private const int CreatePass = 0;
-    private const int SyncPass = 1;
 
     private readonly FakeOrganizationDbContext _dbContext = new();
     private readonly TeamImportDefinition _definition;
@@ -64,7 +63,7 @@ public sealed class TeamImportDefinitionTests : IDisposable
         // Assert — creating a team replicates it into PPM, Planning and Work, so a half-applied file
         // leaves those areas holding half an organization
         _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
-        passes.Select(p => p.Name).Should().Equal("CreateTeams", "SyncGraphNodes");
+        passes.Select(p => p.Name).Should().Equal("CreateTeams");
     }
 
     [Fact]
@@ -157,21 +156,5 @@ public sealed class TeamImportDefinitionTests : IDisposable
         var outcome = result.Value.Rows.Single();
         outcome.Failed.Should().BeTrue();
         outcome.Error.Should().Contain("PAY");
-    }
-
-    [Fact]
-    public async Task SyncGraphNodes_DoesNothingWhenNoRowCreatedATeam()
-    {
-        // Arrange — every row was rejected, so there is no node to mirror. That it writes the right nodes
-        // when there are any is asserted against a real provider: this fake's BaseTeams is a separate list
-        // from Teams, where EF's is the TPH base set, so the lookup the pass does finds nothing here.
-        var rows = Rows(Row(TeamType.Team, "Payments Core", "PAY"));
-
-        // Act
-        var result = await Run(SyncPass, rows);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        _dbContext.UpsertTeamNodeCallCount.Should().Be(0);
     }
 }

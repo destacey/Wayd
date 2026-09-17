@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
 using Testcontainers.MsSql;
@@ -16,9 +16,8 @@ namespace Wayd.Organization.IntegrationTests.Infrastructure;
 /// <summary>
 /// Starts a SQL Server container and applies the real <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations
 /// against it, then hands out <see cref="WaydDbContext"/> instances pointed at that container. This exercises
-/// the production EF provider, so value converters (e.g. <c>TeamCode</c> → <c>varchar</c>), NodaTime mapping,
-/// and the SQL-graph node/edge tables all behave exactly as they do in production — the very reason
-/// Testcontainers is used here instead of SQLite.
+/// the production EF provider, so value converters (e.g. <c>TeamCode</c> → <c>varchar</c>) and NodaTime mapping
+/// behave exactly as they do in production — the very reason Testcontainers is used here instead of SQLite.
 /// <para>
 /// This is a collection fixture (see <see cref="SqlServerTestCollection"/>): one container and one migrated
 /// schema are shared by every test class in the collection, so tests must not assume a private database.
@@ -63,8 +62,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             })
             .Options;
 
-        // Apply the real migrations so the schema — varchar columns, converters and the SQL-graph
-        // TeamNodes / TeamMembershipEdges tables — matches production.
+        // Apply the real migrations so the schema — varchar columns and converters — matches production.
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
     }
@@ -108,16 +106,13 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Removes all Organization rows the import handlers touch so each test starts from a clean slate,
-    /// including the SQL-graph node/edge tables that <see cref="Wayd.Organization.Application"/>'s team import
-    /// writes via raw MERGE. Ordered to respect foreign keys.
+    /// Removes all Organization rows the import handlers touch so each test starts from a clean slate.
+    /// Ordered to respect foreign keys.
     /// </summary>
     public async Task ResetOrganizationData(CancellationToken cancellationToken)
     {
         await using var context = CreateContext();
 
-        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[TeamMembershipEdges];", cancellationToken);
-        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[TeamNodes];", cancellationToken);
         // Before Teams: TeamMemberships holds FKs to both ends of every hierarchy edge.
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[TeamMemberships];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[TeamMembers];", cancellationToken);

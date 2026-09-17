@@ -21,7 +21,6 @@ public static class SchedulableBackgroundJobTypes
         BackgroundJobType.PeopleDiffSync,
         BackgroundJobType.WorkFullSync,
         BackgroundJobType.WorkDiffSync,
-        BackgroundJobType.TeamGraphSync,
         BackgroundJobType.PortfolioRankRebalance,
         BackgroundJobType.ImportStallRecovery,
         BackgroundJobType.ImportRetentionSweep,

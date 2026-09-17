@@ -99,7 +99,7 @@ public sealed class ImportPreflightTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task Preflight_OfAnAtomicMultiPassImportThatRejectsARow_ReportsEveryRowAndDeliversNoEvents()
+    public async Task Preflight_OfAnAtomicImportThatRejectsARow_ReportsEveryRowAndDeliversNoEvents()
     {
         // Arrange — one team exists already, applied for real. Its run is the control for the envelope
         // check below: it shows a durable team event is visible to the recorder when one is sent.
@@ -128,8 +128,6 @@ public sealed class ImportPreflightTests(WaydSqlServerApiFactory factory)
         // Act
         ImportProcess run;
         List<string> envelopes;
-        List<ActivityLogEntry> recordedActivity;
-        List<Guid> stagedTeamIds;
         using (var recording = _factory.Saves.Record())
         {
             var submitted = await dispatcher.Send(
@@ -138,31 +136,21 @@ public sealed class ImportPreflightTests(WaydSqlServerApiFactory factory)
 
             run = await WaitForRun(submitted.Value);
             envelopes = [.. recording.EnvelopeMessageTypes()];
-            stagedTeamIds = [.. recording.AddedOf<BaseTeam>().Select(t => t.Id)];
-            recordedActivity = [.. recording.AddedOf<ActivityLogEntry>().Where(a => stagedTeamIds.Contains(a.AggregateId))];
         }
 
-        // Assert — the rejection is reported, and the other rows still went through the graph pass
+        // Assert — the rejection is reported, and the other rows were still accepted
         Assert.Equal(ImportProcessStatus.Failed, run.Status);
         Assert.Contains("none of it", run.Error);
         Assert.Equal(ImportRowStatus.Failed, run.Rows.Single(r => r.ImportId == "t1").Status);
         Assert.Contains("already exists", run.Rows.Single(r => r.ImportId == "t1").Error);
         Assert.All(run.Rows.Where(r => r.ImportId != "t1"), r => Assert.Equal(ImportRowStatus.Succeeded, r.Status));
 
-        // The first pass was saved inside the transaction, then rolled back with everything it raised
-        Assert.Equal(2, stagedTeamIds.Count);
-        Assert.NotEmpty(recordedActivity);
-        await AssertNoneSurvived(scope, recordedActivity);
+        // Nothing it accepted was delivered; the control run above shows the recorder would have seen it
         Assert.DoesNotContain(envelopes, t => t.Contains("Team", StringComparison.Ordinal));
 
         var organizationDbContext = scope.ServiceProvider.GetRequiredService<IOrganizationDbContext>();
         var codes = new[] { new TeamCode(newTeam), new TeamCode(newTeamOfTeams) };
         Assert.False(await organizationDbContext.BaseTeams.AnyAsync(t => codes.Contains(t.Code), TestContext.Current.CancellationToken));
-
-        var graphNodes = await organizationDbContext.Database
-            .SqlQuery<int>($"SELECT COUNT(*) AS Value FROM [Organization].[TeamNodes] WHERE [Code] = {newTeam} OR [Code] = {newTeamOfTeams}")
-            .SingleAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(0, graphNodes);
     }
 
     [Fact]

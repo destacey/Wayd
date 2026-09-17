@@ -1,4 +1,3 @@
-﻿using Wayd.Organization.Application.Teams.Models;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
@@ -50,12 +49,6 @@ public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organ
             await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogDebug("{RequestName}: added Team Membership {TeamMembershipId} for Team {TeamId} and ParentTeamId {ParentTeamId}", RequestName, result.Value.Id, request.TeamId, request.ParentTeamId);
-
-            // Sync the new TeamMembership with the graph database
-            // TODO: move to more of an event based approach
-            await _organizationDbContext.UpsertTeamMembershipEdge(TeamMembershipEdge.From(result.Value), cancellationToken);
-
-            _logger.LogDebug("{RequestName}: synced TeamMembershipEdge for Team Membership {TeamMembershipId}", RequestName, result.Value.Id);
 
             return Result.Success();
         }

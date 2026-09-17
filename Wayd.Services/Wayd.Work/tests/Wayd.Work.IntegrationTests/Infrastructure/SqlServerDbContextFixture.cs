@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
 using Testcontainers.MsSql;
@@ -63,8 +63,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             })
             .Options;
 
-        // Apply the real migrations so the schema — varchar columns, converters and the SQL-graph
-        // TeamNodes / TeamMembershipEdges tables — matches production.
+        // Apply the real migrations so the schema — varchar columns and converters — matches production.
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
     }

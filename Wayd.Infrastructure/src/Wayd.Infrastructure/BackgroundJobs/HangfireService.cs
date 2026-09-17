@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.Storage;
@@ -238,6 +238,29 @@ public class HangfireService : IJobService
 
         RecurringJob.RemoveIfExists(recurringJobId);
         return true;
+    }
+
+    public IReadOnlyList<string> RemoveRecurringJobsInvoking(string methodName)
+    {
+        using var connection = JobStorage.Current.GetConnection();
+
+        // Read the stored invocation rather than the loaded Job: once the method is gone the Job no longer
+        // resolves and is null, and a registration for a missing method is exactly the one to remove.
+        var removed = new List<string>();
+        foreach (var recurring in connection.GetRecurringJobs())
+        {
+            var stored = connection.GetAllEntriesFromHash($"recurring-job:{recurring.Id}");
+            if (stored is null || !stored.TryGetValue("Job", out var payload) || string.IsNullOrEmpty(payload))
+                continue;
+
+            if (InvocationData.DeserializePayload(payload).Method == methodName)
+            {
+                RecurringJob.RemoveIfExists(recurring.Id);
+                removed.Add(recurring.Id);
+            }
+        }
+
+        return removed;
     }
 
     private const string FailedStateName = "Failed";

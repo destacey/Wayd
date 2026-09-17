@@ -17,7 +17,6 @@ namespace Wayd.Organization.Application.Tests.Sut.Teams.Imports;
 public sealed class TeamMembershipImportDefinitionTests : IDisposable
 {
     private const int AddPass = 0;
-    private const int SyncPass = 1;
 
     private static readonly LocalDate ActiveDate = new(2024, 1, 1);
     private static readonly LocalDate MembershipStart = new(2024, 6, 1);
@@ -63,7 +62,7 @@ public sealed class TeamMembershipImportDefinitionTests : IDisposable
 
         // Assert — half an imported hierarchy is worse than none, and the cycle check needs the whole file
         _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
-        passes.Select(p => p.Name).Should().Equal("AddMemberships", "SyncGraphEdges");
+        passes.Select(p => p.Name).Should().Equal("AddMemberships");
         passes.Should().AllSatisfy(p => p.Scope.Should().Be(ImportPassScope.WholeSet));
     }
 
@@ -151,42 +150,5 @@ public sealed class TeamMembershipImportDefinitionTests : IDisposable
 
         var team = _dbContext.BaseTeams.Single(t => t.Code == new TeamCode("TEAM"));
         team.ParentMemberships.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task SyncGraphEdges_MirrorsEachNewEdgeAfterTheRelationalSave()
-    {
-        // Arrange
-        SeedTeam("TEAM");
-        SeedTeamOfTeams("ART");
-        var rows = Rows(("TEAM", "ART"));
-
-        var addResult = await RunPass(AddPass, rows);
-        // The runner records the created id and saves between passes; stand in for both.
-        rows[0].RecordCreatedEntity(addResult.Value.Rows.Single().CreatedEntityId!.Value);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await RunPass(SyncPass, rows);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        _dbContext.UpsertTeamMembershipEdgeCallCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task SyncGraphEdges_DoesNothingWhenTheAddPassCreatedNothing()
-    {
-        // Arrange — every row was rejected, so there is no edge to mirror
-        SeedTeamOfTeams("ART");
-        var rows = Rows(("MISSING", "ART"));
-        await RunPass(AddPass, rows);
-
-        // Act
-        var result = await RunPass(SyncPass, rows);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        _dbContext.UpsertTeamMembershipEdgeCallCount.Should().Be(0);
     }
 }

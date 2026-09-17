@@ -401,7 +401,6 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 
 - **Work Sync** — Synchronizes work data from all active Work Sync connectors (Azure DevOps today). Differential and Full variants are available.
 - **People Sync** — Synchronizes people data from all active People Sync connectors (Entra today).
-- **Team Graph Sync** — Refreshes the team graph tables.
 - **Projects, Teams, Iterations, and Strategic Themes Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
 - **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).

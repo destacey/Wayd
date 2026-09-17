@@ -1,5 +1,4 @@
 using Wayd.Common.Domain.Models.Organizations;
-using Wayd.Organization.Application.Teams.Models;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Application.Teams.Commands;
@@ -86,12 +85,6 @@ public sealed class UpdateTeamCommandHandler : ICommandHandler<UpdateTeamCommand
             await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogDebug("{RequestName}: updated Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
-
-            // Sync the new team with the graph database
-            // TODO: move to more of an event based approach
-            await _organizationDbContext.UpsertTeamNode(TeamNode.From(team), cancellationToken);
-
-            _logger.LogDebug("{RequestName}: synced TeamNode for Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
 
             return Result.Success(team.Key);
         }

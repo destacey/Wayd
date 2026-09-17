@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -75,7 +75,7 @@ public class PlanningIntervalConfig : IEntityTypeConfiguration<PlanningInterval>
 
         builder.HasIndex(p => new { p.Id, p.IsDeleted })
             .IncludeProperties(p => new { p.Name, p.Description })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(p => p.Name)
             .IsUnique();
 
@@ -110,13 +110,13 @@ public class PlanningIntervalIterationConfig : IEntityTypeConfiguration<Planning
 
         builder.HasIndex(i => new { i.Id, i.IsDeleted })
             .IncludeProperties(i => new { i.Key, i.PlanningIntervalId, i.Name, i.Category })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(i => new { i.Key, i.IsDeleted })
             .IncludeProperties(i => new { i.Id, i.PlanningIntervalId, i.Name, i.Category })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(i => new { i.PlanningIntervalId, i.IsDeleted })
             .IncludeProperties(i => new { i.Id, i.Key, i.Name, i.Category })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(i => i.Id).ValueGeneratedNever();
         builder.Property(i => i.Key).ValueGeneratedOnAdd();
@@ -158,13 +158,13 @@ public class PlanningIntervalObjectiveConfig : IEntityTypeConfiguration<Planning
 
         builder.HasIndex(o => new { o.Id, o.IsDeleted })
             .IncludeProperties(o => new { o.Key, o.PlanningIntervalId, o.Name, o.Type, o.Status, o.IsStretch, o.Order })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(o => new { o.Key, o.IsDeleted })
             .IncludeProperties(o => new { o.Id, o.PlanningIntervalId, o.Name, o.Type, o.Status, o.IsStretch, o.Order })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(o => new { o.PlanningIntervalId, o.IsDeleted })
             .IncludeProperties(o => new { o.Id, o.Key, o.Name, o.Type, o.Status, o.IsStretch, o.Order })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(o => o.Id).ValueGeneratedNever();
         builder.Property(o => o.Key).ValueGeneratedOnAdd();
@@ -247,13 +247,13 @@ public class RiskConfig : IEntityTypeConfiguration<Risk>
         builder.HasAlternateKey(r => r.Key);
 
         builder.HasIndex(r => new { r.Id, r.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(r => new { r.Key, r.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(r => new { r.AssigneeId, r.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(r => new { r.TeamId, r.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(r => r.Id).ValueGeneratedNever();
         builder.Property(r => r.Key).ValueGeneratedOnAdd();
@@ -617,7 +617,7 @@ public class PlanningIntervalObjectiveHealthCheckConfig : IEntityTypeConfigurati
         builder.HasKey(h => h.Id);
 
         builder.HasIndex(h => new { h.PlanningIntervalObjectiveId, h.Expiration, h.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(h => h.Id).ValueGeneratedNever();
         builder.Property(h => h.PlanningIntervalObjectiveId).IsRequired();
@@ -782,11 +782,11 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
         builder.HasAlternateKey(m => m.Key);
 
         builder.HasIndex(m => new { m.Id, m.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(m => new { m.Key, m.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(m => new { m.OwnerId, m.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(m => m.Id).ValueGeneratedNever();
         builder.Property(m => m.Key).ValueGeneratedOnAdd();

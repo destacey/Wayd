@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries;
@@ -25,28 +25,30 @@ public sealed class GetPortfolioIdsToRebalanceQueryHandler(IProjectPortfolioMana
 
     public async Task<List<Guid>> Handle(GetPortfolioIdsToRebalanceQuery request, CancellationToken cancellationToken)
     {
-        // Compute the gap between each project's rank and the next-lower rank within its portfolio
-        // (window function — not expressible in LINQ), then select portfolios with any gap below the
-        // threshold. Status is persisted as a varchar enum name, so compare against the name.
-        var archivedName = ProjectPortfolioStatus.Archived.ToString();
-
-        var ids = await _ppmDbContext.Database
-            .SqlQuery<Guid>($@"
-                WITH Gaps AS (
-                    SELECT
-                        prj.PortfolioId,
-                        prj.Rank - LAG(prj.Rank) OVER (PARTITION BY prj.PortfolioId ORDER BY prj.Rank) AS Gap
-                    FROM Ppm.Projects prj
-                )
-                SELECT pf.Id AS Value
-                FROM Ppm.Portfolios pf
-                WHERE pf.Status <> {archivedName}
-                  AND EXISTS (
-                      SELECT 1 FROM Gaps g
-                      WHERE g.PortfolioId = pf.Id AND g.Gap IS NOT NULL AND g.Gap < {MinGapThreshold}
-                  )")
+        // The gap between adjacent ranks is a window function, which LINQ cannot express; the ranks of
+        // every live portfolio are a few thousand doubles, so they are sorted and compared here instead.
+        var ranks = await _ppmDbContext.Projects
+            .Join(_ppmDbContext.Portfolios.Where(pf => pf.Status != ProjectPortfolioStatus.Archived),
+                prj => prj.PortfolioId,
+                pf => pf.Id,
+                (prj, pf) => new { prj.PortfolioId, prj.Rank })
             .ToListAsync(cancellationToken);
 
-        return ids;
+        return ranks
+            .GroupBy(r => r.PortfolioId)
+            .Where(portfolio => HasGapBelowThreshold(portfolio.Select(r => r.Rank)))
+            .Select(portfolio => portfolio.Key)
+            .ToList();
+    }
+
+    private static bool HasGapBelowThreshold(IEnumerable<double> ranks)
+    {
+        var sorted = ranks.Order().ToList();
+        for (var i = 1; i < sorted.Count; i++)
+        {
+            if (sorted[i] - sorted[i - 1] < MinGapThreshold)
+                return true;
+        }
+        return false;
     }
 }

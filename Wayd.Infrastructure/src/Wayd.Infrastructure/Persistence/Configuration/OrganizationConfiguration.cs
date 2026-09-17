@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.Organization;
@@ -23,17 +23,17 @@ public class BaseTeamConfig : IEntityTypeConfiguration<BaseTeam>
 
         builder.HasIndex(o => new { o.Id, o.IsDeleted })
             .IncludeProperties(o => new { o.Key, o.Name, o.Code, o.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(o => new { o.Key, o.IsDeleted })
             .IncludeProperties(o => new { o.Id, o.Name, o.Code, o.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(o => o.Name)
             .IsUnique();
         builder.HasIndex(o => o.Code)
             .IsUnique()
             .IncludeProperties(o => new { o.Id, o.Key, o.Name, o.IsActive, o.IsDeleted });
         builder.HasIndex(o => new { o.IsActive, o.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(o => o.Id).ValueGeneratedNever();
         builder.Property(o => o.Key).ValueGeneratedOnAdd();
@@ -75,15 +75,15 @@ public class TeamMembershipConfig : IEntityTypeConfiguration<TeamMembership>
 
         builder.HasIndex(m => new { m.Id, m.IsDeleted })
             .IncludeProperties(m => new { m.SourceId, m.TargetId })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasIndex(m => new { m.SourceId, m.IsDeleted })
             .IncludeProperties(m => new { m.Id, m.TargetId })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasIndex(m => new { m.TargetId, m.IsDeleted })
             .IncludeProperties(m => new { m.Id, m.SourceId })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Value Objects
         builder.Property(m => m.Id).ValueGeneratedNever();
@@ -119,7 +119,7 @@ public class TeamMemberRoleConfig : IEntityTypeConfiguration<TeamMemberRole>
         builder.Property(r => r.Key).ValueGeneratedOnAdd();
 
         builder.Property(r => r.Name).IsRequired().HasMaxLength(128);
-        builder.HasIndex(r => r.Name).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(r => r.Name).IsUnique().WhereNotDeleted();
 
         builder.Property(r => r.Description).HasMaxLength(1024);
 
@@ -143,11 +143,11 @@ public class TeamMemberConfig : IEntityTypeConfiguration<TeamMember>
 
         builder.HasIndex(m => new { m.TeamId, m.EmployeeId, m.RoleId, m.IsDeleted })
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0")
+            .WhereNotDeleted()
             .HasDatabaseName("IX_TeamMembers_TeamId_EmployeeId_RoleId");
 
         builder.HasIndex(m => new { m.EmployeeId, m.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasOne(m => m.Employee)
             .WithMany()
@@ -188,7 +188,7 @@ public class TeamOperatingModelConfig : IEntityTypeConfiguration<TeamOperatingMo
 
         builder.HasIndex("TeamId")
             .IncludeProperties(m => new { m.Id, m.Methodology, m.SizingMethod })
-            .HasFilter("[End] IS NULL")
+            .WhereNull("End")
             .HasDatabaseName("IX_TeamOperatingModels_TeamId_Current");
 
         builder.Property(m => m.Id).ValueGeneratedNever();

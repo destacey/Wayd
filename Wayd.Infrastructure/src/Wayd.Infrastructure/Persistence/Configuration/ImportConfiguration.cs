@@ -31,7 +31,7 @@ public class ImportProcessConfig : IEntityTypeConfiguration<ImportProcess>
         builder.HasIndex(p => p.SubmittedOn);
 
         // A seed run submits many files under one group; the list collapses them into one entry.
-        builder.HasIndex(p => p.SubmissionGroupId).HasFilter("[SubmissionGroupId] IS NOT NULL");
+        builder.HasIndex(p => p.SubmissionGroupId).WhereNotNull("SubmissionGroupId");
 
         builder.HasMany(p => p.Rows)
             .WithOne()

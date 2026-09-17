@@ -1,19 +1,12 @@
-﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NodaTime;
+using Wayd.Infrastructure.Persistence.Extensions;
 
 namespace Wayd.Infrastructure.Identity;
 
 internal sealed class UserIdentityStore(WaydDbContext db, ILogger<UserIdentityStore> logger) : IUserIdentityStore
 {
-    // SQL Server error numbers for unique-constraint / duplicate-key violations.
-    // 2627 = unique constraint, 2601 = unique index. We treat either as "another
-    // concurrent caller inserted the same logical row first" — the caller's goal
-    // (ensure this row exists) is satisfied either way.
-    private const int SqlUniqueConstraintErrorNumber = 2627;
-    private const int SqlUniqueIndexErrorNumber = 2601;
-
     private readonly WaydDbContext _db = db;
     private readonly ILogger<UserIdentityStore> _logger = logger;
 
@@ -147,7 +140,7 @@ internal sealed class UserIdentityStore(WaydDbContext db, ILogger<UserIdentitySt
         {
             await _db.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // A concurrent caller inserted the same (provider, tenant, subject) row
             // between our caller's ExistsActive check and this insert. The logical
@@ -155,12 +148,6 @@ internal sealed class UserIdentityStore(WaydDbContext db, ILogger<UserIdentitySt
             // rejected entity so the context stays usable.
             _db.Entry(identity).State = EntityState.Detached;
         }
-    }
-
-    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
-    {
-        return ex.InnerException is SqlException sql &&
-               (sql.Number == SqlUniqueConstraintErrorNumber || sql.Number == SqlUniqueIndexErrorNumber);
     }
 
     public async Task Update(UserIdentity identity, CancellationToken cancellationToken = default)

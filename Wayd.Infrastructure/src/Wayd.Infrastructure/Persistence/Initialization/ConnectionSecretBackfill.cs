@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
@@ -54,6 +54,13 @@ internal sealed class ConnectionSecretBackfill
         if (wasClosed) await connection.OpenAsync(cancellationToken);
         try
         {
+            // On a first boot the migration creating the table runs after this; nothing to backfill then.
+            if (!await ConfigurationColumnExists(connection, cancellationToken))
+            {
+                _logger.LogDebug("ConnectionSecretBackfill: Connections table not present yet, skipping.");
+                return result;
+            }
+
             await using var cmd = connection.CreateCommand();
             cmd.CommandText =
                 "SELECT Id FROM [AppIntegrations].[Connections] " +
@@ -69,17 +76,21 @@ internal sealed class ConnectionSecretBackfill
                 result.Add(reader.GetGuid(0));
             }
         }
-        catch (SqlException ex) when (ex.Number == 208 /* Invalid object name */
-                                       || ex.Number == 207 /* Invalid column name */)
-        {
-            // Schema not yet present (first migration is creating it now). Nothing to backfill.
-            _logger.LogDebug("ConnectionSecretBackfill: Connections table not present yet, skipping.");
-        }
         finally
         {
             if (wasClosed) await connection.CloseAsync();
         }
         return result;
+    }
+
+    private static async Task<bool> ConfigurationColumnExists(DbConnection connection, CancellationToken cancellationToken)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText =
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+            "WHERE TABLE_SCHEMA = 'AppIntegrations' AND TABLE_NAME = 'Connections' AND COLUMN_NAME = 'Configuration'";
+        var count = await cmd.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(count) > 0;
     }
 
     private async Task BackfillType<TConnection>(

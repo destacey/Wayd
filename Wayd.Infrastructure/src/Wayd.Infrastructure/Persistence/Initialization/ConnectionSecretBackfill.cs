@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
@@ -54,10 +54,20 @@ internal sealed class ConnectionSecretBackfill
         if (wasClosed) await connection.OpenAsync(cancellationToken);
         try
         {
+            // This reads the column raw, outside EF, so nothing else guarantees the table is there; skip
+            // rather than fail the boot if it is not.
+            if (!await ConfigurationColumnExists(connection, cancellationToken))
+            {
+                _logger.LogDebug("ConnectionSecretBackfill: Connections table not present yet, skipping.");
+                return result;
+            }
+
             await using var cmd = connection.CreateCommand();
+            // Double-quoted identifiers are standard SQL and work on SQL Server (QUOTED_IDENTIFIER is on
+            // for every SqlClient connection) as well as PostgreSQL, where brackets are a syntax error.
             cmd.CommandText =
-                "SELECT Id FROM [AppIntegrations].[Connections] " +
-                "WHERE [Configuration] IS NOT NULL AND [Configuration] NOT LIKE @marker";
+                "SELECT \"Id\" FROM \"AppIntegrations\".\"Connections\" " +
+                "WHERE \"Configuration\" IS NOT NULL AND \"Configuration\" NOT LIKE @marker";
             var p = cmd.CreateParameter();
             p.ParameterName = "@marker";
             p.Value = $"%{ProtectedMarker}%";
@@ -69,17 +79,21 @@ internal sealed class ConnectionSecretBackfill
                 result.Add(reader.GetGuid(0));
             }
         }
-        catch (SqlException ex) when (ex.Number == 208 /* Invalid object name */
-                                       || ex.Number == 207 /* Invalid column name */)
-        {
-            // Schema not yet present (first migration is creating it now). Nothing to backfill.
-            _logger.LogDebug("ConnectionSecretBackfill: Connections table not present yet, skipping.");
-        }
         finally
         {
             if (wasClosed) await connection.CloseAsync();
         }
         return result;
+    }
+
+    private static async Task<bool> ConfigurationColumnExists(DbConnection connection, CancellationToken cancellationToken)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText =
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+            "WHERE TABLE_SCHEMA = 'AppIntegrations' AND TABLE_NAME = 'Connections' AND COLUMN_NAME = 'Configuration'";
+        var count = await cmd.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(count) > 0;
     }
 
     private async Task BackfillType<TConnection>(

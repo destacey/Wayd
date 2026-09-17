@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Models;
@@ -15,22 +15,22 @@ public class EmployeeConfig : IEntityTypeConfiguration<Employee>
         builder.HasAlternateKey(e => e.Key);
 
         builder.HasIndex(e => new { e.Id, e.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasIndex(e => e.EmployeeNumber)
             .IsUnique()
             .IncludeProperties(e => new { e.Id })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasIndex(e => new { e.IsActive, e.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Email is one of the candidate keys for PeopleSync upserts (the email-matching path),
         // so it gets a unique filtered index — same shape as EmployeeNumber.
         builder.HasIndex(e => e.Email)
             .IsUnique()
             .IncludeProperties(e => new { e.Id })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(e => e.Id).ValueGeneratedNever();
         builder.Property(e => e.Key).ValueGeneratedOnAdd();

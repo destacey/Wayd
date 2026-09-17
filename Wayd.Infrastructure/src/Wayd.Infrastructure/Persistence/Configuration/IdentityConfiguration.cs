@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -23,7 +23,7 @@ public class ApplicationUserConfig : IEntityTypeConfiguration<ApplicationUser>
         // duplicates. Enforced only client-side (the edit-user picker) until now.
         builder.HasIndex(u => u.EmployeeId)
             .IsUnique()
-            .HasFilter("[EmployeeId] IS NOT NULL")
+            .WhereNotNull("EmployeeId")
             .HasDatabaseName("UX_Users_EmployeeId");
 
         builder.Property(u => u.FirstName).HasMaxLength(100);
@@ -92,7 +92,7 @@ public class UserIdentityConfig : IEntityTypeConfiguration<UserIdentity>
         // SQL Server filtered-unique-index semantics.
         builder.HasIndex(ui => new { ui.Provider, ui.ProviderTenantId, ui.ProviderSubject })
             .IsUnique()
-            .HasFilter("[IsActive] = 1")
+            .WhereActive()
             .HasDatabaseName("UX_UserIdentities_Provider_Tenant_Subject_Active");
 
         builder.HasIndex(ui => ui.UserId)
@@ -140,7 +140,7 @@ public class UserRefreshTokenConfig : IEntityTypeConfiguration<UserRefreshToken>
         // no equality lookup to index. Filtered to live rows because revoked ones
         // accumulate and are only read when explaining a failure.
         builder.HasIndex(t => t.UserId)
-            .HasFilter("[RevokedAt] IS NULL")
+            .WhereNull("RevokedAt")
             .HasDatabaseName("IX_UserRefreshTokens_UserId_Active");
 
         builder.HasOne(t => t.User)

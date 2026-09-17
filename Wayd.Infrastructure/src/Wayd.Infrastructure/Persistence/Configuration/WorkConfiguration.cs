@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -129,7 +129,7 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
                 w.LastModified,
                 w.LastModifiedById
             })
-            .HasFilter("[ExternalId] IS NOT NULL");
+            .WhereNotNull("ExternalId");
 
         // Index for portfolio parent lookups
         builder.HasIndex(w => new { w.WorkspaceId, w.ExternalId })
@@ -139,12 +139,12 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
                 w.ParentId,
                 w.TypeId
             })
-            .HasFilter("[ExternalId] IS NOT NULL");
+            .WhereNotNull("ExternalId");
 
         // Covering index on ParentId including Key for the search self-join
         builder.HasIndex(w => w.ParentId)
             .IncludeProperties(w => new { w.Key })
-            .HasFilter("[ParentId] IS NOT NULL")
+            .WhereNotNull("ParentId")
             .HasDatabaseName("IX_WorkItems_ParentId_Key");
 
         // Composite index for ProjectId and ParentProjectId
@@ -152,7 +152,7 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
 
         // Filtered index for cases where ProjectId is NULL
         builder.HasIndex(w => w.ParentProjectId)
-            .HasFilter("[ProjectId] IS NULL");
+            .WhereNull("ProjectId");
 
         builder.HasIndex(w => w.IterationId)
             .IncludeProperties(w => new { w.Id, w.Key, w.Title, w.WorkspaceId, w.AssignedToId, w.TypeId, w.StatusId, w.StatusCategory, w.ActivatedTimestamp, w.DoneTimestamp, w.ProjectId, w.ParentProjectId });
@@ -316,11 +316,11 @@ public class WorkItemExtendedConfig : IEntityTypeConfiguration<WorkItemExtended>
         // One per column because it repairs all three attributions, and each matches a different
         // set of rows. Filtered, since only externally-synced items carry these at all.
         builder.HasIndex(w => w.AssignedToExternalId)
-            .HasFilter("[AssignedToExternalId] IS NOT NULL");
+            .WhereNotNull("AssignedToExternalId");
         builder.HasIndex(w => w.CreatedByExternalId)
-            .HasFilter("[CreatedByExternalId] IS NOT NULL");
+            .WhereNotNull("CreatedByExternalId");
         builder.HasIndex(w => w.LastModifiedByExternalId)
-            .HasFilter("[LastModifiedByExternalId] IS NOT NULL");
+            .WhereNotNull("LastModifiedByExternalId");
 
         // Properties
         builder.Property(w => w.ExternalTeamIdentifier).HasMaxLength(128);
@@ -470,11 +470,11 @@ public class WorkProcessConfig : IEntityTypeConfiguration<WorkProcess>
 
         builder.HasIndex(i => new { i.Id, i.IsDeleted })
             .IncludeProperties(i => new { i.Key, i.Name, i.ExternalId, i.Ownership, i.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasIndex(i => new { i.Key, i.IsDeleted })
             .IncludeProperties(i => new { i.Id, i.Name, i.ExternalId, i.Ownership, i.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(w => w.Key).ValueGeneratedOnAdd();
 
@@ -512,11 +512,11 @@ public class WorkProcessSchemeConfig : IEntityTypeConfiguration<WorkProcessSchem
         builder.HasKey(w => w.Id);
 
         builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasIndex(w => new { w.WorkProcessId, w.IsDeleted })
             .IncludeProperties(w => new { w.Id, w.WorkTypeId, w.WorkflowId, w.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Properties
         builder.Property(w => w.Id).ValueGeneratedNever();
@@ -578,14 +578,14 @@ public class WorkspaceConfig : IEntityTypeConfiguration<Workspace>
 
         builder.HasIndex(w => new { w.Id, w.IsDeleted })
             .IncludeProperties(w => new { w.Key, w.Name, w.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(w => new { w.Key, w.IsDeleted })
             .IncludeProperties(w => new { w.Id, w.Name, w.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(w => w.Name).IsUnique();
         builder.HasIndex(w => new { w.IsActive, w.IsDeleted })
             .IncludeProperties(w => new { w.Id, w.Key, w.Name })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Properties
         builder.Property(w => w.Id).ValueGeneratedNever();
@@ -648,11 +648,11 @@ public class WorkStatusConfig : IEntityTypeConfiguration<WorkStatus>
         builder.HasKey(w => w.Id);
 
         builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(w => w.Name).IsUnique();
         builder.HasIndex(w => new { w.IsActive, w.IsDeleted })
             .IncludeProperties(w => new { w.Id, w.Name })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Properties
         builder.Property(w => w.Name).IsRequired().HasMaxLength(64);
@@ -719,13 +719,13 @@ public class WorkTypeConfig : IEntityTypeConfiguration<WorkType>
 
         builder.HasIndex(w => new { w.Id, w.IsDeleted })
             .IncludeProperties(w => new { w.Name, w.LevelId, w.IsActive })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.HasIndex(w => w.Name).IsUnique();
 
         builder.HasIndex(w => new { w.IsActive, w.IsDeleted })
             .IncludeProperties(w => new { w.Id, w.LevelId, w.Name })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Index to help with portfolio tier lookups
         builder.HasIndex(w => w.Id)
@@ -742,7 +742,7 @@ public class WorkTypeConfig : IEntityTypeConfiguration<WorkType>
                 w.Id,
                 w.LevelId
             })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Properties
         builder.Property(w => w.Name).IsRequired().HasMaxLength(64);
@@ -773,12 +773,12 @@ public class WorkflowConfig : IEntityTypeConfiguration<Workflow>
 
 
         builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(w => new { w.Key, w.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(w => new { w.IsActive, w.IsDeleted })
             .IncludeProperties(w => new { w.Id, w.Key, w.Name })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Properties
         builder.Property(w => w.Id).ValueGeneratedNever();
@@ -816,10 +816,10 @@ public class WorkflowSchemeConfig : IEntityTypeConfiguration<WorkflowScheme>
         builder.HasKey(w => w.Id);
 
         builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
         builder.HasIndex(w => new { w.WorkflowId, w.IsDeleted })
             .IncludeProperties(w => new { w.Id, w.WorkStatusId, w.WorkStatusCategory })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         // Properties
         builder.Property(w => w.Id).ValueGeneratedNever();

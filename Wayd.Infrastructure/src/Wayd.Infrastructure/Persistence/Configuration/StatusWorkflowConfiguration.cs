@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Events;
@@ -99,8 +99,8 @@ public class WorkflowAssignmentConfiguration : IEntityTypeConfiguration<Workflow
 
         // One assignment per scope per owner type. The filtered pair covers the org-level default,
         // which SQL Server would otherwise allow to duplicate since NULLs do not compare equal.
-        builder.HasIndex(a => new { a.OwnerType, a.ScopeId }).IsUnique().HasFilter("[ScopeId] IS NOT NULL");
-        builder.HasIndex(a => a.OwnerType).IsUnique().HasFilter("[ScopeId] IS NULL");
+        builder.HasIndex(a => new { a.OwnerType, a.ScopeId }).IsUnique().WhereNotNull("ScopeId");
+        builder.HasIndex(a => a.OwnerType).IsUnique().WhereNull("ScopeId");
         builder.HasIndex(a => a.WorkflowId);
 
         builder.Property(a => a.Id).ValueGeneratedNever();

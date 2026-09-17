@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
@@ -430,7 +430,7 @@ public class ProjectHealthCheckConfiguration : IEntityTypeConfiguration<ProjectH
         builder.HasKey(h => h.Id);
 
         builder.HasIndex(h => new { h.ProjectId, h.Expiration, h.IsDeleted })
-            .HasFilter("[IsDeleted] = 0");
+            .WhereNotDeleted();
 
         builder.Property(h => h.Id).ValueGeneratedNever();
         builder.Property(h => h.ProjectId).IsRequired();

@@ -21,8 +21,16 @@ public static class IndexBuilderExtensions
     public static IndexBuilder<TEntity> WhereActive<TEntity>(this IndexBuilder<TEntity> builder) =>
         builder.HasFilter(Active);
 
+    /// <summary>Index only rows flagged active.</summary>
+    public static IndexBuilder WhereActive(this IndexBuilder builder) =>
+        builder.HasFilter(Active);
+
     /// <summary>Index only rows where <paramref name="column"/> is null.</summary>
     public static IndexBuilder<TEntity> WhereNull<TEntity>(this IndexBuilder<TEntity> builder, string column) =>
+        builder.HasFilter(IsNull(column));
+
+    /// <summary>Index only rows where <paramref name="column"/> is null.</summary>
+    public static IndexBuilder WhereNull(this IndexBuilder builder, string column) =>
         builder.HasFilter(IsNull(column));
 
     /// <summary>Index only rows where <paramref name="column"/> is not null.</summary>

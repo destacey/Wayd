@@ -89,10 +89,10 @@ This means all LINQ queries automatically exclude soft-deleted rows — no manua
 
 ### Unique Indexes on Soft-Deletable Entities
 
-Because soft-deleted rows remain in the table, a plain unique index will block reuse of a deleted value. Always add `HasFilter("[IsDeleted] = 0")` to any unique index on a soft-deletable entity:
+Because soft-deleted rows remain in the table, a plain unique index will block reuse of a deleted value. Always add `.WhereNotDeleted()` to any unique index on a soft-deletable entity (the filter helpers in `IndexBuilderExtensions` are the one place that knows the provider's SQL for a filter — never write the string inline):
 
 ```csharp
-builder.HasIndex(r => r.Name).IsUnique().HasFilter("[IsDeleted] = 0");
+builder.HasIndex(r => r.Name).IsUnique().WhereNotDeleted();
 ```
 
 This keeps the constraint consistent with what the global query filter enforces at the application layer.

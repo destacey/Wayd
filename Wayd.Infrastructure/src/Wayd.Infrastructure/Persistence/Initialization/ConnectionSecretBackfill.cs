@@ -54,7 +54,8 @@ internal sealed class ConnectionSecretBackfill
         if (wasClosed) await connection.OpenAsync(cancellationToken);
         try
         {
-            // On a first boot the migration creating the table runs after this; nothing to backfill then.
+            // This reads the column raw, outside EF, so nothing else guarantees the table is there; skip
+            // rather than fail the boot if it is not.
             if (!await ConfigurationColumnExists(connection, cancellationToken))
             {
                 _logger.LogDebug("ConnectionSecretBackfill: Connections table not present yet, skipping.");
@@ -62,9 +63,11 @@ internal sealed class ConnectionSecretBackfill
             }
 
             await using var cmd = connection.CreateCommand();
+            // Double-quoted identifiers are standard SQL and work on SQL Server (QUOTED_IDENTIFIER is on
+            // for every SqlClient connection) as well as PostgreSQL, where brackets are a syntax error.
             cmd.CommandText =
-                "SELECT Id FROM [AppIntegrations].[Connections] " +
-                "WHERE [Configuration] IS NOT NULL AND [Configuration] NOT LIKE @marker";
+                "SELECT \"Id\" FROM \"AppIntegrations\".\"Connections\" " +
+                "WHERE \"Configuration\" IS NOT NULL AND \"Configuration\" NOT LIKE @marker";
             var p = cmd.CreateParameter();
             p.ParameterName = "@marker";
             p.Value = $"%{ProtectedMarker}%";

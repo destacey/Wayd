@@ -181,6 +181,16 @@ second kind.
 - `ReleasePackages_GetReleasePackages` with `containingVersionId` — which packages shipped it.
 - `Deployments_GetDeployments` with `versionId` — deployments of the version *itself*, which will be
   empty if it only ever shipped inside a package.
+- `DeploymentEnvironments_GetRollout` — what is running in each environment **now**, one entry per
+  product, with packages already expanded into their components. Prefer it over piecing the answer
+  together from deployments: it applies the rollback and failed-attempt rules for you (see the
+  **wayd-products** skill).
+
+### Answering "what shipped lately?"
+
+`DeliveryOverview_GetRecentDeliveryEvents` — one entry per version or package at its latest status
+change, newest first. Reason on `alias` rather than the organization's status names. Scoping it to a
+product drops packages. For cadence over a window, `DeliveryOverview_GetDeliveryOverview`.
 
 ### Answering "what changed on this, and who changed it?"
 

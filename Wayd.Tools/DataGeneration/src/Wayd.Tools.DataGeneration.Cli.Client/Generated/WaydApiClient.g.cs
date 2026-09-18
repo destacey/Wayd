@@ -79781,6 +79781,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? EndsOn { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("productPath")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<NavigationDto> ProductPath { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("dependsOnProductPath")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<NavigationDto> DependsOnProductPath { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

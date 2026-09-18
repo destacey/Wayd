@@ -43683,6 +43683,8 @@ export interface ProductDependencyDto {
     description?: string | undefined;
     startsOn: Date;
     endsOn?: Date | undefined;
+    productPath: NavigationDto[];
+    dependsOnProductPath: NavigationDto[];
 }
 
 export enum DependencyStrength {

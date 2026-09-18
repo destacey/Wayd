@@ -41506,7 +41506,9 @@
           "product",
           "dependsOnProduct",
           "strength",
-          "startsOn"
+          "startsOn",
+          "productPath",
+          "dependsOnProductPath"
         ],
         "properties": {
           "id": {
@@ -41536,6 +41538,18 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "productPath": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
+          },
+          "dependsOnProductPath": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
           }
         }
       },

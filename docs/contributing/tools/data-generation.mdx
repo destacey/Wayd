@@ -80,7 +80,14 @@ cannot — see [One area can be more than one file](#one-area-can-be-more-than-o
 
 :::tip Re-seeding
 The import is **additive** and rejects duplicates, so it expects a clean database. To re-seed, reset the
-database first (Aspire dashboard → the reset command), then run `seed` again.
+database first, then run `seed` again.
+
+**The reset is the Aspire command, and only the Aspire command.** Start Aspire, then run **Reset Database**
+from the `wayd-api` resource's Actions → Commands in the dashboard. It resets exactly the database the API is
+configured with. Do not drop or recreate a database any other way — with `sqlcmd`, `dotnet ef database drop`
+or a script — without confirming the database by name with its owner first: a developer's user secrets
+usually hold several connection strings, most of them commented out, and reading the target from a file is
+how the wrong database gets dropped.
 
 A reset takes **your account with it**, not just your tokens. The application's own database seeder creates
 roles, not users, and `wayd-data`'s accounts cannot help you here — creating them needs a token, which needs

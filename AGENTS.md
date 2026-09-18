@@ -17,6 +17,11 @@ Built with Clean Architecture, Domain-Driven Design, and a modular monolith appr
 3. **Read `docs/llms-full.txt`** for comprehensive domain context (entities, relationships, business rules)
 4. **Read `docs/ai/domain-glossary.mdx`** for domain terminology
 
+**Databases are reset one way only:** start Aspire, then run **Reset Database** from the `wayd-api`
+resource's Actions → Commands in the dashboard. Never drop, recreate or delete any Wayd database by other
+means (`sqlcmd`, `dotnet ef database drop`, scripts) without the user confirming that database by name first.
+If Aspire cannot run, stop and ask.
+
 ## Repository Structure
 
 ```

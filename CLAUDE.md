@@ -381,6 +381,14 @@ A factory is opaque to codegen, so the two cannot drift apart quietly: dropping 
 
 ## Important Considerations
 
+- **Resetting a database — one way only.** Start Aspire (`cd Wayd.AppHost && dotnet run`) first, then run
+  **Reset Database** from the `wayd-api` resource's Actions → Commands in the Aspire dashboard. That command
+  resets exactly the database the API is configured with. **Never drop, recreate, restore over or delete any
+  Wayd database** (`wayd`, `wayd-seed`, `wayd-test`, or any other) by other means — `sqlcmd`, `dotnet ef
+  database drop`, a script — without the user explicitly confirming the named database first. A developer's
+  user secrets hold several connection strings, most commented out with `//`, so reading the target out of a
+  config file is how the wrong database gets dropped. If Aspire cannot run, stop and ask; do not improvise a
+  replacement.
 - **Main branch**: `main` (not master)
 - **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `commit-msg` rejects AI
   attribution trailers; `.claude/settings.json` suppresses them at the source for Claude Code.

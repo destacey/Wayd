@@ -5940,6 +5940,114 @@
         }
       }
     },
+    "/api/product-management/products/dependencies/import": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Submit a csv file of product dependencies to import. Applied product by product: a product's rows apply together or not at all. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "operationId": "Products_ImportDependencies",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "x-wayd-import": {
+          "key": "product-management.product-dependencies",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportProductDependencyRequest",
+              "required": true
+            }
+          ]
+        }
+      }
+    },
     "/api/product-management/products/{id}": {
       "put": {
         "tags": [
@@ -41344,6 +41452,73 @@
             "description": "The product's tags, as semicolon-separated Category|Tag pairs —\nPlatform|ios;Platform|android;Compliance|pci-scope.",
             "nullable": true,
             "x-csv-column": "Tags"
+          }
+        }
+      },
+      "ImportProductDependencyRequest": {
+        "type": "object",
+        "description": "A single CSV row for the product dependency import: ProductId relies on\nDependsOnProductId, both by id.\nRecord the most specific product known — the service, not the platform it belongs to. A product cannot\ndepend on itself or on anything above or below it in the tree, which is composition.\nA dependency that stopped carries EndsOn. One whose strength changed is two rows on the\nsame pair: the first ending the day before the second starts.",
+        "additionalProperties": false,
+        "required": [
+          "productId",
+          "dependsOnProductId",
+          "strength"
+        ],
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Falls back to the row's position when the column is absent.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "productId": {
+            "type": "string",
+            "description": "The product that has the dependency, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "ProductId"
+          },
+          "dependsOnProductId": {
+            "type": "string",
+            "description": "The product it relies on, by id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000",
+            "x-csv-column": "DependsOnProductId"
+          },
+          "strength": {
+            "type": "string",
+            "description": "Hard if the product stops working without it, Soft if it degrades but keeps working.\nRequired: there is no default, because a guessed strength misstates impact.",
+            "x-csv-column": "Strength",
+            "x-csv-values": [
+              "Hard",
+              "Soft"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "What the product relies on it for. Max 1024 chars.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "startsOn": {
+            "type": "string",
+            "description": "The day it began. Blank means today.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "StartsOn"
+          },
+          "endsOn": {
+            "type": "string",
+            "description": "The last day it held. Blank means it still holds.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "EndsOn"
           }
         }
       },

@@ -107,10 +107,15 @@ product would erase the record of what relied on it.
 ### Product dependencies are not exposed as tools
 
 A product can record which other products it relies on — strength, description, and the days it held
-— and the read side rolls a parent's descendants' links up. **No tool here reads or writes them.**
+— and the read side rolls a parent's descendants' links up. **No tool here reads or edits them**, and only the bulk import adds them.
 Say so rather than implying a product has none: an empty answer from `Products_Get` is not evidence
 that nothing depends on it. Direct the person to the product's Dependencies section, or to
 `GET /api/product-management/products/{idOrKey}/dependencies` for the API.
+
+The one way in is the bulk import: `product-management.product-dependencies` through `Imports_Preflight`
+and then `Imports_Apply`. It applies **product by product** — every row for one `ProductId` is saved
+together or not at all, and the other products still import — so read the preflight's rejected rows by
+product, not one at a time.
 
 It also constrains a move: `Products_Reparent` is refused when the move would put two products with
 an open dependency between them above and below one another, since that relationship is composition

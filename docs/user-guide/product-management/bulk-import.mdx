@@ -57,9 +57,10 @@ A few rules apply to every import:
   case-insensitively. Row outcomes are reported against it, rows reference each other by it (a child
   product names its parent's, a manifest line its package's), and leaving it blank uses the row's
   position instead. It is never written onto the records the import creates.
-- **All-or-nothing.** Every import here is atomic: if any row is rejected — a reference that does not
-  exist or is inactive, a duplicate within the file, or something the domain refuses — the **entire
-  import fails**, nothing is saved, and the run names the row and the reason.
+- **All-or-nothing, except dependencies.** Every import here but one is atomic: if any row is rejected —
+  a reference that does not exist or is inactive, a duplicate within the file, or something the domain
+  refuses — the **entire import fails**, nothing is saved, and the run names the row and the reason. The
+  [dependencies import](#dependencies-import) applies **product by product** instead.
 - **Every column must be present, even the optional ones.** *Required* below means the cell needs a
   value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
@@ -81,6 +82,7 @@ Because records reference each other, imports must be run in dependency order:
 ```
 Product types and tag categories (created in Settings)
   → Products
+    → Dependencies
     → Versions
       → Release packages
         → Releases
@@ -103,6 +105,7 @@ Each step then needs the one above it:
 | Import | Needs | Why |
 |---|---|---|
 | Products | Types, tags | A product's type must exist and be active. |
+| Dependencies | Products | Both ends are named by id. |
 | Versions | Products | A version is cut against a product, named by id. |
 | Release packages | Products, versions | A manifest line names a product by id; where a version record matches its version string, the line is linked to it. |
 | Releases | Packages, versions | A release announces them, and cannot announce what does not exist. |
@@ -130,6 +133,7 @@ with the timestamps its row carries. Every record reaches its final state in one
 | Import | Permission |
 |---|---|
 | Products | Import Products |
+| Dependencies | Import Products |
 | Versions | Import Delivery |
 | Release packages | Import Delivery |
 | Releases | Import Releases |
@@ -138,8 +142,9 @@ with the timestamps its row carries. Every record reaches its final state in one
 
 ## Limits
 
-Every import here is all-or-nothing and accepts at most **10,000 rows per file** — one file is one
-database transaction, and the cap bounds it. For the two-file imports (packages with their manifest,
+Every import here except dependencies is all-or-nothing and accepts at most **10,000 rows per file** —
+one file is one database transaction, and the cap bounds it. The dependencies import applies product by
+product, saving as it goes, and accepts **50,000**. For the two-file imports (packages with their manifest,
 releases with their contents) the cap applies to the first file; the second is read alongside it. A file
 over the cap is rejected before anything is queued, with a message naming the cap.
 
@@ -251,6 +256,56 @@ row by hand.
 The import is **additive** and does not check whether a product of the same name already exists — names
 legitimately repeat in a tree, so it cannot. Running the same file twice creates a second copy of
 everything in it.
+
+## Dependencies import
+
+`POST /api/product-management/products/dependencies/import`
+
+Loads which products rely on which — a relationship export from a service catalog or CMDB, say, or a map
+kept in a spreadsheet. Each row is one [dependency](./products.mdx#dependencies): `ProductId` relies on
+`DependsOnProductId`.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | No | The row's key within this file. Outcomes are reported against it. |
+| `ProductId` | Yes | The product that **has** the dependency, by id. |
+| `DependsOnProductId` | Yes | The product it relies on, by id. Cannot be the same product, or anything above or below it in the tree. |
+| `Strength` | Yes | `Hard` or `Soft` — see [strength](./products.mdx#strength). There is no default. |
+| `Description` | No | What it is relied on for. Max 1024 chars. |
+| `StartsOn` | No | `yyyy-MM-dd`. The day it began. Blank means today. Cannot be in the future. |
+| `EndsOn` | No | `yyyy-MM-dd`. The last day it held. Blank means it still holds. Cannot be before `StartsOn` or in the future. |
+
+Record the most specific product you know — the service, not the platform it belongs to. The platform's
+own lists include everything beneath it, as [the screens explain](./products.mdx#recording-the-specific-product).
+
+### Product by product
+
+The import applies **one product at a time**: every row whose `ProductId` names the same product is
+saved together or not at all, and the other products are still imported. A product's links are never half
+recorded — a strength change whose ended half went in without its new half would leave a gap in its
+history. A row kept out only because another row for the same product was rejected says "Not applied:
+another row for the same product was rejected", naming that row, so the fix is always to the one row.
+Retrying the failed rows from [Settings → Imports](../settings/imports.mdx) puts each rejected product
+through again.
+
+### History is rows with dates
+
+A dependency that has stopped is a row with an `EndsOn`. One whose strength changed is **two rows** on the
+same pair, the first ending the day before the second starts — the way the screens record
+[Change Strength](./products.mdx#ending-changing-and-removing):
+
+| ProductId | DependsOnProductId | Strength | StartsOn | EndsOn |
+|---|---|---|---|---|
+| Storefront Web | Search Service | Soft | 2025-02-01 | 2026-03-31 |
+| Storefront Web | Search Service | Hard | 2026-04-01 | |
+
+(Ids shown as names for readability.) A product's rows are applied in date order whatever order the file
+lists them in. Two rows on the same pair cannot overlap, and a pair can have only one open dependency.
+
+### Running it twice
+
+A second run of the same file is refused rather than duplicated: every row overlaps the dependency the first
+run recorded. A product whose rows failed the first time applies once they are fixed.
 
 ## Versions import
 

@@ -122,7 +122,8 @@ behaves this way.
 :::
 
 Others apply **group by group**: every row for the same record goes in together or not at all, and the
-other groups are still imported. The run says what a group is. A row kept out only because another row in
+other groups are still imported. Product dependencies apply product by product, so a product's links are
+never half recorded; the run says what a group is. A row kept out only because another row in
 its group was rejected says so — "Not applied: another row for the same … was rejected" — and names the
 row that was, so the fix is always to that one row. Retrying the failed rows puts the whole group through again.
 
@@ -191,7 +192,7 @@ kind it is.
 
 | Rule | Value |
 |---|---|
-| Rows per file | 50,000 for an import applied row by row (employees) or group by group; 10,000 for an all-or-nothing import, which is one database transaction. Over the cap, the file is rejected before anything is queued. |
+| Rows per file | 50,000 for an import applied row by row (employees) or group by group (product dependencies); 10,000 for an all-or-nothing import, which is one database transaction. Over the cap, the file is rejected before anything is queued. |
 | Request size | About 30 MB, the web server's default. A 50,000-row file is a few megabytes. |
 | Empty file | Rejected: a file with no rows never becomes a run. A missing file returns 422. |
 | `ImportId` | Optional. At most 128 characters, trimmed, and unique within the file compared **case-insensitively** (`abc` and `ABC` collide). Blank uses the row's position, counting from one. |

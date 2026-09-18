@@ -102,6 +102,9 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
   ],
   'strategic.themes': [QueryTags.StrategicTheme],
   'product-management.products': [{ type: QueryTags.Product, id: 'LIST' }],
+  'product-management.product-dependencies': [
+    { type: QueryTags.ProductDependency, id: 'LIST' },
+  ],
   'product-management.versions': [{ type: QueryTags.Version, id: 'LIST' }],
   'product-management.releases': [{ type: QueryTags.Release, id: 'LIST' }],
   'product-management.release-packages': [
@@ -182,6 +185,12 @@ const SUBMITTERS: Record<
     getStrategicThemesClient().import(undefined, validateOnly, upload(file)),
   'product-management.products': ({ file }, validateOnly) =>
     getProductsClient().import(undefined, validateOnly, upload(file)),
+  'product-management.product-dependencies': ({ file }, validateOnly) =>
+    getProductsClient().importDependencies(
+      undefined,
+      validateOnly,
+      upload(file),
+    ),
   'product-management.versions': ({ file }, validateOnly) =>
     getVersionsClient().import(undefined, validateOnly, upload(file)),
   'product-management.releases': ({ file, contentsFile }, validateOnly) =>

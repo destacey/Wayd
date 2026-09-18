@@ -62,6 +62,7 @@ public sealed class ImportEndpointPermissionTests
         (typeof(DeploymentEnvironmentsController), nameof(DeploymentEnvironmentsController.Import), typeof(DeploymentEnvironmentImportDefinition)),
         (typeof(DeploymentsController), nameof(DeploymentsController.Import), typeof(DeploymentImportDefinition)),
         (typeof(ProductsController), nameof(ProductsController.Import), typeof(ProductImportDefinition)),
+        (typeof(ProductsController), nameof(ProductsController.ImportDependencies), typeof(ProductDependencyImportDefinition)),
         (typeof(ReleasePackagesController), nameof(ReleasePackagesController.Import), typeof(ReleasePackageImportDefinition)),
         (typeof(ReleasesController), nameof(ReleasesController.Import), typeof(ReleaseImportDefinition)),
         (typeof(VersionsController), nameof(VersionsController.Import), typeof(VersionImportDefinition)),

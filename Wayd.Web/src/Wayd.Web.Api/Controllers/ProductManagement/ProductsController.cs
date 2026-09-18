@@ -185,6 +185,53 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
         }
     }
 
+    [HttpPost("dependencies/import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Products)]
+    [OpenApiOperation("Submit a csv file of product dependencies to import. Applied product by product: a product's rows apply together or not at all. Returns the run — 200 once it has finished, 202 while it is still queued or running.", "")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [CsvImport(ProductDependencyImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportDependencies([FromForm, CsvRows(typeof(ImportProductDependencyRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedDependencies = _csvService.ReadCsv<ImportProductDependencyRequest>(file.OpenReadStream()).ToList();
+
+            List<SubmittedImportRow<ImportProductDependencyDto>> rows = [];
+            var validator = new ImportProductDependencyRequestValidator();
+            for (var i = 0; i < importedDependencies.Count; i++)
+            {
+                var dependency = importedDependencies[i];
+
+                var validationResults = await validator.ValidateAsync(dependency, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage =
+                            $"{error.ErrorMessage} (Row: {SubmittedImportRow.KeyFor(dependency.ImportId, i + 1)})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportProductDependencyDto>(dependency.ImportId, dependency.ToImportProductDependencyDto()));
+            }
+
+            var result = await _dispatcher.Send(new ImportProductDependenciesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
+    }
+
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
     [OpenApiOperation("Update a product.", "")]

@@ -43,6 +43,7 @@ public sealed class ReparentProductCommandHandler(
             }
 
             var ancestorIds = Array.Empty<Guid>() as IReadOnlyCollection<Guid>;
+            var dependsAcrossNewLineage = false;
 
             if (request.ParentId is not null)
             {
@@ -54,18 +55,21 @@ public sealed class ReparentProductCommandHandler(
 
                 // Reparent's cycle check is only as good as what it is handed — an empty collection
                 // for a real parent disables it silently — so this must walk the whole chain.
-                var chain = await AncestorsOf(request.ParentId.Value, cancellationToken);
+                var chain = await _productManagementDbContext.SelfAndAncestors(request.ParentId.Value, cancellationToken);
                 if (chain.IsFailure)
                 {
+                    _logger.LogError("Unable to reparent Product {ProductId}. Error message: {Error}", request.Id, chain.Error);
                     return Result.Failure(chain.Error);
                 }
 
                 ancestorIds = chain.Value;
+                dependsAcrossNewLineage = await DependsAcross(product.Id, ancestorIds, cancellationToken);
             }
 
             var reparentResult = product.Reparent(
                 request.ParentId,
                 ancestorIds,
+                dependsAcrossNewLineage,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 
@@ -93,39 +97,35 @@ public sealed class ReparentProductCommandHandler(
     }
 
     /// <summary>
-    /// Walks from a node to the root, nearest ancestor first.
+    /// Whether an open dependency links the moved node or anything beneath it with the new lineage, either way.
     /// </summary>
     /// <remarks>
-    /// Iterative rather than a recursive CTE because the tree is small and this stays provider-agnostic.
-    /// The visited set bounds it even if existing data already holds a cycle.
+    /// Descendants count: moving a platform under a product that one of its services depends on makes that
+    /// link composition just as surely as moving the service itself.
     /// </remarks>
-    private async Task<Result<IReadOnlyCollection<Guid>>> AncestorsOf(Guid startId, CancellationToken cancellationToken)
+    private async Task<bool> DependsAcross(Guid productId, IReadOnlyCollection<Guid> newLineage, CancellationToken cancellationToken)
     {
-        var ancestors = new List<Guid>();
-        var visited = new HashSet<Guid>();
-        Guid? currentId = startId;
+        var childrenByParent = (await _productManagementDbContext.Products
+                .Where(p => p.ParentId != null)
+                .Select(p => new { p.Id, ParentId = p.ParentId!.Value })
+                .ToListAsync(cancellationToken))
+            .ToLookup(p => p.ParentId, p => p.Id);
 
-        while (currentId is not null)
+        var subtree = new HashSet<Guid> { productId };
+        var pending = new Queue<Guid>([productId]);
+        while (pending.TryDequeue(out var id))
         {
-            if (!visited.Add(currentId.Value))
+            foreach (var child in childrenByParent[id].Where(subtree.Add))
             {
-                _logger.LogError("Product ancestry contains a cycle at {ProductId}.", currentId);
-                return Result.Failure<IReadOnlyCollection<Guid>>("The product hierarchy contains a cycle and must be corrected first.");
+                pending.Enqueue(child);
             }
-
-            ancestors.Add(currentId.Value);
-
-            // Projected into a wrapper so a root (null ParentId) is distinguishable from a missing
-            // row — both come back as default from a bare Guid? projection.
-            var nodeId = currentId.Value;
-            var parent = await _productManagementDbContext.Products
-                .Where(p => p.Id == nodeId)
-                .Select(p => new { p.ParentId })
-                .FirstOrDefaultAsync(cancellationToken);
-
-            currentId = parent?.ParentId;
         }
 
-        return Result.Success<IReadOnlyCollection<Guid>>(ancestors);
+        return await _productManagementDbContext.ProductDependencies
+            .Where(d => d.Period.End == null)
+            .AnyAsync(d =>
+                (subtree.Contains(d.ProductId) && newLineage.Contains(d.DependsOnProductId))
+                || (newLineage.Contains(d.ProductId) && subtree.Contains(d.DependsOnProductId)),
+                cancellationToken);
     }
 }

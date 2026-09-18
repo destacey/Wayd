@@ -61,6 +61,29 @@ const prune = (
     .map((node) => ({ ...node, children: prune(node.children, excludedId) }))
 
 /**
+ * The ids of every product above this one, nearest first.
+ *
+ * Stops at a product already seen, so data that already holds a cycle ends the walk rather than the tab.
+ */
+export const ancestorIdsOf = (
+  products: ProductDto[],
+  productId: string,
+): string[] => {
+  const byId = new Map(products.map((p) => [p.id, p]))
+  const ancestors: string[] = []
+  const seen = new Set<string>([productId])
+  let parentId = byId.get(productId)?.parent?.id
+
+  while (parentId && !seen.has(parentId)) {
+    ancestors.push(parentId)
+    seen.add(parentId)
+    parentId = byId.get(parentId)?.parent?.id
+  }
+
+  return ancestors
+}
+
+/**
  * Whether attaching a node under a candidate parent would close a loop.
  *
  * The domain refuses to create one, so this guards against data that is already wrong rather than

@@ -477,6 +477,20 @@ Classification along an axis, grouped into categories (Platform, Tech Stack, Com
 
 Rules: Grouped rather than flat so "what platform is this?" is a query rather than prior knowledge. Carries what does *not* change behaviour; the type system carries what does. An inactive tag a product already carries stays offered, so a save cannot silently remove it.
 
+### Product Dependencies
+
+One product needing another over a period — Storefront Web depending on Identity Service since March. Properties:
+- Product (the one that has the dependency), DependsOnProduct, Strength (Hard or Soft), Description, Period (a FlexibleDateRange of days; the end day is included and null while it still holds)
+
+Rules: Owned by the product that has the dependency; the product depended on only reads them. Any product can depend on any other except itself and anything above or below it in the tree, which is composition. Cycles between unrelated products are allowed. Record the most specific product known (the service, not its platform); parent views roll links up when read and nothing rolled up is stored — a link from a child to an outside product appears under the parent's Depends On, and a link with both ends inside a product's subtree appears in neither list.
+
+Strength is required with no default: Hard means the product stops working without the other, Soft that it degrades but keeps working. A later downtime view counts a provider's downtime against a consumer only through a Hard link, so defaulting either way would skew it.
+
+History: a dependency that stopped is ENDED (kept, still counts for the period it held); one recorded by mistake is REMOVED (deleted, reason required). Strength never changes on a link — changing it from day D ends the link on D-1 and opens a new one from D, raising Ended then Added; so it cannot change on the day the link started. Dated by day rather than instant because dependencies are entered by hand; periods include their end day, so a link may start and end on the same day and a later link on the same pair starts the day after the earlier one ended. The description can be edited on any link. A pair of products has at most one open link, and links on the same pair cannot overlap. Dates cannot be in the future. A product is refused deletion while any link, open or ended, names it on either end. A move is refused when it would put two products with an OPEN link between them above and below each other — checked across the moved subtree and the new parent's lineage, in both directions; an ended link does not block it.
+
+Events (ProductDependencyAdded/Ended/DetailsUpdated/Removed) are raised on the dependent product and name the product depended on as a related aggregate, so both products' Activity lists them.
+UI: the Dependencies section is a grid; the product's Overview also draws a one-hop map (React Flow) of open links only — used-by on the left, depends-on on the right. A link rolled up from a descendant is drawn from that descendant, never as an edge from the parent. Every product nests inside boxes for what contains it, on both sides and to any depth, from the ProductDependencyDto's ProductPath/DependsOnProductPath (full chains from each end's root); containment is never drawn as an edge. Nodes are keyed per column, so a product with links on both sides is drawn once in each. Nodes and boxes link to their product; the canvas has zoom, fit, fullscreen and save-as-image (PNG/SVG, rendered from the graph rather than screenshotted).
+
 ### External Id
 
 A product's identifier in the system that owns it — repository, pipeline, registry package. Set through LinkProductExternallyCommand, never as part of a details edit, so a rename cannot clear it. Null clears the link. Nothing consumes it yet; it exists so a later automated feed can be matched against hand-curated products.

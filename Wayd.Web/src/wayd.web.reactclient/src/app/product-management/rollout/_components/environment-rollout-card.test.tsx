@@ -10,7 +10,7 @@ const item = (overrides: Partial<RolloutItemDto> = {}): RolloutItemDto =>
   ({
     deploymentId: 'deployment-1',
     deploymentKey: 12,
-    product: { id: 'product-1', key: 3, name: 'Trio VMS' },
+    product: { id: 'product-1', key: 3, name: 'Storefront Web' },
     version: { id: 'version-1', key: 8, name: '2026.10' },
     versionLabel: '2026.10',
     hasFailedAttemptSince: false,
@@ -37,14 +37,16 @@ describe('EnvironmentRolloutCard', () => {
     render(<EnvironmentRolloutCard environment={environment()} />)
 
     // Assert
-    expect(screen.getByText('Trio VMS')).toBeInTheDocument()
+    expect(screen.getByText('Storefront Web')).toBeInTheDocument()
     expect(screen.getByText('2026.10')).toBeInTheDocument()
   })
 
   it('says nothing is running rather than rendering an empty card', () => {
     // Arrange — an environment nothing has ever succeeded into is a real answer, not missing data.
     // Act
-    render(<EnvironmentRolloutCard environment={environment({ running: [] })} />)
+    render(
+      <EnvironmentRolloutCard environment={environment({ running: [] })} />,
+    )
 
     // Assert
     expect(screen.getByText('Nothing running')).toBeInTheDocument()
@@ -70,7 +72,9 @@ describe('EnvironmentRolloutCard', () => {
     render(<EnvironmentRolloutCard environment={environment()} />)
 
     // Assert
-    expect(screen.queryByLabelText('A later attempt failed')).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('A later attempt failed'),
+    ).not.toBeInTheDocument()
   })
 
   it('links a running entry to the deployment it was read from', () => {
@@ -107,7 +111,9 @@ describe('EnvironmentRolloutCard', () => {
     expect(screen.getByText('Catalog API')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '4.1.0' })).toBeInTheDocument()
     expect(screen.getByText('in OFT-2026.07')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'OFT-2026.07' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'OFT-2026.07' }),
+    ).not.toBeInTheDocument()
   })
 
   it('marks a retired environment, so an empty card is not read as a gap', () => {

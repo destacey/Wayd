@@ -96,9 +96,25 @@ Read the product and the category first if the existing value matters. Call
 `Products_Delete` is a **hard delete**, unlike everything in delivery, where records are withdrawn
 and kept. If the product has merely stopped being current, change its status instead.
 
-It refuses while anything depends on it, and each reason is distinct — children, versions, or
-appearing in a release package manifest. That last one is checked separately because a
-carried-forward manifest line often names a product that has no version row at all.
+It refuses while anything depends on it, and each reason is distinct — children, versions,
+appearing in a release package manifest, or being named on either end of a product dependency. That
+manifest one is checked separately because a carried-forward manifest line often names a product
+that has no version row at all, and the dependency one counts **ended** links too: deleting the
+product would erase the record of what relied on it.
+
+---
+
+### Product dependencies are not exposed as tools
+
+A product can record which other products it relies on — strength, description, and the days it held
+— and the read side rolls a parent's descendants' links up. **No tool here reads or writes them.**
+Say so rather than implying a product has none: an empty answer from `Products_Get` is not evidence
+that nothing depends on it. Direct the person to the product's Dependencies section, or to
+`GET /api/product-management/products/{idOrKey}/dependencies` for the API.
+
+It also constrains a move: `Products_Reparent` is refused when the move would put two products with
+an open dependency between them above and below one another, since that relationship is composition
+rather than dependency. The refusal names the reason.
 
 ---
 

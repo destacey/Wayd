@@ -1,10 +1,12 @@
 ﻿using FluentAssertions;
+using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Models;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
@@ -333,7 +335,7 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(oldParentId).Generate();
 
         // Act
-        var result = sut.Reparent(newParentId, [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reparent(newParentId, [], false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -353,7 +355,7 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(oldParentId).Generate();
 
         // Act
-        sut.Reparent(newParentId, [], EventActor.System, _dateTimeProvider.Now);
+        sut.Reparent(newParentId, [], false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.DomainEvents.OfType<ProductReparentedEventV2>().Single().RelatedAggregates
@@ -368,7 +370,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        sut.Reparent(newParentId, [], EventActor.System, _dateTimeProvider.Now);
+        sut.Reparent(newParentId, [], false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.DomainEvents.OfType<ProductReparentedEventV2>().Single().RelatedAggregates
@@ -382,7 +384,7 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(Guid.CreateVersion7()).Generate();
 
         // Act
-        var result = sut.Reparent(null, [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reparent(null, [], false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -397,7 +399,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Reparent(sut.Id, [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reparent(sut.Id, [], false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -416,7 +418,7 @@ public sealed class ProductTests
         var ancestorsOfTarget = new[] { Guid.CreateVersion7(), sut.Id };
 
         // Act
-        var result = sut.Reparent(descendantId, ancestorsOfTarget, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reparent(descendantId, ancestorsOfTarget, false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -431,10 +433,28 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(parentId).Generate();
 
         // Act
-        var result = sut.Reparent(parentId, [], EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reparent(parentId, [], false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reparent_AcrossAnOpenDependency_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var fromParentId = sut.ParentId;
+
+        // Act
+        var result = sut.Reparent(Guid.CreateVersion7(), [], true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(
+            "This move would place a product above or below a product it has an open dependency with. End that dependency first.");
+        sut.ParentId.Should().Be(fromParentId);
         sut.DomainEvents.Should().BeEmpty();
     }
 
@@ -568,7 +588,7 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(parentId).Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -583,7 +603,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: true, hasVersions: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: true, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -600,7 +620,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: true, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -614,12 +634,522 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: true, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: true, isInAManifest: false, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This product has versions and cannot be removed.");
     }
 
+    [Fact]
+    public void Remove_ShouldFail_WhenTheNodeHasDependencies()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: true, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This product has dependencies on other products recorded and cannot be removed.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Remove_ShouldFail_WhenOtherNodesDependOnIt()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Other products have dependencies on this product recorded, so it cannot be removed.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
     #endregion Remove
+
+    #region Dependencies
+
+    private static readonly LocalDate Today = new(2026, 6, 15);
+
+    [Fact]
+    public void AddDependency_ShouldOpenALinkAndRaiseAnEventRelatedToTheProductDependedOn()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var identityId = Guid.CreateVersion7();
+        var startsOn = Today.PlusDays(-30);
+
+        // Act
+        var result = sut.AddDependency(identityId, DependencyStrength.Hard, " Validates SSO tokens ", startsOn, [], [], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var dependency = sut.Dependencies.Should().ContainSingle().Subject;
+        dependency.Should().BeSameAs(result.Value);
+        dependency.ProductId.Should().Be(sut.Id);
+        dependency.DependsOnProductId.Should().Be(identityId);
+        dependency.Strength.Should().Be(DependencyStrength.Hard);
+        dependency.Description.Should().Be("Validates SSO tokens");
+        dependency.Period.Should().Be(new FlexibleDateRange(startsOn));
+        dependency.IsOpen.Should().BeTrue();
+
+        var added = sut.DomainEvents.OfType<ProductDependencyAddedEvent>().Single();
+        added.Should().BeEquivalentTo(new
+        {
+            sut.Id,
+            DependencyId = dependency.Id,
+            DependsOnProductId = identityId,
+            Strength = DependencyStrength.Hard,
+            Description = "Validates SSO tokens",
+        });
+        added.Period.Should().Be(new FlexibleDateRange(startsOn));
+        added.RelatedAggregates.Should().BeEquivalentTo([new AggregateReference("Product", identityId)]);
+    }
+
+    [Fact]
+    public void AddDependency_OnItself_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.AddDependency(sut.Id, DependencyStrength.Hard, null, Today, [], [], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A product cannot depend on itself.");
+        sut.Dependencies.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddDependency_OnAnAncestor_ShouldFail()
+    {
+        // Arrange
+        var parentId = Guid.CreateVersion7();
+        var sut = _faker.WithParentId(parentId).Generate();
+
+        // Act
+        var result = sut.AddDependency(parentId, DependencyStrength.Hard, null, Today, [sut.Id, parentId], [parentId], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("A product cannot depend on a product above or below it in the product tree.");
+        sut.Dependencies.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddDependency_OnADescendant_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var childId = Guid.CreateVersion7();
+
+        // Act
+        var result = sut.AddDependency(childId, DependencyStrength.Soft, null, Today, [sut.Id], [childId, sut.Id], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("A product cannot depend on a product above or below it in the product tree.");
+    }
+
+    [Fact]
+    public void AddDependency_StartingInTheFuture_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today.PlusDays(1), [], [], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A dependency cannot start in the future.");
+    }
+
+    [Fact]
+    public void AddDependency_WhileOneOnTheSameProductIsOpen_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var identityId = Guid.CreateVersion7();
+        sut.AddDependency(identityId, DependencyStrength.Hard, null, Today.PlusDays(-10), [], [], Today, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.AddDependency(identityId, DependencyStrength.Soft, null, Today, [], [], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("This product already depends on that product.");
+        sut.Dependencies.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddDependency_StartingOnTheLastDayAnEndedOneHeld_ShouldFail()
+    {
+        // Arrange — a period includes its end day, so starting on it shares that day
+        var sut = _faker.Generate();
+        var identityId = Guid.CreateVersion7();
+        var endedOn = Today.PlusDays(-10);
+        var first = sut.AddDependency(identityId, DependencyStrength.Hard, null, Today.PlusDays(-30), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.EndDependency(first.Id, endedOn, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.AddDependency(identityId, DependencyStrength.Hard, null, endedOn, [], [], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("An earlier dependency on that product already covers part of this period.");
+    }
+
+    [Fact]
+    public void AddDependency_BeforeAnEndedOneOnTheSameProduct_ShouldFail()
+    {
+        // Arrange — an open link from before the earlier one began would cover all of it
+        var sut = _faker.Generate();
+        var identityId = Guid.CreateVersion7();
+        var first = sut.AddDependency(identityId, DependencyStrength.Hard, null, Today.PlusDays(-30), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.EndDependency(first.Id, Today.PlusDays(-10), Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.AddDependency(identityId, DependencyStrength.Hard, null, Today.PlusDays(-60), [], [], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("An earlier dependency on that product already covers part of this period.");
+    }
+
+    [Fact]
+    public void AddDependency_TheDayAfterAnEndedOneOnTheSameProduct_ShouldSucceed()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var identityId = Guid.CreateVersion7();
+        var endedOn = Today.PlusDays(-10);
+        var first = sut.AddDependency(identityId, DependencyStrength.Hard, null, Today.PlusDays(-30), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.EndDependency(first.Id, endedOn, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.AddDependency(identityId, DependencyStrength.Hard, null, endedOn.PlusDays(1), [], [], Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Dependencies.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void EndDependency_ShouldKeepTheLinkAndRaiseEndedEvent()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var startsOn = Today.PlusDays(-5);
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Soft, null, startsOn, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+        var endsOn = Today.PlusDays(-1);
+
+        // Act
+        var result = sut.EndDependency(dependency.Id, endsOn, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Dependencies.Should().ContainSingle().Which.Period.Should().Be(new FlexibleDateRange(startsOn, endsOn));
+        dependency.IsOpen.Should().BeFalse();
+
+        var ended = sut.DomainEvents.OfType<ProductDependencyEndedEvent>().Single();
+        ended.Should().BeEquivalentTo(new { DependencyId = dependency.Id, dependency.DependsOnProductId, Strength = DependencyStrength.Soft });
+        ended.Period.Should().Be(new FlexibleDateRange(startsOn, endsOn));
+        ended.RelatedAggregates.Should().BeEquivalentTo([new AggregateReference("Product", dependency.DependsOnProductId)]);
+    }
+
+    [Fact]
+    public void EndDependency_OnTheDayItStarted_ShouldSucceed()
+    {
+        // Arrange — a dependency that held for one day still held
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.EndDependency(dependency.Id, Today, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        dependency.Period.Days.Should().Be(1);
+    }
+
+    [Fact]
+    public void EndDependency_ThatHasAlreadyEnded_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today.PlusDays(-5), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.EndDependency(dependency.Id, Today.PlusDays(-1), Today, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.EndDependency(dependency.Id, Today, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This dependency has already ended.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void EndDependency_BeforeItStarted_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var startsOn = Today.PlusDays(-5);
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, startsOn, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.EndDependency(dependency.Id, startsOn.PlusDays(-1), Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A dependency cannot end before it started.");
+        dependency.IsOpen.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EndDependency_InTheFuture_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today.PlusDays(-5), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.EndDependency(dependency.Id, Today.PlusDays(1), Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A dependency cannot end in the future.");
+    }
+
+    [Fact]
+    public void EndDependency_ThatDoesNotExist_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.EndDependency(Guid.CreateVersion7(), Today, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Dependency not found.");
+    }
+
+    [Fact]
+    public void ChangeDependencyStrength_ShouldEndTheLinkTheDayBeforeAndOpenAnotherKeepingTheDescription()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var identityId = Guid.CreateVersion7();
+        var startsOn = Today.PlusDays(-30);
+        var original = sut.AddDependency(identityId, DependencyStrength.Soft, "Validates SSO tokens", startsOn, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+        var changedOn = Today.PlusDays(-2);
+
+        // Act
+        var result = sut.ChangeDependencyStrength(original.Id, DependencyStrength.Hard, changedOn, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        original.Period.Should().Be(new FlexibleDateRange(startsOn, changedOn.PlusDays(-1)));
+        original.Strength.Should().Be(DependencyStrength.Soft, "a link's strength never changes");
+
+        var replacement = result.Value;
+        replacement.Id.Should().NotBe(original.Id);
+        replacement.Should().BeEquivalentTo(new { DependsOnProductId = identityId, Strength = DependencyStrength.Hard, Description = "Validates SSO tokens" });
+        replacement.Period.Should().Be(new FlexibleDateRange(changedOn));
+        sut.Dependencies.Should().HaveCount(2);
+
+        // Two facts, in the order they happened
+        sut.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(ProductDependencyEndedEvent), typeof(ProductDependencyAddedEvent));
+    }
+
+    [Fact]
+    public void ChangeDependencyStrength_ToTheSameStrength_ShouldRaiseNothing()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today.PlusDays(-5), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ChangeDependencyStrength(dependency.Id, DependencyStrength.Hard, Today, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeSameAs(dependency);
+        dependency.IsOpen.Should().BeTrue();
+        sut.Dependencies.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeDependencyStrength_OnAnEndedLink_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today.PlusDays(-5), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.EndDependency(dependency.Id, Today.PlusDays(-1), Today, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ChangeDependencyStrength(dependency.Id, DependencyStrength.Soft, Today, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("An ended dependency cannot change strength.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeDependencyStrength_OnTheDayTheLinkStarted_ShouldFailWithoutEndingIt()
+    {
+        // Arrange — there is no earlier day to end the current link on
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ChangeDependencyStrength(dependency.Id, DependencyStrength.Soft, Today, Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("A dependency's strength can change from the day after it started.");
+        dependency.IsOpen.Should().BeTrue();
+        sut.Dependencies.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeDependencyStrength_InTheFuture_ShouldFail()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today.PlusDays(-5), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.ChangeDependencyStrength(dependency.Id, DependencyStrength.Soft, Today.PlusDays(1), Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A dependency's strength cannot change in the future.");
+        dependency.IsOpen.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UpdateDependencyDetails_ShouldRaiseEventCarryingBothDescriptions()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, "Validates tokens", Today, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.UpdateDependencyDetails(dependency.Id, "Validates SSO tokens", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        dependency.Description.Should().Be("Validates SSO tokens");
+
+        var updated = sut.DomainEvents.OfType<ProductDependencyDetailsUpdatedEvent>().Single();
+        updated.Should().BeEquivalentTo(new { DependencyId = dependency.Id, dependency.DependsOnProductId, Description = "Validates SSO tokens", PreviousDescription = "Validates tokens" });
+        updated.RelatedAggregates.Should().BeEquivalentTo([new AggregateReference("Product", dependency.DependsOnProductId)]);
+    }
+
+    [Fact]
+    public void UpdateDependencyDetails_WhenOnlyWhitespaceDiffers_ShouldRaiseNothing()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, "Validates SSO tokens", Today, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.UpdateDependencyDetails(dependency.Id, "Validates SSO tokens ", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateDependencyDetails_OnAnEndedLink_ShouldSucceed()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today.PlusDays(-5), [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.EndDependency(dependency.Id, Today.PlusDays(-1), Today, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.UpdateDependencyDetails(dependency.Id, "Reads shift schedules", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        dependency.Description.Should().Be("Reads shift schedules");
+    }
+
+    [Fact]
+    public void RemoveDependency_ShouldDeleteTheLinkAndRecordItWithTheReason()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var startsOn = Today.PlusDays(-5);
+        var endsOn = Today.PlusDays(-1);
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Soft, null, startsOn, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.EndDependency(dependency.Id, endsOn, Today, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.RemoveDependency(dependency.Id, " Recorded against the wrong product ", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Dependencies.Should().BeEmpty();
+
+        var removed = sut.DomainEvents.OfType<ProductDependencyRemovedEvent>().Single();
+        removed.Should().BeEquivalentTo(new
+        {
+            DependencyId = dependency.Id,
+            dependency.DependsOnProductId,
+            Strength = DependencyStrength.Soft,
+            Reason = "Recorded against the wrong product",
+        });
+        removed.Period.Should().Be(new FlexibleDateRange(startsOn, endsOn));
+        removed.RelatedAggregates.Should().BeEquivalentTo([new AggregateReference("Product", dependency.DependsOnProductId)]);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RemoveDependency_WithoutAReason_ShouldFail(string reason)
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var dependency = sut.AddDependency(Guid.CreateVersion7(), DependencyStrength.Hard, null, Today, [], [], Today, EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.RemoveDependency(dependency.Id, reason, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A reason is required to remove a dependency.");
+        sut.Dependencies.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Dependencies
 }

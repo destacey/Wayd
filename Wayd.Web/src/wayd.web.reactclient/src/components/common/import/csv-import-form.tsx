@@ -9,7 +9,7 @@ import {
   ImportProcessStatus,
 } from '@/src/services/wayd-api'
 import { useSubmitImportMutation } from '@/src/store/features/admin/imports-api'
-import { isApiError, type ApiError } from '@/src/utils'
+import { isApiError, toFileName, type ApiError } from '@/src/utils'
 import { downloadCsv, generateCsv } from '@/src/utils/csv-utils'
 import {
   CheckCircleOutlined,
@@ -138,12 +138,6 @@ const IMPORT_GROUPS: Record<ImportModule, string> = {
   'product-management': 'Product Management',
   'strategic-management': 'Project Portfolio Management',
 }
-
-const toFileName = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
 
 const fileTitle = (definition: ImportDefinitionDto, file: ImportFileTemplate) =>
   file.label ?? definition.displayName

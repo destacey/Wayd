@@ -127,7 +127,7 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
     {
         // Arrange
         var environment = SeedEnvironment("Prod", EnvironmentCategory.Production, 3);
-        var product = SeedProduct("Trio VMS");
+        var product = SeedProduct("Storefront Web");
         var older = SeedVersion(product.Id, "2026.09");
         var newer = SeedVersion(product.Id, "2026.10");
 
@@ -141,7 +141,7 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
         // Assert
         var running = result.Single().Running.Single();
         running.Version!.Name.Should().Be("2026.10");
-        running.Product!.Name.Should().Be("Trio VMS");
+        running.Product!.Name.Should().Be("Storefront Web");
         running.HasFailedAttemptSince.Should().BeFalse();
     }
 
@@ -172,7 +172,7 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
     {
         // Arrange — a rollback replaces its own deployment's status, so the one before it wins again.
         var environment = SeedEnvironment("Prod", EnvironmentCategory.Production, 3);
-        var product = SeedProduct("Argo Identity");
+        var product = SeedProduct("Identity Service");
         var stable = SeedVersion(product.Id, "3.4.1");
         var reverted = SeedVersion(product.Id, "3.5.0");
 
@@ -203,7 +203,7 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
     {
         // Arrange — an in-flight deployment has not reached the environment yet.
         var environment = SeedEnvironment("Test", EnvironmentCategory.Testing, 2);
-        var product = SeedProduct("Trio VMS");
+        var product = SeedProduct("Storefront Web");
         Deploy(environment, SeedVersion(product.Id, "2026.10").Id, Day1);
 
         // Act
@@ -233,9 +233,9 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
     public async Task Handle_ShouldReportEveryProductRunningInOneEnvironment()
     {
         // Arrange
-        var environment = SeedEnvironment("Argo — Dev", EnvironmentCategory.Development, 1);
-        var identity = SeedProduct("Argo Identity");
-        var document = SeedProduct("Argo Document");
+        var environment = SeedEnvironment("Core Platform — Dev", EnvironmentCategory.Development, 1);
+        var identity = SeedProduct("Identity Service");
+        var document = SeedProduct("Document Service");
 
         Succeed(Deploy(environment, SeedVersion(identity.Id, "3.4.1").Id, Day1), environment, Day1);
         Succeed(Deploy(environment, SeedVersion(document.Id, "1.7.2").Id, Day1), environment, Day1);
@@ -246,7 +246,7 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
 
         // Assert — one entry per product, named alphabetically so the list reads the same every load.
         result.Single().Running.Select(i => i.Product!.Name)
-            .Should().Equal("Argo Document", "Argo Identity");
+            .Should().Equal("Document Service", "Identity Service");
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
         // Arrange — a newer version in one environment says nothing about the other.
         var dev = SeedEnvironment("Dev", EnvironmentCategory.Development, 1);
         var prod = SeedEnvironment("Prod", EnvironmentCategory.Production, 3);
-        var product = SeedProduct("Trio VMS");
+        var product = SeedProduct("Storefront Web");
         var shipped = SeedVersion(product.Id, "2026.09");
         var next = SeedVersion(product.Id, "2026.10");
 
@@ -396,7 +396,7 @@ public sealed class GetEnvironmentRolloutQueryHandlerTests : ProductCommandTestB
     {
         // Arrange — two builds of one version are two deployments, so the artifact identifies which.
         var environment = SeedEnvironment("Dev", EnvironmentCategory.Development, 1);
-        var product = SeedProduct("Trio VMS");
+        var product = SeedProduct("Storefront Web");
         var version = SeedVersion(product.Id, "2026.10");
 
         Succeed(Deploy(environment, version.Id, Day1, "2026.10.0914.1"), environment, Day1);

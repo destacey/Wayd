@@ -39,6 +39,11 @@ export interface ProductTreeSelectProps {
    * would read as a legal target while its parent was hidden.
    */
   excludeSubtreeOf?: string
+  /**
+   * Nodes shown but not choosable. Kept in the tree rather than hidden, because hiding a node hides the
+   * branch beneath it, which may hold legal choices — a product's ancestors, when picking what it depends on.
+   */
+  unselectableIds?: string[]
   placeholder?: string
   allowClear?: boolean
   disabled?: boolean
@@ -66,11 +71,14 @@ const leadsToReleasable = (node: ProductTreeNode): boolean =>
 const toTreeData = (
   nodes: ProductTreeNode[],
   selectable: ProductSelectable,
+  unselectableIds: ReadonlySet<string>,
 ): TreeSelectNode[] =>
   nodes
     .filter((node) => selectable === 'all' || leadsToReleasable(node))
     .map((node) => {
-      const isSelectable = selectable === 'all' || node.isReleasable
+      const isSelectable =
+        (selectable === 'all' || node.isReleasable) &&
+        !unselectableIds.has(node.id)
 
       return {
         value: node.id,
@@ -81,7 +89,7 @@ const toTreeData = (
             ? node.name
             : `${node.name} · ${node.type.name}`,
         selectable: isSelectable,
-        children: toTreeData(node.children, selectable),
+        children: toTreeData(node.children, selectable, unselectableIds),
       }
     })
     .sort((a, b) => caseInsensitiveCompare(a.title, b.title))
@@ -98,6 +106,7 @@ const ProductTreeSelect = ({
   onChange,
   selectable = 'all',
   excludeSubtreeOf,
+  unselectableIds,
   placeholder = 'Select a product',
   allowClear = true,
   disabled,
@@ -109,7 +118,7 @@ const ProductTreeSelect = ({
   const roots = excludeSubtreeOf
     ? buildMoveTargetTree(catalog, excludeSubtreeOf)
     : buildProductTree(catalog)
-  const treeData = toTreeData(roots, selectable)
+  const treeData = toTreeData(roots, selectable, new Set(unselectableIds))
 
   return (
     <TreeSelect

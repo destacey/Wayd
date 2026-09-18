@@ -158,6 +158,8 @@ and retention — are in [Settings → Imports → Limits and rules](../settings
 
 Loads the [product catalog](./products.mdx) — the whole tree in one file, parents and children together.
 
+It loads the tree, which is what a product is made of. The [dependencies between products](./products.mdx#dependencies) — what relies on what — have no import yet, and are recorded on the product's Dependencies section or through its API.
+
 | Column | Required | Notes |
 |---|---|---|
 | `ImportId` | No | The row's key **within this file only**. Never stored. Children name it as their `ParentImportId`, so a file with a tree should supply it rather than relying on row position. |

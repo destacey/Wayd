@@ -55,9 +55,7 @@ jest.mock('@/src/hooks', () => {
 })
 
 const renderForm = () =>
-  render(
-    <PlanVersionForm onFormComplete={() => {}} onFormCancel={() => {}} />,
-  )
+  render(<PlanVersionForm onFormComplete={() => {}} onFormCancel={() => {}} />)
 
 const save = async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Add' }))

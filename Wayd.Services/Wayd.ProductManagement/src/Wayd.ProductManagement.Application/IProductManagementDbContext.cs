@@ -13,6 +13,7 @@ public interface IProductManagementDbContext : IWaydDbContext
     DbSet<ProductTagCategory> ProductTagCategories { get; }
     DbSet<ProductTag> ProductTags { get; }
     DbSet<ProductTagAssignment> ProductTagAssignments { get; }
+    DbSet<ProductDependency> ProductDependencies { get; }
     DbSet<Version> Versions { get; }
     DbSet<Release> Releases { get; }
     DbSet<ReleaseVersion> ReleaseVersions { get; }

@@ -44,7 +44,7 @@ const CATEGORIES: ProductTagCategoryDto[] = [
 const product = {
   id: 'product-1',
   key: 7,
-  name: 'Trio VMS',
+  name: 'Storefront Web',
   type: { id: 'type-1', key: 1, name: 'Application' },
   status: { id: 'status-1', name: 'Concept', category: 1, alias: 0 },
   isReleasable: true,

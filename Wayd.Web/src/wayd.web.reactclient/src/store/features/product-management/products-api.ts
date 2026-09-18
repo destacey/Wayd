@@ -1,7 +1,13 @@
 import { getProductsClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
+  AddProductDependencyRequest,
+  ChangeProductDependencyStrengthRequest,
   ChangeProductStatusRequest,
+  EndProductDependencyRequest,
+  ProductDependenciesDto,
+  RemoveProductDependencyRequest,
+  UpdateProductDependencyRequest,
   CreateProductRequest,
   ObjectIdAndKey,
   ProductDto,
@@ -21,6 +27,28 @@ export interface GetProductsRequest {
   statusCategory?: number[]
   tagId?: string[]
 }
+
+export interface ProductDependencyMutationArgs<TRequest> {
+  /** The product that has the dependency. */
+  productId: string
+  dependencyId: string
+  /** The product depended on, whose Activity lists the change too. */
+  dependsOnProductId: string
+  request: TRequest
+}
+
+/**
+ * Every dependency list, and the Activity of both products — each lists a change to the link between them.
+ * Activity is tagged by whatever the page fetched it with, which for a product page is its id.
+ */
+const dependencyChangeTags = (
+  productId: string,
+  dependsOnProductId: string,
+) => [
+  { type: QueryTags.ProductDependency, id: 'LIST' },
+  { type: QueryTags.ActivityLog, id: productId },
+  { type: QueryTags.ActivityLog, id: dependsOnProductId },
+]
 
 export const productsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -253,6 +281,130 @@ export const productsApi = apiSlice.injectEndpoints({
       invalidatesTags: () => [{ type: QueryTags.Product, id: 'LIST' }],
     }),
 
+    /**
+     * What a product depends on and what depends on it, rolled up across its subtree.
+     *
+     * Every dependency list shares one tag: a link between two products also appears, rolled up, on every
+     * ancestor of either, so a mutation cannot name the lists it changes.
+     */
+    getProductDependencies: builder.query<
+      ProductDependenciesDto,
+      { idOrKey: string; includeEnded?: boolean }
+    >({
+      queryFn: async ({ idOrKey, includeEnded }) => {
+        try {
+          const data = await getProductsClient().getDependencies(
+            idOrKey,
+            includeEnded,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.ProductDependency, id: 'LIST' }],
+    }),
+    addProductDependency: builder.mutation<
+      string,
+      { productId: string; request: AddProductDependencyRequest }
+    >({
+      queryFn: async ({ productId, request }) => {
+        try {
+          const data = await getProductsClient().addDependency(
+            productId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) =>
+        dependencyChangeTags(arg.productId, arg.request.dependsOnProductId),
+    }),
+    updateProductDependency: builder.mutation<
+      void,
+      ProductDependencyMutationArgs<UpdateProductDependencyRequest>
+    >({
+      queryFn: async ({ productId, dependencyId, request }) => {
+        try {
+          const data = await getProductsClient().updateDependency(
+            productId,
+            dependencyId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) =>
+        dependencyChangeTags(arg.productId, arg.dependsOnProductId),
+    }),
+    endProductDependency: builder.mutation<
+      void,
+      ProductDependencyMutationArgs<EndProductDependencyRequest>
+    >({
+      queryFn: async ({ productId, dependencyId, request }) => {
+        try {
+          const data = await getProductsClient().endDependency(
+            productId,
+            dependencyId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) =>
+        dependencyChangeTags(arg.productId, arg.dependsOnProductId),
+    }),
+    changeProductDependencyStrength: builder.mutation<
+      string,
+      ProductDependencyMutationArgs<ChangeProductDependencyStrengthRequest>
+    >({
+      queryFn: async ({ productId, dependencyId, request }) => {
+        try {
+          const data = await getProductsClient().changeDependencyStrength(
+            productId,
+            dependencyId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) =>
+        dependencyChangeTags(arg.productId, arg.dependsOnProductId),
+    }),
+    removeProductDependency: builder.mutation<
+      void,
+      ProductDependencyMutationArgs<RemoveProductDependencyRequest>
+    >({
+      queryFn: async ({ productId, dependencyId, request }) => {
+        try {
+          const data = await getProductsClient().removeDependency(
+            productId,
+            dependencyId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) =>
+        dependencyChangeTags(arg.productId, arg.dependsOnProductId),
+    }),
+
     getProductActivities: builder.query<
       PagedResponseOfActivityLogDto,
       { idOrKey: string | number; page?: number; pageSize?: number }
@@ -291,6 +443,12 @@ export const {
   useTagProductMutation,
   useUntagProductMutation,
   useDeleteProductMutation,
+  useGetProductDependenciesQuery,
+  useAddProductDependencyMutation,
+  useUpdateProductDependencyMutation,
+  useEndProductDependencyMutation,
+  useChangeProductDependencyStrengthMutation,
+  useRemoveProductDependencyMutation,
   useGetProductActivitiesQuery,
   useLazyGetProductActivitiesQuery,
 } = productsApi

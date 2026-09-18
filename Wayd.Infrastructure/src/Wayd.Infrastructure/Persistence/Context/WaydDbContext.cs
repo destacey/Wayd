@@ -135,6 +135,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<ProductTagCategory> ProductTagCategories => Set<ProductTagCategory>();
     public DbSet<ProductTag> ProductTags => Set<ProductTag>();
     public DbSet<ProductTagAssignment> ProductTagAssignments => Set<ProductTagAssignment>();
+    public DbSet<ProductDependency> ProductDependencies => Set<ProductDependency>();
     public DbSet<Version> Versions => Set<Version>();
     public DbSet<Release> Releases => Set<Release>();
     public DbSet<ReleaseVersion> ReleaseVersions => Set<ReleaseVersion>();

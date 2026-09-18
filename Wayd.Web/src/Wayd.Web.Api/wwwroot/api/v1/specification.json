@@ -6414,6 +6414,451 @@
         ]
       }
     },
+    "/api/product-management/products/{idOrKey}/dependencies": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get what a product depends on and what depends on it.",
+        "description": "Rolled up across everything beneath the product: a link from a child to an outside product appears under Depends on, and a link inside the product's own subtree appears in neither list. Ended dependencies are left out unless requested.",
+        "operationId": "Products_GetDependencies",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "includeEnded",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDependenciesDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/dependencies": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Record that a product depends on another.",
+        "description": "Returns the new dependency's id. A product can hold one open dependency on another product, and a later one on the same product cannot overlap an earlier one.",
+        "operationId": "Products_AddDependency",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProductDependencyRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/dependencies/{dependencyId}": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Reword what a product's dependency is for.",
+        "description": "Allowed on an ended dependency.",
+        "operationId": "Products_UpdateDependency",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "dependencyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDependencyRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/dependencies/{dependencyId}/end": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Record that a product stopped depending on another.",
+        "description": "The dependency is kept and still counts for the period it held. Use remove only for a dependency that was never true.",
+        "operationId": "Products_EndDependency",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "dependencyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndProductDependencyRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/dependencies/{dependencyId}/strength": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Change whether a product stops working without one it depends on.",
+        "description": "Ends the dependency and records a new one with the new strength, and returns the id of the dependency now open. Unchanged when the strength already matches.",
+        "operationId": "Products_ChangeDependencyStrength",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "dependencyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeProductDependencyStrengthRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/dependencies/{dependencyId}/remove": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Delete a dependency recorded by mistake.",
+        "description": "Requires a reason. Not for a dependency that stopped — end it instead, which keeps the history of when it held.",
+        "operationId": "Products_RemoveDependency",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "dependencyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveProductDependencyRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/product-tag-categories": {
       "get": {
         "tags": [
@@ -41028,6 +41473,203 @@
             "minLength": 1,
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "ProductDependenciesDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dependsOn",
+          "usedBy"
+        ],
+        "properties": {
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductDependencyDto"
+            }
+          },
+          "usedBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductDependencyDto"
+            }
+          }
+        }
+      },
+      "ProductDependencyDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "product",
+          "dependsOnProduct",
+          "strength",
+          "startsOn",
+          "productPath",
+          "dependsOnProductPath"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "dependsOnProduct": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/DependencyStrength"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "productPath": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
+          },
+          "dependsOnProductPath": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
+          }
+        }
+      },
+      "DependencyStrength": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Hard",
+          "Soft"
+        ],
+        "enum": [
+          "Hard",
+          "Soft"
+        ]
+      },
+      "AddProductDependencyRequest": {
+        "type": "object",
+        "description": "Records that a product depends on another.",
+        "additionalProperties": false,
+        "required": [
+          "dependsOnProductId",
+          "strength"
+        ],
+        "properties": {
+          "dependsOnProductId": {
+            "type": "string",
+            "description": "The product depended on. Cannot be the product itself, nor anything above or below it in the tree.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "strength": {
+            "description": "Whether the product stops working without it (Hard) or carries on without it (Soft).",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DependencyStrength"
+              }
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "What the dependency is for.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          },
+          "startsOn": {
+            "type": "string",
+            "description": "The day the dependency began. Defaults to today, may be backdated, and cannot be in the future.",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateProductDependencyRequest": {
+        "type": "object",
+        "description": "Rewords what a product's dependency is for.",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "What the dependency is for, or null to clear it.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "EndProductDependencyRequest": {
+        "type": "object",
+        "description": "Records that a product stopped depending on another. The dependency is kept, and still counts for the\nperiod it held.",
+        "additionalProperties": false,
+        "properties": {
+          "endsOn": {
+            "type": "string",
+            "description": "The last day the dependency held. Defaults to today, may be the day it started, and cannot be in the\nfuture.",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "ChangeProductDependencyStrengthRequest": {
+        "type": "object",
+        "description": "Changes whether a product stops working without one it depends on.",
+        "additionalProperties": false,
+        "required": [
+          "strength"
+        ],
+        "properties": {
+          "strength": {
+            "description": "Whether the product stops working without it (Hard) or carries on without it (Soft).",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DependencyStrength"
+              }
+            ]
+          },
+          "changedOn": {
+            "type": "string",
+            "description": "The first day the new strength holds; the current dependency ends the day before. Defaults to today,\nmust be after the day the dependency started, and cannot be in the future.",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "RemoveProductDependencyRequest": {
+        "type": "object",
+        "description": "Deletes a dependency that was recorded by mistake.",
+        "additionalProperties": false,
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the dependency was never true. Required.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": false
           }
         }
       },

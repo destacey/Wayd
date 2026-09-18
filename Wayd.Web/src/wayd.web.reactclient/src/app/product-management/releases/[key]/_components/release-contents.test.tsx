@@ -34,7 +34,9 @@ const valueOf = (columnId: string, entry: ContentsEntry) => {
   const column = buildContentsColumns().find((c) => c.id === columnId)
   if (!column) throw new Error(`no column ${columnId}`)
 
-  const withAccessorFn = column as { accessorFn?: (row: ContentsEntry) => unknown }
+  const withAccessorFn = column as {
+    accessorFn?: (row: ContentsEntry) => unknown
+  }
   if (withAccessorFn.accessorFn) return withAccessorFn.accessorFn(entry)
 
   const withKey = column as { accessorKey?: keyof ContentsEntry }

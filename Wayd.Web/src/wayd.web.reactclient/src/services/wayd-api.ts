@@ -8201,6 +8201,425 @@ export class ProductsClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Get what a product depends on and what depends on it.
+     * @param includeEnded (optional) 
+     */
+    getDependencies(idOrKey: string, includeEnded?: boolean | undefined, cancelToken?: CancelToken): Promise<ProductDependenciesDto> {
+        let url_ = this.baseUrl + "/api/product-management/products/{idOrKey}/dependencies?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (includeEnded === null)
+            throw new globalThis.Error("The parameter 'includeEnded' cannot be null.");
+        else if (includeEnded !== undefined)
+            url_ += "includeEnded=" + encodeURIComponent("" + includeEnded) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDependencies(_response);
+        });
+    }
+
+    protected processGetDependencies(response: AxiosResponse): Promise<ProductDependenciesDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductDependenciesDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductDependenciesDto>(null as any);
+    }
+
+    /**
+     * Record that a product depends on another.
+     */
+    addDependency(id: string, request: AddProductDependencyRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddDependency(_response);
+        });
+    }
+
+    protected processAddDependency(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Reword what a product's dependency is for.
+     */
+    updateDependency(id: string, dependencyId: string, request: UpdateProductDependencyRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (dependencyId === undefined || dependencyId === null)
+            throw new globalThis.Error("The parameter 'dependencyId' must be defined.");
+        url_ = url_.replace("{dependencyId}", encodeURIComponent("" + dependencyId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateDependency(_response);
+        });
+    }
+
+    protected processUpdateDependency(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Record that a product stopped depending on another.
+     */
+    endDependency(id: string, dependencyId: string, request: EndProductDependencyRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}/end";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (dependencyId === undefined || dependencyId === null)
+            throw new globalThis.Error("The parameter 'dependencyId' must be defined.");
+        url_ = url_.replace("{dependencyId}", encodeURIComponent("" + dependencyId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEndDependency(_response);
+        });
+    }
+
+    protected processEndDependency(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Change whether a product stops working without one it depends on.
+     */
+    changeDependencyStrength(id: string, dependencyId: string, request: ChangeProductDependencyStrengthRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}/strength";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (dependencyId === undefined || dependencyId === null)
+            throw new globalThis.Error("The parameter 'dependencyId' must be defined.");
+        url_ = url_.replace("{dependencyId}", encodeURIComponent("" + dependencyId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeDependencyStrength(_response);
+        });
+    }
+
+    protected processChangeDependencyStrength(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<string>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Delete a dependency recorded by mistake.
+     */
+    removeDependency(id: string, dependencyId: string, request: RemoveProductDependencyRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}/remove";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (dependencyId === undefined || dependencyId === null)
+            throw new globalThis.Error("The parameter 'dependencyId' must be defined.");
+        url_ = url_.replace("{dependencyId}", encodeURIComponent("" + dependencyId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveDependency(_response);
+        });
+    }
+
+    protected processRemoveDependency(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class ProductTagCategoriesClient {
@@ -43249,6 +43668,68 @@ export interface ChangeProductStatusRequest {
     id: string;
     /** The target status. Must belong to the workflow assigned to products. */
     statusId: string;
+}
+
+export interface ProductDependenciesDto {
+    dependsOn: ProductDependencyDto[];
+    usedBy: ProductDependencyDto[];
+}
+
+export interface ProductDependencyDto {
+    id: string;
+    product: NavigationDto;
+    dependsOnProduct: NavigationDto;
+    strength: DependencyStrength;
+    description?: string | undefined;
+    startsOn: Date;
+    endsOn?: Date | undefined;
+    productPath: NavigationDto[];
+    dependsOnProductPath: NavigationDto[];
+}
+
+export enum DependencyStrength {
+    Hard = "Hard",
+    Soft = "Soft",
+}
+
+/** Records that a product depends on another. */
+export interface AddProductDependencyRequest {
+    /** The product depended on. Cannot be the product itself, nor anything above or below it in the tree. */
+    dependsOnProductId: string;
+    /** Whether the product stops working without it (Hard) or carries on without it (Soft). */
+    strength: DependencyStrength;
+    /** What the dependency is for. */
+    description?: string | undefined;
+    /** The day the dependency began. Defaults to today, may be backdated, and cannot be in the future. */
+    startsOn?: Date | undefined;
+}
+
+/** Rewords what a product's dependency is for. */
+export interface UpdateProductDependencyRequest {
+    /** What the dependency is for, or null to clear it. */
+    description?: string | undefined;
+}
+
+/** Records that a product stopped depending on another. The dependency is kept, and still counts for the period it held. */
+export interface EndProductDependencyRequest {
+    /** The last day the dependency held. Defaults to today, may be the day it started, and cannot be in the
+future. */
+    endsOn?: Date | undefined;
+}
+
+/** Changes whether a product stops working without one it depends on. */
+export interface ChangeProductDependencyStrengthRequest {
+    /** Whether the product stops working without it (Hard) or carries on without it (Soft). */
+    strength: DependencyStrength;
+    /** The first day the new strength holds; the current dependency ends the day before. Defaults to today,
+must be after the day the dependency started, and cannot be in the future. */
+    changedOn?: Date | undefined;
+}
+
+/** Deletes a dependency that was recorded by mistake. */
+export interface RemoveProductDependencyRequest {
+    /** Why the dependency was never true. Required. */
+    reason: string;
 }
 
 export interface ProductTagCategoryDto {

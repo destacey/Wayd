@@ -30,12 +30,15 @@ jest.mock('@/src/store/features/product-management/versions-api', () => ({
   }),
 }))
 
-jest.mock('@/src/store/features/product-management/release-packages-api', () => ({
-  useGetReleasePackagesQuery: () => ({
-    data: [{ id: 'package-1', key: 4, version: '2026.04' }],
-    isLoading: false,
+jest.mock(
+  '@/src/store/features/product-management/release-packages-api',
+  () => ({
+    useGetReleasePackagesQuery: () => ({
+      data: [{ id: 'package-1', key: 4, version: '2026.04' }],
+      isLoading: false,
+    }),
   }),
-}))
+)
 
 const getEnvironments = jest.fn((_request?: { isActive?: boolean }) => ({
   data: [
@@ -52,10 +55,13 @@ const getEnvironments = jest.fn((_request?: { isActive?: boolean }) => ({
   isLoading: false,
 }))
 
-jest.mock('@/src/store/features/product-management/deployment-environments-api', () => ({
-  useGetDeploymentEnvironmentsQuery: (request?: { isActive?: boolean }) =>
-    getEnvironments(request),
-}))
+jest.mock(
+  '@/src/store/features/product-management/deployment-environments-api',
+  () => ({
+    useGetDeploymentEnvironmentsQuery: (request?: { isActive?: boolean }) =>
+      getEnvironments(request),
+  }),
+)
 
 /**
  * The live form instance, so a test can put the form into a state the UI alone cannot reach.

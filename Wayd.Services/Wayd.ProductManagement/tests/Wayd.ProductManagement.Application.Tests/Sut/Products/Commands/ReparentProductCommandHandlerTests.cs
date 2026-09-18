@@ -48,6 +48,21 @@ public sealed class ReparentProductCommandHandlerTests
         return product;
     }
 
+    private void SeedDependency(Product product, Guid dependsOnProductId, LocalDate? endsOn = null)
+    {
+        var today = new LocalDate(2026, 4, 1);
+        var dependency = product.AddDependency(
+            dependsOnProductId, DependencyStrength.Hard, null, new LocalDate(2026, 1, 1), [], [], today, EventActor.System, Now).Value;
+
+        if (endsOn is not null)
+        {
+            product.EndDependency(dependency.Id, endsOn.Value, today, EventActor.System, Now);
+        }
+
+        product.ClearDomainEvents();
+        _dbContext.AddProductDependencies([dependency]);
+    }
+
     [Fact]
     public async Task Handle_ShouldMoveTheNode()
     {
@@ -101,6 +116,86 @@ public sealed class ReparentProductCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A product cannot be moved beneath one of its own descendants.");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAMoveBeneathAProductThatDependsOnADescendant()
+    {
+        // Arrange — Storefront depends on Identity, which sits beneath Core Platform; moving Core
+        // Platform under one of Storefront's own products would put Identity below Storefront.
+        var mobile = SeedProduct("Mobile");
+        var storefront = SeedProduct("Storefront", mobile.Id);
+        var shifts = SeedProduct("Shifts", storefront.Id);
+        var platform = SeedProduct("Core Platform");
+        var identity = SeedProduct("Identity", platform.Id);
+        SeedDependency(storefront, identity.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(platform.Id, shifts.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(
+            "This move would place a product above or below a product it has an open dependency with. End that dependency first.");
+        platform.ParentId.Should().BeNull();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAMoveBeneathAProductADescendantDependsOn()
+    {
+        // Arrange — the other direction: something inside the moved subtree depends on the new lineage.
+        var platform = SeedProduct("Core Platform");
+        var identity = SeedProduct("Identity", platform.Id);
+        var storefront = SeedProduct("Storefront");
+        var shifts = SeedProduct("Shifts", storefront.Id);
+        SeedDependency(shifts, platform.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(storefront.Id, identity.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        storefront.ParentId.Should().BeNull();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAllowAMoveAcrossAnEndedDependency()
+    {
+        // Arrange
+        var platform = SeedProduct("Core Platform");
+        var storefront = SeedProduct("Storefront");
+        SeedDependency(storefront, platform.Id, endsOn: new LocalDate(2026, 3, 1));
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(storefront.Id, platform.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        storefront.ParentId.Should().Be(platform.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAllowAMoveWhenTheDependencyStaysOutsideTheNewLineage()
+    {
+        // Arrange — a sibling of the new parent is not above or below the moved product.
+        var suite = SeedProduct("Suite");
+        var platform = SeedProduct("Platform", suite.Id);
+        var identity = SeedProduct("Identity", suite.Id);
+        var storefront = SeedProduct("Storefront");
+        SeedDependency(storefront, identity.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(storefront.Id, platform.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        storefront.ParentId.Should().Be(platform.Id);
     }
 
     [Fact]

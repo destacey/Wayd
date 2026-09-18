@@ -1,5 +1,8 @@
 import { ReleaseDto, StatusCategory } from '@/src/services/wayd-api'
-import { outstandingContents, releaseActionAvailability } from './release-actions'
+import {
+  outstandingContents,
+  releaseActionAvailability,
+} from './release-actions'
 
 const release = (overrides: Partial<ReleaseDto> = {}): ReleaseDto =>
   ({
@@ -102,7 +105,12 @@ describe('releaseActionAvailability', () => {
     // The contents freeze keys on the announced date, not the status category — a release parked in a
     // Done status was never announced, so its contents are still a plan.
     const sut = release({
-      status: { id: 's', name: 'Complete', category: StatusCategory.Done, alias: 0 },
+      status: {
+        id: 's',
+        name: 'Complete',
+        category: StatusCategory.Done,
+        alias: 0,
+      },
     })
 
     // Act
@@ -157,7 +165,9 @@ describe('outstandingContents', () => {
     expect(outstanding.total).toBe(2)
     expect(outstanding.packages.map((p) => p.label)).toEqual(['WAYD-2026.09.1'])
     // The product qualifies the number, which says little on its own.
-    expect(outstanding.versions.map((v) => v.label)).toEqual(['@wayd/mcp 1.2.0'])
+    expect(outstanding.versions.map((v) => v.label)).toEqual([
+      '@wayd/mcp 1.2.0',
+    ])
   })
 
   it('falls back to the version number when the entry carries no product', () => {

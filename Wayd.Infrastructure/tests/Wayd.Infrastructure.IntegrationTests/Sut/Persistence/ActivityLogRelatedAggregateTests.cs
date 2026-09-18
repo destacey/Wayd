@@ -203,7 +203,7 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
         context.Products.Add(child);
         await context.SaveChangesAsync(ct);
 
-        child.Reparent(toParent.Id, [], EventActor.System, MovedAt).IsSuccess.Should().BeTrue();
+        child.Reparent(toParent.Id, [], false, EventActor.System, MovedAt).IsSuccess.Should().BeTrue();
         await context.SaveChangesAsync(ct);
 
         return (fromParent, toParent, child);

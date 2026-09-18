@@ -101,6 +101,7 @@ export enum QueryTags {
   Product = 'ProductManagement.Product',
   ProductType = 'ProductManagement.ProductType',
   ProductTagCategory = 'ProductManagement.ProductTagCategory',
+  ProductDependency = 'ProductManagement.ProductDependency',
 
   // DELIVERY
   Version = 'Delivery.Version',

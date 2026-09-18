@@ -1,5 +1,6 @@
 import { ProductDto } from '@/src/services/wayd-api'
 import {
+  ancestorIdsOf,
   buildMoveTargetTree,
   buildProductTree,
   ProductTreeNode,
@@ -21,7 +22,11 @@ const product = (
 describe('buildProductTree', () => {
   it('nests a child under its parent', () => {
     const suite = product('1', 'Suite')
-    const checkout = product('2', 'Checkout', { id: '1', key: 1, name: 'Suite' })
+    const checkout = product('2', 'Checkout', {
+      id: '1',
+      key: 1,
+      name: 'Suite',
+    })
 
     const tree = buildProductTree([suite, checkout])
 
@@ -65,7 +70,9 @@ describe('buildProductTree', () => {
     const tree = buildProductTree([a, b])
 
     expect(tree.length).toBeGreaterThan(0)
-    expect(tree.flatMap((n) => [n.name, ...n.children.map((c) => c.name)])).toContain('A')
+    expect(
+      tree.flatMap((n) => [n.name, ...n.children.map((c) => c.name)]),
+    ).toContain('A')
   })
 
   it('returns nothing for an empty list', () => {
@@ -138,5 +145,45 @@ describe('buildMoveTargetTree', () => {
 
     // Assert
     expect(names(tree).sort()).toEqual(['Billing', 'Checkout', 'Suite'])
+  })
+})
+
+describe('ancestorIdsOf', () => {
+  it('lists every product above one, nearest first', () => {
+    // Arrange
+    const platform = product('1', 'Core Platform')
+    const services = product('2', 'Services', {
+      id: '1',
+      key: 1,
+      name: 'Core Platform',
+    })
+    const identity = product('3', 'Identity', {
+      id: '2',
+      key: 2,
+      name: 'Services',
+    })
+
+    // Act
+    const ancestors = ancestorIdsOf([identity, platform, services], '3')
+
+    // Assert
+    expect(ancestors).toEqual(['2', '1'])
+  })
+
+  it('lists none for a root', () => {
+    // Arrange
+    const platform = product('1', 'Core Platform')
+
+    // Act / Assert
+    expect(ancestorIdsOf([platform], '1')).toEqual([])
+  })
+
+  it('stops at a cycle already in the data', () => {
+    // Arrange
+    const a = product('1', 'A', { id: '2', key: 2, name: 'B' })
+    const b = product('2', 'B', { id: '1', key: 1, name: 'A' })
+
+    // Act / Assert
+    expect(ancestorIdsOf([a, b], '1')).toEqual(['2'])
   })
 })

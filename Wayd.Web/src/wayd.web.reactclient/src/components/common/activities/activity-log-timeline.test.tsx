@@ -686,7 +686,7 @@ describe('ActivityLogTimeline', () => {
             summary: 'Product Reparented',
             aggregateType: 'Product',
             isRelated: true,
-            raisedOn: { id: 'child-id', key: 12, name: 'Trio VMS' },
+            raisedOn: { id: 'child-id', key: 12, name: 'Storefront Web' },
           }),
         ]}
         isLoading={false}
@@ -694,11 +694,10 @@ describe('ActivityLogTimeline', () => {
       />,
     )
 
-    expect(screen.getByText('· on Trio VMS')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Trio VMS' })).toHaveAttribute(
-      'href',
-      '/product-management/products/12',
-    )
+    expect(screen.getByText('· on Storefront Web')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Storefront Web' }),
+    ).toHaveAttribute('href', '/product-management/products/12')
   })
 
   it('describes a related entry whose record could not be resolved', () => {
@@ -740,7 +739,7 @@ describe('ActivityLogTimeline', () => {
         id: 'act-1',
         summary: 'Product Reparented',
         isRelated: true,
-        raisedOn: { id: 'child-id', key: 12, name: 'Trio VMS' },
+        raisedOn: { id: 'child-id', key: 12, name: 'Storefront Web' },
       }),
       createActivity({ id: 'act-2', summary: 'Team Created' }),
     ]
@@ -749,7 +748,7 @@ describe('ActivityLogTimeline', () => {
 
     await user.type(
       screen.getByPlaceholderText('Search events, actors, or types...'),
-      'trio',
+      'storefront',
     )
 
     expect(

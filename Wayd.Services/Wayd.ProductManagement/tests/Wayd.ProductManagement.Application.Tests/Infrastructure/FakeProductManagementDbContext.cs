@@ -25,6 +25,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     private readonly List<ProductTagCategory> _productTagCategories = [];
     private readonly List<ProductTag> _productTags = [];
     private readonly List<ProductTagAssignment> _productTagAssignments = [];
+    private readonly List<ProductDependency> _productDependencies = [];
     private readonly List<Version> _versions = [];
     private readonly List<Release> _releases = [];
     private readonly List<ReleaseVersion> _releaseVersions = [];
@@ -52,6 +53,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public DbSet<ProductTagCategory> ProductTagCategories => _productTagCategories.AsDbSet();
     public DbSet<ProductTag> ProductTags => _productTags.AsDbSet();
     public DbSet<ProductTagAssignment> ProductTagAssignments => _productTagAssignments.AsDbSet();
+    public DbSet<ProductDependency> ProductDependencies => _productDependencies.AsDbSet();
     public DbSet<Version> Versions => _versions.AsDbSet();
     public DbSet<Release> Releases => _releases.AsDbSet();
     public DbSet<ReleaseVersion> ReleaseVersions => _releaseVersions.AsDbSet();
@@ -111,6 +113,12 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddProductTag(ProductTag tag) => _productTags.Add(tag);
     public void AddProductTagAssignment(ProductTagAssignment assignment) => _productTagAssignments.Add(assignment);
     public void AddProductTags(IEnumerable<ProductTag> tags) => _productTags.AddRange(tags);
+
+    /// <summary>
+    /// Adds a product's dependencies to the set queries read. The fake keeps no relationship between a
+    /// product's collection and this set, so a link added through the aggregate is invisible here until added.
+    /// </summary>
+    public void AddProductDependencies(IEnumerable<ProductDependency> dependencies) => _productDependencies.AddRange(dependencies);
 
     public void AddVersion(Version version) => _versions.Add(version);
     public void AddVersions(IEnumerable<Version> versions) => _versions.AddRange(versions);

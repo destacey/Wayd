@@ -6,16 +6,23 @@ import ProductDetailsPage from './page'
 // formatting — without the real one the section throws while rendering and takes every tile with it.
 jest.unmock('dayjs')
 
+// The graph canvas measures itself and reads the theme provider, neither of which this page supplies.
+// What belongs here is that the Overview places it; the map's own tests cover what it draws.
+jest.mock('../../_components/dependency-map/dependency-map', () => ({
+  __esModule: true,
+  default: () => <div data-testid="dependency-map" />,
+}))
+
 const product = {
   id: 'product-1',
   key: 7,
-  name: 'Trio VMS',
+  name: 'Storefront Web',
   description: 'The video management surface.',
-  externalId: 'acme/trio-vms',
+  externalId: 'acme/storefront-web',
   type: { id: 'type-1', key: 1, name: 'Application' },
   status: { id: 'status-1', name: 'Concept', category: 1, alias: 0 },
   isReleasable: true,
-  parent: { id: 'product-0', key: 1, name: 'Trio WFS' },
+  parent: { id: 'product-0', key: 1, name: 'Storefront Suite' },
   tags: [
     {
       tagId: 'tag-1',
@@ -31,11 +38,47 @@ const components = [
     ...product,
     id: 'product-2',
     key: 9,
-    name: 'Trio VMS Web',
-    parent: { id: 'product-1', key: 7, name: 'Trio VMS' },
+    name: 'Storefront Web Client',
+    parent: { id: 'product-1', key: 7, name: 'Storefront Web' },
     tags: [],
   },
 ]
+
+const identity = { id: 'product-3', key: 11, name: 'Identity Service' }
+const shifts = { id: 'product-4', key: 12, name: 'Storefront Mobile' }
+const productRef = { id: product.id, key: product.key, name: product.name }
+
+const dependency = (
+  id: string,
+  from: typeof productRef,
+  to: typeof productRef,
+) => ({
+  id,
+  product: from,
+  dependsOnProduct: to,
+  strength: 'Hard',
+  startsOn: new Date('2026-03-01T00:00:00Z'),
+  productPath: [],
+  dependsOnProductPath: [],
+})
+
+const dependencies = {
+  dependsOn: [
+    dependency('dependency-1', productRef, identity),
+    dependency(
+      'dependency-2',
+      { id: 'product-2', key: 9, name: 'Storefront Web Client' },
+      identity,
+    ),
+  ],
+  usedBy: [dependency('dependency-3', shifts, productRef)],
+}
+
+// Its grid has a suite of its own; here only whether the page offers the section matters.
+jest.mock('./_components/product-dependencies', () => ({
+  __esModule: true,
+  default: () => <div data-testid="product-dependencies" />,
+}))
 
 let mockSearchParams = new URLSearchParams()
 const mockReplace = jest.fn((url: string) => {
@@ -163,6 +206,12 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
   }),
   useGetProductsQuery: () => ({ data: components, isLoading: false }),
   useGetProductActivitiesQuery: () => ({ data: undefined, isLoading: false }),
+  useGetProductDependenciesQuery: () => ({
+    data: dependencies,
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
+  useAddProductDependencyMutation: () => [jest.fn()],
   useLazyGetProductActivitiesQuery: () => [jest.fn()],
   useGetProductStatusOptionsQuery: () => ({ data: [], isLoading: false }),
   useChangeProductStatusMutation: () => [jest.fn()],
@@ -194,7 +243,7 @@ describe('ProductDetailsPage', () => {
     await renderPage()
 
     // Assert
-    expect(await screen.findByText('Trio VMS')).toBeInTheDocument()
+    expect(await screen.findByText('Storefront Web')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
   })
 
@@ -205,7 +254,9 @@ describe('ProductDetailsPage', () => {
     await renderPage()
 
     // Assert
-    const parentLink = await screen.findByRole('link', { name: 'Trio WFS' })
+    const parentLink = await screen.findByRole('link', {
+      name: 'Storefront Suite',
+    })
     expect(parentLink).toHaveAttribute('href', '/product-management/products/1')
   })
 
@@ -344,6 +395,30 @@ describe('ProductDetailsPage', () => {
 
     expect(releasesAt).toBeGreaterThan(-1)
     expect(versionsAt).toBeGreaterThan(releasesAt)
+  })
+
+  it('counts dependencies in both directions on their section', async () => {
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    const sectionEntry = await screen.findByRole('tab', {
+      name: /Dependencies/,
+    })
+    expect(sectionEntry).toHaveTextContent('3')
+  })
+
+  it('offers adding a dependency from the dependencies section', async () => {
+    // Arrange
+    mockSearchParams = new URLSearchParams('section=dependencies')
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Add Dependency' }),
+    ).toBeInTheDocument()
   })
 
   it('offers adding a release from the releases section', async () => {

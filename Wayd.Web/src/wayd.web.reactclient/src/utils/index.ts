@@ -24,6 +24,7 @@ export {
   type IterationHealthResult,
 } from './iteration-health'
 export { saveElementAsImage } from './save-element-as-image'
+export { toFileName } from './file-name'
 export { getInitials } from './get-initials'
 
 export {

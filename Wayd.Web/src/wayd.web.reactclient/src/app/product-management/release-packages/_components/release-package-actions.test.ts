@@ -84,7 +84,9 @@ describe('releasePackageActionAvailability', () => {
 
   it('refuses withdrawing a package twice', () => {
     // Arrange / Act / Assert
-    expect(releasePackageActionAvailability(withdrawn()).canWithdraw).toBe(false)
+    expect(releasePackageActionAvailability(withdrawn()).canWithdraw).toBe(
+      false,
+    )
   })
 
   it('still offers withdrawal after release', () => {

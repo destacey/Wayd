@@ -21,14 +21,24 @@ const planned = () => version()
 const cut = () =>
   version({
     cutDate: '2026-04-01' as unknown as Date,
-    status: { id: 's', name: 'Ready', category: StatusCategory.Active, alias: 10 },
+    status: {
+      id: 's',
+      name: 'Ready',
+      category: StatusCategory.Active,
+      alias: 10,
+    },
   })
 
 const released = () =>
   version({
     cutDate: '2026-04-01' as unknown as Date,
     releasedDate: '2026-04-02' as unknown as Date,
-    status: { id: 's', name: 'Released', category: StatusCategory.Done, alias: 11 },
+    status: {
+      id: 's',
+      name: 'Released',
+      category: StatusCategory.Done,
+      alias: 11,
+    },
   })
 
 const withdrawn = () =>
@@ -99,7 +109,12 @@ describe('versionActionAvailability', () => {
     // prerequisite for releasing.
     const doneWithoutCut = version({
       releasedDate: '2026-04-02' as unknown as Date,
-      status: { id: 's', name: 'Released', category: StatusCategory.Done, alias: 11 },
+      status: {
+        id: 's',
+        name: 'Released',
+        category: StatusCategory.Done,
+        alias: 11,
+      },
     })
 
     // Act

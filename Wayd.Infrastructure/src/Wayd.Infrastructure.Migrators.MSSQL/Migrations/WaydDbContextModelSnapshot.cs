@@ -3676,6 +3676,51 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Products", "ProductManagement");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductDependency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DependsOnProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Strength")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DependsOnProductId");
+
+                    b.HasIndex("ProductId", "DependsOnProductId")
+                        .IsUnique()
+                        .HasFilter("[End] IS NULL");
+
+                    b.ToTable("ProductDependencies", "ProductManagement");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7818,6 +7863,47 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("ProductType");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductDependency", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Product", "DependsOnProduct")
+                        .WithMany()
+                        .HasForeignKey("DependsOnProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Product", null)
+                        .WithMany("Dependencies")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.ClientCascade)
+                        .IsRequired();
+
+                    b.OwnsOne("Wayd.Common.Models.FlexibleDateRange", "Period", b1 =>
+                        {
+                            b1.Property<Guid>("ProductDependencyId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime?>("End")
+                                .HasColumnType("date")
+                                .HasColumnName("End");
+
+                            b1.Property<DateTime>("Start")
+                                .HasColumnType("date")
+                                .HasColumnName("Start");
+
+                            b1.HasKey("ProductDependencyId");
+
+                            b1.ToTable("ProductDependencies", "ProductManagement");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProductDependencyId");
+                        });
+
+                    b.Navigation("DependsOnProduct");
+
+                    b.Navigation("Period")
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTag", b =>
                 {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.ProductTagCategory", null)
@@ -8985,6 +9071,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Product", b =>
                 {
+                    b.Navigation("Dependencies");
+
                     b.Navigation("Tags");
                 });
 

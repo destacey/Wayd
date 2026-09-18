@@ -223,10 +223,10 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
     public async Task Handle_ShouldReachAGrandchild_WhenScopedToTheRoot()
     {
         // Arrange — the walk is not one level deep.
-        var platform = SeedGroupingProduct("Argo Platform");
-        var suite = SeedGroupingProduct("Trio", platform.Id);
-        var vms = SeedReleasableProduct("Trio VMS", suite.Id);
-        SeedReleased(vms.Id, "1.0", WindowStart);
+        var platform = SeedGroupingProduct("Core Platform");
+        var suite = SeedGroupingProduct("Storefront", platform.Id);
+        var web = SeedReleasableProduct("Storefront Web", suite.Id);
+        SeedReleased(web.Id, "1.0", WindowStart);
 
         // Act
         var result = await CreateSut().Handle(

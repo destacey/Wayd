@@ -7,7 +7,7 @@ description: Guides agents importing CSV data into Wayd via the Wayd MCP server 
 
 ## When to use
 
-- Loading records into Wayd from a spreadsheet or another system — employees, teams, portfolios, programs, projects, tasks, planning intervals, objectives, risks, products, versions, packages, releases, environments, deployments
+- Loading records into Wayd from a spreadsheet or another system — employees, teams, portfolios, programs, projects, tasks, planning intervals, objectives, risks, products, product dependencies, versions, packages, releases, environments, deployments
 - Checking whether a file would import cleanly, and why rows would be refused
 - Following a run that was still going when it was submitted
 - Finding out what became of an import someone submitted from Settings → Imports
@@ -56,10 +56,11 @@ A file refused outright — a missing header, a cell that is the wrong type, too
 
 `atomicity` decides what a rejected row costs:
 
-- **Atomic** — one rejected row means **nothing is written**. A run can report "0 of 40 applied" and be working correctly. Every import except employees is atomic. A preflight of an atomic import still reports every rejection at once, rather than stopping at the first step that finds one, and says Failed while any row is refused.
+- **Atomic** — one rejected row means **nothing is written**. A run can report "0 of 40 applied" and be working correctly. Every import except employees and product dependencies is atomic. A preflight of an atomic import still reports every rejection at once, rather than stopping at the first step that finds one, and says Failed while any row is refused.
 - **PerRow** — each row stands alone, so a run can be PartiallySucceeded. Only employees import this way.
+- **PerGroup** — rows sharing a group apply together or not at all, and the other groups are kept, so a run can be PartiallySucceeded. The definition's `groupNoun` names the group. Only product dependencies import this way, grouped by `ProductId`: every dependency of one product saves together. A row kept out only because another in its group was rejected says so — `Not applied: another row for the same product was rejected (import id '…')` — so fix the named row, not that one.
 
-For an atomic import, get the preflight to zero rejections before applying.
+For an atomic import, get the preflight to zero rejections before applying. For a PerGroup import, read the rejections group by group.
 
 ---
 
@@ -70,7 +71,7 @@ Records reference each other, so files go in dependency order, and **each must b
 - **Organization**: employees → teams → team hierarchy (`team-memberships`) → team staffing (`team-members`). Team member roles must exist first.
 - **Planning**: teams → planning intervals → objectives and risks.
 - **PPM**: expenditure categories and lifecycles (in Settings, not imported) → strategic themes → portfolios → programs → projects → project tasks → project stage statuses → strategic initiatives with KPIs → finalizations. Programs and portfolios that should end up closed are imported active, and `ppm.finalizations` closes them once their contents are in.
-- **Product Management**: product types and tags (in Settings) → products → versions → release packages → releases. Environments → deployments, after versions and packages.
+- **Product Management**: product types and tags (in Settings) → products → versions → release packages → releases. Environments → deployments, after versions and packages. Product dependencies after products; a strength that changed is two rows on the same pair, the first ending the day before the second starts.
 
 To show files as one batch in Settings → Imports, pass the same `submissionGroupId` (a GUID you choose) on each preflight and apply. It is a label only and changes nothing about ordering.
 

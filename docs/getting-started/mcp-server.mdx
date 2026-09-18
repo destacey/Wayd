@@ -147,7 +147,7 @@ npx skills add destacey/wayd
 
 ## Available Tools
 
-Most records expose an **activity history**: every recorded change, newest first, with who made it and what the value was before and after. A record that existed before Wayd began tracking its changes starts with a baseline entry showing what it looked like at that point.
+Most records expose an **activity history**: every recorded change, newest first, with who made it and what the value was before and after. A record that existed before Wayd began tracking its changes starts with a baseline entry showing what it looked like at that point. Some changes are listed on more than one record: moving a product under a new parent also appears in the history of both parents, marked as related and naming the product it was made on.
 
 ### Project Portfolio Management
 
@@ -298,6 +298,10 @@ The catalog is one typed tree of what your organization owns — products, platf
 | `Products_ChangeStatus` | Change a product's status |
 | `Products_LinkExternally` | Link a product to an external system |
 | `Products_Tag` / `Products_Untag` | Apply or remove a tag |
+| `Products_GetDependencies` | What a product depends on and what depends on it, rolled up across everything beneath it |
+| `Products_AddDependency` / `Products_UpdateDependency` | Record that a product depends on another, or reword what it is for |
+| `Products_ChangeDependencyStrength` | Change a dependency between hard and soft — ends it and opens a new one |
+| `Products_EndDependency` / `Products_RemoveDependency` | Record that a dependency stopped (kept), or delete one recorded by mistake |
 | `Products_Delete` | Permanently delete a product |
 | `ProductTypes_GetProductTypes` | List the types a product can be, and whether each allows versions |
 | `ProductTypes_Create` / `ProductTypes_Update` / `ProductTypes_Delete` | Manage product types |
@@ -308,6 +312,8 @@ The catalog is one typed tree of what your organization owns — products, platf
 | `ProductTagCategories_Reorder` | Reorder the axes — the list must name every one exactly once |
 | `ProductTagCategories_AddTag` / `ProductTagCategories_RenameTag` | Manage the tags on an axis |
 | `ProductTagCategories_SetTagActive` | Take a single tag out of use, or put it back |
+
+Dependencies are **rolled up**: a product line's list includes its services' links to anything outside it. Strength has no default — hard if the product stops working without the other, soft if it only degrades — and a dependency that stopped should be **ended, not removed**, so the record of when it held survives.
 
 Three behaviours worth knowing. Tagging an axis that only allows one value **silently replaces** the existing tag rather than refusing. Deleting a product is a **hard delete**, unlike delivery, where records are withdrawn and kept. And seeded system types and axes **cannot be edited or deleted, but can be deactivated** — so an organization can hide a type it doesn't use. Individual tags inside a seeded axis are the exception: they can't be deactivated either, so retire the whole axis instead.
 
@@ -347,13 +353,18 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `DeploymentEnvironments_GetDeploymentEnvironments` | List environments, by active state or category |
 | `DeploymentEnvironments_Create` / `DeploymentEnvironments_Update` | Define or edit an environment |
 | `DeploymentEnvironments_SetActive` | Retire an environment, or reinstate it |
+| `DeploymentEnvironments_GetRollout` | What is running in each environment now, in rollout order |
 | `DeliveryMetrics_GetDeliveryMetrics` | Deployment frequency and change failure rate over a window |
+| `DeliveryOverview_GetDeliveryOverview` | Version activity over a window — release frequency and cut-to-released time, for a product and everything beneath it |
+| `DeliveryOverview_GetRecentDeliveryEvents` | What has happened to versions and packages lately |
 
 **Contents and manifests replace as a set.** `Releases_SetContents` and `ReleasePackages_SetManifest` overwrite what was there, so send the full list including anything that should stay.
 
 Environments are **retired, never deleted**, because historical deployments still point at them. Every production-scoped measure counts on an environment's **category**, not its name — pipeline names vary too much (`prod`, `prd`, `live`) to reason about. Reclassifying an environment changes where future deployments count and leaves past ones alone.
 
 `DeliveryMetrics_GetDeliveryMetrics` returns an `unavailable` list naming what it couldn't compute and why; read it rather than treating a missing measure as zero. Change failure rate is a **proxy** — a pipeline run that failed before production is a failure that was *prevented*, while a real change failure succeeded and then broke something, which the pipeline can't know.
+
+`DeploymentEnvironments_GetRollout` reports the latest deployment of each product that **succeeded and wasn't rolled back**, so a failed attempt leaves its predecessor listed as running — and flags that a later attempt failed. `DeliveryOverview_GetDeliveryOverview` measures versions rather than deployments, so it answers how often you ship even where pipelines aren't recorded in Wayd.
 
 ### Organization
 

@@ -133,13 +133,13 @@ Then use `wayd-mcp` as the command instead of `npx -y @wayd/mcp` in any of the c
 
 Skills are prompt files that guide Claude on how to efficiently use the Wayd MCP tools — which tools to call in sequence, how to resolve IDs, and what the entity relationships look like. Without them, agents tend to make redundant calls or miss non-obvious patterns (e.g. project lifecycle transitions use separate action endpoints, not a status field).
 
-Eight self-contained skills are available:
+Nine self-contained skills are available:
 
 | Skill | Trigger |
 | --- | --- |
 | `wayd-ppm` | Portfolios, programs, projects — lookup, plans, health checks, task management |
 | `wayd-delivery` | Releases, versions, packages, deployments — what was announced, built, shipped together, and deployed where |
-| `wayd-products` | The product catalog — the typed tree, types, tags, environments, and delivery metrics |
+| `wayd-products` | The product catalog — the typed tree, dependencies, types, tags, environments, what is running where, and delivery measures |
 | `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
 | `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
@@ -200,11 +200,12 @@ Records that raise domain events expose an **activity history** — every record
 
 | Category | Operations |
 | --- | --- |
-| **Products** | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options. Create, update, retype, reparent, change status, link externally, tag, untag, delete |
+| **Products** | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options, get dependencies (rolled up, both directions). Create, update, retype, reparent, change status, link externally, tag, untag, delete. Dependencies: add, reword, change strength, end, remove |
 | **Product Types** | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it |
 | **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate the tags themselves |
-| **Deployment Environments** | List (by active state or category), create, update, retire or reinstate |
-| **Delivery Metrics** | Get the measures over a window |
+| **Deployment Environments** | List (by active state or category), get what is running in each (rollout), create, update, retire or reinstate |
+| **Delivery Metrics** | Get the deployment measures over a window |
+| **Delivery Overview** | Get version activity over a window (release frequency, cut-to-released), get recent version and package events |
 
 The catalog is one typed tree, and a product's type carries the flag that decides whether versions can be cut against it. Type, parent and status each have their own tool rather than being fields on the update, because each carries a rule the domain enforces. Two behaviours the `wayd-products` skill covers: tagging a single-value axis **silently replaces** the existing tag rather than refusing, and deleting a product is a **hard delete**, unlike delivery where records are withdrawn and kept.
 

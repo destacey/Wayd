@@ -12024,7 +12024,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get what is running in each environment, in rollout order.
         /// </summary>
         /// <remarks>
-        /// Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. A package is reported as itself rather than expanded into its manifest.
+        /// Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. Keyed on the product: a package deployment is expanded into its manifest, and each component takes its own product's slot.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EnvironmentRolloutDto>> GetRolloutAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -12294,7 +12294,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get what is running in each environment, in rollout order.
         /// </summary>
         /// <remarks>
-        /// Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. A package is reported as itself rather than expanded into its manifest.
+        /// Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. Keyed on the product: a package deployment is expanded into its manifest, and each component takes its own product's slot.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EnvironmentRolloutDto>> GetRolloutAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))

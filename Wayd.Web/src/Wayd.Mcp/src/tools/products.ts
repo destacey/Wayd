@@ -132,7 +132,11 @@ Note this is gated on *versions*, not releases: releasability asks whether an ar
 
   ['Products_Reparent', {
     name: 'Products_Reparent',
-    description: `Move a product to a different parent, or to the root by omitting the parent. **Refused if the new parent is the product itself or one of its own descendants** — that would make a cycle. Any type may parent any other; there are no allowed-parent rules.`,
+    description: `Move a product to a different parent, or to the root by omitting the parent. **Refused if the new parent is the product itself or one of its own descendants** — that would make a cycle. Any type may parent any other; there are no allowed-parent rules.
+
+**Also refused when the move would put two products with an open dependency between them above and below one another** — that relationship is composition, which the tree already records. End the dependency first (\`Products_EndDependency\`).
+
+The move is listed in the activity history of the product and of both its old and new parent.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"Must match the id in the path."},"parentId":{"type":"string","format":"uuid","description":"The new parent. Omit to move the product to the root. Cannot be the product itself or any of its descendants."}},"required":["id"]}},"required":["id","requestBody"]},
     method: 'put',
     pathTemplate: '/api/product-management/products/{id}/parent',
@@ -198,11 +202,99 @@ Both the tag and its category must be active. Applying a tag the product already
     annotations: { title: 'Remove a tag from a product', ...requiresConfirmation },
   }],
 
+  ['Products_GetDependencies', {
+    name: 'Products_GetDependencies',
+    description: `Get what a product depends on (\`dependsOn\`) and what depends on it (\`usedBy\`). Accepts the product's UUID or its short key.
+
+**Rolled up across everything beneath the product.** A link from one of its children to an outside product appears under \`dependsOn\`, and a link with both ends inside the product's own subtree appears in **neither** list — from outside, that is the product depending on itself. So reading a product line answers "what does this line rely on from elsewhere", and reading a leaf service answers it for that service alone.
+
+Each entry carries both ends whichever list it is in — \`product\` (the one with the dependency) and \`dependsOnProduct\` — so a rolled-up row says which descendant it starts or lands on. \`productPath\` and \`dependsOnProductPath\` give each end's full ancestry, root first, down to its parent. Also \`strength\` (1 Hard: stops working without it; 2 Soft: degrades but keeps working), \`description\`, \`startsOn\`, and \`endsOn\` (null while it still holds).
+
+Ended dependencies are left out unless \`includeEnded\` is true. An empty answer means no dependency has been recorded, not that none exists — they are entered by hand or by import.`,
+    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string","description":"Product ID (UUID) or its short key."},"includeEnded":{"type":"boolean","description":"Include dependencies that have ended. Defaults to false."}},"required":["idOrKey"]},
+    method: 'get',
+    pathTemplate: '/api/product-management/products/{idOrKey}/dependencies',
+    executionParameters: [{"name":"idOrKey","in":"path"},{"name":"includeEnded","in":"query"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Get product dependencies', ...readsOnly },
+  }],
+
+  ['Products_AddDependency', {
+    name: 'Products_AddDependency',
+    description: `Record that a product depends on another. Returns the new dependency's id.
+
+Record the **most specific product known** — the service that makes the call, not the platform it belongs to — since the read side rolls links up to every ancestor anyway. A product cannot depend on itself, nor on anything above or below it in the tree: that is composition, which the tree already records.
+
+**Strength has no default and must be chosen deliberately**: 1 Hard if the product stops working without it, 2 Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
+
+A product holds at most one open dependency on another product, and a later one on the same pair cannot overlap an earlier one. \`startsOn\` defaults to today, may be backdated, and cannot be in the future.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"requestBody":{"type":"object","properties":{"dependsOnProductId":{"type":"string","format":"uuid","description":"The product depended on. Cannot be the product itself, nor anything above or below it in the tree."},"strength":{"type":"integer","enum":[1,2],"description":"1 Hard (stops working without it) or 2 Soft (degrades but keeps working). No default."},"description":{"type":"string","description":"What the dependency is for. Max 1024 characters."},"startsOn":{"type":"string","format":"date","description":"The day it began, as YYYY-MM-DD. Defaults to today; may be backdated; cannot be in the future."}},"required":["dependsOnProductId","strength"]}},"required":["id","requestBody"]},
+    method: 'post',
+    pathTemplate: '/api/product-management/products/{id}/dependencies',
+    executionParameters: [{"name":"id","in":"path"}],
+    requestBodyContentType: 'application/json',
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Add a product dependency', ...requiresConfirmation },
+  }],
+
+  ['Products_UpdateDependency', {
+    name: 'Products_UpdateDependency',
+    description: `Reword what a product's dependency is for. Only the description — strength and dates each have their own tool. **An omitted description is cleared.** Allowed on an ended dependency.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"description":{"type":"string","description":"What the dependency is for. Max 1024 characters. Cleared when omitted."}},"required":[]}},"required":["id","dependencyId","requestBody"]},
+    method: 'put',
+    pathTemplate: '/api/product-management/products/{id}/dependencies/{dependencyId}',
+    executionParameters: [{"name":"id","in":"path"},{"name":"dependencyId","in":"path"}],
+    requestBodyContentType: 'application/json',
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Update a product dependency', ...requiresConfirmation },
+  }],
+
+  ['Products_ChangeDependencyStrength', {
+    name: 'Products_ChangeDependencyStrength',
+    description: `Change whether a product stops working without one it depends on. **This ends the current dependency and records a new one** with the new strength, so the history keeps when each strength held — and the response is the id of the dependency **now open**, which replaces the one you passed. Unchanged when the strength already matches.
+
+\`changedOn\` is the first day the new strength holds; the current dependency ends the day before. Defaults to today, must be after the day the dependency started, and cannot be in the future.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The open dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"strength":{"type":"integer","enum":[1,2],"description":"1 Hard (stops working without it) or 2 Soft (degrades but keeps working)."},"changedOn":{"type":"string","format":"date","description":"First day the new strength holds, as YYYY-MM-DD. Defaults to today."}},"required":["strength"]}},"required":["id","dependencyId","requestBody"]},
+    method: 'put',
+    pathTemplate: '/api/product-management/products/{id}/dependencies/{dependencyId}/strength',
+    executionParameters: [{"name":"id","in":"path"},{"name":"dependencyId","in":"path"}],
+    requestBodyContentType: 'application/json',
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Change a product dependency strength', ...requiresConfirmation },
+  }],
+
+  ['Products_EndDependency', {
+    name: 'Products_EndDependency',
+    description: `Record that a product stopped depending on another. **The dependency is kept** and still counts for the period it held — this is the right tool when a dependency was true and no longer is. Use \`Products_RemoveDependency\` only for one that was never true.
+
+\`endsOn\` is the last day it held: defaults to today, may be the day it started, and cannot be in the future.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"endsOn":{"type":"string","format":"date","description":"The last day it held, as YYYY-MM-DD. Defaults to today."}},"required":[]}},"required":["id","dependencyId","requestBody"]},
+    method: 'post',
+    pathTemplate: '/api/product-management/products/{id}/dependencies/{dependencyId}/end',
+    executionParameters: [{"name":"id","in":"path"},{"name":"dependencyId","in":"path"}],
+    requestBodyContentType: 'application/json',
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'End a product dependency', ...requiresConfirmation },
+  }],
+
+  ['Products_RemoveDependency', {
+    name: 'Products_RemoveDependency',
+    description: `**Delete** a dependency that was recorded by mistake. Requires a reason saying why it was never true. Not for a dependency that stopped — \`Products_EndDependency\` keeps the history of when it held, and this erases it.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"reason":{"type":"string","description":"Why the dependency was never true. Required, max 1024 characters."}},"required":["reason"]}},"required":["id","dependencyId","requestBody"]},
+    method: 'post',
+    pathTemplate: '/api/product-management/products/{id}/dependencies/{dependencyId}/remove',
+    executionParameters: [{"name":"id","in":"path"},{"name":"dependencyId","in":"path"}],
+    requestBodyContentType: 'application/json',
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Remove a product dependency', ...requiresConfirmation },
+  }],
+
   ['Products_Delete', {
     name: 'Products_Delete',
     description: `Permanently delete a product. **This is a hard delete, not a retirement** — unlike everything in delivery, where records are withdrawn and kept. Consider changing the status instead if the product merely stopped being current.
 
-Refused while anything depends on it, each with its own reason: it has **child products** (move or remove them first), it has **versions**, or it appears in a **release package manifest**. The third is checked separately from versions because a carried-forward manifest line often names a product with no version row at all.
+Refused while anything depends on it, each with its own reason: it has **child products** (move or remove them first), it has **versions**, it appears in a **release package manifest**, or it is named on **either end of a product dependency**. The manifest check is separate from versions because a carried-forward manifest line often names a product with no version row at all. The dependency check counts **ended** dependencies too — deleting the product would erase the record of what relied on it.
 
 Tag assignments are removed with the product. Status does not block deletion.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY}},"required":["id"]},

@@ -18,6 +18,7 @@ const ENTRY_SHAPE =
   'an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, ' +
   'and a `payload`: the event\'s fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. ' +
   'A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. ' +
+  'An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). ' +
   'Paged: the response carries `totalCount` and `hasNextPage`.';
 
 const PAGING = {
@@ -124,7 +125,7 @@ export const definitions: [string, McpToolDefinition][] = [
   activityTool(
     'Products_GetActivities',
     'Get product activity history',
-    'Get a product\'s activity history, newest first: every change recorded on the product — details, type, parent, status, tags and external link.',
+    'Get a product\'s activity history, newest first: every change recorded on the product — details, type, parent, status, tags and external link — plus a child product moving in or out, listed as a related entry raised on that child.',
     '/api/product-management/products/{idOrKey}/activities',
     'Product ID (UUID) or its short key.'
   ),

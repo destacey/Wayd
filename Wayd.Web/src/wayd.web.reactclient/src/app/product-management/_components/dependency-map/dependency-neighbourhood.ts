@@ -1,12 +1,13 @@
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid-core/grid-sorting'
 import {
   DependencyStrength,
+  NavigationDto,
   ProductDependenciesDto,
   ProductDependencyDto,
 } from '@/src/services/wayd-api'
-import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid-core/grid-sorting'
 import type { Edge, Node } from '@xyflow/react'
 
-/** Where a node sits relative to the product the map is centred on. */
+/** Which column a node sits in, relative to the product the map is centred on. */
 export type DependencyNodeSide = 'usedBy' | 'center' | 'dependsOn'
 
 export interface DependencyNodeData extends Record<string, unknown> {
@@ -40,7 +41,7 @@ export interface DependencyNeighbourhood {
    * leaves a product with two links sitting in an empty field.
    */
   height: number
-  /** Whether a descendant holds one of the links, which the caption explains only when it happens. */
+  /** Whether anything is drawn inside a box, which the caption explains only when it happens. */
   hasContainedProducts: boolean
 }
 
@@ -53,26 +54,236 @@ export interface BuildDependencyNeighbourhoodOptions {
   maxPerSide?: number
 }
 
-/** Laid out rather than simulated: one hop each way is three columns, and a fixed grid never jitters. */
-const COLUMN_X = { usedBy: 0, center: 320, dependsOn: 640 }
-const ROW_HEIGHT = 76
-const NODE_WIDTH = 180
+const LEAF_WIDTH = 180
+const LEAF_HEIGHT = 48
+const ROW_GAP = 20
 const GROUP_PADDING_X = 12
-const GROUP_HEADER = 34
+const GROUP_HEADER = 30
 const GROUP_PADDING_BOTTOM = 12
+const COLUMN_GAP = 140
 
-const MIN_CANVAS_HEIGHT = 180
-const MAX_CANVAS_HEIGHT = 420
+const MIN_CANVAS_HEIGHT = 240
+const MAX_CANVAS_HEIGHT = 720
 const CANVAS_MARGIN = 48
 
-/** Tall enough for the graph, within bounds: below the floor it is cramped, above it the card takes the page. */
+/**
+ * Node ids are scoped by column, because the same product can be on both sides of a map: a platform
+ * whose service you depend on may also consume one of yours. Sharing one node would drag a box of
+ * consumers into the providers column, where an arrow pointing back the way it came is the only clue
+ * that a product sits on the wrong side.
+ */
+export const sideNodeId = (side: DependencyNodeSide, productId: string) =>
+  side === 'center' ? productId : `${side}:${productId}`
+
+export const groupNodeId = (side: DependencyNodeSide, productId: string) =>
+  `group:${sideNodeId(side, productId)}`
+
+/**
+ * Tall enough for the graph, within bounds: below the floor it is cramped, above it the map is more page
+ * than a reader wants to scroll past. Nesting made graphs much taller than the flat version, so a low
+ * ceiling would zoom every product line's map down to unreadable. The canvas is capped again in CSS
+ * against the viewport, which this cannot know.
+ */
 const canvasHeight = (contentHeight: number) =>
   Math.min(
     MAX_CANVAS_HEIGHT,
     Math.max(MIN_CANVAS_HEIGHT, contentHeight + CANVAS_MARGIN),
   )
 
-export const groupNodeId = (productId: string) => `group:${productId}`
+/**
+ * A product on the map, with whatever of its own products are also on the map beneath it.
+ *
+ * `holdsLink` and children are independent: a product can both hold a dependency of its own and contain
+ * another that holds one, which is drawn as a box with the product's own node inside it.
+ */
+interface TreeNode {
+  id: string
+  label: string
+  productKey: number
+  holdsLink: boolean
+  isSubject: boolean
+  children: Map<string, TreeNode>
+}
+
+const emptyNode = (
+  product: { id: string; name: string; key: number },
+  isSubject = false,
+): TreeNode => ({
+  id: product.id,
+  label: product.name,
+  productKey: product.key,
+  holdsLink: false,
+  isSubject,
+  children: new Map(),
+})
+
+/** Files a product under the chain of products it sits inside, creating the boxes on the way down. */
+const insert = (
+  root: TreeNode,
+  path: NavigationDto[],
+  product: NavigationDto,
+) => {
+  let node = root
+
+  for (const step of path) {
+    node = node.children.get(step.id) ?? add(node, step)
+  }
+
+  if (product.id === root.id) {
+    root.holdsLink = true
+    return
+  }
+
+  add(node, product).holdsLink = true
+}
+
+const add = (parent: TreeNode, product: NavigationDto): TreeNode => {
+  const existing = parent.children.get(product.id)
+  if (existing) return existing
+
+  const child = emptyNode(product)
+  parent.children.set(product.id, child)
+
+  return child
+}
+
+const childrenInOrder = (node: TreeNode) =>
+  [...node.children.values()].sort((a, b) =>
+    caseInsensitiveCompare(a.label, b.label),
+  )
+
+interface Size {
+  width: number
+  height: number
+}
+
+/**
+ * How much room a product needs: a leaf is one node, a box is its header plus everything inside it.
+ *
+ * Measured before anything is placed, because a box cannot be positioned until its size is known and its
+ * size depends on its deepest child.
+ */
+const measure = (node: TreeNode): Size => {
+  const children = childrenInOrder(node)
+  if (children.length === 0) {
+    return { width: LEAF_WIDTH, height: LEAF_HEIGHT }
+  }
+
+  // The product's own node sits inside its box, above the products it contains.
+  const rows = [
+    ...(node.holdsLink ? [{ width: LEAF_WIDTH, height: LEAF_HEIGHT }] : []),
+    ...children.map(measure),
+  ]
+
+  return {
+    width: Math.max(...rows.map((row) => row.width)) + GROUP_PADDING_X * 2,
+    height:
+      GROUP_HEADER +
+      rows.reduce((total, row) => total + row.height, 0) +
+      ROW_GAP * (rows.length - 1) +
+      GROUP_PADDING_BOTTOM,
+  }
+}
+
+/**
+ * Turns a measured tree into React Flow nodes.
+ *
+ * A box is emitted before the nodes inside it, which React Flow requires, and those carry positions
+ * relative to it rather than to the canvas.
+ */
+const place = (
+  node: TreeNode,
+  side: DependencyNodeSide,
+  x: number,
+  y: number,
+  parentId: string | undefined,
+  into: DependencyNode[],
+) => {
+  const children = childrenInOrder(node)
+
+  const leaf = (at: { x: number; y: number }) =>
+    into.push({
+      id: sideNodeId(side, node.id),
+      type: 'product',
+      position: at,
+      ...(parentId ? { parentId, extent: 'parent' as const } : {}),
+      data: {
+        label: node.label,
+        side,
+        productKey: node.productKey,
+        ...(node.isSubject ? { isSubject: true } : {}),
+      },
+    })
+
+  if (children.length === 0) {
+    leaf({ x, y })
+    return
+  }
+
+  const size = measure(node)
+  const groupId = groupNodeId(side, node.id)
+
+  into.push({
+    id: groupId,
+    type: 'productGroup',
+    position: { x, y },
+    // Sized through width/height rather than style: both render the same box, but only these are read
+    // back off the node, and the image export sizes the box from what it reads.
+    width: size.width,
+    height: size.height,
+    ...(parentId ? { parentId, extent: 'parent' as const } : {}),
+    data: { label: node.label, productKey: node.productKey },
+  })
+
+  let offsetY = GROUP_HEADER
+
+  if (node.holdsLink) {
+    into.push({
+      id: sideNodeId(side, node.id),
+      type: 'product',
+      position: { x: GROUP_PADDING_X, y: offsetY },
+      parentId: groupId,
+      extent: 'parent',
+      data: {
+        label: node.label,
+        side,
+        productKey: node.productKey,
+        ...(node.isSubject ? { isSubject: true } : {}),
+      },
+    })
+    offsetY += LEAF_HEIGHT + ROW_GAP
+  }
+
+  for (const child of children) {
+    place(child, side, GROUP_PADDING_X, offsetY, groupId, into)
+    offsetY += measure(child).height + ROW_GAP
+  }
+}
+
+/** Stacks a column's products, and reports how tall and wide the column ended up. */
+const stack = (
+  roots: TreeNode[],
+  side: DependencyNodeSide,
+  into: DependencyNode[],
+): Size & { place: (x: number, offsetY: number) => void } => {
+  const sizes = roots.map(measure)
+  const height =
+    sizes.reduce((total, size) => total + size.height, 0) +
+    ROW_GAP * Math.max(0, roots.length - 1)
+  const width = roots.length === 0 ? 0 : Math.max(...sizes.map((s) => s.width))
+
+  return {
+    width,
+    height,
+    place: (x, offsetY) => {
+      let y = offsetY
+      roots.forEach((root, index) => {
+        place(root, side, x, y, undefined, into)
+        y += sizes[index].height + ROW_GAP
+      })
+    },
+  }
+}
 
 /**
  * The map of what a product relies on and what relies on it, one hop out.
@@ -80,13 +291,11 @@ export const groupNodeId = (productId: string) => `group:${productId}`
  * Ended links are left out whatever the caller passed: a map reads as what is true now, and a link that
  * has stopped says nothing about today's blast radius. The Dependencies section is where history is read.
  *
- * A neighbour appears once however many links reach it, so a parent whose three services depend on the
- * same provider draws one provider node, and a cycle draws one node with an edge each way.
- *
- * Where a link was recorded against a descendant rather than this product, the descendant is drawn as its
- * own node inside a box for this product. Containment is not a dependency, so it is a box rather than
- * another edge — and the link then starts where it was actually recorded rather than being credited to
- * the parent.
+ * Every product is drawn inside the products that contain it, on both sides: a link rolled up from a
+ * descendant starts at that descendant, nested under whatever it belongs to, and a service depended on is
+ * drawn under its own platform. Containment is a box rather than an edge, because an edge would put
+ * "is part of" and "relies on" in the same visual language — and crediting a parent with its child's link
+ * would claim a dependency the parent does not hold.
  */
 export const buildDependencyNeighbourhood = ({
   productId,
@@ -103,60 +312,82 @@ export const buildDependencyNeighbourhood = ({
     { side: 'usedBy' as const, links: open(dependencies?.usedBy) },
   ]
 
-  const farNodes: DependencyNode[] = []
+  const subject = emptyNode(
+    { id: productId, name: productName, key: productKey },
+    true,
+  )
+  const farRoots = new Map<
+    string,
+    { side: DependencyNodeSide; root: TreeNode }
+  >()
+
   const edges: DependencyEdge[] = []
-  const placed = new Set<string>()
-  /** The near ends links were actually recorded against: this product, some of its descendants, or both. */
-  const nearEnds = new Map<string, { name: string; key: number }>()
   let hiddenCount = 0
 
   for (const { side, links } of sides) {
-    const farEnd = (link: ProductDependencyDto) =>
-      side === 'dependsOn' ? link.dependsOnProduct : link.product
-    const nearEnd = (link: ProductDependencyDto) =>
-      side === 'dependsOn' ? link.product : link.dependsOnProduct
+    const ends = (link: ProductDependencyDto) =>
+      side === 'dependsOn'
+        ? {
+            far: link.dependsOnProduct,
+            // Defaulted because a cached response written before the paths existed would otherwise take
+            // the whole section down rather than drawing a flatter map.
+            farPath: link.dependsOnProductPath ?? [],
+            near: link.product,
+            nearPath: link.productPath ?? [],
+          }
+        : {
+            far: link.product,
+            farPath: link.productPath ?? [],
+            near: link.dependsOnProduct,
+            nearPath: link.dependsOnProductPath ?? [],
+          }
 
     // Grouped before the cap, so it limits products drawn rather than links: cutting mid-product would
     // show a node missing the very edges that explain it.
     const byFarEnd = new Map<string, ProductDependencyDto[]>()
     for (const link of links) {
-      const id = farEnd(link).id
+      const id = ends(link).far.id
       byFarEnd.set(id, [...(byFarEnd.get(id) ?? []), link])
     }
 
-    const shown = [...byFarEnd.entries()].slice(0, maxPerSide)
+    const shown = [...byFarEnd.values()].slice(0, maxPerSide)
     hiddenCount += [...byFarEnd.values()]
       .slice(maxPerSide)
       .reduce((total, group) => total + group.length, 0)
 
-    shown.forEach(([farEndId, group], index) => {
-      const far = farEnd(group[0])
-
-      if (!placed.has(farEndId)) {
-        placed.add(farEndId)
-        farNodes.push({
-          id: farEndId,
-          type: 'product',
-          position: { x: COLUMN_X[side], y: index * ROW_HEIGHT },
-          data: { label: far.name, side, productKey: far.key },
-        })
-      }
-
+    for (const group of shown) {
       for (const link of group) {
-        const near = nearEnd(link)
-        nearEnds.set(near.id, { name: near.name, key: near.key })
+        const { far, farPath, near, nearPath } = ends(link)
+
+        // The near end's chain is trimmed to the part inside this product; everything above it is the
+        // product's own ancestry, which the map is not about. A link the product holds itself carries
+        // the product's own ancestry and nothing below it — and a product is not in its own path, so
+        // an untrimmed chain would build the product's parents inside its box, upside down.
+        const depth = nearPath.findIndex((step) => step.id === productId)
+        const inside = depth === -1 ? [] : nearPath.slice(depth + 1)
+        insert(subject, inside, near)
+
+        // Keyed by side as well as product: a product that both depends on this one and is depended on
+        // by it belongs in both columns, drawn once in each.
+        const farRootKey = `${side}:${farPath[0]?.id ?? far.id}`
+        const farRoot = farRoots.get(farRootKey) ?? {
+          side,
+          root: emptyNode(farPath[0] ?? far, false),
+        }
+        farRoots.set(farRootKey, farRoot)
+        insert(farRoot.root, farPath.slice(1), far)
 
         edges.push({
           id: link.id,
-          source: side === 'dependsOn' ? near.id : farEndId,
-          target: side === 'dependsOn' ? farEndId : near.id,
+          source: side === 'dependsOn' ? near.id : sideNodeId(side, far.id),
+          target: side === 'dependsOn' ? sideNodeId(side, far.id) : near.id,
           data: { strength: link.strength },
         })
       }
-    })
+    }
   }
 
-  if (farNodes.length === 0) {
+  if (edges.length === 0) {
     return {
       nodes: [],
       edges: [],
@@ -166,83 +397,35 @@ export const buildDependencyNeighbourhood = ({
     }
   }
 
-  // The product first, then its descendants by name, so the subject does not move as links are added.
-  const descendants = [...nearEnds.entries()]
-    .filter(([id]) => id !== productId)
-    .sort(([, a], [, b]) => caseInsensitiveCompare(a.name, b.name))
+  const nodes: DependencyNode[] = []
+  const onSide = (side: DependencyNodeSide) =>
+    [...farRoots.values()]
+      .filter((entry) => entry.side === side)
+      .map((entry) => entry.root)
 
-  const farRows = Math.max(
-    farNodes.filter((n) => n.data.side === 'dependsOn').length,
-    farNodes.filter((n) => n.data.side === 'usedBy').length,
-  )
+  const usedByRoots = onSide('usedBy')
+  const dependsOnRoots = onSide('dependsOn')
 
-  if (descendants.length === 0) {
-    // Nothing is rolled up, so a box would enclose the subject and nothing else.
-    return {
-      nodes: [
-        {
-          id: productId,
-          type: 'product',
-          position: {
-            x: COLUMN_X.center,
-            y: ((farRows - 1) / 2) * ROW_HEIGHT,
-          },
-          data: {
-            label: productName,
-            side: 'center',
-            productKey,
-            isSubject: true,
-          },
-        },
-        ...farNodes,
-      ],
-      edges,
-      hiddenCount,
-      height: canvasHeight(farRows * ROW_HEIGHT),
-      hasContainedProducts: false,
-    }
-  }
+  const left = stack(usedByRoots, 'usedBy', nodes)
+  const centre = stack([subject], 'center', nodes)
+  const right = stack(dependsOnRoots, 'dependsOn', nodes)
 
-  const members = [
-    ...(nearEnds.has(productId)
-      ? [[productId, { name: productName, key: productKey }] as const]
-      : []),
-    ...descendants,
-  ]
+  const tallest = Math.max(left.height, centre.height, right.height)
+  const centred = (column: Size) => (tallest - column.height) / 2
 
-  const groupHeight =
-    GROUP_HEADER + members.length * ROW_HEIGHT + GROUP_PADDING_BOTTOM
-  const groupY = Math.max(0, (farRows * ROW_HEIGHT - groupHeight) / 2)
+  const leftX = 0
+  const centreX = left.width + (left.width > 0 ? COLUMN_GAP : 0)
+  const rightX = centreX + centre.width + COLUMN_GAP
 
-  const group: DependencyNode = {
-    id: groupNodeId(productId),
-    type: 'productGroup',
-    position: { x: COLUMN_X.center - GROUP_PADDING_X, y: groupY },
-    style: { width: NODE_WIDTH + GROUP_PADDING_X * 2, height: groupHeight },
-    data: { label: productName, productKey },
-  }
+  left.place(leftX, centred(left))
+  centre.place(centreX, centred(centre))
+  right.place(rightX, centred(right))
 
-  const memberNodes: DependencyNode[] = members.map(([id, near], index) => ({
-    id,
-    type: 'product',
-    // Positions inside a group are relative to it.
-    position: { x: GROUP_PADDING_X, y: GROUP_HEADER + index * ROW_HEIGHT },
-    parentId: group.id,
-    extent: 'parent',
-    data: {
-      label: near.name,
-      side: 'center',
-      productKey: near.key,
-      isSubject: id === productId,
-    },
-  }))
-
-  // The group is listed before its members, which React Flow requires.
   return {
-    nodes: [group, ...memberNodes, ...farNodes],
+    nodes,
     edges,
     hiddenCount,
-    height: canvasHeight(Math.max(farRows * ROW_HEIGHT, groupHeight)),
-    hasContainedProducts: true,
+    height: canvasHeight(tallest),
+    hasContainedProducts: nodes.some((node) => node.type === 'productGroup'),
   }
 }

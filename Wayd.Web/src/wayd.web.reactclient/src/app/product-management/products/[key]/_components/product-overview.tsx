@@ -9,6 +9,7 @@ import {
 } from '@/src/services/wayd-api'
 import { Card, Col, Empty, Row, Skeleton, Typography } from 'antd'
 import dynamic from 'next/dynamic'
+import { toFileName } from '@/src/utils'
 import { buildDependencyNeighbourhood } from '../../../_components/dependency-map'
 import { countReleasedWithin } from './version-cadence'
 
@@ -136,6 +137,9 @@ const ProductOverview = ({
               nodes={neighbourhood.nodes}
               edges={neighbourhood.edges}
               height={neighbourhood.height}
+              // "map" rather than "dependencies": the grid exports the same links as CSV, and the two
+              // files would otherwise be told apart only by their extension.
+              fileStem={`${toFileName(product.name)}-dependency-map`}
             />
             <Text type="secondary">
               What this product relies on, and what relies on it. A solid line

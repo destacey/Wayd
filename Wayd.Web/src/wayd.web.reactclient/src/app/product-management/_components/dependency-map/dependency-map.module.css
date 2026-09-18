@@ -3,21 +3,32 @@
   height: 100%;
 }
 
-/* The canvas has no intrinsic height, so an unconstrained parent collapses it to nothing. */
+/* The canvas has no intrinsic height, so an unconstrained parent collapses it to nothing. The cap is
+   against the viewport rather than a fixed number: a tall graph should use the window it has, without
+   the card growing past what a reader can see at once. Fullscreen overrides it. */
 .surface {
   width: 100%;
+  max-height: 70vh;
   border-radius: var(--ant-border-radius);
   background: var(--ant-color-bg-container);
 }
 
+/* Fills the browser viewport rather than the monitor, as the timeline's fullscreen does. */
+.fullscreen {
+  position: fixed;
+  max-height: none;
+  inset: 0;
+  z-index: 1000;
+  height: 100vh;
+  border-radius: 0;
+  padding: var(--ant-padding-xs);
+}
+
 .node {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   box-sizing: border-box;
   width: 180px;
   min-height: 48px;
-  padding: 8px 12px;
   border: 1px solid var(--ant-color-border);
   border-radius: var(--ant-border-radius);
   background: var(--ant-color-bg-elevated);
@@ -52,10 +63,7 @@
   color: var(--ant-color-text-secondary);
   font-size: var(--ant-font-size-sm);
   font-weight: 600;
-}
-
-.groupLabel:hover {
-  color: var(--ant-color-primary);
+  cursor: pointer;
 }
 
 /* Product names are long and mostly differ at the end ("Onboarding Fulfillment Mobile"), so a single
@@ -69,11 +77,21 @@
   overflow-wrap: anywhere;
 }
 
+/* The whole node is the link, not just the words on it: a map is read by aiming at boxes, and a
+   text-sized hit target on a 180px box reads as undraggable decoration rather than something to click. */
 .link {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
   color: inherit;
+  cursor: pointer;
 }
 
-.link:hover {
+.link:hover,
+.groupLabel:hover {
   color: var(--ant-color-primary);
 }
 

@@ -16,13 +16,13 @@ jest.mock('../../_components/dependency-map/dependency-map', () => ({
 const product = {
   id: 'product-1',
   key: 7,
-  name: 'Trio VMS',
+  name: 'Storefront Web',
   description: 'The video management surface.',
-  externalId: 'acme/trio-vms',
+  externalId: 'acme/storefront-web',
   type: { id: 'type-1', key: 1, name: 'Application' },
   status: { id: 'status-1', name: 'Concept', category: 1, alias: 0 },
   isReleasable: true,
-  parent: { id: 'product-0', key: 1, name: 'Trio WFS' },
+  parent: { id: 'product-0', key: 1, name: 'Storefront Suite' },
   tags: [
     {
       tagId: 'tag-1',
@@ -38,14 +38,14 @@ const components = [
     ...product,
     id: 'product-2',
     key: 9,
-    name: 'Trio VMS Web',
-    parent: { id: 'product-1', key: 7, name: 'Trio VMS' },
+    name: 'Storefront Web Client',
+    parent: { id: 'product-1', key: 7, name: 'Storefront Web' },
     tags: [],
   },
 ]
 
-const identity = { id: 'product-3', key: 11, name: 'Argo Identity' }
-const shifts = { id: 'product-4', key: 12, name: 'Trio Shifts' }
+const identity = { id: 'product-3', key: 11, name: 'Identity Service' }
+const shifts = { id: 'product-4', key: 12, name: 'Storefront Mobile' }
 const productRef = { id: product.id, key: product.key, name: product.name }
 
 const dependency = (
@@ -58,6 +58,8 @@ const dependency = (
   dependsOnProduct: to,
   strength: 'Hard',
   startsOn: new Date('2026-03-01T00:00:00Z'),
+  productPath: [],
+  dependsOnProductPath: [],
 })
 
 const dependencies = {
@@ -65,7 +67,7 @@ const dependencies = {
     dependency('dependency-1', productRef, identity),
     dependency(
       'dependency-2',
-      { id: 'product-2', key: 9, name: 'Trio VMS Web' },
+      { id: 'product-2', key: 9, name: 'Storefront Web Client' },
       identity,
     ),
   ],
@@ -241,7 +243,7 @@ describe('ProductDetailsPage', () => {
     await renderPage()
 
     // Assert
-    expect(await screen.findByText('Trio VMS')).toBeInTheDocument()
+    expect(await screen.findByText('Storefront Web')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
   })
 
@@ -252,7 +254,9 @@ describe('ProductDetailsPage', () => {
     await renderPage()
 
     // Assert
-    const parentLink = await screen.findByRole('link', { name: 'Trio WFS' })
+    const parentLink = await screen.findByRole('link', {
+      name: 'Storefront Suite',
+    })
     expect(parentLink).toHaveAttribute('href', '/product-management/products/1')
   })
 

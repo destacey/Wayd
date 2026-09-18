@@ -49,7 +49,7 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Get what is running in each environment, in rollout order.",
-        "Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. A package is reported as itself rather than expanded into its manifest.")]
+        "Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. Keyed on the product: a package deployment is expanded into its manifest, and each component takes its own product's slot.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EnvironmentRolloutDto>>> GetRollout(

@@ -1,4 +1,8 @@
-export { buildProductTree, buildMoveTargetTree } from './product-tree'
+export {
+  ancestorIdsOf,
+  buildProductTree,
+  buildMoveTargetTree,
+} from './product-tree'
 export type { ProductTreeNode } from './product-tree'
 export { default as ProductTreeSelect } from './product-tree-select'
 export type {

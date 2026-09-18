@@ -37,6 +37,40 @@ const components = [
   },
 ]
 
+const identity = { id: 'product-3', key: 11, name: 'Argo Identity' }
+const shifts = { id: 'product-4', key: 12, name: 'Trio Shifts' }
+const productRef = { id: product.id, key: product.key, name: product.name }
+
+const dependency = (
+  id: string,
+  from: typeof productRef,
+  to: typeof productRef,
+) => ({
+  id,
+  product: from,
+  dependsOnProduct: to,
+  strength: 'Hard',
+  startsOn: new Date('2026-03-01T00:00:00Z'),
+})
+
+const dependencies = {
+  dependsOn: [
+    dependency('dependency-1', productRef, identity),
+    dependency(
+      'dependency-2',
+      { id: 'product-2', key: 9, name: 'Trio VMS Web' },
+      identity,
+    ),
+  ],
+  usedBy: [dependency('dependency-3', shifts, productRef)],
+}
+
+// Its grid has a suite of its own; here only whether the page offers the section matters.
+jest.mock('./_components/product-dependencies', () => ({
+  __esModule: true,
+  default: () => <div data-testid="product-dependencies" />,
+}))
+
 let mockSearchParams = new URLSearchParams()
 const mockReplace = jest.fn((url: string) => {
   mockSearchParams = new URLSearchParams(url.split('?')[1] ?? '')
@@ -163,6 +197,12 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
   }),
   useGetProductsQuery: () => ({ data: components, isLoading: false }),
   useGetProductActivitiesQuery: () => ({ data: undefined, isLoading: false }),
+  useGetProductDependenciesQuery: () => ({
+    data: dependencies,
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
+  useAddProductDependencyMutation: () => [jest.fn()],
   useLazyGetProductActivitiesQuery: () => [jest.fn()],
   useGetProductStatusOptionsQuery: () => ({ data: [], isLoading: false }),
   useChangeProductStatusMutation: () => [jest.fn()],
@@ -344,6 +384,30 @@ describe('ProductDetailsPage', () => {
 
     expect(releasesAt).toBeGreaterThan(-1)
     expect(versionsAt).toBeGreaterThan(releasesAt)
+  })
+
+  it('counts dependencies in both directions on their section', async () => {
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    const sectionEntry = await screen.findByRole('tab', {
+      name: /Dependencies/,
+    })
+    expect(sectionEntry).toHaveTextContent('3')
+  })
+
+  it('offers adding a dependency from the dependencies section', async () => {
+    // Arrange
+    mockSearchParams = new URLSearchParams('section=dependencies')
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Add Dependency' }),
+    ).toBeInTheDocument()
   })
 
   it('offers adding a release from the releases section', async () => {

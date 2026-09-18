@@ -11,6 +11,7 @@ import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
   useGetProductActivitiesQuery,
+  useGetProductDependenciesQuery,
   useGetProductQuery,
   useGetProductsQuery,
   useLazyGetProductActivitiesQuery,
@@ -31,6 +32,7 @@ import { use, useEffect, useState } from 'react'
 // Imported directly rather than through the barrel: the barrel also pulls in the
 // create form, and with it the markdown editor's ESM-only dependencies, which this
 // page never renders.
+import AddProductDependencyForm from '../_components/add-product-dependency-form'
 import ChangeProductStatusForm from '../_components/change-product-status-form'
 import CreateProductForm from '../_components/create-product-form'
 import DeleteProductForm from '../_components/delete-product-form'
@@ -42,6 +44,7 @@ import RetypeProductForm from '../_components/retype-product-form'
 import PlanReleaseForm from '@/src/app/product-management/releases/_components/plan-release-form'
 import PlanVersionForm from '@/src/app/product-management/versions/_components/plan-version-form'
 import ProductsGrid from '../_components/products-grid'
+import ProductDependencies from './_components/product-dependencies'
 import ProductFacts from './_components/product-facts'
 import ProductOverview from './_components/product-overview'
 import ProductReleases from './_components/product-releases'
@@ -55,6 +58,7 @@ enum ProductSections {
   // type decides what kind — an Application can sit under an Application. Naming
   // the section after one type would mislabel the rest.
   Products = 'products',
+  Dependencies = 'dependencies',
   Releases = 'releases',
   Versions = 'versions',
   StatusHistory = 'status-history',
@@ -75,6 +79,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     useState<boolean>(false)
   const [isPlanVersionOpen, setIsPlanVersionOpen] = useState<boolean>(false)
   const [isPlanReleaseOpen, setIsPlanReleaseOpen] = useState<boolean>(false)
+  const [isAddDependencyOpen, setIsAddDependencyOpen] = useState<boolean>(false)
+  const [includeEndedDependencies, setIncludeEndedDependencies] =
+    useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -145,6 +152,16 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   } = useGetReleasesQuery(
     { productId: product?.id },
     { skip: !product?.id || !canViewReleases },
+  )
+
+  // Loaded here rather than inside the section, so the tab's count is there before the section is opened.
+  const {
+    data: dependencies,
+    isLoading: dependenciesLoading,
+    refetch: refetchDependencies,
+  } = useGetProductDependenciesQuery(
+    { idOrKey: product?.id ?? '', includeEnded: includeEndedDependencies },
+    { skip: !product?.id },
   )
 
   const isNotFound = (error as { status?: number })?.status === 404
@@ -260,6 +277,14 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       // thing a reader wants, and opening an empty section to find out is worse.
       count: components?.length || undefined,
     },
+    {
+      id: ProductSections.Dependencies,
+      label: 'Dependencies',
+      // Both directions: a product others rely on is as much a dependency story as one that relies on others.
+      count:
+        (dependencies?.dependsOn.length ?? 0) +
+          (dependencies?.usedBy.length ?? 0) || undefined,
+    },
     // Announcements before artifacts, as in the nav: what customers were told about this product is
     // the product-side question, and versions are the engineering record beneath it.
     ...(canViewReleases
@@ -292,6 +317,19 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           raisedOnHref={(record) =>
             `/product-management/products/${record.key}`
           }
+        />
+      )
+    }
+
+    if (section === ProductSections.Dependencies) {
+      return (
+        <ProductDependencies
+          productId={product.id}
+          dependencies={dependencies}
+          isLoading={dependenciesLoading}
+          refetch={refetchDependencies}
+          includeEnded={includeEndedDependencies}
+          onIncludeEndedChange={setIncludeEndedDependencies}
         />
       )
     }
@@ -418,6 +456,11 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Button onClick={() => setIsCreateChildOpen(true)}>
               Add Product
             </Button>
+          ) : canUpdateProduct &&
+            activeSection === ProductSections.Dependencies ? (
+            <Button onClick={() => setIsAddDependencyOpen(true)}>
+              Add Dependency
+            </Button>
           ) : canCreateVersion && activeSection === ProductSections.Versions ? (
             <Button onClick={() => setIsPlanVersionOpen(true)}>
               Add Version
@@ -511,6 +554,14 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsLinkExternallyOpen(false)}
+        />
+      )}
+
+      {isAddDependencyOpen && (
+        <AddProductDependencyForm
+          product={product}
+          onFormComplete={() => setIsAddDependencyOpen(false)}
+          onFormCancel={() => setIsAddDependencyOpen(false)}
         />
       )}
 

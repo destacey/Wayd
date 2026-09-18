@@ -1,5 +1,6 @@
 import { ProductDto } from '@/src/services/wayd-api'
 import {
+  ancestorIdsOf,
   buildMoveTargetTree,
   buildProductTree,
   ProductTreeNode,
@@ -138,5 +139,41 @@ describe('buildMoveTargetTree', () => {
 
     // Assert
     expect(names(tree).sort()).toEqual(['Billing', 'Checkout', 'Suite'])
+  })
+})
+
+describe('ancestorIdsOf', () => {
+  it('lists every product above one, nearest first', () => {
+    // Arrange
+    const argo = product('1', 'Argo')
+    const services = product('2', 'Services', { id: '1', key: 1, name: 'Argo' })
+    const identity = product('3', 'Identity', {
+      id: '2',
+      key: 2,
+      name: 'Services',
+    })
+
+    // Act
+    const ancestors = ancestorIdsOf([identity, argo, services], '3')
+
+    // Assert
+    expect(ancestors).toEqual(['2', '1'])
+  })
+
+  it('lists none for a root', () => {
+    // Arrange
+    const argo = product('1', 'Argo')
+
+    // Act / Assert
+    expect(ancestorIdsOf([argo], '1')).toEqual([])
+  })
+
+  it('stops at a cycle already in the data', () => {
+    // Arrange
+    const a = product('1', 'A', { id: '2', key: 2, name: 'B' })
+    const b = product('2', 'B', { id: '1', key: 1, name: 'A' })
+
+    // Act / Assert
+    expect(ancestorIdsOf([a, b], '1')).toEqual(['2'])
   })
 })

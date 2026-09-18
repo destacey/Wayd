@@ -50,6 +50,20 @@ const dependencyChangeTags = (
   { type: QueryTags.ActivityLog, id: dependsOnProductId },
 ]
 
+/**
+ * What renaming or moving a product can change.
+ *
+ * Every dependency row carries both ends' names and ancestry, and is rolled up onto every ancestor of
+ * either end, so a product's name or place in the tree reaches dependency lists the mutation cannot name
+ * — including those of products the reader expanded on a map. A move also changes which links roll up
+ * where, and which fall inside a subtree and drop out of it.
+ */
+export const productIdentityTags = (productId: string) => [
+  { type: QueryTags.Product, id: 'LIST' },
+  { type: QueryTags.Product, id: productId },
+  { type: QueryTags.ProductDependency, id: 'LIST' },
+]
+
 export const productsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getProducts: builder.query<ProductDto[], GetProductsRequest | undefined>({
@@ -157,10 +171,7 @@ export const productsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => [
-        { type: QueryTags.Product, id: 'LIST' },
-        { type: QueryTags.Product, id: arg.id },
-      ],
+      invalidatesTags: (result, error, arg) => productIdentityTags(arg.id),
     }),
     reparentProduct: builder.mutation<
       void,
@@ -177,10 +188,7 @@ export const productsApi = apiSlice.injectEndpoints({
       },
       // The whole list: moving a node changes the parent shown on it, and can change what a
       // parent-filtered list contains on either side of the move.
-      invalidatesTags: (result, error, arg) => [
-        { type: QueryTags.Product, id: 'LIST' },
-        { type: QueryTags.Product, id: arg.id },
-      ],
+      invalidatesTags: (result, error, arg) => productIdentityTags(arg.id),
     }),
     linkProductExternally: builder.mutation<
       void,

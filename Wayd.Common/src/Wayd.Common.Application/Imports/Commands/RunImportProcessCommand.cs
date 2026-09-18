@@ -85,12 +85,7 @@ public sealed class RunImportProcessCommandHandler(
                 if (eligible.Count == 0)
                     continue;
 
-                // An atomic import is never split, whatever its passes declare: discarding staged work only
-                // holds while none of it has been saved, and a second chunk would mean the first already had.
-                List<IReadOnlyList<ImportProcessRow>> chunks =
-                    pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
-                        ? [eligible]
-                        : Chunk(eligible, definition.ChunkSize);
+                var chunks = ChunksFor(definition, pass, eligible);
 
                 for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
                 {
@@ -103,8 +98,8 @@ public sealed class RunImportProcessCommandHandler(
                     }
 
                     var isFinalChunk = chunkIndex == chunks.Count - 1;
-                    var passResult = await definition.ExecutePass(
-                        process.Id, passIndex, chunks[chunkIndex], isFinalChunk, cancellationToken);
+                    var passResult = await ExecuteChunk(
+                        definition, process.Id, passIndex, chunks[chunkIndex], isFinalChunk, cancellationToken);
 
                     if (passResult.IsFailure)
                     {
@@ -185,7 +180,7 @@ public sealed class RunImportProcessCommandHandler(
     private async Task<Result> RunPreflight(ImportProcess process, IImportDefinition definition, CancellationToken cancellationToken)
     {
         var rehearsal = process.Rows
-            .Select(r => ImportProcessRow.Create(r.ImportId, r.RowNumber, r.Payload!))
+            .Select(r => ImportProcessRow.Create(r.ImportId, r.RowNumber, r.Payload!, r.GroupKey))
             .ToList();
 
         var lastPassIndex = definition.Passes.Count - 1;
@@ -204,11 +199,9 @@ public sealed class RunImportProcessCommandHandler(
                 if (eligible.Count == 0)
                     break;
 
-                // Chunked exactly as a real run would be, so a pass sees the same rows together.
-                List<IReadOnlyList<ImportProcessRow>> chunks =
-                    pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic
-                        ? [eligible]
-                        : Chunk(eligible, definition.ChunkSize);
+                // Chunked, and a rejected group kept out, exactly as a real run would, so the preflight reports
+                // the same rows the run would reject.
+                var chunks = ChunksFor(definition, pass, eligible);
 
                 for (var chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++)
                 {
@@ -218,8 +211,8 @@ public sealed class RunImportProcessCommandHandler(
                         break;
                     }
 
-                    var passResult = await definition.ExecutePass(
-                        process.Id, passIndex, chunks[chunkIndex], chunkIndex == chunks.Count - 1, cancellationToken);
+                    var passResult = await ExecuteChunk(
+                        definition, process.Id, passIndex, chunks[chunkIndex], chunkIndex == chunks.Count - 1, cancellationToken);
 
                     if (passResult.IsFailure)
                     {
@@ -583,6 +576,149 @@ public sealed class RunImportProcessCommandHandler(
         return Result.Success();
     }
 
+    /// <summary>How a pass's rows are split for one run: never, by count, or by count without splitting a group.</summary>
+    /// <remarks>
+    /// An atomic import is never split, whatever its passes declare: discarding staged work only holds while
+    /// none of it has been saved, and a second chunk would mean the first already had. A per-group import is
+    /// split only between groups, for the same reason at a smaller scale — each chunk is saved, so a group
+    /// straddling two would be half applied the moment the first was.
+    /// </remarks>
+    private static List<IReadOnlyList<ImportProcessRow>> ChunksFor(
+        IImportDefinition definition, ImportPassDescriptor pass, List<ImportProcessRow> eligible)
+    {
+        if (pass.Scope == ImportPassScope.WholeSet || definition.Atomicity == ImportAtomicity.Atomic)
+            return [eligible];
+
+        return definition.Atomicity == ImportAtomicity.PerGroup
+            ? ChunkByGroup(eligible, definition.ChunkSize)
+            : Chunk(eligible, definition.ChunkSize);
+    }
+
     private static List<IReadOnlyList<ImportProcessRow>> Chunk(List<ImportProcessRow> rows, int chunkSize) =>
         [.. rows.Chunk(Math.Max(1, chunkSize)).Select(c => (IReadOnlyList<ImportProcessRow>)c)];
+
+    /// <summary>
+    /// Fills each chunk with whole groups up to the chunk size. A group larger than that is a chunk of its
+    /// own rather than being split. Groups keep the order their first row had in the file.
+    /// </summary>
+    private static List<IReadOnlyList<ImportProcessRow>> ChunkByGroup(List<ImportProcessRow> rows, int chunkSize)
+    {
+        List<IReadOnlyList<ImportProcessRow>> chunks = [];
+        List<ImportProcessRow> current = [];
+
+        foreach (var group in rows.GroupBy(GroupOf, StringComparer.Ordinal))
+        {
+            var members = group.ToList();
+            if (current.Count > 0 && current.Count + members.Count > chunkSize)
+            {
+                chunks.Add(current);
+                current = [];
+            }
+
+            current.AddRange(members);
+        }
+
+        if (current.Count > 0)
+            chunks.Add(current);
+
+        return chunks;
+    }
+
+    /// <summary>A row's group. A row the submission gave none is its own group, which is what it would be anyway.</summary>
+    private static string GroupOf(ImportProcessRow row) => row.GroupKey ?? row.ImportId;
+
+    private async Task<Result<ImportPassResult>> ExecuteChunk(
+        IImportDefinition definition,
+        Guid importProcessId,
+        int passIndex,
+        IReadOnlyList<ImportProcessRow> rows,
+        bool isFinalChunk,
+        CancellationToken cancellationToken) =>
+        definition.Atomicity == ImportAtomicity.PerGroup
+            ? await ExecuteByGroup(definition, importProcessId, passIndex, rows, isFinalChunk, cancellationToken)
+            : await definition.ExecutePass(importProcessId, passIndex, rows, isFinalChunk, cancellationToken);
+
+    /// <summary>
+    /// Runs a chunk of a per-group import, keeping out every group in which a row was rejected.
+    /// </summary>
+    /// <remarks>
+    /// The pass is given the whole chunk, so its lookups stay batched and a clean chunk costs one call. When
+    /// a row is rejected, everything the pass staged is thrown away and the chunk run again without the
+    /// rejected groups, until a run rejects nothing. Discarding and re-running asks nothing of the definition
+    /// beyond what every pass already does — read what it needs from the database each time it is called —
+    /// where undoing one group's changes in place would need the runner to know which entities belong to it.
+    /// Each re-run drops at least one group, so it ends; a clean chunk is never re-run.
+    /// <para>
+    /// A row kept out only for its group's sake says so, and names the row that was rejected, so the details
+    /// page shows why a valid row did not apply.
+    /// </para>
+    /// </remarks>
+    private async Task<Result<ImportPassResult>> ExecuteByGroup(
+        IImportDefinition definition,
+        Guid importProcessId,
+        int passIndex,
+        IReadOnlyList<ImportProcessRow> rows,
+        bool isFinalChunk,
+        CancellationToken cancellationToken)
+    {
+        var remaining = rows.ToList();
+        List<ImportRowResult> keptOut = [];
+
+        while (true)
+        {
+            var result = await definition.ExecutePass(importProcessId, passIndex, remaining, isFinalChunk, cancellationToken);
+            if (result.IsFailure)
+                return result;
+
+            var outcomes = result.Value.Rows.ToDictionary(o => o.ImportId, StringComparer.Ordinal);
+
+            // The first rejection in each group is the one its other rows are kept out on account of.
+            var rejectedGroups = remaining
+                .Where(r => outcomes.TryGetValue(r.ImportId, out var o) && o.Failed)
+                .GroupBy(GroupOf, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().ImportId, StringComparer.Ordinal);
+
+            if (rejectedGroups.Count == 0)
+                return Result.Success(new ImportPassResult([.. result.Value.Rows, .. keptOut]));
+
+            DiscardEverythingStaged();
+
+            foreach (var row in remaining.Where(r => rejectedGroups.ContainsKey(GroupOf(r))))
+            {
+                keptOut.Add(outcomes.TryGetValue(row.ImportId, out var outcome) && outcome.Failed
+                    ? outcome
+                    : new ImportRowResult(
+                        row.ImportId,
+                        Failed: true,
+                        $"Not applied: another row for the same {definition.GroupNoun} was rejected (import id '{rejectedGroups[GroupOf(row)]}').",
+                        CreatedEntityId: null,
+                        Warning: null));
+            }
+
+            remaining = [.. remaining.Where(r => !rejectedGroups.ContainsKey(GroupOf(r)))];
+            if (remaining.Count == 0)
+                return Result.Success(new ImportPassResult(keptOut));
+        }
+    }
+
+    /// <summary>
+    /// Lets go of every entity the attempt touched, however it touched it, so a re-run starts from what the
+    /// database holds.
+    /// </summary>
+    /// <remarks>
+    /// Wider than <see cref="DiscardStagedChanges"/>, which detaches only what was added, changed or removed:
+    /// an aggregate the attempt loaded is still Unchanged while the entities it staged sit in its
+    /// collections, and the next change detection would find them there and add them straight back.
+    /// </remarks>
+    private void DiscardEverythingStaged()
+    {
+        var touched = _importDbContext.ChangeTracker.Entries()
+            .Where(e => e.Entity is not ImportProcess and not ImportProcessRow)
+            .ToList();
+
+        foreach (var entry in touched)
+        {
+            entry.State = EntityState.Detached;
+        }
+    }
 }

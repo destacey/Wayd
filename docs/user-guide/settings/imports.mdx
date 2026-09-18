@@ -24,7 +24,7 @@ button is hidden when there are none.
 
 For the kind you choose, the dialog shows:
 
-- **What the import does**, and whether it is all-or-nothing or applied row by row, with its row cap.
+- **What the import does**, and whether it is all-or-nothing, applied row by row, or applied group by group, with its row cap.
 - **Every column the file must carry**, whether a row may leave it empty, and what it accepts — a date,
   an id, or one of a fixed set of values such as a status. The file needs every header even where a cell
   is blank.
@@ -121,6 +121,11 @@ is worse than none. One rejected row in those means nothing is written. The run 
 behaves this way.
 :::
 
+Others apply **group by group**: every row for the same record goes in together or not at all, and the
+other groups are still imported. The run says what a group is. A row kept out only because another row in
+its group was rejected says so — "Not applied: another row for the same … was rejected" — and names the
+row that was, so the fix is always to that one row. Retrying the failed rows puts the whole group through again.
+
 ## Status
 
 | Status | Meaning |
@@ -186,7 +191,7 @@ kind it is.
 
 | Rule | Value |
 |---|---|
-| Rows per file | 50,000 for an import applied row by row (employees); 10,000 for an all-or-nothing import, which is one database transaction. Over the cap, the file is rejected before anything is queued. |
+| Rows per file | 50,000 for an import applied row by row (employees) or group by group; 10,000 for an all-or-nothing import, which is one database transaction. Over the cap, the file is rejected before anything is queued. |
 | Request size | About 30 MB, the web server's default. A 50,000-row file is a few megabytes. |
 | Empty file | Rejected: a file with no rows never becomes a run. A missing file returns 422. |
 | `ImportId` | Optional. At most 128 characters, trimmed, and unique within the file compared **case-insensitively** (`abc` and `ABC` collide). Blank uses the row's position, counting from one. |
@@ -198,7 +203,7 @@ kind it is.
 
 | Rule | Value |
 |---|---|
-| Chunking | A row-by-row import saves every 500 rows and records progress after each chunk; a stop takes effect at the next chunk boundary. An all-or-nothing import saves once, at the end. |
+| Chunking | A row-by-row import saves every 500 rows and records progress after each chunk; a stop takes effect at the next chunk boundary. A group-by-group import does the same without ever splitting a group across two chunks, so a group larger than 500 rows is a chunk of its own. An all-or-nothing import saves once, at the end. |
 | Automatic attempts | 3. An attempt that fails unexpectedly hands the run back to the queue, and the next carries on from the saved progress. After the third the run ends as **Failed**, and **Resume** takes it on from there. |
 | Stalled runs | A run queued for 15 minutes with no worker is republished; one with no progress for 30 minutes is failed so it can be resumed. Checked every five minutes by `import-stall-recovery`. A preflight records no progress until it finishes, so one that runs longer than 30 minutes is failed the same way — split the file. |
 | Retention | Submitted row data is discarded 30 days after a run finishes, nightly, by `import-retention-sweep`. The run and its per-row outcomes stay; the rows can no longer be retried. |

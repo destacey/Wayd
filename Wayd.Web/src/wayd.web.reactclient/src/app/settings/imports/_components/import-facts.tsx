@@ -1,6 +1,7 @@
 'use client'
 
 import { LabeledContent } from '@/src/components/common/content'
+import { byGroup } from '@/src/components/common/import'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { formatDateTime } from '@/src/components/common/wayd-grid'
 import { ImportAtomicity, ImportProcessDto } from '@/src/services/wayd-api'
@@ -90,6 +91,12 @@ const ImportFacts = ({ importProcess }: ImportFactsProps) => (
         {importProcess.atomicity === ImportAtomicity.Atomic ? (
           <Tooltip title="One rejected row keeps the whole file out.">
             <span>All or nothing</span>
+          </Tooltip>
+        ) : importProcess.atomicity === ImportAtomicity.PerGroup ? (
+          <Tooltip
+            title={`A rejected row keeps out every row for the same ${importProcess.groupNoun ?? 'group'}; the rest still apply.`}
+          >
+            <span>{byGroup(importProcess.groupNoun ?? 'group')}</span>
           </Tooltip>
         ) : (
           <Tooltip title="Each row applies on its own; a rejected row does not stop the rest.">

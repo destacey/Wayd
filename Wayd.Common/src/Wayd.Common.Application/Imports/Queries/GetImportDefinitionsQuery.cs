@@ -28,7 +28,7 @@ public sealed class GetImportDefinitionsQueryHandler(
             .. viewable
                 .OrderBy(d => d.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .Select(d => new ImportDefinitionDto(
-                    d.Key, d.DisplayName, d.Atomicity, d.MaxRows, d.PreflightMaxRows, submittableKeys.Contains(d.Key)))
+                    d.Key, d.DisplayName, d.Atomicity, d.GroupNoun, d.MaxRows, d.PreflightMaxRows, submittableKeys.Contains(d.Key)))
         ];
     }
 }

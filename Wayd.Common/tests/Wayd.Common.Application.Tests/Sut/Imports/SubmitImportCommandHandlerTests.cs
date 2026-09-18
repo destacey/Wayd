@@ -175,6 +175,57 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
         _db.ImportProcesses.Single().Rows.Select(r => r.ImportId).Should().Equal("1", "2", "3");
     }
 
+    private async Task<CSharpFunctionalExtensions.Result<Guid>> SubmitGrouped(params string[] groups)
+    {
+        var definition = new TestGroupedImportDefinition(new ImportPayloadSerializer());
+        var clock = new Mock<IDateTimeProvider>();
+        clock.SetupGet(c => c.Now).Returns(_now);
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+
+        var handler = new SubmitImportCommandHandler(
+            _db, new ImportDefinitionRegistry([definition]), currentUser.Object, clock.Object, _dispatcher.Object,
+            NullLogger<SubmitImportCommandHandler>.Instance);
+
+        var rows = groups
+            .Select((g, i) => new SubmittedImportRow($"r{i + 1}", definition.SerializeRow(new TestGroupedImportRow(g))))
+            .ToList();
+
+        return await handler.Handle(new SubmitImportCommand(definition.Key, rows), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsEachRowsGroupForAPerGroupImport()
+    {
+        // Act
+        await SubmitGrouped("a", "b", "a");
+
+        // Assert — kept on the row, because a succeeded row's payload is gone by the time a retry chunks again
+        _db.ImportProcesses.Single().Rows.Select(r => r.GroupKey).Should().Equal("a", "b", "a");
+    }
+
+    [Fact]
+    public async Task Handle_RejectsARowThatNamesNoGroupForAPerGroupImport()
+    {
+        // Act
+        var result = await SubmitGrouped("a", " ");
+
+        // Assert — a row with no group would apply on its own, outside the promise the import makes
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Row 2 does not name the widget it belongs to.");
+        _db.ImportProcesses.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_RecordsNoGroupForAnImportThatIsNotPerGroup()
+    {
+        // Act
+        await Submit(Rows(2));
+
+        // Assert
+        _db.ImportProcesses.Single().Rows.Should().AllSatisfy(r => r.GroupKey.Should().BeNull());
+    }
+
     [Fact]
     public async Task Handle_RejectsAnEmptyFile()
     {

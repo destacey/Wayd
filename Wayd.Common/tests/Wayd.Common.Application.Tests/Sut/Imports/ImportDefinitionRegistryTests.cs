@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Enums.Imports;
 
 namespace Wayd.Common.Application.Tests.Sut.Imports;
 
@@ -48,6 +49,32 @@ public sealed class ImportDefinitionRegistryTests
         // Assert — the Settings page still has to render that run
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("retired-import");
+    }
+
+    [Fact]
+    public void Constructor_AcceptsASinglePassPerGroupDefinition()
+    {
+        // Act
+        var act = () => CreateRegistry(new TestGroupedImportDefinition(new ImportPayloadSerializer()));
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Constructor_RefusesAPerGroupDefinitionWithMoreThanOnePass()
+    {
+        // Arrange — each pass saves before the next, so a group rejected in the second would be half applied
+        var definition = new TestImportDefinition(new ImportPayloadSerializer())
+        {
+            AtomicityOverride = ImportAtomicity.PerGroup,
+        };
+
+        // Act
+        var act = () => CreateRegistry(definition);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("*single pass*");
     }
 
     [Fact]

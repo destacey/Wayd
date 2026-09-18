@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Common.Application.Imports.Commands;
@@ -103,7 +104,21 @@ public sealed class SubmitImportCommandHandler(
             return Result.Failure<Guid>(
                 $"This file has {command.Rows.Count:N0} rows; a {definition.DisplayName} preflight checks at most {definition.PreflightMaxRows:N0} at a time. Split the file to check it.");
 
-        var rows = BuildRows(command.Rows);
+        var rows = BuildRows(command.Rows, definition);
+
+        if (definition.Atomicity == ImportAtomicity.PerGroup)
+        {
+            // A row with no group would apply on its own, quietly breaking the promise the import makes.
+            var ungrouped = rows.Find(r => string.IsNullOrWhiteSpace(r.GroupKey));
+            if (ungrouped is not null)
+                return Result.Failure<Guid>(
+                    $"Row {ungrouped.RowNumber} does not name the {definition.GroupNoun} it belongs to.");
+
+            var overlongGroup = rows.Find(r => r.GroupKey!.Length > ImportProcessRow.MaxGroupKeyLength);
+            if (overlongGroup is not null)
+                return Result.Failure<Guid>(
+                    $"Row {overlongGroup.RowNumber} names a {definition.GroupNoun} longer than {ImportProcessRow.MaxGroupKeyLength} characters.");
+        }
 
         // Caught here rather than at SaveChanges, where the storage bound would surface as a 500 naming a
         // column instead of the row the caller has to fix.
@@ -139,10 +154,11 @@ public sealed class SubmitImportCommandHandler(
     /// Falls back to the row's position when the caller supplied no key, so a hand-authored file works
     /// without one while a tool still gets to choose its own.
     /// </summary>
-    private static List<ImportProcessRow> BuildRows(IReadOnlyList<SubmittedImportRow> submitted) =>
+    private static List<ImportProcessRow> BuildRows(IReadOnlyList<SubmittedImportRow> submitted, IImportDefinition definition) =>
         [.. submitted.Select((row, index) =>
             ImportProcessRow.Create(
                 SubmittedImportRow.KeyFor(row.ImportId, index + 1),
                 index + 1,
-                row.Payload))];
+                row.Payload,
+                definition.GroupKeyOf(row.Payload)))];
 }

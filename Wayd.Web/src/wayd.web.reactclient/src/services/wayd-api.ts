@@ -43120,6 +43120,7 @@ export interface ImportProcessDto {
     importType: string;
     displayName: string;
     atomicity: ImportAtomicity;
+    groupNoun?: string | undefined;
     status: ImportProcessStatus;
     isPreflight: boolean;
     appliedImportProcessId?: string | undefined;
@@ -43142,6 +43143,7 @@ export interface ImportProcessDto {
 export enum ImportAtomicity {
     PerRow = "PerRow",
     Atomic = "Atomic",
+    PerGroup = "PerGroup",
 }
 
 export enum ImportProcessStatus {
@@ -47486,6 +47488,7 @@ export interface ImportDefinitionDto {
     key: string;
     displayName: string;
     atomicity: ImportAtomicity;
+    groupNoun?: string | undefined;
     maxRows: number;
     preflightMaxRows: number;
     canSubmit: boolean;

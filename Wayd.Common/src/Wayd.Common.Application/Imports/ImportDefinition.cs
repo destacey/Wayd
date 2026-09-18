@@ -23,6 +23,7 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
     public abstract string PermissionResource { get; }
 
     public virtual ImportAtomicity Atomicity => ImportAtomicity.PerRow;
+    public virtual string? GroupNoun => null;
     public virtual int MaxRows => 50_000;
     public virtual int PreflightMaxRows => MaxRows;
     public virtual int ChunkSize => 500;
@@ -66,6 +67,16 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
         return Result.Success(new ImportPassResult(
             [.. items.Select(i => new ImportRowResult(i.ImportId, i.IsFailed, i.Error, i.CreatedEntityIdSet ? i.CreatedEntityId : null, i.Warning))]));
     }
+
+    /// <summary>
+    /// The unit a row applies with, for a <see cref="ImportAtomicity.PerGroup"/> import: every row returning
+    /// the same key is applied together or not at all. Rows are compared by the key as returned, so it must
+    /// be canonical — a Guid formatted one way, not whatever casing the file used.
+    /// </summary>
+    protected virtual string? GroupKey(TRow row) => null;
+
+    public string? GroupKeyOf(string payload) =>
+        Atomicity == ImportAtomicity.PerGroup ? GroupKey(_serializer.Deserialize<TRow>(payload)) : null;
 
     /// <summary>Serializes a parsed row for storage at submission time.</summary>
     public string SerializeRow(TRow row) => _serializer.Serialize(row);

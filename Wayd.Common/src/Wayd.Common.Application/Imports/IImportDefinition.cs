@@ -26,6 +26,19 @@ public interface IImportDefinition
     /// </summary>
     ImportAtomicity Atomicity { get; }
 
+    /// <summary>
+    /// What one group of a <see cref="ImportAtomicity.PerGroup"/> import is, in the singular — "product" —
+    /// for the message a row gets when it is kept out because another row in its group was rejected. Null
+    /// for any other import.
+    /// </summary>
+    string? GroupNoun { get; }
+
+    /// <summary>
+    /// The group a stored row belongs to, for a <see cref="ImportAtomicity.PerGroup"/> import. Null for any
+    /// other import. Read from the payload once, at submission, and kept on the row.
+    /// </summary>
+    string? GroupKeyOf(string payload);
+
     /// <summary>Above this many rows the submission is rejected outright, before anything is persisted.</summary>
     int MaxRows { get; }
 

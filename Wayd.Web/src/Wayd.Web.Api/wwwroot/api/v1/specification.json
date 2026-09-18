@@ -39525,6 +39525,10 @@
           "atomicity": {
             "$ref": "#/components/schemas/ImportAtomicity"
           },
+          "groupNoun": {
+            "type": "string",
+            "nullable": true
+          },
           "status": {
             "$ref": "#/components/schemas/ImportProcessStatus"
           },
@@ -39602,11 +39606,13 @@
         "description": "",
         "x-enumNames": [
           "PerRow",
-          "Atomic"
+          "Atomic",
+          "PerGroup"
         ],
         "enum": [
           "PerRow",
-          "Atomic"
+          "Atomic",
+          "PerGroup"
         ]
       },
       "ImportProcessStatus": {
@@ -56641,6 +56647,10 @@
           },
           "atomicity": {
             "$ref": "#/components/schemas/ImportAtomicity"
+          },
+          "groupNoun": {
+            "type": "string",
+            "nullable": true
           },
           "maxRows": {
             "type": "integer",

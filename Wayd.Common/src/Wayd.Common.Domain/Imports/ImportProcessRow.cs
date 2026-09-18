@@ -28,11 +28,15 @@ public sealed class ImportProcessRow : BaseEntity
 
     private ImportProcessRow() { }
 
-    private ImportProcessRow(string importId, int rowNumber, string payload)
+    /// <summary>Storage bound for <see cref="GroupKey"/>, which holds an id or a short business key.</summary>
+    public const int MaxGroupKeyLength = 128;
+
+    private ImportProcessRow(string importId, int rowNumber, string payload, string? groupKey)
     {
         ImportId = importId;
         RowNumber = rowNumber;
         Payload = payload;
+        GroupKey = groupKey;
         Status = ImportRowStatus.Pending;
     }
 
@@ -60,6 +64,16 @@ public sealed class ImportProcessRow : BaseEntity
 
     /// <summary>Position in the submitted file, so an error can name a line the user can find.</summary>
     public int RowNumber { get; private set; }
+
+    /// <summary>
+    /// The unit this row applies with, for an import that applies group by group — every dependency of one
+    /// product, say. Null for any other import.
+    /// </summary>
+    /// <remarks>
+    /// Worked out once, at submission, and kept rather than read from the payload each time: the runner has
+    /// to keep a group inside one chunk on every attempt, and a succeeded row's payload is already gone.
+    /// </remarks>
+    public string? GroupKey { get; private set; }
 
     /// <summary>
     /// The parsed row, as JSON. Held only while it is still needed: cleared the moment the row succeeds, and
@@ -98,8 +112,8 @@ public sealed class ImportProcessRow : BaseEntity
 
     public Instant? AttemptedOn { get; private set; }
 
-    public static ImportProcessRow Create(string importId, int rowNumber, string payload) =>
-        new(importId, rowNumber, payload);
+    public static ImportProcessRow Create(string importId, int rowNumber, string payload, string? groupKey = null) =>
+        new(importId, rowNumber, payload, groupKey);
 
     /// <summary>
     /// Notes the record this row created while the run is still working through its later passes. The row

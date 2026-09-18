@@ -82,7 +82,7 @@ retyping, moving, tagging and linking externally need only the permission.
 
 ## Dependencies
 
-The **Dependencies** section records which products a product needs in order to work — Trio VMS relying on Argo Identity to sign users in. It is not the product tree: the tree says what a product is made of, dependencies say what it relies on elsewhere. A product cannot depend on itself, or on anything above or below it in the tree.
+The **Dependencies** section records which products a product needs in order to work — Storefront Web relying on Identity Service to sign users in. It is not the product tree: the tree says what a product is made of, dependencies say what it relies on elsewhere. A product cannot depend on itself, or on anything above or below it in the tree.
 
 The section has two lists, switched at the top of the grid:
 
@@ -93,13 +93,13 @@ Its tab counts both.
 
 ### Recording the specific product
 
-Record a dependency on the **most specific product you know** — the service, not the platform it belongs to. If Trio VMS needs Argo's identity service, record Trio VMS depends on **Argo Identity**, not on Argo Platform.
+Record a dependency on the **most specific product you know** — the service, not the platform it belongs to. If Storefront Web needs Core Platform's identity service, record Storefront Web depends on **Identity Service**, not on Core Platform.
 
 You never lose the wider picture by doing so. Both lists already include the dependencies of **everything beneath** the product:
 
-- On **Trio**, Depends On lists every dependency recorded on Trio VMS, Trio Shifts and the rest of Trio's products, with a **From** column naming which one.
-- On **Argo Platform**, Used By lists every product depending on any of Argo's services, with a **Via** column naming which service.
-- A dependency between two products **inside** the same branch — Argo Gateway on Argo Identity — does not appear on Argo Platform at all. From outside, that is Argo depending on itself.
+- On **Storefront**, Depends On lists every dependency recorded on Storefront Web, Storefront Mobile and the rest of Storefront's products, with a **From** column naming which one.
+- On **Core Platform**, Used By lists every product depending on any of Core Platform's services, with a **Via** column naming which service.
+- A dependency between two products **inside** the same branch — Gateway Service on Identity Service — does not appear on Core Platform at all. From outside, that is Core Platform depending on itself.
 
 Nothing is stored twice: the rolled-up rows are worked out when the page is read, so moving a product never leaves them out of date.
 
@@ -107,9 +107,13 @@ Nothing is stored twice: the rolled-up rows are worked out when the page is read
 
 A product with dependencies gets a **Dependencies** map on its Overview: what relies on it to the left, what it relies on to the right, and the product itself in the middle. A solid line is a hard dependency and a dashed line a soft one, and every product on it links to its own page.
 
-Where a dependency was recorded against a product **beneath** this one, that product is drawn as its own node inside a box labelled with this product. The box is containment — what the product is made of — which is why it is a box and not another line: a line always means "relies on". So Trio's map shows Trio VMS inside the Trio box with its own line out to Argo Identity, rather than crediting Trio with a dependency it does not hold.
+Every product is drawn inside whatever contains it, on both sides, however deep the catalog goes. A dependency recorded against a product **beneath** this one starts at that product, nested in a box for each thing it belongs to; a product depended on is drawn under its own platform, so a row reading "Accounts API" says whose service that is. The box is containment — what a product is made of — which is why it is a box and not another line: a line always means "relies on". So Storefront's map shows Storefront Web inside the Storefront box with its own line out to Identity Service, rather than crediting Storefront with a dependency it does not hold.
+
+A product line that holds products on both sides appears as a box on each side, because the columns are what carry the meaning: on the left is what relies on this product, on the right what it relies on. The same is true of a pair that depend on each other — each appears in both columns rather than as one node with a line doubling back.
 
 The map draws the dependencies that hold today. Ended ones are left off however the Dependencies section's **Show ended** switch is set, and a busy product's map shows the first few products per side with the rest behind the link in the card's corner.
+
+Every product on the map — including the boxes — links to its own page. The controls down the left of the canvas zoom, fit the map back into view, open it **full screen** (Esc closes it), and save it as an image. **PNG** pastes anywhere; **SVG** stays sharp at any size. The image is drawn from the map rather than captured from the screen, so it holds the whole graph whatever you had panned to, and the controls are left out of it.
 
 ### Strength
 
@@ -182,7 +186,7 @@ Moving changes a product's parent, or promotes it to a root by clearing the pare
 
 The parent picker is a tree, so you can see the hierarchy you are moving within. It omits the product being moved **and everything beneath it** — a product cannot become its own ancestor, and offering the move would only produce a refusal.
 
-A move is also refused when it would put a product above or below a product it has an open [dependency](#dependencies) with, counting everything beneath the product being moved. Moving Argo Platform beneath Trio while Trio depends on Argo Identity would turn that dependency into part of Trio. End the dependency first if the move is right; an ended dependency does not block it.
+A move is also refused when it would put a product above or below a product it has an open [dependency](#dependencies) with, counting everything beneath the product being moved. Moving Core Platform beneath Storefront while Storefront depends on Identity Service would turn that dependency into part of Storefront. End the dependency first if the move is right; an ended dependency does not block it.
 
 ### Linking Externally
 

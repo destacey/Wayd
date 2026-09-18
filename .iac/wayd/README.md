@@ -48,6 +48,8 @@ The Terraform Cloud workspace needs Azure credentials to provision resources. Cr
 
 Docker images for the API and client must be published to a registry accessible by the Container App. The default config points at `docker.io/awaldow/moda-api` and `docker.io/awaldow/moda-client` as a convenience fallback — override `docker_image_registry`, `api_image_name`, and `client_image_name` to point at your own images.
 
+The GitHub Actions workflow also publishes the same builds to GHCR (`ghcr.io/destacey/wayd-api` and `ghcr.io/destacey/wayd-client`). Terraform still deploys the Docker Hub tags; GHCR is a parallel publish until the deploy registry is switched.
+
 ## Configuration
 
 Required and optional variables are declared in [variables.tf](./variables.tf). The GitHub Actions workflow passes `sql_admin_pass`, `local_jwt_secret`, `dataprotection_master_key`, and `docker_tag` as `-var` flags on every run — you set the rest on the Terraform Cloud workspace.
@@ -128,7 +130,7 @@ Most Azure resources are named using the pattern `<prefix>-${project}-${environm
 
 The GitHub Actions workflow ([.github/workflows/docker.yml](../../.github/workflows/docker.yml)) handles the full deploy:
 
-1. Build + push container images to Docker Hub (tagged with the commit SHA)
+1. Build + push container images to Docker Hub (tagged with the commit SHA) and the same tags to GHCR. Terraform still consumes the Docker Hub images.
 2. `terraform apply` against the TFC workspace, passing `docker_tag=sha-<commit>`
 3. Run EF Core migrations against the deployed SQL database
 

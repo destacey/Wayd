@@ -7,6 +7,7 @@
    against the viewport rather than a fixed number: a tall graph should use the window it has, without
    the card growing past what a reader can see at once. Fullscreen overrides it. */
 .surface {
+  position: relative;
   width: 100%;
   max-height: 70vh;
   border-radius: var(--ant-border-radius);
@@ -98,4 +99,18 @@
 /* The dots are decoration; hiding them keeps a read-only map from inviting a drag that does nothing. */
 .handle {
   opacity: 0;
+}
+
+/* Laid over the canvas rather than drawn as a React Flow panel, whose own position rules outrank a
+   module class and pin it to an edge. Click-through, so the controls beneath stay usable. */
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ant-padding);
+  color: var(--ant-color-text-secondary);
+  text-align: center;
+  pointer-events: none;
 }

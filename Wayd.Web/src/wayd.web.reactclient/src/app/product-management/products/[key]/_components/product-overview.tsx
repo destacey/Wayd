@@ -6,10 +6,14 @@ import {
   ProductDto,
   VersionDto,
 } from '@/src/services/wayd-api'
-import { Card, Col, Row, Skeleton, Typography } from 'antd'
+import { Card, Col, Row, Segmented, Skeleton, Typography } from 'antd'
 import dynamic from 'next/dynamic'
 import { toFileName } from '@/src/utils'
-import { buildDependencyNeighbourhood } from '../../../_components/dependency-map'
+import {
+  buildDependencyNeighbourhood,
+  useDependencyStrengthFilter,
+  type DependencyStrengthFilter,
+} from '../../../_components/dependency-map'
 import { countReleasedWithin } from './version-cadence'
 
 // Loaded on demand: the graph canvas is the heaviest thing on this page and most products have no
@@ -77,11 +81,22 @@ const ProductOverview = ({
 
   const releasedInWindow = countReleasedWithin(versions, RELEASE_WINDOW_DAYS)
 
-  const neighbourhood = buildDependencyNeighbourhood({
+  const [strengthFilter, setStrengthFilter] = useDependencyStrengthFilter()
+  const hardOnly = strengthFilter === 'hard'
+
+  const mapOptions = {
     productId: product.id,
     productName: product.name,
     productKey: product.key,
     dependencies,
+  }
+  // Whether the card shows is decided on every link, not the filtered ones: a product whose links are
+  // all soft would otherwise lose the map, and with it the control that would turn the filter back off.
+  const hasDependencies =
+    buildDependencyNeighbourhood(mapOptions).edges.length > 0
+  const neighbourhood = buildDependencyNeighbourhood({
+    ...mapOptions,
+    strengthFilter,
   })
 
   return (
@@ -120,7 +135,7 @@ const ProductOverview = ({
 
       {/* Absent rather than empty when nothing depends on this product: a map of one node says less
           than no map, and most products have no dependencies at all. */}
-      {!dependenciesLoading && neighbourhood.edges.length > 0 && (
+      {!dependenciesLoading && hasDependencies && (
         <Col span={24}>
           <Card
             size="small"
@@ -128,8 +143,9 @@ const ProductOverview = ({
             extra={
               dependenciesSectionId && (
                 <a onClick={() => onNavigateToSection(dependenciesSectionId)}>
+                  {/* The grid is not filtered, so the count says which links it is counting. */}
                   {neighbourhood.hiddenCount > 0
-                    ? `+${neighbourhood.hiddenCount} more`
+                    ? `+${neighbourhood.hiddenCount} more${hardOnly ? ' hard' : ''}`
                     : 'View all'}
                 </a>
               )
@@ -138,14 +154,33 @@ const ProductOverview = ({
             <DependencyMap
               nodes={neighbourhood.nodes}
               edges={neighbourhood.edges}
-              height={neighbourhood.height}
+              height={
+                neighbourhood.edges.length > 0
+                  ? neighbourhood.height
+                  : undefined
+              }
               // "map" rather than "dependencies": the grid exports the same links as CSV, and the two
               // files would otherwise be told apart only by their extension.
               fileStem={`${toFileName(product.name)}-dependency-map`}
+              filters={
+                <Segmented<DependencyStrengthFilter>
+                  size="small"
+                  aria-label="Dependency strength"
+                  value={strengthFilter}
+                  onChange={setStrengthFilter}
+                  options={[
+                    { label: 'All', value: 'all' },
+                    { label: 'Hard only', value: 'hard' },
+                  ]}
+                />
+              }
+              emptyText="No hard dependencies in either direction."
             />
             <Text type="secondary">
-              What this product relies on, and what relies on it. A solid line
-              is a hard dependency, a dashed line a soft one.
+              What this product relies on, and what relies on it.
+              {hardOnly
+                ? ' Showing hard dependencies only: what stops working if a product goes down.'
+                : ' A solid line is a hard dependency, a dashed line a soft one.'}
               {neighbourhood.hasContainedProducts &&
                 ' The box holds the products beneath this one that the dependencies were recorded against.'}
             </Text>

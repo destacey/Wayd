@@ -449,3 +449,131 @@ describe('buildDependencyNeighbourhood', () => {
     expect(many.height).toBeLessThanOrEqual(720)
   })
 })
+
+describe('buildDependencyNeighbourhood with only hard links', () => {
+  const self = nav(PRODUCT_ID, 'Storefront', 7)
+  const soft = { strength: DependencyStrength.Soft }
+
+  const buildHard = (deps: ProductDependenciesDto, maxPerSide?: number) =>
+    buildDependencyNeighbourhood({
+      productId: PRODUCT_ID,
+      productName: 'Storefront',
+      productKey: 7,
+      dependencies: deps,
+      maxPerSide,
+      strengthFilter: 'hard',
+    })
+
+  it('drops a product whose only links are soft rather than leaving it unconnected', () => {
+    // Arrange
+    const identity = nav('22', 'Identity Service', 12)
+    const analytics = nav('23', 'Analytics', 13)
+    const kiosk = nav('33', 'Storefront Kiosk', 14)
+
+    // Act
+    const graph = buildHard(
+      dependencies(
+        [link('a', self, identity), link('b', self, analytics, soft)],
+        [link('c', kiosk, self, soft)],
+      ),
+    )
+
+    // Assert
+    expect(graph.edges.map((e) => e.id)).toEqual(['a'])
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:22'])
+  })
+
+  it('drops a box once nothing inside it is left', () => {
+    // Arrange — both of the platform's services are relied on only softly.
+    const platform = nav('20', 'Core Platform', 30)
+    const web = nav('44', 'Storefront Web', 9)
+
+    // Act
+    const graph = buildHard(
+      dependencies([
+        link('a', self, nav('22', 'Identity Service', 12), {
+          ...soft,
+          dependsOnProductPath: [platform],
+        }),
+        link('b', web, nav('23', 'Search Service', 13), {
+          ...soft,
+          productPath: [self],
+          dependsOnProductPath: [platform],
+        }),
+        link('c', self, nav('24', 'Payments', 15)),
+      ]),
+    )
+
+    // Assert
+    // An empty box would read as a product the subject relies on, with no line to say how.
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:24'])
+    expect(graph.hasContainedProducts).toBe(false)
+  })
+
+  it('keeps a box for the one service still relied on hard, without its soft sibling', () => {
+    // Arrange
+    const platform = nav('20', 'Core Platform', 30)
+
+    // Act
+    const graph = buildHard(
+      dependencies([
+        link('a', self, nav('22', 'Identity Service', 12), {
+          dependsOnProductPath: [platform],
+        }),
+        link('b', self, nav('23', 'Search Service', 13), {
+          ...soft,
+          dependsOnProductPath: [platform],
+        }),
+      ]),
+    )
+
+    // Assert
+    expect(inside(graph.nodes, '20', 'dependsOn')).toEqual(['dependsOn:22'])
+  })
+
+  it('caps after filtering, so soft links cannot crowd out hard ones', () => {
+    // Arrange — the soft providers sort first, and would fill the cap if it were applied before the filter.
+    const links = [
+      link('s1', self, nav('p1', 'Alpha', 101), soft),
+      link('s2', self, nav('p2', 'Beta', 102), soft),
+      link('h1', self, nav('p3', 'Gamma', 103)),
+      link('h2', self, nav('p4', 'Delta', 104)),
+      link('h3', self, nav('p5', 'Epsilon', 105)),
+    ]
+
+    // Act
+    const graph = buildHard(dependencies(links), 2)
+
+    // Assert
+    // The count is of hard links only, because that is what the map says it is showing.
+    expect(graph.edges.map((e) => e.id)).toEqual(['h1', 'h2'])
+    expect(graph.hiddenCount).toBe(1)
+  })
+
+  it('draws one side of a mutual pair when only one direction is hard', () => {
+    // Arrange
+    const billing = nav('22', 'Billing', 12)
+
+    // Act
+    const graph = buildHard(
+      dependencies(
+        [link('a', self, billing)],
+        [link('b', billing, self, soft)],
+      ),
+    )
+
+    // Assert
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:22'])
+  })
+
+  it('returns an empty graph when every link is soft', () => {
+    // Act
+    const graph = buildHard(
+      dependencies([link('a', self, nav('22', 'Analytics', 12), soft)]),
+    )
+
+    // Assert
+    expect(graph.nodes).toEqual([])
+    expect(graph.edges).toEqual([])
+  })
+})

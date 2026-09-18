@@ -113,6 +113,8 @@ A product line that holds products on both sides appears as a box on each side, 
 
 The map draws the dependencies that hold today. Ended ones are left off however the Dependencies section's **Show ended** switch is set, and a busy product's map shows the first few products per side with the rest behind the link in the card's corner.
 
+To see what stops working if a product goes down, switch the control in the canvas's top-right corner from **All** to **Hard only**. The map is redrawn from [hard](#strength) dependencies alone: a product left with nothing but soft links drops off, and so does any box left empty. The first few products per side are then the first few with a hard link, and the corner link counts only the hard ones it leaves off — the Dependencies section itself is not filtered, so it still lists every strength. A product whose dependencies are all soft keeps its map, which says there is nothing hard in either direction. The choice holds as you move between products in the same browser tab, and is forgotten when the tab is closed. A map saved as an image while filtered is not marked as such, so say so wherever you paste it.
+
 Every product on the map — including the boxes — links to its own page. The controls down the left of the canvas zoom, fit the map back into view, open it **full screen** (Esc closes it), and save it as an image. **PNG** pastes anywhere; **SVG** stays sharp at any size. The image is drawn from the map rather than captured from the screen, so it holds the whole graph whatever you had panned to, and the controls are left out of it.
 
 ### Strength

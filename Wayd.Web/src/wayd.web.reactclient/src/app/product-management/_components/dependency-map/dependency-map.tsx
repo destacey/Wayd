@@ -24,16 +24,18 @@ import {
   Controls,
   Handle,
   MarkerType,
+  Panel,
   Position,
   ReactFlow,
   useReactFlow,
+  useStore,
   type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { Dropdown, theme } from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   renderDependencyMapSvg,
   type DependencySvgTheme,
@@ -54,6 +56,13 @@ export interface DependencyMapProps {
   height?: number
   /** What a downloaded image is called, without the extension the chosen format supplies. */
   fileStem?: string
+  /**
+   * Controls that change what is drawn, in the canvas's top-right corner. On the canvas rather than
+   * around it, so they stay in reach in fullscreen.
+   */
+  filters?: ReactNode
+  /** Shown in the canvas when a filter leaves nothing to draw. */
+  emptyText?: ReactNode
 }
 
 const productLink = (productKey: number) =>
@@ -247,6 +256,28 @@ const MapControls = ({
 }
 
 /**
+ * Refits the view whenever what is drawn, or the canvas it is drawn on, changes.
+ *
+ * The fitView prop applies once, on init, and the canvas keeps its zoom otherwise: a filtered graph
+ * would sit where the unfiltered one was, and a graph fitted to the card would sit in a corner of the
+ * fullscreen overlay. Keyed on the canvas size React Flow has measured rather than fitted on a timer,
+ * because a filter changes the canvas's height too, and a fit that ran before the resize landed fitted
+ * the graph to the old height. React Flow itself defers a fit until new nodes are measured.
+ */
+const FitToGraph = ({ drawn }: { drawn: string }) => {
+  const { fitView } = useReactFlow()
+  const width = useStore((state) => state.width)
+  const height = useStore((state) => state.height)
+
+  useEffect(() => {
+    if (width === 0 || height === 0) return
+    fitView({ padding: 0.2, maxZoom: 1 })
+  }, [fitView, drawn, width, height])
+
+  return null
+}
+
+/**
  * Draws a dependency graph: products as nodes, links as edges.
  *
  * It takes the graph rather than the dependencies, so the same canvas serves a product's one-hop
@@ -257,12 +288,13 @@ const DependencyMap = ({
   edges,
   height = 320,
   fileStem = 'dependency-map',
+  filters,
+  emptyText,
 }: DependencyMapProps) => {
   const { currentMode } = useTheme()
   const { token } = theme.useToken()
   const router = useRouter()
   const [isFullScreen, setIsFullScreen] = useState(false)
-  const refit = useRef<(() => void) | null>(null)
 
   // Resolved from the tokens at export time: a downloaded file cannot read a CSS variable, and it
   // should look like the theme it was taken from.
@@ -293,13 +325,6 @@ const DependencyMap = ({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [isFullScreen])
-
-  // The canvas keeps its zoom across the resize, so a graph fitted to a card sits in the corner of the
-  // overlay until it is refitted. Deferred a frame, because the new size is not laid out yet.
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => refit.current?.())
-    return () => cancelAnimationFrame(frame)
   }, [isFullScreen])
 
   // The arrow marker's colour is written as an SVG attribute, where a CSS variable would not resolve.
@@ -338,9 +363,6 @@ const DependencyMap = ({
         nodes={nodes}
         edges={styledEdges}
         nodeTypes={nodeTypes}
-        onInit={(instance) => {
-          refit.current = () => instance.fitView({ padding: 0.2, maxZoom: 1 })
-        }}
         // React Flow turns pointer events off for a node that is not selectable, draggable or
         // connectable and has no click handler — which left the links inside the nodes dead to the
         // mouse. Handling the click is also what makes the whole node clickable, not just its anchor.
@@ -365,6 +387,8 @@ const DependencyMap = ({
         maxZoom={1.5}
       >
         <Background gap={16} />
+        {filters && <Panel position="top-right">{filters}</Panel>}
+        <FitToGraph drawn={nodes.map((node) => node.id).join('|')} />
         {/* Fullscreen joins zoom and fit in the same stack rather than floating in its own corner:
             they are all "how I am looking at this", and one control cluster is one thing to find. */}
         <MapControls
@@ -374,6 +398,9 @@ const DependencyMap = ({
           theme={svgTheme}
         />
       </ReactFlow>
+      {nodes.length === 0 && emptyText && (
+        <div className={styles.empty}>{emptyText}</div>
+      )}
     </div>
   )
 }

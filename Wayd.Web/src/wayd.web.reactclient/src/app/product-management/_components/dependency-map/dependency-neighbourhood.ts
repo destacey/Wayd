@@ -10,6 +10,9 @@ import type { Edge, Node } from '@xyflow/react'
 /** Which column a node sits in, relative to the product the map is centred on. */
 export type DependencyNodeSide = 'usedBy' | 'center' | 'dependsOn'
 
+/** Which links the map draws: all of them, or only those a product cannot work without. */
+export type DependencyStrengthFilter = 'all' | 'hard'
+
 export interface DependencyNodeData extends Record<string, unknown> {
   label: string
   side: DependencyNodeSide
@@ -52,6 +55,7 @@ export interface BuildDependencyNeighbourhoodOptions {
   dependencies: ProductDependenciesDto | undefined
   /** Products drawn per side before the rest collapse into a count. */
   maxPerSide?: number
+  strengthFilter?: DependencyStrengthFilter
 }
 
 const LEAF_WIDTH = 180
@@ -303,9 +307,17 @@ export const buildDependencyNeighbourhood = ({
   productKey,
   dependencies,
   maxPerSide = 6,
+  strengthFilter = 'all',
 }: BuildDependencyNeighbourhoodOptions): DependencyNeighbourhood => {
+  // Filtered before anything is grouped or capped. Products and boxes exist only because a link put them
+  // there, so one left with no links is never drawn; and soft links cannot take the slots the cap would
+  // otherwise leave for hard ones.
   const open = (links: ProductDependencyDto[] | undefined) =>
-    (links ?? []).filter((d) => !d.endsOn)
+    (links ?? []).filter(
+      (d) =>
+        !d.endsOn &&
+        (strengthFilter === 'all' || d.strength === DependencyStrength.Hard),
+    )
 
   const sides = [
     { side: 'dependsOn' as const, links: open(dependencies?.dependsOn) },

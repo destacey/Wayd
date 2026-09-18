@@ -255,11 +255,17 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - dockerfile: ./Wayd.Web/src/Wayd.Web.Api/Dockerfile
-                      image: awaldow/moda-api
+                    # Dual-publish: Docker Hub remains what Terraform deploys to Azure; GHCR is stood up in
+                    # parallel (same build, extra tags) until a later cutover switches the deploy registry.
+                    - name: api
+                      dockerfile: ./Wayd.Web/src/Wayd.Web.Api/Dockerfile
+                      hub_image: awaldow/moda-api
+                      ghcr_image: ghcr.io/${{ github.repository_owner }}/wayd-api
                       contextDir: .
-                    - dockerfile: ./Wayd.Web/src/wayd.web.reactclient/Dockerfile
-                      image: awaldow/moda-client
+                    - name: client
+                      dockerfile: ./Wayd.Web/src/wayd.web.reactclient/Dockerfile
+                      hub_image: awaldow/moda-client
+                      ghcr_image: ghcr.io/${{ github.repository_owner }}/wayd-client
                       contextDir: .
         permissions:
             contents: read
@@ -273,7 +279,7 @@ jobs:
             # exact tree that was tested (see that job). Only the API image needs it; the client leg skips this.
             # The tree is git-ignored, so the Dockerfile COPY of the build context would otherwise find nothing.
             - name: Download Wolverine handler tree
-              if: matrix.image == 'awaldow/moda-api'
+              if: matrix.name == 'api'
               uses: actions/download-artifact@v4
               with:
                   name: wolverine-handler-tree
@@ -287,18 +293,28 @@ jobs:
             # workflow_dispatch MUST keep pushing even from a feature branch: `terraform apply` passes
             # -var="docker_tag=sha-${{ github.sha }}", so a suppressed push would point the container app at
             # a tag that was never published.
-            - name: Log in to the Container registry
+            - name: Log in to Docker Hub
               if: github.event_name != 'pull_request'
               uses: docker/login-action@v3
               with:
                   username: awaldow
                   password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+            - name: Log in to the GitHub Container Registry
+              if: github.event_name != 'pull_request'
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Extract metadata (tags, labels) for Docker
               id: meta
               uses: docker/metadata-action@v5
               with:
-                  images: ${{ matrix.image }}
+                  images: |
+                      ${{ matrix.hub_image }}
+                      ${{ matrix.ghcr_image }}
                   tags: |
                       type=raw,value=latest,enable={{is_default_branch}}
                       type=semver,pattern={{version}}

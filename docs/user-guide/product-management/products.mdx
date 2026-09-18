@@ -80,12 +80,79 @@ Changing a product's status requires your account to be linked to an employee re
 change is attributed to the person who made it. This is the one product action that does — editing,
 retyping, moving, tagging and linking externally need only the permission.
 
+## Dependencies
+
+The **Dependencies** section records which products a product needs in order to work — Trio VMS relying on Argo Identity to sign users in. It is not the product tree: the tree says what a product is made of, dependencies say what it relies on elsewhere. A product cannot depend on itself, or on anything above or below it in the tree.
+
+The section has two lists, switched at the top of the grid:
+
+- **Depends On** — the products this one needs.
+- **Used By** — the products that need this one.
+
+Its tab counts both.
+
+### Recording the specific product
+
+Record a dependency on the **most specific product you know** — the service, not the platform it belongs to. If Trio VMS needs Argo's identity service, record Trio VMS depends on **Argo Identity**, not on Argo Platform.
+
+You never lose the wider picture by doing so. Both lists already include the dependencies of **everything beneath** the product:
+
+- On **Trio**, Depends On lists every dependency recorded on Trio VMS, Trio Shifts and the rest of Trio's products, with a **From** column naming which one.
+- On **Argo Platform**, Used By lists every product depending on any of Argo's services, with a **Via** column naming which service.
+- A dependency between two products **inside** the same branch — Argo Gateway on Argo Identity — does not appear on Argo Platform at all. From outside, that is Argo depending on itself.
+
+Nothing is stored twice: the rolled-up rows are worked out when the page is read, so moving a product never leaves them out of date.
+
+### The map on Overview
+
+A product with dependencies gets a **Dependencies** map on its Overview: what relies on it to the left, what it relies on to the right, and the product itself in the middle. A solid line is a hard dependency and a dashed line a soft one, and every product on it links to its own page.
+
+Where a dependency was recorded against a product **beneath** this one, that product is drawn as its own node inside a box labelled with this product. The box is containment — what the product is made of — which is why it is a box and not another line: a line always means "relies on". So Trio's map shows Trio VMS inside the Trio box with its own line out to Argo Identity, rather than crediting Trio with a dependency it does not hold.
+
+The map draws the dependencies that hold today. Ended ones are left off however the Dependencies section's **Show ended** switch is set, and a busy product's map shows the first few products per side with the rest behind the link in the card's corner.
+
+### Strength
+
+Every dependency is either **Hard** or **Soft**, and there is no default:
+
+| Strength | Meaning |
+| --- | --- |
+| **Hard** | The product stops working without it. |
+| **Soft** | The product degrades or loses a feature without it, but keeps working. |
+
+The choice matters beyond the label. When Wayd shows a provider's outage against the products that rely on it, only a hard dependency will count — so a guessed strength misstates impact in one direction or the other.
+
+### Adding a dependency
+
+1. Open the product that **has** the dependency, and go to **Dependencies**
+2. Click **Add Dependency**
+3. Choose the product it **Depends On**, its **Strength**, and optionally what it is for
+4. Leave **Started** empty to start it today, or backdate it to the day the dependency actually began
+
+The picker hides the product's own children, and shows its parents without letting them be chosen, so the branches beneath them stay reachable.
+
+A product can hold only one open dependency on another product. It can depend on the same product again later, once the earlier dependency has ended, but not over any part of the period the earlier one covered.
+
+### Ending, changing and removing
+
+Each dependency has its own actions:
+
+- **Edit** rewords its description. Allowed on an ended dependency too.
+- **Change Strength** records a new dependency with the new strength from the day you choose, and ends the current one the day before. The old one stays in the list under **Show ended**, because the time before the change is still judged by the strength that held then. A dependency that started today can change strength from tomorrow; if it was recorded with the wrong strength, remove it and add it again.
+- **End** records the last day the dependency held. It stays in the list — turn on **Show ended** to see it — and still counts for the days it held.
+- **Remove** deletes a dependency that was **never true**, such as one recorded against the wrong product, and asks why. Do not use it for a dependency that has simply stopped: removing erases the record of when it held.
+
+Dependencies are recorded by the day, and a dependency's **Last Day** counts as a day it held — so one that started and ended on the same day held for that day. Dates cannot be in the future, and a dependency cannot end before it started. Because the last day counts, a later dependency on the same product starts the day after the earlier one ended, not on it.
+
+Every change is recorded in the Activity of **both** products — see [Activity](#activity).
+
 ## Activity
 
 The **Activity** section on a product shows its full recorded history — not status changes alone, but
 every change the product raised an event for: details edited, type changed, moved, retagged, linked
-externally. A product moving in or out also appears on both its old and its new parent, marked with the
-product it was made on. See [Activity Log](../activity-log.mdx).
+externally, dependencies added, ended, changed or removed. A product moving in or out also appears on
+both its old and its new parent, and a change to a dependency also appears on the product depended on,
+each marked with the product it was made on. See [Activity Log](../activity-log.mdx).
 
 ## Tags
 
@@ -114,6 +181,8 @@ The actions menu on a product's page is grouped by what each action does:
 Moving changes a product's parent, or promotes it to a root by clearing the parent.
 
 The parent picker is a tree, so you can see the hierarchy you are moving within. It omits the product being moved **and everything beneath it** — a product cannot become its own ancestor, and offering the move would only produce a refusal.
+
+A move is also refused when it would put a product above or below a product it has an open [dependency](#dependencies) with, counting everything beneath the product being moved. Moving Argo Platform beneath Trio while Trio depends on Argo Identity would turn that dependency into part of Trio. End the dependency first if the move is right; an ended dependency does not block it.
 
 ### Linking Externally
 
@@ -149,6 +218,7 @@ Deletion is also refused outright once anything depends on the product, and each
 - it has **child products** — move or remove them first
 - it has **versions**
 - it appears in a **release package manifest** — checked separately, because a carried-forward manifest line often names a product with no version row at all
+- it has **dependencies** recorded, or **other products depend on it** — ended dependencies included, because what a product relied on, and when, is history. Remove a dependency recorded by mistake first
 
 In practice that leaves deletion for a product created by mistake and never used. Anything that has shipped is retired, not deleted.
 
@@ -158,7 +228,7 @@ In practice that leaves deletion for a product created by mistake and never used
 | --- | --- |
 | View the catalog and product details | `Permissions.Products.View` |
 | Add a product | `Permissions.Products.Create` |
-| Edit, retype, move, tag, change status, link externally | `Permissions.Products.Update` |
+| Edit, retype, move, tag, change status, link externally, and add, change, end or remove dependencies | `Permissions.Products.Update` |
 | Delete a product | `Permissions.Products.Delete` |
 | [Bulk import](./bulk-import.mdx) products from CSV | `Permissions.Products.Import` |
 | Manage the type list | `Permissions.ProductTypes.*` |

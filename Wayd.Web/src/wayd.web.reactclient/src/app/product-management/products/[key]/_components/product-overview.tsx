@@ -2,9 +2,24 @@
 
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { MetricCard } from '@/src/components/common/metrics'
-import { ProductDto, VersionDto } from '@/src/services/wayd-api'
-import { Card, Col, Empty, Row } from 'antd'
+import {
+  ProductDependenciesDto,
+  ProductDto,
+  VersionDto,
+} from '@/src/services/wayd-api'
+import { Card, Col, Empty, Row, Skeleton, Typography } from 'antd'
+import dynamic from 'next/dynamic'
+import { buildDependencyNeighbourhood } from '../../../_components/dependency-map'
 import { countReleasedWithin } from './version-cadence'
+
+// Loaded on demand: the graph canvas is the heaviest thing on this page and most products have no
+// dependencies at all, so it must not sit in the bundle every product page pays for.
+const DependencyMap = dynamic(
+  () => import('../../../_components/dependency-map/dependency-map'),
+  { ssr: false, loading: () => <Skeleton active paragraph={{ rows: 4 }} /> },
+)
+
+const { Text } = Typography
 
 /**
  * How far back the version tile counts.
@@ -29,6 +44,11 @@ export interface ProductOverviewProps {
   versionsLoading?: boolean
   /** The id of the section listing versions, for the tile to link to. */
   versionsSectionId?: string
+  /** This product's dependencies, already loaded for the Dependencies section. */
+  dependencies?: ProductDependenciesDto
+  dependenciesLoading?: boolean
+  /** The id of the Dependencies section, for the map's overflow link. */
+  dependenciesSectionId?: string
 }
 
 /**
@@ -46,10 +66,20 @@ const ProductOverview = ({
   versions,
   versionsLoading,
   versionsSectionId,
+  dependencies,
+  dependenciesLoading,
+  dependenciesSectionId,
 }: ProductOverviewProps) => {
   const releasableChildren = childProducts.filter((c) => c.isReleasable).length
 
   const releasedInWindow = countReleasedWithin(versions, RELEASE_WINDOW_DAYS)
+
+  const neighbourhood = buildDependencyNeighbourhood({
+    productId: product.id,
+    productName: product.name,
+    productKey: product.key,
+    dependencies,
+  })
 
   return (
     <Row gutter={[16, 16]}>
@@ -82,6 +112,38 @@ const ProductOverview = ({
                 : undefined
             }
           />
+        </Col>
+      )}
+
+      {/* Absent rather than empty when nothing depends on this product: a map of one node says less
+          than no map, and most products have no dependencies at all. */}
+      {!dependenciesLoading && neighbourhood.edges.length > 0 && (
+        <Col span={24}>
+          <Card
+            size="small"
+            title="Dependencies"
+            extra={
+              dependenciesSectionId && (
+                <a onClick={() => onNavigateToSection(dependenciesSectionId)}>
+                  {neighbourhood.hiddenCount > 0
+                    ? `+${neighbourhood.hiddenCount} more`
+                    : 'View all'}
+                </a>
+              )
+            }
+          >
+            <DependencyMap
+              nodes={neighbourhood.nodes}
+              edges={neighbourhood.edges}
+              height={neighbourhood.height}
+            />
+            <Text type="secondary">
+              What this product relies on, and what relies on it. A solid line
+              is a hard dependency, a dashed line a soft one.
+              {neighbourhood.hasContainedProducts &&
+                ' The box holds the products beneath this one that the dependencies were recorded against.'}
+            </Text>
+          </Card>
         </Col>
       )}
 

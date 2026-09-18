@@ -6,6 +6,13 @@ import ProductDetailsPage from './page'
 // formatting — without the real one the section throws while rendering and takes every tile with it.
 jest.unmock('dayjs')
 
+// The graph canvas measures itself and reads the theme provider, neither of which this page supplies.
+// What belongs here is that the Overview places it; the map's own tests cover what it draws.
+jest.mock('../../_components/dependency-map/dependency-map', () => ({
+  __esModule: true,
+  default: () => <div data-testid="dependency-map" />,
+}))
+
 const product = {
   id: 'product-1',
   key: 7,

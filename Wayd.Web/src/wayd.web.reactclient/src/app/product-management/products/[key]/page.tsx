@@ -380,6 +380,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         versions={versions}
         versionsLoading={versionsLoading}
         versionsSectionId={ProductSections.Versions}
+        dependencies={dependencies}
+        dependenciesLoading={dependenciesLoading}
+        dependenciesSectionId={ProductSections.Dependencies}
       />
     )
   }

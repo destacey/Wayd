@@ -13,6 +13,12 @@ jest.mock('../../_components/dependency-map/dependency-map', () => ({
   default: () => <div data-testid="dependency-map" />,
 }))
 
+// Subscribes to the store for expanded products, which this page's mocked API does not provide.
+jest.mock(
+  '../../_components/dependency-map/use-expanded-product-dependencies',
+  () => ({ useExpandedProductDependencies: () => ({}) }),
+)
+
 const product = {
   id: 'product-1',
   key: 7,

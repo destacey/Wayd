@@ -43,6 +43,53 @@
   border-color: var(--ant-color-primary-border-hover);
 }
 
+/* Outlined without the subject's fill: it belongs to the reader's path out, not to the product the map
+   is about. */
+.expanded {
+  border-color: var(--ant-color-primary);
+}
+
+/* Straddles the edge facing away from the subject, which is where the column it opens appears. Above
+   the node's link, which covers the whole node. */
+.expand {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
+.expandLeft {
+  left: 0;
+  translate: -50% 0;
+}
+
+.expandRight {
+  right: 0;
+  translate: 50% 0;
+}
+
+/* A note about the column rather than a product in it: dashed and unfilled, like a placeholder. */
+.overflow {
+  box-sizing: border-box;
+  width: 180px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px dashed var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  background: transparent;
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overflow:hover:not(:disabled) {
+  border-color: var(--ant-color-primary-border-hover);
+  color: var(--ant-color-primary);
+}
+
 .subject {
   border-color: var(--ant-color-primary);
   background: var(--ant-color-primary-bg);

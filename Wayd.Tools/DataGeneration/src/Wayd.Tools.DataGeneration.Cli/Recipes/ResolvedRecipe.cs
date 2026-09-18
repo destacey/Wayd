@@ -88,6 +88,11 @@ public sealed record ResolvedRecipe(
                 VersionIntervalDays = Required(productManagement.VersionIntervalDays, "productManagement.versionIntervalDays"),
                 ChangeFailureRate = Required(productManagement.ChangeFailureRate, "productManagement.changeFailureRate"),
                 PackagedArtFraction = Required(productManagement.PackagedArtFraction, "productManagement.packagedArtFraction"),
+                ComponentsPerTeam = Required(productManagement.ComponentsPerTeam, "productManagement.componentsPerTeam"),
+                Dependencies = Required(productManagement.Dependencies, "productManagement.dependencies"),
+                DependenciesPerComponent = Required(productManagement.DependenciesPerComponent, "productManagement.dependenciesPerComponent"),
+                HardDependencyFraction = Required(productManagement.HardDependencyFraction, "productManagement.hardDependencyFraction"),
+                PlatformServices = productManagement.PlatformServices,
             },
             new PlanningOptions
             {

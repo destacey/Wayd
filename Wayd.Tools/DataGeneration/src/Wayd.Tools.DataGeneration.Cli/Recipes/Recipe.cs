@@ -166,6 +166,21 @@ public sealed class ProductManagementRecipe : AreaRecipe
 
     /// <summary>The share (0..1) of ARTs that ship their services together as release packages.</summary>
     public double? PackagedArtFraction { get; init; }
+
+    /// <summary>Average number of components each team owns and ships.</summary>
+    public double? ComponentsPerTeam { get; init; }
+
+    /// <summary>Whether products record what they depend on.</summary>
+    public bool? Dependencies { get; init; }
+
+    /// <summary>Average number of products each component depends on.</summary>
+    public double? DependenciesPerComponent { get; init; }
+
+    /// <summary>The share (0..1) of dependencies a product cannot work without.</summary>
+    public double? HardDependencyFraction { get; init; }
+
+    /// <summary>How many shared platform services most of the catalog relies on. Unset sizes it from the catalog.</summary>
+    public int? PlatformServices { get; init; }
 }
 
 /// <summary>The planning history layered over the organization: intervals per ART, objectives and risks per team.</summary>

@@ -40,6 +40,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new ProductManagementFeatureFlagArea(),
         new DeploymentEnvironmentsArea(),
         new ProductsArea(),
+        new ProductDependenciesArea(),
         new VersionsArea(),
         new ReleasePackagesArea(),
         new ReleasesArea(),

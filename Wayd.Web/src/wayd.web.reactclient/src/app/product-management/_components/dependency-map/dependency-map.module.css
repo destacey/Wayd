@@ -7,6 +7,7 @@
    against the viewport rather than a fixed number: a tall graph should use the window it has, without
    the card growing past what a reader can see at once. Fullscreen overrides it. */
 .surface {
+  position: relative;
   width: 100%;
   max-height: 70vh;
   border-radius: var(--ant-border-radius);
@@ -40,6 +41,53 @@
 
 .node:hover {
   border-color: var(--ant-color-primary-border-hover);
+}
+
+/* Outlined without the subject's fill: it belongs to the reader's path out, not to the product the map
+   is about. */
+.expanded {
+  border-color: var(--ant-color-primary);
+}
+
+/* Straddles the edge facing away from the subject, which is where the column it opens appears. Above
+   the node's link, which covers the whole node. */
+.expand {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
+.expandLeft {
+  left: 0;
+  translate: -50% 0;
+}
+
+.expandRight {
+  right: 0;
+  translate: 50% 0;
+}
+
+/* A note about the column rather than a product in it: dashed and unfilled, like a placeholder. */
+.overflow {
+  box-sizing: border-box;
+  width: 180px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px dashed var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  background: transparent;
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overflow:hover:not(:disabled) {
+  border-color: var(--ant-color-primary-border-hover);
+  color: var(--ant-color-primary);
 }
 
 .subject {
@@ -98,4 +146,18 @@
 /* The dots are decoration; hiding them keeps a read-only map from inviting a drag that does nothing. */
 .handle {
   opacity: 0;
+}
+
+/* Laid over the canvas rather than drawn as a React Flow panel, whose own position rules outrank a
+   module class and pin it to an edge. Click-through, so the controls beneath stay usable. */
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ant-padding);
+  color: var(--ant-color-text-secondary);
+  text-align: center;
+  pointer-events: none;
 }

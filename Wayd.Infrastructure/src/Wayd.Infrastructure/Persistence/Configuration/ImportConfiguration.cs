@@ -54,6 +54,7 @@ public class ImportProcessRowConfig : IEntityTypeConfiguration<ImportProcessRow>
         builder.Property(r => r.Id).ValueGeneratedNever();
 
         builder.Property(r => r.ImportId).HasMaxLength(ImportProcessRow.MaxImportIdLength).IsRequired();
+        builder.Property(r => r.GroupKey).HasMaxLength(ImportProcessRow.MaxGroupKeyLength);
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(r => r.Error).HasMaxLength(ImportProcessRow.MaxMessageLength);
         builder.Property(r => r.Warning).HasMaxLength(ImportProcessRow.MaxMessageLength);

@@ -46,11 +46,13 @@ public sealed class ProductManagementGenerator
 
     private readonly List<ProductLine> _lines = [];
 
-    public ProductManagementGenerator(OrgStructure org, ProductManagementOptions options, GenerationContext context)
+    /// <param name="catalog">
+    /// The catalog every generator in the run shares, so PPM and Planning name the same components. Derived
+    /// from the options when omitted — a pure function of the org, the run's seed and its shape.
+    /// </param>
+    public ProductManagementGenerator(OrgStructure org, ProductManagementOptions options, GenerationContext context, ProductCatalog? catalog = null)
     {
-        // Derived rather than passed in: it is a pure function of the org and the run's seed, so the PPM
-        // generator deriving its own copy names the same components.
-        _catalog = ProductCatalog.From(org, context);
+        _catalog = catalog ?? ProductCatalog.From(org, context, ProductCatalogShape.For(options));
         _options = options;
         _context = context;
 
@@ -92,6 +94,12 @@ public sealed class ProductManagementGenerator
             BuildReleases(line);
         }
 
+        // Last, and under its own seed, so the delivery history above is the same with or without it, and
+        // each link can start no earlier than both of its ends first shipped.
+        var dependencies = _options.Dependencies
+            ? new ProductDependencyGenerator(_catalog, FirstShipped(), _options, _context).Generate()
+            : [];
+
         return new GeneratedProductManagement(
             _environments,
             _products,
@@ -100,8 +108,17 @@ public sealed class ProductManagementGenerator
             _packageComponents,
             _releases,
             _releaseContents,
-            _deployments);
+            _deployments,
+            dependencies);
     }
+
+    /// <summary>The day each product first shipped a version, by name. A product with nothing shipped by today is absent.</summary>
+    private Dictionary<string, DateOnly> FirstShipped() =>
+        _versions
+            .Select(v => (v.ProductName, Shipped: v.ReleasedDate ?? v.CutDate))
+            .Where(v => v.Shipped is { } shipped && shipped <= Today)
+            .GroupBy(v => v.ProductName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Min(v => v.Shipped!.Value), StringComparer.OrdinalIgnoreCase);
 
     // ---- Catalog ------------------------------------------------------------------------------
 

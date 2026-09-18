@@ -33,7 +33,11 @@
     "enabled": true,
     "versionIntervalDays": 14,
     "changeFailureRate": 0.12,
-    "packagedArtFraction": 0.25
+    "packagedArtFraction": 0.25,
+    "componentsPerTeam": 1.3,
+    "dependencies": true,
+    "dependenciesPerComponent": 3.5,
+    "hardDependencyFraction": 0.6
   },
   "planning": {
     "enabled": true,

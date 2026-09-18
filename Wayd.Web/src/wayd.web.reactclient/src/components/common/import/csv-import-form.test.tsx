@@ -341,6 +341,31 @@ describe('CsvImportForm', () => {
     expect(screen.getByText('All or nothing')).toBeInTheDocument()
   })
 
+  it('says what a group is for an import that applies group by group', async () => {
+    // Arrange
+    render(
+      <CsvImportForm
+        definitions={[
+          definition('strategic.themes', 'Strategic Themes', {
+            atomicity: ImportAtomicity.PerGroup,
+            groupNoun: 'product',
+          }),
+        ]}
+        onFormComplete={onFormComplete}
+        onFormCancel={jest.fn()}
+      />,
+    )
+
+    // Act
+    await chooseImport('Strategic Themes')
+
+    // Assert
+    expect(screen.getByText('Product by product')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Rows for the same product apply together/),
+    ).toBeInTheDocument()
+  })
+
   it('closes with the success message when every row was applied', async () => {
     // Arrange
     answerWith(run(ImportProcessStatus.Succeeded, { succeeded: 25 }))

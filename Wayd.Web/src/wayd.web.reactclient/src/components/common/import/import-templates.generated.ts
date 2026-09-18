@@ -1164,6 +1164,64 @@ export const importTemplates = {
       },
     ],
   },
+  'product-management.product-dependencies': {
+    module: 'product-management',
+    files: [
+      {
+        field: 'file',
+        required: true,
+        columns: [
+          {
+            name: 'ImportId',
+            type: 'text',
+            required: false,
+            description:
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Falls back to the row's position when the column is absent.",
+          },
+          {
+            name: 'ProductId',
+            type: 'id',
+            required: true,
+            description: 'The product that has the dependency, by id.',
+          },
+          {
+            name: 'DependsOnProductId',
+            type: 'id',
+            required: true,
+            description: 'The product it relies on, by id.',
+          },
+          {
+            name: 'Strength',
+            type: 'text',
+            required: true,
+            description:
+              'Hard if the product stops working without it, Soft if it degrades but keeps working. Required: there is no default, because a guessed strength misstates impact.',
+            values: ['Hard', 'Soft'],
+          },
+          {
+            name: 'Description',
+            type: 'text',
+            required: false,
+            description: 'What the product relies on it for. Max 1024 chars.',
+            maxLength: 1024,
+          },
+          {
+            name: 'StartsOn',
+            type: 'date',
+            required: false,
+            description:
+              'The day it began. Blank means today, so an EndsOn before today is refused.',
+          },
+          {
+            name: 'EndsOn',
+            type: 'date',
+            required: false,
+            description: 'The last day it held. Blank means it still holds.',
+          },
+        ],
+      },
+    ],
+  },
   'product-management.products': {
     module: 'product-management',
     files: [

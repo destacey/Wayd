@@ -111,7 +111,22 @@ Every product is drawn inside whatever contains it, on both sides, however deep 
 
 A product line that holds products on both sides appears as a box on each side, because the columns are what carry the meaning: on the left is what relies on this product, on the right what it relies on. The same is true of a pair that depend on each other — each appears in both columns rather than as one node with a line doubling back.
 
-The map draws the dependencies that hold today. Ended ones are left off however the Dependencies section's **Show ended** switch is set, and a busy product's map shows the first few products per side with the rest behind the link in the card's corner.
+The map draws the dependencies that hold today. Ended ones are left off however the Dependencies section's **Show ended** switch is set. A busy product's map shows the first few products per side, with a **+N more** at the foot of the column: click it to draw the rest in place. **View all** in the card's corner opens the Dependencies section.
+
+To see what stops working if a product goes down, switch the control in the canvas's top-right corner from **All** to **Hard only**. The map is redrawn from [hard](#strength) dependencies alone: a product left with nothing but soft links drops off, and so does any box left empty. The first few products per side are then the first few with a hard link, and **+N more hard** counts only the hard ones left off — the Dependencies section itself is not filtered, so it still lists every strength. A product whose dependencies are all soft keeps its map, which says there is nothing hard in either direction. The choice holds as you move between products in the same browser tab, and is forgotten when the tab is closed. A map saved as an image while filtered is not marked as such, so say so wherever you paste it.
+
+#### Following a dependency further out
+
+Every product on either side has a **+** on its outer edge. Click it to follow that product's own dependencies one step further, without leaving the page: on the right, what that provider relies on in turn; on the left, what relies on that consumer. The products it finds appear in a new column beyond it, and you can keep going from any of them. That is how far an outage reaches — if Identity Service goes down, what breaks is everything that relies on it, and everything that relies on those.
+
+- An expanded product is outlined, and its **+** becomes **−**. Click it to collapse, which takes away everything that expansion brought in, including anything you expanded beyond it.
+- An expansion follows only the dependencies the product holds **itself**. A platform's services are not included — open the platform's own map to see those.
+- Dependencies on this product, or on anything beneath it, are not drawn again: the map already shows them.
+- A product appears once on each side, in the column where it was first found. When a later expansion reaches it again, the line goes back to where it already is — running back toward the middle, or curving round within a column — rather than drawing it twice.
+- Each expansion shows the first few products it finds, with its own **+N more for** the product it came from.
+- A product with nothing further out says so when you point at its button.
+
+There is no limit on how far you can go. What you have expanded is kept for each product separately, in the same browser tab: come back to a product's page and its map is as you left it, while other products' maps start fresh. **Hard only** and the image export both apply to everything expanded.
 
 Every product on the map — including the boxes — links to its own page. The controls down the left of the canvas zoom, fit the map back into view, open it **full screen** (Esc closes it), and save it as an image. **PNG** pastes anywhere; **SVG** stays sharp at any size. The image is drawn from the map rather than captured from the screen, so it holds the whole graph whatever you had panned to, and the controls are left out of it.
 

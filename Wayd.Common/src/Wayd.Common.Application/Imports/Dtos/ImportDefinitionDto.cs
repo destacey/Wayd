@@ -17,6 +17,7 @@ public sealed record ImportDefinitionDto(
     string Key,
     string DisplayName,
     ImportAtomicity Atomicity,
+    string? GroupNoun,
     int MaxRows,
     int PreflightMaxRows,
     bool CanSubmit);

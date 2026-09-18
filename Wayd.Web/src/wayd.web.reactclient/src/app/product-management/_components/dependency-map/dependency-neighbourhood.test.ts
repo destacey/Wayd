@@ -6,9 +6,14 @@ import {
 } from '@/src/services/wayd-api'
 import {
   buildDependencyNeighbourhood,
+  DEPENDENCY_HANDLES,
   groupNodeId,
+  overflowNodeId,
   sideNodeId,
+  type BuildDependencyNeighbourhoodOptions,
+  type DependencyExpansions,
   type DependencyNode,
+  type DependencyNodeData,
   type DependencyNodeSide,
 } from './dependency-neighbourhood'
 
@@ -376,10 +381,15 @@ describe('buildDependencyNeighbourhood', () => {
     const graph = build(dependencies(links), 3)
 
     // Assert
-    expect(graph.nodes.filter((n) => n.data.side === 'dependsOn')).toHaveLength(
-      3,
-    )
+    expect(
+      graph.nodes.filter(
+        (n) => n.type === 'product' && n.data.side === 'dependsOn',
+      ),
+    ).toHaveLength(3)
     expect(graph.hiddenCount).toBe(2)
+    expect(
+      graph.nodes.find((n) => n.id === overflowNodeId('dependsOn', null))?.data,
+    ).toEqual(expect.objectContaining({ label: '+2 more', count: 2 }))
   })
 
   it('keeps a capped product whole rather than cutting its links', () => {
@@ -425,6 +435,7 @@ describe('buildDependencyNeighbourhood', () => {
       hiddenCount: 0,
       height: 0,
       hasContainedProducts: false,
+      placed: { usedBy: [], dependsOn: [] },
     })
   })
 
@@ -447,5 +458,623 @@ describe('buildDependencyNeighbourhood', () => {
     expect(one.height).toBeLessThan(many.height)
     expect(one.height).toBeGreaterThanOrEqual(240)
     expect(many.height).toBeLessThanOrEqual(720)
+  })
+})
+
+describe('buildDependencyNeighbourhood with only hard links', () => {
+  const self = nav(PRODUCT_ID, 'Storefront', 7)
+  const soft = { strength: DependencyStrength.Soft }
+
+  const buildHard = (deps: ProductDependenciesDto, maxPerSide?: number) =>
+    buildDependencyNeighbourhood({
+      productId: PRODUCT_ID,
+      productName: 'Storefront',
+      productKey: 7,
+      dependencies: deps,
+      maxPerSide,
+      strengthFilter: 'hard',
+    })
+
+  it('drops a product whose only links are soft rather than leaving it unconnected', () => {
+    // Arrange
+    const identity = nav('22', 'Identity Service', 12)
+    const analytics = nav('23', 'Analytics', 13)
+    const kiosk = nav('33', 'Storefront Kiosk', 14)
+
+    // Act
+    const graph = buildHard(
+      dependencies(
+        [link('a', self, identity), link('b', self, analytics, soft)],
+        [link('c', kiosk, self, soft)],
+      ),
+    )
+
+    // Assert
+    expect(graph.edges.map((e) => e.id)).toEqual(['a'])
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:22'])
+  })
+
+  it('drops a box once nothing inside it is left', () => {
+    // Arrange — both of the platform's services are relied on only softly.
+    const platform = nav('20', 'Core Platform', 30)
+    const web = nav('44', 'Storefront Web', 9)
+
+    // Act
+    const graph = buildHard(
+      dependencies([
+        link('a', self, nav('22', 'Identity Service', 12), {
+          ...soft,
+          dependsOnProductPath: [platform],
+        }),
+        link('b', web, nav('23', 'Search Service', 13), {
+          ...soft,
+          productPath: [self],
+          dependsOnProductPath: [platform],
+        }),
+        link('c', self, nav('24', 'Payments', 15)),
+      ]),
+    )
+
+    // Assert
+    // An empty box would read as a product the subject relies on, with no line to say how.
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:24'])
+    expect(graph.hasContainedProducts).toBe(false)
+  })
+
+  it('keeps a box for the one service still relied on hard, without its soft sibling', () => {
+    // Arrange
+    const platform = nav('20', 'Core Platform', 30)
+
+    // Act
+    const graph = buildHard(
+      dependencies([
+        link('a', self, nav('22', 'Identity Service', 12), {
+          dependsOnProductPath: [platform],
+        }),
+        link('b', self, nav('23', 'Search Service', 13), {
+          ...soft,
+          dependsOnProductPath: [platform],
+        }),
+      ]),
+    )
+
+    // Assert
+    expect(inside(graph.nodes, '20', 'dependsOn')).toEqual(['dependsOn:22'])
+  })
+
+  it('caps after filtering, so soft links cannot crowd out hard ones', () => {
+    // Arrange — the soft providers sort first, and would fill the cap if it were applied before the filter.
+    const links = [
+      link('s1', self, nav('p1', 'Alpha', 101), soft),
+      link('s2', self, nav('p2', 'Beta', 102), soft),
+      link('h1', self, nav('p3', 'Gamma', 103)),
+      link('h2', self, nav('p4', 'Delta', 104)),
+      link('h3', self, nav('p5', 'Epsilon', 105)),
+    ]
+
+    // Act
+    const graph = buildHard(dependencies(links), 2)
+
+    // Assert
+    // The count is of hard links only, because that is what the map says it is showing.
+    expect(graph.edges.map((e) => e.id)).toEqual(['h1', 'h2'])
+    expect(graph.hiddenCount).toBe(1)
+  })
+
+  it('draws one side of a mutual pair when only one direction is hard', () => {
+    // Arrange
+    const billing = nav('22', 'Billing', 12)
+
+    // Act
+    const graph = buildHard(
+      dependencies(
+        [link('a', self, billing)],
+        [link('b', billing, self, soft)],
+      ),
+    )
+
+    // Assert
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:22'])
+  })
+
+  it('returns an empty graph when every link is soft', () => {
+    // Act
+    const graph = buildHard(
+      dependencies([link('a', self, nav('22', 'Analytics', 12), soft)]),
+    )
+
+    // Assert
+    expect(graph.nodes).toEqual([])
+    expect(graph.edges).toEqual([])
+  })
+})
+
+describe('buildDependencyNeighbourhood with expansions', () => {
+  const self = nav(PRODUCT_ID, 'Storefront', 7)
+  const identity = nav('22', 'Identity Service', 12)
+  const kiosk = nav('33', 'Storefront Kiosk', 14)
+
+  const noExpansions = (): DependencyExpansions => ({
+    usedBy: {},
+    dependsOn: {},
+  })
+
+  const buildWith = (
+    deps: ProductDependenciesDto,
+    expansions: DependencyExpansions,
+    options: Partial<BuildDependencyNeighbourhoodOptions> = {},
+  ) =>
+    buildDependencyNeighbourhood({
+      productId: PRODUCT_ID,
+      productName: 'Storefront',
+      productKey: 7,
+      dependencies: deps,
+      expansions,
+      ...options,
+    })
+
+  const node = (graph: { nodes: DependencyNode[] }, id: string) =>
+    graph.nodes.find((n) => n.id === id)
+
+  it('grows a provider outward, into a column beyond it', () => {
+    // Arrange
+    const directory = nav('40', 'Directory', 20)
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies([link('x', identity, directory)]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+    )
+
+    // Assert
+    expect(graph.edges.map((e) => [e.source, e.target])).toEqual([
+      [PRODUCT_ID, 'dependsOn:22'],
+      ['dependsOn:22', 'dependsOn:40'],
+    ])
+    expect(node(graph, 'dependsOn:40')!.position.x).toBeGreaterThan(
+      node(graph, 'dependsOn:22')!.position.x,
+    )
+  })
+
+  it('grows a consumer outward, into a column before it', () => {
+    // Arrange
+    const signage = nav('50', 'Signage', 21)
+    const expansions = noExpansions()
+    expansions.usedBy['33'] = {
+      dependencies: dependencies([], [link('y', signage, kiosk)]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([], [link('b', kiosk, self)]),
+      expansions,
+    )
+
+    // Assert
+    // What relies on a consumer: an outage reaches it through the consumer, so it sits further left.
+    expect(graph.edges.map((e) => [e.source, e.target])).toEqual([
+      ['usedBy:33', PRODUCT_ID],
+      ['usedBy:50', 'usedBy:33'],
+    ])
+    expect(node(graph, 'usedBy:50')!.position.x).toBeLessThan(
+      node(graph, 'usedBy:33')!.position.x,
+    )
+  })
+
+  it('never turns an expansion back toward the centre', () => {
+    // Arrange — the provider's response also lists what relies on it.
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies(
+        [],
+        [link('z', nav('60', 'Admin Console', 30), identity)],
+      ),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+    )
+
+    // Assert
+    expect(graph.edges.map((e) => e.id)).toEqual(['a'])
+    expect(node(graph, 'dependsOn:22')!.data.expansion).toBe('empty')
+  })
+
+  it('draws only the links the expanded product holds itself', () => {
+    // Arrange — the endpoint rolls a product's subtree up; a link held beneath it is not its own.
+    const platform = nav('20', 'Core Platform', 30)
+    const tokens = nav('24', 'Token Service', 31)
+    const expansions = noExpansions()
+    expansions.dependsOn['20'] = {
+      dependencies: dependencies([
+        link('own', platform, nav('70', 'Cloud Hosting', 40)),
+        link('child', tokens, nav('71', 'Key Vault', 41), {
+          productPath: [platform],
+        }),
+      ]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, platform)]),
+      expansions,
+    )
+
+    // Assert
+    expect(graph.edges.map((e) => e.id)).toEqual(['a', 'own'])
+    expect(node(graph, 'dependsOn:71')).toBeUndefined()
+  })
+
+  it('leaves out links back into the subject, which the centre already draws', () => {
+    // Arrange — the provider depends on something beneath the subject.
+    const web = nav('44', 'Storefront Web', 9)
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies([
+        link('back', identity, web, { dependsOnProductPath: [self] }),
+      ]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+    )
+
+    // Assert
+    expect(graph.edges.map((e) => e.id)).toEqual(['a'])
+  })
+
+  it('draws a product once per side, where it was first found', () => {
+    // Arrange — the subject depends on both, and one of them depends on the other.
+    const directory = nav('40', 'Directory', 20)
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies([link('x', identity, directory)]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity), link('b', self, directory)]),
+      expansions,
+    )
+
+    // Assert
+    // The link between them is drawn within the column rather than moving Directory further out.
+    expect(graph.nodes.filter((n) => n.id === 'dependsOn:40')).toHaveLength(1)
+    expect(node(graph, 'dependsOn:40')!.position.x).toBe(
+      node(graph, 'dependsOn:22')!.position.x,
+    )
+    expect(graph.edges.map((e) => e.id)).toEqual(['a', 'b', 'x'])
+  })
+
+  it('bows a link within a column out on its outer side', () => {
+    // Arrange — the subject depends on both, and one of them depends on the other.
+    const directory = nav('40', 'Directory', 20)
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies([link('x', identity, directory)]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity), link('b', self, directory)]),
+      expansions,
+    )
+
+    // Assert
+    // Right to left would cut across the links arriving from the subject.
+    expect(graph.edges.find((e) => e.id === 'x')).toEqual(
+      expect.objectContaining({
+        sourceHandle: DEPENDENCY_HANDLES.outRight,
+        targetHandle: DEPENDENCY_HANDLES.inRight,
+      }),
+    )
+  })
+
+  it('runs a link back toward the subject from left side to right side', () => {
+    // Arrange — Directory is two hops out, and relies on Identity, which the subject also relies on.
+    const gateway = nav('30', 'Gateway', 19)
+    const directory = nav('40', 'Directory', 20)
+    const expansions = noExpansions()
+    expansions.dependsOn['30'] = {
+      dependencies: dependencies([link('x', gateway, directory)]),
+    }
+    expansions.dependsOn['40'] = {
+      dependencies: dependencies([link('y', directory, identity)]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity), link('b', self, gateway)]),
+      expansions,
+    )
+
+    // Assert
+    // Leaving the right side would loop the curve across the whole map and through every box on the way.
+    expect(graph.edges.find((e) => e.id === 'y')).toEqual(
+      expect.objectContaining({
+        source: 'dependsOn:40',
+        target: 'dependsOn:22',
+        sourceHandle: DEPENDENCY_HANDLES.outLeft,
+        targetHandle: DEPENDENCY_HANDLES.inRight,
+      }),
+    )
+    expect(graph.edges.find((e) => e.id === 'x')).toEqual(
+      expect.objectContaining({
+        sourceHandle: DEPENDENCY_HANDLES.outRight,
+        targetHandle: DEPENDENCY_HANDLES.inLeft,
+      }),
+    )
+  })
+
+  it('bows a link within a consumer column out on the left', () => {
+    // Arrange — two consumers of the subject, one of which uses the other.
+    const signage = nav('50', 'Signage', 21)
+    const expansions = noExpansions()
+    expansions.usedBy['33'] = {
+      dependencies: dependencies([], [link('y', signage, kiosk)]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([], [link('b', kiosk, self), link('c', signage, self)]),
+      expansions,
+    )
+
+    // Assert
+    expect(graph.edges.find((e) => e.id === 'y')).toEqual(
+      expect.objectContaining({
+        sourceHandle: DEPENDENCY_HANDLES.outLeft,
+        targetHandle: DEPENDENCY_HANDLES.inLeft,
+      }),
+    )
+  })
+
+  it('draws a link once however many expansions reach it', () => {
+    // Arrange — the two ends of one link, both expanded, both return it.
+    const directory = nav('40', 'Directory', 20)
+    const shared = link('x', identity, directory)
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = { dependencies: dependencies([shared]) }
+    expansions.dependsOn['40'] = {
+      dependencies: dependencies([], [shared]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+    )
+
+    // Assert
+    expect(graph.edges.filter((e) => e.id === 'x')).toHaveLength(1)
+  })
+
+  it('says where each product off to the side stands with its own links', () => {
+    // Arrange
+    const one = nav('81', 'One', 81)
+    const two = nav('82', 'Two', 82)
+    const three = nav('83', 'Three', 83)
+    const four = nav('84', 'Four', 84)
+    const expansions = noExpansions()
+    expansions.dependsOn['82'] = {}
+    expansions.dependsOn['83'] = { isError: true }
+    expansions.dependsOn['84'] = {
+      dependencies: dependencies([link('x', four, nav('90', 'Beyond', 90))]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([
+        link('a', self, one),
+        link('b', self, two),
+        link('c', self, three),
+        link('d', self, four),
+      ]),
+      expansions,
+    )
+
+    // Assert
+    const status = (id: string) =>
+      (node(graph, `dependsOn:${id}`)!.data as DependencyNodeData).expansion
+    expect(status('81')).toBe('collapsed')
+    expect(status('82')).toBe('loading')
+    expect(status('83')).toBe('error')
+    expect(status('84')).toBe('expanded')
+    expect(status('90')).toBe('collapsed')
+    // The subject is not a neighbour, and cannot be expanded.
+    expect(
+      (node(graph, PRODUCT_ID)!.data as DependencyNodeData).expansion,
+    ).toBeUndefined()
+  })
+
+  it('caps an expansion, and names whose products the count is of', () => {
+    // Arrange
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies(
+        Array.from({ length: 4 }, (_, i) =>
+          link(`x${i}`, identity, nav(`p${i}`, `Provider ${i}`, 100 + i)),
+        ),
+      ),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+      { maxPerSide: 3 },
+    )
+
+    // Assert
+    expect(node(graph, overflowNodeId('dependsOn', '22'))!.data).toEqual(
+      expect.objectContaining({
+        label: '+1 more for Identity Service',
+        ownerId: '22',
+        count: 1,
+      }),
+    )
+    // Only the subject's own overflow is the card's to count.
+    expect(graph.hiddenCount).toBe(0)
+  })
+
+  it('draws the rest of an expansion once asked', () => {
+    // Arrange
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      showAll: true,
+      dependencies: dependencies(
+        Array.from({ length: 4 }, (_, i) =>
+          link(`x${i}`, identity, nav(`p${i}`, `Provider ${i}`, 100 + i)),
+        ),
+      ),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+      { maxPerSide: 3 },
+    )
+
+    // Assert
+    expect(graph.edges).toHaveLength(5)
+    expect(node(graph, overflowNodeId('dependsOn', '22'))).toBeUndefined()
+  })
+
+  it("draws the rest of the subject's own column once asked", () => {
+    // Arrange
+    const links = Array.from({ length: 5 }, (_, i) =>
+      link(`a${i}`, self, nav(`p${i}`, `Provider ${i}`, 100 + i)),
+    )
+
+    // Act
+    const graph = buildWith(dependencies(links), noExpansions(), {
+      maxPerSide: 3,
+      subjectShowAll: ['dependsOn'],
+    })
+
+    // Assert
+    expect(graph.edges).toHaveLength(5)
+    expect(graph.hiddenCount).toBe(0)
+  })
+
+  it('draws nothing an expansion reached once the product that reached it is collapsed', () => {
+    // Arrange — Directory is still in the expansion state, but nothing on the map leads to it.
+    const directory = nav('40', 'Directory', 20)
+    const expansions = noExpansions()
+    expansions.dependsOn['40'] = {
+      dependencies: dependencies([link('y', directory, nav('41', 'LDAP', 21))]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+    )
+
+    // Assert
+    expect(graph.placed.dependsOn).toEqual(['22'])
+    expect(graph.edges.map((e) => e.id)).toEqual(['a'])
+  })
+
+  it('applies the strength filter to an expansion too', () => {
+    // Arrange
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies([
+        link('x', identity, nav('40', 'Directory', 20), {
+          strength: DependencyStrength.Soft,
+        }),
+      ]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, identity)]),
+      expansions,
+      { strengthFilter: 'hard' },
+    )
+
+    // Assert
+    expect(graph.edges.map((e) => e.id)).toEqual(['a'])
+    expect(
+      (node(graph, 'dependsOn:22')!.data as DependencyNodeData).expansion,
+    ).toBe('empty')
+  })
+
+  it('keeps an expansion beside the product it grew from', () => {
+    // Arrange — Alpha sorts first but was expanded from the lower of the two providers.
+    const upper = nav('91', 'Aardvark', 91)
+    const lower = nav('92', 'Zebra', 92)
+    const expansions = noExpansions()
+    expansions.dependsOn['91'] = {
+      dependencies: dependencies([link('u', upper, nav('93', 'Zulu', 93))]),
+    }
+    expansions.dependsOn['92'] = {
+      dependencies: dependencies([link('l', lower, nav('94', 'Alpha', 94))]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([link('a', self, upper), link('b', self, lower)]),
+      expansions,
+    )
+
+    // Assert
+    expect(node(graph, 'dependsOn:93')!.position.y).toBeLessThan(
+      node(graph, 'dependsOn:94')!.position.y,
+    )
+  })
+
+  it('draws a platform once per column it holds products in', () => {
+    // Arrange — one of the platform's services is depended on directly, another two hops out.
+    const platform = nav('20', 'Core Platform', 30)
+    const search = nav('23', 'Search Service', 13)
+    const expansions = noExpansions()
+    expansions.dependsOn['22'] = {
+      dependencies: dependencies([
+        link('x', identity, search, { dependsOnProductPath: [platform] }),
+      ]),
+    }
+
+    // Act
+    const graph = buildWith(
+      dependencies([
+        link('a', self, identity, { dependsOnProductPath: [platform] }),
+      ]),
+      expansions,
+    )
+
+    // Assert
+    expect(inside(graph.nodes, '20', 'dependsOn')).toEqual(['dependsOn:22'])
+    expect(
+      graph.nodes
+        .filter((n) => n.parentId === groupNodeId('dependsOn', '20', 2))
+        .map((n) => n.id),
+    ).toEqual(['dependsOn:23'])
+  })
+
+  it('explains the box only when the subject is drawn as one', () => {
+    // Arrange — the only box is the provider's own platform.
+    const platform = nav('20', 'Core Platform', 30)
+
+    // Act
+    const graph = buildWith(
+      dependencies([
+        link('a', self, identity, { dependsOnProductPath: [platform] }),
+      ]),
+      noExpansions(),
+    )
+
+    // Assert
+    expect(graph.hasContainedProducts).toBe(false)
   })
 })

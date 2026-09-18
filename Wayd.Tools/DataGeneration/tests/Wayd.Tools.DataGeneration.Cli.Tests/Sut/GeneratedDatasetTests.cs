@@ -55,6 +55,7 @@ public class GeneratedDatasetTests : IDisposable
             "strategic-initiative-kpis.csv", "ppm-finalizations.csv",
             "deployment-environments.csv", "products.csv", "versions.csv", "release-packages.csv",
             "release-package-components.csv", "releases.csv", "release-contents.csv", "deployments.csv",
+            "product-dependencies.csv",
             "planning-intervals.csv", "planning-interval-objectives.csv", "risks.csv",
         ]);
     }

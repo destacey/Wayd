@@ -12,4 +12,5 @@ public sealed record GeneratedProductManagement(
     IReadOnlyList<ReleasePackageComponentModel> ReleasePackageComponents,
     IReadOnlyList<ReleaseModel> Releases,
     IReadOnlyList<ReleaseContentModel> ReleaseContents,
-    IReadOnlyList<DeploymentModel> Deployments);
+    IReadOnlyList<DeploymentModel> Deployments,
+    IReadOnlyList<ProductDependencyModel> Dependencies);

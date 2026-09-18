@@ -19,11 +19,19 @@ export interface DependencySvgNode {
   height: number
   isGroup: boolean
   isSubject: boolean
+  /** A count of products left off, which reads as a note rather than a product. */
+  isOverflow?: boolean
+  /** A product the reader expanded, outlined as it is on screen. */
+  isExpanded?: boolean
 }
 
 export interface DependencySvgEdge {
   source: string
   target: string
+  /** Leaves the source's left side rather than its right, as a link running back toward the subject does. */
+  leavesLeft?: boolean
+  /** Enters the target's right side rather than its left. */
+  entersRight?: boolean
   strength: DependencyStrength
 }
 
@@ -122,14 +130,14 @@ export const renderDependencyMapSvg = ({
       const target = byId.get(edge.target)
       if (!source || !target) return ''
 
-      // Our nodes carry a handle on each side, so an edge leaves the right edge and lands on the left.
+      // The same sides the canvas joins: right to left unless the edge says otherwise.
       const [path] = getBezierPath({
-        sourceX: source.x + shiftX + source.width,
+        sourceX: source.x + shiftX + (edge.leavesLeft ? 0 : source.width),
         sourceY: source.y + shiftY + source.height / 2,
-        sourcePosition: Position.Right,
-        targetX: target.x + shiftX,
+        sourcePosition: edge.leavesLeft ? Position.Left : Position.Right,
+        targetX: target.x + shiftX + (edge.entersRight ? target.width : 0),
         targetY: target.y + shiftY + target.height / 2,
-        targetPosition: Position.Left,
+        targetPosition: edge.entersRight ? Position.Right : Position.Left,
       })
 
       const isSoft = edge.strength === DependencyStrength.Soft
@@ -170,12 +178,22 @@ export const renderDependencyMapSvg = ({
         )
         .join('')
 
+      const fill = node.isSubject
+        ? theme.subjectFill
+        : node.isOverflow
+          ? 'none'
+          : theme.nodeFill
+      const stroke =
+        node.isSubject || node.isExpanded
+          ? theme.subjectStroke
+          : theme.nodeStroke
+
       return (
         `<g>` +
         `<rect x="${node.x + shiftX}" y="${node.y + shiftY}" width="${node.width}" height="${node.height}" rx="${theme.borderRadius}" ` +
-        `fill="${node.isSubject ? theme.subjectFill : theme.nodeFill}" stroke="${node.isSubject ? theme.subjectStroke : theme.nodeStroke}" />` +
+        `fill="${fill}" stroke="${stroke}"${node.isOverflow ? ' stroke-dasharray="4 4"' : ''} />` +
         `<text text-anchor="middle" font-family="${escapeXml(theme.fontFamily)}" font-size="${theme.fontSize}" ` +
-        `font-weight="${node.isSubject ? 600 : 400}" fill="${theme.nodeText}">${text}</text>` +
+        `font-weight="${node.isSubject ? 600 : 400}" fill="${node.isOverflow ? theme.groupText : theme.nodeText}">${text}</text>` +
         `</g>`
       )
     })

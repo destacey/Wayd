@@ -14,6 +14,8 @@ import {
   FileImageOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
+  MinusOutlined,
+  PlusOutlined,
   ShrinkOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
@@ -24,27 +26,39 @@ import {
   Controls,
   Handle,
   MarkerType,
+  Panel,
   Position,
   ReactFlow,
   useReactFlow,
+  useStore,
   type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Dropdown, theme } from 'antd'
+import { Button, Dropdown, theme } from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
 import {
   renderDependencyMapSvg,
   type DependencySvgTheme,
 } from './dependency-map-svg'
 import styles from './dependency-map.module.css'
-import type {
-  DependencyEdge,
-  DependencyEdgeData,
-  DependencyGroupData,
-  DependencyNode,
-  DependencyNodeData,
+import {
+  DEPENDENCY_HANDLES,
+  type DependencyEdge,
+  type DependencyEdgeData,
+  type DependencyExpansionStatus,
+  type DependencyFarSide,
+  type DependencyGroupData,
+  type DependencyNode,
+  type DependencyNodeData,
+  type DependencyOverflowData,
 } from './dependency-neighbourhood'
 
 export interface DependencyMapProps {
@@ -54,21 +68,116 @@ export interface DependencyMapProps {
   height?: number
   /** What a downloaded image is called, without the extension the chosen format supplies. */
   fileStem?: string
+  /**
+   * Controls that change what is drawn, in the canvas's top-right corner. On the canvas rather than
+   * around it, so they stay in reach in fullscreen.
+   */
+  filters?: ReactNode
+  /** Shown in the canvas when a filter leaves nothing to draw. */
+  emptyText?: ReactNode
+  /** Expands or collapses a product off to one side. Without it, nothing on the map can be expanded. */
+  onToggleExpansion?: (side: DependencyFarSide, productId: string) => void
+  /** Draws the products a count left off: an expansion's, or the subject's own when `ownerId` is null. */
+  onShowAll?: (side: DependencyFarSide, ownerId: string | null) => void
 }
+
+interface DependencyMapActions {
+  onToggleExpansion?: DependencyMapProps['onToggleExpansion']
+  onShowAll?: DependencyMapProps['onShowAll']
+}
+
+// Nodes are rendered by React Flow from a type map defined once, outside the component, so they reach
+// the map's handlers through context rather than props.
+const DependencyMapActionsContext = createContext<DependencyMapActions>({})
 
 const productLink = (productKey: number) =>
   `/product-management/products/${productKey}`
 
+const expansionTooltip = (
+  status: DependencyExpansionStatus,
+  side: DependencyFarSide,
+  label: string,
+) => {
+  switch (status) {
+    case 'collapsed':
+      return side === 'usedBy'
+        ? `Show what relies on ${label}`
+        : `Show what ${label} relies on`
+    case 'loading':
+      return 'Loading'
+    case 'expanded':
+      return 'Collapse'
+    case 'empty':
+      return 'Nothing further out. Click to collapse.'
+    case 'error':
+      return 'Could not load its dependencies. Click to collapse.'
+  }
+}
+
+/**
+ * Expands a product outward, on the edge facing away from the subject: the side the new column appears
+ * on. The button, not the node, because the node already navigates to the product.
+ */
+const ExpandButton = ({ node }: { node: DependencyNodeData }) => {
+  const { onToggleExpansion } = useContext(DependencyMapActionsContext)
+  if (!node.expansion || !onToggleExpansion || node.side === 'center') {
+    return null
+  }
+
+  const side = node.side
+  const status = node.expansion
+  const isOpen = status !== 'collapsed'
+
+  return (
+    <WaydTooltip title={expansionTooltip(status, side, node.label)}>
+      <Button
+        size="small"
+        shape="circle"
+        // nodrag/nopan: React Flow would otherwise start a pan from the press.
+        className={`nodrag nopan ${styles.expand} ${side === 'usedBy' ? styles.expandLeft : styles.expandRight}`}
+        aria-label={isOpen ? `Collapse ${node.label}` : `Expand ${node.label}`}
+        aria-expanded={isOpen}
+        // Below antd's smallest size: at 24px the button covers the edge's start and competes with the
+        // node's own name. Inline, because antd's own size rules outrank a module class.
+        styles={{
+          root: {
+            width: 'var(--ant-control-height-xs)',
+            minWidth: 'var(--ant-control-height-xs)',
+            height: 'var(--ant-control-height-xs)',
+          },
+          icon: { fontSize: 'calc(var(--ant-font-size-sm) - 2px)' },
+        }}
+        icon={isOpen ? <MinusOutlined /> : <PlusOutlined />}
+        loading={status === 'loading'}
+        onClick={(event) => {
+          event.stopPropagation()
+          onToggleExpansion(side, node.productId)
+        }}
+      />
+    </WaydTooltip>
+  )
+}
+
 const ProductNode = ({ data }: NodeProps<DependencyNode>) => {
   const node = data as DependencyNodeData
+  const isExpanded =
+    node.expansion !== undefined && node.expansion !== 'collapsed'
 
   return (
     <div
-      className={`${styles.node} ${node.isSubject ? styles.subject : ''}`}
+      className={`${styles.node} ${node.isSubject ? styles.subject : ''} ${isExpanded ? styles.expanded : ''}`}
       data-testid="dependency-map-node"
     >
+      {/* A source and a target on each side: which pair an edge uses depends on which way it runs. */}
       <Handle
+        id={DEPENDENCY_HANDLES.inLeft}
         type="target"
+        position={Position.Left}
+        className={styles.handle}
+      />
+      <Handle
+        id={DEPENDENCY_HANDLES.outLeft}
+        type="source"
         position={Position.Left}
         className={styles.handle}
       />
@@ -79,12 +188,38 @@ const ProductNode = ({ data }: NodeProps<DependencyNode>) => {
       >
         {node.label}
       </Link>
+      <ExpandButton node={node} />
       <Handle
+        id={DEPENDENCY_HANDLES.outRight}
         type="source"
         position={Position.Right}
         className={styles.handle}
       />
+      <Handle
+        id={DEPENDENCY_HANDLES.inRight}
+        type="target"
+        position={Position.Right}
+        className={styles.handle}
+      />
     </div>
+  )
+}
+
+/** The products a column left off, drawn in place when clicked rather than sending the reader away. */
+const OverflowNode = ({ data }: NodeProps<DependencyNode>) => {
+  const overflow = data as DependencyOverflowData
+  const { onShowAll } = useContext(DependencyMapActionsContext)
+
+  return (
+    <button
+      type="button"
+      className={`nodrag nopan ${styles.overflow}`}
+      title={overflow.label}
+      disabled={!onShowAll}
+      onClick={() => onShowAll?.(overflow.side, overflow.ownerId)}
+    >
+      {overflow.label}
+    </button>
   )
 }
 
@@ -107,7 +242,11 @@ const ProductGroupNode = ({ data }: NodeProps<DependencyNode>) => {
   )
 }
 
-const nodeTypes = { product: ProductNode, productGroup: ProductGroupNode }
+const nodeTypes = {
+  product: ProductNode,
+  productGroup: ProductGroupNode,
+  overflow: OverflowNode,
+}
 
 interface MapControlsProps {
   isFullScreen: boolean
@@ -164,12 +303,18 @@ const MapControls = ({
         height: node.measured?.height ?? node.height ?? 48,
         isGroup: node.type === 'productGroup',
         isSubject: (node.data as { isSubject?: boolean }).isSubject === true,
+        isOverflow: node.type === 'overflow',
+        isExpanded: ['expanded', 'empty', 'loading', 'error'].includes(
+          (node.data as { expansion?: string }).expansion ?? '',
+        ),
       }
     })
 
     const svgEdges = getEdges().map((edge) => ({
       source: edge.source,
       target: edge.target,
+      leavesLeft: edge.sourceHandle === DEPENDENCY_HANDLES.outLeft,
+      entersRight: edge.targetHandle === DEPENDENCY_HANDLES.inRight,
       strength: (edge.data as unknown as DependencyEdgeData).strength,
     }))
 
@@ -247,6 +392,28 @@ const MapControls = ({
 }
 
 /**
+ * Refits the view whenever what is drawn, or the canvas it is drawn on, changes.
+ *
+ * The fitView prop applies once, on init, and the canvas keeps its zoom otherwise: a filtered graph
+ * would sit where the unfiltered one was, and a graph fitted to the card would sit in a corner of the
+ * fullscreen overlay. Keyed on the canvas size React Flow has measured rather than fitted on a timer,
+ * because a filter changes the canvas's height too, and a fit that ran before the resize landed fitted
+ * the graph to the old height. React Flow itself defers a fit until new nodes are measured.
+ */
+const FitToGraph = ({ drawn }: { drawn: string }) => {
+  const { fitView } = useReactFlow()
+  const width = useStore((state) => state.width)
+  const height = useStore((state) => state.height)
+
+  useEffect(() => {
+    if (width === 0 || height === 0) return
+    fitView({ padding: 0.2, maxZoom: 1 })
+  }, [fitView, drawn, width, height])
+
+  return null
+}
+
+/**
  * Draws a dependency graph: products as nodes, links as edges.
  *
  * It takes the graph rather than the dependencies, so the same canvas serves a product's one-hop
@@ -257,12 +424,15 @@ const DependencyMap = ({
   edges,
   height = 320,
   fileStem = 'dependency-map',
+  filters,
+  emptyText,
+  onToggleExpansion,
+  onShowAll,
 }: DependencyMapProps) => {
   const { currentMode } = useTheme()
   const { token } = theme.useToken()
   const router = useRouter()
   const [isFullScreen, setIsFullScreen] = useState(false)
-  const refit = useRef<(() => void) | null>(null)
 
   // Resolved from the tokens at export time: a downloaded file cannot read a CSS variable, and it
   // should look like the theme it was taken from.
@@ -295,13 +465,6 @@ const DependencyMap = ({
     return () => document.removeEventListener('keydown', onKey)
   }, [isFullScreen])
 
-  // The canvas keeps its zoom across the resize, so a graph fitted to a card sits in the corner of the
-  // overlay until it is refitted. Deferred a frame, because the new size is not laid out yet.
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => refit.current?.())
-    return () => cancelAnimationFrame(frame)
-  }, [isFullScreen])
-
   // The arrow marker's colour is written as an SVG attribute, where a CSS variable would not resolve.
   const strokeFor = (strength: DependencyStrength) =>
     strength === DependencyStrength.Hard
@@ -329,52 +492,60 @@ const DependencyMap = ({
   }))
 
   return (
-    <div
-      className={`${styles.surface} ${isFullScreen ? styles.fullscreen : ''}`}
-      style={isFullScreen ? undefined : { height }}
+    <DependencyMapActionsContext.Provider
+      value={{ onToggleExpansion, onShowAll }}
     >
-      <ReactFlow
-        className={styles.canvas}
-        nodes={nodes}
-        edges={styledEdges}
-        nodeTypes={nodeTypes}
-        onInit={(instance) => {
-          refit.current = () => instance.fitView({ padding: 0.2, maxZoom: 1 })
-        }}
-        // React Flow turns pointer events off for a node that is not selectable, draggable or
-        // connectable and has no click handler — which left the links inside the nodes dead to the
-        // mouse. Handling the click is also what makes the whole node clickable, not just its anchor.
-        onNodeClick={(event, node) => {
-          if ((event.target as HTMLElement).closest('a')) return
-
-          const { productKey } = node.data as DependencyNodeData
-          router.push(productLink(productKey))
-        }}
-        colorMode={currentMode === 'light' ? 'light' : 'dark'}
-        fitView
-        // Capped at 1: a two-node map would otherwise be blown up to fill the canvas, which makes the
-        // same product read as a different size on every page.
-        fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
-        // Read-only: the layout is derived from the data, so a moved node would say something the
-        // record does not, and nothing persists it.
-        nodesDraggable={false}
-        nodesConnectable={false}
-        edgesFocusable={false}
-        elementsSelectable={false}
-        minZoom={0.3}
-        maxZoom={1.5}
+      <div
+        className={`${styles.surface} ${isFullScreen ? styles.fullscreen : ''}`}
+        style={isFullScreen ? undefined : { height }}
       >
-        <Background gap={16} />
-        {/* Fullscreen joins zoom and fit in the same stack rather than floating in its own corner:
+        <ReactFlow
+          className={styles.canvas}
+          nodes={nodes}
+          edges={styledEdges}
+          nodeTypes={nodeTypes}
+          // React Flow turns pointer events off for a node that is not selectable, draggable or
+          // connectable and has no click handler — which left the links inside the nodes dead to the
+          // mouse. Handling the click is also what makes the whole node clickable, not just its anchor.
+          onNodeClick={(event, node) => {
+            // Links navigate themselves, and a button inside a node (expand, show more) does its own job.
+            if ((event.target as HTMLElement).closest('a, button')) return
+            if (node.type === 'overflow') return
+
+            const { productKey } = node.data as DependencyNodeData
+            router.push(productLink(productKey))
+          }}
+          colorMode={currentMode === 'light' ? 'light' : 'dark'}
+          fitView
+          // Capped at 1: a two-node map would otherwise be blown up to fill the canvas, which makes the
+          // same product read as a different size on every page.
+          fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+          // Read-only: the layout is derived from the data, so a moved node would say something the
+          // record does not, and nothing persists it.
+          nodesDraggable={false}
+          nodesConnectable={false}
+          edgesFocusable={false}
+          elementsSelectable={false}
+          minZoom={0.3}
+          maxZoom={1.5}
+        >
+          <Background gap={16} />
+          {filters && <Panel position="top-right">{filters}</Panel>}
+          <FitToGraph drawn={nodes.map((node) => node.id).join('|')} />
+          {/* Fullscreen joins zoom and fit in the same stack rather than floating in its own corner:
             they are all "how I am looking at this", and one control cluster is one thing to find. */}
-        <MapControls
-          isFullScreen={isFullScreen}
-          onToggleFullScreen={() => setIsFullScreen((open) => !open)}
-          fileStem={fileStem}
-          theme={svgTheme}
-        />
-      </ReactFlow>
-    </div>
+          <MapControls
+            isFullScreen={isFullScreen}
+            onToggleFullScreen={() => setIsFullScreen((open) => !open)}
+            fileStem={fileStem}
+            theme={svgTheme}
+          />
+        </ReactFlow>
+        {nodes.length === 0 && emptyText && (
+          <div className={styles.empty}>{emptyText}</div>
+        )}
+      </div>
+    </DependencyMapActionsContext.Provider>
   )
 }
 

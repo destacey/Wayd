@@ -212,6 +212,9 @@ public sealed class WaydSeedClient : IDisposable
     public Task<ImportRun> ImportProducts(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/product-management/products/import", csv, "products.csv", "products", cancellationToken);
 
+    public Task<ImportRun> ImportProductDependencies(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/product-management/products/dependencies/import", csv, "product-dependencies.csv", "product dependencies", cancellationToken);
+
     public Task<ImportRun> ImportVersions(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/product-management/versions/import", csv, "versions.csv", "versions", cancellationToken);
 

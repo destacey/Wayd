@@ -14056,6 +14056,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Submit a csv file of product dependencies to import. Applied product by product: a product's rows apply together or not at all. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportDependenciesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a product.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -14811,6 +14818,134 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
                     // Operation Path: "api/product-management/products/import"
                     urlBuilder_.Append("api/product-management/products/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of product dependencies to import. Applied product by product: a product's rows apply together or not at all. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportDependenciesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/dependencies/import"
+                    urlBuilder_.Append("api/product-management/products/dependencies/import");
                     urlBuilder_.Append('?');
                     if (submissionGroupId != null)
                     {
@@ -78110,6 +78245,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportAtomicity>))]
         public ImportAtomicity Atomicity { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("groupNoun")]
+        public string? GroupNoun { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportProcessStatus>))]
@@ -78176,6 +78314,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Atomic")]
         Atomic = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"PerGroup")]
+        PerGroup = 2,
 
     }
 
@@ -79614,6 +79755,70 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         public string? Tags { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the product dependency import: ProductId relies on
+    /// <br/>DependsOnProductId, both by id.
+    /// <br/>Record the most specific product known — the service, not the platform it belongs to. A product cannot
+    /// <br/>depend on itself or on anything above or below it in the tree, which is composition.
+    /// <br/>A dependency that stopped carries EndsOn. One whose strength changed is two rows on the
+    /// <br/>same pair: the first ending the day before the second starts.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportProductDependencyRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Falls back to the row's position when the column is absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The product that has the dependency, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid ProductId { get; set; } = default!;
+
+        /// <summary>
+        /// The product it relies on, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependsOnProductId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid DependsOnProductId { get; set; } = default!;
+
+        /// <summary>
+        /// Hard if the product stops working without it, Soft if it degrades but keeps working.
+        /// <br/>Required: there is no default, because a guessed strength misstates impact.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("strength")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Strength { get; set; } = default!;
+
+        /// <summary>
+        /// What the product relies on it for. Max 1024 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// The day it began. Blank means today.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startsOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? StartsOn { get; set; } = default!;
+
+        /// <summary>
+        /// The last day it held. Blank means it still holds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("endsOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? EndsOn { get; set; } = default!;
 
     }
 
@@ -91373,6 +91578,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportAtomicity>))]
         public ImportAtomicity Atomicity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("groupNoun")]
+        public string? GroupNoun { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("maxRows")]
         public int MaxRows { get; set; } = default!;

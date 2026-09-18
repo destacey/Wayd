@@ -500,4 +500,150 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         process.Status.Should().Be(ImportProcessStatus.Cancelled);
     }
+
+    /// <summary>
+    /// Queues a per-group run from (import id, group, should fail) triples, grouping each row as submission
+    /// would — by asking the definition.
+    /// </summary>
+    private (ImportProcess Process, TestGroupedImportDefinition Definition, RunImportProcessCommandHandler Handler) QueueGroupedRun(
+        (string ImportId, string Group, bool ShouldFail)[] rows, bool preflight = false, int chunkSize = 4)
+    {
+        var definition = new TestGroupedImportDefinition(new ImportPayloadSerializer()) { ChunkSizeOverride = chunkSize };
+
+        var processRows = rows.Select((r, i) =>
+        {
+            var payload = definition.SerializeRow(new TestGroupedImportRow(r.Group, r.ShouldFail));
+            return ImportProcessRow.Create(r.ImportId, i + 1, payload, definition.GroupKeyOf(payload));
+        });
+
+        var process = preflight
+            ? ImportProcess.CreatePreflight(definition.Key, "user-1", null, processRows, _now)
+            : ImportProcess.Create(definition.Key, "user-1", null, processRows, _now);
+        _db.AddImportProcess(process);
+
+        var clock = new Mock<IDateTimeProvider>();
+        clock.SetupGet(c => c.Now).Returns(_now);
+        var handler = new RunImportProcessCommandHandler(
+            _db, new ImportDefinitionRegistry([definition]), clock.Object, NullLogger<RunImportProcessCommandHandler>.Instance);
+
+        return (process, definition, handler);
+    }
+
+    [Fact]
+    public async Task Handle_PerGroup_ChunksWithoutSplittingAGroup()
+    {
+        // Arrange — chunk size 4: a's three rows fill most of one, so b's two start the next
+        var (process, definition, handler) = QueueGroupedRun(
+        [
+            ("a1", "a", false), ("a2", "a", false), ("a3", "a", false),
+            ("b1", "b", false), ("b2", "b", false),
+            ("c1", "c", false),
+        ]);
+
+        // Act
+        await handler.Handle(new RunImportProcessCommand(process.Id), TestContext.Current.CancellationToken);
+
+        // Assert — a chunk is saved as it finishes, so a group across two would be half applied after the first
+        definition.Calls.Should().HaveCount(2);
+        definition.Calls[0].Should().Equal("a1", "a2", "a3");
+        definition.Calls[1].Should().Equal("b1", "b2", "c1");
+        process.Status.Should().Be(ImportProcessStatus.Succeeded);
+    }
+
+    [Fact]
+    public async Task Handle_PerGroup_GivesAGroupLargerThanAChunkAChunkOfItsOwn()
+    {
+        // Arrange
+        var (process, definition, handler) = QueueGroupedRun(
+            [.. Enumerable.Range(1, 6).Select(i => ($"a{i}", "a", false))], chunkSize: 4);
+
+        // Act
+        await handler.Handle(new RunImportProcessCommand(process.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        definition.Calls.Should().ContainSingle().Which.Should().HaveCount(6);
+    }
+
+    [Fact]
+    public async Task Handle_PerGroup_KeepsOutEveryRowOfAGroupWithARejectedRow()
+    {
+        // Arrange
+        var (process, _, handler) = QueueGroupedRun(
+        [
+            ("a1", "a", false), ("a2", "a", true), ("a3", "a", false),
+            ("b1", "b", false),
+        ]);
+
+        // Act
+        await handler.Handle(new RunImportProcessCommand(process.Id), TestContext.Current.CancellationToken);
+
+        // Assert — the other group is kept, and each row kept out says which row it was kept out for
+        process.Status.Should().Be(ImportProcessStatus.PartiallySucceeded);
+        process.SucceededRowCount.Should().Be(1);
+        process.FailedRowCount.Should().Be(3);
+        process.Rows.Single(r => r.ImportId == "b1").Status.Should().Be(ImportRowStatus.Succeeded);
+        process.Rows.Single(r => r.ImportId == "a2").Error.Should().Contain("marked to fail");
+        process.Rows.Where(r => r.ImportId is "a1" or "a3").Should().AllSatisfy(r =>
+        {
+            r.Status.Should().Be(ImportRowStatus.Failed);
+            r.Error.Should().Be("Not applied: another row for the same widget was rejected (import id 'a2').");
+            r.CreatedEntityId.Should().BeNull();
+        });
+    }
+
+    [Fact]
+    public async Task Handle_PerGroup_RunsTheChunkAgainWithoutTheRejectedGroup()
+    {
+        // Arrange
+        var (process, definition, handler) = QueueGroupedRun(
+        [
+            ("a1", "a", false), ("a2", "a", true),
+            ("b1", "b", false), ("b2", "b", false),
+        ]);
+
+        // Act
+        await handler.Handle(new RunImportProcessCommand(process.Id), TestContext.Current.CancellationToken);
+
+        // Assert — what the first call staged for b sat beside a's, and was thrown away with it
+        definition.Calls.Should().HaveCount(2);
+        definition.Calls[0].Should().Equal("a1", "a2", "b1", "b2");
+        definition.Calls[1].Should().Equal("b1", "b2");
+    }
+
+    [Fact]
+    public async Task Handle_PerGroup_DoesNotRunAChunkAgainWhenEveryGroupInItWasRejected()
+    {
+        // Arrange
+        var (process, definition, handler) = QueueGroupedRun(
+        [
+            ("a1", "a", true), ("b1", "b", true),
+        ]);
+
+        // Act
+        await handler.Handle(new RunImportProcessCommand(process.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        definition.Calls.Should().ContainSingle();
+        process.FailedRowCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_PerGroup_Preflight_ReportsTheRowsARealRunWouldKeepOut()
+    {
+        // Arrange
+        var (process, _, handler) = QueueGroupedRun(
+        [
+            ("a1", "a", false), ("a2", "a", true),
+            ("b1", "b", false),
+        ], preflight: true);
+
+        // Act
+        await handler.Handle(new RunImportProcessCommand(process.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        process.Rows.Single(r => r.ImportId == "a1").Error
+            .Should().Be("Not applied: another row for the same widget was rejected (import id 'a2').");
+        process.Rows.Single(r => r.ImportId == "b1").Status.Should().Be(ImportRowStatus.Succeeded);
+        process.FailedRowCount.Should().Be(2);
+    }
 }

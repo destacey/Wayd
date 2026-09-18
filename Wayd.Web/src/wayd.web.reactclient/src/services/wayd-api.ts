@@ -7686,6 +7686,94 @@ export class ProductsClient {
     }
 
     /**
+     * Submit a csv file of product dependencies to import. Applied product by product: a product's rows apply together or not at all. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
+     * @param file (optional) 
+     */
+    importDependencies(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/product-management/products/dependencies/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImportDependencies(_response);
+        });
+    }
+
+    protected processImportDependencies(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
+    }
+
+    /**
      * Update a product.
      */
     update(id: string, request: UpdateProductRequest, cancelToken?: CancelToken): Promise<void> {
@@ -43120,6 +43208,7 @@ export interface ImportProcessDto {
     importType: string;
     displayName: string;
     atomicity: ImportAtomicity;
+    groupNoun?: string | undefined;
     status: ImportProcessStatus;
     isPreflight: boolean;
     appliedImportProcessId?: string | undefined;
@@ -43142,6 +43231,7 @@ export interface ImportProcessDto {
 export enum ImportAtomicity {
     PerRow = "PerRow",
     Atomic = "Atomic",
+    PerGroup = "PerGroup",
 }
 
 export enum ImportProcessStatus {
@@ -43627,6 +43717,26 @@ initial status when the column is absent or blank. */
     /** The product's tags, as semicolon-separated Category|Tag pairs —
 Platform|ios;Platform|android;Compliance|pci-scope. */
     tags?: string | undefined;
+}
+
+/** A single CSV row for the product dependency import: ProductId relies on DependsOnProductId, both by id. Record the most specific product known — the service, not the platform it belongs to. A product cannot depend on itself or on anything above or below it in the tree, which is composition. A dependency that stopped carries EndsOn. One whose strength changed is two rows on the same pair: the first ending the day before the second starts. */
+export interface ImportProductDependencyRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Falls back to the row's position when the column is absent. */
+    importId?: string | undefined;
+    /** The product that has the dependency, by id. */
+    productId: string;
+    /** The product it relies on, by id. */
+    dependsOnProductId: string;
+    /** Hard if the product stops working without it, Soft if it degrades but keeps working.
+Required: there is no default, because a guessed strength misstates impact. */
+    strength: string;
+    /** What the product relies on it for. Max 1024 chars. */
+    description?: string | undefined;
+    /** The day it began. Blank means today, so an EndsOn before today is refused. */
+    startsOn?: Date | undefined;
+    /** The last day it held. Blank means it still holds. */
+    endsOn?: Date | undefined;
 }
 
 /** A whole-record update of a product's descriptive fields. */
@@ -47486,6 +47596,7 @@ export interface ImportDefinitionDto {
     key: string;
     displayName: string;
     atomicity: ImportAtomicity;
+    groupNoun?: string | undefined;
     maxRows: number;
     preflightMaxRows: number;
     canSubmit: boolean;

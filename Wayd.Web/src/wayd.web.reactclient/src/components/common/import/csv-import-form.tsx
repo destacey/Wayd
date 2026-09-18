@@ -30,6 +30,7 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { byGroup } from './import-atomicity'
 import ImportColumnsTable from './import-columns-table'
 import type { ImportFileTemplate, ImportTemplate } from './import-template'
 import { ImportKey, importTemplates } from './import-templates.generated'
@@ -349,6 +350,14 @@ const CsvImportForm = ({
               showIcon
               title="All or nothing"
               description={`The file applies as one unit: if any row is rejected, nothing is created. Up to ${definition.maxRows.toLocaleString()} rows.${preflightCapNote}`}
+              style={{ marginBottom: 16 }}
+            />
+          ) : definition.atomicity === ImportAtomicity.PerGroup ? (
+            <Alert
+              type="info"
+              showIcon
+              title={byGroup(definition.groupNoun ?? 'group')}
+              description={`Rows for the same ${definition.groupNoun ?? 'group'} apply together: if one is rejected, none of that ${definition.groupNoun ?? 'group'}'s rows are, and the rest of the file is still imported. Up to ${definition.maxRows.toLocaleString()} rows.${preflightCapNote}`}
               style={{ marginBottom: 16 }}
             />
           ) : (

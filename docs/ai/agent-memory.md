@@ -9,6 +9,11 @@ This file captures compact repo-specific lessons that future coding agents shoul
 3. Read this file for recent implementation lessons and repo habits.
 4. For domain work, use `docs/llms-full.txt` and `docs/ai/domain-glossary.mdx`.
 
+## Databases
+
+- Reset a database only through Aspire: start it (`cd Wayd.AppHost && dotnet run`), then **Reset Database** from the `wayd-api` resource's Actions → Commands. It resets the database the API is configured with.
+- Never drop, recreate or delete any Wayd database (`wayd`, `wayd-seed`, `wayd-test`, …) another way without the user confirming that database by name. User secrets hold several connection strings, mostly commented out with `//`; reading one out of the file is how the wrong database was dropped once. If Aspire cannot run, stop and ask.
+
 ## Generated API Client
 
 - Do not hand-edit `Wayd.Web/src/wayd.web.reactclient/src/services/wayd-api.ts`.

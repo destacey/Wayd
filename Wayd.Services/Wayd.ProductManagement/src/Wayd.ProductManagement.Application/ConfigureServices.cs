@@ -19,6 +19,7 @@ public static class ConfigureServices
         services.AddValidatorsFromAssembly(assembly);
 
         services.AddScoped<IImportDefinition, ProductImportDefinition>();
+        services.AddScoped<IImportDefinition, ProductDependencyImportDefinition>();
         services.AddScoped<IImportDefinition, VersionImportDefinition>();
         services.AddScoped<IImportDefinition, ReleaseImportDefinition>();
         services.AddScoped<IImportDefinition, ReleasePackageImportDefinition>();

@@ -63,6 +63,11 @@ public static class RecipeLayering
             VersionIntervalDays = over.VersionIntervalDays ?? under.VersionIntervalDays,
             ChangeFailureRate = over.ChangeFailureRate ?? under.ChangeFailureRate,
             PackagedArtFraction = over.PackagedArtFraction ?? under.PackagedArtFraction,
+            ComponentsPerTeam = over.ComponentsPerTeam ?? under.ComponentsPerTeam,
+            Dependencies = over.Dependencies ?? under.Dependencies,
+            DependenciesPerComponent = over.DependenciesPerComponent ?? under.DependenciesPerComponent,
+            HardDependencyFraction = over.HardDependencyFraction ?? under.HardDependencyFraction,
+            PlatformServices = over.PlatformServices ?? under.PlatformServices,
         };
     }
 

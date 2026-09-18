@@ -36,15 +36,15 @@ public sealed class PlanningGenerator
     private readonly List<PlanningIntervalObjectiveModel> _objectives = [];
     private readonly List<RiskModel> _risks = [];
 
-    public PlanningGenerator(OrgStructure org, PlanningOptions options, GenerationContext context)
+    /// <param name="catalog">The catalog every generator in the run shares. Derived at its baseline when omitted.</param>
+    public PlanningGenerator(OrgStructure org, PlanningOptions options, GenerationContext context, ProductCatalog? catalog = null)
     {
         _org = org;
         _options = options;
         _context = context;
 
-        // Derived rather than passed in, like the PPM generator's copy, so objectives name the same components
-        // the catalog holds whether or not the catalog itself is seeded.
-        _catalog = ProductCatalog.From(org, context);
+        // Objectives name the same components the catalog holds, whether or not the catalog itself is seeded.
+        _catalog = catalog ?? ProductCatalog.From(org, context);
 
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };

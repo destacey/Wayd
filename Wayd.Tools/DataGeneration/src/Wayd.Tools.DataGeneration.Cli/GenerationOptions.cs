@@ -146,6 +146,31 @@ public static class GenerationOptions
         Description = "Share (0..1) of ARTs that ship their services together as release packages rather than each deploying on its own.",
     };
 
+    public static Option<double?> ComponentsPerTeam { get; } = new("--components-per-team")
+    {
+        Description = "Average number of components each team owns and ships. More components mean a denser catalog and a longer delivery history.",
+    };
+
+    public static Option<bool> SkipProductDependencies { get; } = new("--skip-product-dependencies")
+    {
+        Description = "Generate no product dependencies. The catalog and its delivery history are unaffected.",
+    };
+
+    public static Option<double?> DependenciesPerComponent { get; } = new("--dependencies-per-component")
+    {
+        Description = "Average number of products each component depends on. Applications depend on more, libraries on almost nothing.",
+    };
+
+    public static Option<double?> HardDependencyFraction { get; } = new("--hard-dependency-fraction")
+    {
+        Description = "Share (0..1) of dependencies a product cannot work without. The rest are soft.",
+    };
+
+    public static Option<int?> PlatformServices { get; } = new("--platform-services")
+    {
+        Description = "How many shared platform services most of the catalog relies on. Omit to size it from the catalog.",
+    };
+
     public static Option<bool> SkipPlanning { get; } = new("--skip-planning")
     {
         Description = "Skip the planning intervals and the objectives and risks planned in them. A shorthand for a recipe that disables the planning area.",
@@ -201,6 +226,11 @@ public static class GenerationOptions
         VersionIntervalDays,
         ChangeFailureRate,
         PackagedArtFraction,
+        ComponentsPerTeam,
+        SkipProductDependencies,
+        DependenciesPerComponent,
+        HardDependencyFraction,
+        PlatformServices,
         SkipPlanning,
         IterationWeeks,
         ObjectivesPerTeam,
@@ -272,6 +302,11 @@ public static class GenerationOptions
                 VersionIntervalDays = FlagOr(parse, VersionIntervalDays),
                 ChangeFailureRate = FlagOr(parse, ChangeFailureRate),
                 PackagedArtFraction = FlagOr(parse, PackagedArtFraction),
+                ComponentsPerTeam = FlagOr(parse, ComponentsPerTeam),
+                Dependencies = parse.GetValue(SkipProductDependencies) ? false : null,
+                DependenciesPerComponent = FlagOr(parse, DependenciesPerComponent),
+                HardDependencyFraction = FlagOr(parse, HardDependencyFraction),
+                PlatformServices = FlagOr(parse, PlatformServices),
             },
             Planning = new PlanningRecipe
             {

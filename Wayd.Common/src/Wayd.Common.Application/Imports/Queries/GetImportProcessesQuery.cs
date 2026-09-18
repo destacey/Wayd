@@ -117,6 +117,7 @@ public sealed class GetImportProcessesQueryHandler(
             process.ImportType,
             definition.DisplayName,
             definition.Atomicity,
+            definition.GroupNoun,
             process.Status,
             process.IsPreflight,
             process.AppliedImportProcessId,

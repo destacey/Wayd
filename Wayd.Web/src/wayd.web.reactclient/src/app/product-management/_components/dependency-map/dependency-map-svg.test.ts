@@ -141,6 +141,31 @@ describe('renderDependencyMapSvg', () => {
     expect(path).toContain('432,56')
   })
 
+  it('joins the sides the canvas does for an edge running back toward the subject', () => {
+    // Arrange — the source sits right of its target.
+    const nodes = [
+      node('a', 'Identity Service', 0, 0),
+      node('b', 'Directory', 400, 0),
+    ]
+
+    // Act
+    const { svg } = render(nodes, [
+      {
+        source: 'b',
+        target: 'a',
+        strength: DependencyStrength.Hard,
+        leavesLeft: true,
+        entersRight: true,
+      },
+    ])
+
+    // Assert
+    // Leaves Directory's left edge (32 + 400) and lands on Identity Service's right edge (32 + 180).
+    const path = edgePaths(svg)[0]
+    expect(path).toContain('M432,56')
+    expect(path).toContain('212,56')
+  })
+
   it('leaves out an edge whose node is not on the map', () => {
     // Arrange — the far side of a link the per-side cap left off.
     const nodes = [node('a', 'Storefront Web', 0, 0)]

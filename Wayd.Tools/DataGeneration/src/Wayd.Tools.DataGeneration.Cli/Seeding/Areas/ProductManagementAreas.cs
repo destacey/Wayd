@@ -9,6 +9,7 @@ public static class ProductManagementArea
     public const string FeatureFlag = "product-management.feature-flag";
     public const string Environments = "product-management.deployment-environments";
     public const string Products = "product-management.products";
+    public const string ProductDependencies = "product-management.product-dependencies";
     public const string Versions = "product-management.versions";
     public const string ReleasePackages = "product-management.release-packages";
     public const string Releases = "product-management.releases";
@@ -98,6 +99,45 @@ public sealed class ProductsArea() : ProductManagementSeedArea(
 
         var run = await context.Client.ImportProducts(CsvFile.ToBytes(rows), cancellationToken);
         context.Publish(Name, run.CreatedIdsByImportId);
+    }
+}
+
+/// <summary>
+/// Loads what each product relies on, resolving both ends to the ids the catalog run created.
+/// </summary>
+/// <remarks>
+/// Batched by the product that holds the links, which is also the unit the import applies: a product's rows
+/// in two files would be two groups, and one could land without the other.
+/// </remarks>
+public sealed class ProductDependenciesArea() : ProductManagementSeedArea(
+    ProductManagementArea.ProductDependencies, ProductManagementArea.Products)
+{
+    public override string BatchedImport => "product-management.product-dependencies";
+
+    public override bool ShouldRun(SeedContext context) => context.ProductManagement?.Dependencies.Count > 0;
+
+    public override async Task Run(SeedContext context, CancellationToken cancellationToken)
+    {
+        var dependencies = Data(context).Dependencies;
+
+        var rows = dependencies.Select(d => new ProductDependencyCsvRow
+        {
+            ImportId = d.ImportId,
+            ProductId = context.Id(ProductManagementArea.Products, d.ProductName),
+            DependsOnProductId = context.Id(ProductManagementArea.Products, d.DependsOnProductName),
+            Strength = d.Strength,
+            Description = d.Description,
+            StartsOn = d.StartsOn,
+            EndsOn = d.EndsOn,
+        }).ToList();
+
+        var batches = Batch(context, rows, r => r.ProductId);
+        context.Log($"Importing {dependencies.Count} product dependencies in {batches.Count} batch(es)...");
+
+        var created = await ImportBatches(context, "product dependencies", batches,
+            batch => context.Client.ImportProductDependencies(CsvFile.ToBytes(batch), cancellationToken));
+
+        context.Publish(Name, created);
     }
 }
 

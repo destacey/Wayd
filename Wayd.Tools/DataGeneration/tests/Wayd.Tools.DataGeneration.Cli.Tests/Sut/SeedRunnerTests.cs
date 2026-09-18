@@ -155,6 +155,7 @@ public class SeedRunnerTests
         batched.Should().BeEquivalentTo(
         [
             PpmArea.ProjectTasks,
+            ProductManagementArea.ProductDependencies,
             ProductManagementArea.Versions,
             ProductManagementArea.ReleasePackages,
             ProductManagementArea.Releases,
@@ -163,6 +164,13 @@ public class SeedRunnerTests
             PlanningArea.Objectives,
             PlanningArea.Risks,
         ]);
+    }
+
+    [Fact]
+    public void Areas_DeclareProductDependenciesAfterTheProductsTheyLink()
+    {
+        // Arrange & Act & Assert
+        ShouldDependOn(ProductManagementArea.ProductDependencies, ProductManagementArea.Products);
     }
 
     [Fact]

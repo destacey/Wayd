@@ -20,6 +20,7 @@ namespace Wayd.ProductManagement.Application.Tests.Infrastructure;
 public abstract class ProductCommandTestBase
 {
     protected static readonly Instant Now = Instant.FromUtc(2026, 4, 1, 9, 0, 0);
+    protected static readonly LocalDate Today = new(2026, 4, 1);
 
     /// <summary>
     /// The employee the acting account is linked to, frozen onto every transition these commands write.
@@ -38,6 +39,7 @@ public abstract class ProductCommandTestBase
             .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ActingEmployeeId);
         DateTimeProvider.SetupGet(d => d.Now).Returns(Now);
+        DateTimeProvider.SetupGet(d => d.Today).Returns(Today);
     }
 
     protected static ILogger<T> Logger<T>() => Mock.Of<ILogger<T>>();
@@ -218,6 +220,35 @@ public abstract class ProductCommandTestBase
         DbContext.AddDeployment(deployment);
 
         return deployment;
+    }
+
+    /// <summary>
+    /// A dependency recorded through the aggregate, and added to the set queries read.
+    /// </summary>
+    /// <remarks>
+    /// Skips the composition check, which is the add handler's to exercise. Ended at
+    /// <paramref name="endsOn"/> where one is given.
+    /// </remarks>
+    protected ProductDependency SeedDependency(
+        Product product,
+        Guid dependsOnProductId,
+        DependencyStrength strength = DependencyStrength.Hard,
+        LocalDate? startsOn = null,
+        LocalDate? endsOn = null,
+        string? description = null)
+    {
+        var dependency = product.AddDependency(
+            dependsOnProductId, strength, description, startsOn ?? Today.PlusDays(-30), [], [], Today, EventActor.System, Now).Value;
+
+        if (endsOn is not null)
+        {
+            product.EndDependency(dependency.Id, endsOn.Value, Today, EventActor.System, Now);
+        }
+
+        product.ClearDomainEvents();
+        DbContext.AddProductDependencies([dependency]);
+
+        return dependency;
     }
 
     protected (ProductTagCategory Category, ProductTag Tag) SeedTag(

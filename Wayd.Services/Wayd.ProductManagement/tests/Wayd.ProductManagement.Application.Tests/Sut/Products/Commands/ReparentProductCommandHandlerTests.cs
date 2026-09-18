@@ -48,6 +48,21 @@ public sealed class ReparentProductCommandHandlerTests
         return product;
     }
 
+    private void SeedDependency(Product product, Guid dependsOnProductId, LocalDate? endsOn = null)
+    {
+        var today = new LocalDate(2026, 4, 1);
+        var dependency = product.AddDependency(
+            dependsOnProductId, DependencyStrength.Hard, null, new LocalDate(2026, 1, 1), [], [], today, EventActor.System, Now).Value;
+
+        if (endsOn is not null)
+        {
+            product.EndDependency(dependency.Id, endsOn.Value, today, EventActor.System, Now);
+        }
+
+        product.ClearDomainEvents();
+        _dbContext.AddProductDependencies([dependency]);
+    }
+
     [Fact]
     public async Task Handle_ShouldMoveTheNode()
     {
@@ -101,6 +116,86 @@ public sealed class ReparentProductCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A product cannot be moved beneath one of its own descendants.");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAMoveBeneathAProductThatDependsOnADescendant()
+    {
+        // Arrange — Trio depends on Identity, beneath Argo; moving Argo under Trio's platform would put
+        // Identity below Trio.
+        var mobile = SeedProduct("Mobile");
+        var trio = SeedProduct("Trio", mobile.Id);
+        var shifts = SeedProduct("Shifts", trio.Id);
+        var argo = SeedProduct("Argo");
+        var identity = SeedProduct("Identity", argo.Id);
+        SeedDependency(trio, identity.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(argo.Id, shifts.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(
+            "This move would place a product above or below a product it has an open dependency with. End that dependency first.");
+        argo.ParentId.Should().BeNull();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAMoveBeneathAProductADescendantDependsOn()
+    {
+        // Arrange — the other direction: something inside the moved subtree depends on the new lineage.
+        var argo = SeedProduct("Argo");
+        var identity = SeedProduct("Identity", argo.Id);
+        var trio = SeedProduct("Trio");
+        var shifts = SeedProduct("Shifts", trio.Id);
+        SeedDependency(shifts, argo.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(trio.Id, identity.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        trio.ParentId.Should().BeNull();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAllowAMoveAcrossAnEndedDependency()
+    {
+        // Arrange
+        var argo = SeedProduct("Argo");
+        var trio = SeedProduct("Trio");
+        SeedDependency(trio, argo.Id, endsOn: new LocalDate(2026, 3, 1));
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(trio.Id, argo.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        trio.ParentId.Should().Be(argo.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAllowAMoveWhenTheDependencyStaysOutsideTheNewLineage()
+    {
+        // Arrange — a sibling of the new parent is not above or below the moved product.
+        var suite = SeedProduct("Suite");
+        var platform = SeedProduct("Platform", suite.Id);
+        var identity = SeedProduct("Identity", suite.Id);
+        var trio = SeedProduct("Trio");
+        SeedDependency(trio, identity.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new ReparentProductCommand(trio.Id, platform.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        trio.ParentId.Should().Be(platform.Id);
     }
 
     [Fact]

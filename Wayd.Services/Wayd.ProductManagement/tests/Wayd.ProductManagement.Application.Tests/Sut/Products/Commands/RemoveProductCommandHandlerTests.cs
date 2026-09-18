@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using NodaTime;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
@@ -78,6 +79,43 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This product has versions and cannot be removed.");
         DbContext.Products.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAProductWithADependency_EvenAnEndedOne()
+    {
+        // Arrange
+        var identity = SeedProduct("Identity");
+        var vms = SeedProduct("Trio VMS");
+        SeedDependency(vms, identity.Id, endsOn: Today.PlusDays(-1));
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(vms.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This product has dependencies on other products recorded and cannot be removed.");
+        DbContext.Products.Should().HaveCount(2);
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAProductOthersDependOn()
+    {
+        // Arrange
+        var identity = SeedProduct("Identity");
+        var vms = SeedProduct("Trio VMS");
+        SeedDependency(vms, identity.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(identity.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Other products have dependencies on this product recorded, so it cannot be removed.");
+        DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

@@ -51,12 +51,22 @@ public sealed class RemoveProductCommandHandler(
             var isInAManifest = await _productManagementDbContext.ReleasePackageComponents
                 .AnyAsync(c => c.ProductId == request.Id, cancellationToken);
 
+            // Both ends, ended links included: ProductDependencies restricts on each, so a miss here fails at the
+            // database with a generic message.
+            var hasDependencies = await _productManagementDbContext.ProductDependencies
+                .AnyAsync(d => d.ProductId == request.Id, cancellationToken);
+
+            var isDependedOn = await _productManagementDbContext.ProductDependencies
+                .AnyAsync(d => d.DependsOnProductId == request.Id, cancellationToken);
+
             // Raises the event; the delete itself is the handler's, since the aggregate cannot remove
             // itself from a set it does not know about.
             var removeResult = product.Remove(
                 hasChildren,
                 hasVersions,
                 isInAManifest,
+                hasDependencies,
+                isDependedOn,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 

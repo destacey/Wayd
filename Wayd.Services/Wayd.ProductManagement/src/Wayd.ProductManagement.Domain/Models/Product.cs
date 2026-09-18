@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Interfaces.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Models;
 
 namespace Wayd.ProductManagement.Domain.Models;
 
@@ -18,6 +19,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 {
     private readonly List<ProductTagAssignment> _tags = [];
+    private readonly List<ProductDependency> _dependencies = [];
 
     private Product() { }
 
@@ -164,6 +166,248 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     }
 
     /// <summary>
+    /// The products this one depends on, ended links included.
+    /// </summary>
+    /// <remarks>
+    /// Only the dependent side. What depends on this product is a query over other products' links, and its
+    /// Activity learns of them through the events naming it as a related aggregate.
+    /// </remarks>
+    public IReadOnlyCollection<ProductDependency> Dependencies => _dependencies.AsReadOnly();
+
+    /// <summary>
+    /// Records that this product depends on another from <paramref name="startsOn"/>.
+    /// </summary>
+    /// <param name="ancestorIds">This product's ancestors. Including the product itself is harmless.</param>
+    /// <param name="dependsOnAncestorIds">
+    /// The other product's ancestors. Including that product itself is harmless.
+    /// </param>
+    /// <param name="today">The current date, which no dependency may start after.</param>
+    /// <remarks>
+    /// <strong>The composition check is only as good as the two ancestries.</strong> Passing empty collections
+    /// silently lets a product depend on its own parent or child; the domain cannot query the tree to notice.
+    /// <para>
+    /// A product and anything above or below it in the tree is composition, which the tree already records.
+    /// A dependency on the same product may be recorded again once the earlier one ended, but never over any
+    /// day one already covers.
+    /// </para>
+    /// </remarks>
+    public Result<ProductDependency> AddDependency(
+        Guid dependsOnProductId,
+        DependencyStrength strength,
+        string? description,
+        LocalDate startsOn,
+        IReadOnlyCollection<Guid> ancestorIds,
+        IReadOnlyCollection<Guid> dependsOnAncestorIds,
+        LocalDate today,
+        EventActor actor,
+        Instant timestamp)
+    {
+        Guard.Against.Default(dependsOnProductId, nameof(dependsOnProductId));
+        Guard.Against.EnumOutOfRange(strength, nameof(strength));
+        Guard.Against.Null(ancestorIds, nameof(ancestorIds));
+        Guard.Against.Null(dependsOnAncestorIds, nameof(dependsOnAncestorIds));
+
+        if (dependsOnProductId == Id)
+        {
+            return Result.Failure<ProductDependency>("A product cannot depend on itself.");
+        }
+
+        if (ancestorIds.Contains(dependsOnProductId) || dependsOnAncestorIds.Contains(Id))
+        {
+            return Result.Failure<ProductDependency>(
+                "A product cannot depend on a product above or below it in the product tree. That relationship is composition, which the tree already records.");
+        }
+
+        return OpenDependency(dependsOnProductId, strength, description, startsOn, today, actor, timestamp);
+    }
+
+    /// <summary>
+    /// Records that a dependency stopped, <paramref name="endsOn"/> being the last day it held. The link is kept.
+    /// </summary>
+    /// <param name="today">The current date, which no dependency may end after.</param>
+    /// <remarks>
+    /// May end on the day it started: a dependency that held for a single day still held.
+    /// </remarks>
+    public Result EndDependency(Guid dependencyId, LocalDate endsOn, LocalDate today, EventActor actor, Instant timestamp)
+    {
+        var dependency = _dependencies.FirstOrDefault(d => d.Id == dependencyId);
+        if (dependency is null)
+        {
+            return Result.Failure("Dependency not found.");
+        }
+
+        if (!dependency.IsOpen)
+        {
+            return Result.Failure("This dependency has already ended.");
+        }
+
+        if (endsOn < dependency.Period.Start)
+        {
+            return Result.Failure("A dependency cannot end before it started.");
+        }
+
+        if (endsOn > today)
+        {
+            return Result.Failure("A dependency cannot end in the future.");
+        }
+
+        Close(dependency, endsOn, actor, timestamp);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Changes whether this product stops working without the one it depends on, from
+    /// <paramref name="changedOn"/>.
+    /// </summary>
+    /// <param name="today">The current date, which no change may come after.</param>
+    /// <remarks>
+    /// Ends the current link the day before and opens another carrying the new strength from
+    /// <paramref name="changedOn"/>, rather than editing it: editing would re-judge downtime before the change by
+    /// a strength that did not hold then. Periods include their end day, so the two links meet without sharing a
+    /// day. That leaves no day to end on when the change falls on the day the link started, which is refused: a
+    /// link recorded with the wrong strength is removed and added again. The new link keeps the description, and
+    /// is not re-checked against the tree — it continues a dependency already recorded.
+    /// </remarks>
+    public Result<ProductDependency> ChangeDependencyStrength(
+        Guid dependencyId, DependencyStrength strength, LocalDate changedOn, LocalDate today, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.EnumOutOfRange(strength, nameof(strength));
+
+        var dependency = _dependencies.FirstOrDefault(d => d.Id == dependencyId);
+        if (dependency is null)
+        {
+            return Result.Failure<ProductDependency>("Dependency not found.");
+        }
+
+        if (!dependency.IsOpen)
+        {
+            return Result.Failure<ProductDependency>("An ended dependency cannot change strength.");
+        }
+
+        if (dependency.Strength == strength)
+        {
+            return Result.Success(dependency);
+        }
+
+        if (changedOn <= dependency.Period.Start)
+        {
+            return Result.Failure<ProductDependency>(
+                "A dependency's strength can change from the day after it started. If it was recorded with the wrong strength, remove it and add it again.");
+        }
+
+        if (changedOn > today)
+        {
+            return Result.Failure<ProductDependency>("A dependency's strength cannot change in the future.");
+        }
+
+        Close(dependency, changedOn.PlusDays(-1), actor, timestamp);
+
+        return OpenDependency(dependency.DependsOnProductId, strength, dependency.Description, changedOn, today, actor, timestamp);
+    }
+
+    /// <summary>
+    /// Rewords what a dependency is for. Allowed on an ended link, since it describes the link rather than
+    /// asserting anything about when it held.
+    /// </summary>
+    /// <remarks>
+    /// Raises nothing when the description already matches. Compares after assignment because the setter trims.
+    /// </remarks>
+    public Result UpdateDependencyDetails(Guid dependencyId, string? description, EventActor actor, Instant timestamp)
+    {
+        var dependency = _dependencies.FirstOrDefault(d => d.Id == dependencyId);
+        if (dependency is null)
+        {
+            return Result.Failure("Dependency not found.");
+        }
+
+        var previous = dependency.Description;
+        dependency.Description = description;
+
+        if (dependency.Description == previous)
+        {
+            return Result.Success();
+        }
+
+        AddDomainEvent(new ProductDependencyDetailsUpdatedEvent(
+            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Description, previous, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Deletes a dependency that was recorded by mistake.
+    /// </summary>
+    /// <remarks>
+    /// Not how a dependency that stopped is recorded — that is <see cref="EndDependency"/>. Ending a link that
+    /// was never true would leave a history asserting a dependency existed, which is exactly what attributing
+    /// downtime later relies on. A reason is required because this contradicts that history.
+    /// </remarks>
+    public Result RemoveDependency(Guid dependencyId, string reason, EventActor actor, Instant timestamp)
+    {
+        var dependency = _dependencies.FirstOrDefault(d => d.Id == dependencyId);
+        if (dependency is null)
+        {
+            return Result.Failure("Dependency not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure("A reason is required to remove a dependency.");
+        }
+
+        _dependencies.Remove(dependency);
+
+        AddDomainEvent(new ProductDependencyRemovedEvent(
+            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength,
+            dependency.Period, reason.Trim(), actor, timestamp));
+
+        return Result.Success();
+    }
+
+    private Result<ProductDependency> OpenDependency(
+        Guid dependsOnProductId, DependencyStrength strength, string? description, LocalDate startsOn, LocalDate today, EventActor actor, Instant timestamp)
+    {
+        if (startsOn > today)
+        {
+            return Result.Failure<ProductDependency>("A dependency cannot start in the future.");
+        }
+
+        var onSameProduct = _dependencies.Where(d => d.DependsOnProductId == dependsOnProductId).ToList();
+
+        if (onSameProduct.Any(d => d.IsOpen))
+        {
+            return Result.Failure<ProductDependency>(
+                "This product already depends on that product. End the current dependency before recording another.");
+        }
+
+        // Every other link on the product has ended, and an open link from startsOn overlaps any of them that
+        // held on or after that day.
+        if (onSameProduct.Any(d => d.Period.End >= startsOn))
+        {
+            return Result.Failure<ProductDependency>(
+                "An earlier dependency on that product already covers part of this period. Start this one after the day it ended.");
+        }
+
+        var dependency = new ProductDependency(Id, dependsOnProductId, strength, description, startsOn);
+        _dependencies.Add(dependency);
+
+        AddDomainEvent(new ProductDependencyAddedEvent(
+            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength,
+            dependency.Description, dependency.Period, actor, timestamp));
+
+        return Result.Success(dependency);
+    }
+
+    private void Close(ProductDependency dependency, LocalDate endsOn, EventActor actor, Instant timestamp)
+    {
+        dependency.Period = new FlexibleDateRange(dependency.Period.Start, endsOn);
+
+        AddDomainEvent(new ProductDependencyEndedEvent(
+            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength, dependency.Period, actor, timestamp));
+    }
+
+    /// <summary>
     /// Updates the node's name or description.
     /// </summary>
     /// <remarks>
@@ -219,12 +463,21 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// The new parent's ancestors, nearest first. Empty when <paramref name="parentId"/> is
     /// <c>null</c>, and only then.
     /// </param>
+    /// <param name="dependsAcrossNewLineage">
+    /// Whether an open dependency links this node, or anything beneath it, with the new parent or anything
+    /// above it, in either direction. Supplied by the caller, which owns that query.
+    /// </param>
     /// <remarks>
     /// <strong>The cycle check is only as good as <paramref name="ancestorIds"/>.</strong> Passing an
     /// empty collection for a non-null parent silently disables it; the domain cannot query the tree to
     /// notice. Only the self-parent case is caught unconditionally.
+    /// <para>
+    /// A move that would put two products depending on each other above and below one another is refused,
+    /// for the reason <see cref="AddDependency"/> refuses such a link: that relationship is composition. An
+    /// ended dependency does not block it, since it held while the two were apart.
+    /// </para>
     /// </remarks>
-    public Result Reparent(Guid? parentId, IReadOnlyCollection<Guid> ancestorIds, EventActor actor, Instant timestamp)
+    public Result Reparent(Guid? parentId, IReadOnlyCollection<Guid> ancestorIds, bool dependsAcrossNewLineage, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(ancestorIds, nameof(ancestorIds));
 
@@ -241,6 +494,12 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         if (parentId == ParentId)
         {
             return Result.Success();
+        }
+
+        if (dependsAcrossNewLineage)
+        {
+            return Result.Failure(
+                "This move would place a product above or below a product it has an open dependency with. End that dependency first.");
         }
 
         var fromParentId = ParentId;
@@ -316,7 +575,11 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// </summary>
     /// <param name="hasChildren">Whether any node still hangs from this one.</param>
     /// <param name="hasVersions">Whether any version was ever cut against this node.</param>
-    public Result Remove(bool hasChildren, bool hasVersions, bool isInAManifest, EventActor actor, Instant timestamp)
+    /// <param name="hasDependencies">Whether this node has any dependency recorded, ended ones included.</param>
+    /// <param name="isDependedOn">
+    /// Whether any other node has a dependency on this one recorded, ended ones included.
+    /// </param>
+    public Result Remove(bool hasChildren, bool hasVersions, bool isInAManifest, bool hasDependencies, bool isDependedOn, EventActor actor, Instant timestamp)
     {
         if (hasChildren)
         {
@@ -334,6 +597,18 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         if (isInAManifest)
         {
             return Result.Failure("This product appears in a release package manifest and cannot be removed.");
+        }
+
+        // Ended links block too: what a product depended on, and when, is history that removing either end
+        // would erase. A link recorded by mistake is removed first.
+        if (hasDependencies)
+        {
+            return Result.Failure("This product has dependencies on other products recorded and cannot be removed.");
+        }
+
+        if (isDependedOn)
+        {
+            return Result.Failure("Other products have dependencies on this product recorded, so it cannot be removed.");
         }
 
         AddDomainEvent(new ProductRemovedEvent(Id, Key, Name, ParentId, actor, timestamp));

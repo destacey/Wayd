@@ -110,6 +110,51 @@ public class ProductTagAssignmentConfiguration : IEntityTypeConfiguration<Produc
     }
 }
 
+public class ProductDependencyConfiguration : IEntityTypeConfiguration<ProductDependency>
+{
+    public void Configure(EntityTypeBuilder<ProductDependency> builder)
+    {
+        builder.ToTable("ProductDependencies", SchemaNames.ProductManagement);
+
+        builder.HasKey(d => d.Id);
+
+        // A product depends on another through at most one open link. The aggregate enforces it; this backstops
+        // two saves racing, which the aggregate cannot see.
+        builder.HasIndex(d => new { d.ProductId, d.DependsOnProductId })
+            .IsUnique()
+            .HasFilter("[End] IS NULL");
+
+        // "What depends on this product" — the Used by list, and the check before a product is removed.
+        builder.HasIndex(d => d.DependsOnProductId);
+
+        builder.Property(d => d.Id).ValueGeneratedNever();
+        builder.Property(d => d.ProductId).IsRequired();
+        builder.Property(d => d.DependsOnProductId).IsRequired();
+        builder.Property(d => d.Strength).IsRequired()
+            .HasConversion<EnumConverter<DependencyStrength>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(d => d.Description).HasMaxLength(1024);
+
+        builder.OwnsOne(d => d.Period, period =>
+        {
+            period.Property(p => p.Start).HasColumnName("Start").IsRequired();
+            period.Property(p => p.End).HasColumnName("End");
+        });
+        builder.Navigation(d => d.Period).IsRequired();
+
+        builder.Ignore(d => d.IsOpen);
+
+        // No cascade in the database on either end: Product.Remove refuses while any link names the product, so
+        // a delete reaching here means that check was missed, and it should fail rather than take dependency
+        // history with it. The owning end is configured on Product.
+        builder.HasOne(d => d.DependsOnProduct)
+            .WithMany()
+            .HasForeignKey(d => d.DependsOnProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
     public void Configure(EntityTypeBuilder<Product> builder)
@@ -154,6 +199,16 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(p => p.Tags).HasField("_tags").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // ClientCascade, not Restrict: EF deletes a link removed from the collection only when the relationship
+        // cascades, and under Restrict it throws instead, so RemoveDependency could never save. The database
+        // constraint stays no-action, so deleting a product whose links were not loaded still fails.
+        builder.HasMany(p => p.Dependencies)
+            .WithOne()
+            .HasForeignKey(d => d.ProductId)
+            .OnDelete(DeleteBehavior.ClientCascade);
+
+        builder.Navigation(p => p.Dependencies).HasField("_dependencies").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // Ignore
         builder.Ignore(p => p.StatusAlias);

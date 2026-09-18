@@ -308,6 +308,115 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpGet("{idOrKey}/dependencies")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
+    [OpenApiOperation(
+        "Get what a product depends on and what depends on it.",
+        "Rolled up across everything beneath the product: a link from a child to an outside product appears under Depends on, and a link inside the product's own subtree appears in neither list. Ended dependencies are left out unless requested.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProductDependenciesDto>> GetDependencies(
+        string idOrKey, [FromQuery] bool includeEnded = false, CancellationToken cancellationToken = default)
+    {
+        var dependencies = await _dispatcher.Send(
+            new GetProductDependenciesQuery(new IdOrKey(idOrKey), includeEnded), cancellationToken);
+
+        return dependencies is not null
+            ? Ok(dependencies)
+            : NotFound();
+    }
+
+    [HttpPost("{id}/dependencies")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [OpenApiOperation(
+        "Record that a product depends on another.",
+        "Returns the new dependency's id. A product can hold one open dependency on another product, and a later one on the same product cannot overlap an earlier one.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> AddDependency(
+        Guid id, [FromBody] AddProductDependencyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToAddProductDependencyCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetDependencies), new { idOrKey = id.ToString() }, result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/dependencies/{dependencyId}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [OpenApiOperation("Reword what a product's dependency is for.", "Allowed on an ended dependency.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> UpdateDependency(
+        Guid id, Guid dependencyId, [FromBody] UpdateProductDependencyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new UpdateProductDependencyCommand(id, dependencyId, request.Description), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/dependencies/{dependencyId}/end")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [OpenApiOperation(
+        "Record that a product stopped depending on another.",
+        "The dependency is kept and still counts for the period it held. Use remove only for a dependency that was never true.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> EndDependency(
+        Guid id, Guid dependencyId, [FromBody] EndProductDependencyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new EndProductDependencyCommand(id, dependencyId, request.EndsOn), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/dependencies/{dependencyId}/strength")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [OpenApiOperation(
+        "Change whether a product stops working without one it depends on.",
+        "Ends the dependency and records a new one with the new strength, and returns the id of the dependency now open. Unchanged when the strength already matches.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<Guid>> ChangeDependencyStrength(
+        Guid id, Guid dependencyId, [FromBody] ChangeProductDependencyStrengthRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new ChangeProductDependencyStrengthCommand(id, dependencyId, request.Strength, request.ChangedOn), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/dependencies/{dependencyId}/remove")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [OpenApiOperation(
+        "Delete a dependency recorded by mistake.",
+        "Requires a reason. Not for a dependency that stopped — end it instead, which keeps the history of when it held.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> RemoveDependency(
+        Guid id, Guid dependencyId, [FromBody] RemoveProductDependencyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new RemoveProductDependencyCommand(id, dependencyId, request.Reason), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Products)]
     [OpenApiOperation("Delete a product.", "")]

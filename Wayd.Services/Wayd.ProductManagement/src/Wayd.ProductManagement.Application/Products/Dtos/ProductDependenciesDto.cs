@@ -28,9 +28,9 @@ public sealed record ProductDependenciesDto
 /// One product depending on another over a period.
 /// </summary>
 /// <remarks>
-/// Carries both ends whichever list it is in, so a rolled-up row can say which descendant it starts or lands
-/// on: Trio's Depends on list shows Trio VMS as the product, and Argo Platform's Used by list shows Argo
-/// Identity as the product depended on.
+/// Carries both ends whichever list it is in, so a rolled-up row can say which descendant it starts or
+/// lands on: Storefront's Depends On list shows Storefront Web as the product, and Core Platform's Used By
+/// list shows Identity Service as the product depended on.
 /// </remarks>
 public sealed record ProductDependencyDto
 {
@@ -51,4 +51,17 @@ public sealed record ProductDependencyDto
 
     /// <summary>The last day the dependency held, or <c>null</c> while it still holds.</summary>
     public LocalDate? EndsOn { get; init; }
+
+    /// <summary>Everything <see cref="Product"/> sits inside, from its root down to its parent.</summary>
+    /// <inheritdoc cref="DependsOnProductPath" path="/remarks"/>
+    public IReadOnlyList<NavigationDto> ProductPath { get; init; } = [];
+
+    /// <summary>Everything <see cref="DependsOnProduct"/> sits inside, from its root down to its parent.</summary>
+    /// <remarks>
+    /// Where each end sits in the catalog, which the ends alone cannot say: a row carrying "Accounts API"
+    /// does not tell a reader whether that is a child of the product being read or a service of some other
+    /// product line. Full chains rather than chains relative to the product being read, so the same row
+    /// serves a reader drawing the near side inside the product and the far side under whatever owns it.
+    /// </remarks>
+    public IReadOnlyList<NavigationDto> DependsOnProductPath { get; init; } = [];
 }

@@ -86,7 +86,10 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
     /// <summary>
     /// Open links first, then by the product at the far end, then newest first.
     /// </summary>
-    private static List<ProductDependencyDto> Rows(IEnumerable<Link> links, Dictionary<Guid, CatalogNode> catalog, Func<Link, Guid> farEnd) =>
+    private static List<ProductDependencyDto> Rows(
+        IEnumerable<Link> links,
+        Dictionary<Guid, CatalogNode> catalog,
+        Func<Link, Guid> farEnd) =>
         [.. links
             .OrderBy(l => l.EndsOn is not null)
             .ThenBy(l => catalog[farEnd(l)].Name, StringComparer.OrdinalIgnoreCase)
@@ -100,9 +103,33 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
                 Description = l.Description,
                 StartsOn = l.StartsOn,
                 EndsOn = l.EndsOn,
+                ProductPath = Ancestry(l.ProductId, catalog),
+                DependsOnProductPath = Ancestry(l.DependsOnProductId, catalog),
             })];
 
     private static NavigationDto Navigation(CatalogNode node) => NavigationDto.Create(node.Id, node.Key, node.Name);
+
+    /// <summary>Everything a product sits inside, from its root down to its parent.</summary>
+    /// <remarks>
+    /// Walks up, because a node knows its parent rather than its children, then reverses. Stops on a node
+    /// already seen, so a catalog that already contains a cycle cannot loop forever.
+    /// </remarks>
+    private static IReadOnlyList<NavigationDto> Ancestry(Guid productId, Dictionary<Guid, CatalogNode> catalog)
+    {
+        var ancestry = new List<NavigationDto>();
+        var seen = new HashSet<Guid> { productId };
+        var parentId = catalog[productId].ParentId;
+
+        while (parentId is not null && seen.Add(parentId.Value))
+        {
+            ancestry.Add(Navigation(catalog[parentId.Value]));
+            parentId = catalog[parentId.Value].ParentId;
+        }
+
+        ancestry.Reverse();
+
+        return ancestry;
+    }
 
     /// <summary>A node and everything beneath it.</summary>
     /// <remarks>

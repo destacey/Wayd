@@ -1,13 +1,12 @@
 'use client'
 
-import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { MetricCard } from '@/src/components/common/metrics'
 import {
   ProductDependenciesDto,
   ProductDto,
   VersionDto,
 } from '@/src/services/wayd-api'
-import { Card, Col, Empty, Row, Skeleton, Typography } from 'antd'
+import { Card, Col, Row, Skeleton, Typography } from 'antd'
 import dynamic from 'next/dynamic'
 import { toFileName } from '@/src/utils'
 import { buildDependencyNeighbourhood } from '../../../_components/dependency-map'
@@ -57,6 +56,9 @@ export interface ProductOverviewProps {
  *
  * The child count comes from the same query the Products section uses, so the
  * tile cannot disagree with the list it summarises.
+ *
+ * No description here: the record's facts panel already renders it, and no other record repeats a fact
+ * on its overview.
  */
 const ProductOverview = ({
   product,
@@ -150,19 +152,6 @@ const ProductOverview = ({
           </Card>
         </Col>
       )}
-
-      <Col span={24}>
-        <Card size="small" title="Description">
-          {product.description ? (
-            <MarkdownRenderer markdown={product.description} />
-          ) : (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No description."
-            />
-          )}
-        </Card>
-      </Col>
     </Row>
   )
 }

@@ -69,8 +69,10 @@ const DeliveryPage: FC = () => {
           value={productId}
           onChange={setProductId}
           placeholder="All products"
-          // Scoping to something with nothing releasable beneath it can only ever report zero.
-          selectable="releasable"
+          // Any node, including a grouping: the page scopes to the node and everything beneath it, so
+          // picking a product line reports its releasable products rather than nothing. Cutting a
+          // version is what needs a releasable node, and this is a filter, not a target.
+          selectable="all"
         />
       </div>
       <Select

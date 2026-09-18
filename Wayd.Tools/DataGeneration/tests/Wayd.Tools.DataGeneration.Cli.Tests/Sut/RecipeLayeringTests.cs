@@ -135,6 +135,11 @@ public class RecipeLayeringTests
                 VersionIntervalDays = 1,
                 ChangeFailureRate = 0.01,
                 PackagedArtFraction = 0.01,
+                ComponentsPerTeam = 1.3,
+                Dependencies = true,
+                DependenciesPerComponent = 0.5,
+                HardDependencyFraction = 0.01,
+                PlatformServices = 1,
             },
             Planning = new PlanningRecipe
             {
@@ -177,6 +182,11 @@ public class RecipeLayeringTests
                 VersionIntervalDays = 21,
                 ChangeFailureRate = 0.3,
                 PackagedArtFraction = 0.4,
+                ComponentsPerTeam = 6,
+                Dependencies = false,
+                DependenciesPerComponent = 5,
+                HardDependencyFraction = 0.7,
+                PlatformServices = 9,
             },
             Planning = new PlanningRecipe
             {
@@ -214,6 +224,11 @@ public class RecipeLayeringTests
         result.ProductManagement.VersionIntervalDays.Should().Be(21);
         result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
         result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
+        result.ProductManagement.ComponentsPerTeam.Should().Be(6);
+        result.ProductManagement.Dependencies.Should().BeFalse();
+        result.ProductManagement.DependenciesPerComponent.Should().Be(5);
+        result.ProductManagement.HardDependencyFraction.Should().Be(0.7);
+        result.ProductManagement.PlatformServices.Should().Be(9);
 
         result.Planning.IterationWeeks.Should().Be(3);
         result.Planning.ObjectivesPerTeam.Should().Be(7);
@@ -258,6 +273,11 @@ public class RecipeLayeringTests
                 VersionIntervalDays = 21,
                 ChangeFailureRate = 0.3,
                 PackagedArtFraction = 0.4,
+                ComponentsPerTeam = 6,
+                Dependencies = false,
+                DependenciesPerComponent = 5,
+                HardDependencyFraction = 0.7,
+                PlatformServices = 9,
             },
             Planning = new PlanningRecipe
             {
@@ -295,6 +315,11 @@ public class RecipeLayeringTests
         result.ProductManagement.VersionIntervalDays.Should().Be(21);
         result.ProductManagement.ChangeFailureRate.Should().Be(0.3);
         result.ProductManagement.PackagedArtFraction.Should().Be(0.4);
+        result.ProductManagement.ComponentsPerTeam.Should().Be(6);
+        result.ProductManagement.Dependencies.Should().BeFalse();
+        result.ProductManagement.DependenciesPerComponent.Should().Be(5);
+        result.ProductManagement.HardDependencyFraction.Should().Be(0.7);
+        result.ProductManagement.PlatformServices.Should().Be(9);
 
         result.Planning.IterationWeeks.Should().Be(3);
         result.Planning.ObjectivesPerTeam.Should().Be(7);

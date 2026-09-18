@@ -25,4 +25,29 @@ public sealed class ProductManagementOptions
     /// each service deploying on its own. Any share above zero packages at least one ART.
     /// </summary>
     public double PackagedArtFraction { get; init; } = 0.25;
+
+    /// <summary>
+    /// Average components each team owns. At the default the catalog is what it has always been — about one
+    /// deployable per team, some with a library or tool beside it — and draws nothing extra, so a pinned seed
+    /// reproduces. Above it, teams own more services: a real microservice estate runs three to ten per team.
+    /// </summary>
+    public double ComponentsPerTeam { get; init; } = ProductCatalog.BaselineComponentsPerTeam;
+
+    /// <summary>Whether products record what they depend on.</summary>
+    public bool Dependencies { get; init; } = true;
+
+    /// <summary>
+    /// Average products each component depends on. Kinds vary around it: applications call more, libraries
+    /// almost nothing.
+    /// </summary>
+    public double DependenciesPerComponent { get; init; } = 3.5;
+
+    /// <summary>The share of dependencies a product cannot work without, before each link's own leaning.</summary>
+    public double HardDependencyFraction { get; init; } = 0.6;
+
+    /// <summary>
+    /// How many shared platform services most of the catalog relies on. Null sizes it from the catalog, at
+    /// about one service in forty.
+    /// </summary>
+    public int? PlatformServices { get; init; }
 }

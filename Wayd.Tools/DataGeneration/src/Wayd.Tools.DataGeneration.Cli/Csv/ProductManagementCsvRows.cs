@@ -19,6 +19,18 @@ public sealed class ProductCsvRow
     public string? Tags { get; init; }
 }
 
+/// <summary>One row of the product dependencies CSV: <see cref="ProductId"/> relies on <see cref="DependsOnProductId"/>.</summary>
+public sealed class ProductDependencyCsvRow
+{
+    public required string ImportId { get; init; }
+    public required Guid ProductId { get; init; }
+    public required Guid DependsOnProductId { get; init; }
+    public required string Strength { get; init; }
+    public string? Description { get; init; }
+    public DateOnly? StartsOn { get; init; }
+    public DateOnly? EndsOn { get; init; }
+}
+
 /// <summary>One row of the versions CSV. The dates decide the status.</summary>
 public sealed class VersionCsvRow
 {

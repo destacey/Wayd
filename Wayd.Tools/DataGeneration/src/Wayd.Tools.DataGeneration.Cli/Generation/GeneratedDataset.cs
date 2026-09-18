@@ -22,14 +22,19 @@ public sealed record GeneratedDataset(
     public static GeneratedDataset From(ResolvedRecipe resolved)
     {
         var org = new OrgGenerator(resolved.Organization, resolved.Context).Generate();
+
+        // Built once and shared: its shape is a Product Management knob, but projects and objectives are
+        // named after its components too, whether or not the catalog itself is generated.
+        var catalog = ProductCatalog.From(org.Structure, resolved.Context, ProductCatalogShape.For(resolved.ProductManagement));
+
         var ppm = resolved.GeneratePpm
-            ? new PpmGenerator(org.Structure, resolved.Ppm, resolved.Context).Generate()
+            ? new PpmGenerator(org.Structure, resolved.Ppm, resolved.Context, catalog).Generate()
             : null;
         var productManagement = resolved.GenerateProductManagement
-            ? new ProductManagementGenerator(org.Structure, resolved.ProductManagement, resolved.Context).Generate()
+            ? new ProductManagementGenerator(org.Structure, resolved.ProductManagement, resolved.Context, catalog).Generate()
             : null;
         var planning = resolved.GeneratePlanning
-            ? new PlanningGenerator(org.Structure, resolved.Planning, resolved.Context).Generate()
+            ? new PlanningGenerator(org.Structure, resolved.Planning, resolved.Context, catalog).Generate()
             : null;
 
         return new GeneratedDataset(org, ppm, productManagement, planning);
@@ -76,6 +81,7 @@ public sealed record GeneratedDataset(
             CsvFile.Write(Path.Combine(directory, "releases.csv"), pm.Releases);
             CsvFile.Write(Path.Combine(directory, "release-contents.csv"), pm.ReleaseContents);
             CsvFile.Write(Path.Combine(directory, "deployments.csv"), pm.Deployments);
+            CsvFile.Write(Path.Combine(directory, "product-dependencies.csv"), pm.Dependencies);
         }
 
         if (Planning is { } planning)
@@ -103,7 +109,8 @@ public sealed record GeneratedDataset(
         {
             yield return $"Generated {pm.Products.Count} products, {pm.Versions.Count} versions, "
                 + $"{pm.ReleasePackages.Count} release packages, {pm.Releases.Count} releases, "
-                + $"{pm.Deployments.Count} deployments across {pm.Environments.Count} environments.";
+                + $"{pm.Deployments.Count} deployments across {pm.Environments.Count} environments, "
+                + $"{pm.Dependencies.Count} dependencies.";
         }
 
         if (Planning is { } planning)

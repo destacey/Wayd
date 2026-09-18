@@ -74,12 +74,13 @@ public sealed class PpmGenerator
     // efforts a component name would misdescribe.
     private const double ProductProjectFraction = 0.7;
 
-    public PpmGenerator(OrgStructure org, PpmOptions options, GenerationContext context)
+    /// <param name="catalog">The catalog every generator in the run shares. Derived at its baseline when omitted.</param>
+    public PpmGenerator(OrgStructure org, PpmOptions options, GenerationContext context, ProductCatalog? catalog = null)
     {
         _org = org;
         _options = options;
         _context = context;
-        _catalog = ProductCatalog.From(org, context);
+        _catalog = catalog ?? ProductCatalog.From(org, context);
 
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };

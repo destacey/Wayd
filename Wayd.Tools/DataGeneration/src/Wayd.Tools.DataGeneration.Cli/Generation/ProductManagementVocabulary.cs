@@ -54,6 +54,36 @@ internal static class ProductManagementVocabulary
     /// <summary>Components still at the idea stage, hung off an existing team's work.</summary>
     internal static readonly string[] ConceptNouns = ["Assistant", "Insights", "Automation", "Forecasting"];
 
+    /// <summary>The job a team's second and later services do, which is what they are named for.</summary>
+    internal static readonly string[] CapabilityNouns =
+    [
+        "Orders", "Ledger", "Profiles", "Events", "Scheduler", "Rules", "Workflow", "Media", "Audit",
+        "Sync", "Quotes", "Refunds", "Offers", "Preferences", "Sessions", "Exports", "Webhooks",
+        "Reconciliation", "Eligibility", "Enrichment", "Routing", "Ingestion", "Moderation", "Ratings",
+    ];
+
+    /// <summary>
+    /// Domains that read as a platform rather than a business line — the org draws its value streams from
+    /// the same list, and one of these is where the shared services belong when it has one.
+    /// </summary>
+    internal static readonly HashSet<string> PlatformDomains = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Identity", "Data Platform", "Developer Experience", "Integrations", "Messaging", "Notifications",
+    };
+
+    /// <summary>
+    /// What the shared platform services are called, most relied-on first. Twenty-four, which is the most a
+    /// recipe can ask for.
+    /// </summary>
+    internal static readonly string[] PlatformServiceNames =
+    [
+        "Identity Service", "API Gateway", "Event Bus", "Notification Service", "Observability Platform",
+        "Feature Flag Service", "Config Service", "Secrets Vault", "Audit Log Service", "Search Platform",
+        "File Storage Service", "Job Scheduler", "Email Gateway", "Rate Limiter", "Service Mesh",
+        "Data Lake", "Cache Cluster", "Message Queue", "Workflow Engine", "Geo Service",
+        "Translation Service", "Media Pipeline", "Consent Service", "Tax Engine",
+    ];
+
     // ---- Notes ---------------------------------------------------------------------------------
 
     internal static readonly string[] EngineeringNotes =

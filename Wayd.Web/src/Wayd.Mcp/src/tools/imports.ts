@@ -15,9 +15,13 @@ const readsOnly = {
 
 const RUN_ID = { type: 'string', format: 'uuid', description: 'Import run ID (UUID).' };
 
+const ATOMICITY =
+  '`atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — ' +
+  'named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept)';
+
 const RUN_SHAPE =
   'A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, ' +
-  '`isPreflight`, `atomicity` (PerRow, or Atomic where one rejected row means nothing is written), and the counts `totalRowCount`, ' +
+  `\`isPreflight\`, ${ATOMICITY}, and the counts \`totalRowCount\`, ` +
   '`succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it.';
 
 const SUBMITTED_RUN =
@@ -28,7 +32,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Imports_GetDefinitions', {
     name: 'Imports_GetDefinitions',
-    description: 'List the kinds of import you may see. Each has its `key` (what `Imports_GetList` filters on), `displayName`, `atomicity` (PerRow, or Atomic where one rejected row means nothing is written), `maxRows` and `preflightMaxRows` (the most rows one file may hold for each), and `canSubmit`, whether you may submit that kind of file and act on its runs.',
+    description: `List the kinds of import you may see. Each has its \`key\` (what \`Imports_GetList\` filters on), \`displayName\`, ${ATOMICITY}, \`maxRows\` and \`preflightMaxRows\` (the most rows one file may hold for each), and \`canSubmit\`, whether you may submit that kind of file and act on its runs.`,
     inputSchema: { type: 'object', properties: {} },
     method: 'get',
     pathTemplate: '/api/imports/definitions',

@@ -43733,7 +43733,7 @@ Required: there is no default, because a guessed strength misstates impact. */
     strength: string;
     /** What the product relies on it for. Max 1024 chars. */
     description?: string | undefined;
-    /** The day it began. Blank means today. */
+    /** The day it began. Blank means today, so an EndsOn before today is refused. */
     startsOn?: Date | undefined;
     /** The last day it held. Blank means it still holds. */
     endsOn?: Date | undefined;

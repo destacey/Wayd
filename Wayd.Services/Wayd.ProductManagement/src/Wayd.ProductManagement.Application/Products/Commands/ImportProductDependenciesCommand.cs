@@ -18,13 +18,13 @@ public sealed record ImportProductDependenciesCommand(
 
 public sealed class ImportProductDependenciesCommandValidator : AbstractValidator<ImportProductDependenciesCommand>
 {
-    public ImportProductDependenciesCommandValidator()
+    public ImportProductDependenciesCommandValidator(IDateTimeProvider dateTimeProvider)
     {
         RuleFor(c => c.Rows)
             .NotEmpty();
 
         RuleForEach(c => c.Rows)
-            .ChildRules(row => row.RuleFor(r => r.Data).NotNull().SetValidator(new ImportProductDependencyDtoValidator()));
+            .ChildRules(row => row.RuleFor(r => r.Data).NotNull().SetValidator(new ImportProductDependencyDtoValidator(dateTimeProvider)));
     }
 }
 

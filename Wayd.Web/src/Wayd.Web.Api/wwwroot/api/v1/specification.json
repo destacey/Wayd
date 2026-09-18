@@ -41508,7 +41508,7 @@
           },
           "startsOn": {
             "type": "string",
-            "description": "The day it began. Blank means today.",
+            "description": "The day it began. Blank means today, so an EndsOn before today is refused.",
             "format": "date",
             "nullable": true,
             "x-csv-column": "StartsOn"

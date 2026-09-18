@@ -273,7 +273,7 @@ kept in a spreadsheet. Each row is one [dependency](./products.mdx#dependencies)
 | `Strength` | Yes | `Hard` or `Soft` — see [strength](./products.mdx#strength). There is no default. |
 | `Description` | No | What it is relied on for. Max 1024 chars. |
 | `StartsOn` | No | `yyyy-MM-dd`. The day it began. Blank means today. Cannot be in the future. |
-| `EndsOn` | No | `yyyy-MM-dd`. The last day it held. Blank means it still holds. Cannot be before `StartsOn` or in the future. |
+| `EndsOn` | No | `yyyy-MM-dd`. The last day it held. Blank means it still holds. Cannot be before `StartsOn` — or before today, when `StartsOn` is blank — or in the future. |
 
 Record the most specific product you know — the service, not the platform it belongs to. The platform's
 own lists include everything beneath it, as [the screens explain](./products.mdx#recording-the-specific-product).

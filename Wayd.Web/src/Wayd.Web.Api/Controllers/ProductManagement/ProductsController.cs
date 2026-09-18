@@ -193,14 +193,14 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [CsvImport(ProductDependencyImportDefinition.ImportKey)]
-    public async Task<ActionResult> ImportDependencies([FromForm, CsvRows(typeof(ImportProductDependencyRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportDependencies([FromForm, CsvRows(typeof(ImportProductDependencyRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, [FromServices] IDateTimeProvider dateTimeProvider, CancellationToken cancellationToken)
     {
         try
         {
             var importedDependencies = _csvService.ReadCsv<ImportProductDependencyRequest>(file.OpenReadStream()).ToList();
 
             List<SubmittedImportRow<ImportProductDependencyDto>> rows = [];
-            var validator = new ImportProductDependencyRequestValidator();
+            var validator = new ImportProductDependencyRequestValidator(dateTimeProvider);
             for (var i = 0; i < importedDependencies.Count; i++)
             {
                 var dependency = importedDependencies[i];

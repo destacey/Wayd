@@ -1209,7 +1209,8 @@ export const importTemplates = {
             name: 'StartsOn',
             type: 'date',
             required: false,
-            description: 'The day it began. Blank means today.',
+            description:
+              'The day it began. Blank means today, so an EndsOn before today is refused.',
           },
           {
             name: 'EndsOn',

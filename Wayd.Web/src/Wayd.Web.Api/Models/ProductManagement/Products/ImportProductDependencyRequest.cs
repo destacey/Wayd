@@ -40,7 +40,7 @@ public sealed class ImportProductDependencyRequest
     /// <summary>What the product relies on it for. Max 1024 chars.</summary>
     public string? Description { get; set; }
 
-    /// <summary>The day it began. Blank means today.</summary>
+    /// <summary>The day it began. Blank means today, so an <see cref="EndsOn"/> before today is refused.</summary>
     public DateOnly? StartsOn { get; set; }
 
     /// <summary>The last day it held. Blank means it still holds.</summary>
@@ -65,7 +65,7 @@ public sealed class ImportProductDependencyRequest
 
 public sealed class ImportProductDependencyRequestValidator : CustomValidator<ImportProductDependencyRequest>
 {
-    public ImportProductDependencyRequestValidator()
+    public ImportProductDependencyRequestValidator(IDateTimeProvider dateTimeProvider)
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
@@ -84,8 +84,9 @@ public sealed class ImportProductDependencyRequestValidator : CustomValidator<Im
         RuleFor(d => d.Description)
             .MaximumLength(1024);
 
+        // A blank start is today, so an end before today is an end before the start.
         RuleFor(d => d.EndsOn)
-            .Must((row, endsOn) => endsOn is null || row.StartsOn is null || endsOn >= row.StartsOn)
-                .WithMessage("A dependency cannot end before it started.");
+            .Must((row, endsOn) => endsOn is null || endsOn.Value.ToLocalDate() >= (row.StartsOn?.ToLocalDate() ?? dateTimeProvider.Today))
+                .WithMessage("A dependency cannot end before it started. A blank StartsOn means today.");
     }
 }

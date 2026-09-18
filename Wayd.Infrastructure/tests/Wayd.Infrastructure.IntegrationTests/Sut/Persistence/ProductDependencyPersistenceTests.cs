@@ -51,15 +51,15 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var (identity, vms) = await SeedPair();
-        await Add(vms.Id, identity.Id, DependencyStrength.Hard);
+        var (identity, web) = await SeedPair();
+        await Add(web.Id, identity.Id, DependencyStrength.Hard);
 
         // Act — a fresh context, so the aggregate knows of the first link only if the handler loads it
         Result<Guid> second;
         await using (var context = _fixture.CreateContext())
         {
             second = await AddHandler(context).Handle(
-                new AddProductDependencyCommand(vms.Id, identity.Id, DependencyStrength.Soft, null, null), ct);
+                new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null), ct);
         }
 
         // Assert — the domain's refusal, not the unique index turning the save into a generic error
@@ -67,7 +67,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         second.Error.Should().StartWith("This product already depends on that product.");
 
         await using var verify = _fixture.CreateContext();
-        (await verify.ProductDependencies.CountAsync(d => d.ProductId == vms.Id, ct)).Should().Be(1);
+        (await verify.ProductDependencies.CountAsync(d => d.ProductId == web.Id, ct)).Should().Be(1);
     }
 
     [Fact]
@@ -75,13 +75,13 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         // Arrange — each context checks the aggregate before the other has saved
         var ct = TestContext.Current.CancellationToken;
-        var (identity, vms) = await SeedPair();
+        var (identity, web) = await SeedPair();
 
         await using var first = _fixture.CreateContext();
         await using var second = _fixture.CreateContext();
 
-        var firstProduct = await first.Products.Include(p => p.Dependencies).SingleAsync(p => p.Id == vms.Id, ct);
-        var secondProduct = await second.Products.Include(p => p.Dependencies).SingleAsync(p => p.Id == vms.Id, ct);
+        var firstProduct = await first.Products.Include(p => p.Dependencies).SingleAsync(p => p.Id == web.Id, ct);
+        var secondProduct = await second.Products.Include(p => p.Dependencies).SingleAsync(p => p.Id == web.Id, ct);
 
         firstProduct.AddDependency(identity.Id, DependencyStrength.Hard, null, Today, [], [], Today, EventActor.System, Now).IsSuccess.Should().BeTrue();
         secondProduct.AddDependency(identity.Id, DependencyStrength.Soft, null, Today, [], [], Today, EventActor.System, Now).IsSuccess.Should().BeTrue();
@@ -100,8 +100,8 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var (identity, vms) = await SeedPair();
-        var originalId = await Add(vms.Id, identity.Id, DependencyStrength.Soft, "Validates SSO tokens", Today.PlusDays(-30));
+        var (identity, web) = await SeedPair();
+        var originalId = await Add(web.Id, identity.Id, DependencyStrength.Soft, "Validates SSO tokens", Today.PlusDays(-30));
         var changedOn = Today.PlusDays(-5);
 
         // Act
@@ -110,14 +110,14 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         {
             result = await new ChangeProductDependencyStrengthCommandHandler(
                     context, CurrentUser(), Mock.Of<ILogger<ChangeProductDependencyStrengthCommandHandler>>(), Clock())
-                .Handle(new ChangeProductDependencyStrengthCommand(vms.Id, originalId, DependencyStrength.Hard, changedOn), ct);
+                .Handle(new ChangeProductDependencyStrengthCommand(web.Id, originalId, DependencyStrength.Hard, changedOn), ct);
         }
 
         // Assert
         result.IsSuccess.Should().BeTrue();
 
         await using var verify = _fixture.CreateContext();
-        var links = await verify.ProductDependencies.AsNoTracking().Where(d => d.ProductId == vms.Id).ToListAsync(ct);
+        var links = await verify.ProductDependencies.AsNoTracking().Where(d => d.ProductId == web.Id).ToListAsync(ct);
 
         links.Should().HaveCount(2);
         links.Single(d => d.Id == originalId).Should().BeEquivalentTo(new { Strength = DependencyStrength.Soft, Period = new { Start = Today.PlusDays(-30), End = (LocalDate?)changedOn.PlusDays(-1) } });
@@ -134,8 +134,8 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var (identity, vms) = await SeedPair();
-        var dependencyId = await Add(vms.Id, identity.Id, DependencyStrength.Hard);
+        var (identity, web) = await SeedPair();
+        var dependencyId = await Add(web.Id, identity.Id, DependencyStrength.Hard);
 
         // Act
         Result result;
@@ -143,7 +143,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         {
             result = await new RemoveProductDependencyCommandHandler(
                     context, CurrentUser(), Mock.Of<ILogger<RemoveProductDependencyCommandHandler>>(), Clock())
-                .Handle(new RemoveProductDependencyCommand(vms.Id, dependencyId, "Recorded against the wrong product"), ct);
+                .Handle(new RemoveProductDependencyCommand(web.Id, dependencyId, "Recorded against the wrong product"), ct);
         }
 
         // Assert
@@ -158,26 +158,26 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var argo = await SeedProduct("Argo Platform");
-        var identity = await SeedProduct("Argo Identity", argo.Id);
-        var trio = await SeedProduct("Trio");
-        var vms = await SeedProduct("Trio VMS", trio.Id);
-        await Add(vms.Id, identity.Id, DependencyStrength.Hard);
+        var platform = await SeedProduct("Core Platform");
+        var identity = await SeedProduct("Identity Service", platform.Id);
+        var storefront = await SeedProduct("Storefront");
+        var web = await SeedProduct("Storefront Web", storefront.Id);
+        await Add(web.Id, identity.Id, DependencyStrength.Hard);
 
         // Act
         await using var context = _fixture.CreateContext();
         var handler = new GetProductDependenciesQueryHandler(context);
-        var onTrio = await handler.Handle(new GetProductDependenciesQuery(new IdOrKey(trio.Key)), ct);
-        var onArgo = await handler.Handle(new GetProductDependenciesQuery(new IdOrKey(argo.Id)), ct);
+        var onStorefront = await handler.Handle(new GetProductDependenciesQuery(new IdOrKey(storefront.Key)), ct);
+        var onPlatform = await handler.Handle(new GetProductDependenciesQuery(new IdOrKey(platform.Id)), ct);
 
         // Assert
-        onTrio!.DependsOn.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        onStorefront!.DependsOn.Should().ContainSingle().Which.Should().BeEquivalentTo(new
         {
-            Product = new { vms.Id, vms.Name },
+            Product = new { web.Id, web.Name },
             DependsOnProduct = new { identity.Id, identity.Name },
             Strength = DependencyStrength.Hard,
         });
-        onArgo!.UsedBy.Should().ContainSingle().Which.Product.Id.Should().Be(vms.Id);
+        onPlatform!.UsedBy.Should().ContainSingle().Which.Product.Id.Should().Be(web.Id);
     }
 
     [Fact]
@@ -185,11 +185,11 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var argo = await SeedProduct("Argo Platform");
-        var identity = await SeedProduct("Argo Identity", argo.Id);
-        var trio = await SeedProduct("Trio");
-        var vms = await SeedProduct("Trio VMS", trio.Id);
-        await Add(vms.Id, argo.Id, DependencyStrength.Hard);
+        var platform = await SeedProduct("Core Platform");
+        var identity = await SeedProduct("Identity Service", platform.Id);
+        var storefront = await SeedProduct("Storefront");
+        var web = await SeedProduct("Storefront Web", storefront.Id);
+        await Add(web.Id, platform.Id, DependencyStrength.Hard);
 
         // Act
         Result result;
@@ -197,13 +197,13 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         {
             result = await new ReparentProductCommandHandler(
                     context, CurrentUser(), Mock.Of<ILogger<ReparentProductCommandHandler>>(), Clock())
-                .Handle(new ReparentProductCommand(trio.Id, identity.Id), ct);
+                .Handle(new ReparentProductCommand(storefront.Id, identity.Id), ct);
         }
 
         // Assert
         result.IsFailure.Should().BeTrue();
         await using var verify = _fixture.CreateContext();
-        (await verify.Products.SingleAsync(p => p.Id == trio.Id, ct)).ParentId.Should().BeNull();
+        (await verify.Products.SingleAsync(p => p.Id == storefront.Id, ct)).ParentId.Should().BeNull();
     }
 
     [Fact]
@@ -211,10 +211,10 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var (identity, vms) = await SeedPair();
+        var (identity, web) = await SeedPair();
 
         // Act
-        await Add(vms.Id, identity.Id, DependencyStrength.Hard);
+        await Add(web.Id, identity.Id, DependencyStrength.Hard);
 
         // Assert
         _ = Mappings.Value;
@@ -222,7 +222,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         var activity = await new ActivityLogReader(context).Read(identity.Id, "Product", cancellationToken: ct);
 
         activity.Items.Should().ContainSingle(a => a.EventType == nameof(ProductDependencyAddedEvent))
-            .Which.Should().BeEquivalentTo(new { IsRelated = true, AggregateId = vms.Id });
+            .Which.Should().BeEquivalentTo(new { IsRelated = true, AggregateId = web.Id });
     }
 
     private async Task<Guid> Add(Guid productId, Guid dependsOnProductId, DependencyStrength strength, string? description = null, LocalDate? startsOn = null)
@@ -257,7 +257,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     }
 
     private async Task<(Product DependedOn, Product Dependent)> SeedPair() =>
-        (await SeedProduct($"Identity {Guid.CreateVersion7()}"), await SeedProduct($"VMS {Guid.CreateVersion7()}"));
+        (await SeedProduct($"Identity {Guid.CreateVersion7()}"), await SeedProduct($"Storefront Web {Guid.CreateVersion7()}"));
 
     private async Task<Product> SeedProduct(string name, Guid? parentId = null)
     {

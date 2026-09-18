@@ -15,19 +15,19 @@ public sealed class EndProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_ShouldEndTheDependencyAndKeepIt()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
-        var dependency = SeedDependency(vms, identity.Id);
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
+        var dependency = SeedDependency(web, identity.Id);
         var endsOn = Today.PlusDays(-2);
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new EndProductDependencyCommand(vms.Id, dependency.Id, endsOn), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new EndProductDependencyCommand(web.Id, dependency.Id, endsOn), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        vms.Dependencies.Should().ContainSingle().Which.Period.End.Should().Be(endsOn);
-        vms.DomainEvents.OfType<ProductDependencyEndedEvent>().Should().ContainSingle();
+        web.Dependencies.Should().ContainSingle().Which.Period.End.Should().Be(endsOn);
+        web.DomainEvents.OfType<ProductDependencyEndedEvent>().Should().ContainSingle();
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -35,13 +35,13 @@ public sealed class EndProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_WithoutAnEnd_ShouldEndToday()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
-        var dependency = SeedDependency(vms, identity.Id);
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
+        var dependency = SeedDependency(web, identity.Id);
         var sut = CreateSut();
 
         // Act
-        await sut.Handle(new EndProductDependencyCommand(vms.Id, dependency.Id, null), TestContext.Current.CancellationToken);
+        await sut.Handle(new EndProductDependencyCommand(web.Id, dependency.Id, null), TestContext.Current.CancellationToken);
 
         // Assert
         dependency.Period.End.Should().Be(Today);
@@ -51,18 +51,18 @@ public sealed class EndProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_WhenTheDependencyHasAlreadyEnded_ShouldFailWithoutSaving()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
-        var dependency = SeedDependency(vms, identity.Id, endsOn: Today.PlusDays(-1));
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
+        var dependency = SeedDependency(web, identity.Id, endsOn: Today.PlusDays(-1));
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new EndProductDependencyCommand(vms.Id, dependency.Id, null), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new EndProductDependencyCommand(web.Id, dependency.Id, null), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This dependency has already ended.");
-        vms.DomainEvents.Should().BeEmpty();
+        web.DomainEvents.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 

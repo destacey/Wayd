@@ -64,7 +64,7 @@ describe('ExportActivitiesModal', () => {
       createActivity({
         aggregateId: 'child-id',
         isRelated: true,
-        raisedOn: { id: 'child-id', key: 12, name: 'Trio VMS' },
+        raisedOn: { id: 'child-id', key: 12, name: 'Storefront Web' },
       }),
     )
 
@@ -72,7 +72,7 @@ describe('ExportActivitiesModal', () => {
     expect(exported.raisedOn).toEqual({
       id: 'child-id',
       key: 12,
-      name: 'Trio VMS',
+      name: 'Storefront Web',
     })
   })
 
@@ -238,4 +238,3 @@ describe('ExportActivitiesModal', () => {
     expect(envelope.events[0].id).toBe('act-1')
   })
 })
-

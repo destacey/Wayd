@@ -6,7 +6,7 @@ using Wayd.Common.Models;
 namespace Wayd.ProductManagement.Domain.Models;
 
 /// <summary>
-/// One product needing another, over a period — Trio VMS depending on Argo Identity since March.
+/// One product needing another, over a period — Storefront Web depending on Identity Service since March.
 /// </summary>
 /// <remarks>
 /// Owned by the product that has the dependency. The product depended on only reads these; two owners of

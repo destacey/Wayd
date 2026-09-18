@@ -1,6 +1,9 @@
 import { ProductActivityDto } from '@/src/services/wayd-api'
 import { render, screen } from '@testing-library/react'
-import VersionActivity, { levelDescription, withAlpha } from './version-activity'
+import VersionActivity, {
+  levelDescription,
+  withAlpha,
+} from './version-activity'
 
 // The global mock stubs dayjs to formatting only; this component does date arithmetic.
 jest.unmock('dayjs')
@@ -29,7 +32,9 @@ describe('VersionActivity', () => {
   it('draws a cell for every day in the window, including the quiet ones', () => {
     // Arrange — a gap is information. Skipping empty days would misalign every row against the
     // calendar and hide a pause entirely.
-    const activity = [row('Checkout API', [{ date: '2026-09-03', released: 2 }])]
+    const activity = [
+      row('Checkout API', [{ date: '2026-09-03', released: 2 }]),
+    ]
 
     // Act
     render(
@@ -63,8 +68,12 @@ describe('VersionActivity', () => {
     // twice, once as a row and again as a heading over its own children.
     const activity = [
       row('Onboarding Cloud', [], { depth: 0, isReleasable: false }),
-      row('Onboarding Content', [{ date: '2026-09-01', released: 1 }], { depth: 1 }),
-      row('Fulfillment Dashboard', [{ date: '2026-09-01', released: 1 }], { depth: 2 }),
+      row('Onboarding Content', [{ date: '2026-09-01', released: 1 }], {
+        depth: 1,
+      }),
+      row('Fulfillment Dashboard', [{ date: '2026-09-01', released: 1 }], {
+        depth: 2,
+      }),
     ]
 
     // Act
@@ -115,9 +124,7 @@ describe('VersionActivity', () => {
     // Arrange — a withdrawal marks the day the version shipped rather than being a release of its
     // own, so the count has to sit alongside the releases rather than replace them.
     const activity = [
-      row('Notifications', [
-        { date: '2026-09-01', released: 2, withdrawn: 1 },
-      ]),
+      row('Notifications', [{ date: '2026-09-01', released: 2, withdrawn: 1 }]),
     ]
 
     // Act
@@ -134,7 +141,9 @@ describe('VersionActivity', () => {
   it('heads each column with its day, so a cell can be placed in the week', () => {
     // Arrange — 1 Sep 2026 is a Tuesday. Without the header a cell is an unlabelled square and the
     // reader cannot tell a quiet weekend from a stalled week.
-    const activity = [row('Checkout API', [{ date: '2026-09-01', released: 1 }])]
+    const activity = [
+      row('Checkout API', [{ date: '2026-09-01', released: 1 }]),
+    ]
 
     // Act
     render(

@@ -206,9 +206,7 @@ describe('ComparePayloadModal component', () => {
 
     // The nearest earlier event of the type belongs to another record, so the base skips it
     expect(screen.getByText('Old Core Team')).toBeInTheDocument()
-    expect(
-      screen.queryByText('Another Record Payload'),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText('Another Record Payload')).not.toBeInTheDocument()
 
     // One comparable event leaves nothing to choose between, so no picker is offered
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
@@ -322,4 +320,3 @@ describe('ComparePayloadModal component', () => {
     expect(screen.getByText('Compare Event Payloads')).toBeInTheDocument()
   })
 })
-

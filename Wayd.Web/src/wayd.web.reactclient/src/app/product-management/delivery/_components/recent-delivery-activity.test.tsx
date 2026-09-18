@@ -108,9 +108,7 @@ describe('RecentDeliveryActivity', () => {
     // Act
     render(
       <RecentDeliveryActivity
-        events={[
-          event({ statusName: 'Cut', alias: ProductStatusAlias.Ready }),
-        ]}
+        events={[event({ statusName: 'Cut', alias: ProductStatusAlias.Ready })]}
       />,
     )
 
@@ -139,7 +137,11 @@ describe('RecentDeliveryActivity', () => {
     const today = dayjs().hour(9).minute(42).second(0)
 
     // Act
-    render(<RecentDeliveryActivity events={[event({ changedOn: today.toISOString() as unknown as Date })]} />)
+    render(
+      <RecentDeliveryActivity
+        events={[event({ changedOn: today.toISOString() as unknown as Date })]}
+      />,
+    )
 
     // Assert
     expect(screen.getByText(/· 09:42$/)).toBeInTheDocument()
@@ -147,12 +149,19 @@ describe('RecentDeliveryActivity', () => {
 
   it('keeps the year on an event from a previous one', () => {
     // Arrange — without it, a December event reads as this December once January arrives.
-    const lastYear = dayjs().subtract(1, 'year').month(11).date(12).hour(14).minute(30)
+    const lastYear = dayjs()
+      .subtract(1, 'year')
+      .month(11)
+      .date(12)
+      .hour(14)
+      .minute(30)
 
     // Act
     render(
       <RecentDeliveryActivity
-        events={[event({ changedOn: lastYear.toISOString() as unknown as Date })]}
+        events={[
+          event({ changedOn: lastYear.toISOString() as unknown as Date }),
+        ]}
       />,
     )
 

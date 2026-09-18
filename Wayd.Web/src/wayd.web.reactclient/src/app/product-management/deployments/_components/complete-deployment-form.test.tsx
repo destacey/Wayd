@@ -1,5 +1,9 @@
 import { act, render, screen } from '@testing-library/react'
-import { DeploymentDto, ProductStatusAlias, StatusCategory } from '@/src/services/wayd-api'
+import {
+  DeploymentDto,
+  ProductStatusAlias,
+  StatusCategory,
+} from '@/src/services/wayd-api'
 import CompleteDeploymentForm from './complete-deployment-form'
 
 jest.unmock('dayjs')
@@ -131,7 +135,9 @@ describe('CompleteDeploymentForm', () => {
     // Assert
     expect(succeedDeployment).toHaveBeenCalledTimes(1)
     expect(failDeployment).not.toHaveBeenCalled()
-    expect(succeedDeployment.mock.calls[0][0].request.completedAt).toBeUndefined()
+    expect(
+      succeedDeployment.mock.calls[0][0].request.completedAt,
+    ).toBeUndefined()
   })
 
   it('sends a failure through the fail mutation, never succeed', async () => {

@@ -16,12 +16,12 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
   useAddProductDependencyMutation: () => [addDependency],
   useGetProductsQuery: () => ({
     data: [
-      { id: 'trio', key: 1, name: 'Trio', tags: [] },
+      { id: 'storefront', key: 1, name: 'Storefront', tags: [] },
       {
-        id: 'vms',
+        id: 'web',
         key: 2,
-        name: 'Trio VMS',
-        parent: { id: 'trio', key: 1, name: 'Trio' },
+        name: 'Storefront Web',
+        parent: { id: 'storefront', key: 1, name: 'Storefront' },
         tags: [],
       },
     ],
@@ -78,9 +78,9 @@ jest.mock('@/src/hooks', () => {
 })
 
 const product = {
-  id: 'vms',
+  id: 'web',
   key: 2,
-  name: 'Trio VMS',
+  name: 'Storefront Web',
   tags: [],
 } as unknown as ProductDto
 
@@ -107,8 +107,8 @@ describe('AddProductDependencyForm', () => {
     )
 
     // Assert
-    expect(mockPickerProps.excludeSubtreeOf).toBe('vms')
-    expect(mockPickerProps.unselectableIds).toEqual(['trio'])
+    expect(mockPickerProps.excludeSubtreeOf).toBe('web')
+    expect(mockPickerProps.unselectableIds).toEqual(['storefront'])
   })
 
   it('adds the dependency to the product, leaving the start to the server when none is given', async () => {
@@ -133,7 +133,7 @@ describe('AddProductDependencyForm', () => {
     // Assert
     expect(addDependency).toHaveBeenCalledTimes(1)
     const { productId, request } = addDependency.mock.calls[0][0]
-    expect(productId).toBe('vms')
+    expect(productId).toBe('web')
     expect(request.dependsOnProductId).toBe('identity')
     expect(request.strength).toBe(DependencyStrength.Hard)
     expect(request.startsOn).toBeUndefined()

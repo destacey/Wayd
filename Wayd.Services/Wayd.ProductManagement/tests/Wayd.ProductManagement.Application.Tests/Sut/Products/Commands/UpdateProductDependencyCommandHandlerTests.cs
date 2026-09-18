@@ -14,20 +14,20 @@ public sealed class UpdateProductDependencyCommandHandlerTests : ProductCommandT
     public async Task Handle_ShouldRewordTheDependency()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
-        var dependency = SeedDependency(vms, identity.Id, description: "Validates tokens");
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
+        var dependency = SeedDependency(web, identity.Id, description: "Validates tokens");
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDependencyCommand(vms.Id, dependency.Id, "Validates SSO tokens"),
+            new UpdateProductDependencyCommand(web.Id, dependency.Id, "Validates SSO tokens"),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         dependency.Description.Should().Be("Validates SSO tokens");
-        vms.DomainEvents.OfType<ProductDependencyDetailsUpdatedEvent>().Should().ContainSingle();
+        web.DomainEvents.OfType<ProductDependencyDetailsUpdatedEvent>().Should().ContainSingle();
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -35,12 +35,12 @@ public sealed class UpdateProductDependencyCommandHandlerTests : ProductCommandT
     public async Task Handle_WhenTheDependencyDoesNotExist_ShouldFailWithoutSaving()
     {
         // Arrange
-        var vms = SeedProduct("Trio VMS");
+        var web = SeedProduct("Storefront Web");
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDependencyCommand(vms.Id, Guid.CreateVersion7(), "Validates SSO tokens"),
+            new UpdateProductDependencyCommand(web.Id, Guid.CreateVersion7(), "Validates SSO tokens"),
             TestContext.Current.CancellationToken);
 
         // Assert

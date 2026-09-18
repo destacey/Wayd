@@ -24,8 +24,12 @@ const tagged = (base: ProductDto, tags: unknown[]): ProductDto =>
   ({ ...base, tags }) as unknown as ProductDto
 
 const PRODUCTS = [
-  product('a1', 1, 'Trio WFS'),
-  product('b2', 2, 'Trio VMS', { id: 'a1', key: 1, name: 'Trio WFS' }),
+  product('a1', 1, 'Storefront Suite'),
+  product('b2', 2, 'Storefront Web', {
+    id: 'a1',
+    key: 1,
+    name: 'Storefront Suite',
+  }),
 ]
 
 const renderGrid = (asTree: boolean) =>
@@ -75,12 +79,13 @@ describe('ProductsGrid', () => {
 
         // A leaf has no expander button, so its trailing stand-in spacer is counted above and has to
         // come back off.
-        const hasExpander = row!.querySelector('button[class*="expanderBtn"]') !== null
+        const hasExpander =
+          row!.querySelector('button[class*="expanderBtn"]') !== null
         return hasExpander ? depth : depth - 1
       }
 
-      expect(depthSpacersIn('Trio WFS')).toBe(0)
-      expect(depthSpacersIn('Trio VMS')).toBe(1)
+      expect(depthSpacersIn('Storefront Suite')).toBe(0)
+      expect(depthSpacersIn('Storefront Web')).toBe(1)
     })
 
     it('omits the parent column, which position already shows', () => {

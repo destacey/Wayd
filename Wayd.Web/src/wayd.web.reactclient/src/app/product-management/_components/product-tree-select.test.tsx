@@ -5,34 +5,34 @@ import ProductTreeSelect from './product-tree-select'
 
 const catalog: ProductDto[] = [
   {
-    id: 'argo',
+    id: 'platform',
     key: 1,
-    name: 'Argo Platform',
+    name: 'Core Platform',
     isReleasable: false,
     type: { id: 't1', key: 1, name: 'Platform' },
   },
   {
     id: 'identity',
     key: 2,
-    name: 'Argo Identity',
+    name: 'Identity Service',
     isReleasable: true,
     type: { id: 't2', key: 2, name: 'Service' },
-    parent: { id: 'argo', key: 1, name: 'Argo Platform' },
+    parent: { id: 'platform', key: 1, name: 'Core Platform' },
   },
   {
-    id: 'trio',
+    id: 'storefront',
     key: 3,
-    name: 'Trio',
+    name: 'Storefront',
     isReleasable: false,
     type: { id: 't1', key: 1, name: 'Platform' },
   },
   {
-    id: 'vms',
+    id: 'web',
     key: 4,
-    name: 'Trio VMS',
+    name: 'Storefront Web',
     isReleasable: true,
     type: { id: 't3', key: 3, name: 'Application' },
-    parent: { id: 'trio', key: 3, name: 'Trio' },
+    parent: { id: 'storefront', key: 3, name: 'Storefront' },
   },
 ] as unknown as ProductDto[]
 
@@ -70,8 +70,8 @@ describe('ProductTreeSelect', () => {
     await open()
 
     // Assert
-    expect(screen.getByText('Argo Platform')).toBeInTheDocument()
-    expect(screen.getByText('Argo Identity')).toBeInTheDocument()
+    expect(screen.getByText('Core Platform')).toBeInTheDocument()
+    expect(screen.getByText('Identity Service')).toBeInTheDocument()
   })
 
   it('offers a grouping node when anything may be selected', async () => {
@@ -80,10 +80,10 @@ describe('ProductTreeSelect', () => {
     await open()
 
     // Act
-    await userEvent.click(screen.getByText('Argo Platform'))
+    await userEvent.click(screen.getByText('Core Platform'))
 
     // Assert
-    expect(selected()).toBe('Argo Platform')
+    expect(selected()).toBe('Core Platform')
   })
 
   it('shows a grouping but refuses it when only releasable nodes may be selected', async () => {
@@ -93,37 +93,37 @@ describe('ProductTreeSelect', () => {
     await open()
 
     // Act — the label carries the type in this mode, which is itself part of the behaviour.
-    await userEvent.click(screen.getByText('Argo Platform · Platform'))
+    await userEvent.click(screen.getByText('Core Platform · Platform'))
 
     // Assert — nothing chosen, the child is still reachable, and the type is named so the refusal
     // reads as deliberate rather than as a broken row.
     expect(selected()).toBe('')
-    expect(screen.getByText('Argo Identity')).toBeInTheDocument()
-    expect(screen.getByText('Argo Platform · Platform')).toBeInTheDocument()
+    expect(screen.getByText('Identity Service')).toBeInTheDocument()
+    expect(screen.getByText('Core Platform · Platform')).toBeInTheDocument()
   })
 
   it('takes a releasable node when only releasable nodes may be selected', async () => {
     // Arrange / Act
     render(<ProductTreeSelect selectable="releasable" />)
     await open()
-    await userEvent.click(screen.getByText('Trio VMS'))
+    await userEvent.click(screen.getByText('Storefront Web'))
 
     // Assert
-    expect(selected()).toBe('Trio VMS')
+    expect(selected()).toBe('Storefront Web')
   })
 
   it('hides a node and everything beneath it when excluded', async () => {
     // Arrange — a product cannot become its own ancestor, so its whole subtree is out. The branch is
     // pruned rather than hoisted: a child shown at the root would read as a legal target.
-    render(<ProductTreeSelect excludeSubtreeOf="trio" />)
+    render(<ProductTreeSelect excludeSubtreeOf="storefront" />)
 
     // Act
     await open()
 
     // Assert
-    expect(screen.queryByText('Trio')).not.toBeInTheDocument()
-    expect(screen.queryByText('Trio VMS')).not.toBeInTheDocument()
-    expect(screen.getByText('Argo Platform')).toBeInTheDocument()
+    expect(screen.queryByText('Storefront')).not.toBeInTheDocument()
+    expect(screen.queryByText('Storefront Web')).not.toBeInTheDocument()
+    expect(screen.getByText('Core Platform')).toBeInTheDocument()
   })
 
   it('keeps an orphan visible rather than dropping it', async () => {
@@ -136,6 +136,6 @@ describe('ProductTreeSelect', () => {
     await open()
 
     // Assert
-    expect(screen.getByText('Argo Identity')).toBeInTheDocument()
+    expect(screen.getByText('Identity Service')).toBeInTheDocument()
   })
 })

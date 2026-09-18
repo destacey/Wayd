@@ -86,12 +86,12 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
     {
         // Arrange
         var identity = SeedProduct("Identity");
-        var vms = SeedProduct("Trio VMS");
-        SeedDependency(vms, identity.Id, endsOn: Today.PlusDays(-1));
+        var web = SeedProduct("Storefront Web");
+        SeedDependency(web, identity.Id, endsOn: Today.PlusDays(-1));
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new RemoveProductCommand(vms.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new RemoveProductCommand(web.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -105,8 +105,8 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
     {
         // Arrange
         var identity = SeedProduct("Identity");
-        var vms = SeedProduct("Trio VMS");
-        SeedDependency(vms, identity.Id);
+        var web = SeedProduct("Storefront Web");
+        SeedDependency(web, identity.Id);
         var sut = CreateSut();
 
         // Act

@@ -21,7 +21,10 @@ const daysAgo = (days: number) =>
 describe('countReleasedWithin', () => {
   it('counts a version shipped inside the window', () => {
     // Arrange / Act
-    const count = countReleasedWithin([version({ releasedDate: daysAgo(10) })], 90)
+    const count = countReleasedWithin(
+      [version({ releasedDate: daysAgo(10) })],
+      90,
+    )
 
     // Assert
     expect(count).toBe(1)
@@ -29,7 +32,10 @@ describe('countReleasedWithin', () => {
 
   it('excludes a version shipped before the window', () => {
     // Arrange / Act
-    const count = countReleasedWithin([version({ releasedDate: daysAgo(120) })], 90)
+    const count = countReleasedWithin(
+      [version({ releasedDate: daysAgo(120) })],
+      90,
+    )
 
     // Assert
     expect(count).toBe(0)
@@ -37,7 +43,10 @@ describe('countReleasedWithin', () => {
 
   it('includes a version shipped exactly at the window edge', () => {
     // Arrange / Act — ninety days means the last ninety days, not eighty-nine.
-    const count = countReleasedWithin([version({ releasedDate: daysAgo(90) })], 90)
+    const count = countReleasedWithin(
+      [version({ releasedDate: daysAgo(90) })],
+      90,
+    )
 
     // Assert
     expect(count).toBe(1)

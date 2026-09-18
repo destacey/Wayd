@@ -121,24 +121,24 @@ public sealed class ReparentProductCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldRefuseAMoveBeneathAProductThatDependsOnADescendant()
     {
-        // Arrange — Trio depends on Identity, beneath Argo; moving Argo under Trio's platform would put
-        // Identity below Trio.
+        // Arrange — Storefront depends on Identity, which sits beneath Core Platform; moving Core
+        // Platform under one of Storefront's own products would put Identity below Storefront.
         var mobile = SeedProduct("Mobile");
-        var trio = SeedProduct("Trio", mobile.Id);
-        var shifts = SeedProduct("Shifts", trio.Id);
-        var argo = SeedProduct("Argo");
-        var identity = SeedProduct("Identity", argo.Id);
-        SeedDependency(trio, identity.Id);
+        var storefront = SeedProduct("Storefront", mobile.Id);
+        var shifts = SeedProduct("Shifts", storefront.Id);
+        var platform = SeedProduct("Core Platform");
+        var identity = SeedProduct("Identity", platform.Id);
+        SeedDependency(storefront, identity.Id);
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new ReparentProductCommand(argo.Id, shifts.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new ReparentProductCommand(platform.Id, shifts.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(
             "This move would place a product above or below a product it has an open dependency with. End that dependency first.");
-        argo.ParentId.Should().BeNull();
+        platform.ParentId.Should().BeNull();
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
@@ -146,19 +146,19 @@ public sealed class ReparentProductCommandHandlerTests
     public async Task Handle_ShouldRefuseAMoveBeneathAProductADescendantDependsOn()
     {
         // Arrange — the other direction: something inside the moved subtree depends on the new lineage.
-        var argo = SeedProduct("Argo");
-        var identity = SeedProduct("Identity", argo.Id);
-        var trio = SeedProduct("Trio");
-        var shifts = SeedProduct("Shifts", trio.Id);
-        SeedDependency(shifts, argo.Id);
+        var platform = SeedProduct("Core Platform");
+        var identity = SeedProduct("Identity", platform.Id);
+        var storefront = SeedProduct("Storefront");
+        var shifts = SeedProduct("Shifts", storefront.Id);
+        SeedDependency(shifts, platform.Id);
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new ReparentProductCommand(trio.Id, identity.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new ReparentProductCommand(storefront.Id, identity.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        trio.ParentId.Should().BeNull();
+        storefront.ParentId.Should().BeNull();
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
@@ -166,17 +166,17 @@ public sealed class ReparentProductCommandHandlerTests
     public async Task Handle_ShouldAllowAMoveAcrossAnEndedDependency()
     {
         // Arrange
-        var argo = SeedProduct("Argo");
-        var trio = SeedProduct("Trio");
-        SeedDependency(trio, argo.Id, endsOn: new LocalDate(2026, 3, 1));
+        var platform = SeedProduct("Core Platform");
+        var storefront = SeedProduct("Storefront");
+        SeedDependency(storefront, platform.Id, endsOn: new LocalDate(2026, 3, 1));
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new ReparentProductCommand(trio.Id, argo.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new ReparentProductCommand(storefront.Id, platform.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        trio.ParentId.Should().Be(argo.Id);
+        storefront.ParentId.Should().Be(platform.Id);
     }
 
     [Fact]
@@ -186,16 +186,16 @@ public sealed class ReparentProductCommandHandlerTests
         var suite = SeedProduct("Suite");
         var platform = SeedProduct("Platform", suite.Id);
         var identity = SeedProduct("Identity", suite.Id);
-        var trio = SeedProduct("Trio");
-        SeedDependency(trio, identity.Id);
+        var storefront = SeedProduct("Storefront");
+        SeedDependency(storefront, identity.Id);
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new ReparentProductCommand(trio.Id, platform.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new ReparentProductCommand(storefront.Id, platform.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        trio.ParentId.Should().Be(platform.Id);
+        storefront.ParentId.Should().Be(platform.Id);
     }
 
     [Fact]

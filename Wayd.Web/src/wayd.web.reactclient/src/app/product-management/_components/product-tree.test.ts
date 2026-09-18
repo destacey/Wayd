@@ -22,7 +22,11 @@ const product = (
 describe('buildProductTree', () => {
   it('nests a child under its parent', () => {
     const suite = product('1', 'Suite')
-    const checkout = product('2', 'Checkout', { id: '1', key: 1, name: 'Suite' })
+    const checkout = product('2', 'Checkout', {
+      id: '1',
+      key: 1,
+      name: 'Suite',
+    })
 
     const tree = buildProductTree([suite, checkout])
 
@@ -66,7 +70,9 @@ describe('buildProductTree', () => {
     const tree = buildProductTree([a, b])
 
     expect(tree.length).toBeGreaterThan(0)
-    expect(tree.flatMap((n) => [n.name, ...n.children.map((c) => c.name)])).toContain('A')
+    expect(
+      tree.flatMap((n) => [n.name, ...n.children.map((c) => c.name)]),
+    ).toContain('A')
   })
 
   it('returns nothing for an empty list', () => {
@@ -145,8 +151,12 @@ describe('buildMoveTargetTree', () => {
 describe('ancestorIdsOf', () => {
   it('lists every product above one, nearest first', () => {
     // Arrange
-    const argo = product('1', 'Argo')
-    const services = product('2', 'Services', { id: '1', key: 1, name: 'Argo' })
+    const platform = product('1', 'Core Platform')
+    const services = product('2', 'Services', {
+      id: '1',
+      key: 1,
+      name: 'Core Platform',
+    })
     const identity = product('3', 'Identity', {
       id: '2',
       key: 2,
@@ -154,7 +164,7 @@ describe('ancestorIdsOf', () => {
     })
 
     // Act
-    const ancestors = ancestorIdsOf([identity, argo, services], '3')
+    const ancestors = ancestorIdsOf([identity, platform, services], '3')
 
     // Assert
     expect(ancestors).toEqual(['2', '1'])
@@ -162,10 +172,10 @@ describe('ancestorIdsOf', () => {
 
   it('lists none for a root', () => {
     // Arrange
-    const argo = product('1', 'Argo')
+    const platform = product('1', 'Core Platform')
 
     // Act / Assert
-    expect(ancestorIdsOf([argo], '1')).toEqual([])
+    expect(ancestorIdsOf([platform], '1')).toEqual([])
   })
 
   it('stops at a cycle already in the data', () => {

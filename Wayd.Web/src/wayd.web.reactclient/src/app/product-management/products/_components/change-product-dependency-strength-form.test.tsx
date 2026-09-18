@@ -59,8 +59,8 @@ jest.mock('@/src/hooks', () => {
 
 const dependency = {
   id: 'dependency-1',
-  product: { id: 'vms', key: 2, name: 'Trio VMS' },
-  dependsOnProduct: { id: 'identity', key: 3, name: 'Argo Identity' },
+  product: { id: 'web', key: 2, name: 'Storefront Web' },
+  dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
   strength: DependencyStrength.Soft,
   startsOn: new Date('2026-03-01T00:00:00Z'),
 } as ProductDependencyDto
@@ -109,7 +109,7 @@ describe('ChangeProductDependencyStrengthForm', () => {
     // Assert
     expect(changeStrength).toHaveBeenCalledWith(
       expect.objectContaining({
-        productId: 'vms',
+        productId: 'web',
         dependencyId: 'dependency-1',
         dependsOnProductId: 'identity',
       }),

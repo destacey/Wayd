@@ -26,8 +26,8 @@ const link = (
 ): ProductDependencyDto =>
   ({
     id: 'dependency-1',
-    product: { id: 'vms', key: 2, name: 'Trio VMS' },
-    dependsOnProduct: { id: 'identity', key: 3, name: 'Argo Identity' },
+    product: { id: 'web', key: 2, name: 'Storefront Web' },
+    dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
     strength: DependencyStrength.Hard,
     startsOn: new Date('2026-03-01T00:00:00Z'),
     ...overrides,

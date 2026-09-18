@@ -14,20 +14,20 @@ public sealed class RemoveProductDependencyCommandHandlerTests : ProductCommandT
     public async Task Handle_ShouldDeleteTheDependencyAndRecordWhy()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
-        var dependency = SeedDependency(vms, identity.Id);
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
+        var dependency = SeedDependency(web, identity.Id);
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new RemoveProductDependencyCommand(vms.Id, dependency.Id, "Recorded against the wrong product"),
+            new RemoveProductDependencyCommand(web.Id, dependency.Id, "Recorded against the wrong product"),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        vms.Dependencies.Should().BeEmpty();
-        vms.DomainEvents.OfType<ProductDependencyRemovedEvent>().Should().ContainSingle()
+        web.Dependencies.Should().BeEmpty();
+        web.DomainEvents.OfType<ProductDependencyRemovedEvent>().Should().ContainSingle()
             .Which.Reason.Should().Be("Recorded against the wrong product");
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -36,10 +36,10 @@ public sealed class RemoveProductDependencyCommandHandlerTests : ProductCommandT
     public async Task Handle_WhenTheDependencyBelongsToAnotherProduct_ShouldFailWithoutSaving()
     {
         // Arrange — a link is addressed through the product that owns it
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
-        var shifts = SeedProduct("Trio Shifts");
-        var dependency = SeedDependency(vms, identity.Id);
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
+        var shifts = SeedProduct("Storefront Mobile");
+        var dependency = SeedDependency(web, identity.Id);
         var sut = CreateSut();
 
         // Act
@@ -50,7 +50,7 @@ public sealed class RemoveProductDependencyCommandHandlerTests : ProductCommandT
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Dependency not found.");
-        vms.Dependencies.Should().ContainSingle();
+        web.Dependencies.Should().ContainSingle();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

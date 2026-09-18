@@ -75,7 +75,9 @@ describe('ContentsEditor', () => {
     // Assert
     // The rule is surfaced before submit rather than arriving as a 400, and the covering package is
     // named so "why not?" needs no second lookup.
-    const covered = await screen.findByTitle(/Wayd API 4\.10\.0 — in WAYD-2026\.09\.1/)
+    const covered = await screen.findByTitle(
+      /Wayd API 4\.10\.0 — in WAYD-2026\.09\.1/,
+    )
     expect(covered).toHaveAttribute('aria-disabled', 'true')
   })
 
@@ -143,7 +145,9 @@ describe('ContentsEditor', () => {
     // Named on both sides, so either can be dropped to clear it.
     expect(screen.getByText('A version is carried twice')).toBeInTheDocument()
     expect(
-      screen.getByText(/is carried directly and also ships inside WAYD-2026\.09\.1/),
+      screen.getByText(
+        /is carried directly and also ships inside WAYD-2026\.09\.1/,
+      ),
     ).toBeInTheDocument()
   })
 
@@ -156,6 +160,8 @@ describe('ContentsEditor', () => {
     ])
 
     // Assert
-    expect(screen.queryByText('A version is carried twice')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('A version is carried twice'),
+    ).not.toBeInTheDocument()
   })
 })

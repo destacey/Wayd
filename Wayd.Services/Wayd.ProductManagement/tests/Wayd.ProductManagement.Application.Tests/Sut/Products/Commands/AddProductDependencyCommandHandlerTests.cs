@@ -20,23 +20,23 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_ShouldRecordTheDependencyAndReturnItsId()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
         var startsOn = Today.PlusDays(-90);
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(vms.Id, identity.Id, DependencyStrength.Hard, "Validates SSO tokens", startsOn),
+            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Hard, "Validates SSO tokens", startsOn),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var dependency = vms.Dependencies.Should().ContainSingle().Subject;
+        var dependency = web.Dependencies.Should().ContainSingle().Subject;
         result.Value.Should().Be(dependency.Id);
         dependency.DependsOnProductId.Should().Be(identity.Id);
         dependency.Period.Start.Should().Be(startsOn);
-        vms.DomainEvents.OfType<ProductDependencyAddedEvent>().Should().ContainSingle();
+        web.DomainEvents.OfType<ProductDependencyAddedEvent>().Should().ContainSingle();
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -44,31 +44,31 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_WithoutAStart_ShouldStartToday()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
         var sut = CreateSut();
 
         // Act
         await sut.Handle(
-            new AddProductDependencyCommand(vms.Id, identity.Id, DependencyStrength.Soft, null, null),
+            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
-        vms.Dependencies.Should().ContainSingle().Which.Period.Start.Should().Be(Today);
+        web.Dependencies.Should().ContainSingle().Which.Period.Start.Should().Be(Today);
     }
 
     [Fact]
     public async Task Handle_OnAGrandparent_ShouldFail()
     {
         // Arrange — two levels up, so only a walk of the whole chain catches it
-        var argo = SeedProduct("Argo Platform");
-        var services = SeedProduct("Argo Services", argo.Id);
-        var identity = SeedProduct("Argo Identity", services.Id);
+        var platform = SeedProduct("Core Platform");
+        var services = SeedProduct("Platform Services", platform.Id);
+        var identity = SeedProduct("Identity Service", services.Id);
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(identity.Id, argo.Id, DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(identity.Id, platform.Id, DependencyStrength.Hard, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -82,14 +82,14 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_OnAGrandchild_ShouldFail()
     {
         // Arrange
-        var argo = SeedProduct("Argo Platform");
-        var services = SeedProduct("Argo Services", argo.Id);
-        var identity = SeedProduct("Argo Identity", services.Id);
+        var platform = SeedProduct("Core Platform");
+        var services = SeedProduct("Platform Services", platform.Id);
+        var identity = SeedProduct("Identity Service", services.Id);
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(argo.Id, identity.Id, DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(platform.Id, identity.Id, DependencyStrength.Hard, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -102,9 +102,9 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_OnAProductInAnotherBranchOfTheSameTree_ShouldSucceed()
     {
         // Arrange — siblings share an ancestor, which is not composition between them
-        var argo = SeedProduct("Argo Platform");
-        var identity = SeedProduct("Argo Identity", argo.Id);
-        var gateway = SeedProduct("Argo Gateway", argo.Id);
+        var platform = SeedProduct("Core Platform");
+        var identity = SeedProduct("Identity Service", platform.Id);
+        var gateway = SeedProduct("Gateway Service", platform.Id);
         var sut = CreateSut();
 
         // Act
@@ -120,7 +120,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_WhenTheProductDoesNotExist_ShouldFail()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
+        var identity = SeedProduct("Identity Service");
         var sut = CreateSut();
 
         // Act
@@ -137,18 +137,18 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_WhenTheProductDependedOnDoesNotExist_ShouldFail()
     {
         // Arrange
-        var vms = SeedProduct("Trio VMS");
+        var web = SeedProduct("Storefront Web");
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(vms.Id, Guid.CreateVersion7(), DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(web.Id, Guid.CreateVersion7(), DependencyStrength.Hard, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("The product depended on was not found.");
-        vms.Dependencies.Should().BeEmpty();
+        web.Dependencies.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
@@ -156,19 +156,19 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
     public async Task Handle_WhenTheAggregateRefuses_ShouldRaiseNothing()
     {
         // Arrange
-        var identity = SeedProduct("Argo Identity");
-        var vms = SeedProduct("Trio VMS");
-        SeedDependency(vms, identity.Id);
+        var identity = SeedProduct("Identity Service");
+        var web = SeedProduct("Storefront Web");
+        SeedDependency(web, identity.Id);
         var sut = CreateSut();
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(vms.Id, identity.Id, DependencyStrength.Soft, null, null),
+            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        vms.DomainEvents.Should().BeEmpty();
+        web.DomainEvents.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

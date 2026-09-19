@@ -11,8 +11,12 @@ namespace Wayd.Infrastructure.Tests.Sut.BackgroundJobs;
 /// </summary>
 public sealed class HangfireServiceRecurringJobTests
 {
-    public static Task Retired() => Task.CompletedTask;
-    public static Task StillHere() => Task.CompletedTask;
+    // Hangfire only schedules public methods, and a public non-test method on the test class trips xUnit1013.
+    public static class Jobs
+    {
+        public static Task Retired() => Task.CompletedTask;
+        public static Task StillHere() => Task.CompletedTask;
+    }
 
     public HangfireServiceRecurringJobTests()
     {
@@ -23,13 +27,13 @@ public sealed class HangfireServiceRecurringJobTests
     public void RemoveRecurringJobsInvoking_RemovesEveryScheduleForThatMethodAndNoOther()
     {
         // Arrange — two schedules for the retired method under an admin's own ids, one for another method
-        RecurringJob.AddOrUpdate("graph-nightly", () => Retired(), Cron.Daily());
-        RecurringJob.AddOrUpdate("graph-hourly", () => Retired(), Cron.Hourly());
-        RecurringJob.AddOrUpdate("keep", () => StillHere(), Cron.Daily());
+        RecurringJob.AddOrUpdate("graph-nightly", () => Jobs.Retired(), Cron.Daily());
+        RecurringJob.AddOrUpdate("graph-hourly", () => Jobs.Retired(), Cron.Hourly());
+        RecurringJob.AddOrUpdate("keep", () => Jobs.StillHere(), Cron.Daily());
         var sut = new HangfireService();
 
         // Act
-        var removed = sut.RemoveRecurringJobsInvoking(nameof(Retired));
+        var removed = sut.RemoveRecurringJobsInvoking(nameof(Jobs.Retired));
 
         // Assert
         removed.Should().BeEquivalentTo("graph-nightly", "graph-hourly");
@@ -40,11 +44,11 @@ public sealed class HangfireServiceRecurringJobTests
     public void RemoveRecurringJobsInvoking_ReturnsNothingWhenNoScheduleNamesTheMethod()
     {
         // Arrange
-        RecurringJob.AddOrUpdate("keep", () => StillHere(), Cron.Daily());
+        RecurringJob.AddOrUpdate("keep", () => Jobs.StillHere(), Cron.Daily());
         var sut = new HangfireService();
 
         // Act
-        var removed = sut.RemoveRecurringJobsInvoking(nameof(Retired));
+        var removed = sut.RemoveRecurringJobsInvoking(nameof(Jobs.Retired));
 
         // Assert
         removed.Should().BeEmpty();

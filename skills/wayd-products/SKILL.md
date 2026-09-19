@@ -95,14 +95,20 @@ Read the product and the category first if the existing value matters. Call
 
 ### Deleting a product is permanent
 
-`Products_Delete` is a **hard delete**, unlike everything in delivery, where records are withdrawn
-and kept. If the product has merely stopped being current, change its status instead.
+`Products_Delete` is a **hard delete**. If the product has merely stopped being current, change its
+status instead.
 
 It refuses while anything depends on it, and each reason is distinct — children, versions,
 appearing in a release package manifest, or being named on either end of a product dependency. That
 manifest one is checked separately because a carried-forward manifest line often names a product
 that has no version row at all, and the dependency one counts **ended** links too: deleting the
 product would erase the record of what relied on it.
+
+It never deletes anything else for you. To purge a retired product only when the user asks, go
+bottom up with the **wayd-delivery** tools: `Releases_Delete` for any release listing its versions or
+packages, `ReleasePackages_Delete`, `Versions_Delete` (each takes its deployments), then
+`Products_RemoveDependency` for each dependency, then `Products_Delete`. Confirm the whole list with
+the user first.
 
 ---
 

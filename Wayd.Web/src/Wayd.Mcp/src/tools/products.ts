@@ -292,7 +292,7 @@ A product holds at most one open dependency on another product, and a later one 
 
   ['Products_Delete', {
     name: 'Products_Delete',
-    description: `Permanently delete a product. **This is a hard delete, not a retirement** — unlike everything in delivery, where records are withdrawn and kept. Consider changing the status instead if the product merely stopped being current.
+    description: `Permanently delete a product. **This is a hard delete, not a retirement.** Consider changing the status instead if the product merely stopped being current. It takes its status history with it; its activity history is kept.
 
 Refused while anything depends on it, each with its own reason: it has **child products** (move or remove them first), it has **versions**, it appears in a **release package manifest**, or it is named on **either end of a product dependency**. The manifest check is separate from versions because a carried-forward manifest line often names a product with no version row at all. The dependency check counts **ended** dependencies too — deleting the product would erase the record of what relied on it.
 

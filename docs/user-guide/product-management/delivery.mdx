@@ -341,8 +341,10 @@ The manifest closes once the package is released or withdrawn, and the action st
 - **Withdraw** pulls the package, with an optional reason recorded on the status transition. As with
   versions, a released package can still be withdrawn, and a withdrawn one cannot be released.
 
-The package itself is never deleted. Deployments point at it, and erasing it would take the record of
-what reached an environment along with it.
+Withdrawing keeps the package. **Delete** (with `Permissions.Delivery.Delete`) removes it with its
+manifest, its status history and every deployment of it. It is refused while any release lists the
+package: remove it from the release's contents first, or — for a released or withdrawn release, whose
+contents are fixed — delete the release. The versions it names are kept. It is for a package assembled by mistake, or for purging history.
 
 Every status change is recorded, and the **Status History** section reads the same way as a
 [version's](#version-status-history).
@@ -630,6 +632,9 @@ purge a retired product's history. It takes its status history with it and the d
 counting it, so a deployment that really failed or was rolled back should be recorded as such rather
 than deleted.
 
+A **package** can be deleted, with `Permissions.Delivery.Delete`, once no release lists it, and takes
+every deployment of it with it.
+
 An **environment** can be deleted, with `Permissions.DeploymentEnvironments.Delete` (and
 `Permissions.Delivery.Delete` if any deployment went into it), and takes every deployment into it with it — see [Retiring or Deleting an Environment](#retiring-or-deleting-an-environment).
 
@@ -655,7 +660,7 @@ drafting an announcement is not the person recording that the pipeline ran.
 
 **Delete is its own grant**, separate from `Update`, because it erases the record and its status
 history. The terminal actions — withdrawing, retiring, recording an outcome — are all `Update` and keep
-both. Today a deployment and an environment can be deleted.
+both. Today a deployment, a package and an environment can be deleted.
 
 Some actions **additionally require your account to be linked to an employee record**, because the
 change is attributed to the person who made it. The permission alone is not enough, and the refusal

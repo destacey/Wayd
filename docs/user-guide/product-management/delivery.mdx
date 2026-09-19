@@ -632,6 +632,9 @@ purge a retired product's history. It takes its status history with it and the d
 counting it, so a deployment that really failed or was rolled back should be recorded as such rather
 than deleted.
 
+A **version** can be deleted, with `Permissions.Delivery.Delete`, once no release lists it and no
+package manifest names it, and takes every deployment of it with it.
+
 A **package** can be deleted, with `Permissions.Delivery.Delete`, once no release lists it, and takes
 every deployment of it with it.
 
@@ -665,7 +668,7 @@ drafting an announcement is not the person recording that the pipeline ran.
 
 **Delete is its own grant**, separate from `Update`, because it erases the record and its status
 history. The terminal actions — withdrawing, retiring, recording an outcome — are all `Update` and keep
-both. Today a deployment, a package, a release and an environment can be deleted.
+both. Every delivery record can be deleted.
 
 Some actions **additionally require your account to be linked to an employee record**, because the
 change is attributed to the person who made it. The permission alone is not enough, and the refusal

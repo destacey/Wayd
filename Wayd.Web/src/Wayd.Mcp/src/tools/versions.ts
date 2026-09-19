@@ -129,6 +129,18 @@ export const definitions: [string, McpToolDefinition][] = [
     annotations: { title: 'Withdraw a version', ...requiresConfirmation },
   }],
 
+  ['Versions_Delete', {
+    name: 'Versions_Delete',
+    description: `Permanently delete a version with its status history and **every deployment of it**. The delivery measures and rollout stop counting those deployments. **Refused while a release lists it or a package manifest names it** — remove it with \`Releases_SetContents\` or \`ReleasePackages_SetManifest\` first, or delete that release or package (an announced release or released package cannot change, so deleting it is the only way). For a version recorded by mistake or when the user asks to purge history; a real version that was pulled is \`Versions_Withdraw\`. Needs the delivery Delete permission.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY}},"required":["id"]},
+    method: 'delete',
+    pathTemplate: '/api/product-management/versions/{id}',
+    executionParameters: [{"name":"id","in":"path"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Delete a version', ...requiresConfirmation },
+  }],
+
   ['Versions_Revert', {
     name: 'Versions_Revert',
     description: `Record that a version marked as shipped did **not in fact ship** — the wrong record was updated. Returns it to Ready, or to the initial status where it was never cut, and clears the released date. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts. Do not use this for a version that really shipped and was then pulled — that is Versions_Withdraw.`,

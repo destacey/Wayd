@@ -49,7 +49,8 @@ one artifact and a version number, it is a *version*. If it is what the pipeline
 ## What can be changed via MCP
 
 Everything in delivery supports create and update, and every lifecycle move is available. A version
-is *withdrawn* and cannot be deleted. A release is *withdrawn* too; `Releases_Delete` removes it and
+is *withdrawn*; `Versions_Delete` removes it with every deployment of it, and is refused while a
+release lists it or a package manifest names it. A release is *withdrawn* too; `Releases_Delete` removes it and
 its contents list (never the versions and packages it named), for a release created by mistake or
 when the user wants that history gone. A package is *withdrawn* too; `ReleasePackages_Delete` exists
 but takes every deployment of it along, and is refused while any release lists the package, so use it

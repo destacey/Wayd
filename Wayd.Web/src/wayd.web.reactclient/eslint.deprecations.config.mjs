@@ -12,6 +12,11 @@ const eslintDeprecationsConfig = [
     },
     rules: { '@typescript-eslint/no-deprecated': 'warn' },
   },
+  {
+    // Excluded from tsconfig (it compiles against the webworker lib), so the
+    // project service has no type information for it.
+    ignores: ['src/app/sw.ts'],
+  },
 ]
 
 export default eslintDeprecationsConfig

@@ -48,8 +48,10 @@ one artifact and a version number, it is a *version*. If it is what the pipeline
 
 ## What can be changed via MCP
 
-Everything in delivery supports create and update, and every lifecycle move is available. A version,
-release or package is *withdrawn* — none of them can be deleted. An environment is *retired*;
+Everything in delivery supports create and update, and every lifecycle move is available. A version
+or release is *withdrawn* and cannot be deleted. A package is *withdrawn* too; `ReleasePackages_Delete`
+exists but takes every deployment of it along, and is refused while any release lists the package, so
+use it only when the user explicitly wants that history gone. An environment is *retired*;
 `DeploymentEnvironments_Delete` exists but takes every deployment into it along, so use it only when
 the user explicitly wants that history gone, and say how many deployments will go first.
 

@@ -5,6 +5,7 @@ import {
   CreateUserRequest,
   ManageRoleUsersRequest,
   StageProviderMigrationRequest,
+  StageSignInTenantRequest,
   UserDetailsDto,
   UserIdentityDto,
   UserRoleDto,
@@ -363,6 +364,26 @@ export const usersApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    stageSignInTenant: builder.mutation<
+      void,
+      { userId: string; tenantId?: string }
+    >({
+      queryFn: async ({ userId, tenantId }) => {
+        try {
+          const request: StageSignInTenantRequest = { tenantId }
+          const data = await getUsersClient().stageSignInTenant(userId, request)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.User, id: arg.userId },
+        { type: QueryTags.User, id: 'LIST' },
+      ],
+    }),
+
     cancelProviderMigration: builder.mutation<void, string>({
       queryFn: async (userId) => {
         try {
@@ -443,6 +464,7 @@ export const {
   useGetUserIdentityHistoryQuery,
   useCancelTenantMigrationMutation,
   useStageProviderMigrationMutation,
+  useStageSignInTenantMutation,
   useCancelProviderMigrationMutation,
   useConvertToLocalAccountMutation,
   useGetUserOptionsQuery,

@@ -3344,7 +3344,7 @@ export class UsersClient {
     }
 
     /**
-     * Get the tenants a new Microsoft Entra ID user can be created for.
+     * Get the tenants a Microsoft Entra ID user can be set to sign in from.
      */
     getEntraTenantIds( cancelToken?: CancelToken): Promise<string[]> {
         let url_ = this.baseUrl + "/api/user-management/users/entra-tenants";
@@ -4033,6 +4033,74 @@ export class UsersClient {
     }
 
     protected processCancelTenantMigration(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Stage the tenant a Microsoft Entra ID user with no active identity links from on their next sign-in.
+     */
+    stageSignInTenant(id: string, request: StageSignInTenantRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/user-management/users/{id}/sign-in-tenant";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStageSignInTenant(_response);
+        });
+    }
+
+    protected processStageSignInTenant(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -43378,6 +43446,7 @@ export interface UserDetailsDto {
     loginProvider: string;
     pendingMigrationTenantId?: string | undefined;
     pendingMigrationProviderId?: string | undefined;
+    hasActiveIdentity: boolean;
     lastActivityAt?: Date | undefined;
     employee?: NavigationDto | undefined;
     roles: RoleListDto[];
@@ -43499,6 +43568,11 @@ export interface ManageRoleUsersRequest {
 
 export interface ResetPasswordRequest {
     newPassword: string;
+}
+
+export interface StageSignInTenantRequest {
+    /** The tenant the user signs in from. Optional when the Entra provider allows a single tenant. */
+    tenantId?: string | undefined;
 }
 
 export interface ConvertToLocalAccountRequest {

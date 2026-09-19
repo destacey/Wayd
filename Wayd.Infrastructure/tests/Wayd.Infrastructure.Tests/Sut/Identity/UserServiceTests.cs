@@ -1361,6 +1361,135 @@ public class UserServiceTests
 
     #endregion
 
+    #region StageEntraSignInTenant
+
+    private ApplicationUser ArrangeUserForSignInTenant(
+        string loginProvider = LoginProviders.MicrosoftEntraId,
+        bool hasActiveIdentity = false)
+    {
+        var user = CreateUser(loginProvider: loginProvider);
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserIdentityStore
+            .Setup(s => s.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(hasActiveIdentity);
+        return user;
+    }
+
+    [Fact]
+    public async Task StageEntraSignInTenant_ShouldStageTheTenant_WhenUserHasNoActiveIdentity()
+    {
+        // Arrange — e.g. an admin-created user whose staged link was cancelled.
+        const string tenantId = "7d1b4a52-0000-4000-8000-000000000001";
+        ArrangeEntraProvider(tenantId);
+        var user = ArrangeUserForSignInTenant();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.StageEntraSignInTenant(
+            new StageEntraSignInTenantCommand(user.Id, null), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        user.PendingMigrationTenantId.Should().Be(tenantId);
+        user.PendingMigrationStagedAt.Should().Be(_dateTimeProvider.Now);
+        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StageEntraSignInTenant_ShouldReplaceTheStagedTenant_WhenAnotherIsChosen()
+    {
+        // Arrange — the admin picked the wrong tenant at creation.
+        const string tenantA = "7d1b4a52-0000-4000-8000-00000000000a";
+        const string tenantB = "7d1b4a52-0000-4000-8000-00000000000b";
+        ArrangeEntraProvider(tenantA, tenantB);
+        var user = ArrangeUserForSignInTenant();
+        user.PendingMigrationTenantId = tenantA;
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.StageEntraSignInTenant(
+            new StageEntraSignInTenantCommand(user.Id, tenantB), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        user.PendingMigrationTenantId.Should().Be(tenantB);
+    }
+
+    [Fact]
+    public async Task StageEntraSignInTenant_ShouldRefuseAndLeaveTheUserAlone_WhenTheyHaveAnActiveIdentity()
+    {
+        // Arrange — someone signs in with this account today; moving it is a tenant migration.
+        ArrangeEntraProvider("7d1b4a52-0000-4000-8000-00000000000a", "7d1b4a52-0000-4000-8000-00000000000b");
+        var user = ArrangeUserForSignInTenant(hasActiveIdentity: true);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.StageEntraSignInTenant(
+            new StageEntraSignInTenantCommand(user.Id, "7d1b4a52-0000-4000-8000-00000000000b"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("tenant migration");
+        user.PendingMigrationTenantId.Should().BeNull();
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StageEntraSignInTenant_ShouldRefuse_WhenUserIsNotAnEntraUser()
+    {
+        // Arrange
+        ArrangeEntraProvider("7d1b4a52-0000-4000-8000-000000000001");
+        var user = ArrangeUserForSignInTenant(loginProvider: LoginProviders.Wayd);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.StageEntraSignInTenant(
+            new StageEntraSignInTenantCommand(user.Id, null), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        user.PendingMigrationTenantId.Should().BeNull();
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StageEntraSignInTenant_ShouldRefuse_WhenTheTenantIsNotAllowed()
+    {
+        // Arrange
+        ArrangeEntraProvider("7d1b4a52-0000-4000-8000-00000000000a");
+        var user = ArrangeUserForSignInTenant();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.StageEntraSignInTenant(
+            new StageEntraSignInTenantCommand(user.Id, "7d1b4a52-0000-4000-8000-0000000000ff"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not allowed");
+        user.PendingMigrationTenantId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task StageEntraSignInTenant_ShouldThrowNotFound_WhenUserDoesNotExist()
+    {
+        // Arrange
+        _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.StageEntraSignInTenant(
+            new StageEntraSignInTenantCommand("missing", null), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    #endregion
+
     #region CancelTenantMigration
 
     [Fact]

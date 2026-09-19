@@ -2169,7 +2169,7 @@
         "tags": [
           "Users"
         ],
-        "summary": "Get the tenants a new Microsoft Entra ID user can be created for.",
+        "summary": "Get the tenants a Microsoft Entra ID user can be set to sign in from.",
         "operationId": "Users_GetEntraTenantIds",
         "responses": {
           "200": {
@@ -2730,6 +2730,68 @@
             "x-position": 1
           }
         ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/user-management/users/{id}/sign-in-tenant": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Stage the tenant a Microsoft Entra ID user with no active identity links from on their next sign-in.",
+        "operationId": "Users_StageSignInTenant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StageSignInTenantRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
         "responses": {
           "204": {
             "description": ""
@@ -39000,6 +39062,7 @@
           "id",
           "isActive",
           "loginProvider",
+          "hasActiveIdentity",
           "roles"
         ],
         "properties": {
@@ -39044,6 +39107,9 @@
           "pendingMigrationProviderId": {
             "type": "string",
             "nullable": true
+          },
+          "hasActiveIdentity": {
+            "type": "boolean"
           },
           "lastActivityAt": {
             "type": "string",
@@ -39522,6 +39588,17 @@
         "properties": {
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "StageSignInTenantRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "description": "The tenant the user signs in from. Optional when the Entra provider allows a single tenant.",
+            "nullable": true
           }
         }
       },

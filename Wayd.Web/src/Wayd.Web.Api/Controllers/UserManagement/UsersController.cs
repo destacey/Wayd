@@ -36,8 +36,8 @@ public class UsersController(IUserService userService) : ControllerBase
     }
 
     [HttpGet("entra-tenants")]
-    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Users)]
-    [OpenApiOperation("Get the tenants a new Microsoft Entra ID user can be created for.", "")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
+    [OpenApiOperation("Get the tenants a Microsoft Entra ID user can be set to sign in from.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IReadOnlyList<string>> GetEntraTenantIds(CancellationToken cancellationToken)
     {
@@ -188,6 +188,23 @@ public class UsersController(IUserService userService) : ControllerBase
     public async Task<ActionResult> CancelTenantMigration(string id, CancellationToken cancellationToken)
     {
         var result = await _userService.CancelTenantMigration(id, cancellationToken);
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/sign-in-tenant")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
+    [OpenApiOperation("Stage the tenant a Microsoft Entra ID user with no active identity links from on their next sign-in.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> StageSignInTenant(string id, StageSignInTenantRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _userService.StageEntraSignInTenant(
+            new StageEntraSignInTenantCommand(id, request.TenantId),
+            cancellationToken);
+
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

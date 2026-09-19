@@ -858,7 +858,7 @@ internal partial class UserService
         var provider = await _oidcProviderRegistry.GetByName(LoginProviders.MicrosoftEntraId, cancellationToken);
         var allowed = provider?.AllowedTenantIds ?? [];
         if (allowed.Count == 0)
-            return Result.Failure<string>("Microsoft Entra ID is not configured. Add it under Settings → Identity Providers before creating Entra users.");
+            return Result.Failure<string>("Microsoft Entra ID is not configured. Add it under Settings → Identity Providers first.");
 
         if (!string.IsNullOrWhiteSpace(requestedTenantId))
         {

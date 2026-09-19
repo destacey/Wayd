@@ -12,8 +12,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         // provider's tenant, completed by the first sign-in from it whose UPN/email matches.
         //
         // Only users that have never had any identity row, and only when the provider allows a single tenant.
-        // With several, the tenant is the admin's choice and nothing here can make it; such a user is linked by
-        // converting them to a local account and staging a provider migration back to Entra.
+        // With several, the tenant is the admin's choice and nothing here can make it; they set it from the
+        // user's page (Set Sign-in Tenant).
         //
         // Idempotent: a user already staged is skipped.
 

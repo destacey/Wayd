@@ -71,7 +71,7 @@ public interface IUserService : ITransientService
     Task<Result<string>> CreateAsync(CreateUserCommand command, CancellationToken cancellationToken);
 
     /// <summary>
-    /// The tenants a new Microsoft Entra ID user can be created for — the Entra provider's
+    /// The tenants a Microsoft Entra ID user can sign in from — the Entra provider's
     /// allowlist, empty when no Entra provider is configured.
     /// </summary>
     Task<IReadOnlyList<string>> GetEntraTenantIds(CancellationToken cancellationToken);
@@ -120,6 +120,13 @@ public interface IUserService : ITransientService
     Task<Result> CancelTenantMigration(string userId, CancellationToken cancellationToken);
 
     Task<Result> StageProviderMigration(StageProviderMigrationCommand command, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Stages the tenant an Entra user with no active identity links from on their next
+    /// sign-in, replacing any tenant already staged. Refused for a user who can already sign
+    /// in: moving them is a tenant migration.
+    /// </summary>
+    Task<Result> StageEntraSignInTenant(StageEntraSignInTenantCommand command, CancellationToken cancellationToken);
 
     Task<Result> CancelProviderMigration(string userId, CancellationToken cancellationToken);
 

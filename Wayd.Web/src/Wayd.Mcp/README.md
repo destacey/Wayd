@@ -202,7 +202,7 @@ Records that raise domain events expose an **activity history** — every record
 | --- | --- |
 | **Products** | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options, get dependencies (rolled up, both directions). Create, update, retype, reparent, change status, link externally, tag, untag, delete. Dependencies: add, reword, change strength, end, remove |
 | **Product Types** | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it |
-| **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate the tags themselves |
+| **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate, delete the tags themselves |
 | **Deployment Environments** | List (by active state or category), get what is running in each (rollout), create, update, retire or reinstate |
 | **Delivery Metrics** | Get the deployment measures over a window |
 | **Delivery Overview** | Get version activity over a window (release frequency, cut-to-released), get recent version and package events |

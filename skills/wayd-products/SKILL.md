@@ -170,12 +170,14 @@ organization currently uses it is a different question, so `ProductTypes_SetActi
 `ProductTagCategories_SetActive` work on system records. An organization that does not ship libraries
 hides that type rather than fighting the seeder.
 
-The exception is at the tag level. `AddTag`, `RenameTag` and `SetTagActive` are **all** refused on a
-system category, deactivation included — there is no per-tag fallback. Retire the whole axis instead.
+The exception is at the tag level. `AddTag`, `RenameTag`, `SetTagActive` and `DeleteTag` are **all**
+refused on a system category, deactivation included — there is no per-tag fallback. Retire the whole
+axis instead.
 
 **Nothing in use can be deleted.** A type is in use when any product carries it; an axis is in use
-when any product is tagged along it. Both refuse with "Deactivate it instead", so in practice delete
-only removes something created by mistake and never applied.
+when any product is tagged along it; a tag is in use when any product carries it (its `productCount`
+is above zero). All three refuse with "Deactivate it instead", so in practice delete only removes
+something created by mistake and never applied.
 
 ### Two sharp edges
 

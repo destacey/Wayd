@@ -217,4 +217,16 @@ Renaming does not rewrite history: a product carrying the tag simply reports the
     annotations: { title: 'Activate or deactivate a tag', ...requiresConfirmation },
   }],
 
+  ['ProductTagCategories_DeleteTag', {
+    name: 'ProductTagCategories_DeleteTag',
+    description: `Permanently delete a tag. The tag must belong to the category named in the path. Refused on a seeded system category, and refused while any product carries the tag — deactivate it with \`ProductTagCategories_SetTagActive\` instead, which stops new use without stripping it from the products that have it. The \`productCount\` on each tag from \`ProductTagCategories_GetProductTagCategories\` says whether it is in use.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"Tag category ID. This endpoint takes a UUID only."},"tagId":{"type":"string","format":"uuid","description":"The tag to delete. Must belong to this category."}},"required":["id","tagId"]},
+    method: 'delete',
+    pathTemplate: '/api/product-management/product-tag-categories/{id}/tags/{tagId}',
+    executionParameters: [{"name":"id","in":"path"},{"name":"tagId","in":"path"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Delete a tag', ...requiresConfirmation },
+  }],
+
 ];

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Application.DeploymentEnvironments.Commands;
@@ -234,5 +235,43 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
         // before the handler runs, so this surfaces as a thrown ValidationException rather than a
         // failed Result — the aggregate's own guard is the second line, covered by the unit tests.
         await Assert.ThrowsAsync<Common.Application.Exceptions.ValidationException>(send);
+    }
+
+    [Fact]
+    public async Task Dispatch_DeleteDeploymentCommand_RemovesTheDeploymentAndItsStatusHistory()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+        var statusWorkflows = scope.ServiceProvider.GetRequiredService<IStatusWorkflowDbContext>();
+        var activityLogs = scope.ServiceProvider.GetRequiredService<IActivityLogDbContext>();
+
+        var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
+
+        var started = await dispatcher.Send(
+            new StartDeploymentCommand(fixture.VersionId, null, fixture.EnvironmentId, null, null),
+            TestContext.Current.CancellationToken);
+        Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
+
+        var succeeded = await dispatcher.Send(
+            new SucceedDeploymentCommand(started.Value.Id, null), TestContext.Current.CancellationToken);
+        Assert.True(succeeded.IsSuccess, succeeded.IsFailure ? succeeded.Error : null);
+
+        // Act
+        var result = await dispatcher.Send(
+            new DeleteDeploymentCommand(started.Value.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The history table has no foreign key to the deployment, so only the handler removes it; the fakes
+        // cannot show whether the rows actually left the database.
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(await dbContext.Deployments
+            .AnyAsync(d => d.Id == started.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await statusWorkflows.StatusTransitions
+            .AnyAsync(t => t.RecordId == started.Value.Id, TestContext.Current.CancellationToken));
+        Assert.True(await activityLogs.ActivityLogs
+            .AnyAsync(a => a.AggregateId == started.Value.Id && a.EventType == "DeploymentDeletedEvent",
+                TestContext.Current.CancellationToken));
     }
 }

@@ -211,6 +211,20 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpDelete("{id}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Delivery)]
+    [OpenApiOperation("Delete a deployment.", "Permanent: removes the deployment and its status history, and the delivery measures stop counting it.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteDeploymentCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPost("{id}/roll-back")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(

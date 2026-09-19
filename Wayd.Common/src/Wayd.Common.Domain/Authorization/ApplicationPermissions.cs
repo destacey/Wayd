@@ -410,12 +410,10 @@ public static class ApplicationPermissions
         new ("Update Product Types", ApplicationAction.Update, ApplicationResource.ProductTypes, ProductManagementCategory),
         new ("Delete Product Types", ApplicationAction.Delete, ApplicationResource.ProductTypes, ProductManagementCategory),
 
-        // Nothing in delivery is deletable, so none of these carry a Delete. A release is withdrawn, a
-        // package is withdrawn, an environment is retired, and a deployment is a historical fact that is
-        // never removed at all — each keeps the record and its status history rather than erasing it.
         new ("View Delivery", ApplicationAction.View, ApplicationResource.Delivery, DeliveryCategory),
         new ("Create Delivery", ApplicationAction.Create, ApplicationResource.Delivery, DeliveryCategory),
         new ("Update Delivery", ApplicationAction.Update, ApplicationResource.Delivery, DeliveryCategory),
+        new ("Delete Delivery", ApplicationAction.Delete, ApplicationResource.Delivery, DeliveryCategory),
         new ("Import Delivery", ApplicationAction.Import, ApplicationResource.Delivery, DeliveryCategory),
 
         new ("View Releases", ApplicationAction.View, ApplicationResource.Releases, DeliveryCategory),

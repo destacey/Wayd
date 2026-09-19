@@ -366,6 +366,29 @@ public sealed class DeploymentTests
 
     #endregion RollBack
 
+    #region Delete
+
+    [Fact]
+    public void Delete_ShouldRaiseDeploymentDeletedEvent_InAnyState()
+    {
+        // Arrange
+        var sut = _faker.AsSucceeded(Instant.FromUtc(2026, 5, 1, 10, 0)).Generate();
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var deleted = sut.DomainEvents.OfType<DeploymentDeletedEvent>().Should().ContainSingle().Subject;
+        deleted.Id.Should().Be(sut.Id);
+        deleted.Key.Should().Be(sut.Key);
+        deleted.EnvironmentId.Should().Be(sut.EnvironmentId);
+        deleted.VersionId.Should().Be(sut.VersionId);
+        deleted.PackageId.Should().Be(sut.PackageId);
+    }
+
+    #endregion Delete
+
     #region IsChangeFailure
 
     [Fact]

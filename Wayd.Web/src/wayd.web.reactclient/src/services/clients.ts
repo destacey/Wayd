@@ -58,6 +58,7 @@ import {
   SearchClient,
   TokenResponse,
 } from './wayd-api'
+import { navigateWithFullReload } from '@/src/utils/window-utils'
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -211,7 +212,7 @@ function redirectToLoginWithReturnUrl(): void {
   ) {
     sessionStorage.setItem('wayd.returnUrl', pathname)
   }
-  window.location.href = '/login'
+  navigateWithFullReload('/login')
 }
 
 // Single-flight guard for refresh. When multiple requests 401 concurrently

@@ -23,9 +23,9 @@ export interface SetEnvironmentActiveFormProps {
 /**
  * Retires an environment, or puts it back.
  *
- * Retiring is the destructive action here — there is no delete, and there should not be: deployments
- * already recorded point at this environment, and removing it would take the record of what reached
- * it with them. A retired environment simply stops being offered as a target.
+ * Retiring is the everyday way out: deployments already recorded point at this environment, and
+ * deleting it takes the record of what reached it with them. A retired environment simply stops being
+ * offered as a target.
  *
  * The deployment count is what makes the confirmation meaningful. "Retire QA2" says nothing about
  * consequence; "Retire QA2, which 47 deployments reference" does.

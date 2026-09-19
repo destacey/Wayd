@@ -194,6 +194,16 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Records that the package is being deleted. Removing it, its status history, its deployments and
+    /// its place in any release are the caller's.
+    /// </summary>
+    /// <remarks>
+    /// Allowed in any state. Withdrawing remains the everyday way out, because it keeps what shipped.
+    /// </remarks>
+    public void Delete(EventActor actor, Instant timestamp) =>
+        AddDomainEvent(new PackageDeletedEvent(Id, Key, Version, actor, timestamp));
+
+    /// <summary>
     /// Assembles a package from a set of component versions.
     /// </summary>
     public static Result<ReleasePackage> Create(

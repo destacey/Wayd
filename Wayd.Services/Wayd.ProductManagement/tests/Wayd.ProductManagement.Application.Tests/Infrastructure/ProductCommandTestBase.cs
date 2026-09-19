@@ -199,17 +199,23 @@ public abstract class ProductCommandTestBase
     /// than the environment.
     /// </param>
     /// <param name="environment">The environment it went into; a fresh one of <paramref name="category"/> when omitted.</param>
+    /// <param name="package">The package deployed; a fresh version when omitted.</param>
     protected Deployment SeedDeployment(
         EnvironmentCategory category = EnvironmentCategory.Production,
-        DeploymentEnvironment? environment = null)
+        DeploymentEnvironment? environment = null,
+        ReleasePackage? package = null)
     {
         environment ??= SeedEnvironment($"env-{Guid.CreateVersion7()}"[..12], category, 1);
-        var product = SeedProduct($"product-{Guid.CreateVersion7()}"[..16]);
-        var version = SeedVersion(product.Id);
+        Guid? versionId = null;
+        if (package is null)
+        {
+            var product = SeedProduct($"product-{Guid.CreateVersion7()}"[..16]);
+            versionId = SeedVersion(product.Id).Id;
+        }
 
         var deployment = Deployment.Create(
-            version.Id,
-            null,
+            versionId,
+            package?.Id,
             environment.Id,
             category,
             null,

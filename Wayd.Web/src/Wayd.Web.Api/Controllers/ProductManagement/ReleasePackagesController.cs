@@ -259,6 +259,20 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpDelete("{id}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Delivery)]
+    [OpenApiOperation("Delete a release package.", "Permanent: also deletes its manifest, status history and every deployment of it. Refused while any release lists it. The versions it names are kept.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteReleasePackageCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPost("{id}/withdraw")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation("Withdraw a package.", "The package is kept: deployments may reference it.")]

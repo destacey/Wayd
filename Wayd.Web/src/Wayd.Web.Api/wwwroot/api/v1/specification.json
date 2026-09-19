@@ -8460,6 +8460,50 @@
         ]
       }
     },
+    "/api/product-management/release-packages/{id}": {
+      "delete": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Delete a release package.",
+        "description": "Permanent: also deletes its manifest, status history and every deployment of it. Refused while any release lists it. The versions it names are kept.",
+        "operationId": "ReleasePackages_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/{id}/withdraw": {
       "post": {
         "tags": [

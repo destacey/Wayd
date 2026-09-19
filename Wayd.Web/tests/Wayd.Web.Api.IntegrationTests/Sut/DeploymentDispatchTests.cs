@@ -10,6 +10,7 @@ using Wayd.ProductManagement.Application.Deployments.Commands;
 using Wayd.ProductManagement.Application.Deployments.Queries;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.ReleasePackages.Commands;
+using Wayd.ProductManagement.Application.Releases.Commands;
 using Wayd.ProductManagement.Application.Versions.Commands;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 
@@ -273,6 +274,79 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
         Assert.True(await activityLogs.ActivityLogs
             .AnyAsync(a => a.AggregateId == started.Value.Id && a.EventType == "DeploymentDeletedEvent",
                 TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Dispatch_DeleteReleasePackageCommand_RefusedWhileListedThenTakesItsDeployments()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+        var statusWorkflows = scope.ServiceProvider.GetRequiredService<IStatusWorkflowDbContext>();
+
+        var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
+
+        var productTypeId = await dbContext.ProductTypes
+            .Where(t => t.IsActive && t.IsReleasable)
+            .Select(t => t.Id)
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        var component = await dispatcher.Send(
+            new CreateProductCommand(Unique("Comp"), null, productTypeId, null, null),
+            TestContext.Current.CancellationToken);
+        Assert.True(component.IsSuccess, component.IsFailure ? component.Error : null);
+
+        var package = await dispatcher.Send(
+            new AssembleReleasePackageCommand(Unique("Pkg"), null, null,
+            [
+                new ManifestEntry(component.Value.Id, null, "1.0", ManifestEntryKind.Changed),
+            ]),
+            TestContext.Current.CancellationToken);
+        Assert.True(package.IsSuccess, package.IsFailure ? package.Error : null);
+
+        var release = await dispatcher.Send(
+            new PlanReleaseCommand(null, Unique("Rel"), null, null, null), TestContext.Current.CancellationToken);
+        Assert.True(release.IsSuccess, release.IsFailure ? release.Error : null);
+
+        var contents = await dispatcher.Send(
+            new SetReleaseContentsCommand(release.Value.Id, [], [package.Value.Id]), TestContext.Current.CancellationToken);
+        Assert.True(contents.IsSuccess, contents.IsFailure ? contents.Error : null);
+
+        var deployment = await dispatcher.Send(
+            new StartDeploymentCommand(null, package.Value.Id, fixture.EnvironmentId, null, null),
+            TestContext.Current.CancellationToken);
+        Assert.True(deployment.IsSuccess, deployment.IsFailure ? deployment.Error : null);
+
+        // Act
+        var whileListed = await dispatcher.Send(
+            new DeleteReleasePackageCommand(package.Value.Id), TestContext.Current.CancellationToken);
+
+        var unlisted = await dispatcher.Send(
+            new SetReleaseContentsCommand(release.Value.Id, [], []), TestContext.Current.CancellationToken);
+        Assert.True(unlisted.IsSuccess, unlisted.IsFailure ? unlisted.Error : null);
+
+        var result = await dispatcher.Send(
+            new DeleteReleasePackageCommand(package.Value.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The deployment restricts on the package, so one left behind fails the delete at the database.
+        // The fakes cannot show that, nor that the manifest cascades.
+        Assert.True(whileListed.IsFailure);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(await dbContext.ReleasePackages
+            .AnyAsync(p => p.Id == package.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await dbContext.ReleasePackageComponents
+            .AnyAsync(c => c.PackageId == package.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await dbContext.ReleasePackageInclusions
+            .AnyAsync(i => i.PackageId == package.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await dbContext.Deployments
+            .AnyAsync(d => d.Id == deployment.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await statusWorkflows.StatusTransitions
+            .AnyAsync(t => t.RecordId == package.Value.Id || t.RecordId == deployment.Value.Id,
+                TestContext.Current.CancellationToken));
+        Assert.True(await dbContext.Releases
+            .AnyAsync(r => r.Id == release.Value.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]

@@ -131,6 +131,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddReleasePackage(ReleasePackage package) => _releasePackages.Add(package);
     public void AddReleasePackages(IEnumerable<ReleasePackage> packages) => _releasePackages.AddRange(packages);
     public void AddReleasePackageComponent(ReleasePackageComponent component) => _releasePackageComponents.Add(component);
+    public void AddReleasePackageInclusion(ReleasePackageInclusion inclusion) => _releasePackageInclusions.Add(inclusion);
 
     public void AddDeploymentEnvironment(DeploymentEnvironment environment) => _deploymentEnvironments.Add(environment);
     public void AddDeployment(Deployment deployment) => _deployments.Add(deployment);

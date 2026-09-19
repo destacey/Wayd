@@ -255,17 +255,13 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    # Dual-publish: Docker Hub remains what Terraform deploys to Azure; GHCR is stood up in
-                    # parallel (same build, extra tags) until a later cutover switches the deploy registry.
                     - name: api
                       dockerfile: ./Wayd.Web/src/Wayd.Web.Api/Dockerfile
-                      hub_image: awaldow/moda-api
-                      ghcr_image: ghcr.io/${{ github.repository_owner }}/wayd-api
+                      image: ghcr.io/${{ github.repository_owner }}/wayd-api
                       contextDir: .
                     - name: client
                       dockerfile: ./Wayd.Web/src/wayd.web.reactclient/Dockerfile
-                      hub_image: awaldow/moda-client
-                      ghcr_image: ghcr.io/${{ github.repository_owner }}/wayd-client
+                      image: ghcr.io/${{ github.repository_owner }}/wayd-client
                       contextDir: .
         permissions:
             contents: read
@@ -293,13 +289,6 @@ jobs:
             # workflow_dispatch MUST keep pushing even from a feature branch: `terraform apply` passes
             # -var="docker_tag=sha-${{ github.sha }}", so a suppressed push would point the container app at
             # a tag that was never published.
-            - name: Log in to Docker Hub
-              if: github.event_name != 'pull_request'
-              uses: docker/login-action@v3
-              with:
-                  username: awaldow
-                  password: ${{ secrets.DOCKER_HUB_TOKEN }}
-
             - name: Log in to the GitHub Container Registry
               if: github.event_name != 'pull_request'
               uses: docker/login-action@v3
@@ -312,9 +301,7 @@ jobs:
               id: meta
               uses: docker/metadata-action@v5
               with:
-                  images: |
-                      ${{ matrix.hub_image }}
-                      ${{ matrix.ghcr_image }}
+                  images: ${{ matrix.image }}
                   tags: |
                       type=raw,value=latest,enable={{is_default_branch}}
                       type=semver,pattern={{version}}

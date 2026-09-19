@@ -46,9 +46,7 @@ The Terraform Cloud workspace needs Azure credentials to provision resources. Cr
 
 ### Container images
 
-Docker images for the API and client must be published to a registry accessible by the Container App. The default config points at `docker.io/awaldow/moda-api` and `docker.io/awaldow/moda-client` as a convenience fallback — override `docker_image_registry`, `api_image_name`, and `client_image_name` to point at your own images.
-
-The GitHub Actions workflow also publishes the same builds to GHCR (`ghcr.io/destacey/wayd-api` and `ghcr.io/destacey/wayd-client`). Terraform still deploys the Docker Hub tags; GHCR is a parallel publish until the deploy registry is switched.
+Docker images for the API and client must be published to a registry accessible by the Container App. The default config points at `ghcr.io/destacey/wayd-api` and `ghcr.io/destacey/wayd-client` — override `docker_image_registry`, `api_image_name`, and `client_image_name` to point at your own images.
 
 ## Configuration
 
@@ -88,9 +86,9 @@ Override these in the TFC workspace only if the defaults don't fit:
 | `project` | `wayd` | Used in resource naming and tags |
 | `environment` | `dev` | Used in resource naming and tags |
 | `location` | `westus3` | Primary Azure region |
-| `docker_image_registry` | `docker.io/awaldow` | Container image registry host |
-| `api_image_name` | `moda-api` | API image repository name |
-| `client_image_name` | `moda-client` | Client image repository name |
+| `docker_image_registry` | `ghcr.io/destacey` | Container image registry host |
+| `api_image_name` | `wayd-api` | API image repository name |
+| `client_image_name` | `wayd-client` | Client image repository name |
 | `docker_tag` | `latest` | Image tag (workflow overrides with commit SHA) |
 | `container_app_cpu` | `0.25` | vCPU per replica |
 | `container_app_memory` | `0.5Gi` | Memory per replica |
@@ -130,7 +128,7 @@ Most Azure resources are named using the pattern `<prefix>-${project}-${environm
 
 The GitHub Actions workflow ([.github/workflows/docker.yml](../../.github/workflows/docker.yml)) handles the full deploy:
 
-1. Build + push container images to Docker Hub (tagged with the commit SHA) and the same tags to GHCR. Terraform still consumes the Docker Hub images.
+1. Build + push container images to GHCR (tagged with the commit SHA)
 2. `terraform apply` against the TFC workspace, passing `docker_tag=sha-<commit>`
 3. Run EF Core migrations against the deployed SQL database
 

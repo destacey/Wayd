@@ -71,20 +71,20 @@ variable "docker_tag" {
 
 variable "docker_image_registry" {
   type        = string
-  description = "The container registry host (e.g. 'docker.io/awaldow', 'ghcr.io/myorg', 'myregistry.azurecr.io'). Do not include a trailing slash."
-  default     = "docker.io/awaldow"
+  description = "The container registry host (e.g. 'ghcr.io/destacey', 'myregistry.azurecr.io'). Do not include a trailing slash."
+  default     = "ghcr.io/destacey"
 }
 
 variable "api_image_name" {
   type        = string
-  description = "The repository name of the API image within the registry (e.g. 'moda-api')."
-  default     = "moda-api"
+  description = "The repository name of the API image within the registry (e.g. 'wayd-api')."
+  default     = "wayd-api"
 }
 
 variable "client_image_name" {
   type        = string
-  description = "The repository name of the client image within the registry (e.g. 'moda-client')."
-  default     = "moda-client"
+  description = "The repository name of the client image within the registry (e.g. 'wayd-client')."
+  default     = "wayd-client"
 }
 
 variable "sql_ad_admin_login_username" {

@@ -312,6 +312,7 @@ The catalog is one typed tree of what your organization owns — products, platf
 | `ProductTagCategories_Reorder` | Reorder the axes — the list must name every one exactly once |
 | `ProductTagCategories_AddTag` / `ProductTagCategories_RenameTag` | Manage the tags on an axis |
 | `ProductTagCategories_SetTagActive` | Take a single tag out of use, or put it back |
+| `ProductTagCategories_DeleteTag` | Permanently delete a tag no product carries |
 
 Dependencies are **rolled up**: a product line's list includes its services' links to anything outside it. Strength has no default — hard if the product stops working without the other, soft if it only degrades — and a dependency that stopped should be **ended, not removed**, so the record of when it held survives.
 

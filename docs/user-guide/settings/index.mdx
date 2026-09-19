@@ -246,7 +246,7 @@ Tags themselves carry no order — they display alphabetically wherever they app
 
 - **Renaming a tag is safe.** Products reference tags by id, so the new name shows on every tagged product at once — which is the point of a curated list over free text.
 - **Deactivating retires rather than removes.** A deactivated tag or category can no longer be applied to anything new, but products already carrying it keep their tags, so what was recorded stays true. The tag list shows how many products carry each tag, so you can see what a change would affect before making it.
-- **Deleting is only for an unused axis.** A category that products are tagged along cannot be deleted — deactivate it instead.
+- **Deleting is only for what nothing uses.** A category that products are tagged along, or a tag that any product carries, cannot be deleted — deactivate it instead. A tag's **Delete** action only appears while its product count is zero.
 - **Reordering needs a clean grid.** The grab handle is disabled while the list is sorted, filtered or searched, because the order on screen is not the stored order then and a drop would write a sequence you never saw. Clear all three and the handle comes back. A move saves the whole list at once, so the positions can never overlap.
 
 | To do this | You need |
@@ -254,7 +254,7 @@ Tags themselves carry no order — they display alphabetically wherever they app
 | Open the page | `Permissions.ProductTagCategories.View` |
 | Create a category | `Permissions.ProductTagCategories.Create` |
 | Edit a category, activate or deactivate it, add or change its tags | `Permissions.ProductTagCategories.Update` |
-| Delete a category | `Permissions.ProductTagCategories.Delete` |
+| Delete a category or a tag | `Permissions.ProductTagCategories.Delete` |
 
 ## PPM Settings
 

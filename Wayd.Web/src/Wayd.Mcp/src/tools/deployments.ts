@@ -3,8 +3,8 @@ import type { McpToolDefinition } from '../types.js';
 /**
  * Deployments — one version or package reaching one environment.
  *
- * This is the substrate every delivery metric is computed from, which is why the records are
- * append-only: a deployment that started is only ever completed, and there is no edit and no delete.
+ * This is the substrate every delivery metric is computed from, which is why there is no edit: a
+ * deployment that started is only ever completed. Delete exists for one recorded by mistake.
  *
  * The rule an agent is most likely to break: a deployment carries **either a version or a package,
  * never both and never neither**. The request schema cannot express that — both ids are optional
@@ -82,7 +82,7 @@ Only an **active** environment is accepted. Leaving \`startedAt\` empty records 
 
   ['Deployments_Succeed', {
     name: 'Deployments_Succeed',
-    description: `Record that a deployment reached its environment. ${IN_FLIGHT} There is no edit and no delete on a deployment — it records something that happened.`,
+    description: `Record that a deployment reached its environment. ${IN_FLIGHT} There is no edit on a deployment — it records something that happened.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"completedAt":{"type":"string","format":"date-time","description":"When it finished. Omit to record it as finishing now."}},"required":[]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/deployments/{id}/succeed',
@@ -114,6 +114,18 @@ Only an **active** environment is accepted. Leaving \`startedAt\` empty records 
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
     annotations: { title: 'Record deployment rollback', ...requiresConfirmation },
+  }],
+
+  ['Deployments_Delete', {
+    name: 'Deployments_Delete',
+    description: `Permanently delete a deployment and its status history. Allowed in any state. **The delivery measures and rollout stop counting it**, so this is for a deployment recorded by mistake or for purging a retired product's history — a deployment that really failed or was rolled back must be recorded with \`Deployments_Fail\` or \`Deployments_RollBack\` instead. Needs the delivery Delete permission.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY}},"required":["id"]},
+    method: 'delete',
+    pathTemplate: '/api/product-management/deployments/{id}',
+    executionParameters: [{"name":"id","in":"path"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Delete a deployment', ...requiresConfirmation },
   }],
 
 ];

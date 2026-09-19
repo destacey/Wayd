@@ -48,9 +48,13 @@ one artifact and a version number, it is a *version*. If it is what the pipeline
 
 ## What can be changed via MCP
 
-Everything in delivery supports create and update, and every lifecycle move is available. **Nothing
-in delivery is deletable** — a version, release or package is *withdrawn*, an environment is
-*retired*, and a deployment is never removed at all, because the measures read that history.
+Everything in delivery supports create and update, and every lifecycle move is available. A version,
+release or package is *withdrawn* and an environment is *retired* — none of them can be deleted.
+
+`Deployments_Delete` permanently removes a deployment and its status history, and the measures stop
+counting it. Use it only for a deployment recorded by mistake, or when the user asks to purge a
+retired product's history. A deployment that really failed or was rolled back is recorded with
+`Deployments_Fail` or `Deployments_RollBack`, never deleted — deleting it would hide a change failure.
 
 Every mutating tool is annotated so your client asks before running it. Treat that as a genuine
 checkpoint rather than a formality: announcing a release is a statement to customers, and withdrawing

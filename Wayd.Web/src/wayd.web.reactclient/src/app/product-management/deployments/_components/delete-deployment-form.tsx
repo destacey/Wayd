@@ -5,7 +5,7 @@ import { useConfirmModal } from '@/src/hooks'
 import { DeploymentDto } from '@/src/services/wayd-api'
 import { useDeleteDeploymentMutation } from '@/src/store/features/product-management/deployments-api'
 import { isApiError, type ApiError } from '@/src/utils'
-import { Modal, Typography } from 'antd'
+import { Alert, Modal, Typography } from 'antd'
 
 export interface DeleteDeploymentFormProps {
   deployment: DeploymentDto
@@ -64,12 +64,20 @@ const DeleteDeploymentForm = ({
       destroyOnHidden
     >
       <Typography.Paragraph>
-        Delete <strong>Deployment {deployment.key}</strong> and its status
-        history? This cannot be undone.
+        Delete{' '}
+        <Typography.Text strong>Deployment {deployment.key}</Typography.Text>?
       </Typography.Paragraph>
-      <Typography.Paragraph type="secondary">
-        The delivery measures and rollout will no longer count it. If it failed
-        or was rolled back, record that instead.
+      <Alert
+        type="warning"
+        showIcon
+        title="This cannot be undone"
+        description="Its status history is deleted too, and the delivery measures and rollout stop counting it."
+      />
+      <Typography.Paragraph
+        type="secondary"
+        style={{ marginTop: 12, marginBottom: 0 }}
+      >
+        If it failed or was rolled back, record that instead.
       </Typography.Paragraph>
     </Modal>
   )

@@ -68,24 +68,23 @@ const DeleteEnvironmentForm = ({
       destroyOnHidden
     >
       <Paragraph>
-        Delete <Text strong>{environment.name}</Text>? This cannot be undone.
+        Delete environment <Text strong>{environment.name}</Text>?
       </Paragraph>
-      {environment.deploymentCount > 0 ? (
-        <Alert
-          type="warning"
-          showIcon
-          title={
-            environment.deploymentCount === 1
-              ? '1 deployment into this environment will also be deleted'
-              : `${environment.deploymentCount} deployments into this environment will also be deleted`
-          }
-          description="With their status history. The delivery measures and rollout will stop counting them. Retire the environment instead to keep them."
-        />
-      ) : (
-        <Paragraph type="secondary">
-          No deployments reference this environment.
-        </Paragraph>
-      )}
+      <Alert
+        type="warning"
+        showIcon
+        title="This cannot be undone"
+        description={
+          environment.deploymentCount === 0
+            ? 'No deployments reference this environment.'
+            : environment.deploymentCount === 1
+              ? 'The 1 deployment into it is deleted too, with its status history, and the delivery measures and rollout stop counting it.'
+              : `The ${environment.deploymentCount} deployments into it are deleted too, with their status history, and the delivery measures and rollout stop counting them.`
+        }
+      />
+      <Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+        Retire it instead to keep its deployments.
+      </Paragraph>
     </Modal>
   )
 }

@@ -3,7 +3,7 @@
 import { useMessage } from '@/src/components/contexts/messaging'
 import { ProductTagOptionDto } from '@/src/services/wayd-api'
 import { useDeleteProductTagMutation } from '@/src/store/features/product-management/product-tag-categories-api'
-import { Modal } from 'antd'
+import { Alert, Modal, Typography } from 'antd'
 import { useConfirmModal } from '@/src/hooks'
 import { isApiError, type ApiError } from '@/src/utils'
 
@@ -52,7 +52,7 @@ const DeleteProductTagForm = ({
 
   return (
     <Modal
-      title="Are you sure you want to delete this tag?"
+      title="Delete Tag"
       open={isOpen}
       onOk={handleOk}
       okText="Delete"
@@ -62,8 +62,16 @@ const DeleteProductTagForm = ({
       keyboard={false}
       destroyOnHidden
     >
-      {tag.name}
-      <p>A tag products carry cannot be deleted. Deactivate it instead.</p>
+      <Typography.Paragraph>
+        Delete tag <Typography.Text strong>{tag.name}</Typography.Text>?
+      </Typography.Paragraph>
+      <Alert type="warning" showIcon title="This cannot be undone" />
+      <Typography.Paragraph
+        type="secondary"
+        style={{ marginTop: 12, marginBottom: 0 }}
+      >
+        Deactivate it instead to keep it.
+      </Typography.Paragraph>
     </Modal>
   )
 }

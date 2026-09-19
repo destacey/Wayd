@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useDeleteProductTagCategoryMutation } from '@/src/store/features/product-management/product-tag-categories-api'
-import { Modal } from 'antd'
+import { Alert, Modal, Typography } from 'antd'
 import { useConfirmModal } from '@/src/hooks'
 import { isApiError, type ApiError } from '@/src/utils'
 import { ProductTagCategoryActionTarget } from './types'
@@ -57,7 +57,7 @@ const DeleteProductTagCategoryForm = ({
 
   return (
     <Modal
-      title="Are you sure you want to delete this tag category?"
+      title="Delete Tag Category"
       open={isOpen}
       onOk={handleOk}
       okText="Delete"
@@ -67,11 +67,22 @@ const DeleteProductTagCategoryForm = ({
       keyboard={false}
       destroyOnHidden
     >
-      {category.key} - {category.name}
-      <p>
-        An axis products are tagged along cannot be deleted. Deactivate it
-        instead.
-      </p>
+      <Typography.Paragraph>
+        Delete tag category{' '}
+        <Typography.Text strong>{category.name}</Typography.Text>?
+      </Typography.Paragraph>
+      <Alert
+        type="warning"
+        showIcon
+        title="This cannot be undone"
+        description="Its tags are deleted too."
+      />
+      <Typography.Paragraph
+        type="secondary"
+        style={{ marginTop: 12, marginBottom: 0 }}
+      >
+        Deactivate it instead to keep it.
+      </Typography.Paragraph>
     </Modal>
   )
 }

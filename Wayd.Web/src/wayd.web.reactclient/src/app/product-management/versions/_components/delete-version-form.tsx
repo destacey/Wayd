@@ -5,7 +5,7 @@ import { useConfirmModal } from '@/src/hooks'
 import { VersionDto } from '@/src/services/wayd-api'
 import { useDeleteVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { isApiError, type ApiError } from '@/src/utils'
-import { Modal, Typography } from 'antd'
+import { Alert, Modal, Typography } from 'antd'
 
 const { Paragraph, Text } = Typography
 
@@ -63,12 +63,15 @@ const DeleteVersionForm = ({
       destroyOnHidden
     >
       <Paragraph>
-        Delete version <Text strong>{version.number}</Text>? This cannot be
-        undone.
+        Delete version <Text strong>{version.number}</Text>?
       </Paragraph>
-      <Paragraph type="secondary">
-        Its status history and every deployment of it are deleted too. A version
-        that a release lists or a package manifest names cannot be deleted.
+      <Alert
+        type="warning"
+        showIcon
+        title="This cannot be undone"
+        description="Its status history and every deployment of it are deleted too."
+      />
+      <Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
         Withdraw it instead to keep all of that.
       </Paragraph>
     </Modal>

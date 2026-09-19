@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import { ProductDto } from '@/src/services/wayd-api'
 import { useDeleteProductMutation } from '@/src/store/features/product-management/products-api'
 import { isApiError, type ApiError } from '@/src/utils'
-import { Form, Modal, Typography } from 'antd'
+import { Alert, Form, Modal, Typography } from 'antd'
 
 export interface DeleteProductFormProps {
   product: ProductDto
@@ -66,10 +66,28 @@ const DeleteProductForm = ({
       keyboard={false} // disable esc key to close modal
       destroyOnHidden
     >
-      <Form form={form} size="small" layout="vertical" name="delete-product-form">
-        <Typography.Text>
-          Delete <strong>{product.name}</strong>? This cannot be undone.
-        </Typography.Text>
+      <Form
+        form={form}
+        size="small"
+        layout="vertical"
+        name="delete-product-form"
+      >
+        <Typography.Paragraph>
+          Delete product{' '}
+          <Typography.Text strong>{product.name}</Typography.Text>?
+        </Typography.Paragraph>
+        <Alert
+          type="warning"
+          showIcon
+          title="This cannot be undone"
+          description="Its tags and status history are removed too."
+        />
+        <Typography.Paragraph
+          type="secondary"
+          style={{ marginTop: 12, marginBottom: 0 }}
+        >
+          Set its status to Retired instead to keep it.
+        </Typography.Paragraph>
       </Form>
     </Modal>
   )

@@ -5,7 +5,7 @@ import { useConfirmModal } from '@/src/hooks'
 import { ReleaseDto } from '@/src/services/wayd-api'
 import { useDeleteReleaseMutation } from '@/src/store/features/product-management/releases-api'
 import { isApiError, type ApiError } from '@/src/utils'
-import { Modal, Typography } from 'antd'
+import { Alert, Modal, Typography } from 'antd'
 
 const { Paragraph, Text } = Typography
 
@@ -63,13 +63,16 @@ const DeleteReleaseForm = ({
       destroyOnHidden
     >
       <Paragraph>
-        Delete release <Text strong>{release.version}</Text>? This cannot be
-        undone.
+        Delete release <Text strong>{release.version}</Text>?
       </Paragraph>
-      <Paragraph type="secondary">
-        Its status history and its list of contents are deleted too. The
-        versions and packages it listed are kept. Withdraw it instead to keep
-        the record of what was announced.
+      <Alert
+        type="warning"
+        showIcon
+        title="This cannot be undone"
+        description="Its status history and its list of contents are deleted too. The versions and packages it listed are kept."
+      />
+      <Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+        Withdraw it instead to keep the record of what was announced.
       </Paragraph>
     </Modal>
   )

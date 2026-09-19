@@ -49,9 +49,6 @@
   <Folder Name="/Wayd.Services/Wayd.Links/src/">
     <Project Path="Wayd.Services/Wayd.Links/src/Wayd.Links/Wayd.Links.csproj" />
   </Folder>
-  <Folder Name="/Wayd.Services/Wayd.Links/tests/">
-    <Project Path="Wayd.Services/Wayd.Links/tests/Wayd.Links.Tests/Wayd.Links.Tests.csproj" />
-  </Folder>
   <Folder Name="/Wayd.Services/Wayd.Organization/" />
   <Folder Name="/Wayd.Services/Wayd.Organization/src/">
     <Project Path="Wayd.Services/Wayd.Organization/src/Wayd.Organization.Application/Wayd.Organization.Application.csproj" />

@@ -95,6 +95,14 @@ if [[ "$collect_coverage" == "true" ]]; then
     # Every module writes TestResults/coverage.cobertura.<timestamp>.xml at the repo root; the workflow
     # uploads that directory after both halves and merges once, so the published number spans unit AND
     # integration runs.
+    #
+    # The unit half clears the previous run's files first -- the names are unique per module AND per run,
+    # so on a developer's machine they accumulate, and a merge over the directory would then count a stale
+    # copy of a module beside its current one. Only here: the integration half must add to what the unit
+    # half just wrote. CI starts from an empty checkout, so this is a no-op there.
+    if [[ "$mode" == "unit" ]]; then
+        rm -f TestResults/coverage.cobertura.*.xml
+    fi
     coverage_args=(--coverlet)
     echo "Collecting coverage (testconfig.json)"
 fi

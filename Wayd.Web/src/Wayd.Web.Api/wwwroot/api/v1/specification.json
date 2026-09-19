@@ -4834,6 +4834,48 @@
             "ApiKey": []
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Delete a deployment environment.",
+        "description": "Permanent: also deletes every deployment into it and their status history, and the delivery measures stop counting them. Retiring keeps them.",
+        "operationId": "DeploymentEnvironments_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
       }
     },
     "/api/product-management/deployment-environments/{id}/active": {

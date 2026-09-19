@@ -274,4 +274,47 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
             .AnyAsync(a => a.AggregateId == started.Value.Id && a.EventType == "DeploymentDeletedEvent",
                 TestContext.Current.CancellationToken));
     }
+
+    [Fact]
+    public async Task Dispatch_DeleteDeploymentEnvironmentCommand_TakesItsDeploymentsWithIt()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+        var statusWorkflows = scope.ServiceProvider.GetRequiredService<IStatusWorkflowDbContext>();
+        var activityLogs = scope.ServiceProvider.GetRequiredService<IActivityLogDbContext>();
+
+        var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
+
+        var deploymentIds = new List<Guid>();
+        for (var i = 0; i < 2; i++)
+        {
+            var started = await dispatcher.Send(
+                new StartDeploymentCommand(fixture.VersionId, null, fixture.EnvironmentId, null, null),
+                TestContext.Current.CancellationToken);
+            Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
+            deploymentIds.Add(started.Value.Id);
+        }
+
+        // Act
+        var result = await dispatcher.Send(
+            new DeleteDeploymentEnvironmentCommand(fixture.EnvironmentId), TestContext.Current.CancellationToken);
+
+        // Assert
+        // Deployments restrict on the environment, so a delete that left them would fail at the database.
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(await dbContext.DeploymentEnvironments
+            .AnyAsync(e => e.Id == fixture.EnvironmentId, TestContext.Current.CancellationToken));
+        Assert.False(await dbContext.Deployments
+            .AnyAsync(d => deploymentIds.Contains(d.Id), TestContext.Current.CancellationToken));
+        Assert.False(await statusWorkflows.StatusTransitions
+            .AnyAsync(t => deploymentIds.Contains(t.RecordId), TestContext.Current.CancellationToken));
+        Assert.True(await activityLogs.ActivityLogs
+            .AnyAsync(a => a.AggregateId == fixture.EnvironmentId && a.EventType == "EnvironmentDeletedEvent",
+                TestContext.Current.CancellationToken));
+        Assert.Equal(2, await activityLogs.ActivityLogs
+            .CountAsync(a => deploymentIds.Contains(a.AggregateId) && a.EventType == "DeploymentDeletedEvent",
+                TestContext.Current.CancellationToken));
+    }
 }

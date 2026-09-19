@@ -221,4 +221,26 @@ public sealed class DeploymentEnvironmentTests
     }
 
     #endregion Update
+
+    #region Delete
+
+    [Fact]
+    public void Delete_ShouldRaiseEnvironmentDeletedEvent_EvenWhenRetired()
+    {
+        // Arrange
+        var sut = _faker.AsRetired().Generate();
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var deleted = sut.DomainEvents.OfType<EnvironmentDeletedEvent>().Should().ContainSingle().Subject;
+        deleted.Id.Should().Be(sut.Id);
+        deleted.Key.Should().Be(sut.Key);
+        deleted.Name.Should().Be(sut.Name);
+        deleted.Category.Should().Be(sut.Category);
+    }
+
+    #endregion Delete
 }

@@ -164,6 +164,17 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Records that the environment is being deleted. Removing it, and the deployments into it, is the
+    /// caller's.
+    /// </summary>
+    /// <remarks>
+    /// Retiring remains the everyday way out, because it keeps what reached the environment. Deleting is
+    /// for one defined by mistake, or for purging history outright.
+    /// </remarks>
+    public void Delete(EventActor actor, Instant timestamp) =>
+        AddDomainEvent(new EnvironmentDeletedEvent(Id, Key, Name, Category, actor, timestamp));
+
+    /// <summary>
     /// Defines an environment.
     /// </summary>
     public static DeploymentEnvironment Create(string name, EnvironmentCategory category, int ringOrder, EventActor actor, Instant timestamp)

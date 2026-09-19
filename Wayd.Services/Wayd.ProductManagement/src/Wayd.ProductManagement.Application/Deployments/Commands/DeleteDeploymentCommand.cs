@@ -49,19 +49,16 @@ public sealed class DeleteDeploymentCommandHandler(
                 return Result.Failure("Deployment not found.");
             }
 
-            // The history table serves every status-tracked type and has no foreign key to any of them,
-            // so nothing cascades: left behind, these rows would still surface in the delivery overview.
-            // Both interfaces are views over one context, so the single save below removes both.
-            var transitions = await _statusWorkflowDbContext.StatusTransitions
-                .Where(t => t.OwnerType == deployment.StatusOwnerType && t.RecordId == deployment.Id)
-                .ToListAsync(cancellationToken);
-
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
-            deployment.Delete(EventActor.User(_currentUser.GetUserId(), employeeId), _dateTimeProvider.Now);
+            await DeploymentRemoval.Stage(
+                _productManagementDbContext,
+                _statusWorkflowDbContext,
+                [deployment],
+                EventActor.User(_currentUser.GetUserId(), employeeId),
+                _dateTimeProvider.Now,
+                cancellationToken);
 
-            _statusWorkflowDbContext.StatusTransitions.RemoveRange(transitions);
-            _productManagementDbContext.Deployments.Remove(deployment);
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Deployment {DeploymentId} deleted.", request.Id);

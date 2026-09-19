@@ -52,6 +52,9 @@ const ProductTagCategoryDetailsPage = (props: {
   // refuses to add, rename or retire its tags, so offering the actions would
   // only produce a failure.
   const canManageTags = canUpdate && category?.isSystem === false
+  const canDeleteTags =
+    hasPermissionClaim('Permissions.ProductTagCategories.Delete') &&
+    category?.isSystem === false
 
   useDocumentTitle(
     category ? `${category.name} - Tag Category` : 'Tag Category Details',
@@ -116,6 +119,7 @@ const ProductTagCategoryDetailsPage = (props: {
           <ProductTagsList
             category={category}
             canManageTags={canManageTags}
+            canDeleteTags={canDeleteTags}
             loadData={refetch}
           />
         )}

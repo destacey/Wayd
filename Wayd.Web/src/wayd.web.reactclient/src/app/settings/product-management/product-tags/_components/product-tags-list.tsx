@@ -12,6 +12,7 @@ import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddProductTagForm from './add-product-tag-form'
 import ChangeProductTagActiveForm from './change-product-tag-active-form'
+import DeleteProductTagForm from './delete-product-tag-form'
 import EditProductTagForm from './edit-product-tag-form'
 
 export interface ProductTagsListProps {
@@ -22,15 +23,18 @@ export interface ProductTagsListProps {
    * actions would only produce a failure.
    */
   canManageTags: boolean
+  /** Whether the viewer can delete the axis's tags. False on a seeded axis, as above. */
+  canDeleteTags?: boolean
   loadData?: () => void
 }
 
 /** The dialogs a tag can open. One value, not one boolean each. */
-type DialogId = 'edit' | 'activate' | 'deactivate'
+type DialogId = 'edit' | 'activate' | 'deactivate' | 'delete'
 
 const ProductTagsList = ({
   category,
   canManageTags,
+  canDeleteTags = false,
   loadData,
 }: ProductTagsListProps) => {
   const [openAddTagForm, setOpenAddTagForm] = useState(false)
@@ -50,27 +54,48 @@ const ProductTagsList = ({
   )
 
   const columns = useMemo<ColumnDef<ProductTagOptionDto, any>[]>(() => {
-    const getItems = (tag: ProductTagOptionDto): ItemType[] => [
-      {
-        key: 'edit',
-        label: 'Edit',
-        onClick: () => setActive({ dialog: 'edit', tag }),
-      },
-      { key: 'active-divider', type: 'divider' },
-      {
-        key: tag.isActive ? 'deactivate' : 'activate',
-        label: tag.isActive ? 'Deactivate' : 'Activate',
-        onClick: () =>
-          setActive({
-            dialog: tag.isActive ? 'deactivate' : 'activate',
-            tag,
-          }),
-      },
-    ]
+    const getItems = (tag: ProductTagOptionDto): ItemType[] => {
+      const items: ItemType[] = []
+
+      if (canManageTags) {
+        items.push({
+          key: 'edit',
+          label: 'Edit',
+          onClick: () => setActive({ dialog: 'edit', tag }),
+        })
+      }
+      // Only offered on a tag nothing carries — the API refuses the rest, and
+      // the row already knows its count. A stale count still gets the API's
+      // answer in the confirmation.
+      if (canDeleteTags && tag.productCount === 0) {
+        items.push({
+          key: 'delete',
+          label: 'Delete',
+          danger: true,
+          onClick: () => setActive({ dialog: 'delete', tag }),
+        })
+      }
+      if (canManageTags) {
+        items.push(
+          { key: 'active-divider', type: 'divider' },
+          {
+            key: tag.isActive ? 'deactivate' : 'activate',
+            label: tag.isActive ? 'Deactivate' : 'Activate',
+            onClick: () =>
+              setActive({
+                dialog: tag.isActive ? 'deactivate' : 'activate',
+                tag,
+              }),
+          },
+        )
+      }
+
+      return items
+    }
 
     return [
       createActionsColumn<ProductTagOptionDto>({
-        unavailable: !canManageTags,
+        unavailable: !canManageTags && !canDeleteTags,
         ariaLabel: 'Tag actions',
         getItems,
       }),
@@ -97,7 +122,7 @@ const ProductTagsList = ({
         size: 110,
       },
     ]
-  }, [canManageTags])
+  }, [canManageTags, canDeleteTags])
 
   const actions = canManageTags ? (
     <Button type="primary" size="small" onClick={() => setOpenAddTagForm(true)}>
@@ -138,6 +163,14 @@ const ProductTagsList = ({
           categoryId={category.id}
           tag={active.tag}
           isActive={active.dialog === 'activate'}
+          onFormComplete={closeDialog}
+          onFormCancel={closeDialog}
+        />
+      )}
+      {active?.dialog === 'delete' && (
+        <DeleteProductTagForm
+          categoryId={category.id}
+          tag={active.tag}
           onFormComplete={closeDialog}
           onFormCancel={closeDialog}
         />

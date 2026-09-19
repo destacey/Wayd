@@ -30,6 +30,12 @@ export interface SetProductTagActiveArgs {
   isActive: boolean
 }
 
+/** Deletes a tag no product carries. */
+export interface DeleteProductTagArgs {
+  categoryId: string
+  tagId: string
+}
+
 export const productTagCategoriesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     /**
@@ -202,6 +208,23 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
       ],
     }),
+    deleteProductTag: builder.mutation<void, DeleteProductTagArgs>({
+      queryFn: async ({ categoryId, tagId }) => {
+        try {
+          const data = await getProductTagCategoriesClient().deleteTag(
+            categoryId,
+            tagId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [
+        { type: QueryTags.ProductTagCategory, id: 'LIST' },
+      ],
+    }),
   }),
 })
 
@@ -215,4 +238,5 @@ export const {
   useAddProductTagMutation,
   useRenameProductTagMutation,
   useSetProductTagActiveMutation,
+  useDeleteProductTagMutation,
 } = productTagCategoriesApi

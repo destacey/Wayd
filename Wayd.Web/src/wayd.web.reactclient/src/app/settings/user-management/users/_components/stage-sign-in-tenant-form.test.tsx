@@ -118,6 +118,22 @@ describe('StageSignInTenantForm', () => {
     )
   })
 
+  it('blocks submitting until the tenants have loaded', async () => {
+    // Arrange — submitting now would send no tenant, which a multi-tenant provider rejects.
+    mockUseGetEntraTenantIdsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    })
+
+    // Act
+    renderForm()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Set Tenant' }),
+    ).toBeDisabled()
+  })
+
   it('warns and blocks submitting when Microsoft Entra ID is not configured', async () => {
     // Arrange
     arrangeTenants([])

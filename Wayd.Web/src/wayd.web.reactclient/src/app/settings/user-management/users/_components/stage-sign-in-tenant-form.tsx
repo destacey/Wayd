@@ -82,7 +82,11 @@ const StageSignInTenantForm = ({
       title={`Set Sign-in Tenant — ${userName}`}
       open={isOpen}
       onOk={handleOk}
-      okButtonProps={{ disabled: !isValid || tenantIds?.length === 0 }}
+      // Until the tenants load there is nothing to pick, so submitting would send no
+      // tenant — which a multi-tenant provider rejects.
+      okButtonProps={{
+        disabled: !isValid || tenantsLoading || tenantIds?.length === 0,
+      }}
       okText="Set Tenant"
       confirmLoading={isSaving}
       onCancel={handleCancel}

@@ -215,6 +215,20 @@ public class CreateUserCommandValidatorTests
     }
 
     [Fact]
+    public async Task Validate_ShouldFail_WhenTenantExceedsMaxLength()
+    {
+        // Arrange — matches the PendingMigrationTenantId column.
+        var command = CreateValidEntraIdCommand();
+        command.TenantId = new string('a', 101);
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.TenantId);
+    }
+
+    [Fact]
     public async Task Validate_ShouldPass_WhenEntraIdCommandHasTenant()
     {
         // Arrange

@@ -124,7 +124,11 @@ const CreateUserForm = ({
       title="Create User"
       open={isOpen}
       onOk={handleOk}
-      okButtonProps={{ disabled: !isValid }}
+      // An Entra user can't be created without a provider to sign in through, so say so
+      // here rather than on a rejected submit.
+      okButtonProps={{
+        disabled: !isValid || (isEntra && entraTenantIds?.length === 0),
+      }}
       okText="Create"
       confirmLoading={isSaving}
       onCancel={handleCancel}

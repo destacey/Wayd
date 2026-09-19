@@ -54,6 +54,9 @@ public sealed class CreateUserCommandValidator : CustomValidator<CreateUserComma
                 .WithMessage("Login provider must be one of: " + string.Join(", ", LoginProviders.All));
 
         RuleFor(u => u.TenantId)
+            .MaximumLength(100);
+
+        RuleFor(u => u.TenantId)
             .Null()
                 .WithMessage("A tenant only applies to Microsoft Entra ID accounts.")
             .When(u => u.LoginProvider != LoginProviders.MicrosoftEntraId);

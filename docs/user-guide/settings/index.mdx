@@ -58,6 +58,7 @@ The form captures the user's details, their **Login Provider** (set here and imm
 
 - **At least one role is required.** You must assign one or more roles when creating a user — there is no default role applied automatically. A user with no roles has no permissions, so the form won't submit until at least one is selected.
 - **Login provider is permanent.** The provider chosen at creation can't be changed later through editing; use **Change Identity Provider** to move a user between providers.
+- **Microsoft Entra ID users sign in from one tenant.** Their first sign-in from that tenant, with a matching email, links the account. If your Entra provider allows only one tenant it's used automatically; if it allows several, pick it in **Sign-in Tenant**. A sign-in from any other tenant is refused. Until that first sign-in the user has a pending migration — don't use **Cancel Pending Migration** on them, or they won't be able to sign in.
 - Roles can be adjusted any time afterward from the user's detail page.
 
 #### Tenant migration

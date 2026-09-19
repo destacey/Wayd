@@ -314,22 +314,22 @@ The policy is enforced in `UserService.CreateOrUpdateFromPrincipalAsync`. Generi
 
 ### Admin-created (pre-provisioned) users
 
-Auto-registration is the *self*-service path. The other way an account comes into being is an admin creating it ahead of the user's first sign-in (**Settings → Users → Add user**). For an Entra user, a question that comes up here is: *which tenant do I assign them to?*
+Auto-registration is the *self*-service path. The other way an account comes into being is an admin creating it ahead of the user's first sign-in (**Settings → Users → Add user**).
 
-**You don't — and can't.** When creating an Entra user there is no tenant field. For a multi-tenant Entra provider (one whose `AllowedTenantIds` lists more than one tenant), the account is **tenant-agnostic until first login**: it will accept a sign-in from **any** allowlisted tenant, and the tenant it actually binds to is recorded from **whichever tenant the user first signs in from**. You pre-create the person; their `tid` is captured on first exchange, not at creation time.
+A pre-created Entra user has no `oid` until they sign in, so nothing in the `UserIdentity` table can match their first token. A sign-in is never linked to an existing account by email or display name alone: those are mutable directory attributes, and linking on them let anyone who could set a matching email in an allowlisted tenant take the account over. Creating the user is what authorizes the link instead.
 
-What links the first sign-in to the right pre-created account is **email/UPN**, not tenant. On first login, the exchange matches the token's UPN (or email) to the existing `ApplicationUser`, then writes the `UserIdentity` row with that token's `tid` and `oid`.
+**Creating an Entra user stages their first sign-in to one tenant.** `UserService.CreateAsync` sets `PendingMigrationTenantId` to that tenant and `PendingMigrationStagedAt` to now, and writes no `UserIdentity` row (local users *do* get theirs immediately, keyed by `ApplicationUser.Id`). The tenant is:
 
-:::caution Same UPN in two allowlisted tenants
-Because the match is by UPN/email, if the same person genuinely exists under the same UPN in **two** allowlisted tenants, the account binds to whichever they sign in from **first**. A later sign-in from the *other* tenant presents a different `(tid, oid)` and is treated as a separate identity. What happens to that second sign-in depends on the provider's [registration policy](#user-provisioning-auto-registration):
+- the provider's only allowed tenant, when `AllowedTenantIds` has one — the form asks nothing;
+- the tenant the admin picks in the form's **Sign-in Tenant** field, when it has several (the request's `TenantId`, validated against the allowlist).
 
-- **`AllowAutoRegistration = false`** (the secure default): the second-tenant sign-in resolves no identity and is **rejected with a 403** — no duplicate user is created.
-- **`AllowAutoRegistration = true`**: the second-tenant sign-in falls through to the create path and **provisions a second, separate `ApplicationUser`** (its own `UserId`, its own permissions/data), subject to `RequireEmployeeRecord` and `DefaultRoleId`. There is no "merge users" UI to undo this — recovery requires manual DB work.
+Creating an Entra user fails when no Entra provider is configured, since there is no tenant to stage and no way to sign in.
 
-To move a user from one tenant to another deliberately, use [Entra tenant migration](#entra-tenant-migration) rather than relying on first-login binding.
-:::
+The first sign-in completes the link through the same [pending-migration rebind](#entra-tenant-migration) a tenant move uses: it matches `PendingMigrationTenantId == token.tid` and the token's UPN (`upn`, else `preferred_username`, else `email`) against the user's `UserName` or `Email`, writes the `UserIdentity` row with that token's `tid` and `oid`, and clears the staged fields. Until then the user has **zero** identity rows — the "can have zero" case under [Identity model](#identity-model) — and shows a pending migration (in a multi-tenant provider's **Active Migrations** tab, with no source tenant). **Cancel Pending Migration** on such a user leaves them unable to sign in.
 
-**Code path.** `UserService.CreateAsync` creates the `ApplicationUser` (with `LoginProvider = MicrosoftEntraId`) but **deliberately does not insert a `UserIdentity` row** for non-Wayd providers — there's no `oid`/`tid` to record yet. (Wayd/local users *do* get their row immediately, keyed by the stable `ApplicationUser.Id`.) The Entra row is created later by `EnsureEntraIdentityRowAsync` during the first token exchange, which is where `tid` and `oid` are read from the validated token. This is why a pre-provisioned Entra user has **zero** active identity rows until they first sign in — the "can have zero" case noted under [Identity model](#identity-model).
+A sign-in from any other tenant, even with the same UPN, doesn't match the staged link. It reaches the create path, matches the existing account by UPN/email, and is **refused with a 403** ("An account already exists for this identity but is not linked…") whatever the registration policy; no duplicate user is created.
+
+**Users created before staging existed.** The `Stage-Entra-First-Sign-In-For-Unlinked-Users` migration stages every Entra user who has never had an identity row, when the provider allows a single tenant. Under a multi-tenant provider it can't choose the tenant; link such a user by converting them to a local account and staging a [cross-provider migration](#cross-provider-migration-oidcoidc-or-waydoidc) back to Microsoft Entra ID.
 
 ### Identity migration
 
@@ -349,7 +349,7 @@ During Entra token exchange, `UserService.ResolveUserByEntraIdentity` tries look
 2. Insert a new active row with `(MicrosoftEntraId, token.tid, token.sub)`.
 3. Clear `PendingMigrationTenantId` and `PendingMigrationStagedAt` (the two always move together).
 
-If staging is skipped and the user signs in from the new tenant first, the exchange creates a brand-new `ApplicationUser` with a separate `UserId` — there is no admin "merge users" UI to recover from this; it requires manual DB work.
+If staging is skipped and the user signs in from the new tenant first, the token matches their existing account only by UPN/email, which never links: the sign-in is refused with a 403 and the account is untouched, so staging the migration afterwards still works. (A new-tenant UPN that matches no existing account reaches the create path instead, and with auto-registration on becomes a separate `ApplicationUser` — there is no "merge users" UI to recover from that.)
 
 #### Cross-provider migration (OIDC→OIDC or Wayd→OIDC)
 

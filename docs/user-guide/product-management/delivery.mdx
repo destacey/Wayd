@@ -421,8 +421,9 @@ real timestamps and outcomes; see [Bulk Import](./bulk-import.mdx#deployments-im
 
 ### Recording an Outcome
 
-A deployment that has started is only ever completed. There is **no edit and no delete** — a
-deployment records something that happened, and no such endpoint exists.
+A deployment that has started is only ever completed. There is **no edit** — a deployment records
+something that happened. **Delete** (with `Permissions.Delivery.Delete`) is for one recorded by
+mistake; see [Can I delete any of this?](#can-i-delete-any-of-this).
 
 - **Record Success** and **Record Failure** are offered only while the deployment is still in flight.
   Once an outcome is recorded, neither is offered again.
@@ -614,12 +615,15 @@ Not in this chain. Nothing here has a version of its own, and the delivery model
 versions. Capabilities are a separate axis that spans artifacts — PPM is implemented by both the API
 and the client, so it cannot be a child of either. That axis is designed but not yet built.
 
-### Why can I not delete any of this?
+### Can I delete any of this?
 
-Nothing in delivery is deletable. A version, release or package is **withdrawn**, an environment is
-**retired**, and a deployment is never removed at all — it is a historical fact, and the measures read
-that history. Removing an environment would take the record of everything that ever reached it with
-it.
+Withdrawing and retiring are the everyday way out: a version, release or package is **withdrawn**, and
+an environment is **retired**, so the record and its history stay and the measures can still read them.
+
+A **deployment** can be deleted, with `Permissions.Delivery.Delete`, for one recorded by mistake or to
+purge a retired product's history. It takes its status history with it and the delivery measures stop
+counting it, so a deployment that really failed or was rolled back should be recorded as such rather
+than deleted.
 
 ## Permissions
 
@@ -633,15 +637,14 @@ drafting an announcement is not the person recording that the pipeline ran.
 
 | Record | Permission | Actions |
 | --- | --- | --- |
-| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update, [Import](./bulk-import.mdx#versions-import) |
+| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update, Delete, [Import](./bulk-import.mdx#versions-import) |
 | Releases | `Permissions.Releases.*` | View, Create, Update, [Import](./bulk-import.mdx#releases-import) |
 | Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update, [Import](./bulk-import.mdx#environments-import) |
 | Delivery metrics | `Permissions.DeliveryMetrics.*` | View |
 
-**No record in delivery carries a Delete permission**, because nothing here is deletable. A version,
-a release and a package are withdrawn, an environment is retired, and a deployment is a historical
-fact that is never removed at all — each keeps the record and its status history rather than erasing
-it. The terminal actions are all `Update`.
+**Delete is its own grant**, separate from `Update`, because it erases the record and its status
+history. The terminal actions — withdrawing, retiring, recording an outcome — are all `Update` and keep
+both. Today only a deployment can be deleted.
 
 Some actions **additionally require your account to be linked to an employee record**, because the
 change is attributed to the person who made it. The permission alone is not enough, and the refusal

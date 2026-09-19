@@ -280,12 +280,14 @@ const IdentityMappingsTab: FC<Props> = ({ connectionId }) => {
             defaultOpen
             style={{ width: '100%' }}
             allowClear
-            showSearch
+            showSearch={{
+              optionFilterProp: 'label',
+              filterOption: (input, option: BaseOptionType | undefined) =>
+                (option?.label?.toLowerCase() ?? '').includes(
+                  input.toLowerCase(),
+                ),
+            }}
             placeholder="Select an employee"
-            optionFilterProp="label"
-            filterOption={(input, option: BaseOptionType | undefined) =>
-              (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase())
-            }
             options={employeeOptions ?? []}
             value={m.employeeId ?? undefined}
             onBlur={() => setEditingId(null)}

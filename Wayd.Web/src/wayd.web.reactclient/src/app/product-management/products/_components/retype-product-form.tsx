@@ -111,8 +111,7 @@ const RetypeProductForm = ({
             options={options}
             loading={isLoading}
             placeholder="Select a type"
-            showSearch
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
           />
         </Item>
       </Form>

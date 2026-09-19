@@ -209,12 +209,12 @@ const ConfigureTeamSprintMappingsForm = ({
                   handleSprintChange(mapping.iterationId, value ?? null)
                 }
                 options={sprintOptions}
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.label ?? '')
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
+                showSearch={{
+                  filterOption: (input, option) =>
+                    (option?.label ?? '')
+                      .toLowerCase()
+                      .includes(input.toLowerCase()),
+                }}
               />
             </Flex>
           ))}

@@ -28,10 +28,11 @@ const EmployeeSelect: React.FC<EmployeeSelectProps> = ({
         mode={allowMultiple ? 'multiple' : undefined}
         allowClear
         placeholder={selectPlaceholder}
-        optionFilterProp="label"
-        filterOption={(input, option) =>
-          (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase())
-        }
+        showSearch={{
+          optionFilterProp: 'label',
+          filterOption: (input, option) =>
+            (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+        }}
         options={employees}
         value={value}
         onChange={onChange}

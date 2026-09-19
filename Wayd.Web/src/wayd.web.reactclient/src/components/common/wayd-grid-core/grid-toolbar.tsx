@@ -122,7 +122,7 @@ const GridToolbar = ({
             trigger="click"
             placement="bottomRight"
             getPopupContainer={() => document.body}
-            overlayStyle={{ maxWidth: 'calc(100vw - 24px)' }}
+            styles={{ root: { maxWidth: 'calc(100vw - 24px)' } }}
           >
             <WaydTooltip title="Grid Actions Help">
               <Button

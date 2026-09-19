@@ -134,8 +134,7 @@ const ContentsEditor = ({
           value={value.packageIds}
           loading={isLoading}
           disabled={disabled}
-          showSearch
-          optionFilterProp="label"
+          showSearch={{ optionFilterProp: 'label' }}
           style={{ width: '100%' }}
           onChange={(packageIds) => onChange({ ...value, packageIds })}
         />
@@ -153,8 +152,7 @@ const ContentsEditor = ({
           value={value.versionIds}
           loading={isLoading}
           disabled={disabled}
-          showSearch
-          optionFilterProp="label"
+          showSearch={{ optionFilterProp: 'label' }}
           style={{ width: '100%' }}
           onChange={(versionIds) => onChange({ ...value, versionIds })}
         />

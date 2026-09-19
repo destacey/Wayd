@@ -84,7 +84,7 @@ const ChangeRoadmapStateForm = ({
       keyboard={false}
       destroyOnHidden
     >
-      <Space direction="vertical">
+      <Space orientation="vertical">
         <div>
           {roadmap?.key} - {roadmap?.name}
         </div>

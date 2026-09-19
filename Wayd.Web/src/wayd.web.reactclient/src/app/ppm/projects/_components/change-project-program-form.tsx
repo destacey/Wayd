@@ -127,12 +127,13 @@ const ChangeProjectProgramForm = ({
               options={programData ?? []}
               placeholder="Select Program"
               loading={programOptionsIsLoading}
-              optionFilterProp="label"
-              filterOption={(input, option) =>
-                (option?.label?.toLowerCase() ?? '').includes(
-                  input.toLowerCase(),
-                )
-              }
+              showSearch={{
+                optionFilterProp: 'label',
+                filterOption: (input, option) =>
+                  (option?.label?.toLowerCase() ?? '').includes(
+                    input.toLowerCase(),
+                  ),
+              }}
             />
           </Item>
         </Form>

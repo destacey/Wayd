@@ -313,10 +313,11 @@ const CreateProjectForm = ({
             allowClear
             options={expenditureData ?? []}
             placeholder="Select Expenditure Category"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase())
-            }
+            showSearch={{
+              optionFilterProp: 'children',
+              filterOption: (input, option) =>
+                (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+            }}
           />
         </Item>
         <Item name="dateRange" label="Planned Date Range">
@@ -356,10 +357,11 @@ const CreateProjectForm = ({
             allowClear
             options={strategicThemeData ?? []}
             placeholder="Select Strategic Themes"
-            optionFilterProp="label"
-            filterOption={(input, option) =>
-              (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase())
-            }
+            showSearch={{
+              optionFilterProp: 'label',
+              filterOption: (input, option) =>
+                (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+            }}
           />
         </Item>
         <Item name="lifecycleId" label="Lifecycle">

@@ -109,17 +109,16 @@ const CreateRecurringJobForm = ({
         </Item>
         <Item name="jobTypeId" label="Job Type" rules={[{ required: true }]}>
           <Select
-            showSearch
+            showSearch={{
+              optionFilterProp: 'children',
+              filterOption: (input, option) =>
+                (option?.label.toLowerCase() ?? '').includes(input.toLowerCase()),
+              filterSort: (optionA, optionB) =>
+                (optionA?.label ?? '')
+                  .toLowerCase()
+                  .localeCompare((optionB?.label ?? '').toLowerCase()),
+            }}
             placeholder="Select a Job Type"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              (option?.label.toLowerCase() ?? '').includes(input.toLowerCase())
-            }
-            filterSort={(optionA, optionB) =>
-              (optionA?.label ?? '')
-                .toLowerCase()
-                .localeCompare((optionB?.label ?? '').toLowerCase())
-            }
             options={toSchedulableOptions(jobTypes)}
           />
         </Item>

@@ -241,6 +241,11 @@ Deletion is also refused outright once anything depends on the product, and each
 
 In practice that leaves deletion for a product created by mistake and never used. Anything that has shipped is retired, not deleted.
 
+To purge a retired product's history entirely, delete from the bottom up: any release that lists its
+versions or packages, then those packages, then its versions (each takes its deployments with it),
+then its dependencies, and finally the product. The activity history and audit trail are kept
+throughout. See [Can I delete any of this?](./delivery.mdx#can-i-delete-any-of-this).
+
 ### Permissions
 
 | Action | Permission |

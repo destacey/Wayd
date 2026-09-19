@@ -32,6 +32,7 @@ import { DeploymentsGrid } from '../../deployments/_components'
 import MarkReleasePackageReleasedForm from '../_components/mark-release-package-released-form'
 import { releasePackageActionAvailability } from '../_components/release-package-actions'
 import SetReleasePackageManifestForm from '../_components/set-release-package-manifest-form'
+import DeleteReleasePackageForm from '../_components/delete-release-package-form'
 import WithdrawReleasePackageForm from '../_components/withdraw-release-package-form'
 import ReleasePackageFacts from './_components/release-package-facts'
 import ReleasePackageManifest from './_components/release-package-manifest'
@@ -52,6 +53,7 @@ const ReleasePackageDetailsPage = (props: {
   const [isManifestOpen, setIsManifestOpen] = useState<boolean>(false)
   const [isReleaseOpen, setIsReleaseOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
 
   const router = useRouter()
 
@@ -64,6 +66,7 @@ const ReleasePackageDetailsPage = (props: {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdatePackage = hasPermissionClaim('Permissions.Delivery.Update')
+  const canDeletePackage = hasPermissionClaim('Permissions.Delivery.Delete')
   const canViewDeployments = hasPermissionClaim('Permissions.Delivery.View')
 
   const messageApi = useMessage()
@@ -180,6 +183,16 @@ const ReleasePackageDetailsPage = (props: {
     }
     if (lifecycle.length > 0) {
       groups.push(lifecycle)
+    }
+    if (canDeletePackage) {
+      groups.push([
+        {
+          key: 'delete',
+          label: 'Delete',
+          danger: true,
+          onClick: () => setIsDeleteOpen(true),
+        },
+      ])
     }
 
     return groups
@@ -299,6 +312,16 @@ const ReleasePackageDetailsPage = (props: {
             refetch()
           }}
           onFormCancel={() => setIsWithdrawOpen(false)}
+        />
+      )}
+      {isDeleteOpen && (
+        <DeleteReleasePackageForm
+          releasePackage={releasePackage}
+          onFormComplete={() => {
+            setIsDeleteOpen(false)
+            router.push('/product-management/release-packages')
+          }}
+          onFormCancel={() => setIsDeleteOpen(false)}
         />
       )}
     </>

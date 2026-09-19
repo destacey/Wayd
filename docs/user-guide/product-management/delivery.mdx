@@ -341,8 +341,10 @@ The manifest closes once the package is released or withdrawn, and the action st
 - **Withdraw** pulls the package, with an optional reason recorded on the status transition. As with
   versions, a released package can still be withdrawn, and a withdrawn one cannot be released.
 
-The package itself is never deleted. Deployments point at it, and erasing it would take the record of
-what reached an environment along with it.
+Withdrawing keeps the package. **Delete** (with `Permissions.Delivery.Delete`) removes it with its
+manifest, its status history and every deployment of it. It is refused while any release lists the
+package: remove it from the release's contents first, or — for a released or withdrawn release, whose
+contents are fixed — delete the release. The versions it names are kept. It is for a package assembled by mistake, or for purging history.
 
 Every status change is recorded, and the **Status History** section reads the same way as a
 [version's](#version-status-history).
@@ -374,11 +376,10 @@ editing and retiring are still gated on the environment permissions. They can al
 file — see [Bulk Import](./bulk-import.mdx#environments-import) — which is the quick way to define
 every environment a historical set of deployments ever reached.
 
-### Retiring an Environment
+### Retiring or Deleting an Environment
 
-Environments are **retired rather than deleted**, because historical deployments still point at them.
-There is no delete action, and deliberately so: removing an environment would take with it the record
-of everything that ever reached it.
+Retire an environment rather than delete it, because historical deployments still point at it.
+Deleting takes with it the record of everything that ever reached it.
 
 **Retire** takes an environment out of use. It is no longer offered as a deployment target, but the
 environment and every deployment recorded against it are kept, and those deployments keep counting
@@ -388,7 +389,13 @@ retire confirmation says how many, so the consequence is visible before the acti
 A retired environment can be **Reinstated** at any time, which puts it back in the picker.
 
 Editing and reclassifying are offered only on an active environment — the domain refuses both on a
-retired one — so a retired row offers Reinstate and nothing else.
+retired one — so a retired row offers only Reinstate, and Delete if you hold it.
+
+**Delete** (with `Permissions.DeploymentEnvironments.Delete`) removes the environment **and every
+deployment into it**, with their status history, and the delivery measures and rollout stop counting
+them. The confirmation says how many deployments will go. Where there are any, it also needs
+`Permissions.Delivery.Delete`, because it deletes deployments. It is for an environment defined by
+mistake, or for purging history outright.
 
 ## Deployments
 
@@ -421,8 +428,9 @@ real timestamps and outcomes; see [Bulk Import](./bulk-import.mdx#deployments-im
 
 ### Recording an Outcome
 
-A deployment that has started is only ever completed. There is **no edit and no delete** — a
-deployment records something that happened, and no such endpoint exists.
+A deployment that has started is only ever completed. There is **no edit** — a deployment records
+something that happened. **Delete** (with `Permissions.Delivery.Delete`) is for one recorded by
+mistake; see [Can I delete any of this?](#can-i-delete-any-of-this).
 
 - **Record Success** and **Record Failure** are offered only while the deployment is still in flight.
   Once an outcome is recorded, neither is offered again.
@@ -614,12 +622,32 @@ Not in this chain. Nothing here has a version of its own, and the delivery model
 versions. Capabilities are a separate axis that spans artifacts — PPM is implemented by both the API
 and the client, so it cannot be a child of either. That axis is designed but not yet built.
 
-### Why can I not delete any of this?
+### Can I delete any of this?
 
-Nothing in delivery is deletable. A version, release or package is **withdrawn**, an environment is
-**retired**, and a deployment is never removed at all — it is a historical fact, and the measures read
-that history. Removing an environment would take the record of everything that ever reached it with
-it.
+Withdrawing and retiring are the everyday way out: a version, release or package is **withdrawn**, and
+an environment is **retired**, so the record and its history stay and the measures can still read them.
+
+A **deployment** can be deleted, with `Permissions.Delivery.Delete`, for one recorded by mistake or to
+purge a retired product's history. It takes its status history with it and the delivery measures stop
+counting it, so a deployment that really failed or was rolled back should be recorded as such rather
+than deleted.
+
+A **version** can be deleted, with `Permissions.Delivery.Delete`, once no release lists it and no
+package manifest names it, and takes every deployment of it with it.
+
+A **package** can be deleted, with `Permissions.Delivery.Delete`, once no release lists it, and takes
+every deployment of it with it.
+
+A **release** can be deleted, with `Permissions.Releases.Delete`, in any state. Its list of contents and
+its status history go with it; the versions and packages it listed are kept. Deleting an announced
+release is also how a package it lists becomes deletable, since an announced release's contents are
+fixed.
+
+An **environment** can be deleted, with `Permissions.DeploymentEnvironments.Delete` (and
+`Permissions.Delivery.Delete` if any deployment went into it), and takes every deployment into it with it — see [Retiring or Deleting an Environment](#retiring-or-deleting-an-environment).
+
+The activity history and audit trail are kept when a record is deleted, including the entry recording
+the delete.
 
 ## Permissions
 
@@ -633,15 +661,14 @@ drafting an announcement is not the person recording that the pipeline ran.
 
 | Record | Permission | Actions |
 | --- | --- | --- |
-| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update, [Import](./bulk-import.mdx#versions-import) |
-| Releases | `Permissions.Releases.*` | View, Create, Update, [Import](./bulk-import.mdx#releases-import) |
-| Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update, [Import](./bulk-import.mdx#environments-import) |
+| Versions, release packages, deployments | `Permissions.Delivery.*` | View, Create, Update, Delete, [Import](./bulk-import.mdx#versions-import) |
+| Releases | `Permissions.Releases.*` | View, Create, Update, Delete, [Import](./bulk-import.mdx#releases-import) |
+| Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update, Delete, [Import](./bulk-import.mdx#environments-import) |
 | Delivery metrics | `Permissions.DeliveryMetrics.*` | View |
 
-**No record in delivery carries a Delete permission**, because nothing here is deletable. A version,
-a release and a package are withdrawn, an environment is retired, and a deployment is a historical
-fact that is never removed at all — each keeps the record and its status history rather than erasing
-it. The terminal actions are all `Update`.
+**Delete is its own grant**, separate from `Update`, because it erases the record and its status
+history. The terminal actions — withdrawing, retiring, recording an outcome — are all `Update` and keep
+both. Every delivery record can be deleted.
 
 Some actions **additionally require your account to be linked to an employee record**, because the
 change is attributed to the person who made it. The permission alone is not enough, and the refusal

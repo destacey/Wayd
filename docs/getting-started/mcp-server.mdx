@@ -312,10 +312,11 @@ The catalog is one typed tree of what your organization owns — products, platf
 | `ProductTagCategories_Reorder` | Reorder the axes — the list must name every one exactly once |
 | `ProductTagCategories_AddTag` / `ProductTagCategories_RenameTag` | Manage the tags on an axis |
 | `ProductTagCategories_SetTagActive` | Take a single tag out of use, or put it back |
+| `ProductTagCategories_DeleteTag` | Permanently delete a tag no product carries |
 
 Dependencies are **rolled up**: a product line's list includes its services' links to anything outside it. Strength has no default — hard if the product stops working without the other, soft if it only degrades — and a dependency that stopped should be **ended, not removed**, so the record of when it held survives.
 
-Three behaviours worth knowing. Tagging an axis that only allows one value **silently replaces** the existing tag rather than refusing. Deleting a product is a **hard delete**, unlike delivery, where records are withdrawn and kept. And seeded system types and axes **cannot be edited or deleted, but can be deactivated** — so an organization can hide a type it doesn't use. Individual tags inside a seeded axis are the exception: they can't be deactivated either, so retire the whole axis instead.
+Three behaviours worth knowing. Tagging an axis that only allows one value **silently replaces** the existing tag rather than refusing. Deleting a product is a **hard delete**, refused while anything depends on it. And seeded system types and axes **cannot be edited or deleted, but can be deactivated** — so an organization can hide a type it doesn't use. Individual tags inside a seeded axis are the exception: they can't be deactivated either, so retire the whole axis instead.
 
 ### Product Delivery
 
@@ -330,6 +331,7 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `Releases_SetContents` | Set what the release announces — its versions and packages together |
 | `Releases_MarkReleased` | Announce a release |
 | `Releases_Withdraw` / `Releases_Revert` | Withdraw a release, or revert it to an earlier state |
+| `Releases_Delete` | Permanently delete a release; the versions and packages it listed are kept |
 | `Releases_CorrectDates` / `Releases_MoveTargetDate` | Correct recorded dates, or move the target |
 | `Versions_GetVersions` / `Versions_GetVersion` | List versions, or get one |
 | `Versions_GetStatusHistory` | A version's status change history |
@@ -338,6 +340,7 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `Versions_Cut` | Cut the version — the artifact now exists |
 | `Versions_MarkReleased` | Mark a version released |
 | `Versions_Withdraw` / `Versions_Revert` | Withdraw a version, or revert it |
+| `Versions_Delete` | Permanently delete a version and every deployment of it |
 | `Versions_CorrectDates` / `Versions_MoveTargetDate` | Correct recorded dates, or move the target |
 | `ReleasePackages_GetReleasePackages` / `ReleasePackages_GetReleasePackage` | List packages, or get one |
 | `ReleasePackages_GetStatusHistory` | A package's status change history |
@@ -345,14 +348,17 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `ReleasePackages_Assemble` | Assemble a package |
 | `ReleasePackages_SetManifest` | Replace what the package contains |
 | `ReleasePackages_MarkReleased` / `ReleasePackages_Withdraw` | Mark a package released, or withdraw it |
+| `ReleasePackages_Delete` | Permanently delete a package, its manifest and every deployment of it |
 | `Deployments_GetDeployments` / `Deployments_GetDeployment` | List deployments, or get one |
 | `Deployments_GetStatusHistory` | A deployment's status change history |
 | `Deployments_GetActivities` | When a deployment started and how it ended |
 | `Deployments_Start` | Record a deployment starting — of a version or a package, never both |
 | `Deployments_Succeed` / `Deployments_Fail` / `Deployments_RollBack` | Record how a deployment ended |
+| `Deployments_Delete` | Permanently delete a deployment and its status history |
 | `DeploymentEnvironments_GetDeploymentEnvironments` | List environments, by active state or category |
 | `DeploymentEnvironments_Create` / `DeploymentEnvironments_Update` | Define or edit an environment |
 | `DeploymentEnvironments_SetActive` | Retire an environment, or reinstate it |
+| `DeploymentEnvironments_Delete` | Permanently delete an environment and every deployment into it |
 | `DeploymentEnvironments_GetRollout` | What is running in each environment now, in rollout order |
 | `DeliveryMetrics_GetDeliveryMetrics` | Deployment frequency and change failure rate over a window |
 | `DeliveryOverview_GetDeliveryOverview` | Version activity over a window — release frequency and cut-to-released time, for a product and everything beneath it |
@@ -360,7 +366,7 @@ Where the catalog records what exists, delivery records what shipped. The word "
 
 **Contents and manifests replace as a set.** `Releases_SetContents` and `ReleasePackages_SetManifest` overwrite what was there, so send the full list including anything that should stay.
 
-Environments are **retired, never deleted**, because historical deployments still point at them. Every production-scoped measure counts on an environment's **category**, not its name — pipeline names vary too much (`prod`, `prd`, `live`) to reason about. Reclassifying an environment changes where future deployments count and leaves past ones alone.
+Environments are **retired rather than deleted**, because historical deployments still point at them — deleting one takes every deployment into it along. Every production-scoped measure counts on an environment's **category**, not its name — pipeline names vary too much (`prod`, `prd`, `live`) to reason about. Reclassifying an environment changes where future deployments count and leaves past ones alone.
 
 `DeliveryMetrics_GetDeliveryMetrics` returns an `unavailable` list naming what it couldn't compute and why; read it rather than treating a missing measure as zero. Change failure rate is a **proxy** — a pipeline run that failed before production is a failure that was *prevented*, while a real change failure succeeded and then broke something, which the pipeline can't know.
 

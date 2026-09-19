@@ -316,6 +316,20 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpDelete("{id}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Releases)]
+    [OpenApiOperation("Delete a release.", "Permanent: also deletes its contents list and status history. The versions and packages it listed are kept.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteReleaseCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPost("{id}/withdraw")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(

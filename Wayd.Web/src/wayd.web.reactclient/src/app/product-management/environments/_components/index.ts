@@ -1,3 +1,5 @@
+export { default as DeleteEnvironmentForm } from './delete-environment-form'
+export type { DeleteEnvironmentFormProps } from './delete-environment-form'
 export { default as DeploymentEnvironmentForm } from './deployment-environment-form'
 export type { DeploymentEnvironmentFormProps } from './deployment-environment-form'
 export { default as SetEnvironmentActiveForm } from './set-environment-active-form'

@@ -4834,6 +4834,48 @@
             "ApiKey": []
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Delete a deployment environment.",
+        "description": "Permanent: also deletes every deployment into it and their status history, and the delivery measures stop counting them. Retiring keeps them.",
+        "operationId": "DeploymentEnvironments_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
       }
     },
     "/api/product-management/deployment-environments/{id}/active": {
@@ -5407,6 +5449,50 @@
           "required": true,
           "x-position": 2
         },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}": {
+      "delete": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Delete a deployment.",
+        "description": "Permanent: removes the deployment and its status history, and the delivery measures stop counting it.",
+        "operationId": "Deployments_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
         "responses": {
           "204": {
             "description": ""
@@ -7438,6 +7524,60 @@
             "ApiKey": []
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Delete an unused tag.",
+        "description": "A tag products carry must be deactivated instead.",
+        "operationId": "ProductTagCategories_DeleteTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
       }
     },
     "/api/product-management/product-tag-categories/{id}/tags/{tagId}/active": {
@@ -8320,6 +8460,50 @@
         ]
       }
     },
+    "/api/product-management/release-packages/{id}": {
+      "delete": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Delete a release package.",
+        "description": "Permanent: also deletes its manifest, status history and every deployment of it. Refused while any release lists it. The versions it names are kept.",
+        "operationId": "ReleasePackages_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/{id}/withdraw": {
       "post": {
         "tags": [
@@ -8851,6 +9035,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Delete a release.",
+        "description": "Permanent: also deletes its contents list and status history. The versions and packages it listed are kept.",
+        "operationId": "Releases_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -9662,6 +9888,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Delete a version.",
+        "description": "Permanent: also deletes its status history and every deployment of it. Refused while a release lists it or a package manifest names it.",
+        "operationId": "Versions_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }

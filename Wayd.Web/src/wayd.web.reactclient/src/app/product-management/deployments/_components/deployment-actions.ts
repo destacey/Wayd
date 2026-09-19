@@ -3,9 +3,9 @@ import { DeploymentDto, ProductStatusAlias } from '@/src/services/wayd-api'
 /**
  * Which moves a deployment will accept.
  *
- * A deployment is never edited and never deleted: it records something that happened, and the only
- * thing left to record is how it ended. There is deliberately no `canEdit` here — no such endpoint
- * exists.
+ * A deployment is never edited: it records something that happened, and the only thing left to record
+ * is how it ended. There is deliberately no `canEdit` here — no such endpoint exists. Delete depends
+ * only on the permission, so it is not here either.
  *
  * Rolling back needs a success to revert. A failed deployment never reached its environment, so there
  * is nothing to take back.

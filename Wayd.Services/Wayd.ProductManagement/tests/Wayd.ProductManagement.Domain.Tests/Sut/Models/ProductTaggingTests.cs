@@ -209,6 +209,54 @@ public sealed class ProductTaggingTests
     }
 
     [Fact]
+    public void RemoveTag_ShouldRemoveItFromTheAxis()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        var tag = category.AddTag("ios").Value;
+        category.AddTag("android");
+
+        // Act
+        var result = category.RemoveTag(tag.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        category.Tags.Should().ContainSingle().Which.Name.Should().Be("android");
+    }
+
+    [Fact]
+    public void RemoveTag_ShouldFail_OnASystemAxis()
+    {
+        // Arrange
+        var seeded = ProductTagCategory.CreateSystem("Platform", null, true, 1);
+        var tag = seeded.AddSystemTag("ios");
+
+        // Act
+        var result = seeded.RemoveTag(tag.Id);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("System tag categories cannot be modified.");
+        seeded.Tags.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void RemoveTag_ShouldFail_ForATagOnAnotherAxis()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        category.AddTag("ios");
+
+        // Act
+        var result = category.RemoveTag(Guid.CreateVersion7());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("That tag does not belong to this axis.");
+        category.Tags.Should().ContainSingle();
+    }
+
+    [Fact]
     public void AddTag_ShouldFail_OnADuplicateName()
     {
         // Arrange

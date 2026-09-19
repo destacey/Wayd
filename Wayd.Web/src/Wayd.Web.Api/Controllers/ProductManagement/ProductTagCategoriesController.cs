@@ -168,4 +168,18 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpDelete("{id}/tags/{tagId}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTagCategories)]
+    [OpenApiOperation("Delete an unused tag.", "A tag products carry must be deactivated instead.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> DeleteTag(Guid id, Guid tagId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteProductTagCommand(id, tagId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
 }

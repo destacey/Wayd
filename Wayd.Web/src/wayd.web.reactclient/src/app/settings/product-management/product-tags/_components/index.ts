@@ -3,6 +3,7 @@ export { default as ChangeProductTagActiveForm } from './change-product-tag-acti
 export { default as ChangeProductTagCategoryActiveForm } from './change-product-tag-category-active-form'
 export { default as CreateProductTagCategoryForm } from './create-product-tag-category-form'
 export { default as DeleteProductTagCategoryForm } from './delete-product-tag-category-form'
+export { default as DeleteProductTagForm } from './delete-product-tag-form'
 export { default as EditProductTagCategoryForm } from './edit-product-tag-category-form'
 export { default as EditProductTagForm } from './edit-product-tag-form'
 export { default as ProductTagsList } from './product-tags-list'

@@ -161,4 +161,18 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpDelete("{id}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.DeploymentEnvironments)]
+    [OpenApiOperation("Delete a deployment environment.", "Permanent: also deletes every deployment into it and their status history, and the delivery measures stop counting them. Retiring keeps them.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteDeploymentEnvironmentCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
 }

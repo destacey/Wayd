@@ -34,6 +34,7 @@ import MoveReleaseTargetDateForm from '../_components/move-release-target-date-f
 import { releaseActionAvailability } from '../_components/release-actions'
 import RevertReleaseForm from '../_components/revert-release-form'
 import SetReleaseContentsForm from '../_components/set-release-contents-form'
+import DeleteReleaseForm from '../_components/delete-release-form'
 import WithdrawReleaseForm from '../_components/withdraw-release-form'
 import ReleaseContents from './_components/release-contents'
 import ReleaseFacts from './_components/release-facts'
@@ -55,6 +56,7 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isCorrectDatesOpen, setIsCorrectDatesOpen] = useState<boolean>(false)
   const [isMarkReleasedOpen, setIsMarkReleasedOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
   const [isRevertOpen, setIsRevertOpen] = useState<boolean>(false)
   const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] =
     useState<boolean>(false)
@@ -69,6 +71,7 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateRelease = hasPermissionClaim('Permissions.Releases.Update')
+  const canDeleteRelease = hasPermissionClaim('Permissions.Releases.Delete')
 
   const messageApi = useMessage()
 
@@ -200,6 +203,16 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
     if (lifecycle.length > 0) {
       groups.push(lifecycle)
+    }
+    if (canDeleteRelease) {
+      groups.push([
+        {
+          key: 'delete',
+          label: 'Delete',
+          danger: true,
+          onClick: () => setIsDeleteOpen(true),
+        },
+      ])
     }
 
     return groups
@@ -335,6 +348,16 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsWithdrawOpen(false)}
+        />
+      )}
+      {isDeleteOpen && (
+        <DeleteReleaseForm
+          release={release}
+          onFormComplete={() => {
+            setIsDeleteOpen(false)
+            router.push('/product-management/releases')
+          }}
+          onFormCancel={() => setIsDeleteOpen(false)}
         />
       )}
       {isRevertOpen && (

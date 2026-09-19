@@ -120,7 +120,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['ReleasePackages_Withdraw', {
     name: 'ReleasePackages_Withdraw',
-    description: `Pull a package. Terminal, and it closes the manifest. A released package can still be withdrawn; a withdrawn one cannot be released. **The package itself is never deleted** — deployments point at it, and erasing it would take the record of what reached an environment with it.`,
+    description: `Pull a package. Terminal, and it closes the manifest. A released package can still be withdrawn; a withdrawn one cannot be released. Withdrawing keeps the package and every deployment of it — prefer it to \`ReleasePackages_Delete\`.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"reason":{"type":"string","description":"Why it was pulled. Optional — recorded on the status transition where given."}},"required":[]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/release-packages/{id}/withdraw',
@@ -128,6 +128,18 @@ export const definitions: [string, McpToolDefinition][] = [
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
     annotations: { title: 'Withdraw a package', ...requiresConfirmation },
+  }],
+
+  ['ReleasePackages_Delete', {
+    name: 'ReleasePackages_Delete',
+    description: `Permanently delete a package with its manifest, its status history and **every deployment of it**. **Refused while any release lists it** — remove it with \`Releases_SetContents\` first; a released or withdrawn release's contents cannot change, so that release has to be deleted instead with \`Releases_Delete\`. The versions it names are separate records and are kept. The delivery measures and rollout stop counting those deployments. For a package assembled by mistake or when the user asks to purge history; otherwise withdraw it. Needs the delivery Delete permission.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY}},"required":["id"]},
+    method: 'delete',
+    pathTemplate: '/api/product-management/release-packages/{id}',
+    executionParameters: [{"name":"id","in":"path"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Delete a package', ...requiresConfirmation },
   }],
 
 ];

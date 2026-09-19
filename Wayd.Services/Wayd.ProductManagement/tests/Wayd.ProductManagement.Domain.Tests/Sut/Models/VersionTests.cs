@@ -689,4 +689,26 @@ public sealed class VersionTests
     }
 
     #endregion UpdateDetails
+
+    #region Delete
+
+    [Fact]
+    public void Delete_ShouldRaiseVersionDeletedEvent()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var deleted = sut.DomainEvents.OfType<VersionDeletedEvent>().Should().ContainSingle().Subject;
+        deleted.Id.Should().Be(sut.Id);
+        deleted.Key.Should().Be(sut.Key);
+        deleted.ProductId.Should().Be(sut.ProductId);
+        deleted.Number.Should().Be(sut.Number);
+    }
+
+    #endregion Delete
 }

@@ -157,6 +157,26 @@ export const deploymentsApi = apiSlice.injectEndpoints({
         deploymentTags(arg.id, arg.cacheKey),
     }),
 
+    // Only lists: invalidating the deleted record's own tags refetches its page, still mounted until
+    // the redirect lands, and every one of those queries 404s.
+    deleteDeployment: builder.mutation<void, string>(
+      {
+        queryFn: async (id) => {
+          try {
+            const data = await getDeploymentsClient().delete(id)
+            return { data }
+          } catch (error) {
+            console.error('API Error:', error)
+            return { error }
+          }
+        },
+        invalidatesTags: () => [
+          { type: QueryTags.Deployment, id: 'LIST' },
+          { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+        ],
+      },
+    ),
+
     getDeploymentActivities: builder.query<
       PagedResponseOfActivityLogDto,
       { idOrKey: string | number; page?: number; pageSize?: number }
@@ -189,6 +209,7 @@ export const {
   useSucceedDeploymentMutation,
   useFailDeploymentMutation,
   useRollBackDeploymentMutation,
+  useDeleteDeploymentMutation,
   useGetDeploymentActivitiesQuery,
   useLazyGetDeploymentActivitiesQuery,
 } = deploymentsApi

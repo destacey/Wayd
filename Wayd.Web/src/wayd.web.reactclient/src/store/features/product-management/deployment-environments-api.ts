@@ -105,10 +105,8 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
       ],
     }),
     /**
-     * Retires or reinstates an environment.
-     *
-     * The only destructive action there is: historical deployments still point here, so an
-     * environment is never deleted.
+     * Retires or reinstates an environment. Retiring keeps the deployments that point here, which is
+     * why it is the everyday way out rather than deleting.
      */
     setDeploymentEnvironmentActive: builder.mutation<
       void,
@@ -130,6 +128,26 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
         { type: QueryTags.DeploymentEnvironment, id: 'LIST' },
       ],
     }),
+    /**
+     * Deletes an environment and every deployment into it, so the deployment lists and the delivery
+     * measures are invalidated with it.
+     */
+    deleteDeploymentEnvironment: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getDeploymentEnvironmentsClient().delete(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [
+        { type: QueryTags.DeploymentEnvironment, id: 'LIST' },
+        { type: QueryTags.Deployment, id: 'LIST' },
+        { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+      ],
+    }),
   }),
 })
 
@@ -138,5 +156,6 @@ export const {
   useGetEnvironmentRolloutQuery,
   useCreateDeploymentEnvironmentMutation,
   useUpdateDeploymentEnvironmentMutation,
+  useDeleteDeploymentEnvironmentMutation,
   useSetDeploymentEnvironmentActiveMutation,
 } = deploymentEnvironmentsApi

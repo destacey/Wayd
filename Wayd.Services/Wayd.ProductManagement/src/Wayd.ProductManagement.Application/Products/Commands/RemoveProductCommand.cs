@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProductManagement.Application.Products.Commands;
+﻿using Wayd.ProductManagement.Domain;
+
+namespace Wayd.ProductManagement.Application.Products.Commands;
 
 public sealed record RemoveProductCommand(Guid Id) : ICommand;
 
@@ -13,6 +15,7 @@ public sealed class RemoveProductCommandValidator : AbstractValidator<RemoveProd
 
 public sealed class RemoveProductCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext,
     ICurrentUser currentUser,
     ILogger<RemoveProductCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
@@ -21,6 +24,7 @@ public sealed class RemoveProductCommandHandler(
     private const string AppRequestName = nameof(RemoveProductCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<RemoveProductCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -77,6 +81,12 @@ public sealed class RemoveProductCommandHandler(
                 _logger.LogInformation("Unable to remove Product {ProductId}. Error message: {Error}", request.Id, removeResult.Error);
                 return Result.Failure(removeResult.Error);
             }
+
+            await StatusHistoryRemoval.Stage(
+                _statusWorkflowDbContext,
+                ProductWorkflowOwners.Product.Key,
+                [product.Id],
+                cancellationToken);
 
             _productManagementDbContext.Products.Remove(product);
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);

@@ -202,12 +202,12 @@ Records that raise domain events expose an **activity history** — every record
 | --- | --- |
 | **Products** | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options, get dependencies (rolled up, both directions). Create, update, retype, reparent, change status, link externally, tag, untag, delete. Dependencies: add, reword, change strength, end, remove |
 | **Product Types** | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it |
-| **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate the tags themselves |
-| **Deployment Environments** | List (by active state or category), get what is running in each (rollout), create, update, retire or reinstate |
+| **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate, delete the tags themselves |
+| **Deployment Environments** | List (by active state or category), get what is running in each (rollout), create, update, retire or reinstate, delete |
 | **Delivery Metrics** | Get the deployment measures over a window |
 | **Delivery Overview** | Get version activity over a window (release frequency, cut-to-released), get recent version and package events |
 
-The catalog is one typed tree, and a product's type carries the flag that decides whether versions can be cut against it. Type, parent and status each have their own tool rather than being fields on the update, because each carries a rule the domain enforces. Two behaviours the `wayd-products` skill covers: tagging a single-value axis **silently replaces** the existing tag rather than refusing, and deleting a product is a **hard delete**, unlike delivery where records are withdrawn and kept.
+The catalog is one typed tree, and a product's type carries the flag that decides whether versions can be cut against it. Type, parent and status each have their own tool rather than being fields on the update, because each carries a rule the domain enforces. Two behaviours the `wayd-products` skill covers: tagging a single-value axis **silently replaces** the existing tag rather than refusing, and deleting a product is a **hard delete**, refused while anything depends on it.
 
 Types and tag categories are administrator-managed configuration, and two rules run through all of it. **Seeded system records cannot be modified or deleted** — but they *can* be deactivated, so an organization can hide a type it does not use without the seeder recreating it. And **nothing in use can be deleted**; deactivation is the answer there too, stopping new use while leaving existing records resolvable. Two sharp edges: a category's `allowsMany` is **fixed at creation**, and `ProductTypes_Update` **requires `isReleasable`**, so a rename that resends the wrong value silently changes whether versions can be cut against every product of that type.
 
@@ -217,10 +217,10 @@ Four records that are deliberately kept apart: a **release** is what was announc
 
 | Category | Operations |
 | --- | --- |
-| **Releases** | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert |
-| **Versions** | List (by product or status category), get details, get activity history, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert |
-| **Release Packages** | List (by status category, containing product, or containing version), get details, get activity history, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw |
-| **Deployments** | List (by version, package, environment, environment category, or start date), get details, get activity history, get status history. Start. Outcome: succeed, fail, roll back |
+| **Releases** | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert. Delete |
+| **Versions** | List (by product or status category), get details, get activity history, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert. Delete |
+| **Release Packages** | List (by status category, containing product, or containing version), get details, get activity history, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw. Delete |
+| **Deployments** | List (by version, package, environment, environment category, or start date), get details, get activity history, get status history. Start. Outcome: succeed, fail, roll back. Delete |
 
 Two rules the tools enforce and the `wayd-delivery` skill explains: a version shipping inside one of a release's packages cannot also be carried directly on that release, and a release cannot be announced while anything it carries has not shipped. `Releases_SetContents` and `ReleasePackages_SetManifest` are **whole-set replacements** — read the record first and send back everything it should end up with.
 

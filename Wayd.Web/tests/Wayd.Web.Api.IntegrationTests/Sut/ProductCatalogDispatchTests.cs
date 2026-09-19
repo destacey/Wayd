@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Persistence;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -94,6 +95,40 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
 
         Assert.False(
             await dbContext.ProductTypes.AnyAsync(t => t.Id == created.Value.Id, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Dispatch_RemoveProductCommand_RemovesItsStatusHistory()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+        var statusWorkflows = scope.ServiceProvider.GetRequiredService<IStatusWorkflowDbContext>();
+
+        var productTypeId = await dbContext.ProductTypes
+            .Where(t => t.IsActive)
+            .Select(t => t.Id)
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        var product = await dispatcher.Send(
+            new CreateProductCommand(Unique("Node"), null, productTypeId, null, null),
+            TestContext.Current.CancellationToken);
+        Assert.True(product.IsSuccess, product.IsFailure ? product.Error : null);
+        Assert.True(await statusWorkflows.StatusTransitions
+            .AnyAsync(t => t.RecordId == product.Value.Id, TestContext.Current.CancellationToken));
+
+        // Act
+        var result = await dispatcher.Send(
+            new RemoveProductCommand(product.Value.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The history table has no foreign key to the product, so only the handler removes it.
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(await dbContext.Products
+            .AnyAsync(p => p.Id == product.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await statusWorkflows.StatusTransitions
+            .AnyAsync(t => t.RecordId == product.Value.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -228,6 +263,43 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         // message — which only holds if the handler loaded the existing tags.
         Assert.True(duplicate.IsFailure);
         Assert.Contains("already exists", duplicate.Error);
+
+        // Cleanup
+        await dispatcher.Send(
+            new DeleteProductTagCategoryCommand(category.Value.Id), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Dispatch_DeleteProductTagCommand_DeletesTheTagRow()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+
+        var category = await dispatcher.Send(
+            new CreateProductTagCategoryCommand(Unique("Axis"), null, true),
+            TestContext.Current.CancellationToken);
+        Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
+
+        var doomed = await dispatcher.Send(
+            new AddProductTagCommand(category.Value.Id, "alpha", null), TestContext.Current.CancellationToken);
+        Assert.True(doomed.IsSuccess, doomed.IsFailure ? doomed.Error : null);
+        var kept = await dispatcher.Send(
+            new AddProductTagCommand(category.Value.Id, "beta", null), TestContext.Current.CancellationToken);
+        Assert.True(kept.IsSuccess, kept.IsFailure ? kept.Error : null);
+
+        // Act
+        var result = await dispatcher.Send(
+            new DeleteProductTagCommand(category.Value.Id, doomed.Value), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The aggregate only drops the tag from its collection; the row goes because the relationship
+        // is required and EF deletes the orphan. The fakes model neither.
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var categories = await dispatcher.Send(
+            new GetProductTagCategoriesQuery(), TestContext.Current.CancellationToken);
+        var projected = Assert.Single(categories, c => c.Id == category.Value.Id);
+        Assert.Equal(kept.Value, Assert.Single(projected.Tags).Id);
 
         // Cleanup
         await dispatcher.Send(

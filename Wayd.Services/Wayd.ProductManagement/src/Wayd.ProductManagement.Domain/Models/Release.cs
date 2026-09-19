@@ -436,6 +436,17 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Records that the release is being deleted. Removing it and its status history is the caller's;
+    /// its contents list goes with it, and the versions and packages it named stay.
+    /// </summary>
+    /// <remarks>
+    /// Allowed in any state, released included. Withdrawing remains the everyday way out, because it keeps
+    /// the record of what was announced.
+    /// </remarks>
+    public void Delete(EventActor actor, Instant timestamp) =>
+        AddDomainEvent(new ReleaseDeletedEvent(Id, Key, ProductId, Version, actor, timestamp));
+
+    /// <summary>
     /// Retracts the release after it was announced.
     /// </summary>
     /// <param name="withdrawnStatus">

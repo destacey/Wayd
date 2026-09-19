@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import {
   ProductTagCategoryDto,
   ProductTagOptionDto,
@@ -77,5 +77,40 @@ describe('ProductTagsList', () => {
     expect(
       screen.queryByRole('button', { name: 'Tag actions' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('offers Delete on a tag no product carries', async () => {
+    // Arrange
+    render(
+      <ProductTagsList
+        category={category([tag('ios')])}
+        canManageTags
+        canDeleteTags
+      />,
+    )
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Tag actions' }))
+
+    // Assert
+    expect(await screen.findByText('Delete')).toBeInTheDocument()
+  })
+
+  it('does not offer Delete on a tag products carry', async () => {
+    // Arrange — the API refuses it; the row already knows the count.
+    render(
+      <ProductTagsList
+        category={category([tag('ios', { productCount: 3 })])}
+        canManageTags
+        canDeleteTags
+      />,
+    )
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Tag actions' }))
+
+    // Assert
+    expect(await screen.findByText('Deactivate')).toBeInTheDocument()
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument()
   })
 })

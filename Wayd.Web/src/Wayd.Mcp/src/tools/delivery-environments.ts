@@ -72,7 +72,7 @@ Changing the category is not an ordinary edit: each deployment **froze** the cat
 
   ['DeploymentEnvironments_SetActive', {
     name: 'DeploymentEnvironments_SetActive',
-    description: `Retire an environment or reinstate one. **Environments are retired rather than deleted** — there is no delete, deliberately: historical deployments still point at them, and removing one would take the record of everything that ever reached it.
+    description: `Retire an environment or reinstate one. **Retire rather than delete** unless the user explicitly wants the history gone: deleting an environment takes every deployment into it with it, while retiring keeps them.
 
 A retired environment is no longer offered as a deployment target, but it and every deployment recorded against it are kept, and those deployments keep counting toward the measures they already count toward. Editing and reclassifying are refused on a retired environment, so reinstate it first if you need to change it.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"Environment ID. This endpoint takes a UUID only."},"requestBody":{"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"Must match the id in the path."},"isActive":{"type":"boolean","description":"false retires the environment; true reinstates it."}},"required":["id","isActive"]}},"required":["id","requestBody"]},
@@ -82,6 +82,18 @@ A retired environment is no longer offered as a deployment target, but it and ev
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
     annotations: { title: 'Retire or reinstate an environment', ...requiresConfirmation },
+  }],
+
+  ['DeploymentEnvironments_Delete', {
+    name: 'DeploymentEnvironments_Delete',
+    description: `Permanently delete an environment **and every deployment into it**, with their status history. The delivery measures and rollout stop counting those deployments. For an environment defined by mistake, or when the user asks to purge history — otherwise retire it with \`DeploymentEnvironments_SetActive\`, which keeps them. The \`deploymentCount\` from \`DeploymentEnvironments_GetDeploymentEnvironments\` says how many would go; state it before confirming. Needs the environment Delete permission, and — when the environment has any deployments — the delivery Delete permission as well.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"Environment ID. This endpoint takes a UUID only."}},"required":["id"]},
+    method: 'delete',
+    pathTemplate: '/api/product-management/deployment-environments/{id}',
+    executionParameters: [{"name":"id","in":"path"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Delete a deployment environment', ...requiresConfirmation },
   }],
 
   ['DeploymentEnvironments_GetRollout', {

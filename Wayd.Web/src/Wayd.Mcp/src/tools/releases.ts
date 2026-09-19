@@ -137,6 +137,18 @@ An empty release is legitimate rather than a draft: a repackaging or a pricing c
     annotations: { title: 'Withdraw a release', ...requiresConfirmation },
   }],
 
+  ['Releases_Delete', {
+    name: 'Releases_Delete',
+    description: `Permanently delete a release in any state, with its list of contents and its status history. **The versions and packages it listed are kept** — only the release and its links to them go. For a release created by mistake, or when the user asks to purge history; a real announcement that was retracted is \`Releases_Withdraw\`. Deleting an announced release is also how a package it lists becomes deletable, since its contents cannot otherwise change. Needs the release Delete permission.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY}},"required":["id"]},
+    method: 'delete',
+    pathTemplate: '/api/product-management/releases/{id}',
+    executionParameters: [{"name":"id","in":"path"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Delete a release', ...requiresConfirmation },
+  }],
+
   ['Releases_Revert', {
     name: 'Releases_Revert',
     description: `Record that a release marked as announced was **not in fact announced** — the wrong record was updated, and it never went out. Returns the release to a live status and clears its announced date. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts, so the record has to say why. Do not use this for a release that really was announced and then retracted — that is Releases_Withdraw.`,

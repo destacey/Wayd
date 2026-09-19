@@ -250,6 +250,18 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Records that the deployment is being deleted. The delete itself, and its status history, are the
+    /// caller's to remove.
+    /// </summary>
+    /// <remarks>
+    /// Allowed in any state. Deleting is for a deployment recorded by mistake, or for purging a retired
+    /// product's history — a deployment that genuinely failed or was rolled back is recorded as such
+    /// instead, because the delivery measures count it.
+    /// </remarks>
+    public void Delete(EventActor actor, Instant timestamp) =>
+        AddDomainEvent(new DeploymentDeletedEvent(Id, Key, VersionId, PackageId, EnvironmentId, actor, timestamp));
+
     private Result GuardCanComplete(Instant completedAt)
     {
         if (IsComplete)

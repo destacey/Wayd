@@ -444,7 +444,7 @@ Migrates every record of an owner type onto the target workflow. Records move fi
 
 ### Status Transitions
 
-Every status change, with from/to, actor, timestamp and sequence. Written by BaseDbContext draining the aggregate during SaveChanges. OwnerType + RecordId identifies the record; RecordId is deliberately not a foreign key, so a hard-deleted record leaves its transitions behind.
+Every status change, with from/to, actor, timestamp and sequence. Written by BaseDbContext draining the aggregate during SaveChanges. OwnerType + RecordId identifies the record; RecordId is deliberately not a foreign key, so nothing cascades to it: every Product Management delete removes the record's transitions itself in the same save (StatusHistoryRemoval.Stage).
 
 ---
 
@@ -475,7 +475,7 @@ Rules: IsReleasable decides whether VERSIONS can be cut against a node. A produc
 Classification along an axis, grouped into categories (Platform, Tech Stack, Compliance). Properties:
 - Category (Name, Description, AllowsMany), Tag (Name, Description, IsActive)
 
-Rules: Grouped rather than flat so "what platform is this?" is a query rather than prior knowledge. Carries what does *not* change behaviour; the type system carries what does. An inactive tag a product already carries stays offered, so a save cannot silently remove it.
+Rules: Grouped rather than flat so "what platform is this?" is a query rather than prior knowledge. Carries what does *not* change behaviour; the type system carries what does. An inactive tag a product already carries stays offered, so a save cannot silently remove it. A tag no product carries can be deleted (DELETE /product-tag-categories/{id}/tags/{tagId}, ProductTagCategories.Delete); one in use is deactivated instead, and tags on a system category can be neither.
 
 ### Product Dependencies
 
@@ -555,7 +555,7 @@ VersionId XOR PackageId is validated in three places and answered with a 422 —
 
 EnvironmentCategory is FROZEN on the deployment as it stood when the deployment ran; it is never resolved through the environment on read. A deployment's category can therefore legitimately differ from its environment's category today. Reclassifying an environment changes what FUTURE deployments count as and rewrites nothing.
 
-A deployment is never edited and never deleted — no such endpoint exists. Once started it is only ever completed: Succeed/Fail while IsComplete is false, and RollBack only from Succeeded (a failed deployment never reached its environment, so there is nothing to revert). A completion cannot predate the start; a rollback cannot predate the completion.
+A deployment is never edited. Once started it is only ever completed: Succeed/Fail while IsComplete is false, and RollBack only from Succeeded (a failed deployment never reached its environment, so there is nothing to revert). A completion cannot predate the start; a rollback cannot predate the completion.
 
 ### Deployment Environments
 
@@ -564,9 +564,15 @@ Named deploy targets, globally scoped and ordered into rings for progressive rol
 
 Rules: Named DeploymentEnvironment because Environment would shadow System.Environment. Category is a fixed enum, not a workflow — a classification rather than a state. Every production-scoped measure counts on the category, not the free-text name. Reclassifying raises its own event because it changes what is counted from then on; past deployments keep the category they froze.
 
-Environments are RETIRED (PUT /{id}/active), never deleted — historical deployments point at them. There is no delete endpoint. DeploymentCount exists so a caller can show what retiring would affect. Update and reclassify are both refused on an inactive environment.
+Environments are RETIRED (PUT /{id}/active) as the everyday way out — historical deployments point at them. DeploymentCount exists so a caller can show what retiring or deleting would affect. Update and reclassify are both refused on an inactive environment.
 
-NOTHING IN DELIVERY IS DELETABLE, and no delivery resource carries a Delete permission: versions, releases and packages are withdrawn, environments retired, deployments never removed. The terminal actions are all Update.
+Withdrawing and retiring are the everyday way out and are all Update. DELETE is its own grant — Delivery.Delete (versions, packages, deployments), Releases.Delete, DeploymentEnvironments.Delete — for a record made by mistake or to purge a retired product's history. Every delete removes the record's status history in the same save and raises a *DeletedEvent (Deployment/Environment/Package/Release/VersionDeletedEvent); the activity log and audit trail are always kept. A delete never edits another aggregate — it refuses instead:
+- Deployment: any state.
+- Environment: takes every deployment into it; when it has any, also needs Delivery.Delete (a delete that takes records of another resource needs that resource's Delete, checked only when there are any).
+- Release package: takes its manifest and every deployment of it; refused while any release lists it.
+- Release: any state, announced included; takes its contents list, keeps the versions and packages it listed. Deleting an announced release (whose contents are frozen) is how a package it lists becomes deletable.
+- Version: takes every deployment of it; refused while a release lists it or a package manifest names it (manifest lines hold VersionId without a foreign key).
+- Product: unchanged refusals (children, versions, manifest, either end of a dependency), so a retired product is purged bottom up: releases → packages → versions → dependencies → product.
 
 ### Delivery Overview
 

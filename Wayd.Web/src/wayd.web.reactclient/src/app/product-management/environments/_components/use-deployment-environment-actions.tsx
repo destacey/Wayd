@@ -4,11 +4,12 @@ import useAuth from '@/src/components/contexts/auth'
 import { DeploymentEnvironmentDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { ReactNode, useState } from 'react'
+import DeleteEnvironmentForm from './delete-environment-form'
 import DeploymentEnvironmentForm from './deployment-environment-form'
 import SetEnvironmentActiveForm from './set-environment-active-form'
 
 /** The dialogs an environment can open. One value, not one boolean each. */
-type DialogId = 'edit' | 'retire' | 'reinstate'
+type DialogId = 'edit' | 'retire' | 'reinstate' | 'delete'
 
 export interface DeploymentEnvironmentActions {
   /**
@@ -32,7 +33,9 @@ export interface UseDeploymentEnvironmentActionsOptions {
  * retired one, so offering it would produce a refusal rather than a change. A retired environment can
  * only be reinstated.
  *
- * There is no delete, and there should not be — see {@link SetEnvironmentActiveForm}.
+ * Delete is offered in either state and takes every deployment into the environment with it, so
+ * retiring stays the everyday way out — see {@link SetEnvironmentActiveForm}. With deployments, it
+ * also needs the deployment Delete permission.
  *
  * The dialogs are rendered once for the whole list rather than per row — the target travels with the
  * open dialog, so a fifty-row grid mounts one set.
@@ -49,6 +52,10 @@ export const useDeploymentEnvironmentActions = ({
   const canUpdate = hasPermissionClaim(
     'Permissions.DeploymentEnvironments.Update',
   )
+  const canDelete = hasPermissionClaim(
+    'Permissions.DeploymentEnvironments.Delete',
+  )
+  const canDeleteDeployments = hasPermissionClaim('Permissions.Delivery.Delete')
 
   const open = (dialog: DialogId, target: DeploymentEnvironmentDto) =>
     setActive({ dialog, target })
@@ -63,37 +70,62 @@ export const useDeploymentEnvironmentActions = ({
   const getActionItems = (
     environment: DeploymentEnvironmentDto,
   ): ItemType[] => {
-    if (!canUpdate) return []
+    const items: ItemType[] = []
 
-    // A retired environment accepts neither a rename nor a reclassification, so the only thing left
-    // to offer is putting it back.
-    if (!environment.isActive) {
-      return [
-        {
+    if (canUpdate) {
+      // A retired environment accepts neither a rename nor a reclassification, so the only thing
+      // left to offer is putting it back.
+      if (!environment.isActive) {
+        items.push({
           key: 'reinstate',
           label: 'Reinstate',
           onClick: () => open('reinstate', environment),
-        },
-      ]
+        })
+      } else {
+        items.push(
+          {
+            key: 'edit',
+            label: 'Edit',
+            onClick: () => open('edit', environment),
+          },
+          { type: 'divider', key: 'divider' },
+          {
+            key: 'retire',
+            label: 'Retire',
+            danger: true,
+            onClick: () => open('retire', environment),
+          },
+        )
+      }
     }
 
-    return [
-      {
-        key: 'edit',
-        label: 'Edit',
-        onClick: () => open('edit', environment),
-      },
-      { type: 'divider', key: 'divider' },
-      {
-        key: 'retire',
-        label: 'Retire',
+    // Deleting an environment deletes the deployments into it, which is its own grant — the API
+    // refuses without it, so the action is not offered.
+    if (
+      canDelete &&
+      (environment.deploymentCount === 0 || canDeleteDeployments)
+    ) {
+      if (items.length > 0) {
+        items.push({ type: 'divider', key: 'delete-divider' })
+      }
+      items.push({
+        key: 'delete',
+        label: 'Delete',
         danger: true,
-        onClick: () => open('retire', environment),
-      },
-    ]
+        onClick: () => open('delete', environment),
+      })
+    }
+
+    return items
   }
 
-  const dialogs = !active ? null : active.dialog === 'edit' ? (
+  const dialogs = !active ? null : active.dialog === 'delete' ? (
+    <DeleteEnvironmentForm
+      environment={active.target}
+      onFormComplete={() => close(true)}
+      onFormCancel={() => close(false)}
+    />
+  ) : active.dialog === 'edit' ? (
     <DeploymentEnvironmentForm
       environment={active.target}
       onFormComplete={() => close(true)}

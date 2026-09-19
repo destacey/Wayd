@@ -95,14 +95,20 @@ Read the product and the category first if the existing value matters. Call
 
 ### Deleting a product is permanent
 
-`Products_Delete` is a **hard delete**, unlike everything in delivery, where records are withdrawn
-and kept. If the product has merely stopped being current, change its status instead.
+`Products_Delete` is a **hard delete**. If the product has merely stopped being current, change its
+status instead.
 
 It refuses while anything depends on it, and each reason is distinct — children, versions,
 appearing in a release package manifest, or being named on either end of a product dependency. That
 manifest one is checked separately because a carried-forward manifest line often names a product
 that has no version row at all, and the dependency one counts **ended** links too: deleting the
 product would erase the record of what relied on it.
+
+It never deletes anything else for you. To purge a retired product only when the user asks, go
+bottom up with the **wayd-delivery** tools: `Releases_Delete` for any release listing its versions or
+packages, `ReleasePackages_Delete`, `Versions_Delete` (each takes its deployments), then
+`Products_RemoveDependency` for each dependency, then `Products_Delete`. Confirm the whole list with
+the user first.
 
 ---
 
@@ -170,12 +176,14 @@ organization currently uses it is a different question, so `ProductTypes_SetActi
 `ProductTagCategories_SetActive` work on system records. An organization that does not ship libraries
 hides that type rather than fighting the seeder.
 
-The exception is at the tag level. `AddTag`, `RenameTag` and `SetTagActive` are **all** refused on a
-system category, deactivation included — there is no per-tag fallback. Retire the whole axis instead.
+The exception is at the tag level. `AddTag`, `RenameTag`, `SetTagActive` and `DeleteTag` are **all**
+refused on a system category, deactivation included — there is no per-tag fallback. Retire the whole
+axis instead.
 
 **Nothing in use can be deleted.** A type is in use when any product carries it; an axis is in use
-when any product is tagged along it. Both refuse with "Deactivate it instead", so in practice delete
-only removes something created by mistake and never applied.
+when any product is tagged along it; a tag is in use when any product carries it (its `productCount`
+is above zero). All three refuse with "Deactivate it instead", so in practice delete only removes
+something created by mistake and never applied.
 
 ### Two sharp edges
 
@@ -219,9 +227,11 @@ filtering or reasoning by name will give wrong answers.
 
 Two consequences:
 
-- **Environments are retired, never deleted.** There is no delete tool. A retired environment keeps
-  every deployment recorded against it, and those keep counting toward the measures they already
-  count toward. Editing is refused on a retired environment, so reinstate it first.
+- **Retire environments; delete only to purge history.** A retired environment keeps every deployment
+  recorded against it, and those keep counting toward the measures they already count toward.
+  `DeploymentEnvironments_Delete` removes the environment **and every deployment into it** — use it
+  only when the user explicitly wants that, and state the `deploymentCount` first. Editing is
+  refused on a retired environment, so reinstate it first.
 - **Reclassifying changes the future, not the past.** Each deployment froze its environment's
   category at the time, so promoting a staging environment to production does not retroactively
   inflate deployment frequency.

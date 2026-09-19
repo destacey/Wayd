@@ -560,4 +560,26 @@ public sealed class ReleaseTests
     }
 
     #endregion UpdateDetails
+
+    #region Delete
+
+    [Fact]
+    public void Delete_ShouldRaiseReleaseDeletedEvent()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var deleted = sut.DomainEvents.OfType<ReleaseDeletedEvent>().Should().ContainSingle().Subject;
+        deleted.Id.Should().Be(sut.Id);
+        deleted.Key.Should().Be(sut.Key);
+        deleted.ProductId.Should().Be(sut.ProductId);
+        deleted.Version.Should().Be(sut.Version);
+    }
+
+    #endregion Delete
 }

@@ -419,6 +419,7 @@ public static class ApplicationPermissions
         new ("View Releases", ApplicationAction.View, ApplicationResource.Releases, DeliveryCategory),
         new ("Create Releases", ApplicationAction.Create, ApplicationResource.Releases, DeliveryCategory),
         new ("Update Releases", ApplicationAction.Update, ApplicationResource.Releases, DeliveryCategory),
+        new ("Delete Releases", ApplicationAction.Delete, ApplicationResource.Releases, DeliveryCategory),
         new ("Import Releases", ApplicationAction.Import, ApplicationResource.Releases, DeliveryCategory),
 
         new ("View Deployment Environments", ApplicationAction.View, ApplicationResource.DeploymentEnvironments, DeliveryCategory),

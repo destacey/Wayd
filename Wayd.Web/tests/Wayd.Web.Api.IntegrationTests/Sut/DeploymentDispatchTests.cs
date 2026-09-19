@@ -350,6 +350,69 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Dispatch_DeleteReleaseCommand_LeavesItsContentsAndFreesThePackage()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+        var statusWorkflows = scope.ServiceProvider.GetRequiredService<IStatusWorkflowDbContext>();
+
+        var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
+
+        var productTypeId = await dbContext.ProductTypes
+            .Where(t => t.IsActive && t.IsReleasable)
+            .Select(t => t.Id)
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        var component = await dispatcher.Send(
+            new CreateProductCommand(Unique("Comp"), null, productTypeId, null, null),
+            TestContext.Current.CancellationToken);
+        Assert.True(component.IsSuccess, component.IsFailure ? component.Error : null);
+
+        var package = await dispatcher.Send(
+            new AssembleReleasePackageCommand(Unique("Pkg"), null, null,
+            [
+                new ManifestEntry(component.Value.Id, null, "1.0", ManifestEntryKind.Changed),
+            ]),
+            TestContext.Current.CancellationToken);
+        Assert.True(package.IsSuccess, package.IsFailure ? package.Error : null);
+
+        var release = await dispatcher.Send(
+            new PlanReleaseCommand(null, Unique("Rel"), null, null, null), TestContext.Current.CancellationToken);
+        Assert.True(release.IsSuccess, release.IsFailure ? release.Error : null);
+
+        var contents = await dispatcher.Send(
+            new SetReleaseContentsCommand(release.Value.Id, [fixture.VersionId], [package.Value.Id]),
+            TestContext.Current.CancellationToken);
+        Assert.True(contents.IsSuccess, contents.IsFailure ? contents.Error : null);
+
+        // Act
+        var result = await dispatcher.Send(
+            new DeleteReleaseCommand(release.Value.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The contents rows cascade in the database; the records they pointed at stay.
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(await dbContext.Releases
+            .AnyAsync(r => r.Id == release.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await dbContext.ReleasePackageInclusions
+            .AnyAsync(i => i.ReleaseId == release.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await dbContext.ReleaseVersions
+            .AnyAsync(v => v.ReleaseId == release.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await statusWorkflows.StatusTransitions
+            .AnyAsync(t => t.RecordId == release.Value.Id, TestContext.Current.CancellationToken));
+        Assert.True(await dbContext.ReleasePackages
+            .AnyAsync(p => p.Id == package.Value.Id, TestContext.Current.CancellationToken));
+        Assert.True(await dbContext.Versions
+            .AnyAsync(v => v.Id == fixture.VersionId, TestContext.Current.CancellationToken));
+
+        var packageDeleted = await dispatcher.Send(
+            new DeleteReleasePackageCommand(package.Value.Id), TestContext.Current.CancellationToken);
+        Assert.True(packageDeleted.IsSuccess, packageDeleted.IsFailure ? packageDeleted.Error : null);
+    }
+
+    [Fact]
     public async Task Dispatch_DeleteDeploymentEnvironmentCommand_TakesItsDeploymentsWithIt()
     {
         // Arrange

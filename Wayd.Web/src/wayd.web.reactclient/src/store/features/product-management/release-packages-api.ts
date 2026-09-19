@@ -177,6 +177,30 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
         packageTags(arg.id, arg.cacheKey),
     }),
 
+    /**
+     * Deletes a package, every deployment of it, and its place in any release — so the deployment and
+     * release lists and the delivery measures are invalidated with it.
+     */
+    deleteReleasePackage: builder.mutation<void, { id: string; cacheKey: number }>(
+      {
+        queryFn: async ({ id }) => {
+          try {
+            const data = await getReleasePackagesClient().delete(id)
+            return { data }
+          } catch (error) {
+            console.error('API Error:', error)
+            return { error }
+          }
+        },
+        invalidatesTags: (result, error, arg) => [
+          ...packageTags(arg.id, arg.cacheKey),
+          { type: QueryTags.Deployment, id: 'LIST' },
+          { type: QueryTags.Release, id: 'LIST' },
+          { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+        ],
+      },
+    ),
+
     getReleasePackageActivities: builder.query<
       PagedResponseOfActivityLogDto,
       { idOrKey: string | number; page?: number; pageSize?: number }
@@ -209,6 +233,7 @@ export const {
   useSetReleasePackageManifestMutation,
   useMarkReleasePackageReleasedMutation,
   useWithdrawReleasePackageMutation,
+  useDeleteReleasePackageMutation,
   useGetReleasePackageActivitiesQuery,
   useLazyGetReleasePackageActivitiesQuery,
 } = releasePackagesApi

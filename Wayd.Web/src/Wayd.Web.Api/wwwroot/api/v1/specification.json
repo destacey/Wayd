@@ -9898,6 +9898,48 @@
             "ApiKey": []
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Delete a version.",
+        "description": "Permanent: also deletes its status history and every deployment of it. Refused while a release lists it or a package manifest names it.",
+        "operationId": "Versions_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
       }
     },
     "/api/product-management/versions/{id}/target-date": {

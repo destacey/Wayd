@@ -413,6 +413,54 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Dispatch_DeleteVersionCommand_RefusedWhileListedThenTakesItsDeployments()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+        var statusWorkflows = scope.ServiceProvider.GetRequiredService<IStatusWorkflowDbContext>();
+
+        var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
+
+        var deployment = await dispatcher.Send(
+            new StartDeploymentCommand(fixture.VersionId, null, fixture.EnvironmentId, null, null),
+            TestContext.Current.CancellationToken);
+        Assert.True(deployment.IsSuccess, deployment.IsFailure ? deployment.Error : null);
+
+        var release = await dispatcher.Send(
+            new PlanReleaseCommand(null, Unique("Rel"), null, null, null), TestContext.Current.CancellationToken);
+        Assert.True(release.IsSuccess, release.IsFailure ? release.Error : null);
+
+        var listed = await dispatcher.Send(
+            new SetReleaseContentsCommand(release.Value.Id, [fixture.VersionId], []), TestContext.Current.CancellationToken);
+        Assert.True(listed.IsSuccess, listed.IsFailure ? listed.Error : null);
+
+        // Act
+        var whileListed = await dispatcher.Send(
+            new DeleteVersionCommand(fixture.VersionId), TestContext.Current.CancellationToken);
+
+        var unlisted = await dispatcher.Send(
+            new SetReleaseContentsCommand(release.Value.Id, [], []), TestContext.Current.CancellationToken);
+        Assert.True(unlisted.IsSuccess, unlisted.IsFailure ? unlisted.Error : null);
+
+        var result = await dispatcher.Send(
+            new DeleteVersionCommand(fixture.VersionId), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The deployment restricts on the version, so one left behind fails the delete at the database.
+        Assert.True(whileListed.IsFailure);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(await dbContext.Versions
+            .AnyAsync(v => v.Id == fixture.VersionId, TestContext.Current.CancellationToken));
+        Assert.False(await dbContext.Deployments
+            .AnyAsync(d => d.Id == deployment.Value.Id, TestContext.Current.CancellationToken));
+        Assert.False(await statusWorkflows.StatusTransitions
+            .AnyAsync(t => t.RecordId == fixture.VersionId || t.RecordId == deployment.Value.Id,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task Dispatch_DeleteDeploymentEnvironmentCommand_TakesItsDeploymentsWithIt()
     {
         // Arrange

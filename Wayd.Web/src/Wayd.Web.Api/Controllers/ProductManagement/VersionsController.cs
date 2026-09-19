@@ -257,6 +257,20 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpDelete("{id}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Delivery)]
+    [OpenApiOperation("Delete a version.", "Permanent: also deletes its status history and every deployment of it. Refused while a release lists it or a package manifest names it.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteVersionCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPost("{id}/withdraw")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation("Withdraw a version.", "The version is kept: deployments may reference it.")]

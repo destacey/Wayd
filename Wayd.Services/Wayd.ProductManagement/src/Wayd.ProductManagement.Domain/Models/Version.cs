@@ -353,6 +353,16 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Records that the version is being deleted. Removing it, its status history and its deployments
+    /// is the caller's.
+    /// </summary>
+    /// <remarks>
+    /// Allowed in any state. Withdrawing remains the everyday way out, because it keeps what was cut.
+    /// </remarks>
+    public void Delete(EventActor actor, Instant timestamp) =>
+        AddDomainEvent(new VersionDeletedEvent(Id, Key, ProductId, Number, actor, timestamp));
+
+    /// <summary>
     /// Pulls the version after it was cut. Phase one's failure proxy.
     /// </summary>
     /// <param name="withdrawnStatus">

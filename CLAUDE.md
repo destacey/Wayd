@@ -42,8 +42,10 @@ dotnet test "<project>" --filter "Category=Unit"
 # Run tests for a specific project
 dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj"
 
-# Run specific test class or method
-dotnet test --filter "FullyQualifiedName~ProjectServiceTests"
+# Run specific test class or method. Filter within one project: tests run on
+# Microsoft.Testing.Platform (global.json), where a module that runs zero tests
+# fails (exit code 8), so a solution-wide filter fails every non-matching project
+dotnet test "<project>" --filter "FullyQualifiedName~ProjectServiceTests"
 
 # Run architecture tests (enforce Clean Architecture rules)
 dotnet test Wayd.ArchitectureTests/Wayd.ArchitectureTests.csproj

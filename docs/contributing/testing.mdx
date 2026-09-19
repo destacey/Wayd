@@ -181,19 +181,32 @@ dotnet test Wayd.slnx
 # Specific project
 dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj"
 
-# By class name
-dotnet test --filter "FullyQualifiedName~ProjectServiceTests"
+# By class name, within one project
+dotnet test "<project>" --filter "FullyQualifiedName~ProjectServiceTests"
 
-# By category, within one project
+# By category, within one project (--filter-trait "Category=Unit" is the native xUnit form)
 dotnet test "<project>" --filter "Category=Unit"
 
 # Architecture tests
 dotnet test Wayd.ArchitectureTests/Wayd.ArchitectureTests.csproj
 ```
 
-`--filter` matches per assembly and exits non-zero when an assembly contains no matching test, so a
-filtered run across the whole solution fails on every project that happens not to match. Filter one
-project at a time, or use the split script above.
+Tests run on Microsoft.Testing.Platform (MTP), opted into by `global.json`; VSTest is not used. Each test
+project is its own executable, and any option `dotnet test` does not recognise is passed through to it,
+so run `dotnet test "<project>" --help` for the full list (filters, `--coverlet`, `--hangdump`, reports).
+
+A test module that runs zero tests fails with exit code 8. A filter therefore fails on every project it
+matches nothing in, so a filtered run across the whole solution fails. Filter one project at a time, or
+use the split script above.
+
+### Coverage
+
+`COLLECT_COVERAGE=true ./.github/scripts/dotnet-test-projects.sh <unit|integration>` collects Cobertura
+coverage with coverlet (`--coverlet`) into `TestResults/coverage.cobertura.<timestamp>.xml` at the repo
+root. The include and exclude rules live in the root `testconfig.json`, which every test project gets
+next to its assembly as `<Assembly>.testconfig.json`. A project can replace it with its own `testconfig.json`;
+`Wayd.ArchitectureTests` does, to exclude everything, because reflecting over instrumented assemblies
+throws `TypeLoadException`.
 
 ### Test traits
 
@@ -206,8 +219,8 @@ Three independent axes are available for selecting tests:
 | `Area` | `PPM`, `Security`, … | What it covers, cutting across projects. |
 
 Values live as constants in `Wayd.Tests.Shared` (`TestCategories`, `TestSuites`, `TestAreas`). Use
-them rather than string literals: a filter with a typo matches nothing and still exits zero for that
-assembly, so a mistyped trait silently runs fewer tests instead of failing.
+them rather than string literals: in a filter that combines several conditions, a typo in one of them
+silently runs fewer tests instead of failing.
 
 ## Frontend Tests
 

@@ -1,0 +1,8 @@
+{
+  "platformOptions": {
+    "Coverlet": {
+      "format": "cobertura",
+      "exclude": "[*]*"
+    }
+  }
+}

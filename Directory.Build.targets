@@ -33,4 +33,30 @@
         </ItemGroup>
     </Target>
 
+    <!--
+        Every test project carries the MTP extensions dotnet-test-projects.sh passes flags for
+        (hang dump, coverage). Microsoft.Testing.Platform rejects an option no registered extension
+        declares, so a project missing either one fails the whole run rather than just skipping the feature.
+    -->
+    <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+        <PackageReference Include="coverlet.MTP" />
+        <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
+    </ItemGroup>
+
+    <!--
+        Coverage settings live once in the repo-root testconfig.json and are copied next to each test
+        assembly as $(AssemblyName).testconfig.json, the only place MTP and coverlet.MTP look for it. A config
+        file makes coverlet authoritative (none of its built-in excludes apply), so it must list every rule.
+
+        The excludes keep the percentage about hand-written code: without them the Wolverine handler tree
+        (hundreds of generated files, regenerated on every handler change) swamps the number. EF migrations
+        carry no [GeneratedCode] attribute, so they are excluded by path.
+
+        A project with its own testconfig.json keeps it instead: MTP copies that one itself, and linking
+        the shared file as well would put two files on the same output path.
+    -->
+    <ItemGroup Condition="'$(IsTestProject)' == 'true' And !Exists('$(MSBuildProjectDirectory)\testconfig.json')">
+        <None Include="$(RepoRoot)testconfig.json" Link="$(AssemblyName).testconfig.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

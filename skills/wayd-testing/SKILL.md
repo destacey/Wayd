@@ -294,7 +294,7 @@ A test CI never discovers has no value.
 
 Confirm new tests appear in the expected half. A test that landed in the wrong half either needs Docker it will not get, or quietly moved a whole project across the CI split.
 
-> `--filter` matches per assembly and exits non-zero when an assembly has no match, so a filtered run across the solution fails on every non-matching project. Filter one project at a time, or use the split script.
+> Tests run on Microsoft.Testing.Platform (opted into by `global.json`). A test module that runs zero tests fails with exit code 8, so a filtered run across the solution fails on every non-matching project. Filter one project at a time, or use the split script.
 
 ---
 

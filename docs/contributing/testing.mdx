@@ -17,19 +17,20 @@ Test projects mirror the source structure:
 
 ### Unit vs integration
 
-A project is an **integration** project if it references any `Testcontainers*` package, and a **unit**
-project otherwise. That one dependency is the source of truth for everything else: CI splits its two test
-jobs on it, and each test assembly is stamped with a matching `Category` trait automatically. Nothing needs
-tagging by hand, and the trait cannot drift from what a project actually requires.
+Every test assembly is stamped with two traits automatically, so nothing needs tagging by hand:
 
-The match is on the `Testcontainers` **prefix**, not on `Testcontainers.MsSql` specifically: a suite
-reaching for a different module (`Testcontainers.PostgreSql`, `.Redis`, `.RabbitMq`) still needs Docker and
-still belongs in the integration job. `Directory.Build.targets` and `.github/scripts/dotnet-test-projects.sh`
-must stay in step on this.
+- `Category` says what kind of test it is. A `*.IntegrationTests` project is `Integration`; every other
+  project is `Unit`.
+- `Requires=Docker` marks a project that references any `Testcontainers*` package. CI splits its two test
+  runs on this same dependency, so the trait cannot drift from the job a test runs in.
 
-Integration tests need Docker running. Unit tests never do — including
-`Wayd.Integrations.AzureDevOps.IntegrationTests`, which despite its name needs a live Azure DevOps org
-rather than a container, and skips itself when one is not configured.
+The two usually agree, with one exception. `Wayd.Integrations.AzureDevOps.IntegrationTests` is `Integration`
+but has no `Requires` trait. It needs a live Azure DevOps org rather than a container, so it runs in CI's
+unit half and skips itself when no org is configured.
+
+The Testcontainers match is on the **prefix**, not on `Testcontainers.MsSql` specifically: a suite
+reaching for a different module (`Testcontainers.PostgreSql`, `.Redis`, `.RabbitMq`) still needs Docker.
+`Directory.Build.targets` and `.github/scripts/dotnet-test-projects.sh` must stay in step on this.
 
 Each integration project starts its own container, so the integration run pulls the SQL Server image once
 before any suite starts and runs at most two projects at a time. Set `INTEGRATION_TEST_PARALLELISM` to change
@@ -172,10 +173,10 @@ private DeleteScoringModelCommandHandler CreateHandler() =>
 # All tests (both halves; the integration suites need Docker running)
 dotnet test Wayd.slnx
 
-# Only the tests that need no Docker — what CI's unit job runs
+# Only the tests that need no Docker — what CI's unit run covers
 ./.github/scripts/dotnet-test-projects.sh unit
 
-# Only the Testcontainers suites — what CI's integration job runs
+# Only the Testcontainers suites (Requires=Docker) — what CI's integration run covers
 ./.github/scripts/dotnet-test-projects.sh integration
 
 # Specific project
@@ -210,15 +211,16 @@ throws `TypeLoadException`.
 
 ### Test traits
 
-Three independent axes are available for selecting tests:
+Four independent axes are available for selecting tests:
 
 | Trait | Values | Meaning |
 |---|---|---|
-| `Category` | `Unit`, `Integration` | How it runs and what it needs. Applied automatically per assembly — do not set by hand. |
+| `Category` | `Unit`, `Integration` | What kind of test it is. Applied automatically per assembly — do not set by hand. |
+| `Requires` | `Docker` | Infrastructure it cannot run without; absent when it needs none. Applied automatically per assembly — do not set by hand. |
 | `Suite` | `Smoke` | A curated fast pass. Untagged tests are the default regression body. |
 | `Area` | `PPM`, `Security`, … | What it covers, cutting across projects. |
 
-Values live as constants in `Wayd.Tests.Shared` (`TestCategories`, `TestSuites`, `TestAreas`). Use
+Values live as constants in `Wayd.Tests.Shared` (`TestCategories`, `TestRequirements`, `TestSuites`, `TestAreas`). Use
 them rather than string literals: in a filter that combines several conditions, a typo in one of them
 silently runs fewer tests instead of failing.
 

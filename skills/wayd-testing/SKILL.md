@@ -92,11 +92,14 @@ Handlers return `Result<T>`; assert on `IsSuccess`/`IsFailure`, not on thrown ex
 
 ### Unit vs integration — the classification tripwire
 
-A project is **Integration** if and only if it references a `Testcontainers*` package. That single fact drives everything: `Directory.Build.targets` stamps the `Category` assembly trait from it, and `.github/scripts/dotnet-test-projects.sh` splits the two CI jobs on the same signal.
+`Directory.Build.targets` stamps two assembly traits, and `.github/scripts/dotnet-test-projects.sh` splits the two CI runs on the second of them:
 
-**Adding a `Testcontainers` reference to a unit project silently moves every test in it into the Docker-requiring CI job.** Never add one to make a single test work — put that test in the area's integration project instead.
+- **`Category`** is `Integration` for a `*.IntegrationTests` project (whatever it integrates with), `Unit` for everything else.
+- **`Requires=Docker`** is stamped if and only if the project references a `Testcontainers*` package. That is what puts a project in the Docker-requiring CI run.
 
-Never hand-tag `Category`. It is derived, and a hand-tag can drift from what the project actually needs.
+**Adding a `Testcontainers` reference to a project silently moves every test in it into the Docker-requiring CI run.** Never add one to make a single test work — put that test in the area's integration project instead.
+
+Never hand-tag either trait. Both are derived, and a hand-tag can drift from what the project actually needs.
 
 ### Integration tests
 
@@ -276,7 +279,7 @@ Always, regardless of threshold:
 - [ ] `// Arrange` / `// Act` / `// Assert` on every test?
 - [ ] One SUT per file, class name matching the file name?
 - [ ] Fakers in the domain's own `Data/` folder, using `With{Property}` extensions?
-- [ ] No new `Testcontainers` reference in a unit project?
+- [ ] No new `Testcontainers` reference in a project that did not already need Docker?
 - [ ] `[Collection(...)]` rather than `IClassFixture<T>` for integration tests?
 - [ ] Every enumerated scenario from the request mapped to a test?
 

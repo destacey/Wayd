@@ -12,7 +12,8 @@
 # be silently dropped from CI. A project is "integration" iff its .csproj has a PackageReference to a
 # Testcontainers module -- the dependency that actually requires a Docker daemon, rather than a name or
 # trait convention that can drift out of sync with what the project really needs. Directory.Build.targets
-# derives the Category trait from the same signal, so a test's trait and the job it runs in agree.
+# stamps the Requires=Docker trait from the same signal, so a test's trait and the job it runs in agree.
+# (Category is by project name, so a *.IntegrationTests project that needs no Docker runs in "unit".)
 #
 # This runs on the Linux CI runner AND on a developer's machine, where on Windows that means Git Bash.
 # Keep the text processing to POSIX sed/tr: Git Bash's grep refuses `-P` outside a unibyte or UTF-8
@@ -39,7 +40,7 @@ for proj in "${all_projects[@]}"; do
     [[ "$proj" == *Tests.csproj ]] || continue
     # Matched on a PackageReference to any Testcontainers module, not the bare word: a comment or an
     # unrelated string mentioning Testcontainers must not move a project into the Docker job. Keep this
-    # in step with the prefix match in Directory.Build.targets, which derives the Category trait.
+    # in step with the prefix match in Directory.Build.targets, which stamps the Requires=Docker trait.
     if grep -qE '<PackageReference[^>]*Include="Testcontainers' "$proj"; then
         [[ "$mode" == "integration" ]] && selected+=("$proj")
     else

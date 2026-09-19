@@ -35,8 +35,8 @@ dotnet test Wayd.slnx
 # Run only the Testcontainers suites — what CI's integration job runs
 ./.github/scripts/dotnet-test-projects.sh integration
 
-# Every test assembly is stamped with a Category trait derived from whether it
-# references Testcontainers, so a single project can be filtered the same way
+# Every test assembly is stamped with Category (Integration for *.IntegrationTests,
+# else Unit) and, when it references Testcontainers, Requires=Docker
 dotnet test "<project>" --filter "Category=Unit"
 
 # Run tests for a specific project

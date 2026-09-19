@@ -1,15 +1,17 @@
 namespace Wayd.Tests.Shared.Traits;
 
 /// <summary>
-/// Trait NAMES for the three independent axes a test can be selected on. Kept as constants so a filter and
-/// the attribute that satisfies it cannot drift apart — <c>dotnet test --filter</c> fails OPEN (an unknown
-/// name or value matches nothing and still exits zero for that assembly), so a typo silently runs fewer
-/// tests rather than erroring.
+/// Trait NAMES for the independent axes a test can be selected on. Kept as constants so a filter and the
+/// attribute that satisfies it cannot drift apart — a typo in one branch of a combined filter matches
+/// nothing, so the run silently covers fewer tests rather than erroring.
 /// </summary>
 public static class TestTraits
 {
-    /// <summary>How the test runs and what it needs. Applied per-assembly, not per-class — see below.</summary>
+    /// <summary>What kind of test it is. Applied per-assembly, not per-class — see below.</summary>
     public const string Category = "Category";
+
+    /// <summary>Infrastructure the test cannot run without. Applied per-assembly, not per-class — see below.</summary>
+    public const string Requires = "Requires";
 
     /// <summary>When the test runs: a curated fast pass versus the full body of tests.</summary>
     public const string Suite = "Suite";
@@ -21,11 +23,10 @@ public static class TestTraits
 /// <summary>
 /// Values for <see cref="TestTraits.Category"/>.
 /// <para>
-/// These are applied at ASSEMBLY level from Directory.Build.props, derived from whether the project
-/// references Testcontainers — the dependency that actually requires a Docker daemon. Do not apply them by
-/// hand to a class: a per-class copy is a second source of truth that drifts from what the project needs,
-/// which is exactly how the previous per-class "Docker" trait ended up on six classes in one of the four
-/// Docker-dependent projects.
+/// These are applied at ASSEMBLY level from Directory.Build.targets: a <c>*.IntegrationTests</c> project (or
+/// one referencing Testcontainers) is Integration, everything else Unit. Do not apply them by hand to a
+/// class: a per-class copy is a second source of truth that drifts from the project, which is exactly how
+/// the previous per-class "Docker" trait ended up on six classes in one of the four Docker-dependent projects.
 /// </para>
 /// </summary>
 public static class TestCategories
@@ -33,8 +34,18 @@ public static class TestCategories
     /// <summary>No external dependency: runs anywhere, needs no Docker daemon or network.</summary>
     public const string Unit = "Unit";
 
-    /// <summary>Needs a real backing service (a Testcontainers SQL Server), so it needs Docker.</summary>
+    /// <summary>Runs against a real backing service: a Testcontainers SQL Server, or a live external system.</summary>
     public const string Integration = "Integration";
+}
+
+/// <summary>
+/// Values for <see cref="TestTraits.Requires"/>, applied at ASSEMBLY level from Directory.Build.targets. An
+/// assembly without the trait needs nothing beyond the .NET runtime.
+/// </summary>
+public static class TestRequirements
+{
+    /// <summary>References Testcontainers, so it needs a Docker daemon. CI's integration job runs exactly these.</summary>
+    public const string Docker = "Docker";
 }
 
 /// <summary>

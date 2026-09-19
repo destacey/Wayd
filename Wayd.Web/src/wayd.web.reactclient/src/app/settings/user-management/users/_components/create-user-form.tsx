@@ -1,9 +1,10 @@
 'use client'
 
-import { Form, Input, Modal, Select } from 'antd'
+import { Alert, Form, Input, Modal, Select } from 'antd'
 import { toFormErrors } from '@/src/utils'
 import {
   useCreateUserMutation,
+  useGetEntraTenantIdsQuery,
   useGetUsersQuery,
 } from '@/src/store/features/user-management/users-api'
 import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
@@ -29,6 +30,7 @@ interface CreateUserFormValues {
   email: string
   phoneNumber?: string
   loginProvider: string
+  tenantId?: string
   password?: string
   employeeId?: string
   roles?: string[]
@@ -73,6 +75,10 @@ const CreateUserForm = ({
               phoneNumber: values.phoneNumber || undefined,
               employeeId: values.employeeId || undefined,
               loginProvider: values.loginProvider,
+              tenantId:
+                values.loginProvider === 'MicrosoftEntraId'
+                  ? values.tenantId
+                  : undefined,
               password:
                 values.loginProvider === 'Wayd'
                   ? values.password
@@ -108,6 +114,10 @@ const CreateUserForm = ({
     })
 
   const loginProvider = Form.useWatch('loginProvider', form)
+  const isEntra = loginProvider === 'MicrosoftEntraId'
+  const { data: entraTenantIds } = useGetEntraTenantIdsQuery(undefined, {
+    skip: !isEntra,
+  })
 
   return (
     <Modal
@@ -136,6 +146,30 @@ const CreateUserForm = ({
         >
           <Select options={loginProviderOptions} />
         </Item>
+
+        {isEntra && entraTenantIds?.length === 0 && (
+          <Alert
+            type="warning"
+            showIcon
+            title="Microsoft Entra ID isn't configured. Add it under Settings → Identity Providers before creating Entra users."
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {/* With a single allowed tenant the API uses it, so there is nothing to choose. */}
+        {isEntra && (entraTenantIds?.length ?? 0) > 1 && (
+          <Item
+            label="Sign-in Tenant"
+            name="tenantId"
+            extra="The tenant this person signs in from. Their first sign-in from it links this account."
+            rules={[{ required: true, message: 'Sign-in tenant is required' }]}
+          >
+            <Select
+              options={entraTenantIds!.map((id) => ({ value: id, label: id }))}
+              placeholder="Select a tenant"
+            />
+          </Item>
+        )}
 
         <Item
           label="Email / Username"

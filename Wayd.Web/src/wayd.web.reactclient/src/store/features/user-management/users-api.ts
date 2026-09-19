@@ -42,6 +42,20 @@ export const usersApi = apiSlice.injectEndpoints({
       providesTags: (result) => [{ type: QueryTags.User, id: result?.id }],
     }),
 
+    getEntraTenantIds: builder.query<string[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getUsersClient().getEntraTenantIds()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Provider edits change the allowlist.
+      providesTags: () => [{ type: QueryTags.OidcProvider, id: 'LIST' }],
+    }),
+
     getUserRoles: builder.query<
       UserRoleDto[],
       { id: string; includeUnassigned?: boolean }
@@ -416,6 +430,7 @@ export const usersApi = apiSlice.injectEndpoints({
 export const {
   useGetUsersQuery,
   useGetUserQuery,
+  useGetEntraTenantIdsQuery,
   useGetUserRolesQuery,
   useManageUserRolesMutation,
   useManageRoleUsersMutation,

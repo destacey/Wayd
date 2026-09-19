@@ -217,7 +217,7 @@ Four records that are deliberately kept apart: a **release** is what was announc
 
 | Category | Operations |
 | --- | --- |
-| **Releases** | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert |
+| **Releases** | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert. Delete |
 | **Versions** | List (by product or status category), get details, get activity history, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert |
 | **Release Packages** | List (by status category, containing product, or containing version), get details, get activity history, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw. Delete |
 | **Deployments** | List (by version, package, environment, environment category, or start date), get details, get activity history, get status history. Start. Outcome: succeed, fail, roll back. Delete |

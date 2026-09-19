@@ -132,7 +132,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['ReleasePackages_Delete', {
     name: 'ReleasePackages_Delete',
-    description: `Permanently delete a package with its manifest, its status history and **every deployment of it**. **Refused while any release lists it** — remove it with \`Releases_SetContents\` first; a released or withdrawn release's contents cannot change, so that release has to be deleted instead. The versions it names are separate records and are kept. The delivery measures and rollout stop counting those deployments. For a package assembled by mistake or when the user asks to purge history; otherwise withdraw it. Needs the delivery Delete permission.`,
+    description: `Permanently delete a package with its manifest, its status history and **every deployment of it**. **Refused while any release lists it** — remove it with \`Releases_SetContents\` first; a released or withdrawn release's contents cannot change, so that release has to be deleted instead with \`Releases_Delete\`. The versions it names are separate records and are kept. The delivery measures and rollout stop counting those deployments. For a package assembled by mistake or when the user asks to purge history; otherwise withdraw it. Needs the delivery Delete permission.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY}},"required":["id"]},
     method: 'delete',
     pathTemplate: '/api/product-management/release-packages/{id}',

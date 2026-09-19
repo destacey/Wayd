@@ -13,7 +13,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
 {
     private RemoveProductCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<RemoveProductCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, DbContext, CurrentUser.Object, Logger<RemoveProductCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRemoveTheProduct()
@@ -29,6 +29,42 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
         result.IsSuccess.Should().BeTrue();
         DbContext.Products.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRemoveOnlyThatProductsStatusHistory()
+    {
+        // Arrange — the history table has no foreign key to the product, so nothing cascades to it.
+        var product = SeedProduct();
+        var other = SeedProduct("Billing");
+        DbContext.AddStatusTransitions(product.DrainStatusTransitions());
+        DbContext.AddStatusTransitions(other.DrainStatusTransitions());
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(product.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.StatusTransitions.Should().NotContain(t => t.RecordId == product.Id);
+        DbContext.StatusTransitions.Should().Contain(t => t.RecordId == other.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepTheStatusHistory_WhenRefused()
+    {
+        // Arrange
+        var parent = SeedProduct();
+        SeedProduct("Child", parentId: parent.Id);
+        DbContext.AddStatusTransitions(parent.DrainStatusTransitions());
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(parent.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        DbContext.StatusTransitions.Should().Contain(t => t.RecordId == parent.Id);
     }
 
     [Fact]

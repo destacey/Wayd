@@ -221,6 +221,25 @@ export const releasesApi = apiSlice.injectEndpoints({
         releaseTags(arg.id, arg.cacheKey),
     }),
     /**
+     * Deletes a release. The packages it listed become deletable once no release lists them, so their
+     * cache is invalidated with it.
+     */
+    deleteRelease: builder.mutation<void, { id: string; cacheKey: number }>({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getReleasesClient().delete(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        ...releaseTags(arg.id, arg.cacheKey),
+        { type: QueryTags.ReleasePackage, id: 'LIST' },
+      ],
+    }),
+    /**
      * Records that a release marked as announced was not in fact announced.
      *
      * Distinct from withdrawing: that retracts an announcement which really happened and is terminal,
@@ -278,6 +297,7 @@ export const {
   useCorrectReleaseDatesMutation,
   useMarkReleaseReleasedMutation,
   useWithdrawReleaseMutation,
+  useDeleteReleaseMutation,
   useRevertReleaseMutation,
   useGetReleaseActivitiesQuery,
   useLazyGetReleaseActivitiesQuery,

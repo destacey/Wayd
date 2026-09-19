@@ -355,6 +355,7 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `DeploymentEnvironments_GetDeploymentEnvironments` | List environments, by active state or category |
 | `DeploymentEnvironments_Create` / `DeploymentEnvironments_Update` | Define or edit an environment |
 | `DeploymentEnvironments_SetActive` | Retire an environment, or reinstate it |
+| `DeploymentEnvironments_Delete` | Permanently delete an environment and every deployment into it |
 | `DeploymentEnvironments_GetRollout` | What is running in each environment now, in rollout order |
 | `DeliveryMetrics_GetDeliveryMetrics` | Deployment frequency and change failure rate over a window |
 | `DeliveryOverview_GetDeliveryOverview` | Version activity over a window — release frequency and cut-to-released time, for a product and everything beneath it |
@@ -362,7 +363,7 @@ Where the catalog records what exists, delivery records what shipped. The word "
 
 **Contents and manifests replace as a set.** `Releases_SetContents` and `ReleasePackages_SetManifest` overwrite what was there, so send the full list including anything that should stay.
 
-Environments are **retired, never deleted**, because historical deployments still point at them. Every production-scoped measure counts on an environment's **category**, not its name — pipeline names vary too much (`prod`, `prd`, `live`) to reason about. Reclassifying an environment changes where future deployments count and leaves past ones alone.
+Environments are **retired rather than deleted**, because historical deployments still point at them — deleting one takes every deployment into it along. Every production-scoped measure counts on an environment's **category**, not its name — pipeline names vary too much (`prod`, `prd`, `live`) to reason about. Reclassifying an environment changes where future deployments count and leaves past ones alone.
 
 `DeliveryMetrics_GetDeliveryMetrics` returns an `unavailable` list naming what it couldn't compute and why; read it rather than treating a missing measure as zero. Change failure rate is a **proxy** — a pipeline run that failed before production is a failure that was *prevented*, while a real change failure succeeded and then broke something, which the pipeline can't know.
 

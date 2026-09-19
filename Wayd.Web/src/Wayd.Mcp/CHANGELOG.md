@@ -1,5 +1,20 @@
 # @wayd/mcp
 
+## 0.10.0
+
+### Minor Changes
+
+- 17ca15a: Add `Deployments_Delete`, which permanently deletes a deployment and its status history. It needs the new delivery Delete permission. Delivery measures stop counting a deleted deployment, so a real failure or rollback should still be recorded as one.
+- bda3950: Add `DeploymentEnvironments_Delete`, which permanently deletes an environment and every deployment into it, with their status history. It needs the new environment Delete permission, plus the delivery Delete permission when the environment has deployments. Retiring an environment is still the way to take it out of use while keeping its deployments.
+- f2c6e71: Add `ReleasePackages_Delete`, which permanently deletes a package with its manifest, status history and every deployment of it. It is refused while any release lists the package. It needs the delivery Delete permission. Withdrawing is still the way to pull a package while keeping its history.
+- d29d732: Add `Versions_Delete`, which permanently deletes a version with its status history and every deployment of it. It is refused while a release lists the version or a package manifest names it, and needs the delivery Delete permission.
+- 31d4833: Add `Releases_Delete`, which permanently deletes a release with its contents list and status history. The versions and packages it listed are kept. It needs the new release Delete permission.
+- b6f827f: Add `ProductTagCategories_DeleteTag`, which permanently deletes a tag no product carries. A tag in use, or one on a seeded system category, is refused; deactivate it instead.
+
+### Patch Changes
+
+- d47a0fb: `Products_Delete` now also removes the product's status history, which was left behind before. The tool and skill describe how to purge a retired product from the bottom up.
+
 ## 0.9.0
 
 ### Minor Changes

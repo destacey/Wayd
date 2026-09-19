@@ -210,10 +210,11 @@ export const versionsApi = apiSlice.injectEndpoints({
     }),
     /**
      * Deletes a version and every deployment of it, so the deployment list and the delivery measures
-     * are invalidated with it.
+     * are invalidated with it. Only lists: invalidating the deleted version's own tags refetches its
+     * page, still mounted until the redirect lands, and every one of those queries 404s.
      */
-    deleteVersion: builder.mutation<void, { id: string; cacheKey: number }>({
-      queryFn: async ({ id }) => {
+    deleteVersion: builder.mutation<void, string>({
+      queryFn: async (id) => {
         try {
           const data = await getVersionsClient().delete(id)
           return { data }
@@ -222,8 +223,8 @@ export const versionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => [
-        ...versionTags(arg.id, arg.cacheKey),
+      invalidatesTags: () => [
+        { type: QueryTags.Version, id: 'LIST' },
         { type: QueryTags.Deployment, id: 'LIST' },
         { type: QueryTags.DeliveryMetrics, id: 'LIST' },
       ],

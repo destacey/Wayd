@@ -28,10 +28,7 @@ const DeleteVersionForm = ({
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {
       try {
-        const response = await deleteVersion({
-          id: version.id,
-          cacheKey: version.key,
-        })
+        const response = await deleteVersion(version.id)
         if (response.error) throw response.error
 
         messageApi.success('Version deleted.')

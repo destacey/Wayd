@@ -178,12 +178,13 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     }),
 
     /**
-     * Deletes a package, every deployment of it, and its place in any release — so the deployment and
-     * release lists and the delivery measures are invalidated with it.
+     * Deletes a package and every deployment of it, so the deployment list and the delivery measures
+     * are invalidated with it. Only lists: invalidating the deleted package's own tags refetches its
+     * page, still mounted until the redirect lands, and every one of those queries 404s.
      */
-    deleteReleasePackage: builder.mutation<void, { id: string; cacheKey: number }>(
+    deleteReleasePackage: builder.mutation<void, string>(
       {
-        queryFn: async ({ id }) => {
+        queryFn: async (id) => {
           try {
             const data = await getReleasePackagesClient().delete(id)
             return { data }
@@ -192,8 +193,8 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
             return { error }
           }
         },
-        invalidatesTags: (result, error, arg) => [
-          ...packageTags(arg.id, arg.cacheKey),
+        invalidatesTags: () => [
+          { type: QueryTags.ReleasePackage, id: 'LIST' },
           { type: QueryTags.Deployment, id: 'LIST' },
           { type: QueryTags.Release, id: 'LIST' },
           { type: QueryTags.DeliveryMetrics, id: 'LIST' },

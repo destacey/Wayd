@@ -28,10 +28,7 @@ const DeleteReleasePackageForm = ({
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {
       try {
-        const response = await deleteReleasePackage({
-          id: releasePackage.id,
-          cacheKey: releasePackage.key,
-        })
+        const response = await deleteReleasePackage(releasePackage.id)
         if (response.error) throw response.error
 
         messageApi.success('Package deleted.')

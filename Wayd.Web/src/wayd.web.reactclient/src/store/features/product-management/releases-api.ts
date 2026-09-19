@@ -222,10 +222,11 @@ export const releasesApi = apiSlice.injectEndpoints({
     }),
     /**
      * Deletes a release. The packages it listed become deletable once no release lists them, so their
-     * cache is invalidated with it.
+     * cache is invalidated with it. Only lists: invalidating the deleted release's own tags refetches
+     * its page, still mounted until the redirect lands, and every one of those queries 404s.
      */
-    deleteRelease: builder.mutation<void, { id: string; cacheKey: number }>({
-      queryFn: async ({ id }) => {
+    deleteRelease: builder.mutation<void, string>({
+      queryFn: async (id) => {
         try {
           const data = await getReleasesClient().delete(id)
           return { data }
@@ -234,8 +235,8 @@ export const releasesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => [
-        ...releaseTags(arg.id, arg.cacheKey),
+      invalidatesTags: () => [
+        { type: QueryTags.Release, id: 'LIST' },
         { type: QueryTags.ReleasePackage, id: 'LIST' },
       ],
     }),

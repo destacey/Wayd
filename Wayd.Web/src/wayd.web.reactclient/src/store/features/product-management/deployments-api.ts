@@ -157,9 +157,11 @@ export const deploymentsApi = apiSlice.injectEndpoints({
         deploymentTags(arg.id, arg.cacheKey),
     }),
 
-    deleteDeployment: builder.mutation<void, { id: string; cacheKey: number }>(
+    // Only lists: invalidating the deleted record's own tags refetches its page, still mounted until
+    // the redirect lands, and every one of those queries 404s.
+    deleteDeployment: builder.mutation<void, string>(
       {
-        queryFn: async ({ id }) => {
+        queryFn: async (id) => {
           try {
             const data = await getDeploymentsClient().delete(id)
             return { data }
@@ -168,8 +170,10 @@ export const deploymentsApi = apiSlice.injectEndpoints({
             return { error }
           }
         },
-        invalidatesTags: (result, error, arg) =>
-          deploymentTags(arg.id, arg.cacheKey),
+        invalidatesTags: () => [
+          { type: QueryTags.Deployment, id: 'LIST' },
+          { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+        ],
       },
     ),
 

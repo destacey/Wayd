@@ -30,10 +30,7 @@ const DeleteDeploymentForm = ({
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {
       try {
-        const response = await deleteDeployment({
-          id: deployment.id,
-          cacheKey: deployment.key,
-        })
+        const response = await deleteDeployment(deployment.id)
         if (response.error) throw response.error
 
         messageApi.success('Deployment deleted successfully.')

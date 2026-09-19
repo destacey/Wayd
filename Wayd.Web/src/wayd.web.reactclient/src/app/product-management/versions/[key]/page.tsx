@@ -38,6 +38,7 @@ import EditVersionForm from '../_components/edit-version-form'
 import MarkVersionReleasedForm from '../_components/mark-version-released-form'
 import MoveVersionTargetDateForm from '../_components/move-version-target-date-form'
 import RevertVersionForm from '../_components/revert-version-form'
+import DeleteVersionForm from '../_components/delete-version-form'
 import WithdrawVersionForm from '../_components/withdraw-version-form'
 import VersionFacts from './_components/version-facts'
 import VersionOverview from './_components/version-overview'
@@ -59,6 +60,7 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isCorrectDatesOpen, setIsCorrectDatesOpen] = useState<boolean>(false)
   const [isMarkReleasedOpen, setIsMarkReleasedOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
   const [isRevertOpen, setIsRevertOpen] = useState<boolean>(false)
   const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] =
     useState<boolean>(false)
@@ -73,6 +75,7 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateVersion = hasPermissionClaim('Permissions.Delivery.Update')
+  const canDeleteVersion = hasPermissionClaim('Permissions.Delivery.Delete')
   const canViewDeployments = hasPermissionClaim('Permissions.Delivery.View')
   const canViewPackages = hasPermissionClaim('Permissions.Delivery.View')
 
@@ -221,6 +224,16 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
     if (lifecycle.length > 0) {
       groups.push(lifecycle)
+    }
+    if (canDeleteVersion) {
+      groups.push([
+        {
+          key: 'delete',
+          label: 'Delete',
+          danger: true,
+          onClick: () => setIsDeleteOpen(true),
+        },
+      ])
     }
 
     return groups
@@ -371,6 +384,16 @@ const VersionDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsWithdrawOpen(false)}
+        />
+      )}
+      {isDeleteOpen && (
+        <DeleteVersionForm
+          version={version}
+          onFormComplete={() => {
+            setIsDeleteOpen(false)
+            router.push('/product-management/versions')
+          }}
+          onFormCancel={() => setIsDeleteOpen(false)}
         />
       )}
       {isRevertOpen && (

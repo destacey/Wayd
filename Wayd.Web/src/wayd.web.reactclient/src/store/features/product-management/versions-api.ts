@@ -209,6 +209,26 @@ export const versionsApi = apiSlice.injectEndpoints({
         versionTags(arg.id, arg.cacheKey),
     }),
     /**
+     * Deletes a version and every deployment of it, so the deployment list and the delivery measures
+     * are invalidated with it.
+     */
+    deleteVersion: builder.mutation<void, { id: string; cacheKey: number }>({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getVersionsClient().delete(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        ...versionTags(arg.id, arg.cacheKey),
+        { type: QueryTags.Deployment, id: 'LIST' },
+        { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+      ],
+    }),
+    /**
      * Records that a version marked as shipped did not in fact ship.
      *
      * Distinct from withdrawing: that pulls a version which really shipped and is terminal, while this
@@ -266,6 +286,7 @@ export const {
   useCutVersionMutation,
   useMarkVersionReleasedMutation,
   useWithdrawVersionMutation,
+  useDeleteVersionMutation,
   useRevertVersionMutation,
   useGetVersionActivitiesQuery,
   useLazyGetVersionActivitiesQuery,

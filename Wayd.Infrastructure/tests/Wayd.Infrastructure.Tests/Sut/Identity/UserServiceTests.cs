@@ -135,6 +135,7 @@ public class UserServiceTests
             u.Email == "john@example.com" &&
             u.UserName == "john@example.com" &&
             u.LoginProvider == LoginProviders.Wayd &&
+            u.PendingMigrationTenantId == null &&
             u.IsActive), "Password123!"), Times.Once);
         _mockUserManager.Verify(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(),
             It.Is<IEnumerable<string>>(r => r.SequenceEqual(new[] { "Contributor" }))), Times.Once);
@@ -154,6 +155,7 @@ public class UserServiceTests
             RoleNames = ["Contributor"],
         };
 
+        ArrangeEntraProvider("tenant-1");
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
@@ -279,8 +281,8 @@ public class UserServiceTests
     [Fact]
     public async Task CreateAsync_ShouldNotWriteIdentity_WhenEntraAdminProvisionedUser()
     {
-        // Entra users created by an admin have no oid/tid yet — the identity row
-        // is only written on their first SSO login via the principal flow.
+        // Arrange — Entra users created by an admin have no oid yet; the identity row
+        // is only written when their staged first sign-in completes.
         var command = new CreateUserCommand
         {
             FirstName = "Jane",
@@ -289,6 +291,7 @@ public class UserServiceTests
             LoginProvider = LoginProviders.MicrosoftEntraId,
         };
 
+        ArrangeEntraProvider("tenant-1");
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
@@ -298,9 +301,244 @@ public class UserServiceTests
 
         var sut = CreateSut();
 
+        // Act
         await sut.CreateAsync(command, TestContext.Current.CancellationToken);
 
+        // Assert
         _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldStageFirstSignInToTheOnlyAllowedTenant_WhenNoTenantRequested()
+    {
+        // Arrange
+        const string tenantId = "7d1b4a52-0000-4000-8000-000000000001";
+        ArrangeEntraProvider(tenantId);
+        var created = CaptureCreatedExternalUser();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateAsync(EntraCreateCommand(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        created().PendingMigrationTenantId.Should().Be(tenantId);
+        created().PendingMigrationStagedAt.Should().Be(_dateTimeProvider.Now);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldStageTheRequestedTenantAsConfigured_WhenProviderAllowsIt()
+    {
+        // Arrange — the request differs only in case and whitespace; the stored value is the
+        // provider's own spelling, since sign-in matches it against the token's tid exactly.
+        const string tenantA = "7d1b4a52-0000-4000-8000-00000000000a";
+        const string tenantB = "7d1b4a52-0000-4000-8000-00000000000b";
+        ArrangeEntraProvider(tenantA, tenantB);
+        var created = CaptureCreatedExternalUser();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateAsync(
+            EntraCreateCommand(tenantId: $" {tenantB.ToUpperInvariant()} "),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        created().PendingMigrationTenantId.Should().Be(tenantB);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldFailWithoutCreating_WhenRequestedTenantIsNotAllowed()
+    {
+        // Arrange — staging a tenant the validator rejects at sign-in would strand the user.
+        ArrangeEntraProvider("7d1b4a52-0000-4000-8000-00000000000a");
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateAsync(
+            EntraCreateCommand(tenantId: "7d1b4a52-0000-4000-8000-0000000000ff"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not allowed");
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldFailWithoutCreating_WhenProviderAllowsSeveralTenantsAndNoneIsRequested()
+    {
+        // Arrange
+        ArrangeEntraProvider("7d1b4a52-0000-4000-8000-00000000000a", "7d1b4a52-0000-4000-8000-00000000000b");
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateAsync(EntraCreateCommand(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Choose the tenant");
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldFailWithoutCreating_WhenEntraProviderIsNotConfigured()
+    {
+        // Arrange — no provider means no tenant to stage, and no way for the user to sign in.
+        _mockOidcProviderRegistry
+            .Setup(r => r.GetByName(LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OidcProvider?)null);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateAsync(EntraCreateCommand(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not configured");
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldLinkOnFirstSignInFromTheStagedTenant_WhenEntraUserCreatedByAdmin()
+    {
+        // Arrange — the account CreateAsync produces is the one the first sign-in resolves.
+        const string tenantId = "7d1b4a52-0000-4000-8000-000000000001";
+        const string objectId = "0a9f3c11-0000-4000-8000-000000000002";
+        const string email = "morgan.lee@acme.example";
+        ArrangeEntraProvider(tenantId);
+        var created = CaptureCreatedExternalUser();
+        await CreateSut().CreateAsync(EntraCreateCommand(email), TestContext.Current.CancellationToken);
+        var user = created();
+
+        ArrangeFirstSignIn(user);
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, _) = await sut.GetOrCreateFromPrincipalAsync(CreateEntraPrincipal(objectId, tenantId, email));
+
+        // Assert
+        resolvedId.Should().Be(user.Id);
+        user.PendingMigrationTenantId.Should().BeNull();
+        _mockUserIdentityStore.Verify(s => s.Add(
+            It.Is<UserIdentity>(ui =>
+                ui.UserId == user.Id &&
+                ui.Provider == LoginProviders.MicrosoftEntraId &&
+                ui.ProviderTenantId == tenantId &&
+                ui.ProviderSubject == objectId &&
+                ui.IsActive),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldStillDenyASignInFromAnotherTenant_WhenEntraUserCreatedByAdmin()
+    {
+        // Arrange — F3 guard: the staged link names one tenant, so a directory object in
+        // another allowed tenant presenting the same email must not claim the account.
+        const string stagedTenant = "7d1b4a52-0000-4000-8000-00000000000a";
+        const string otherTenant = "7d1b4a52-0000-4000-8000-00000000000b";
+        const string email = "morgan.lee@acme.example";
+        ArrangeEntraProvider(stagedTenant, otherTenant);
+        var created = CaptureCreatedExternalUser();
+        await CreateSut().CreateAsync(EntraCreateCommand(email, stagedTenant), TestContext.Current.CancellationToken);
+        var user = created();
+
+        ArrangeFirstSignIn(user);
+        _mockUserManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync(user);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal(
+            "0a9f3c11-0000-4000-8000-000000000003", otherTenant, email, displayName: "Morgan Lee"));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*not linked to this identity provider*");
+        user.PendingMigrationTenantId.Should().Be(stagedTenant);
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEntraTenantIds_ShouldReturnTheProvidersAllowlist()
+    {
+        // Arrange
+        ArrangeEntraProvider("7d1b4a52-0000-4000-8000-00000000000a", "7d1b4a52-0000-4000-8000-00000000000b");
+        var sut = CreateSut();
+
+        // Act
+        var tenants = await sut.GetEntraTenantIds(TestContext.Current.CancellationToken);
+
+        // Assert
+        tenants.Should().Equal("7d1b4a52-0000-4000-8000-00000000000a", "7d1b4a52-0000-4000-8000-00000000000b");
+    }
+
+    [Fact]
+    public async Task GetEntraTenantIds_ShouldReturnEmpty_WhenEntraProviderIsNotConfigured()
+    {
+        // Arrange
+        _mockOidcProviderRegistry
+            .Setup(r => r.GetByName(LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OidcProvider?)null);
+        var sut = CreateSut();
+
+        // Act
+        var tenants = await sut.GetEntraTenantIds(TestContext.Current.CancellationToken);
+
+        // Assert
+        tenants.Should().BeEmpty();
+    }
+
+    private void ArrangeEntraProvider(params string[] allowedTenantIds)
+    {
+        var provider = new OidcProviderFaker()
+            .WithName(LoginProviders.MicrosoftEntraId)
+            .AsMicrosoftEntraId(allowedTenantIds)
+            .WithoutAutoRegistration()
+            .Generate();
+
+        _mockOidcProviderRegistry
+            .Setup(r => r.GetByName(LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(provider);
+    }
+
+    // Arranges a successful create of a password-less user and returns an accessor for
+    // the ApplicationUser that CreateAsync handed to UserManager.
+    private Func<ApplicationUser> CaptureCreatedExternalUser()
+    {
+        ApplicationUser? created = null;
+        _mockUserManager
+            .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
+            .Callback<ApplicationUser>(u => created = u)
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        return () => created ?? throw new InvalidOperationException("CreateAsync did not create a user.");
+    }
+
+    private static CreateUserCommand EntraCreateCommand(string email = "jane@example.com", string? tenantId = null) => new()
+    {
+        FirstName = "Jane",
+        LastName = "Doe",
+        Email = email,
+        LoginProvider = LoginProviders.MicrosoftEntraId,
+        TenantId = tenantId,
+        RoleNames = ["Contributor"],
+    };
+
+    // Arranges an Entra sign-in that finds no identity row for the token, so it reaches
+    // the staged-link rebind. `user` is the only account in the database.
+    private void ArrangeFirstSignIn(ApplicationUser user)
+    {
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(["Contributor"]);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentity?)null);
+        _mockUserIdentityStore.Setup(s => s.FindActiveByNullTenant(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserIdentity>());
     }
 
     [Fact]
@@ -341,6 +579,7 @@ public class UserServiceTests
             EmployeeId = employeeId,
         };
 
+        ArrangeEntraProvider("tenant-1");
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);

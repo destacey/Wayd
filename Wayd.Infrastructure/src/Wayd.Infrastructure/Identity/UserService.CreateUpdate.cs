@@ -250,6 +250,8 @@ internal partial class UserService
     ///   3. Clear PendingMigrationTenantId.
     /// Returns the user on success; null if no migration was staged or no match found.
     /// The user's <c>Id</c> is preserved, so all downstream FKs remain valid.
+    /// Also completes an admin-created Entra user's first link: <see cref="CreateAsync"/>
+    /// stages one, and such a user has no active row to deactivate.
     /// </summary>
     /// <remarks>
     /// Internal (rather than private) so unit tests can exercise the rebind decision
@@ -732,6 +734,21 @@ internal partial class UserService
 
     public async Task<Result<string>> CreateAsync(CreateUserCommand command, CancellationToken cancellationToken)
     {
+        // An admin-created Entra user has no oid until they sign in, and a sign-in can
+        // no longer link to an existing account by email alone (that was an account
+        // takeover). Creating the user is the admin's authorization, so record it as a
+        // staged link to one tenant; TryApplyPendingTenantMigration completes it on
+        // the first sign-in from that tenant whose UPN/email matches.
+        string? firstSignInTenantId = null;
+        if (command.LoginProvider == LoginProviders.MicrosoftEntraId)
+        {
+            var tenant = await ResolveFirstSignInTenant(command.TenantId, cancellationToken);
+            if (tenant.IsFailure)
+                return Result.Failure<string>(tenant.Error);
+
+            firstSignInTenantId = tenant.Value;
+        }
+
         // Use email as the username for admin-created users
         var user = new ApplicationUser
         {
@@ -749,6 +766,8 @@ internal partial class UserService
             PhoneNumber = command.PhoneNumber,
             LoginProvider = command.LoginProvider,
             MustChangePassword = command.LoginProvider == LoginProviders.Wayd && command.MustChangePassword,
+            PendingMigrationTenantId = firstSignInTenantId,
+            PendingMigrationStagedAt = firstSignInTenantId is null ? null : _dateTimeProvider.Now,
         };
 
         // User creation, role assignment, and the Wayd identity row must land
@@ -783,8 +802,8 @@ internal partial class UserService
 
                 // Wayd (local) users get an identity row immediately, keyed by the
                 // stable ApplicationUser.Id (usernames are mutable). Entra users
-                // created by an admin have no oid/tid yet — the row is inserted on
-                // their first SSO login via EnsureEntraIdentityRowAsync.
+                // created by an admin have no oid yet — their row is written by the
+                // staged first-sign-in link set above.
                 if (command.LoginProvider == LoginProviders.Wayd)
                 {
                     await _userIdentityStore.Add(new UserIdentity
@@ -821,6 +840,37 @@ internal partial class UserService
 
         _logger.LogInformation("User {UserId} created successfully.", user.Id);
         return Result.Success(user.Id);
+    }
+
+    public async Task<IReadOnlyList<string>> GetEntraTenantIds(CancellationToken cancellationToken)
+    {
+        var provider = await _oidcProviderRegistry.GetByName(LoginProviders.MicrosoftEntraId, cancellationToken);
+        return provider?.AllowedTenantIds ?? [];
+    }
+
+    /// <summary>
+    /// The tenant an admin-created Entra user's first sign-in is linked from: the
+    /// requested one, which must be on the provider's allowlist, or the provider's
+    /// only allowed tenant when none is given.
+    /// </summary>
+    private async Task<Result<string>> ResolveFirstSignInTenant(string? requestedTenantId, CancellationToken cancellationToken)
+    {
+        var provider = await _oidcProviderRegistry.GetByName(LoginProviders.MicrosoftEntraId, cancellationToken);
+        var allowed = provider?.AllowedTenantIds ?? [];
+        if (allowed.Count == 0)
+            return Result.Failure<string>("Microsoft Entra ID is not configured. Add it under Settings → Identity Providers before creating Entra users.");
+
+        if (!string.IsNullOrWhiteSpace(requestedTenantId))
+        {
+            var match = allowed.FirstOrDefault(t => t.Equals(requestedTenantId.Trim(), StringComparison.OrdinalIgnoreCase));
+            return match is null
+                ? Result.Failure<string>("The tenant is not allowed by the Microsoft Entra ID provider.")
+                : Result.Success(match);
+        }
+
+        return allowed.Count == 1
+            ? Result.Success(allowed[0])
+            : Result.Failure<string>("Choose the tenant this user will sign in from.");
     }
 
     private sealed class UserCreationRollbackException : Exception { }

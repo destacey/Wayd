@@ -2164,6 +2164,35 @@
         ]
       }
     },
+    "/api/user-management/users/entra-tenants": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get the tenants a new Microsoft Entra ID user can be created for.",
+        "operationId": "Users_GetEntraTenantIds",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/user-management/users/{id}": {
       "get": {
         "tags": [
@@ -39361,6 +39390,11 @@
           },
           "loginProvider": {
             "type": "string"
+          },
+          "tenantId": {
+            "type": "string",
+            "description": "Microsoft Entra ID users only: the tenant their first sign-in is linked from.\nOptional when the Entra provider allows a single tenant.",
+            "nullable": true
           },
           "password": {
             "type": "string",

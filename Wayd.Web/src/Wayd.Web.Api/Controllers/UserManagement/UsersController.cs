@@ -35,6 +35,15 @@ public class UsersController(IUserService userService) : ControllerBase
         return await _userService.GetListAsync(cancellationToken);
     }
 
+    [HttpGet("entra-tenants")]
+    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Users)]
+    [OpenApiOperation("Get the tenants a new Microsoft Entra ID user can be created for.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IReadOnlyList<string>> GetEntraTenantIds(CancellationToken cancellationToken)
+    {
+        return await _userService.GetEntraTenantIds(cancellationToken);
+    }
+
     [HttpGet("{id}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
     [OpenApiOperation("Get a user's details.", "")]

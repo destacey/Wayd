@@ -70,6 +70,12 @@ public interface IUserService : ITransientService
 
     Task<Result<string>> CreateAsync(CreateUserCommand command, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The tenants a new Microsoft Entra ID user can be created for — the Entra provider's
+    /// allowlist, empty when no Entra provider is configured.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetEntraTenantIds(CancellationToken cancellationToken);
+
     Task<Result> ChangePasswordAsync(string userId, ChangePasswordCommand command);
 
     Task<Result> ResetPasswordAsync(ResetPasswordCommand command);

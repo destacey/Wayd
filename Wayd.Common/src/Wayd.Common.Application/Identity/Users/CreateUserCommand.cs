@@ -10,6 +10,13 @@ public sealed record CreateUserCommand
     public string? PhoneNumber { get; set; }
     public Guid? EmployeeId { get; set; }
     public required string LoginProvider { get; set; }
+
+    /// <summary>
+    /// Microsoft Entra ID users only: the tenant the user's first sign-in is linked from.
+    /// Optional when the Entra provider allows a single tenant, which is then used.
+    /// </summary>
+    public string? TenantId { get; set; }
+
     public string? Password { get; set; }
     public bool MustChangePassword { get; set; } = true;
     public List<string> RoleNames { get; set; } = [];
@@ -45,6 +52,14 @@ public sealed class CreateUserCommandValidator : CustomValidator<CreateUserComma
             .NotEmpty()
             .Must(lp => LoginProviders.All.Contains(lp))
                 .WithMessage("Login provider must be one of: " + string.Join(", ", LoginProviders.All));
+
+        RuleFor(u => u.TenantId)
+            .MaximumLength(100);
+
+        RuleFor(u => u.TenantId)
+            .Null()
+                .WithMessage("A tenant only applies to Microsoft Entra ID accounts.")
+            .When(u => u.LoginProvider != LoginProviders.MicrosoftEntraId);
 
         RuleFor(u => u.Password)
             .NotEmpty()

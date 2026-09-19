@@ -58,6 +58,7 @@ The form captures the user's details, their **Login Provider** (set here and imm
 
 - **At least one role is required.** You must assign one or more roles when creating a user — there is no default role applied automatically. A user with no roles has no permissions, so the form won't submit until at least one is selected.
 - **Login provider is permanent.** The provider chosen at creation can't be changed later through editing; use **Change Identity Provider** to move a user between providers.
+- **Microsoft Entra ID users sign in from one tenant.** Their first sign-in from that tenant, with a matching email, links the account. If your Entra provider allows only one tenant it's used automatically; if it allows several, pick it in **Sign-in Tenant**. A sign-in from any other tenant is refused. To change the tenant before they've signed in, use **Set Sign-in Tenant** on the user's page.
 - Roles can be adjusted any time afterward from the user's detail page.
 
 #### Tenant migration
@@ -77,7 +78,7 @@ This lives on the provider's detail page (**Settings → Identity Providers → 
 
 **Things to know:**
 
-- **Stage before the user signs in from the new tenant.** If you skip staging and the user signs in from the new tenant first, Wayd creates a brand-new account with a separate user ID — there's no in-app way to merge it back with the original; it requires manual database work to recover.
+- **Stage before the user signs in from the new tenant.** A sign-in from the new tenant without a staged migration is refused — Wayd never links an account by email alone — so stage it and have them sign in again. Only a sign-in whose username matches no existing account creates a new one, which can't be merged back without manual database work.
 - Tenant migration is **Microsoft Entra ID only**. For moving a user between different OIDC providers, use **Change Identity Provider** instead.
 - The selectable list excludes users who already have a migration pending. To retarget such a user, cancel their pending migration first (below).
 - The **Active Migrations** section is read-only. To cancel a single user's pending migration, open that user's detail page (**Settings → User Management → Users → \[user]**) and pick **Cancel Pending Migration** from the **Actions** menu. There is no bulk-cancel.
@@ -141,6 +142,7 @@ Single sign-on providers are configured in **Settings → Identity Providers** (
 **Things to know:**
 
 - **The first user is special.** The very first person to sign in to a brand-new deployment always becomes an administrator, regardless of policy — this can't lock you out of an empty system.
+- **An existing account is never adopted automatically.** Someone whose email matches an account already in Wayd is refused rather than linked to it, whatever the policy says, because an email alone doesn't prove who they are. Link them deliberately with **Set Sign-in Tenant**, **Change Identity Provider**, or tenant migration, depending on the account.
 - **Upgrades are secure by default.** Existing providers have auto-registration turned **off** after upgrading to this version; re-enable it deliberately per provider.
 - **A role in use can't be deleted.** If a role is set as a provider's default, attempting to delete it is blocked with a clear message until you repoint the provider to a different role.
 

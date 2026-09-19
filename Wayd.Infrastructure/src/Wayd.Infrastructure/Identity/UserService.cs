@@ -193,6 +193,40 @@ internal partial class UserService(
         return Result.Success();
     }
 
+    public async Task<Result> StageEntraSignInTenant(StageEntraSignInTenantCommand command, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, cancellationToken);
+        if (user is null)
+            throw new NotFoundException("User Not Found.");
+
+        if (user.LoginProvider != LoginProviders.MicrosoftEntraId)
+            return Result.Failure("Only Microsoft Entra ID users sign in from a tenant.");
+
+        // Someone already signs in with this account; pointing its next sign-in at another
+        // tenant would hand it to whoever there matches the UPN.
+        if (await _userIdentityStore.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId, cancellationToken))
+            return Result.Failure("This user already signs in with Microsoft Entra ID. Move them to another tenant with a tenant migration from the identity provider's page.");
+
+        var tenant = await ResolveFirstSignInTenant(command.TenantId, cancellationToken);
+        if (tenant.IsFailure)
+            return Result.Failure(tenant.Error);
+
+        user.PendingMigrationTenantId = tenant.Value;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            _logger.LogError("Failed to stage the sign-in tenant for user {UserId}: {Errors}", user.Id, errors);
+            return Result.Failure(errors);
+        }
+
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+
+        _logger.LogInformation("Sign-in tenant {TenantId} staged for user {UserId}.", tenant.Value, user.Id);
+        return Result.Success();
+    }
+
     public async Task<Result<BulkTenantMigrationResult>> StageBulkTenantMigration(
         StageBulkTenantMigrationCommand command, CancellationToken cancellationToken)
     {

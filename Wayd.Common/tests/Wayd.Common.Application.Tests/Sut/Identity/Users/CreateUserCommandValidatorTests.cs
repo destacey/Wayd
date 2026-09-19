@@ -199,6 +199,49 @@ public class CreateUserCommandValidatorTests
             .WithErrorMessage("Password must not be provided for non-Wayd accounts.");
     }
 
+    [Fact]
+    public async Task Validate_ShouldFail_WhenWaydAccountHasTenant()
+    {
+        // Arrange
+        var command = CreateValidWaydCommand();
+        command.TenantId = "7d1b4a52-0000-4000-8000-000000000001";
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.TenantId)
+            .WithErrorMessage("A tenant only applies to Microsoft Entra ID accounts.");
+    }
+
+    [Fact]
+    public async Task Validate_ShouldFail_WhenTenantExceedsMaxLength()
+    {
+        // Arrange — matches the PendingMigrationTenantId column.
+        var command = CreateValidEntraIdCommand();
+        command.TenantId = new string('a', 101);
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.TenantId);
+    }
+
+    [Fact]
+    public async Task Validate_ShouldPass_WhenEntraIdCommandHasTenant()
+    {
+        // Arrange
+        var command = CreateValidEntraIdCommand();
+        command.TenantId = "7d1b4a52-0000-4000-8000-000000000001";
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.TenantId);
+    }
+
     #endregion
 
     #region Email Validation

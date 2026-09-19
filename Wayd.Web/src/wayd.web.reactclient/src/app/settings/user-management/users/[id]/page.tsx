@@ -23,6 +23,7 @@ import {
   ManageUserRolesForm,
   ResetPasswordForm,
   StageProviderMigrationForm,
+  StageSignInTenantForm,
   useUserAccountActions,
 } from '../_components'
 import UserDetailsLoading from './loading'
@@ -38,6 +39,7 @@ type DialogId =
   | 'manage-roles'
   | 'reset-password'
   | 'stage-provider-migration'
+  | 'stage-sign-in-tenant'
   | 'convert-to-local'
 
 const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
@@ -63,6 +65,9 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const isOidcUser = !isLocalUser
   const hasPendingMigration = !!user?.pendingMigrationTenantId
   const hasPendingProviderMigration = !!user?.pendingMigrationProviderId
+  // An Entra user with no active identity can't sign in yet; their pending
+  // tenant is the link their next sign-in completes, not a move to cancel.
+  const awaitsFirstEntraSignIn = isEntraUser && !user?.hasActiveIdentity
   // Only offer "Change Identity Provider" when an enabled OIDC provider exists
   // that differs from the user's current one. The public auth/providers
   // endpoint returns only enabled providers, so no extra filter is needed.
@@ -108,10 +113,22 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         onClick: () => setDialog('reset-password'),
       })
     }
+    if (canUpdateUser && awaitsFirstEntraSignIn) {
+      secondaryItems.push({
+        key: 'stage-sign-in-tenant',
+        label: 'Set Sign-in Tenant',
+        onClick: () => setDialog('stage-sign-in-tenant'),
+      })
+    }
     // Staging a tenant migration is a bulk action on the provider page.
     // Cancelling one user's pending migration stays here, where the pending
     // state is visible.
-    if (canUpdateUser && isEntraUser && hasPendingMigration) {
+    if (
+      canUpdateUser &&
+      isEntraUser &&
+      hasPendingMigration &&
+      !awaitsFirstEntraSignIn
+    ) {
       secondaryItems.push({
         key: 'cancel-migration',
         label: 'Cancel Pending Migration',
@@ -283,6 +300,15 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
           userName={fullName}
           currentLoginProvider={user.loginProvider}
           currentPendingProviderId={user.pendingMigrationProviderId}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'stage-sign-in-tenant' && (
+        <StageSignInTenantForm
+          userId={user.id}
+          userName={fullName}
+          currentTenantId={user.pendingMigrationTenantId}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}
         />

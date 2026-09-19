@@ -8,6 +8,13 @@ public sealed record CreateUserRequest
     public string? PhoneNumber { get; set; }
     public Guid? EmployeeId { get; set; }
     public required string LoginProvider { get; set; }
+
+    /// <summary>
+    /// Microsoft Entra ID users only: the tenant their first sign-in is linked from.
+    /// Optional when the Entra provider allows a single tenant.
+    /// </summary>
+    public string? TenantId { get; set; }
+
     public string? Password { get; set; }
     public List<string> RoleNames { get; set; } = [];
 
@@ -20,6 +27,7 @@ public sealed record CreateUserRequest
             PhoneNumber = PhoneNumber,
             EmployeeId = EmployeeId,
             LoginProvider = LoginProvider,
+            TenantId = TenantId,
             Password = Password,
             RoleNames = RoleNames
         };

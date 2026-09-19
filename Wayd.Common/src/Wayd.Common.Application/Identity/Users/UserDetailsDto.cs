@@ -27,6 +27,12 @@ public sealed record UserDetailsDto
 
     public string? PendingMigrationProviderId { get; set; }
 
+    /// <summary>
+    /// Whether the user has an identity they can sign in with. False for an admin-created
+    /// Entra user who has not yet signed in.
+    /// </summary>
+    public bool HasActiveIdentity { get; set; }
+
     public Instant? LastActivityAt { get; set; }
 
     public NavigationDto? Employee { get; set; }

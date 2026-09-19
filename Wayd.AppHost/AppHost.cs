@@ -76,9 +76,9 @@ waydApi.WithCommand(
     {
         try
         {
-            var commandService = context.ServiceProvider
+            var commandService = context.Services
                 .GetRequiredService<Aspire.Hosting.ApplicationModel.ResourceCommandService>();
-            var notifications = context.ServiceProvider
+            var notifications = context.Services
                 .GetRequiredService<Aspire.Hosting.ApplicationModel.ResourceNotificationService>();
 
             // Stop the API BEFORE touching the database, and wait until it has actually exited, so no app

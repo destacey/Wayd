@@ -221,9 +221,11 @@ filtering or reasoning by name will give wrong answers.
 
 Two consequences:
 
-- **Environments are retired, never deleted.** There is no delete tool. A retired environment keeps
-  every deployment recorded against it, and those keep counting toward the measures they already
-  count toward. Editing is refused on a retired environment, so reinstate it first.
+- **Retire environments; delete only to purge history.** A retired environment keeps every deployment
+  recorded against it, and those keep counting toward the measures they already count toward.
+  `DeploymentEnvironments_Delete` removes the environment **and every deployment into it** — use it
+  only when the user explicitly wants that, and state the `deploymentCount` first. Editing is
+  refused on a retired environment, so reinstate it first.
 - **Reclassifying changes the future, not the past.** Each deployment froze its environment's
   category at the time, so promoting a staging environment to production does not retroactively
   inflate deployment frequency.

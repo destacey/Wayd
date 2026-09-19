@@ -49,7 +49,9 @@ one artifact and a version number, it is a *version*. If it is what the pipeline
 ## What can be changed via MCP
 
 Everything in delivery supports create and update, and every lifecycle move is available. A version,
-release or package is *withdrawn* and an environment is *retired* — none of them can be deleted.
+release or package is *withdrawn* — none of them can be deleted. An environment is *retired*;
+`DeploymentEnvironments_Delete` exists but takes every deployment into it along, so use it only when
+the user explicitly wants that history gone, and say how many deployments will go first.
 
 `Deployments_Delete` permanently removes a deployment and its status history, and the measures stop
 counting it. Use it only for a deployment recorded by mistake, or when the user asks to purge a

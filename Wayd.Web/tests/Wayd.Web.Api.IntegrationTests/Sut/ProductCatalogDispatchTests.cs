@@ -235,6 +235,43 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Dispatch_DeleteProductTagCommand_DeletesTheTagRow()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+
+        var category = await dispatcher.Send(
+            new CreateProductTagCategoryCommand(Unique("Axis"), null, true),
+            TestContext.Current.CancellationToken);
+        Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
+
+        var doomed = await dispatcher.Send(
+            new AddProductTagCommand(category.Value.Id, "alpha", null), TestContext.Current.CancellationToken);
+        Assert.True(doomed.IsSuccess, doomed.IsFailure ? doomed.Error : null);
+        var kept = await dispatcher.Send(
+            new AddProductTagCommand(category.Value.Id, "beta", null), TestContext.Current.CancellationToken);
+        Assert.True(kept.IsSuccess, kept.IsFailure ? kept.Error : null);
+
+        // Act
+        var result = await dispatcher.Send(
+            new DeleteProductTagCommand(category.Value.Id, doomed.Value), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The aggregate only drops the tag from its collection; the row goes because the relationship
+        // is required and EF deletes the orphan. The fakes model neither.
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var categories = await dispatcher.Send(
+            new GetProductTagCategoriesQuery(), TestContext.Current.CancellationToken);
+        var projected = Assert.Single(categories, c => c.Id == category.Value.Id);
+        Assert.Equal(kept.Value, Assert.Single(projected.Tags).Id);
+
+        // Cleanup
+        await dispatcher.Send(
+            new DeleteProductTagCategoryCommand(category.Value.Id), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
     public async Task Dispatch_GetDeploymentEnvironmentsQuery_ProjectsThroughMapster()
     {
         // Arrange

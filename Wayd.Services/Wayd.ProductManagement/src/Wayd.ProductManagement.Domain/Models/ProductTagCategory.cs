@@ -176,6 +176,32 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
         return isActive ? tag.Activate() : tag.Deactivate();
     }
 
+    /// <summary>
+    /// Removes one of the axis's tags outright.
+    /// </summary>
+    /// <remarks>
+    /// The category cannot see which products carry the tag, so the caller must establish that none do
+    /// first; a tag in use is deactivated instead. The database refuses the delete regardless — the
+    /// assignment's foreign key is restrictive — but that surfaces as an exception, not an answer.
+    /// </remarks>
+    public Result RemoveTag(Guid tagId)
+    {
+        if (IsSystem)
+        {
+            return Result.Failure("System tag categories cannot be modified.");
+        }
+
+        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
+        if (tag is null)
+        {
+            return Result.Failure("That tag does not belong to this axis.");
+        }
+
+        _tags.Remove(tag);
+
+        return Result.Success();
+    }
+
     /// <summary>Renames the axis.</summary>
     /// <remarks>
     /// Position is not editable here — see <see cref="SetOrder"/>. Ordering an axis is a statement about

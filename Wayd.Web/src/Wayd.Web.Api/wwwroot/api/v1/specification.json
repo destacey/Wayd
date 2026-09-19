@@ -7438,6 +7438,60 @@
             "ApiKey": []
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Delete an unused tag.",
+        "description": "A tag products carry must be deactivated instead.",
+        "operationId": "ProductTagCategories_DeleteTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
       }
     },
     "/api/product-management/product-tag-categories/{id}/tags/{tagId}/active": {

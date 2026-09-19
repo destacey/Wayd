@@ -111,8 +111,7 @@ const ManifestEditor = ({
               value={entry.productId || undefined}
               loading={isLoading}
               disabled={disabled}
-              showSearch
-              optionFilterProp="label"
+              showSearch={{ optionFilterProp: 'label' }}
               // Changing the component invalidates a version record chosen under the old one.
               onChange={(productId) =>
                 updateEntry(index, { productId, versionId: undefined })
@@ -125,8 +124,7 @@ const ManifestEditor = ({
               value={entry.versionId}
               disabled={disabled || !entry.productId}
               allowClear
-              showSearch
-              optionFilterProp="label"
+              showSearch={{ optionFilterProp: 'label' }}
               onChange={(versionId) => {
                 const version = versions.find((v) => v.id === versionId)
                 updateEntry(index, {

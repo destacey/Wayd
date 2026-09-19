@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getAuthClient, setRememberMe, storeAuth } from '@/src/services/clients'
 import { useDocumentTitle } from '@/src/hooks'
 import { notFound } from 'next/navigation'
+import { navigateWithFullReload } from '@/src/utils/window-utils'
 
 function LoadingSpinner() {
   return (
@@ -94,7 +95,7 @@ export default function SetupPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
 
@@ -120,7 +121,7 @@ export default function SetupPage() {
       })
       setRememberMe(true)
       storeAuth(tokenResponse)
-      window.location.href = '/'
+      navigateWithFullReload('/')
     } catch (err: any) {
       const message =
         err?.response?.data?.detail ||

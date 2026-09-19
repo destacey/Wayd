@@ -1,5 +1,6 @@
 import { OidcProviderInfo } from '@/src/services/wayd-api'
 import { User, UserManager, WebStorageStateStore } from 'oidc-client-ts'
+import { navigateWithFullReload } from '@/src/utils/window-utils'
 
 // Module-level cache: one UserManager per provider name. Persisting across
 // renders is required because signinRedirectCallback() must be called on the
@@ -128,6 +129,6 @@ export async function signoutRedirect(provider: OidcProviderInfo): Promise<void>
     await manager.signoutRedirect()
   } catch {
     // Provider has no end_session_endpoint — just go to login.
-    window.location.href = '/login'
+    navigateWithFullReload('/login')
   }
 }

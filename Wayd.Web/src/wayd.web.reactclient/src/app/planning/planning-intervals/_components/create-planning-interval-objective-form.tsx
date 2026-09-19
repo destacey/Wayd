@@ -167,20 +167,19 @@ const CreatePlanningIntervalObjectiveForm = ({
           </FormItem>
           <FormItem name="teamId" label="Team" rules={[{ required: true }]}>
             <Select
-              showSearch
+              showSearch={{
+                optionFilterProp: 'children',
+                filterOption: (input, option) =>
+                  (option?.label.toLowerCase() ?? '').includes(
+                    input.toLowerCase(),
+                  ),
+                filterSort: (optionA, optionB) =>
+                  (optionA?.label ?? '')
+                    .toLowerCase()
+                    .localeCompare((optionB?.label ?? '').toLowerCase()),
+              }}
               disabled={teamId !== undefined}
               placeholder="Select a team"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label.toLowerCase() ?? '').includes(
-                  input.toLowerCase(),
-                )
-              }
-              filterSort={(optionA, optionB) =>
-                (optionA?.label ?? '')
-                  .toLowerCase()
-                  .localeCompare((optionB?.label ?? '').toLowerCase())
-              }
               options={teams}
             />
           </FormItem>

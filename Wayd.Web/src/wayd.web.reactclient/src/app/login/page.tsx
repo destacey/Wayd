@@ -21,6 +21,7 @@ import {
   signinRedirect,
   signinSilent,
 } from '@/src/components/contexts/auth/oidc-client-registry'
+import { navigateWithFullReload } from '@/src/utils/window-utils'
 
 const pulseAnimation = `
 @keyframes pulse {
@@ -397,7 +398,7 @@ function LocalLoginTab() {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setIsSubmitting(true)
@@ -412,7 +413,7 @@ function LocalLoginTab() {
       storeAuth(tokenResponse)
       // Full reload so AuthProvider hydrates from the freshly-stored token
       // and the layout transitions from unauthenticated view to app shell.
-      window.location.href = '/'
+      navigateWithFullReload('/')
     } catch (err: any) {
       const message =
         err?.detail ||
@@ -551,7 +552,7 @@ export default function LoginPage() {
           subjectToken: oidcUser.access_token,
         })
         storeAuth(tokenResponse)
-        window.location.href = '/'
+        navigateWithFullReload('/')
       } catch (error) {
         console.error('[Login] Silent exchange failed:', error)
         setExchangeState('idle')
@@ -601,7 +602,7 @@ export default function LoginPage() {
           subjectToken: oidcUser.access_token,
         })
         storeAuth(tokenResponse)
-        window.location.href = '/'
+        navigateWithFullReload('/')
       } catch (error) {
         console.error('[Login] OIDC sign-in failed:', error)
         clearChosenProvider()

@@ -155,7 +155,7 @@ const ManageUserRolesForm: React.FC<ManageUserRolesFormProps> = ({
           onChange={onChange}
           onSelectChange={onSelectChange}
           titles={['Available', 'Assigned']}
-          listStyle={{ width: 300, height: 400 }}
+          styles={{ section: { width: 300, height: 400 } }}
           showSearch
         />
       </Spin>

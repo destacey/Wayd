@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Button, Result, Space, Typography } from 'antd'
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
+import { navigateWithFullReload } from '@/src/utils/window-utils'
 import styles from './page.module.css'
 
 const DiagnosticTransition = dynamic(() => import('./diagnostic-transition'), { ssr: false })
@@ -60,7 +61,7 @@ export default function ServiceUnavailablePage({
     if (onLogout) {
       onLogout()
     } else {
-      window.location.href = '/logout'
+      navigateWithFullReload('/logout')
     }
   }
 

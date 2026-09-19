@@ -22,8 +22,8 @@
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.10.2",
@@ -45,5 +45,18 @@
   },
   "engines": {
     "node": ">=24.0"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5",
+    "express": {
+      "qs": "^6.16.0"
+    },
+    "sockjs": {
+      "uuid": "^11.1.1"
+    }
+  },
+  "allowScripts": {
+    "@swc/core": false,
+    "core-js": false
   }
 }

@@ -221,19 +221,18 @@ const EditRiskForm = ({
           <FormItem name="assigneeId" label="Assignee">
             <Select
               allowClear
-              showSearch
+              showSearch={{
+                optionFilterProp: 'children',
+                filterOption: (input, option) =>
+                  (option?.label.toLowerCase() ?? '').includes(
+                    input.toLowerCase(),
+                  ),
+                filterSort: (optionA, optionB) =>
+                  (optionA?.label ?? '')
+                    .toLowerCase()
+                    .localeCompare((optionB?.label ?? '').toLowerCase()),
+              }}
               placeholder="Select an assignee"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label.toLowerCase() ?? '').includes(
-                  input.toLowerCase(),
-                )
-              }
-              filterSort={(optionA, optionB) =>
-                (optionA?.label ?? '')
-                  .toLowerCase()
-                  .localeCompare((optionB?.label ?? '').toLowerCase())
-              }
               options={employeeOptions}
             />
           </FormItem>

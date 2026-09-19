@@ -65,6 +65,7 @@ npm install     # Install dependencies
 npm run dev     # Run development server (with Turbopack)
 npm run build   # Build for production
 npm run lint    # Run linter
+npm run lint:deprecations  # List uses of @deprecated APIs (type-aware, slower)
 npm test        # Run tests
 ```
 

@@ -171,8 +171,7 @@ const StartDeploymentForm = ({
               options={versionOptions}
               loading={versionsLoading}
               placeholder="Select a version"
-              showSearch
-              optionFilterProp="label"
+              showSearch={{ optionFilterProp: 'label' }}
             />
           </Item>
         ) : (
@@ -185,8 +184,7 @@ const StartDeploymentForm = ({
               options={packageOptions}
               loading={packagesLoading}
               placeholder="Select a package"
-              showSearch
-              optionFilterProp="label"
+              showSearch={{ optionFilterProp: 'label' }}
             />
           </Item>
         )}
@@ -201,8 +199,7 @@ const StartDeploymentForm = ({
             options={environmentOptions}
             loading={environmentsLoading}
             placeholder="Select an environment"
-            showSearch
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
           />
         </Item>
 

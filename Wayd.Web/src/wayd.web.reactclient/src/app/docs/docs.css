@@ -27,6 +27,24 @@
   margin: 16px 0;
 }
 
+.docs-mermaid {
+  text-align: center;
+  margin: 16px 0;
+}
+
+.docs-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Skeleton.Node sizes itself to its content; stretch it to a diagram-shaped box
+   so the page does not jump by a full diagram's height when the render lands. */
+.docs-mermaid-placeholder,
+.docs-mermaid-placeholder .ant-skeleton-node {
+  width: 100% !important;
+  height: 240px !important;
+}
+
 .docs-content code {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.875em;

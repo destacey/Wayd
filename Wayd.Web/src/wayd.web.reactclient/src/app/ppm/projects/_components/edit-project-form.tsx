@@ -301,10 +301,11 @@ const EditProjectForm = ({
             allowClear
             options={strategicThemeData ?? []}
             placeholder="Select Strategic Themes"
-            optionFilterProp="label"
-            filterOption={(input, option) =>
-              (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase())
-            }
+            showSearch={{
+              optionFilterProp: 'label',
+              filterOption: (input, option) =>
+                (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+            }}
           />
         </Item>
       </Form>

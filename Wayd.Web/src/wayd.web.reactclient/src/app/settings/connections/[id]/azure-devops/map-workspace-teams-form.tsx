@@ -178,13 +178,13 @@ const MapAzdoWorkspaceTeamsForm = ({
                           >
                             <Select
                               allowClear
-                              showSearch
+                              showSearch={{
+                                filterOption: (input, option) =>
+                                  (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase()),
+                              }}
                               placeholder="Select a Team"
-                              filterOption={(input, option) =>
-                                (option?.label ?? '')
-                                  .toLowerCase()
-                                  .includes(input.toLowerCase())
-                              }
                               options={teamOptionsData}
                             />
                           </Item>

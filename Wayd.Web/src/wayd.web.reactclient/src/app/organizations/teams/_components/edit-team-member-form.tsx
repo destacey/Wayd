@@ -80,9 +80,8 @@ const EditTeamMemberForm = ({ teamId, teamType, member, onFormComplete, onFormCa
         <FormItem name="roleIds" label="Role(s)" rules={[{ required: true }]}>
           <Select
             mode="multiple"
-            showSearch
+            showSearch={{ optionFilterProp: 'label' }}
             placeholder="Select one or more roles"
-            optionFilterProp="label"
             options={roleSelectOptions}
           />
         </FormItem>

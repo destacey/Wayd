@@ -730,12 +730,13 @@ export const getProjectPlanTableColumns = ({
               size="small"
               mode="multiple"
               placeholder="Select assignees"
-              optionFilterProp="label"
-              filterOption={(input, option) =>
-                (option?.label?.toString().toLowerCase() ?? '').includes(
-                  input.toLowerCase(),
-                )
-              }
+              showSearch={{
+                optionFilterProp: 'label',
+                filterOption: (input, option) =>
+                  (option?.label?.toString().toLowerCase() ?? '').includes(
+                    input.toLowerCase(),
+                  ),
+              }}
               options={employeeOptions}
               onKeyDown={(e) => handleKeyDown(e, task.id, 'assignees')}
               onInputKeyDown={createSelectInputKeyDown(task.id, 'assignees')}

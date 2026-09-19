@@ -105,8 +105,7 @@ const ChangeProductStatusForm = ({
             options={options}
             loading={isLoading}
             placeholder="Select a status"
-            showSearch
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
           />
         </Item>
       </Form>

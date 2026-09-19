@@ -76,8 +76,7 @@ const DeliveryMetricsPage: FC = () => {
         value={productId}
         onChange={setProductId}
         allowClear
-        showSearch
-        optionFilterProp="label"
+        showSearch={{ optionFilterProp: 'label' }}
       />
     </Space>
   )

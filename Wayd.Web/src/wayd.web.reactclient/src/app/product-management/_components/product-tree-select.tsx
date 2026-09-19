@@ -136,8 +136,7 @@ const ProductTreeSelect = ({
       // Fills its container. Inside a Form.Item antd stretches it anyway, but standalone — a page
       // filter, say — it would otherwise collapse to the width of the placeholder.
       style={{ width: '100%' }}
-      showSearch
-      treeNodeFilterProp="title"
+      showSearch={{ treeNodeFilterProp: 'title' }}
       // The popup sizes to its content rather than to the trigger. Each level of nesting indents,
       // so a popup constrained to the trigger's width leaves deep nodes a few characters wide —
       // names wrap onto two lines and then clip, which is worst for exactly the leaves a tree

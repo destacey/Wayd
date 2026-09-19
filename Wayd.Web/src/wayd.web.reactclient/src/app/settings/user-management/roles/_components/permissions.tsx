@@ -81,7 +81,6 @@ const Permissions = (props: PermissionsProps) => {
     // Browser navigation (refresh, close tab, external URL)
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      e.returnValue = message
     }
 
     // Client-side navigation (capture phase to intercept before Next.js).

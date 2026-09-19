@@ -124,15 +124,15 @@ const CreateRoleForm = ({
           {roles && (
             <Select
               allowClear
-              showSearch
+              showSearch={{
+                optionFilterProp: 'children',
+                filterOption: (input, option) =>
+                  (option?.label ?? '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase()),
+              }}
               placeholder="Select a Role"
-              optionFilterProp="children"
               onChange={setRoleIdToCopyPermissions}
-              filterOption={(input, option) =>
-                (option?.label ?? '')
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
               options={
                 roles?.map((role) => ({
                   value: role.id,

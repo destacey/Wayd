@@ -199,8 +199,7 @@ const CreateUserForm = ({
         <Item label="Employee" name="employeeId">
           <Select
             allowClear
-            showSearch
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
             options={employeeOptions}
             loading={employeesLoading}
             placeholder="Select an employee (optional)"

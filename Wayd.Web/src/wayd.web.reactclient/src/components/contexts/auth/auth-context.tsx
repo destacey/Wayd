@@ -16,6 +16,7 @@ import {
   storeAuth,
 } from '@/src/services/clients'
 import { signoutRedirect } from './oidc-client-registry'
+import { navigateWithFullReload } from '@/src/utils/window-utils'
 import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
 
 export const AuthContext = createContext<AuthContextType | null>(null)
@@ -270,8 +271,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // about MSAL at all. Kept in the context to satisfy the interface while
   // consumers (e.g., 401 recovery paths) are migrated to route-based navigation.
   const login = useCallback(async () => {
-    // eslint-disable-next-line react-compiler/react-compiler
-    window.location.href = '/login'
+    navigateWithFullReload('/login')
   }, [])
 
   const localLogin = useCallback(
@@ -310,7 +310,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
     }
-    window.location.href = '/login'
+    navigateWithFullReload('/login')
   }, [session.loginProvider, session.authMethod, providers])
 
   // --- Context value ---

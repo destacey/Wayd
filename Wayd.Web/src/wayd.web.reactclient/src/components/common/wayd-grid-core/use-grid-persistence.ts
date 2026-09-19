@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, type MutableRefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import type { ColumnOrderState, ColumnPinningState, ColumnSizingState, ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
 import type { GridState } from './use-grid-table'
 
@@ -215,8 +215,8 @@ interface PendingWrite {
 }
 
 function flushPendingWrite(
-  pendingWriteRef: MutableRefObject<PendingWrite | null>,
-  lastWrittenRef: MutableRefObject<string | null>,
+  pendingWriteRef: RefObject<PendingWrite | null>,
+  lastWrittenRef: RefObject<string | null>,
 ) {
   const pending = pendingWriteRef.current
   if (!pending) return

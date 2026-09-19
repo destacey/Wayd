@@ -148,7 +148,7 @@ const ManageTagsForm = ({
                 allowClear
                 options={optionsFor(category, current.get(category.id) ?? [])}
                 placeholder={`Select ${category.name}`}
-                optionFilterProp="label"
+                showSearch={{ optionFilterProp: 'label' }}
               />
             </Form.Item>
           ))}

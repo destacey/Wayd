@@ -82,18 +82,16 @@ const AddTeamMemberForm = ({ teamId, teamType, onFormComplete, onFormCancel }: P
       <Form form={form} size="small" layout="vertical" name="add-team-member-form">
         <FormItem name="employeeId" label="Employee" rules={[{ required: true }]}>
           <Select
-            showSearch
+            showSearch={{ optionFilterProp: 'label' }}
             placeholder="Select an employee"
-            optionFilterProp="label"
             options={filteredEmployeeOptions}
           />
         </FormItem>
         <FormItem name="roleIds" label="Role(s)" rules={[{ required: true }]}>
           <Select
             mode="multiple"
-            showSearch
+            showSearch={{ optionFilterProp: 'label' }}
             placeholder="Select one or more roles"
-            optionFilterProp="label"
             options={roleSelectOptions}
           />
         </FormItem>

@@ -185,11 +185,12 @@ export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = ({
           allowClear
           // Filter the dropdown as the admin types — match on the type ID (the value).
           // Display label includes the count for context, but search by ID keeps it predictable.
-          filterOption={(input, option) =>
-            (option?.value as string)
-              ?.toLowerCase()
-              .includes(input.toLowerCase()) ?? false
-          }
+          showSearch={{
+            filterOption: (input, option) =>
+              (option?.value as string)
+                ?.toLowerCase()
+                .includes(input.toLowerCase()) ?? false,
+          }}
           maxLength={128}
         />
       </Item>

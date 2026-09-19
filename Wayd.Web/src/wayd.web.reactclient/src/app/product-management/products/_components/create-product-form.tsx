@@ -123,8 +123,7 @@ const CreateProductForm = ({
           <Select
             options={typeOptions}
             placeholder="Select a type"
-            showSearch
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
           />
         </Item>
         <Item

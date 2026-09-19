@@ -98,8 +98,7 @@ const DeploymentsPage: FC = () => {
         value={environmentId}
         onChange={setEnvironmentId}
         allowClear
-        showSearch
-        optionFilterProp="label"
+        showSearch={{ optionFilterProp: 'label' }}
       />
       <Select
         style={{ width: 160 }}

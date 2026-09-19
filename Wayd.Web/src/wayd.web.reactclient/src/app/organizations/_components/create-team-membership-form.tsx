@@ -107,17 +107,18 @@ const CreateTeamMembershipForm = ({
           rules={[{ required: true }]}
         >
           <Select
-            showSearch
+            showSearch={{
+              optionFilterProp: 'children',
+              filterOption: (input, option) =>
+                (option?.label.toLowerCase() ?? '').includes(
+                  input.toLowerCase(),
+                ),
+              filterSort: (optionA, optionB) =>
+                (optionA?.label ?? '')
+                  .toLowerCase()
+                  .localeCompare((optionB?.label ?? '').toLowerCase()),
+            }}
             placeholder="Select a parent team"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              (option?.label.toLowerCase() ?? '').includes(input.toLowerCase())
-            }
-            filterSort={(optionA, optionB) =>
-              (optionA?.label ?? '')
-                .toLowerCase()
-                .localeCompare((optionB?.label ?? '').toLowerCase())
-            }
             options={teamOptions?.filter((t) => t.value !== teamId)}
           />
         </FormItem>

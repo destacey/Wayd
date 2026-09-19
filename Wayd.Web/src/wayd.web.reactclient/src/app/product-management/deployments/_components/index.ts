@@ -10,5 +10,7 @@ export type {
 } from './complete-deployment-form'
 export { default as RollBackDeploymentForm } from './roll-back-deployment-form'
 export type { RollBackDeploymentFormProps } from './roll-back-deployment-form'
+export { default as DeleteDeploymentForm } from './delete-deployment-form'
+export type { DeleteDeploymentFormProps } from './delete-deployment-form'
 export { deploymentActionAvailability } from './deployment-actions'
 export type { DeploymentActionAvailability } from './deployment-actions'

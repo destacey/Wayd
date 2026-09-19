@@ -30,6 +30,7 @@ import { use, useEffect, useState } from 'react'
 import CompleteDeploymentForm, {
   type DeploymentOutcome,
 } from '../_components/complete-deployment-form'
+import DeleteDeploymentForm from '../_components/delete-deployment-form'
 import { deploymentActionAvailability } from '../_components/deployment-actions'
 import RollBackDeploymentForm from '../_components/roll-back-deployment-form'
 import DeploymentFacts from './_components/deployment-facts'
@@ -46,14 +47,15 @@ enum DeploymentSections {
 /**
  * A deployment, read-only apart from recording how it ended.
  *
- * There is deliberately no edit and no delete: a deployment records something that happened, and no
- * such endpoint exists. Once started it is only ever completed.
+ * There is deliberately no edit: a deployment records something that happened. Delete exists for one
+ * recorded by mistake, and sits apart from the outcomes so it is not mistaken for one.
  */
 const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
 
   const [outcomeForm, setOutcomeForm] = useState<DeploymentOutcome | null>(null)
   const [isRollBackOpen, setIsRollBackOpen] = useState<boolean>(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
 
   const router = useRouter()
 
@@ -66,6 +68,7 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateDeployment = hasPermissionClaim('Permissions.Delivery.Update')
+  const canDeleteDeployment = hasPermissionClaim('Permissions.Delivery.Delete')
 
   const messageApi = useMessage()
 
@@ -165,6 +168,17 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         onClick: () => setIsRollBackOpen(true),
       })
     }
+    if (canDeleteDeployment) {
+      if (items.length > 0) {
+        items.push({ key: 'delete-divider', type: 'divider' })
+      }
+      items.push({
+        key: 'delete',
+        label: 'Delete',
+        danger: true,
+        onClick: () => setIsDeleteOpen(true),
+      })
+    }
 
     return items
   })()
@@ -258,6 +272,16 @@ const DeploymentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsRollBackOpen(false)}
+        />
+      )}
+      {isDeleteOpen && (
+        <DeleteDeploymentForm
+          deployment={deployment}
+          onFormComplete={() => {
+            setIsDeleteOpen(false)
+            router.push('/product-management/deployments')
+          }}
+          onFormCancel={() => setIsDeleteOpen(false)}
         />
       )}
     </>

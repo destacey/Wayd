@@ -157,6 +157,22 @@ export const deploymentsApi = apiSlice.injectEndpoints({
         deploymentTags(arg.id, arg.cacheKey),
     }),
 
+    deleteDeployment: builder.mutation<void, { id: string; cacheKey: number }>(
+      {
+        queryFn: async ({ id }) => {
+          try {
+            const data = await getDeploymentsClient().delete(id)
+            return { data }
+          } catch (error) {
+            console.error('API Error:', error)
+            return { error }
+          }
+        },
+        invalidatesTags: (result, error, arg) =>
+          deploymentTags(arg.id, arg.cacheKey),
+      },
+    ),
+
     getDeploymentActivities: builder.query<
       PagedResponseOfActivityLogDto,
       { idOrKey: string | number; page?: number; pageSize?: number }
@@ -189,6 +205,7 @@ export const {
   useSucceedDeploymentMutation,
   useFailDeploymentMutation,
   useRollBackDeploymentMutation,
+  useDeleteDeploymentMutation,
   useGetDeploymentActivitiesQuery,
   useLazyGetDeploymentActivitiesQuery,
 } = deploymentsApi

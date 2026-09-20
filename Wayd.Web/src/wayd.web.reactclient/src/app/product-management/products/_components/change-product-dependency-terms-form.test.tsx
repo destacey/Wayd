@@ -126,6 +126,11 @@ describe('ChangeProductDependencyTermsForm', () => {
     expect(
       screen.queryByText('The current dependency ends and a new one starts'),
     ).not.toBeInTheDocument()
+
+    // The title and button have to agree with the alert — a reader acts on the title, and "Change"
+    // sends them looking for an ended dependency that was never created.
+    expect(screen.getByText('Record Interaction Styles')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Record' })).toBeInTheDocument()
   })
 
   it('lets a dependency started today record its styles, since that changes nothing', async () => {
@@ -150,7 +155,7 @@ describe('ChangeProductDependencyTermsForm', () => {
     expect(
       screen.queryByText('This dependency started today'),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Change' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Record' })).toBeEnabled()
   })
 
   it('changes the link on the product that has it, naming the product depended on', async () => {
@@ -176,7 +181,7 @@ describe('ChangeProductDependencyTermsForm', () => {
     )
   })
 
-  it('explains that a dependency started today cannot change terms until tomorrow', () => {
+  it('explains that a dependency started today cannot change terms until tomorrow', async () => {
     // Arrange — the current dependency would have to end the day before it started
     const startedToday = { ...dependency, startsOn: new Date() }
 
@@ -188,6 +193,11 @@ describe('ChangeProductDependencyTermsForm', () => {
         onFormCancel={() => {}}
       />,
     )
+
+    // Act — a genuine change of terms, which is what the day-after rule applies to
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: /^Hard/ }))
+    })
 
     // Assert
     expect(
@@ -210,5 +220,67 @@ describe('ChangeProductDependencyTermsForm', () => {
     expect(
       screen.queryByText('This dependency started today'),
     ).not.toBeInTheDocument()
+  })
+
+  it('claims no outcome before anything has been chosen', () => {
+    // Arrange / Act — the dialog opens on the current terms, so nothing will happen yet. Asserting that
+    // the dependency ends and a new one starts would describe an action nobody has taken.
+    render(
+      <ChangeProductDependencyTermsForm
+        dependency={dependency}
+        onFormComplete={() => {}}
+        onFormCancel={() => {}}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('Nothing has changed yet')).toBeInTheDocument()
+    expect(
+      screen.queryByText('The current dependency ends and a new one starts'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Change' })).toBeDisabled()
+
+    // The day belongs to a dependency that is not being created, so offering it would invite a choice
+    // that is silently discarded.
+    expect(screen.getByLabelText('First Day')).toBeDisabled()
+  })
+
+  it('offers the first day only once a change that starts a new dependency is chosen', async () => {
+    // Arrange
+    render(
+      <ChangeProductDependencyTermsForm
+        dependency={dependency}
+        onFormComplete={() => {}}
+        onFormCancel={() => {}}
+      />,
+    )
+    expect(screen.getByLabelText('First Day')).toBeDisabled()
+
+    // Act — a genuine change of terms
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: /^Hard/ }))
+    })
+
+    // Assert
+    expect(screen.getByLabelText('First Day')).toBeEnabled()
+  })
+
+  it('does not offer the first day when the styles are merely being recorded', async () => {
+    // Arrange
+    render(
+      <ChangeProductDependencyTermsForm
+        dependency={dependency}
+        onFormComplete={() => {}}
+        onFormCancel={() => {}}
+      />,
+    )
+
+    // Act — fills a blank, so one period is kept and no day applies
+    await act(async () => {
+      fireEvent.click(screen.getByRole('checkbox', { name: /^Synchronous/ }))
+    })
+
+    // Assert
+    expect(screen.getByLabelText('First Day')).toBeDisabled()
   })
 })

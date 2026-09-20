@@ -116,21 +116,51 @@ const ChangeProductDependencyTermsForm = ({
   const isOnlyRecordingStyles =
     hadNoStyles && strength === dependency.strength && !!styles?.length
 
-  const blocked = startedToday && !isOnlyRecordingStyles
+  // Which of the three outcomes the current selection leads to. On opening, nothing has been chosen yet,
+  // so neither of the other two is true — saying one anyway states an outcome for an action nobody has
+  // taken, and a reader who believes it goes looking for an ended dependency that was never created.
+  const recorded = dependency.interactionStyles ?? []
+  const stylesChanged =
+    (styles?.length ?? 0) !== recorded.length ||
+    !recorded.every((s) => styles?.includes(s))
+  const nothingChanged = strength === dependency.strength && !stylesChanged
+  const willStartANewDependency = !nothingChanged && !isOnlyRecordingStyles
+
+  const blocked = willStartANewDependency && startedToday
+
+  // The day only means something to the dependency about to be created, so the field is offered only when
+  // one is. Otherwise it invites a choice that is silently discarded — and its being available is how a
+  // reader decides whether a new dependency is coming.
+  const canChooseFirstDay = willStartANewDependency && !startedToday
 
   return (
     <Modal
-      title="Change Dependency Terms"
+      // The title and the button say which of the two things will happen. Leaving them on "Change" while
+      // the alert says no new dependency starts makes the dialog contradict itself, and a reader acts on
+      // the title — they expect the dependency to have ended and go looking for it under Show ended.
+      title={
+        isOnlyRecordingStyles
+          ? 'Record Interaction Styles'
+          : 'Change Dependency Terms'
+      }
       open={isOpen}
       onOk={handleOk}
-      okButtonProps={{ disabled: !isValid || blocked }}
-      okText="Change"
+      okButtonProps={{ disabled: !isValid || blocked || nothingChanged }}
+      okText={isOnlyRecordingStyles ? 'Record' : 'Change'}
       confirmLoading={isSaving}
       onCancel={handleCancel}
       keyboard={false} // disable esc key to close modal
       destroyOnHidden
     >
-      {isOnlyRecordingStyles ? (
+      {nothingChanged ? (
+        <Alert
+          type="info"
+          showIcon
+          title="Nothing has changed yet"
+          description="Change the strength or the interaction to see what will happen to this dependency."
+          style={{ marginBottom: 16 }}
+        />
+      ) : isOnlyRecordingStyles ? (
         <Alert
           type="info"
           showIcon
@@ -187,11 +217,15 @@ const ChangeProductDependencyTermsForm = ({
         <Item
           label="First Day"
           name="changedOn"
-          extra="The first day the new terms hold. Leave empty for today."
+          extra={
+            canChooseFirstDay
+              ? 'The first day the new terms hold. Leave empty for today.'
+              : 'Available once you choose a change that starts a new dependency.'
+          }
         >
           <DatePicker
             style={{ width: '100%' }}
-            disabled={blocked || isOnlyRecordingStyles}
+            disabled={!canChooseFirstDay}
             disabledDate={(current) =>
               current.isBefore(earliest, 'day') ||
               current.isAfter(dayjs(), 'day')

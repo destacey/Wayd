@@ -1,7 +1,9 @@
 import {
   DependencyStrength,
+  InteractionStyle,
   ProductDependencyDto,
 } from '@/src/services/wayd-api'
+import { SET_FILTER_BLANK } from '@/src/components/common/wayd-grid-core'
 import { buildDependencyColumns } from './product-dependencies'
 
 // The actions hook pulls in the dialogs; the columns under test only take its item builder.
@@ -77,5 +79,67 @@ describe('buildDependencyColumns', () => {
     expect(column(columns, 'nearEnd').accessorFn(link())).toBe(
       'Identity Service',
     )
+  })
+
+  describe('the Interaction column', () => {
+    const interaction = (styles?: InteractionStyle[]) => {
+      const columns = buildDependencyColumns('dependsOn', web.id, () => [])
+      const col = columns.find((c) => c.id === 'interaction') as unknown as {
+        accessorFn: (row: ProductDependencyDto) => string
+        filterFn: (
+          row: { original: ProductDependencyDto; getValue: () => unknown },
+          columnId: string,
+          filterValue: unknown,
+        ) => boolean
+      }
+      const row = link({ interactionStyles: styles })
+      return {
+        value: col.accessorFn(row),
+        matches: (selected: string[]) =>
+          col.filterFn(
+            { original: row, getValue: () => col.accessorFn(row) },
+            'interaction',
+            { type: 'set', values: selected },
+          ),
+      }
+    }
+
+    it('has no value of its own where no styles were recorded', () => {
+      // Arrange / Act — the grid offers its own blank option for these, so inventing a pseudo-style here
+      // would duplicate the cell's wording and make this column behave unlike its neighbours
+      const { value } = interaction(undefined)
+
+      // Assert
+      expect(value).toBe('')
+    })
+
+    it('matches a dependency that carries any one selected style', () => {
+      // Arrange — the point of filtering on individual styles rather than the joined pair
+      const both = interaction([
+        InteractionStyle.Synchronous,
+        InteractionStyle.Asynchronous,
+      ])
+
+      // Act / Assert
+      expect(both.matches(['Asynchronous'])).toBe(true)
+      expect(both.matches(['Synchronous'])).toBe(true)
+    })
+
+    it('does not match a style the dependency does not carry', () => {
+      // Arrange / Act
+      const syncOnly = interaction([InteractionStyle.Synchronous])
+
+      // Assert
+      expect(syncOnly.matches(['Asynchronous'])).toBe(false)
+    })
+
+    it('filters the unrecorded ones through the blank option the grid adds', () => {
+      // Arrange / Act
+      const none = interaction(undefined)
+
+      // Assert
+      expect(none.matches([SET_FILTER_BLANK])).toBe(true)
+      expect(none.matches(['Synchronous'])).toBe(false)
+    })
   })
 })

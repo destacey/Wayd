@@ -1,6 +1,10 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import {
+  createMultiValueSetFilter,
+  splitCsv,
+  WaydGrid,
+} from '@/src/components/common/wayd-grid'
 import {
   createActionsColumn,
   renderProductLink,
@@ -19,6 +23,13 @@ import useProductDependencyActions from './use-product-dependency-actions'
 const { Text } = Typography
 
 export type DependencyDirection = 'dependsOn' | 'usedBy'
+
+/**
+ * A dependency's styles as the filter's individual values. Empty where none were recorded, which the grid
+ * already filters as a blank.
+ */
+const interactionValues = (row: ProductDependencyDto): string[] =>
+  row.interactionStyles ?? []
 
 export interface ProductDependenciesProps {
   productId: string
@@ -73,16 +84,16 @@ export const buildDependencyColumns = (
     },
     {
       id: 'interaction',
-      // Sorts and filters on the recorded styles in one string, so "Synchronous" and "Synchronous,
-      // Asynchronous" are distinct values rather than a set the filter would flatten. An unrecorded row
-      // sorts and filters as "Not recorded" for the same reason the cell says so: blank reads as "none".
-      accessorFn: (row) =>
-        row.interactionStyles?.length
-          ? row.interactionStyles.join(', ')
-          : 'Not recorded',
       header: 'Interaction',
       size: 170,
-      meta: { filterType: 'set' },
+      // A multi-value column, filtered like the tag columns: the panel lists the individual styles and a
+      // row matches when it carries any one selected. Matching the joined string instead would offer
+      // "Synchronous, Asynchronous" as its own option, so picking Asynchronous would miss every dependency
+      // that is both — the one question this column exists to answer.
+      accessorFn: (row) => interactionValues(row).join(', '),
+      filterFn:
+        createMultiValueSetFilter<ProductDependencyDto>(interactionValues),
+      meta: { filterType: 'set', multiValueSplit: splitCsv },
       cell: ({ row }) => (
         <InteractionStyleTags styles={row.original.interactionStyles} />
       ),

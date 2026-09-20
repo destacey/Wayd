@@ -154,7 +154,9 @@ public class SeedRunnerTests
         // Assert
         batched.Should().BeEquivalentTo(
         [
+            PpmArea.Projects,
             PpmArea.ProjectTasks,
+            PpmArea.ProjectStages,
             ProductManagementArea.ProductDependencies,
             ProductManagementArea.Versions,
             ProductManagementArea.ReleasePackages,

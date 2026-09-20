@@ -38,9 +38,9 @@ public abstract class SeedArea(string name, params string[] dependsOn) : ISeedAr
     /// group together.
     /// </summary>
     /// <remarks>
-    /// The group is not a convenience: the imports that need batching are whole-set precisely because
-    /// rows within a group are not independent — a child task names its parent by that parent's ImportId
-    /// in the same file, and the per-project task number advances as rows are applied. Cutting a group
+    /// The group is not a convenience: it is the same unit the import itself applies by. A child task names
+    /// its parent by that parent's ImportId in the same file and the per-project task number advances as
+    /// rows are applied, so the import keeps a project's rows together and so must a file. Cutting a group
     /// across two files hands the second one a child whose parent it never saw.
     /// <para>
     /// A single group larger than the cap is left whole and over the limit. Splitting it would break the
@@ -75,8 +75,8 @@ public abstract class SeedArea(string name, params string[] dependsOn) : ISeedAr
     }
 
     /// <summary>
-    /// Posts each batch as its own run and gathers what they created. Each run is atomic, so a failure
-    /// names the batch it happened in and nothing from that batch exists.
+    /// Posts each batch as its own run and gathers what they created. A failure names the batch it happened
+    /// in, and the seed stops there rather than building the next stage on a partial one.
     /// </summary>
     protected static async Task<IReadOnlyDictionary<string, Guid>> ImportBatches<TRow>(
         SeedContext context,

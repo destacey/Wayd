@@ -15,6 +15,48 @@ Database connection strings are configured in:
 Wayd.Web/src/Wayd.Web.Api/Configurations/database.json
 ```
 
+| Setting | Default | What it does |
+|---|---|---|
+| `DBProvider` | — | `mssql`. The only provider wired up. |
+| `ConnectionString` | — | Where the application's data lives. |
+| `EnableSensitiveDataLogging` | `false` | Includes parameter values in EF Core's command logging. On in Development only — a failed bulk write otherwise logs every parameter of every row. |
+| `CommandTimeoutSeconds` | `30` | How long any one command may run. |
+
+### Command timeout
+
+The ceiling belongs to the context, not to each call site: a request-path write that takes half a minute is
+a fault worth surfacing, and raising the limit everywhere to suit the few operations that legitimately run
+long would hide it.
+
+An operation that needs longer asks for it, for its own scope, through `BaseDbContext.WithCommandTimeout`,
+which restores the previous value when disposed. It only ever raises — a caller asking for less than the
+context already allows gets the context's value. Two callers today: the migration run, and the import
+runner, whose files are bounded by a row cap rather than by anyone waiting.
+
+### READ_COMMITTED_SNAPSHOT
+
+**Wayd expects row versioning to be on.** A save commits its records together with the audit trail,
+activity log and outbox envelopes that record them, which is a longer transaction than the entity write
+alone; with it off, a reader blocks behind that transaction, and polling a running import's status can time
+out while the import is doing exactly what it should.
+
+**Azure SQL Database has it on for every new database**, so a deployment there already satisfies this.
+**SQL Server and Azure SQL Managed Instance default it off** — which is why a local container can behave
+differently from the deployed article, and be *stricter* rather than looser.
+
+Startup checks it. In Development it is switched on automatically, so a fresh container, a new database
+name in user secrets, CI and the Testcontainers suites need no manual step. Anywhere else it logs a warning
+naming the database and the statement to run, because the change takes exclusive access and disconnects
+every other session:
+
+```sql
+ALTER DATABASE [your-database] SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+```
+
+It never prevents the application from starting. Wayd is correct without it — readers block rather than
+seeing a prior snapshot — so a login that cannot `ALTER`, or an engine that refuses while another session
+holds the database, gets a warning and a working application.
+
 ## Authentication
 
 Wayd supports two authentication paths:

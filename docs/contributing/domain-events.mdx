@@ -185,6 +185,35 @@ will catch for you.
 `DomainEventConventionTests` also fails a new event named only for its record (`ProjectUpdatedEvent`) and a
 payload property that looks like personal data (`Email`, `FirstName`, `DisplayName`, …).
 
+## What a save commits
+
+A save commits the rows **and** everything that records them — audit trails, activity log entries and
+outbox envelopes — in one transaction, then delivers what those rows raised once it has committed. That is
+what makes a durable event worth anything: an envelope that commits separately from the row it describes
+can be lost while the row survives, which is the one failure an outbox exists to prevent.
+
+It used to work the other way, and the cost was invisible: the entities committed, and anything that threw
+afterwards left them in place with every event they raised discarded — no activity entry, no envelope, no
+dead letter, and a caller that still saw success.
+
+**Spanning several saves goes through `BaseDbContext.BeginUnitOfWork`**, whose `CommitAsync` commits and
+dispatches together:
+
+```csharp
+await using var unitOfWork = await dbContext.BeginUnitOfWork(cancellationToken);
+// … several SaveChangesAsync calls …
+await unitOfWork.CommitAsync(cancellationToken);
+```
+
+**Never open a transaction with `Database.BeginTransactionAsync` instead.** A save that joins a transaction
+it did not open cannot know when the rows became durable, so it leaves its events queued — and a caller who
+commits without going through the scope strands them permanently. `TransactionScopeTests` fails the build
+if one appears outside the context.
+
+One consequence worth knowing: because the save opens the transaction itself, a retrying execution strategy
+cannot be used. `EnableRetryOnFailure` would refuse a user transaction it did not start, and would therefore
+break every save in the application.
+
 ## Consuming an event
 
 Durable events go through the outbox to durable local queues, one per message type. Delivery is **at least

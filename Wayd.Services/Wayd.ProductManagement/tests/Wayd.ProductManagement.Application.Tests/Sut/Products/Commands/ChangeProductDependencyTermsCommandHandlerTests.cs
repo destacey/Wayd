@@ -6,10 +6,10 @@ using Wayd.ProductManagement.Application.Tests.Infrastructure;
 
 namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 
-public sealed class ChangeProductDependencyStrengthCommandHandlerTests : ProductCommandTestBase
+public sealed class ChangeProductDependencyTermsCommandHandlerTests : ProductCommandTestBase
 {
-    private ChangeProductDependencyStrengthCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<ChangeProductDependencyStrengthCommandHandler>(), DateTimeProvider.Object);
+    private ChangeProductDependencyTermsCommandHandler CreateSut() =>
+        new(DbContext, CurrentUser.Object, Logger<ChangeProductDependencyTermsCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldReturnTheIdOfTheLinkNowOpen()
@@ -23,7 +23,7 @@ public sealed class ChangeProductDependencyStrengthCommandHandlerTests : Product
 
         // Act
         var result = await sut.Handle(
-            new ChangeProductDependencyStrengthCommand(web.Id, original.Id, DependencyStrength.Hard, changedOn),
+            new ChangeProductDependencyTermsCommand(web.Id, original.Id, DependencyStrength.Hard, null, changedOn),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -48,7 +48,7 @@ public sealed class ChangeProductDependencyStrengthCommandHandlerTests : Product
 
         // Act
         await sut.Handle(
-            new ChangeProductDependencyStrengthCommand(web.Id, original.Id, DependencyStrength.Hard, null),
+            new ChangeProductDependencyTermsCommand(web.Id, original.Id, DependencyStrength.Hard, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -66,12 +66,12 @@ public sealed class ChangeProductDependencyStrengthCommandHandlerTests : Product
 
         // Act
         var result = await sut.Handle(
-            new ChangeProductDependencyStrengthCommand(web.Id, dependency.Id, DependencyStrength.Soft, null),
+            new ChangeProductDependencyTermsCommand(web.Id, dependency.Id, DependencyStrength.Soft, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("An ended dependency cannot change strength.");
+        result.Error.Should().Be("An ended dependency cannot change terms.");
         web.DomainEvents.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
@@ -84,7 +84,7 @@ public sealed class ChangeProductDependencyStrengthCommandHandlerTests : Product
 
         // Act
         var result = await sut.Handle(
-            new ChangeProductDependencyStrengthCommand(Guid.CreateVersion7(), Guid.CreateVersion7(), DependencyStrength.Hard, null),
+            new ChangeProductDependencyTermsCommand(Guid.CreateVersion7(), Guid.CreateVersion7(), DependencyStrength.Hard, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert

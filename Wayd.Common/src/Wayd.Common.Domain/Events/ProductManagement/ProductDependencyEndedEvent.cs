@@ -16,14 +16,15 @@ public sealed record ProductDependencyEndedEvent : DomainEvent<ProductDependency
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
-    public ProductDependencyEndedEvent(Guid id, int key, Guid dependencyId, Guid dependsOnProductId, DependencyStrength strength, FlexibleDateRange period, EventActor actor, Instant timestamp)
-        : base(actor, "1.0")
+    public ProductDependencyEndedEvent(Guid id, int key, Guid dependencyId, Guid dependsOnProductId, DependencyStrength strength, IReadOnlyCollection<InteractionStyle>? interactionStyles, FlexibleDateRange period, EventActor actor, Instant timestamp)
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
         DependencyId = dependencyId;
         DependsOnProductId = dependsOnProductId;
         Strength = strength;
+        InteractionStyles = interactionStyles;
         Period = period;
 
         Timestamp = timestamp;
@@ -34,6 +35,12 @@ public sealed record ProductDependencyEndedEvent : DomainEvent<ProductDependency
     public Guid DependencyId { get; }
     public Guid DependsOnProductId { get; }
     public DependencyStrength Strength { get; }
+
+    /// <summary>
+    /// How the product reached the one it depended on, or <c>null</c> where nobody recorded it.
+    /// </summary>
+    /// <remarks>Added at 1.1. Null on every payload written before it.</remarks>
+    public IReadOnlyCollection<InteractionStyle>? InteractionStyles { get; }
     /// <summary>The days the dependency held, its end being the last of them.</summary>
     public FlexibleDateRange Period { get; }
 

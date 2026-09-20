@@ -1,9 +1,20 @@
+using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Extensions;
+
 namespace Wayd.ProductManagement.Application.Products.Commands;
 
 /// <summary>
-/// Rewords what a product's dependency is for.
+/// Rewords what a product's dependency is for, and records the styles it uses where none were recorded.
 /// </summary>
-public sealed record UpdateProductDependencyCommand(Guid Id, Guid DependencyId, string? Description) : ICommand;
+/// <param name="InteractionStyles">
+/// Null or empty leaves recorded styles alone, where a null <paramref name="Description"/> clears it.
+/// Changing styles already recorded is refused here — it is a change of terms, which has to be dated.
+/// </param>
+public sealed record UpdateProductDependencyCommand(
+    Guid Id,
+    Guid DependencyId,
+    string? Description,
+    IReadOnlyCollection<InteractionStyle>? InteractionStyles) : ICommand;
 
 public sealed class UpdateProductDependencyCommandValidator : AbstractValidator<UpdateProductDependencyCommand>
 {
@@ -17,6 +28,10 @@ public sealed class UpdateProductDependencyCommandValidator : AbstractValidator<
 
         RuleFor(x => x.Description)
             .MaximumLength(1024);
+
+        RuleForEach(x => x.InteractionStyles)
+            .Must(Enum.IsDefined)
+            .WithMessage("'{PropertyValue}' is not an interaction style.");
     }
 }
 
@@ -51,6 +66,7 @@ public sealed class UpdateProductDependencyCommandHandler(
             var updateResult = product.UpdateDependencyDetails(
                 request.DependencyId,
                 request.Description,
+                request.InteractionStyles.ToFlagCombination(),
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 

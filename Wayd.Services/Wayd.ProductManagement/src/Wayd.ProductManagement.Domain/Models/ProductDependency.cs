@@ -21,19 +21,20 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// began. <see cref="Period"/> includes its end date, so a link ending on the 31st held through the 31st.
 /// </para>
 /// <para>
-/// <see cref="Strength"/> never changes on a link: a change of strength ends it and opens another, so a
-/// period of downtime is judged by the strength that held at the time.
+/// <see cref="Strength"/> and <see cref="InteractionStyle"/> never change on a link: a change of either ends
+/// it and opens another, so a period of downtime is judged by the terms that held at the time.
 /// </para>
 /// </remarks>
 public sealed class ProductDependency : BaseAuditableEntity
 {
     private ProductDependency() { }
 
-    internal ProductDependency(Guid productId, Guid dependsOnProductId, DependencyStrength strength, string? description, LocalDate startsOn)
+    internal ProductDependency(Guid productId, Guid dependsOnProductId, DependencyStrength strength, InteractionStyle? interactionStyle, string? description, LocalDate startsOn)
     {
         ProductId = Guard.Against.Default(productId, nameof(productId));
         DependsOnProductId = Guard.Against.Default(dependsOnProductId, nameof(dependsOnProductId));
         Strength = Guard.Against.EnumOutOfRange(strength, nameof(strength));
+        InteractionStyle = interactionStyle;
         Description = description;
         Period = new FlexibleDateRange(startsOn);
     }
@@ -50,6 +51,30 @@ public sealed class ProductDependency : BaseAuditableEntity
 
     /// <summary>Whether the product stops working without the one it depends on.</summary>
     public DependencyStrength Strength { get; private init; }
+
+    /// <summary>
+    /// How the product reaches the one it depends on, or <c>null</c> where nobody has recorded it.
+    /// </summary>
+    /// <remarks>
+    /// Several styles at once, since a pair commonly both calls and subscribes. Settable after construction
+    /// only to fill a blank: a style that changes ends the link and opens another, the same as
+    /// <see cref="Strength"/>, so that a period of downtime is judged by how the two products talked at the
+    /// time. <see cref="Product.UpdateDependencyDetails"/> refuses a change to styles already recorded.
+    /// </remarks>
+    public InteractionStyle? InteractionStyle
+    {
+        get;
+        internal set
+        {
+            if (value is { } style && !style.IsValidFlagCombination())
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value), style, "An interaction style must name at least one style. Record none as null.");
+            }
+
+            field = value;
+        }
+    }
 
     /// <summary>What the dependency is for — "validates SSO tokens".</summary>
     public string? Description

@@ -17,6 +17,7 @@ public sealed record ImportProductDependencyDto(
     Guid ProductId,
     Guid DependsOnProductId,
     DependencyStrength Strength,
+    IReadOnlyCollection<InteractionStyle>? InteractionStyles,
     string? Description,
     LocalDate? StartsOn,
     LocalDate? EndsOn);
@@ -37,6 +38,12 @@ public sealed class ImportProductDependencyDtoValidator : AbstractValidator<Impo
 
         RuleFor(d => d.Strength)
             .IsInEnum();
+
+        // Each entry names one style. IsInEnum would accept a combination, since on a flags enum it tests
+        // the bits rather than the declared members.
+        RuleForEach(d => d.InteractionStyles)
+            .Must(Enum.IsDefined)
+                .WithMessage("'{PropertyValue}' is not an interaction style.");
 
         RuleFor(d => d.Description)
             .MaximumLength(1024);

@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Extensions;
 using Wayd.ProductManagement.Application.Products.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
@@ -33,9 +34,13 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
 
     private sealed record CatalogNode(Guid Id, int Key, string Name, Guid? ParentId);
 
+    /// <summary>
+    /// A link as the database holds it, styles still as stored flags — the split into a collection happens
+    /// in <see cref="Rows"/>, which runs in memory.
+    /// </summary>
     private sealed record Link(
         Guid Id, Guid ProductId, Guid DependsOnProductId, DependencyStrength Strength,
-        string? Description, LocalDate StartsOn, LocalDate? EndsOn);
+        InteractionStyle? InteractionStyle, string? Description, LocalDate StartsOn, LocalDate? EndsOn);
 
     public async Task<ProductDependenciesDto?> Handle(GetProductDependenciesQuery query, CancellationToken cancellationToken)
     {
@@ -67,7 +72,7 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
         // matches on both ends and belongs in neither list.
         var touching = await links
             .Where(d => subtree.Contains(d.ProductId) || subtree.Contains(d.DependsOnProductId))
-            .Select(d => new Link(d.Id, d.ProductId, d.DependsOnProductId, d.Strength, d.Description, d.Period.Start, d.Period.End))
+            .Select(d => new Link(d.Id, d.ProductId, d.DependsOnProductId, d.Strength, d.InteractionStyle, d.Description, d.Period.Start, d.Period.End))
             .ToListAsync(cancellationToken);
 
         return new ProductDependenciesDto
@@ -100,6 +105,7 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
                 Product = Navigation(catalog[l.ProductId]),
                 DependsOnProduct = Navigation(catalog[l.DependsOnProductId]),
                 Strength = l.Strength,
+                InteractionStyles = l.InteractionStyle.ToFlags(),
                 Description = l.Description,
                 StartsOn = l.StartsOn,
                 EndsOn = l.EndsOn,

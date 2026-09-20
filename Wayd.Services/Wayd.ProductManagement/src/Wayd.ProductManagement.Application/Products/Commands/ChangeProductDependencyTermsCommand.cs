@@ -1,26 +1,34 @@
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Extensions;
 
 namespace Wayd.ProductManagement.Application.Products.Commands;
 
 /// <summary>
-/// Changes whether a product stops working without one it depends on.
+/// Changes the terms a product's dependency holds on — whether the product stops working without the one it
+/// depends on, how it reaches it, or both.
 /// </summary>
 /// <remarks>
 /// Ends the link and opens another, so the result is the id of the link now open — which differs from
-/// <see cref="DependencyId"/> whenever the strength actually changed.
+/// <see cref="DependencyId"/> whenever the terms actually changed. Recording styles on a link that had none
+/// is the exception: it fills them in place and returns the same id, since nothing about the dependency
+/// changed.
 /// </remarks>
-/// <param name="ChangedOn">
-/// The first day the new strength holds; the current link ends the day before. Defaults to today.
+/// <param name="InteractionStyles">
+/// Null or empty carries the recorded styles onto the new link rather than clearing them.
 /// </param>
-public sealed record ChangeProductDependencyStrengthCommand(
+/// <param name="ChangedOn">
+/// The first day the new terms hold; the current link ends the day before. Defaults to today.
+/// </param>
+public sealed record ChangeProductDependencyTermsCommand(
     Guid Id,
     Guid DependencyId,
     DependencyStrength Strength,
+    IReadOnlyCollection<InteractionStyle>? InteractionStyles,
     LocalDate? ChangedOn) : ICommand<Guid>;
 
-public sealed class ChangeProductDependencyStrengthCommandValidator : AbstractValidator<ChangeProductDependencyStrengthCommand>
+public sealed class ChangeProductDependencyTermsCommandValidator : AbstractValidator<ChangeProductDependencyTermsCommand>
 {
-    public ChangeProductDependencyStrengthCommandValidator()
+    public ChangeProductDependencyTermsCommandValidator()
     {
         RuleFor(x => x.Id)
             .NotEmpty();
@@ -30,24 +38,28 @@ public sealed class ChangeProductDependencyStrengthCommandValidator : AbstractVa
 
         RuleFor(x => x.Strength)
             .IsInEnum();
+
+        RuleForEach(x => x.InteractionStyles)
+            .Must(Enum.IsDefined)
+            .WithMessage("'{PropertyValue}' is not an interaction style.");
     }
 }
 
-public sealed class ChangeProductDependencyStrengthCommandHandler(
+public sealed class ChangeProductDependencyTermsCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
-    ILogger<ChangeProductDependencyStrengthCommandHandler> logger,
+    ILogger<ChangeProductDependencyTermsCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
-    : ICommandHandler<ChangeProductDependencyStrengthCommand, Guid>
+    : ICommandHandler<ChangeProductDependencyTermsCommand, Guid>
 {
-    private const string AppRequestName = nameof(ChangeProductDependencyStrengthCommand);
+    private const string AppRequestName = nameof(ChangeProductDependencyTermsCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ILogger<ChangeProductDependencyStrengthCommandHandler> _logger = logger;
+    private readonly ILogger<ChangeProductDependencyTermsCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<Result<Guid>> Handle(ChangeProductDependencyStrengthCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(ChangeProductDependencyTermsCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -63,9 +75,10 @@ public sealed class ChangeProductDependencyStrengthCommandHandler(
 
             var today = _dateTimeProvider.Today;
 
-            var changeResult = product.ChangeDependencyStrength(
+            var changeResult = product.ChangeDependencyTerms(
                 request.DependencyId,
                 request.Strength,
+                request.InteractionStyles.ToFlagCombination(),
                 request.ChangedOn ?? today,
                 today,
                 EventActor.User(_currentUser.GetUserId()),
@@ -75,7 +88,7 @@ public sealed class ChangeProductDependencyStrengthCommandHandler(
             {
                 product.ClearDomainEvents();
 
-                _logger.LogInformation("Unable to change the strength of dependency {DependencyId} on Product {ProductId}. Error message: {Error}", request.DependencyId, request.Id, changeResult.Error);
+                _logger.LogInformation("Unable to change the terms of dependency {DependencyId} on Product {ProductId}. Error message: {Error}", request.DependencyId, request.Id, changeResult.Error);
                 return Result.Failure<Guid>(changeResult.Error);
             }
 

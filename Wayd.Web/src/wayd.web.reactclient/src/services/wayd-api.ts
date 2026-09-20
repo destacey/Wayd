@@ -8797,10 +8797,10 @@ export class ProductsClient {
     }
 
     /**
-     * Change whether a product stops working without one it depends on.
+     * Change the terms a product's dependency holds on.
      */
-    changeDependencyStrength(id: string, dependencyId: string, request: ChangeProductDependencyStrengthRequest, cancelToken?: CancelToken): Promise<string> {
-        let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}/strength";
+    changeDependencyTerms(id: string, dependencyId: string, request: ChangeProductDependencyTermsRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/dependencies/{dependencyId}/terms";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -8829,11 +8829,11 @@ export class ProductsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processChangeDependencyStrength(_response);
+            return this.processChangeDependencyTerms(_response);
         });
     }
 
-    protected processChangeDependencyStrength(response: AxiosResponse): Promise<string> {
+    protected processChangeDependencyTerms(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -44204,6 +44204,10 @@ reported against it. Falls back to the row's position when the column is absent.
     /** Hard if the product stops working without it, Soft if it degrades but keeps working.
 Required: there is no default, because a guessed strength misstates impact. */
     strength: string;
+    /** How the product reaches the one it relies on: Synchronous, Asynchronous, or both
+separated by a semicolon or comma. Blank records none, which is not the same as recording that there
+are none. */
+    interactionStyles?: string | undefined;
     /** What the product relies on it for. Max 1024 chars. */
     description?: string | undefined;
     /** The day it began. Blank means today, so an EndsOn before today is refused. */
@@ -44263,6 +44267,7 @@ export interface ProductDependencyDto {
     product: NavigationDto;
     dependsOnProduct: NavigationDto;
     strength: DependencyStrength;
+    interactionStyles?: InteractionStyle[] | undefined;
     description?: string | undefined;
     startsOn: Date;
     endsOn?: Date | undefined;
@@ -44275,22 +44280,34 @@ export enum DependencyStrength {
     Soft = "Soft",
 }
 
+export enum InteractionStyle {
+    Synchronous = "Synchronous",
+    Asynchronous = "Asynchronous",
+}
+
 /** Records that a product depends on another. */
 export interface AddProductDependencyRequest {
     /** The product depended on. Cannot be the product itself, nor anything above or below it in the tree. */
     dependsOnProductId: string;
     /** Whether the product stops working without it (Hard) or carries on without it (Soft). */
     strength: DependencyStrength;
+    /** How the product reaches the one it depends on — both where it calls it and subscribes to it. Omit or
+send an empty list to record none, which is not the same as recording that there are none. */
+    interactionStyles?: InteractionStyle[] | undefined;
     /** What the dependency is for. */
     description?: string | undefined;
     /** The day the dependency began. Defaults to today, may be backdated, and cannot be in the future. */
     startsOn?: Date | undefined;
 }
 
-/** Rewords what a product's dependency is for. */
+/** Rewords what a product's dependency is for, and records the styles it uses where none were recorded. */
 export interface UpdateProductDependencyRequest {
     /** What the dependency is for, or null to clear it. */
     description?: string | undefined;
+    /** How the product reaches the one it depends on, where nobody has recorded it yet. Omitting this leaves
+recorded styles alone rather than clearing them — unlike the description, which an omitted value
+clears. Changing styles already recorded is refused: that is a change of terms, which has to be dated. */
+    interactionStyles?: InteractionStyle[] | undefined;
 }
 
 /** Records that a product stopped depending on another. The dependency is kept, and still counts for the period it held. */
@@ -44300,11 +44317,14 @@ future. */
     endsOn?: Date | undefined;
 }
 
-/** Changes whether a product stops working without one it depends on. */
-export interface ChangeProductDependencyStrengthRequest {
+/** Changes the terms a product's dependency holds on — whether the product stops working without the one it depends on, how it reaches it, or both. */
+export interface ChangeProductDependencyTermsRequest {
     /** Whether the product stops working without it (Hard) or carries on without it (Soft). */
     strength: DependencyStrength;
-    /** The first day the new strength holds; the current dependency ends the day before. Defaults to today,
+    /** How the product reaches the one it depends on. Omit or send an empty list to carry the recorded
+styles onto the new dependency rather than clearing them. */
+    interactionStyles?: InteractionStyle[] | undefined;
+    /** The first day the new terms hold; the current dependency ends the day before. Defaults to today,
 must be after the day the dependency started, and cannot be in the future. */
     changedOn?: Date | undefined;
 }

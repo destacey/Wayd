@@ -6978,14 +6978,14 @@
         ]
       }
     },
-    "/api/product-management/products/{id}/dependencies/{dependencyId}/strength": {
+    "/api/product-management/products/{id}/dependencies/{dependencyId}/terms": {
       "put": {
         "tags": [
           "Products"
         ],
-        "summary": "Change whether a product stops working without one it depends on.",
-        "description": "Ends the dependency and records a new one with the new strength, and returns the id of the dependency now open. Unchanged when the strength already matches.",
-        "operationId": "Products_ChangeDependencyStrength",
+        "summary": "Change the terms a product's dependency holds on.",
+        "description": "Ends the dependency and records a new one on the new terms, and returns the id of the dependency now open. Unchanged when the terms already match. Recording interaction styles on a dependency that had none fills them in place and returns the same id.",
+        "operationId": "Products_ChangeDependencyTerms",
         "parameters": [
           {
             "name": "id",
@@ -7017,7 +7017,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChangeProductDependencyStrengthRequest"
+                "$ref": "#/components/schemas/ChangeProductDependencyTermsRequest"
               }
             }
           },
@@ -41877,6 +41877,16 @@
               "Soft"
             ]
           },
+          "interactionStyles": {
+            "type": "string",
+            "description": "How the product reaches the one it relies on: Synchronous, Asynchronous, or both\nseparated by a semicolon or comma. Blank records none, which is not the same as recording that there\nare none.",
+            "nullable": true,
+            "x-csv-column": "InteractionStyles",
+            "x-csv-values": [
+              "Synchronous",
+              "Asynchronous"
+            ]
+          },
           "description": {
             "type": "string",
             "description": "What the product relies on it for. Max 1024 chars.",
@@ -42086,6 +42096,13 @@
           "strength": {
             "$ref": "#/components/schemas/DependencyStrength"
           },
+          "interactionStyles": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/InteractionStyle"
+            }
+          },
           "description": {
             "type": "string",
             "nullable": true
@@ -42125,6 +42142,19 @@
           "Soft"
         ]
       },
+      "InteractionStyle": {
+        "type": "string",
+        "description": "",
+        "x-enumFlags": true,
+        "x-enumNames": [
+          "Synchronous",
+          "Asynchronous"
+        ],
+        "enum": [
+          "Synchronous",
+          "Asynchronous"
+        ]
+      },
       "AddProductDependencyRequest": {
         "type": "object",
         "description": "Records that a product depends on another.",
@@ -42150,6 +42180,14 @@
               }
             ]
           },
+          "interactionStyles": {
+            "type": "array",
+            "description": "How the product reaches the one it depends on — both where it calls it and subscribes to it. Omit or\nsend an empty list to record none, which is not the same as recording that there are none.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/InteractionStyle"
+            }
+          },
           "description": {
             "type": "string",
             "description": "What the dependency is for.",
@@ -42167,7 +42205,7 @@
       },
       "UpdateProductDependencyRequest": {
         "type": "object",
-        "description": "Rewords what a product's dependency is for.",
+        "description": "Rewords what a product's dependency is for, and records the styles it uses where none were recorded.",
         "additionalProperties": false,
         "properties": {
           "description": {
@@ -42176,6 +42214,14 @@
             "maxLength": 1024,
             "minLength": 0,
             "nullable": true
+          },
+          "interactionStyles": {
+            "type": "array",
+            "description": "How the product reaches the one it depends on, where nobody has recorded it yet. Omitting this leaves\nrecorded styles alone rather than clearing them — unlike the description, which an omitted value\nclears. Changing styles already recorded is refused: that is a change of terms, which has to be dated.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/InteractionStyle"
+            }
           }
         }
       },
@@ -42192,9 +42238,9 @@
           }
         }
       },
-      "ChangeProductDependencyStrengthRequest": {
+      "ChangeProductDependencyTermsRequest": {
         "type": "object",
-        "description": "Changes whether a product stops working without one it depends on.",
+        "description": "Changes the terms a product's dependency holds on — whether the product stops working without the one it\ndepends on, how it reaches it, or both.",
         "additionalProperties": false,
         "required": [
           "strength"
@@ -42208,9 +42254,17 @@
               }
             ]
           },
+          "interactionStyles": {
+            "type": "array",
+            "description": "How the product reaches the one it depends on. Omit or send an empty list to carry the recorded\nstyles onto the new dependency rather than clearing them.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/InteractionStyle"
+            }
+          },
           "changedOn": {
             "type": "string",
-            "description": "The first day the new strength holds; the current dependency ends the day before. Defaults to today,\nmust be after the day the dependency started, and cannot be in the future.",
+            "description": "The first day the new terms hold; the current dependency ends the day before. Defaults to today,\nmust be after the day the dependency started, and cannot be in the future.",
             "format": "date",
             "nullable": true
           }

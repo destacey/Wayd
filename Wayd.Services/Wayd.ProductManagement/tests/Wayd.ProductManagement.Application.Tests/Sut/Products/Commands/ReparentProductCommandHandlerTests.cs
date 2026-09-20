@@ -52,7 +52,7 @@ public sealed class ReparentProductCommandHandlerTests
     {
         var today = new LocalDate(2026, 4, 1);
         var dependency = product.AddDependency(
-            dependsOnProductId, DependencyStrength.Hard, null, new LocalDate(2026, 1, 1), [], [], today, EventActor.System, Now).Value;
+            dependsOnProductId, DependencyStrength.Hard, null, null, new LocalDate(2026, 1, 1), [], [], today, EventActor.System, Now).Value;
 
         if (endsOn is not null)
         {

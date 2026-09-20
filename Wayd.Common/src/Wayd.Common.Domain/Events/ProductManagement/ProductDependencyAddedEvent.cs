@@ -17,14 +17,15 @@ public sealed record ProductDependencyAddedEvent : DomainEvent<ProductDependency
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
-    public ProductDependencyAddedEvent(Guid id, int key, Guid dependencyId, Guid dependsOnProductId, DependencyStrength strength, string? description, FlexibleDateRange period, EventActor actor, Instant timestamp)
-        : base(actor, "1.0")
+    public ProductDependencyAddedEvent(Guid id, int key, Guid dependencyId, Guid dependsOnProductId, DependencyStrength strength, IReadOnlyCollection<InteractionStyle>? interactionStyles, string? description, FlexibleDateRange period, EventActor actor, Instant timestamp)
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
         DependencyId = dependencyId;
         DependsOnProductId = dependsOnProductId;
         Strength = strength;
+        InteractionStyles = interactionStyles;
         Description = description;
         Period = period;
 
@@ -36,6 +37,16 @@ public sealed record ProductDependencyAddedEvent : DomainEvent<ProductDependency
     public Guid DependencyId { get; }
     public Guid DependsOnProductId { get; }
     public DependencyStrength Strength { get; }
+
+    /// <summary>
+    /// How the product reaches the one it depends on, or <c>null</c> where nobody has recorded it.
+    /// </summary>
+    /// <remarks>
+    /// Added at 1.1. Null on every payload written before it, which is also what a link with no styles
+    /// recorded carries — the two are the same thing, so nothing has to tell them apart.
+    /// </remarks>
+    public IReadOnlyCollection<InteractionStyle>? InteractionStyles { get; }
+
     public string? Description { get; }
     /// <summary>The days the dependency holds, from the day it began. Open-ended, since it has just begun.</summary>
     public FlexibleDateRange Period { get; }

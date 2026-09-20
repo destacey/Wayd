@@ -194,6 +194,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     public Result<ProductDependency> AddDependency(
         Guid dependsOnProductId,
         DependencyStrength strength,
+        InteractionStyle? interactionStyle,
         string? description,
         LocalDate startsOn,
         IReadOnlyCollection<Guid> ancestorIds,
@@ -218,7 +219,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
                 "A product cannot depend on a product above or below it in the product tree. That relationship is composition, which the tree already records.");
         }
 
-        return OpenDependency(dependsOnProductId, strength, description, startsOn, today, actor, timestamp);
+        return OpenDependency(dependsOnProductId, strength, interactionStyle, description, startsOn, today, actor, timestamp);
     }
 
     /// <summary>
@@ -257,20 +258,26 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     }
 
     /// <summary>
-    /// Changes whether this product stops working without the one it depends on, from
-    /// <paramref name="changedOn"/>.
+    /// Changes the terms a dependency holds on — whether this product stops working without the one it
+    /// depends on, how it reaches it, or both — from <paramref name="changedOn"/>.
     /// </summary>
     /// <param name="today">The current date, which no change may come after.</param>
     /// <remarks>
-    /// Ends the current link the day before and opens another carrying the new strength from
+    /// Ends the current link the day before and opens another carrying the new terms from
     /// <paramref name="changedOn"/>, rather than editing it: editing would re-judge downtime before the change by
-    /// a strength that did not hold then. Periods include their end day, so the two links meet without sharing a
+    /// terms that did not hold then. Periods include their end day, so the two links meet without sharing a
     /// day. That leaves no day to end on when the change falls on the day the link started, which is refused: a
-    /// link recorded with the wrong strength is removed and added again. The new link keeps the description, and
+    /// link recorded on the wrong terms is removed and added again. The new link keeps the description, and
     /// is not re-checked against the tree — it continues a dependency already recorded.
+    /// <para>
+    /// Recording styles on a link that had none is the exception, and fills them in place: nothing about the
+    /// dependency changed, somebody finally wrote down how it had always worked, so dating it would split the
+    /// period on a day nothing happened. A null <paramref name="interactionStyle"/> leaves recorded styles
+    /// alone rather than clearing them — unrecording a fact is not a change of terms.
+    /// </para>
     /// </remarks>
-    public Result<ProductDependency> ChangeDependencyStrength(
-        Guid dependencyId, DependencyStrength strength, LocalDate changedOn, LocalDate today, EventActor actor, Instant timestamp)
+    public Result<ProductDependency> ChangeDependencyTerms(
+        Guid dependencyId, DependencyStrength strength, InteractionStyle? interactionStyle, LocalDate changedOn, LocalDate today, EventActor actor, Instant timestamp)
     {
         Guard.Against.EnumOutOfRange(strength, nameof(strength));
 
@@ -282,38 +289,54 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         if (!dependency.IsOpen)
         {
-            return Result.Failure<ProductDependency>("An ended dependency cannot change strength.");
+            return Result.Failure<ProductDependency>("An ended dependency cannot change terms.");
         }
 
-        if (dependency.Strength == strength)
+        var strengthChanged = dependency.Strength != strength;
+        var stylesChanged = interactionStyle is not null
+            && dependency.InteractionStyle is not null
+            && dependency.InteractionStyle != interactionStyle;
+
+        if (!strengthChanged && !stylesChanged)
         {
-            return Result.Success(dependency);
+            // Whatever is left is either nothing at all or styles being written down for the first time.
+            return RecordDependencyDetails(dependency, dependency.Description, interactionStyle, actor, timestamp)
+                .Map(() => dependency);
         }
 
         if (changedOn <= dependency.Period.Start)
         {
             return Result.Failure<ProductDependency>(
-                "A dependency's strength can change from the day after it started. If it was recorded with the wrong strength, remove it and add it again.");
+                "A dependency's terms can change from the day after it started. If it was recorded on the wrong terms, remove it and add it again.");
         }
 
         if (changedOn > today)
         {
-            return Result.Failure<ProductDependency>("A dependency's strength cannot change in the future.");
+            return Result.Failure<ProductDependency>("A dependency's terms cannot change in the future.");
         }
 
         Close(dependency, changedOn.PlusDays(-1), actor, timestamp);
 
-        return OpenDependency(dependency.DependsOnProductId, strength, dependency.Description, changedOn, today, actor, timestamp);
+        return OpenDependency(
+            dependency.DependsOnProductId, strength, interactionStyle ?? dependency.InteractionStyle,
+            dependency.Description, changedOn, today, actor, timestamp);
     }
 
     /// <summary>
-    /// Rewords what a dependency is for. Allowed on an ended link, since it describes the link rather than
-    /// asserting anything about when it held.
+    /// Rewords what a dependency is for, and records the styles it uses where none were recorded. Allowed on
+    /// an ended link, since both describe the link rather than asserting anything about when it held.
     /// </summary>
     /// <remarks>
-    /// Raises nothing when the description already matches. Compares after assignment because the setter trims.
+    /// Raises nothing when every value already matches. Compares after assignment because the setter trims.
+    /// <para>
+    /// A null <paramref name="interactionStyle"/> leaves recorded styles alone, where a null description
+    /// clears one. The asymmetry is deliberate: a description is prose a caller may genuinely want to empty,
+    /// whereas styles are read when downtime is attributed, and a caller that simply omitted the field would
+    /// otherwise erase them. Changing styles already recorded is a change of terms, not a correction, so it
+    /// is refused here — see <see cref="ChangeDependencyTerms"/>.
+    /// </para>
     /// </remarks>
-    public Result UpdateDependencyDetails(Guid dependencyId, string? description, EventActor actor, Instant timestamp)
+    public Result UpdateDependencyDetails(Guid dependencyId, string? description, InteractionStyle? interactionStyle, EventActor actor, Instant timestamp)
     {
         var dependency = _dependencies.FirstOrDefault(d => d.Id == dependencyId);
         if (dependency is null)
@@ -321,16 +344,38 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
             return Result.Failure("Dependency not found.");
         }
 
-        var previous = dependency.Description;
+        return RecordDependencyDetails(dependency, description, interactionStyle, actor, timestamp);
+    }
+
+    private Result RecordDependencyDetails(
+        ProductDependency dependency, string? description, InteractionStyle? interactionStyle, EventActor actor, Instant timestamp)
+    {
+        if (interactionStyle is not null
+            && dependency.InteractionStyle is not null
+            && dependency.InteractionStyle != interactionStyle)
+        {
+            return Result.Failure(
+                "This dependency's interaction styles have already been recorded. Changing them is a change of terms, which ends this dependency and starts another.");
+        }
+
+        var previousDescription = dependency.Description;
+        var previousStyles = dependency.InteractionStyle;
+
         dependency.Description = description;
 
-        if (dependency.Description == previous)
+        if (interactionStyle is not null)
+        {
+            dependency.InteractionStyle = interactionStyle;
+        }
+
+        if (dependency.Description == previousDescription && dependency.InteractionStyle == previousStyles)
         {
             return Result.Success();
         }
 
         AddDomainEvent(new ProductDependencyDetailsUpdatedEvent(
-            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Description, previous, actor, timestamp));
+            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Description, previousDescription,
+            dependency.InteractionStyle.ToFlags(), previousStyles.ToFlags(), actor, timestamp));
 
         return Result.Success();
     }
@@ -360,13 +405,13 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         AddDomainEvent(new ProductDependencyRemovedEvent(
             Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength,
-            dependency.Period, reason.Trim(), actor, timestamp));
+            dependency.InteractionStyle.ToFlags(), dependency.Period, reason.Trim(), actor, timestamp));
 
         return Result.Success();
     }
 
     private Result<ProductDependency> OpenDependency(
-        Guid dependsOnProductId, DependencyStrength strength, string? description, LocalDate startsOn, LocalDate today, EventActor actor, Instant timestamp)
+        Guid dependsOnProductId, DependencyStrength strength, InteractionStyle? interactionStyle, string? description, LocalDate startsOn, LocalDate today, EventActor actor, Instant timestamp)
     {
         if (startsOn > today)
         {
@@ -389,12 +434,12 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
                 "An earlier dependency on that product already covers part of this period. Start this one after the day it ended.");
         }
 
-        var dependency = new ProductDependency(Id, dependsOnProductId, strength, description, startsOn);
+        var dependency = new ProductDependency(Id, dependsOnProductId, strength, interactionStyle, description, startsOn);
         _dependencies.Add(dependency);
 
         AddDomainEvent(new ProductDependencyAddedEvent(
             Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength,
-            dependency.Description, dependency.Period, actor, timestamp));
+            dependency.InteractionStyle.ToFlags(), dependency.Description, dependency.Period, actor, timestamp));
 
         return Result.Success(dependency);
     }
@@ -404,7 +449,8 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         dependency.Period = new FlexibleDateRange(dependency.Period.Start, endsOn);
 
         AddDomainEvent(new ProductDependencyEndedEvent(
-            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength, dependency.Period, actor, timestamp));
+            Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength,
+            dependency.InteractionStyle.ToFlags(), dependency.Period, actor, timestamp));
     }
 
     /// <summary>

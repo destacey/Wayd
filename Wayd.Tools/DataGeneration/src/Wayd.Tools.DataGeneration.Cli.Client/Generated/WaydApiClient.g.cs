@@ -14533,13 +14533,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change whether a product stops working without one it depends on.
+        /// Change the terms a product's dependency holds on.
         /// </summary>
         /// <remarks>
-        /// Ends the dependency and records a new one with the new strength, and returns the id of the dependency now open. Unchanged when the strength already matches.
+        /// Ends the dependency and records a new one on the new terms, and returns the id of the dependency now open. Unchanged when the terms already match. Recording interaction styles on a dependency that had none fills them in place and returns the same id.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> ChangeDependencyStrengthAsync(System.Guid id, System.Guid dependencyId, ChangeProductDependencyStrengthRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Guid> ChangeDependencyTermsAsync(System.Guid id, System.Guid dependencyId, ChangeProductDependencyTermsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -16571,13 +16571,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change whether a product stops working without one it depends on.
+        /// Change the terms a product's dependency holds on.
         /// </summary>
         /// <remarks>
-        /// Ends the dependency and records a new one with the new strength, and returns the id of the dependency now open. Unchanged when the strength already matches.
+        /// Ends the dependency and records a new one on the new terms, and returns the id of the dependency now open. Unchanged when the terms already match. Recording interaction styles on a dependency that had none fills them in place and returns the same id.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> ChangeDependencyStrengthAsync(System.Guid id, System.Guid dependencyId, ChangeProductDependencyStrengthRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Guid> ChangeDependencyTermsAsync(System.Guid id, System.Guid dependencyId, ChangeProductDependencyTermsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -16603,12 +16603,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/product-management/products/{id}/dependencies/{dependencyId}/strength"
+                    // Operation Path: "api/product-management/products/{id}/dependencies/{dependencyId}/terms"
                     urlBuilder_.Append("api/product-management/products/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/dependencies/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(dependencyId, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/strength");
+                    urlBuilder_.Append("/terms");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -80577,6 +80577,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Strength { get; set; } = default!;
 
         /// <summary>
+        /// How the product reaches the one it relies on: Synchronous, Asynchronous, or both
+        /// <br/>separated by a semicolon or comma. Blank records none, which is not the same as recording that there
+        /// <br/>are none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("interactionStyles")]
+        public string? InteractionStyles { get; set; } = default!;
+
+        /// <summary>
         /// What the product relies on it for. Max 1024 chars.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
@@ -80751,6 +80759,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DependencyStrength>))]
         public DependencyStrength Strength { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("interactionStyles")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        public System.Collections.Generic.ICollection<InteractionStyle>? InteractionStyles { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
@@ -80785,6 +80797,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    [System.Flags]
+    public enum InteractionStyle
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Synchronous")]
+        Synchronous = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Asynchronous")]
+        Asynchronous = 2,
+
+    }
+
     /// <summary>
     /// Records that a product depends on another.
     /// </summary>
@@ -80808,6 +80833,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public DependencyStrength Strength { get; set; } = default!;
 
         /// <summary>
+        /// How the product reaches the one it depends on — both where it calls it and subscribes to it. Omit or
+        /// <br/>send an empty list to record none, which is not the same as recording that there are none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("interactionStyles")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        public System.Collections.Generic.ICollection<InteractionStyle>? InteractionStyles { get; set; } = default!;
+
+        /// <summary>
         /// What the dependency is for.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
@@ -80824,7 +80857,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Rewords what a product's dependency is for.
+    /// Rewords what a product's dependency is for, and records the styles it uses where none were recorded.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateProductDependencyRequest
@@ -80836,6 +80869,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// How the product reaches the one it depends on, where nobody has recorded it yet. Omitting this leaves
+        /// <br/>recorded styles alone rather than clearing them — unlike the description, which an omitted value
+        /// <br/>clears. Changing styles already recorded is refused: that is a change of terms, which has to be dated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("interactionStyles")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        public System.Collections.Generic.ICollection<InteractionStyle>? InteractionStyles { get; set; } = default!;
 
     }
 
@@ -80858,10 +80900,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Changes whether a product stops working without one it depends on.
+    /// Changes the terms a product's dependency holds on — whether the product stops working without the one it
+    /// <br/>depends on, how it reaches it, or both.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ChangeProductDependencyStrengthRequest
+    public partial class ChangeProductDependencyTermsRequest
     {
 
         /// <summary>
@@ -80873,7 +80916,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public DependencyStrength Strength { get; set; } = default!;
 
         /// <summary>
-        /// The first day the new strength holds; the current dependency ends the day before. Defaults to today,
+        /// How the product reaches the one it depends on. Omit or send an empty list to carry the recorded
+        /// <br/>styles onto the new dependency rather than clearing them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("interactionStyles")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        public System.Collections.Generic.ICollection<InteractionStyle>? InteractionStyles { get; set; } = default!;
+
+        /// <summary>
+        /// The first day the new terms hold; the current dependency ends the day before. Defaults to today,
         /// <br/>must be after the day the dependency started, and cannot be in the future.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("changedOn")]

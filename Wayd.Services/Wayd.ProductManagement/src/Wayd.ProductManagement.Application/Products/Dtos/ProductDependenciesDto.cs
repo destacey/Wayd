@@ -44,6 +44,16 @@ public sealed record ProductDependencyDto
 
     public DependencyStrength Strength { get; init; }
 
+    /// <summary>
+    /// How the product reaches the one it depends on, both where it calls and subscribes, or <c>null</c>
+    /// where nobody has recorded it.
+    /// </summary>
+    /// <remarks>
+    /// Null rather than an empty list for a link with none recorded, so a reader can tell "nobody said" from
+    /// "there are none" — a rollup that counted the two alike would report false confidence.
+    /// </remarks>
+    public IReadOnlyCollection<InteractionStyle>? InteractionStyles { get; init; }
+
     public string? Description { get; init; }
 
     /// <summary>The day the dependency began.</summary>

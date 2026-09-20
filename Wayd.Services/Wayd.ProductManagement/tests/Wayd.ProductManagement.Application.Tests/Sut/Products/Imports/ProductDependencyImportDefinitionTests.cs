@@ -55,7 +55,7 @@ public sealed class ProductDependencyImportDefinitionTests
         DependencyStrength strength = DependencyStrength.Hard,
         LocalDate? startsOn = null,
         LocalDate? endsOn = null) =>
-        new(from.Id, to.Id, strength, null, startsOn, endsOn);
+        new(from.Id, to.Id, strength, null, null, startsOn, endsOn);
 
     private async Task<(ImportPassResult Result, ImportProcessRow[] Rows)> Run(params (string ImportId, ImportProductDependencyDto Data)[] rows)
     {

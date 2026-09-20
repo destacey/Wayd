@@ -27,7 +27,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Hard, "Validates SSO tokens", startsOn),
+            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Hard, null, "Validates SSO tokens", startsOn),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -50,7 +50,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         await sut.Handle(
-            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null),
+            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -68,7 +68,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(identity.Id, platform.Id, DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(identity.Id, platform.Id, DependencyStrength.Hard, null, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -89,7 +89,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(platform.Id, identity.Id, DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(platform.Id, identity.Id, DependencyStrength.Hard, null, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -109,7 +109,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(gateway.Id, identity.Id, DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(gateway.Id, identity.Id, DependencyStrength.Hard, null, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -125,7 +125,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(Guid.CreateVersion7(), identity.Id, DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(Guid.CreateVersion7(), identity.Id, DependencyStrength.Hard, null, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -142,7 +142,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(web.Id, Guid.CreateVersion7(), DependencyStrength.Hard, null, null),
+            new AddProductDependencyCommand(web.Id, Guid.CreateVersion7(), DependencyStrength.Hard, null, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -163,7 +163,7 @@ public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null),
+            new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null, null),
             TestContext.Current.CancellationToken);
 
         // Assert

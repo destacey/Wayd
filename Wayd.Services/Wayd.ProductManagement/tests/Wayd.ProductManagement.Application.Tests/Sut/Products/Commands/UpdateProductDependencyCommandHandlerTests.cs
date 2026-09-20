@@ -21,7 +21,7 @@ public sealed class UpdateProductDependencyCommandHandlerTests : ProductCommandT
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDependencyCommand(web.Id, dependency.Id, "Validates SSO tokens"),
+            new UpdateProductDependencyCommand(web.Id, dependency.Id, "Validates SSO tokens", null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -40,7 +40,7 @@ public sealed class UpdateProductDependencyCommandHandlerTests : ProductCommandT
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDependencyCommand(web.Id, Guid.CreateVersion7(), "Validates SSO tokens"),
+            new UpdateProductDependencyCommand(web.Id, Guid.CreateVersion7(), "Validates SSO tokens", null),
             TestContext.Current.CancellationToken);
 
         // Assert

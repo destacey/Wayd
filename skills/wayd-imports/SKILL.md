@@ -71,7 +71,7 @@ Records reference each other, so files go in dependency order, and **each must b
 - **Organization**: employees → teams → team hierarchy (`team-memberships`) → team staffing (`team-members`). Team member roles must exist first.
 - **Planning**: teams → planning intervals → objectives and risks.
 - **PPM**: expenditure categories and lifecycles (in Settings, not imported) → strategic themes → portfolios → programs → projects → project tasks → project stage statuses → strategic initiatives with KPIs → finalizations. Programs and portfolios that should end up closed are imported active, and `ppm.finalizations` closes them once their contents are in.
-- **Product Management**: product types and tags (in Settings) → products → versions → release packages → releases. Environments → deployments, after versions and packages. Product dependencies after products; a strength that changed is two rows on the same pair, the first ending the day before the second starts.
+- **Product Management**: product types and tags (in Settings) → products → versions → release packages → releases. Environments → deployments, after versions and packages. Product dependencies after products; terms that changed (strength or interaction styles) are two rows on the same pair, the first ending the day before the second starts.
 
 To show files as one batch in Settings → Imports, pass the same `submissionGroupId` (a GUID you choose) on each preflight and apply. It is a label only and changes nothing about ordering.
 

@@ -1,6 +1,10 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import {
+  createMultiValueSetFilter,
+  splitCsv,
+  WaydGrid,
+} from '@/src/components/common/wayd-grid'
 import {
   createActionsColumn,
   renderProductLink,
@@ -13,11 +17,19 @@ import {
 import { Segmented, Space, Switch, Typography } from 'antd'
 import { useState } from 'react'
 import { DependencyStrengthTag } from '../../_components/dependency-strength'
+import { InteractionStyleTags } from '../../_components/interaction-style'
 import useProductDependencyActions from './use-product-dependency-actions'
 
 const { Text } = Typography
 
 export type DependencyDirection = 'dependsOn' | 'usedBy'
+
+/**
+ * A dependency's styles as the filter's individual values. Empty where none were recorded, which the grid
+ * already filters as a blank.
+ */
+const interactionValues = (row: ProductDependencyDto): string[] =>
+  row.interactionStyles ?? []
 
 export interface ProductDependenciesProps {
   productId: string
@@ -68,6 +80,24 @@ export const buildDependencyColumns = (
       meta: { filterType: 'set' },
       cell: ({ row }) => (
         <DependencyStrengthTag strength={row.original.strength} />
+      ),
+    },
+    {
+      id: 'interaction',
+      header: 'Interaction',
+      // Wide enough for both tags on one line. Narrower and every dependency that is both — an ordinary
+      // case, not an edge one — wraps and renders at double the height of its neighbours.
+      size: 215,
+      // A multi-value column, filtered like the tag columns: the panel lists the individual styles and a
+      // row matches when it carries any one selected. Matching the joined string instead would offer
+      // "Synchronous, Asynchronous" as its own option, so picking Asynchronous would miss every dependency
+      // that is both — the one question this column exists to answer.
+      accessorFn: (row) => interactionValues(row).join(', '),
+      filterFn:
+        createMultiValueSetFilter<ProductDependencyDto>(interactionValues),
+      meta: { filterType: 'set', multiValueSplit: splitCsv },
+      cell: ({ row }) => (
+        <InteractionStyleTags styles={row.original.interactionStyles} />
       ),
     },
     {

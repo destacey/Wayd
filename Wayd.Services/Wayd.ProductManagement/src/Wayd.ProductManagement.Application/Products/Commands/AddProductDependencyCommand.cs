@@ -1,15 +1,21 @@
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Extensions;
 
 namespace Wayd.ProductManagement.Application.Products.Commands;
 
 /// <summary>
 /// Records that a product depends on another.
 /// </summary>
+/// <param name="InteractionStyles">
+/// How the product reaches the one it depends on, several at once where it both calls and subscribes. Null
+/// or empty records none, which is not the same as recording that there are none.
+/// </param>
 /// <param name="StartsOn">The day the dependency began. Defaults to today, and may be backdated.</param>
 public sealed record AddProductDependencyCommand(
     Guid Id,
     Guid DependsOnProductId,
     DependencyStrength Strength,
+    IReadOnlyCollection<InteractionStyle>? InteractionStyles,
     string? Description,
     LocalDate? StartsOn) : ICommand<Guid>;
 
@@ -27,6 +33,12 @@ public sealed class AddProductDependencyCommandValidator : AbstractValidator<Add
 
         RuleFor(x => x.Strength)
             .IsInEnum();
+
+        // Each entry names one style. IsInEnum would accept a combination, since on a flags enum it tests
+        // the bits rather than the declared members.
+        RuleForEach(x => x.InteractionStyles)
+            .Must(Enum.IsDefined)
+            .WithMessage("'{PropertyValue}' is not an interaction style.");
 
         RuleFor(x => x.Description)
             .MaximumLength(1024);
@@ -86,6 +98,7 @@ public sealed class AddProductDependencyCommandHandler(
             var addResult = product.AddDependency(
                 request.DependsOnProductId,
                 request.Strength,
+                request.InteractionStyles.ToFlagCombination(),
                 request.Description,
                 request.StartsOn ?? today,
                 ancestors.Value,

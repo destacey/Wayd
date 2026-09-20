@@ -97,11 +97,11 @@ public sealed class ProductDependencyImportTests(WaydSqlServerApiFactory factory
         // Act — Storefront's second row is composition, which only the domain can refuse, and only after
         // its first row has already been added to the aggregate.
         var run = await SubmitAndWait(scope,
-            ("s1", new(storefront, identity, DependencyStrength.Hard, null, today.PlusDays(-30), null)),
-            ("s2", new(storefront, storefrontWeb, DependencyStrength.Hard, null, today.PlusDays(-20), null)),
-            ("s3", new(storefront, search, DependencyStrength.Soft, null, today.PlusDays(-10), null)),
-            ("b1", new(billing, identity, DependencyStrength.Hard, null, today.PlusDays(-30), null)),
-            ("b2", new(billing, search, DependencyStrength.Soft, null, today.PlusDays(-30), today.PlusDays(-5))));
+            ("s1", new(storefront, identity, DependencyStrength.Hard, null, null, today.PlusDays(-30), null)),
+            ("s2", new(storefront, storefrontWeb, DependencyStrength.Hard, null, null, today.PlusDays(-20), null)),
+            ("s3", new(storefront, search, DependencyStrength.Soft, null, null, today.PlusDays(-10), null)),
+            ("b1", new(billing, identity, DependencyStrength.Hard, null, null, today.PlusDays(-30), null)),
+            ("b2", new(billing, search, DependencyStrength.Soft, null, null, today.PlusDays(-30), today.PlusDays(-5))));
 
         // Assert
         Assert.Equal(ImportProcessStatus.PartiallySucceeded, run.Status);
@@ -153,8 +153,8 @@ public sealed class ProductDependencyImportTests(WaydSqlServerApiFactory factory
 
         // Act
         var run = await SubmitAndWait(scope,
-            ("now", new(checkout, payments, DependencyStrength.Hard, null, changedOn, null)),
-            ("was", new(checkout, payments, DependencyStrength.Soft, null, today.PlusDays(-200), changedOn.PlusDays(-1))));
+            ("now", new(checkout, payments, DependencyStrength.Hard, null, null, changedOn, null)),
+            ("was", new(checkout, payments, DependencyStrength.Soft, null, null, today.PlusDays(-200), changedOn.PlusDays(-1))));
 
         // Assert — in file order the open link would be recorded first and the earlier one refused as overlapping
         Assert.Equal(ImportProcessStatus.Succeeded, run.Status);

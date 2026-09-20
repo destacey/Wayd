@@ -134,6 +134,13 @@ public class ProductDependencyConfiguration : IEntityTypeConfiguration<ProductDe
             .HasConversion<EnumConverter<DependencyStrength>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
+
+        // The stored flag bits, not the name that Strength beside it uses. EnumConverter writes ToString(),
+        // which for a combination is "Synchronous, Asynchronous" — a composite string that no bitwise
+        // predicate can filter, so asking which dependencies are asynchronous would become a LIKE. Null is a
+        // link with no styles recorded; the domain refuses a value naming none, so zero never reaches here.
+        builder.Property(d => d.InteractionStyle);
+
         builder.Property(d => d.Description).HasMaxLength(1024);
 
         builder.OwnsOne(d => d.Period, period =>

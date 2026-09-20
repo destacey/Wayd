@@ -37,6 +37,14 @@ public sealed class ImportProductDependencyRequest
     [CsvValues(typeof(DependencyStrength))]
     public string Strength { get; set; } = default!;
 
+    /// <summary>
+    /// How the product reaches the one it relies on: <c>Synchronous</c>, <c>Asynchronous</c>, or both
+    /// separated by a semicolon or comma. Blank records none, which is not the same as recording that there
+    /// are none.
+    /// </summary>
+    [CsvValues(typeof(InteractionStyle))]
+    public string? InteractionStyles { get; set; }
+
     /// <summary>What the product relies on it for. Max 1024 chars.</summary>
     public string? Description { get; set; }
 
@@ -50,6 +58,7 @@ public sealed class ImportProductDependencyRequest
         new(ProductId,
             DependsOnProductId,
             ParseStrength(Strength) ?? default,
+            ParseInteractionStyles(InteractionStyles),
             Description,
             StartsOn?.ToLocalDate(),
             EndsOn?.ToLocalDate());
@@ -61,6 +70,35 @@ public sealed class ImportProductDependencyRequest
         && Enum.IsDefined(strength)
             ? strength
             : null;
+
+    /// <summary>
+    /// Reads the styles a cell lists, by name, separated by a semicolon or a comma.
+    /// </summary>
+    /// <returns>
+    /// Null for a blank cell — nothing recorded. A cell holding a name the validator has already refused
+    /// yields null too, rather than silently importing the entries around it.
+    /// </returns>
+    internal static IReadOnlyCollection<InteractionStyle>? ParseInteractionStyles(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        List<InteractionStyle> styles = [];
+
+        foreach (var name in value.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!Enum.TryParse<InteractionStyle>(name, ignoreCase: true, out var style) || !Enum.IsDefined(style))
+            {
+                return null;
+            }
+
+            styles.Add(style);
+        }
+
+        return styles.Count == 0 ? null : styles;
+    }
 }
 
 public sealed class ImportProductDependencyRequestValidator : CustomValidator<ImportProductDependencyRequest>
@@ -80,6 +118,12 @@ public sealed class ImportProductDependencyRequestValidator : CustomValidator<Im
         RuleFor(d => d.Strength)
             .Must(s => ImportProductDependencyRequest.ParseStrength(s) is not null)
                 .WithMessage("Strength must be 'Hard' or 'Soft'.");
+
+        // A blank cell is allowed and means none recorded, so only a cell that has content the parse
+        // refuses is an error.
+        RuleFor(d => d.InteractionStyles)
+            .Must(s => string.IsNullOrWhiteSpace(s) || ImportProductDependencyRequest.ParseInteractionStyles(s) is not null)
+                .WithMessage("InteractionStyles must list 'Synchronous', 'Asynchronous', or both separated by a semicolon.");
 
         RuleFor(d => d.Description)
             .MaximumLength(1024);

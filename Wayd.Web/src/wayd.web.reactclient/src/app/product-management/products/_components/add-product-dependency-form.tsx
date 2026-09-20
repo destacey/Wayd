@@ -5,6 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   AddProductDependencyRequest,
   DependencyStrength,
+  InteractionStyle,
   ProductDto,
 } from '@/src/services/wayd-api'
 import {
@@ -16,6 +17,7 @@ import { DatePicker, Form, Input, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { ancestorIdsOf, ProductTreeSelect } from '../../_components'
 import { DependencyStrengthRadio } from './dependency-strength'
+import { InteractionStyleCheckboxes } from './interaction-style'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -29,6 +31,7 @@ export interface AddProductDependencyFormProps {
 interface AddProductDependencyFormValues {
   dependsOnProductId?: string
   strength?: DependencyStrength
+  interactionStyles?: InteractionStyle[]
   description?: string
   startsOn?: Dayjs
 }
@@ -58,6 +61,7 @@ const AddProductDependencyForm = ({
           const request = {
             dependsOnProductId: values.dependsOnProductId,
             strength: values.strength,
+            interactionStyles: values.interactionStyles,
             description: values.description,
             startsOn: values.startsOn?.format('YYYY-MM-DD'),
           } as AddProductDependencyRequest
@@ -129,6 +133,13 @@ const AddProductDependencyForm = ({
           rules={[{ required: true, message: 'Choose how it depends on it' }]}
         >
           <DependencyStrengthRadio />
+        </Item>
+        <Item
+          name="interactionStyles"
+          label="Interaction"
+          extra="How these products talk. Leaving this empty records nothing, not that there is neither."
+        >
+          <InteractionStyleCheckboxes />
         </Item>
         <Item
           name="description"

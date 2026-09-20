@@ -14,7 +14,7 @@ jest.mock('@/src/components/contexts/auth', () => ({
 
 // The dialogs are never opened here; only which ones are offered.
 jest.mock(
-  '../../_components/change-product-dependency-strength-form',
+  '../../_components/change-product-dependency-terms-form',
   () => () => null,
 )
 jest.mock('../../_components/edit-product-dependency-form', () => () => null)
@@ -50,7 +50,7 @@ describe('useProductDependencyActions', () => {
     // Assert
     expect(keys(items as { key?: unknown }[])).toEqual([
       'edit',
-      'strength',
+      'terms',
       'end',
       'divider',
       'remove',

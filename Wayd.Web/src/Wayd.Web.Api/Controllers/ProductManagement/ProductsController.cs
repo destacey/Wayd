@@ -401,7 +401,7 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
         Guid id, Guid dependencyId, [FromBody] UpdateProductDependencyRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(
-            new UpdateProductDependencyCommand(id, dependencyId, request.Description), cancellationToken);
+            new UpdateProductDependencyCommand(id, dependencyId, request.Description, request.InteractionStyles), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -426,19 +426,19 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPut("{id}/dependencies/{dependencyId}/strength")]
+    [HttpPut("{id}/dependencies/{dependencyId}/terms")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
     [OpenApiOperation(
-        "Change whether a product stops working without one it depends on.",
-        "Ends the dependency and records a new one with the new strength, and returns the id of the dependency now open. Unchanged when the strength already matches.")]
+        "Change the terms a product's dependency holds on.",
+        "Ends the dependency and records a new one on the new terms, and returns the id of the dependency now open. Unchanged when the terms already match. Recording interaction styles on a dependency that had none fills them in place and returns the same id.")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<Guid>> ChangeDependencyStrength(
-        Guid id, Guid dependencyId, [FromBody] ChangeProductDependencyStrengthRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<Guid>> ChangeDependencyTerms(
+        Guid id, Guid dependencyId, [FromBody] ChangeProductDependencyTermsRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(
-            new ChangeProductDependencyStrengthCommand(id, dependencyId, request.Strength, request.ChangedOn), cancellationToken);
+            request.ToChangeProductDependencyTermsCommand(id, dependencyId), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)

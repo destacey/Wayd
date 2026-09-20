@@ -19,6 +19,12 @@ public sealed record AddProductDependencyRequest
     public DependencyStrength Strength { get; set; }
 
     /// <summary>
+    /// How the product reaches the one it depends on — both where it calls it and subscribes to it. Omit or
+    /// send an empty list to record none, which is not the same as recording that there are none.
+    /// </summary>
+    public IReadOnlyCollection<InteractionStyle>? InteractionStyles { get; set; }
+
+    /// <summary>
     /// What the dependency is for.
     /// </summary>
     public string? Description { get; set; }
@@ -29,7 +35,7 @@ public sealed record AddProductDependencyRequest
     public LocalDate? StartsOn { get; set; }
 
     public AddProductDependencyCommand ToAddProductDependencyCommand(Guid productId)
-        => new(productId, DependsOnProductId, Strength, Description, StartsOn);
+        => new(productId, DependsOnProductId, Strength, InteractionStyles, Description, StartsOn);
 }
 
 public sealed class AddProductDependencyRequestValidator : CustomValidator<AddProductDependencyRequest>
@@ -41,6 +47,12 @@ public sealed class AddProductDependencyRequestValidator : CustomValidator<AddPr
 
         RuleFor(d => d.Strength)
             .IsInEnum();
+
+        // Each entry names one style. IsInEnum would accept a combination, since on a flags enum it tests
+        // the bits rather than the declared members.
+        RuleForEach(d => d.InteractionStyles)
+            .Must(Enum.IsDefined)
+            .WithMessage("'{PropertyValue}' is not an interaction style.");
 
         RuleFor(d => d.Description)
             .MaximumLength(1024);

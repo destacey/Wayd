@@ -25,7 +25,7 @@ public sealed class ImportProductDependencyDtoValidatorTests
     }
 
     private static ImportProductDependencyDto Row(LocalDate? startsOn, LocalDate? endsOn) =>
-        new(Guid.CreateVersion7(), Guid.CreateVersion7(), DependencyStrength.Hard, null, startsOn, endsOn);
+        new(Guid.CreateVersion7(), Guid.CreateVersion7(), DependencyStrength.Hard, null, null, startsOn, endsOn);
 
     [Fact]
     public void Validate_ShouldRejectAnEndBeforeTheStart()

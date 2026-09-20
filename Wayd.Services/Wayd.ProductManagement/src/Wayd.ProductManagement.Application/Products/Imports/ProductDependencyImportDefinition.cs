@@ -6,6 +6,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Extensions;
 using Wayd.ProductManagement.Application.Products.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
@@ -120,6 +121,7 @@ public sealed class ProductDependencyImportDefinition(
         var added = product.AddDependency(
             data.DependsOnProductId,
             data.Strength,
+            data.InteractionStyles.ToFlagCombination(),
             data.Description,
             data.StartsOn ?? today,
             ancestors,

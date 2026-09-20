@@ -244,10 +244,11 @@ public abstract class ProductCommandTestBase
         DependencyStrength strength = DependencyStrength.Hard,
         LocalDate? startsOn = null,
         LocalDate? endsOn = null,
-        string? description = null)
+        string? description = null,
+        InteractionStyle? interactionStyle = null)
     {
         var dependency = product.AddDependency(
-            dependsOnProductId, strength, description, startsOn ?? Today.PlusDays(-30), [], [], Today, EventActor.System, Now).Value;
+            dependsOnProductId, strength, interactionStyle, description, startsOn ?? Today.PlusDays(-30), [], [], Today, EventActor.System, Now).Value;
 
         if (endsOn is not null)
         {

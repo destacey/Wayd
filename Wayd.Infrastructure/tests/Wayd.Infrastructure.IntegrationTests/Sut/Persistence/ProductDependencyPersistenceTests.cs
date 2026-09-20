@@ -59,7 +59,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         await using (var context = _fixture.CreateContext())
         {
             second = await AddHandler(context).Handle(
-                new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null), ct);
+                new AddProductDependencyCommand(web.Id, identity.Id, DependencyStrength.Soft, null, null, null), ct);
         }
 
         // Assert — the domain's refusal, not the unique index turning the save into a generic error
@@ -83,8 +83,8 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         var firstProduct = await first.Products.Include(p => p.Dependencies).SingleAsync(p => p.Id == web.Id, ct);
         var secondProduct = await second.Products.Include(p => p.Dependencies).SingleAsync(p => p.Id == web.Id, ct);
 
-        firstProduct.AddDependency(identity.Id, DependencyStrength.Hard, null, Today, [], [], Today, EventActor.System, Now).IsSuccess.Should().BeTrue();
-        secondProduct.AddDependency(identity.Id, DependencyStrength.Soft, null, Today, [], [], Today, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        firstProduct.AddDependency(identity.Id, DependencyStrength.Hard, null, null, Today, [], [], Today, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        secondProduct.AddDependency(identity.Id, DependencyStrength.Soft, null, null, Today, [], [], Today, EventActor.System, Now).IsSuccess.Should().BeTrue();
 
         await first.SaveChangesAsync(ct);
 
@@ -108,9 +108,9 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         Result<Guid> result;
         await using (var context = _fixture.CreateContext())
         {
-            result = await new ChangeProductDependencyStrengthCommandHandler(
-                    context, CurrentUser(), Mock.Of<ILogger<ChangeProductDependencyStrengthCommandHandler>>(), Clock())
-                .Handle(new ChangeProductDependencyStrengthCommand(web.Id, originalId, DependencyStrength.Hard, changedOn), ct);
+            result = await new ChangeProductDependencyTermsCommandHandler(
+                    context, CurrentUser(), Mock.Of<ILogger<ChangeProductDependencyTermsCommandHandler>>(), Clock())
+                .Handle(new ChangeProductDependencyTermsCommand(web.Id, originalId, DependencyStrength.Hard, null, changedOn), ct);
         }
 
         // Assert
@@ -230,7 +230,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         await using var context = _fixture.CreateContext();
 
         var result = await AddHandler(context).Handle(
-            new AddProductDependencyCommand(productId, dependsOnProductId, strength, description, startsOn),
+            new AddProductDependencyCommand(productId, dependsOnProductId, strength, null, description, startsOn),
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);

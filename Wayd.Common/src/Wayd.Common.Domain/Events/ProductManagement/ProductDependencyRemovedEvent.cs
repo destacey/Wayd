@@ -17,14 +17,15 @@ public sealed record ProductDependencyRemovedEvent : DomainEvent<ProductDependen
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
-    public ProductDependencyRemovedEvent(Guid id, int key, Guid dependencyId, Guid dependsOnProductId, DependencyStrength strength, FlexibleDateRange period, string reason, EventActor actor, Instant timestamp)
-        : base(actor, "1.0")
+    public ProductDependencyRemovedEvent(Guid id, int key, Guid dependencyId, Guid dependsOnProductId, DependencyStrength strength, IReadOnlyCollection<InteractionStyle>? interactionStyles, FlexibleDateRange period, string reason, EventActor actor, Instant timestamp)
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
         DependencyId = dependencyId;
         DependsOnProductId = dependsOnProductId;
         Strength = strength;
+        InteractionStyles = interactionStyles;
         Period = period;
         Reason = reason;
 
@@ -36,6 +37,14 @@ public sealed record ProductDependencyRemovedEvent : DomainEvent<ProductDependen
     public Guid DependencyId { get; }
     public Guid DependsOnProductId { get; }
     public DependencyStrength Strength { get; }
+
+    /// <summary>
+    /// How the product had been recorded as reaching the one it depended on, or <c>null</c> where nobody
+    /// recorded it.
+    /// </summary>
+    /// <remarks>Added at 1.1. Null on every payload written before it.</remarks>
+    public IReadOnlyCollection<InteractionStyle>? InteractionStyles { get; }
+
     /// <summary>The days the removed link covered, with no end where it was still open.</summary>
     public FlexibleDateRange Period { get; }
 

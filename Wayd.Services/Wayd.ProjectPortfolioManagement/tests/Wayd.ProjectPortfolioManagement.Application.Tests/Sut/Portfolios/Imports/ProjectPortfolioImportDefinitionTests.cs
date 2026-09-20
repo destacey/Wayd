@@ -49,12 +49,27 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
             Guid.CreateVersion7(), CreatePass, Rows(portfolios), isFinalChunk: true, TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsAtomicWithOnePass()
+    public void Definition_AppliesPortfolioByPortfolio()
     {
-        // Arrange & Act & Assert — portfolios are what programs, projects and initiatives are imported
-        // into, so a half-applied file leaves the rest of a PPM import resolving only some parents
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        // Arrange & Act & Assert — a row creates a portfolio, activates it and may pause it, so a rejection
+        // partway has to take the whole portfolio with it and leave every other portfolio alone
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("portfolio");
         _definition.Passes.Single().Name.Should().Be("CreatePortfolios");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeyOf_IsTheTrimmedName()
+    {
+        // Arrange — trimmed the one way the duplicate check trims it
+        var row = Row(" Growth ", ProjectPortfolioStatus.Proposed, activatedOn: null);
+
+        // Act
+        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+
+        // Assert
+        key.Should().Be("Growth");
     }
 
     [Fact]

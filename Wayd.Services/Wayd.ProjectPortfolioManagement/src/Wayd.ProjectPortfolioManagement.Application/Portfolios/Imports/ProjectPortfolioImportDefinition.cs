@@ -16,9 +16,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Imports;
 /// an imported portfolio is indistinguishable from one driven through the UI.
 /// </summary>
 /// <remarks>
-/// Atomic, matching the single save the command it replaces did. Portfolios are what programs, projects
-/// and initiatives are imported into, so a half-applied file leaves the rest of a PPM import resolving
-/// some parents and rejecting others.
+/// Per group, keyed on the portfolio the row creates. A row is not finished when the portfolio is created —
+/// it is then activated and may be paused — so a rejection partway has already staged an activated
+/// portfolio, and the group is what makes the runner discard it rather than commit it beside the rows that
+/// succeeded.
+/// <para>
+/// Portfolios are independent of one another. Everything else in PPM is imported into one, so a rejected
+/// portfolio is reported again by every program, project and initiative that names it; that is a clearer
+/// failure than keeping every portfolio out over one bad employee number.
+/// </para>
 /// </remarks>
 public sealed class ProjectPortfolioImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
@@ -37,14 +43,24 @@ public sealed class ProjectPortfolioImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.ProjectPortfolios;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "portfolio";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end, so the cap stays where the all-or-nothing version had it. The preflight bound follows it, and
+    // would have to anyway: a preflight is one transaction rolled back at the end, so it cannot release
+    // its locks chunk by chunk the way a real run does — there, the file size is the lock time.
     public override int MaxRows => 10_000;
+
+    // The name, trimmed the one way the duplicate check trims it. Not case-folded: two rows naming the same
+    // portfolio in different casing can never both apply — the second is refused as a duplicate whichever
+    // chunk it lands in — so they have no need to share a group, and folding a 128-character name risks
+    // passing the group key's own 128-character bound.
+    protected override string? GroupKey(ImportProjectPortfolioDto row) => Normalize(row.Name);
 
     protected override IReadOnlyList<ImportPass<ImportProjectPortfolioDto>> Steps =>
     [
-        new("CreatePortfolios", ImportPassScope.WholeSet, CreatePortfolios),
+        new("CreatePortfolios", ImportPassScope.Chunked, CreatePortfolios),
     ];
 
     /// <summary>
@@ -95,8 +111,9 @@ public sealed class ProjectPortfolioImportDefinition(
 
             await _projectPortfolioManagementDbContext.Portfolios.AddAsync(portfolio, cancellationToken);
 
-            // Taken within the file as well as against the database: rows are applied before anything is
-            // saved, so a repeat would otherwise only surface at the unique index.
+            // Taken within the chunk as well as against the database: a chunk's rows are applied before any
+            // of them is saved, so a repeat would otherwise only surface at the unique index. A repeat in a
+            // later chunk is caught by the query above, which sees what the earlier chunk saved.
             takenNames.Add(name);
             row.Created(portfolio.Id);
         }

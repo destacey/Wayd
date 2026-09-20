@@ -52,12 +52,30 @@ public sealed class PpmFinalizationImportDefinitionTests : IDisposable
             Guid.CreateVersion7(), FinalizePass, Rows(items), isFinalChunk: true, TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsAtomicAndCannotBeChunked()
+    public void Definition_AppliesPerRecordButCannotBeChunked()
     {
         // Arrange & Act & Assert — program rows are applied before portfolio rows whatever order the file
-        // lists them in, so the pass needs the whole set
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        // lists them in, so the pass needs the whole set; the group is still the record the row closes, so
+        // one that cannot close leaves the others closing
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("program or portfolio");
         _definition.Passes.Single().Scope.Should().Be(ImportPassScope.WholeSet);
+    }
+
+    [Fact]
+    public void GroupKeyOf_IsTheRecordTheRowCloses_TypeIncluded()
+    {
+        // Arrange — a program and a portfolio with the same id would otherwise share a group
+        var id = Guid.CreateVersion7();
+
+        // Act
+        var programKey = _definition.GroupKeyOf(_definition.SerializeRow(ProgramRow(id, FinalizePpmItemStatus.Completed)));
+        var portfolioKey = _definition.GroupKeyOf(
+            _definition.SerializeRow(new FinalizePpmItemDto(FinalizePpmItemType.Portfolio, id, FinalizePpmItemStatus.Closed, _end)));
+
+        // Assert
+        programKey.Should().Be($"Program|{id}");
+        portfolioKey.Should().Be($"Portfolio|{id}");
     }
 
     [Fact]

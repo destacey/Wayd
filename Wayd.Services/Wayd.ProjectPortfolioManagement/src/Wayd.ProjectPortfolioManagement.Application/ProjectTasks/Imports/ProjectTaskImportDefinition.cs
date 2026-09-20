@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
@@ -14,12 +14,19 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 /// Imports project tasks and milestones into the stages of the projects that own them.
 /// </summary>
 /// <remarks>
-/// <see cref="ImportPassScope.WholeSet"/> because rows are not independent: a child row hangs off a parent
-/// row in the same file, and the per-project task number sequence advances as rows are applied. Split the
-/// file and a chunk could be handed a child whose parent has not been created.
+/// Per group, keyed on the project, because rows within a project are not independent: a child row hangs off
+/// a parent row in the same file, and the per-project task number sequence advances as rows are applied. A
+/// partly applied breakdown is worse than none — the rows that landed are indistinguishable from tasks that
+/// were always there — so one bad row keeps its project's whole tree out and leaves every other project alone.
 /// <para>
-/// Atomic, matching the single save the command it replaces did. A partly applied task tree is worse than
-/// none: the rows that landed are indistinguishable from tasks that were always there.
+/// <see cref="ImportPassScope.Chunked"/> is safe at that grouping and only at that grouping: the runner fills
+/// a chunk with whole groups, so a project's rows are never split across two saves, and the number sequence
+/// is re-seeded per chunk from what the previous one saved.
+/// </para>
+/// <para>
+/// A project stops at its first rejection. The runner keeps the rest of its rows out regardless, and carrying
+/// on would only add errors that follow from the first — a child reported as orphaned when its parent was the
+/// row that actually failed.
 /// </para>
 /// </remarks>
 public sealed class ProjectTaskImportDefinition(
@@ -35,14 +42,22 @@ public sealed class ProjectTaskImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Projects;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "project";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end, so the cap stays where the all-or-nothing version had it. The preflight bound follows it, and
+    // would have to anyway: a preflight is one transaction rolled back at the end, so it cannot release
+    // its locks chunk by chunk the way a real run does — there, the file size is the lock time.
     public override int MaxRows => 10_000;
+
+    // Canonical by construction: ProjectKey trims and uppercases, so two rows spelling a key differently
+    // still land in the same group.
+    protected override string? GroupKey(ImportProjectTaskDto row) => row.ProjectKey.Value;
 
     protected override IReadOnlyList<ImportPass<ImportProjectTaskDto>> Steps =>
     [
-        new("CreateTasks", ImportPassScope.WholeSet, CreateTasks),
+        new("CreateTasks", ImportPassScope.Chunked, CreateTasks),
     ];
 
     private async Task<Result> CreateTasks(ImportPassContext<ImportProjectTaskDto> context, CancellationToken cancellationToken)
@@ -78,7 +93,7 @@ public sealed class ProjectTaskImportDefinition(
                 if (parentId.IsFailure)
                 {
                     row.Failed(parentId.Error);
-                    continue;
+                    break;
                 }
 
                 var plannedDateRange = data.PlannedStart is null || data.PlannedEnd is null
@@ -103,7 +118,7 @@ public sealed class ProjectTaskImportDefinition(
                 if (created.IsFailure)
                 {
                     row.Failed($"Could not create task '{data.Name}' in project '{group.Key}': {created.Error}");
-                    continue;
+                    break;
                 }
 
                 nextNumbers[project.Id] = nextNumber + 1;
@@ -235,8 +250,9 @@ public sealed class ProjectTaskImportDefinition(
     /// Seeds the per-project task number sequence from the highest number already used.
     /// </summary>
     /// <remarks>
-    /// The single-task handler takes a row lock for this because tasks can be created concurrently; a run
-    /// applies its rows in one pass, so the running number is advanced in memory instead.
+    /// The single-task handler takes a row lock for this because tasks can be created concurrently; a chunk
+    /// applies its rows before any of them is saved, so the running number is advanced in memory instead. A
+    /// project is never split across chunks, so the seed read here is always of what an earlier chunk saved.
     /// </remarks>
     private async Task<Dictionary<Guid, int>> NextTaskNumbers(
         IEnumerable<Project> projects, CancellationToken cancellationToken)

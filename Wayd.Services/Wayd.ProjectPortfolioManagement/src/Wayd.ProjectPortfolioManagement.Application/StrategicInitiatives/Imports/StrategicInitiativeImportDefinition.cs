@@ -16,10 +16,14 @@ namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Impor
 /// Imports strategic initiatives with the KPIs carried on each row.
 /// </summary>
 /// <remarks>
-/// Atomic, matching the single save the command it replaces did.
+/// Per group, keyed on the initiative the row creates. One row is a long sequence — create, attach projects,
+/// add every KPI, then walk the status — and a rejection anywhere in it has already staged the rest, so the
+/// group is what makes the runner discard a half-built initiative rather than commit it beside the rows that
+/// succeeded. An initiative missing the KPIs it is measured by is the case that matters.
 /// <para>
 /// One pass, because a row depends on nothing else in the file: its portfolio, projects and people all
-/// have to exist already, and its KPIs travel with it.
+/// have to exist already, and its KPIs travel with it. That independence is also why the group is the
+/// initiative and not its portfolio.
 /// </para>
 /// </remarks>
 public sealed class StrategicInitiativeImportDefinition(
@@ -39,14 +43,24 @@ public sealed class StrategicInitiativeImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.StrategicInitiatives;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "strategic initiative";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end, so the cap stays where the all-or-nothing version had it. The preflight bound follows it, and
+    // would have to anyway: a preflight is one transaction rolled back at the end, so it cannot release
+    // its locks chunk by chunk the way a real run does — there, the file size is the lock time.
     public override int MaxRows => 10_000;
+
+    // The name, trimmed the one way the duplicate check trims it. Not case-folded: two rows naming the same
+    // initiative in different casing can never both apply — the second is refused as a duplicate whichever
+    // chunk it lands in — so they have no need to share a group, and folding a 128-character name risks
+    // passing the group key's own 128-character bound.
+    protected override string? GroupKey(ImportStrategicInitiativeDto row) => Normalize(row.Name);
 
     protected override IReadOnlyList<ImportPass<ImportStrategicInitiativeDto>> Steps =>
     [
-        new("CreateInitiatives", ImportPassScope.WholeSet, CreateInitiatives),
+        new("CreateInitiatives", ImportPassScope.Chunked, CreateInitiatives),
     ];
 
     /// <summary>
@@ -142,8 +156,9 @@ public sealed class StrategicInitiativeImportDefinition(
                 continue;
             }
 
-            // Taken within the file as well as against the database: rows are applied one at a time
-            // against a portfolio held in memory, so a repeat would otherwise reach the unique index.
+            // Taken within the chunk as well as against the database: a chunk's rows are applied one at a
+            // time against a portfolio held in memory, so a repeat would otherwise reach the unique index. A
+            // repeat in a later chunk is caught by the query above, which sees what the earlier chunk saved.
             takenNames.Add(name);
             row.Created(initiative.Id);
         }

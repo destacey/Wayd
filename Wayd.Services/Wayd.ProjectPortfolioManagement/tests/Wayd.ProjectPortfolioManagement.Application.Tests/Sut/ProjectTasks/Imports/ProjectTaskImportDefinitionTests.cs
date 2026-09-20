@@ -75,12 +75,27 @@ public sealed class ProjectTaskImportDefinitionTests : IDisposable
             Guid.CreateVersion7(), CreatePass, Rows(tasks), isFinalChunk: true, TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsAtomicAndCannotBeChunked()
+    public void Definition_AppliesProjectByProject()
     {
         // Arrange & Act & Assert — a child row hangs off a parent row in the same file and the task number
-        // sequence advances as rows are applied, so a chunk could be handed a child with no parent
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
-        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.WholeSet);
+        // sequence advances as rows are applied, so a project's rows must stay together; chunking is safe
+        // only because the runner fills a chunk with whole groups
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("project");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeyOf_IsTheProjectKey()
+    {
+        // Arrange
+        var row = TaskRow("Design");
+
+        // Act
+        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+
+        // Assert
+        key.Should().Be(ProjectKeyValue);
     }
 
     [Fact]
@@ -136,17 +151,39 @@ public sealed class ProjectTaskImportDefinitionTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateTasks_RejectsRowsThatFormAParentCycle()
+    public async Task CreateTasks_RejectsARowThatFormsAParentCycle_AndStopsTheProjectThere()
     {
         // Arrange & Act — the submission command rejects a cycle before the run starts; if one reaches the
-        // pass, the rows involved can never be ordered parents-first, so each is rejected on its own
+        // pass, the rows involved can never be ordered parents-first, so the first is rejected by name and
+        // the project stops. The runner keeps the rest of the project's rows out on account of that one.
         var result = await Run(
             TaskRow("Design", parentImportId: "r2"),
             TaskRow("Wireframes", parentImportId: "r1"));
 
         // Assert
-        result.Value.Rows.Should().AllSatisfy(r => r.Failed.Should().BeTrue());
+        var rejected = result.Value.Rows.Where(r => r.Failed).Should().ContainSingle().Subject;
+        rejected.Error.Should().Contain("named as the parent of");
         _project.Tasks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateTasks_StopsAProjectAtItsFirstRejection()
+    {
+        // Arrange & Act — the runner keeps the whole project out anyway, so carrying on would only report
+        // errors that follow from the first. The rows after it are left untouched, not rejected in their
+        // own right.
+        var result = await Run(
+            TaskRow("Design"),
+            TaskRow("Wireframes") with { StageName = "Nonexistent" },
+            TaskRow("Mockups"));
+
+        // Assert
+        var outcomes = result.Value.Rows.ToDictionary(r => r.ImportId);
+        outcomes["r1"].Failed.Should().BeFalse();
+        outcomes["r2"].Failed.Should().BeTrue();
+        outcomes["r3"].Failed.Should().BeFalse();
+        outcomes["r3"].CreatedEntityId.Should().BeNull();
+        _project.Tasks.Should().ContainSingle(t => t.Name == "Design");
     }
 
     [Fact]

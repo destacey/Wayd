@@ -64,12 +64,27 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
             Guid.CreateVersion7(), CreatePass, Rows(initiatives), isFinalChunk: true, TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsAtomicWithOnePass()
+    public void Definition_AppliesInitiativeByInitiative()
     {
-        // Arrange & Act & Assert — a row depends on nothing else in the file, but the command it replaces
-        // saved once, so a rejected row still keeps the whole file out
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        // Arrange & Act & Assert — one row creates, attaches projects, adds every KPI and walks the status,
+        // so a rejection partway must not leave an initiative missing the KPIs it is measured by
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("strategic initiative");
         _definition.Passes.Single().Name.Should().Be("CreateInitiatives");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeyOf_IsTheTrimmedName()
+    {
+        // Arrange — trimmed the one way the duplicate check trims it
+        var row = Row(" Expand EMEA ", StrategicInitiativeStatus.Proposed);
+
+        // Act
+        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+
+        // Assert
+        key.Should().Be("Expand EMEA");
     }
 
     [Fact]

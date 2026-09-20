@@ -72,12 +72,27 @@ public sealed class ProjectStageImportDefinitionTests : IDisposable
             Guid.CreateVersion7(), UpdatePass, Rows(stages), isFinalChunk: true, TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsAtomicWithOnePass()
+    public void Definition_AppliesProjectByProject()
     {
-        // Arrange & Act & Assert — a stage import corrects projects that already exist, so a file that
-        // half applies leaves a project's stages disagreeing with each other
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        // Arrange & Act & Assert — a project's stages are read against one another, so a rejected row must
+        // leave that project's other stages saying what they already said
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("project");
         _definition.Passes.Single().Name.Should().Be("UpdateStages");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeyOf_IsTheProjectKey()
+    {
+        // Arrange
+        var row = Row(StageName, TaskStatus.Completed);
+
+        // Act
+        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+
+        // Assert
+        key.Should().Be(ProjectKeyValue);
     }
 
     [Fact]

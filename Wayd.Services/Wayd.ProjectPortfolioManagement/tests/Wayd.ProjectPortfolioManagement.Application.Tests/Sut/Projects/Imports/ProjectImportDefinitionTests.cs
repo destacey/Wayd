@@ -66,12 +66,27 @@ public sealed class ProjectImportDefinitionTests : IDisposable
             Guid.CreateVersion7(), CreatePass, Rows(projects), isFinalChunk: true, TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsAtomicWithOnePass()
+    public void Definition_AppliesProjectByProject()
     {
-        // Arrange & Act & Assert — projects are what tasks, stages and initiatives are imported against,
-        // so a half-applied file leaves those imports resolving only some of the keys they reference
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        // Arrange & Act & Assert — a row creates a project, assigns its lifecycle and walks its status, so
+        // a rejection partway has to take the whole project with it and leave every other project alone
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("project");
         _definition.Passes.Single().Name.Should().Be("CreateProjects");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeyOf_IsTheProjectKey_Canonically()
+    {
+        // Arrange — ProjectKey trims and uppercases, so a file spelling a key either way groups the same
+        var row = Row("apollo ", ProjectStatus.Proposed, start: null);
+
+        // Act
+        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+
+        // Assert
+        key.Should().Be("APOLLO");
     }
 
     [Fact]

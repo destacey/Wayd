@@ -62,12 +62,27 @@ public sealed class ProgramImportDefinitionTests : IDisposable
             Guid.CreateVersion7(), CreatePass, Rows(programs), isFinalChunk: true, TestContext.Current.CancellationToken);
 
     [Fact]
-    public void Definition_IsAtomicWithOnePass()
+    public void Definition_AppliesProgramByProgram()
     {
-        // Arrange & Act & Assert — programs are what projects are imported into, so a half-applied file
-        // leaves the project import resolving only some parents
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        // Arrange & Act & Assert — a row creates a program and then walks its status, so a rejection
+        // partway has to take the whole program with it and leave every other program alone
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("program");
         _definition.Passes.Single().Name.Should().Be("CreatePrograms");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeyOf_IsTheTrimmedName()
+    {
+        // Arrange — trimmed the one way the duplicate check trims it
+        var row = Row(" Modernization ", ProgramStatus.Proposed);
+
+        // Act
+        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+
+        // Assert
+        key.Should().Be("Modernization");
     }
 
     [Fact]

@@ -274,9 +274,15 @@ public sealed class ProjectImportDefinition(
     }
 
     /// <summary>
-    /// Loads each referenced portfolio with the programs and projects the aggregate needs in order to
-    /// accept new ones and to validate the program each project names.
+    /// Loads each referenced portfolio with the programs the aggregate needs in order to validate the
+    /// program each project names.
     /// </summary>
+    /// <remarks>
+    /// The projects are deliberately not included, matching the single-project handler. <c>CreateProject</c>
+    /// only appends to that collection and takes the rank it needs as an argument, so loading it buys
+    /// nothing — and because this pass runs once per chunk, it would reload every project the earlier
+    /// chunks committed, making the run quadratic in the size of the file.
+    /// </remarks>
     private async Task<Dictionary<Guid, ProjectPortfolio>> ResolvePortfolios(
         ImportPassContext<ImportProjectDto> context, CancellationToken cancellationToken)
     {
@@ -284,7 +290,6 @@ public sealed class ProjectImportDefinition(
 
         return await _projectPortfolioManagementDbContext.Portfolios
             .Include(p => p.Programs)
-            .Include(p => p.Projects)
             .Where(p => portfolioIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
     }

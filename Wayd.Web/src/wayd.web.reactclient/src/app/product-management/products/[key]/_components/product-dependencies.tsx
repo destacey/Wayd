@@ -85,7 +85,9 @@ export const buildDependencyColumns = (
     {
       id: 'interaction',
       header: 'Interaction',
-      size: 170,
+      // Wide enough for both tags on one line. Narrower and every dependency that is both — an ordinary
+      // case, not an edge one — wraps and renders at double the height of its neighbours.
+      size: 215,
       // A multi-value column, filtered like the tag columns: the panel lists the individual styles and a
       // row matches when it carries any one selected. Matching the joined string instead would offer
       // "Synchronous, Asynchronous" as its own option, so picking Asynchronous would miss every dependency

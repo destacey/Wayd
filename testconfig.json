@@ -1,0 +1,14 @@
+{
+  "platformOptions": {
+    "Coverlet": {
+      "format": "cobertura",
+      "excludeByAttribute": "GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute,DebuggerNonUserCodeAttribute",
+      "excludeByFile": "**/Migrations/*.cs,**/Internal/Generated/**/*.cs",
+      "exclude": "[*]Wayd.Web.Api.Internal.Generated.*,[*Tests]*,[Wayd.Tests.Shared]*,[Wayd.TestData.*]*",
+      "excludeAssembliesWithoutSources": "MissingAll",
+      "includeTestAssembly": false,
+      "singleHit": false,
+      "useSourceLink": true
+    }
+  }
+}

@@ -71,8 +71,8 @@ dotnet test Wayd.slnx
 # Specific project
 dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj"
 
-# Filtered tests
-dotnet test --filter "FullyQualifiedName~ProjectServiceTests"
+# Filtered tests, within one project
+dotnet test "<project>" --filter "FullyQualifiedName~ProjectServiceTests"
 
 # Frontend tests
 cd Wayd.Web/src/wayd.web.reactclient

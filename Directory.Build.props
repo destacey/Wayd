@@ -7,13 +7,4 @@
     <PropertyGroup>
         <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
     </PropertyGroup>
-    <PropertyGroup>
-        <!--
-            Keep test projects on VSTest. xunit.v3 4.x defaults this to true, and on the .NET 10 SDK an MTP
-            application fails `dotnet test` outright unless global.json opts into the MTP runner — which would
-            also change the hang-dump, coverage, filter and parallelism flags dotnet-test-projects.sh relies on.
-            Must be set here, before the xunit props apply their only-if-empty default. Migration: #872.
-        -->
-        <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
-    </PropertyGroup>
 </Project>

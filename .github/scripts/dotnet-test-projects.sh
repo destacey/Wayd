@@ -4,7 +4,7 @@
 #   unit         every test project that does NOT need Docker
 #   integration  the Testcontainers suites (SQL Server), which need Docker
 #
-# Set COLLECT_COVERAGE=true to also collect Cobertura coverage (see coverage.runsettings). It is
+# Set COLLECT_COVERAGE=true to also collect Cobertura coverage (rules in testconfig.json). It is
 # opt-in because instrumentation slows the run noticeably, and PRs do not publish a coverage report
 # -- only the main-branch build does, where the extra time is not on anyone's feedback loop.
 #
@@ -12,15 +12,16 @@
 # be silently dropped from CI. A project is "integration" iff its .csproj has a PackageReference to a
 # Testcontainers module -- the dependency that actually requires a Docker daemon, rather than a name or
 # trait convention that can drift out of sync with what the project really needs. Directory.Build.targets
-# derives the Category trait from the same signal, so a test's trait and the job it runs in agree.
+# stamps the Requires=Docker trait from the same signal, so a test's trait and the job it runs in agree.
+# (Category is by project name, so a *.IntegrationTests project that needs no Docker runs in "unit".)
 #
 # This runs on the Linux CI runner AND on a developer's machine, where on Windows that means Git Bash.
 # Keep the text processing to POSIX sed/tr: Git Bash's grep refuses `-P` outside a unibyte or UTF-8
 # locale, and a matcher that silently finds nothing here selects no projects and tests nothing.
 #
-# The selection is handed to `dotnet test` as a generated solution filter (.slnf). Two alternatives do
-# not work here: `dotnet test` takes only ONE project argument (MSB1008 on a list), and a solution-wide
-# `--filter` exits non-zero under xUnit v3 for every assembly that contains no matching test.
+# The selection is handed to `dotnet test --solution` as a generated solution filter (.slnf). Two
+# alternatives do not work here: `--project` takes only ONE project, and a solution-wide `--filter` fails
+# every test module in which it matches nothing (Microsoft.Testing.Platform exit code 8, "zero tests ran").
 set -euo pipefail
 
 mode="${1:?usage: dotnet-test-projects.sh <unit|integration>}"
@@ -39,7 +40,7 @@ for proj in "${all_projects[@]}"; do
     [[ "$proj" == *Tests.csproj ]] || continue
     # Matched on a PackageReference to any Testcontainers module, not the bare word: a comment or an
     # unrelated string mentioning Testcontainers must not move a project into the Docker job. Keep this
-    # in step with the prefix match in Directory.Build.targets, which derives the Category trait.
+    # in step with the prefix match in Directory.Build.targets, which stamps the Requires=Docker trait.
     if grep -qE '<PackageReference[^>]*Include="Testcontainers' "$proj"; then
         [[ "$mode" == "integration" ]] && selected+=("$proj")
     else
@@ -82,30 +83,35 @@ if [[ "$mode" == "integration" ]]; then
     echo "Pulling $image"
     docker pull --quiet "$image"
 
-    # Each integration project starts its own SQL Server container, and dotnet test runs projects in parallel
-    # up to the MSBuild node count. On a runner with far fewer cores than projects, every engine then warms
-    # up at once and early queries time out. Capping the nodes caps the containers starting together.
-    #
-    # The cap applies to the test run only. Building under it as well hung the run after the build finished,
-    # with no test host ever started, so the projects are built first at full parallelism.
-    dotnet build "$filter" -c Release --verbosity minimal
-    parallel_args=(--no-build -maxcpucount:"${INTEGRATION_TEST_PARALLELISM:-2}")
+    # Each integration project starts its own SQL Server container, and dotnet test runs every test module
+    # at once by default. On a runner with far fewer cores than projects, every engine then warms up
+    # together and early queries time out. Capping the modules caps the containers starting together.
+    parallel_args=(--max-parallel-test-modules "${INTEGRATION_TEST_PARALLELISM:-2}")
     echo "Running at most ${INTEGRATION_TEST_PARALLELISM:-2} integration project(s) at a time"
 fi
 
 coverage_args=()
 if [[ "$collect_coverage" == "true" ]]; then
-    # Results land in each project's TestResults/<guid>/coverage.cobertura.xml; the workflow collects
-    # them from both jobs and merges once, so the published number spans unit AND integration runs.
-    coverage_args=(--collect:"XPlat Code Coverage" --settings coverage.runsettings)
-    echo "Collecting coverage (coverage.runsettings)"
+    # Every module writes TestResults/coverage.cobertura.<timestamp>.xml at the repo root; the workflow
+    # uploads that directory after both halves and merges once, so the published number spans unit AND
+    # integration runs.
+    #
+    # The unit half clears the previous run's files first -- the names are unique per module AND per run,
+    # so on a developer's machine they accumulate, and a merge over the directory would then count a stale
+    # copy of a module beside its current one. Only here: the integration half must add to what the unit
+    # half just wrote. CI starts from an empty checkout, so this is a no-op there.
+    if [[ "$mode" == "unit" ]]; then
+        rm -f TestResults/coverage.cobertura.*.xml
+    fi
+    coverage_args=(--coverlet)
+    echo "Collecting coverage (testconfig.json)"
 fi
 
-# --blame-hang-timeout aborts with a dump naming the stuck test instead of burning the job's full
+# --hangdump aborts with a dump, and lists the tests still running, instead of burning the job's full
 # time budget, which is how a container that never becomes ready would otherwise present.
-dotnet test "$filter" \
+dotnet test --solution "$filter" \
     -c Release \
-    --verbosity normal \
-    --blame-hang-timeout 5m \
+    --results-directory TestResults \
+    --hangdump --hangdump-timeout 5m \
     "${parallel_args[@]}" \
     "${coverage_args[@]}"

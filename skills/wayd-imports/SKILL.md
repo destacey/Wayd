@@ -56,9 +56,9 @@ A file refused outright — a missing header, a cell that is the wrong type, too
 
 `atomicity` decides what a rejected row costs:
 
-- **Atomic** — one rejected row means **nothing is written**. A run can report "0 of 40 applied" and be working correctly. Every import except employees and product dependencies is atomic. A preflight of an atomic import still reports every rejection at once, rather than stopping at the first step that finds one, and says Failed while any row is refused.
+- **Atomic** — one rejected row means **nothing is written**. A run can report "0 of 40 applied" and be working correctly. The Organization team imports, the Planning imports and every Product Management import except dependencies are atomic. A preflight of an atomic import still reports every rejection at once, rather than stopping at the first step that finds one, and says Failed while any row is refused.
 - **PerRow** — each row stands alone, so a run can be PartiallySucceeded. Only employees import this way.
-- **PerGroup** — rows sharing a group apply together or not at all, and the other groups are kept, so a run can be PartiallySucceeded. The definition's `groupNoun` names the group. Only product dependencies import this way, grouped by `ProductId`: every dependency of one product saves together. A row kept out only because another in its group was rejected says so — `Not applied: another row for the same product was rejected (import id '…')` — so fix the named row, not that one.
+- **PerGroup** — rows sharing a group apply together or not at all, and the other groups are kept, so a run can be PartiallySucceeded. The definition's `groupNoun` names the group. Product dependencies group by `ProductId`, so every dependency of one product saves together. **Every PPM import is PerGroup too**: portfolios, programs, projects and strategic initiatives group by the record the row creates, while tasks and stages group by the **project** — so one bad task keeps out that project's whole breakdown and leaves every other project alone. PPM finalize groups by the program or portfolio the row closes. A row kept out only because another in its group was rejected says so — `Not applied: another row for the same product was rejected (import id '…')` — so fix the named row, not that one.
 
 For an atomic import, get the preflight to zero rejections before applying. For a PerGroup import, read the rejections group by group.
 
@@ -79,7 +79,7 @@ To show files as one batch in Settings → Imports, pass the same `submissionGro
 
 ## Limits
 
-- **Rows per file**: `maxRows`, and `preflightMaxRows` for a preflight (10,000 for every import today, including employees, whose real imports take up to 50,000). Split a larger file, and group the parts with a `submissionGroupId`.
+- **Rows per file**: `maxRows`, and `preflightMaxRows` for a preflight. They differ where a run saves chunk by chunk but a check cannot: employees take up to 50,000 rows for real and 10,000 for a check. Read both off the definition rather than assuming. Split a larger file, and group the parts with a `submissionGroupId`.
 - **Row data is kept for 30 days** after a run finishes. After that a preflight can no longer be applied and a run can no longer be resumed or retried; submit the file again.
 - **Row and run listings return at most 500 per page.** Page through `Imports_GetRows` before telling the user every row succeeded.
 

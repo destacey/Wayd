@@ -35,9 +35,9 @@ A few rules apply to every import:
   [Settings → Imports](../settings/imports.mdx) shows what became of each row.
 - **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
   **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
-  through the import's own checks without anything being created: each comes back passed or rejected
-  with its reason, and an all-or-nothing file reports every rejection rather than stopping at the first
-  step that finds one. It is advice, not a promise — the data can change before you import — and a
+  through the import's own checks without anything being created: each comes back passed or rejected with
+  its reason, and a row kept out only because another row in its group was rejected is reported the same way
+  the real run would. It is advice, not a promise — the data can change before you import — and a
   finished check can be imported for real from its page without posting the file again.
 - **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
   query parameter — any GUID you choose — and records it on the run, so a set of files posted under one
@@ -119,14 +119,33 @@ Each import requires the **Import** permission for the relevant resource:
 
 ## Limits
 
-Every PPM import is all-or-nothing and accepts at most **10,000 rows per file** — one file is one
-database transaction, and the cap bounds it. A file over the cap is rejected before anything is queued,
-with a message naming the cap.
+Every PPM import applies **group by group**: the rows for one record go in together or not at all, and a
+rejected row keeps out only its own group. The other groups are still imported, and the run finishes as
+*Partially succeeded* with the reason on each row it refused. A row kept out only because another row in
+its group was rejected says so and names that row, so the fix is always to one row.
 
-Splitting a larger file has one rule of its own for tasks: rows within a project are not independent (a
-child names its parent's `ImportId` in the same file, and task numbers advance as rows apply), so split a
-task file on **project boundaries**, never inside a project. Post the parts one at a time, waiting for
-each run; one `submissionGroupId` across them keeps the runs findable as one import.
+| Import | A group is | One rejected row keeps out |
+|---|---|---|
+| Portfolios | one portfolio | that portfolio |
+| Programs | one program | that program |
+| Projects | one project | that project |
+| Tasks | one **project** | that project's whole breakdown |
+| Stages | one **project** | that project's other stage changes |
+| Strategic initiatives | one initiative, with its KPIs | that initiative and its KPIs |
+| Finalize | one program or portfolio | that one record |
+
+Tasks and stages group by the project rather than by the row, because rows within a project are not
+independent of one another: a child task names its parent's `ImportId` in the same file and task numbers
+advance as rows apply, and a project's stages are read against one another.
+
+Every PPM import accepts at most **10,000 rows per file**, for the import itself and for a check
+(`validateOnly=true`) alike. A file over the cap is rejected before anything is queued, with a message
+naming the cap. Applying group by group saves in stages rather than in one transaction, so the cap is no
+longer what bounds a run, but it stays where it was until a larger file has been proven end to end.
+
+Splitting a larger file follows the same grouping: split a task or stage file on **project boundaries**,
+never inside a project. Post the parts one at a time, waiting for each run; one `submissionGroupId` across
+them keeps the runs findable as one import.
 
 The rules every file shares — request size, `ImportId` length, how long the post waits, retries, stalls
 and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).

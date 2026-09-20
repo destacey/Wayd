@@ -50,6 +50,19 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     /// <summary>Set while a preflight's rolled-back transaction is open. See <see cref="BeginPreflight"/>.</summary>
     private bool _holdEventsBack;
 
+    /// <summary>
+    /// What a save still owes once its rows are committed: the inline events to dispatch and whether the
+    /// outbox has envelopes to hand to the sending agents.
+    /// </summary>
+    /// <remarks>
+    /// Held on the context rather than in locals because the save that raises them is often not the one that
+    /// commits: <see cref="HandleAuditingAfterSaveChangesAsync"/> re-enters <see cref="SaveChangesAsync"/>,
+    /// and it is that inner call which drains the aggregates. Both dispatch paths reach handlers that commit
+    /// on their own connections, so neither may run while the rows they describe are still uncommitted.
+    /// </remarks>
+    private readonly List<IEvent> _pendingInlineEvents = [];
+    private bool _pendingOutboxFlush;
+
     protected BaseDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IDbContextOutbox outbox, IRequestCorrelationIdProvider requestCorrelationIdProvider)
         : base(options)
     {
@@ -125,7 +138,173 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         optionsBuilder.UseDatabase(_dbSettings.DBProvider!, _dbSettings.ConnectionString!);
     }
 
+    /// <summary>
+    /// Saves the tracked changes and everything that records them — audit trails, activity log entries and
+    /// outbox envelopes — as one transaction.
+    /// </summary>
+    /// <remarks>
+    /// The transaction is the point. Entities used to commit on their own, and anything that threw afterwards
+    /// — an audit trail, an envelope — left those rows in place with every event they raised silently
+    /// discarded: no activity entry, no outbox envelope, no dead letter, and a caller that still saw success.
+    /// A durable event is only as good as the transaction its envelope shares with the row it describes, which
+    /// is the guarantee <c>DurableEventRoutes</c> claims and this is what makes true.
+    /// <para>
+    /// An already-open transaction is joined, never nested: a preflight, the tenant rebind and two seeders
+    /// each own one, and <see cref="HandleAuditingAfterSaveChangesAsync"/> re-enters this method inside the
+    /// one opened here. Only the call that opened it commits and then dispatches — see
+    /// <see cref="_pendingInlineEvents"/> for why the dispatch cannot happen where the events are raised.
+    /// </para>
+    /// <para>
+    /// Opening the transaction here rules out a retrying execution strategy: since EF Core 6 a save runs
+    /// through the configured strategy, and a retrying one refuses a user transaction it did not start
+    /// (<c>ExecutionStrategyExistingTransaction</c>). Turning on <c>EnableRetryOnFailure</c> would therefore
+    /// break every save in the application, not just the ones that retry. The seeders' use of
+    /// <c>CreateExecutionStrategy</c> reads as though retries were available; they are not.
+    /// </para>
+    /// </remarks>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+    {
+        // Whether this call answers for the work, which is not the same as whether it opened a transaction:
+        // the in-memory provider used by some tests has none to open, and a save there is one operation
+        // anyway. Either way the call that took responsibility is the one that dispatches.
+        var ownsScope = Database.CurrentTransaction is null;
+        var transaction = ownsScope && Database.IsRelational()
+            ? await Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        var committed = false;
+
+        try
+        {
+            var result = await SaveChangesWithin(cancellationToken);
+
+            // A joined transaction leaves the commit, and everything owed after it, to the scope that owns it.
+            if (!ownsScope)
+                return result;
+
+            if (transaction is not null)
+                await transaction.CommitAsync(cancellationToken);
+
+            committed = true;
+
+            // Deliberately after the flag: an inline handler throws its own exception through, and the rows
+            // it describes are committed either way. Rolling back here would fail on a finished transaction
+            // and replace the handler's exception with that failure.
+            await DispatchAfterCommit();
+
+            return result;
+        }
+        catch
+        {
+            if (ownsScope && !committed)
+            {
+                // Nothing the attempt staged is committed, so nothing it raised may be delivered either.
+                _pendingInlineEvents.Clear();
+                _pendingOutboxFlush = false;
+            }
+
+            throw;
+        }
+        finally
+        {
+            // Disposing an uncommitted transaction rolls it back, and does so without throwing over a
+            // connection that is already broken — which an explicit rollback here would.
+            if (transaction is not null)
+                await transaction.DisposeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Opens a transaction spanning several saves, which commit together and dispatch their events once.
+    /// </summary>
+    /// <remarks>
+    /// The way to span saves. <c>Database.BeginTransactionAsync</c> is not: a save that joins a transaction it
+    /// did not open cannot know when the rows became durable, so it leaves its events queued, and a caller who
+    /// commits without dispatching strands them — the same silent loss this context's own transaction exists to
+    /// prevent. Committing through the scope cannot leave that step out, and <c>TransactionScopeTests</c> is
+    /// what keeps a raw <c>BeginTransactionAsync</c> from reappearing.
+    /// <para>
+    /// A scope that is disposed without committing rolls back, so an early return or a throw discards the work
+    /// rather than leaving the transaction open on the connection.
+    /// </para>
+    /// </remarks>
+    public async Task<UnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is not null)
+            throw new InvalidOperationException("A unit of work cannot start inside a transaction that is already open.");
+
+        // Null on the in-memory provider, which has no transactions. There the scope is inert: each save
+        // inside it sees no open transaction, so each owns itself and dispatches as it goes, exactly as it
+        // would without the scope. Only a relational provider gets the grouping this exists for.
+        var transaction = Database.IsRelational()
+            ? await Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        return new UnitOfWork(this, transaction);
+    }
+
+    /// <summary>
+    /// A transaction over several saves. Commit through it; disposing without committing rolls back.
+    /// </summary>
+    public sealed class UnitOfWork(BaseDbContext context, IDbContextTransaction? transaction) : IAsyncDisposable
+    {
+        private readonly BaseDbContext _context = context;
+        private readonly IDbContextTransaction? _transaction = transaction;
+        private bool _committed;
+
+        /// <summary>Commits every save made in this scope, then delivers what they raised.</summary>
+        public async Task CommitAsync(CancellationToken cancellationToken)
+        {
+            if (_transaction is not null)
+                await _transaction.CommitAsync(cancellationToken);
+
+            _committed = true;
+
+            await _context.DispatchAfterCommit();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            // Disposing rolls an uncommitted transaction back, and unlike an explicit rollback it does not
+            // throw over a connection that is already gone — nor over one whose commit failed partway, which
+            // leaves a transaction that is finished as far as the client is concerned.
+            if (_transaction is not null)
+                await _transaction.DisposeAsync();
+
+            if (_committed)
+                return;
+
+            // Nothing was committed, so nothing raised inside may be delivered.
+            _context._pendingInlineEvents.Clear();
+            _context._pendingOutboxFlush = false;
+        }
+    }
+
+    /// <summary>Hands the committed work to its subscribers. Runs only after the rows are durable.</summary>
+    private async Task DispatchAfterCommit()
+    {
+        if (_pendingOutboxFlush)
+        {
+            _pendingOutboxFlush = false;
+
+            // Flushed before the inline dispatch so a durable event is on its way even if an inline handler
+            // throws; the durable path has its own retry/dead-letter policy.
+            await _outbox.FlushOutgoingMessagesAsync();
+        }
+
+        if (_pendingInlineEvents.Count == 0)
+            return;
+
+        var inlineEvents = _pendingInlineEvents.ToArray();
+        _pendingInlineEvents.Clear();
+
+        foreach (var inlineEvent in inlineEvents)
+        {
+            await _events.PublishAsync(inlineEvent);
+        }
+    }
+
+    private async Task<int> SaveChangesWithin(CancellationToken cancellationToken)
     {
         CollectStatusTransitions();
 
@@ -166,26 +345,17 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         // as they are routed.
         var (inlineEvents, enrolledDurableEvents, enrolledActivityLogs) = await EnlistDomainEvents();
 
-        // Commit the staged durable envelopes and/or activity logs. This is a second, small transaction — the outbox
-        // envelope and activity log rows are committed atomically here, after post-persistence events have captured
-        // any DB-generated Keys.
+        // Writes the staged envelope and activity log rows. A second call to the base save rather than the
+        // first because the post-persistence events above needed the keys the first one assigned; both are
+        // inside the one transaction the caller opened, so the rows and what records them still commit together.
         if (enrolledDurableEvents || enrolledActivityLogs)
         {
             await base.SaveChangesAsync(cancellationToken);
-
-            if (enrolledDurableEvents)
-            {
-                // Hand the committed envelopes to the sending agents for background delivery. Flush before the
-                // inline dispatch so a durable event is on its way even if an inline handler throws; the durable
-                // path has its own retry/dead-letter policy.
-                await _outbox.FlushOutgoingMessagesAsync();
-            }
         }
 
-        foreach (var inlineEvent in inlineEvents)
-        {
-            await _events.PublishAsync(inlineEvent);
-        }
+        // Owed until the commit, which is not necessarily this call — see the field.
+        _pendingOutboxFlush |= enrolledDurableEvents;
+        _pendingInlineEvents.AddRange(inlineEvents);
 
         return result;
     }
@@ -223,6 +393,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                 // The tracked entities, and any events still queued on them, describe rows that no longer exist.
                 context.ChangeTracker.Clear();
                 context._deletedEntities.Clear();
+                context._pendingInlineEvents.Clear();
+                context._pendingOutboxFlush = false;
                 context._holdEventsBack = false;
             }
         }

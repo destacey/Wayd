@@ -158,16 +158,10 @@ internal sealed class UserIdentityStore(WaydDbContext db, ILogger<UserIdentitySt
 
     public async Task ExecuteInTransaction(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
     {
-        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            await action(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await tx.RollbackAsync(cancellationToken);
-            throw;
-        }
+        await using var unitOfWork = await _db.BeginUnitOfWork(cancellationToken);
+
+        await action(cancellationToken);
+
+        await unitOfWork.CommitAsync(cancellationToken);
     }
 }

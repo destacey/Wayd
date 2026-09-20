@@ -16,4 +16,17 @@ public class DatabaseSettings
     /// </para>
     /// </summary>
     public bool EnableSensitiveDataLogging { get; set; }
+
+    /// <summary>
+    /// How long any one command may run, in seconds. Defaults to 30, which is also the provider's own
+    /// default.
+    /// </summary>
+    /// <remarks>
+    /// The ceiling belongs here rather than at each call site: a request-path write that takes half a minute
+    /// is a fault worth surfacing, and raising the limit everywhere to accommodate the few operations that
+    /// legitimately run long would hide it. Those operations ask for longer explicitly and for their own
+    /// scope — see <c>BaseDbContext.WithCommandTimeout</c>, used by the migration run and by the import
+    /// runner, whose files are bounded only by their row cap.
+    /// </remarks>
+    public int CommandTimeoutSeconds { get; set; } = 30;
 }

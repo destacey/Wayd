@@ -135,7 +135,40 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         // Or uncomment the next line if you want to see them in the console
         // optionsBuilder.LogTo(Console.WriteLine, LogLevel.Information);
 
-        optionsBuilder.UseDatabase(_dbSettings.DBProvider!, _dbSettings.ConnectionString!);
+        // The ceiling is set on the provider rather than through Database.SetCommandTimeout, which cannot be
+        // called here: touching an instance member inside OnConfiguring throws. An operation that
+        // legitimately runs longer raises it for its own scope through WithCommandTimeout.
+        optionsBuilder.UseDatabase(
+            _dbSettings.DBProvider!, _dbSettings.ConnectionString!, _dbSettings.CommandTimeoutSeconds);
+    }
+
+    /// <summary>
+    /// Raises this context's command timeout until the returned handle is disposed, then puts back whatever
+    /// it was.
+    /// </summary>
+    /// <remarks>
+    /// For the operations whose size is bounded by something other than a request: the migration run, and an
+    /// import, whose file is bounded only by its row cap. Never lowers it — a caller asking for less than the
+    /// context already allows gets the context's value, so this cannot be used to tighten a limit somewhere
+    /// the ceiling was raised deliberately.
+    /// </remarks>
+    public IDisposable WithCommandTimeout(TimeSpan timeout)
+    {
+        var previous = Database.GetCommandTimeout();
+
+        // Zero is ADO.NET's "no timeout", so it is the highest setting there is, not the lowest — comparing
+        // numerically would take a context configured to wait forever and cap it.
+        var alreadyUnbounded = previous == 0;
+
+        if (!alreadyUnbounded && timeout.TotalSeconds > (previous ?? 0))
+            Database.SetCommandTimeout(timeout);
+
+        return new CommandTimeoutScope(this, previous);
+    }
+
+    private sealed class CommandTimeoutScope(BaseDbContext context, int? previous) : IDisposable
+    {
+        public void Dispose() => context.Database.SetCommandTimeout(previous);
     }
 
     /// <summary>

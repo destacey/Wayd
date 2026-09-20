@@ -28,6 +28,23 @@ public sealed class FakeImportDbContext : IImportDbContext, IDisposable
     /// </summary>
     public ChangeTracker ChangeTracker => _tracker.ChangeTracker;
 
+    /// <summary>The timeout the last <see cref="WithCommandTimeout"/> asked for, and whether it was put back.</summary>
+    public TimeSpan? RequestedCommandTimeout { get; private set; }
+    public bool CommandTimeoutRestored { get; private set; }
+
+    public IDisposable WithCommandTimeout(TimeSpan timeout)
+    {
+        RequestedCommandTimeout = timeout;
+        CommandTimeoutRestored = false;
+
+        return new CommandTimeoutScope(this);
+    }
+
+    private sealed class CommandTimeoutScope(FakeImportDbContext context) : IDisposable
+    {
+        public void Dispose() => context.CommandTimeoutRestored = true;
+    }
+
     private readonly EmptyTrackerContext _tracker = new();
 
     public int SaveChangesCallCount { get; private set; }

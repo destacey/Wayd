@@ -12,7 +12,7 @@ internal class DatabaseInitializer(WaydDbContext context, IServiceProvider servi
     /// 30-second ADO.NET default. Applied only while migrations run, then restored, so no runtime query
     /// inherits it — a slow query at runtime should still fail fast.
     /// </summary>
-    private const int MigrationCommandTimeoutSeconds = 180;
+    private static readonly TimeSpan MigrationCommandTimeout = TimeSpan.FromSeconds(180);
 
     private readonly WaydDbContext _context = context;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
@@ -40,17 +40,9 @@ internal class DatabaseInitializer(WaydDbContext context, IServiceProvider servi
         {
             _logger.LogInformation("Applying Root Migrations.");
 
-            var originalTimeout = _context.Database.GetCommandTimeout();
-            _context.Database.SetCommandTimeout(MigrationCommandTimeoutSeconds);
+            using var commandTimeout = _context.WithCommandTimeout(MigrationCommandTimeout);
 
-            try
-            {
-                await _context.Database.MigrateAsync(cancellationToken);
-            }
-            finally
-            {
-                _context.Database.SetCommandTimeout(originalTimeout);
-            }
+            await _context.Database.MigrateAsync(cancellationToken);
         }
     }
 }

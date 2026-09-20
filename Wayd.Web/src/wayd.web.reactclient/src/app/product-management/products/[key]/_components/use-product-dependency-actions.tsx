@@ -4,13 +4,13 @@ import useAuth from '@/src/components/contexts/auth'
 import { ProductDependencyDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { ReactNode, useState } from 'react'
-import ChangeProductDependencyStrengthForm from '../../_components/change-product-dependency-strength-form'
+import ChangeProductDependencyTermsForm from '../../_components/change-product-dependency-terms-form'
 import EditProductDependencyForm from '../../_components/edit-product-dependency-form'
 import EndProductDependencyForm from '../../_components/end-product-dependency-form'
 import RemoveProductDependencyForm from '../../_components/remove-product-dependency-form'
 
 /** The dialogs a dependency can open. One value, not one boolean each. */
-type DialogId = 'edit' | 'strength' | 'end' | 'remove'
+type DialogId = 'edit' | 'terms' | 'end' | 'remove'
 
 export interface ProductDependencyActions {
   /**
@@ -29,7 +29,7 @@ export interface ProductDependencyActions {
  * page's product — the dependency carries it, so nothing here assumes the page.
  *
  * An ended dependency offers only a reworded description and removal: ending it again or changing its
- * strength would each be refused, since both would rewrite when it held.
+ * terms would each be refused, since both would rewrite when it held.
  */
 export const useProductDependencyActions = (): ProductDependencyActions => {
   const [active, setActive] = useState<{
@@ -59,9 +59,9 @@ export const useProductDependencyActions = (): ProductDependencyActions => {
       ...(isOpen
         ? [
             {
-              key: 'strength',
-              label: 'Change Strength',
-              onClick: () => open('strength', dependency),
+              key: 'terms',
+              label: 'Change Terms',
+              onClick: () => open('terms', dependency),
             },
             {
               key: 'end',
@@ -87,8 +87,8 @@ export const useProductDependencyActions = (): ProductDependencyActions => {
   const dialogs =
     !active || !formProps ? null : active.dialog === 'edit' ? (
       <EditProductDependencyForm {...formProps} />
-    ) : active.dialog === 'strength' ? (
-      <ChangeProductDependencyStrengthForm {...formProps} />
+    ) : active.dialog === 'terms' ? (
+      <ChangeProductDependencyTermsForm {...formProps} />
     ) : active.dialog === 'end' ? (
       <EndProductDependencyForm {...formProps} />
     ) : (

@@ -2,7 +2,7 @@ import { getProductsClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   AddProductDependencyRequest,
-  ChangeProductDependencyStrengthRequest,
+  ChangeProductDependencyTermsRequest,
   ChangeProductStatusRequest,
   EndProductDependencyRequest,
   ProductDependenciesDto,
@@ -372,13 +372,13 @@ export const productsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) =>
         dependencyChangeTags(arg.productId, arg.dependsOnProductId),
     }),
-    changeProductDependencyStrength: builder.mutation<
+    changeProductDependencyTerms: builder.mutation<
       string,
-      ProductDependencyMutationArgs<ChangeProductDependencyStrengthRequest>
+      ProductDependencyMutationArgs<ChangeProductDependencyTermsRequest>
     >({
       queryFn: async ({ productId, dependencyId, request }) => {
         try {
-          const data = await getProductsClient().changeDependencyStrength(
+          const data = await getProductsClient().changeDependencyTerms(
             productId,
             dependencyId,
             request,
@@ -455,7 +455,7 @@ export const {
   useAddProductDependencyMutation,
   useUpdateProductDependencyMutation,
   useEndProductDependencyMutation,
-  useChangeProductDependencyStrengthMutation,
+  useChangeProductDependencyTermsMutation,
   useRemoveProductDependencyMutation,
   useGetProductActivitiesQuery,
   useLazyGetProductActivitiesQuery,

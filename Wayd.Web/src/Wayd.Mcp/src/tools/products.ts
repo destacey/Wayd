@@ -210,6 +210,8 @@ Both the tag and its category must be active. Applying a tag the product already
 
 Each entry carries both ends whichever list it is in — \`product\` (the one with the dependency) and \`dependsOnProduct\` — so a rolled-up row says which descendant it starts or lands on. \`productPath\` and \`dependsOnProductPath\` give each end's full ancestry, root first, down to its parent. Also \`strength\` (1 Hard: stops working without it; 2 Soft: degrades but keeps working), \`description\`, \`startsOn\`, and \`endsOn\` (null while it still holds).
 
+\`interactionStyles\` lists how the product reaches the one it depends on — \`Synchronous\`, \`Asynchronous\`, or both. It refines \`strength\`: a Hard **synchronous** dependency caps the consumer's availability at the provider's, while a Hard **asynchronous** one turns the provider's downtime into a backlog the consumer works through afterwards. **\`null\` means nobody has recorded them, not that there are none** — do not read it as evidence either way.
+
 Ended dependencies are left out unless \`includeEnded\` is true. An empty answer means no dependency has been recorded, not that none exists — they are entered by hand or by import.`,
     inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string","description":"Product ID (UUID) or its short key."},"includeEnded":{"type":"boolean","description":"Include dependencies that have ended. Defaults to false."}},"required":["idOrKey"]},
     method: 'get',
@@ -228,8 +230,10 @@ Record the **most specific product known** — the service that makes the call, 
 
 **Strength has no default and must be chosen deliberately**: 1 Hard if the product stops working without it, 2 Soft if it degrades or loses a feature but keeps working. Attributing a provider's downtime to its consumers reads this, so guessing either way misstates impact — ask if the person has not said.
 
+\`interactionStyles\` says how the product reaches it — \`Synchronous\`, \`Asynchronous\`, or both, since a pair commonly calls for what it needs now and subscribes for what it needs eventually. Unlike strength it has no requirement to be set, but leaving it out records nothing rather than recording that there are none, so supply it when the person has said.
+
 A product holds at most one open dependency on another product, and a later one on the same pair cannot overlap an earlier one. \`startsOn\` defaults to today, may be backdated, and cannot be in the future.`,
-    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"requestBody":{"type":"object","properties":{"dependsOnProductId":{"type":"string","format":"uuid","description":"The product depended on. Cannot be the product itself, nor anything above or below it in the tree."},"strength":{"type":"integer","enum":[1,2],"description":"1 Hard (stops working without it) or 2 Soft (degrades but keeps working). No default."},"description":{"type":"string","description":"What the dependency is for. Max 1024 characters."},"startsOn":{"type":"string","format":"date","description":"The day it began, as YYYY-MM-DD. Defaults to today; may be backdated; cannot be in the future."}},"required":["dependsOnProductId","strength"]}},"required":["id","requestBody"]},
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"requestBody":{"type":"object","properties":{"dependsOnProductId":{"type":"string","format":"uuid","description":"The product depended on. Cannot be the product itself, nor anything above or below it in the tree."},"strength":{"type":"integer","enum":[1,2],"description":"1 Hard (stops working without it) or 2 Soft (degrades but keeps working). No default."},"interactionStyles":{"type":"array","items":{"type":"string","enum":["Synchronous","Asynchronous"]},"description":"How the product reaches the one it depends on. Both where it calls it and subscribes to it. Omit to record none, which is not the same as recording that there are none."},"description":{"type":"string","description":"What the dependency is for. Max 1024 characters."},"startsOn":{"type":"string","format":"date","description":"The day it began, as YYYY-MM-DD. Defaults to today; may be backdated; cannot be in the future."}},"required":["dependsOnProductId","strength"]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/products/{id}/dependencies',
     executionParameters: [{"name":"id","in":"path"}],
@@ -240,8 +244,12 @@ A product holds at most one open dependency on another product, and a later one 
 
   ['Products_UpdateDependency', {
     name: 'Products_UpdateDependency',
-    description: `Reword what a product's dependency is for. Only the description — strength and dates each have their own tool. **An omitted description is cleared.** Allowed on an ended dependency.`,
-    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"description":{"type":"string","description":"What the dependency is for. Max 1024 characters. Cleared when omitted."}},"required":[]}},"required":["id","dependencyId","requestBody"]},
+    description: `Reword what a product's dependency is for, and record its interaction styles where none have been recorded. Terms and dates each have their own tool. Allowed on an ended dependency, since both describe the dependency rather than asserting anything about when it held.
+
+**An omitted description is cleared, but omitted \`interactionStyles\` are left alone.** The asymmetry is deliberate: a description is prose somebody may want emptied, whereas styles are read when downtime is attributed, and omitting the field would otherwise erase them.
+
+**This tool only fills a blank.** Changing styles already recorded is refused — that is a change of terms, which has to be dated, so use \`Products_ChangeDependencyTerms\`.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"description":{"type":"string","description":"What the dependency is for. Max 1024 characters. Cleared when omitted."},"interactionStyles":{"type":"array","items":{"type":"string","enum":["Synchronous","Asynchronous"]},"description":"How the product reaches the one it depends on, where nobody has recorded it yet. Left alone when omitted. Refused when it would change styles already recorded."}},"required":[]}},"required":["id","dependencyId","requestBody"]},
     method: 'put',
     pathTemplate: '/api/product-management/products/{id}/dependencies/{dependencyId}',
     executionParameters: [{"name":"id","in":"path"},{"name":"dependencyId","in":"path"}],
@@ -250,18 +258,24 @@ A product holds at most one open dependency on another product, and a later one 
     annotations: { title: 'Update a product dependency', ...requiresConfirmation },
   }],
 
-  ['Products_ChangeDependencyStrength', {
-    name: 'Products_ChangeDependencyStrength',
-    description: `Change whether a product stops working without one it depends on. **This ends the current dependency and records a new one** with the new strength, so the history keeps when each strength held — and the response is the id of the dependency **now open**, which replaces the one you passed. Unchanged when the strength already matches.
+  ['Products_ChangeDependencyTerms', {
+    name: 'Products_ChangeDependencyTerms',
+    description: `Change the terms a product's dependency holds on — its strength, how the product reaches it, or both. **This ends the current dependency and records a new one** on the new terms, so the history keeps when each set of terms held — and the response is the id of the dependency **now open**, which replaces the one you passed. Unchanged when the terms already match.
 
-\`changedOn\` is the first day the new strength holds; the current dependency ends the day before. Defaults to today, must be after the day the dependency started, and cannot be in the future.`,
-    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The open dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"strength":{"type":"integer","enum":[1,2],"description":"1 Hard (stops working without it) or 2 Soft (degrades but keeps working)."},"changedOn":{"type":"string","format":"date","description":"First day the new strength holds, as YYYY-MM-DD. Defaults to today."}},"required":["strength"]}},"required":["id","dependencyId","requestBody"]},
+**\`strength\` is required and is the whole record's strength, not a delta.** Passing only \`interactionStyles\` still needs the current strength repeated, or you will silently change it.
+
+**Omitted \`interactionStyles\` carry the recorded ones onto the new dependency** rather than clearing them.
+
+Recording styles on a dependency that had none is the exception: nothing about the dependency changed, somebody finally wrote down how it had always worked, so it fills them in place, returns the **same** id, and \`changedOn\` is ignored. Dating that would split the period on a day nothing happened.
+
+\`changedOn\` is the first day the new terms hold; the current dependency ends the day before. Defaults to today, must be after the day the dependency started, and cannot be in the future.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":"The product that has the dependency. "+ID_ONLY},"dependencyId":{"type":"string","format":"uuid","description":"The open dependency, from Products_GetDependencies."},"requestBody":{"type":"object","properties":{"strength":{"type":"integer","enum":[1,2],"description":"1 Hard (stops working without it) or 2 Soft (degrades but keeps working). Required, and applied whole: repeat the current value when changing only the styles."},"interactionStyles":{"type":"array","items":{"type":"string","enum":["Synchronous","Asynchronous"]},"description":"How the product reaches the one it depends on, after the change. Omit to carry the recorded styles onto the new dependency rather than clearing them."},"changedOn":{"type":"string","format":"date","description":"First day the new terms hold, as YYYY-MM-DD. Defaults to today. Ignored when styles are merely being recorded for the first time."}},"required":["strength"]}},"required":["id","dependencyId","requestBody"]},
     method: 'put',
-    pathTemplate: '/api/product-management/products/{id}/dependencies/{dependencyId}/strength',
+    pathTemplate: '/api/product-management/products/{id}/dependencies/{dependencyId}/terms',
     executionParameters: [{"name":"id","in":"path"},{"name":"dependencyId","in":"path"}],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Change a product dependency strength', ...requiresConfirmation },
+    annotations: { title: 'Change a product dependency terms', ...requiresConfirmation },
   }],
 
   ['Products_EndDependency', {

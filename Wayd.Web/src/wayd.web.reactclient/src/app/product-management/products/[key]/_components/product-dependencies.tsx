@@ -13,6 +13,7 @@ import {
 import { Segmented, Space, Switch, Typography } from 'antd'
 import { useState } from 'react'
 import { DependencyStrengthTag } from '../../_components/dependency-strength'
+import { InteractionStyleTags } from '../../_components/interaction-style'
 import useProductDependencyActions from './use-product-dependency-actions'
 
 const { Text } = Typography
@@ -68,6 +69,22 @@ export const buildDependencyColumns = (
       meta: { filterType: 'set' },
       cell: ({ row }) => (
         <DependencyStrengthTag strength={row.original.strength} />
+      ),
+    },
+    {
+      id: 'interaction',
+      // Sorts and filters on the recorded styles in one string, so "Synchronous" and "Synchronous,
+      // Asynchronous" are distinct values rather than a set the filter would flatten. An unrecorded row
+      // sorts and filters as "Not recorded" for the same reason the cell says so: blank reads as "none".
+      accessorFn: (row) =>
+        row.interactionStyles?.length
+          ? row.interactionStyles.join(', ')
+          : 'Not recorded',
+      header: 'Interaction',
+      size: 170,
+      meta: { filterType: 'set' },
+      cell: ({ row }) => (
+        <InteractionStyleTags styles={row.original.interactionStyles} />
       ),
     },
     {

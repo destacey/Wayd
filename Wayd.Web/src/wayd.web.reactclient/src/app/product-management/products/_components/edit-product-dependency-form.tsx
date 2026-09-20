@@ -3,12 +3,14 @@
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
+  InteractionStyle,
   ProductDependencyDto,
   UpdateProductDependencyRequest,
 } from '@/src/services/wayd-api'
 import { useUpdateProductDependencyMutation } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
+import { InteractionStyleCheckboxes } from './interaction-style'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -21,11 +23,15 @@ export interface EditProductDependencyFormProps {
 
 interface EditProductDependencyFormValues {
   description?: string
+  interactionStyles?: InteractionStyle[]
 }
 
 /**
- * Rewords what a dependency is for. The only part of a dependency that can be edited: its strength changes by
- * ending the link and starting another, and its dates are the record of when it held.
+ * Rewords what a dependency is for, and records how the products talk where nobody had.
+ *
+ * Both describe the dependency rather than asserting when it held, which is why they are edited in place
+ * while the strength changes by ending the link and starting another. Styles already recorded are shown
+ * disabled: replacing them is a change of terms and has to be dated, so it belongs to the terms form.
  */
 const EditProductDependencyForm = ({
   dependency,
@@ -42,6 +48,7 @@ const EditProductDependencyForm = ({
         try {
           const request = {
             description: values.description,
+            interactionStyles: values.interactionStyles,
           } as UpdateProductDependencyRequest
 
           const response = await updateProductDependency({
@@ -75,6 +82,8 @@ const EditProductDependencyForm = ({
       permission: 'Permissions.Products.Update',
     })
 
+  const alreadyRecorded = !!dependency.interactionStyles?.length
+
   return (
     <Modal
       title="Edit Dependency"
@@ -92,7 +101,10 @@ const EditProductDependencyForm = ({
         size="small"
         layout="vertical"
         name="edit-product-dependency-form"
-        initialValues={{ description: dependency.description }}
+        initialValues={{
+          description: dependency.description,
+          interactionStyles: dependency.interactionStyles ?? [],
+        }}
       >
         <Item
           name="description"
@@ -105,6 +117,17 @@ const EditProductDependencyForm = ({
           ]}
         >
           <TextArea autoSize={{ minRows: 2 }} showCount maxLength={1024} />
+        </Item>
+        <Item
+          name="interactionStyles"
+          label="Interaction"
+          extra={
+            alreadyRecorded
+              ? 'Already recorded. Moving between calling and events is a change of terms, which is dated — use Change Terms.'
+              : 'How these products talk. Recording it here keeps one period, because writing down what was always true changes nothing.'
+          }
+        >
+          <InteractionStyleCheckboxes disabled={alreadyRecorded} />
         </Item>
       </Form>
     </Modal>

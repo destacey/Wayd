@@ -1,20 +1,21 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import {
   DependencyStrength,
+  InteractionStyle,
   ProductDependencyDto,
 } from '@/src/services/wayd-api'
-import ChangeProductDependencyStrengthForm from './change-product-dependency-strength-form'
+import ChangeProductDependencyTermsForm from './change-product-dependency-terms-form'
 
 jest.unmock('dayjs')
 
-const changeStrength = jest.fn()
+const changeTerms = jest.fn()
 
 jest.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
 }))
 
 jest.mock('@/src/store/features/product-management/products-api', () => ({
-  useChangeProductDependencyStrengthMutation: () => [changeStrength],
+  useChangeProductDependencyTermsMutation: () => [changeTerms],
 }))
 
 /** The submit handler from the live form, so a test need not click a jsdom-disabled button. */
@@ -73,15 +74,22 @@ const submit = async () => {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  changeStrength.mockResolvedValue({ data: 'new-id' })
+  changeTerms.mockResolvedValue({ data: 'new-id' })
 })
 
-describe('ChangeProductDependencyStrengthForm', () => {
-  it('starts on the other strength, since the current one changes nothing', () => {
-    // Arrange / Act
+describe('ChangeProductDependencyTermsForm', () => {
+  it('starts on the current terms, so editing one field does not change the other', () => {
+    // Arrange — with two fields there is no single "other" value to pre-select, and flipping the strength
+    // would put a change in front of somebody who came to record the styles
+    const recorded = {
+      ...dependency,
+      interactionStyles: [InteractionStyle.Synchronous],
+    }
+
+    // Act
     render(
-      <ChangeProductDependencyStrengthForm
-        dependency={dependency}
+      <ChangeProductDependencyTermsForm
+        dependency={recorded}
         onFormComplete={() => {}}
         onFormCancel={() => {}}
       />,
@@ -89,14 +97,66 @@ describe('ChangeProductDependencyStrengthForm', () => {
 
     // Assert
     expect(formInstance!.getFieldValue('strength')).toBe(
-      DependencyStrength.Hard,
+      DependencyStrength.Soft,
     )
+    expect(formInstance!.getFieldValue('interactionStyles')).toEqual([
+      InteractionStyle.Synchronous,
+    ])
+  })
+
+  it('records styles in place on a dependency that had none, without starting a new one', async () => {
+    // Arrange
+    render(
+      <ChangeProductDependencyTermsForm
+        dependency={dependency}
+        onFormComplete={() => {}}
+        onFormCancel={() => {}}
+      />,
+    )
+
+    // Act — the strength is untouched, so the only change is writing down what was always true
+    await act(async () => {
+      fireEvent.click(screen.getByRole('checkbox', { name: /^Asynchronous/ }))
+    })
+
+    // Assert
+    expect(
+      screen.getByText('This records how the products already talk'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('The current dependency ends and a new one starts'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('lets a dependency started today record its styles, since that changes nothing', async () => {
+    // Arrange — a real change would have to end the dependency the day before it started, but recording
+    // styles keeps one period, so the day-after rule does not apply
+    const startedToday = { ...dependency, startsOn: new Date() }
+
+    render(
+      <ChangeProductDependencyTermsForm
+        dependency={startedToday}
+        onFormComplete={() => {}}
+        onFormCancel={() => {}}
+      />,
+    )
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('checkbox', { name: /^Synchronous/ }))
+    })
+
+    // Assert
+    expect(
+      screen.queryByText('This dependency started today'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Change' })).toBeEnabled()
   })
 
   it('changes the link on the product that has it, naming the product depended on', async () => {
     // Arrange
     render(
-      <ChangeProductDependencyStrengthForm
+      <ChangeProductDependencyTermsForm
         dependency={dependency}
         onFormComplete={() => {}}
         onFormCancel={() => {}}
@@ -107,7 +167,7 @@ describe('ChangeProductDependencyStrengthForm', () => {
     await submit()
 
     // Assert
-    expect(changeStrength).toHaveBeenCalledWith(
+    expect(changeTerms).toHaveBeenCalledWith(
       expect.objectContaining({
         productId: 'web',
         dependencyId: 'dependency-1',
@@ -116,13 +176,13 @@ describe('ChangeProductDependencyStrengthForm', () => {
     )
   })
 
-  it('explains that a dependency started today cannot change strength until tomorrow', () => {
+  it('explains that a dependency started today cannot change terms until tomorrow', () => {
     // Arrange — the current dependency would have to end the day before it started
     const startedToday = { ...dependency, startsOn: new Date() }
 
     // Act
     render(
-      <ChangeProductDependencyStrengthForm
+      <ChangeProductDependencyTermsForm
         dependency={startedToday}
         onFormComplete={() => {}}
         onFormCancel={() => {}}
@@ -139,7 +199,7 @@ describe('ChangeProductDependencyStrengthForm', () => {
   it('does not warn about a dependency that started before today', () => {
     // Arrange / Act
     render(
-      <ChangeProductDependencyStrengthForm
+      <ChangeProductDependencyTermsForm
         dependency={dependency}
         onFormComplete={() => {}}
         onFormCancel={() => {}}

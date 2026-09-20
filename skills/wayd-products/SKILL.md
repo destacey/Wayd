@@ -114,8 +114,9 @@ the user first.
 
 ## Product dependencies
 
-A product can record which other products it relies on. Each dependency has a **strength**, an
-optional description, and the days it held (`startsOn`, and `endsOn` once it stopped).
+A product can record which other products it relies on. Each dependency has a **strength**, optional
+**interaction styles**, an optional description, and the days it held (`startsOn`, and `endsOn` once
+it stopped).
 
 ### Reading them rolls up the tree
 
@@ -139,6 +140,12 @@ than "nothing depends on it".
 - **Strength has no default.** 1 Hard: the product stops working without it. 2 Soft: it degrades or
   loses a feature but keeps working. Impact attribution reads this, so a guess either way misstates
   it — ask the person if they have not said.
+- **Interaction styles refine strength**: `Synchronous`, `Asynchronous`, or both, since a pair
+  commonly calls for what it needs now and subscribes for what it needs eventually. A Hard
+  **synchronous** dependency caps the consumer's availability at the provider's; a Hard
+  **asynchronous** one turns the provider's downtime into a backlog worked through afterwards. They
+  are optional, but **omitting them records nothing rather than recording that there are none**, so
+  `null` is never evidence a dependency is synchronous.
 - **One open dependency per pair**, and a later one on the same pair cannot overlap an earlier one.
   Dates default to today, may be backdated, and cannot be in the future.
 
@@ -147,13 +154,24 @@ than "nothing depends on it".
 | The situation | Tool |
 | --- | --- |
 | The description is wrong | `Products_UpdateDependency` (an omitted description is cleared) |
+| Its styles were never recorded | `Products_UpdateDependency` — fills them in place, keeping one period |
 | It was true and has stopped | `Products_EndDependency` — kept, still counts for the days it held |
-| It became harder or softer | `Products_ChangeDependencyStrength` — ends it and opens a new one |
+| It became harder or softer, or moved between calling and events | `Products_ChangeDependencyTerms` — ends it and opens a new one |
 | It was never true | `Products_RemoveDependency` — deletes it, and needs a reason |
 
-**`Products_ChangeDependencyStrength` returns a new id.** The dependency you passed is now ended, so
-use the returned id for anything that follows. Prefer ending over removing: removal erases the record
-that the dependency ever held.
+**Filling in styles is not the same as changing them.** Writing down how a dependency always worked
+changed nothing about it, so `Products_UpdateDependency` records it in place — dating it would split
+the period on a day nothing happened. Moving off a synchronous call and onto events *is* a change,
+has to be dated, and so belongs to `Products_ChangeDependencyTerms`, which refuses nothing and
+silently does the right one of the two.
+
+**`Products_ChangeDependencyTerms` returns a new id** whenever terms actually changed, because the
+dependency you passed is now ended — use the returned id for anything that follows. It also takes
+the **whole** set of terms: pass the current strength when changing only the styles, or you will
+change the strength by omission. Omitted styles are the exception and carry over rather than
+clearing.
+
+Prefer ending over removing: removal erases the record that the dependency ever held.
 
 Dependencies also constrain other changes: `Products_Reparent` refuses a move that would put two
 products with an open dependency above and below one another (end the dependency first), and

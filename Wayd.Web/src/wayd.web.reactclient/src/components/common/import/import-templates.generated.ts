@@ -1199,6 +1199,14 @@ export const importTemplates = {
             values: ['Hard', 'Soft'],
           },
           {
+            name: 'InteractionStyles',
+            type: 'text',
+            required: false,
+            description:
+              'How the product reaches the one it relies on: Synchronous, Asynchronous, or both separated by a semicolon or comma. Blank records none, which is not the same as recording that there are none.',
+            values: ['Synchronous', 'Asynchronous'],
+          },
+          {
             name: 'Description',
             type: 'text',
             required: false,

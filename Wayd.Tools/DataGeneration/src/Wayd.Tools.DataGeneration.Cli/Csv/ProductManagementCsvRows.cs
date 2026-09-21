@@ -26,6 +26,13 @@ public sealed class ProductDependencyCsvRow
     public required Guid ProductId { get; init; }
     public required Guid DependsOnProductId { get; init; }
     public required string Strength { get; init; }
+
+    /// <summary>
+    /// Semicolon-separated, and written even when empty: the import reads the column by name, so a file
+    /// without the header is refused outright rather than treated as recording no styles.
+    /// </summary>
+    public string? InteractionStyles { get; init; }
+
     public string? Description { get; init; }
     public DateOnly? StartsOn { get; init; }
     public DateOnly? EndsOn { get; init; }

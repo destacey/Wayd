@@ -41,6 +41,19 @@ public class TransactionScopeTests
                 || s.EndsWith("TestData", StringComparison.Ordinal)));
     }
 
+    /// <summary>
+    /// Every <c>.cs</c> file, tests included. The retrying-strategy rule below binds a test fixture exactly
+    /// as it binds shipped code: a fixture that switches retries on configures a context production cannot
+    /// have, and every save through it fails.
+    /// </summary>
+    private static IEnumerable<string> AllSourceFiles()
+    {
+        var solutionRoot = AssemblyHelper.GetSolutionRoot();
+
+        return Directory.GetFiles(solutionRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !SegmentsOf(f).Any(s => s is "bin" or "obj" or ".claude" or "node_modules" or ".next"));
+    }
+
     private static string[] SegmentsOf(string path) =>
         path.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
 
@@ -63,6 +76,28 @@ public class TransactionScopeTests
         offenders.Should().BeEmpty(
             "a transaction opened outside BaseDbContext commits without delivering the events the saves "
             + "inside it raised. Use dbContext.BeginUnitOfWork(cancellationToken) and commit through it.");
+    }
+
+    [Fact]
+    public void NothingTurnsOnARetryingExecutionStrategy()
+    {
+        // Arrange
+        // A retrying strategy refuses a transaction it did not start (ExecutionStrategyExistingTransaction),
+        // and since the save owns one, turning this on fails every save rather than only the retried ones.
+        // It reads as available — the seeders call CreateExecutionStrategy — so the ban is worth asserting.
+        var enablesRetries = new Regex(@"\.EnableRetryOnFailure\s*\(", RegexOptions.Compiled);
+
+        var offenders = AllSourceFiles()
+            .Where(f => Path.GetFileName(f) != nameof(TransactionScopeTests) + ".cs")
+            .Where(f => enablesRetries.IsMatch(File.ReadAllText(f)))
+            .Select(f => Path.GetRelativePath(AssemblyHelper.GetSolutionRoot(), f))
+            .ToList();
+
+        // Act & Assert
+        offenders.Should().BeEmpty(
+            "SaveChangesAsync opens the transaction that commits the rows with what records them, and a "
+            + "retrying execution strategy refuses a transaction it did not start. A fixture that enables "
+            + "retries fails every save in it. Wait the database out instead — SqlServerTestContainer does.");
     }
 
     [Fact]

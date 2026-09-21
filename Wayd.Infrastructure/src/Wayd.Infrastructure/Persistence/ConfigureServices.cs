@@ -76,7 +76,8 @@ internal static class ConfigureServices
             .AddTransient<IConnectionStringValidator, ConnectionStringValidator>();
     }
 
-    internal static DbContextOptionsBuilder UseDatabase(this DbContextOptionsBuilder builder, string dbProvider, string connectionString)
+    internal static DbContextOptionsBuilder UseDatabase(
+        this DbContextOptionsBuilder builder, string dbProvider, string connectionString, int? commandTimeoutSeconds = null)
     {
         switch (dbProvider.ToLowerInvariant())
         {
@@ -85,6 +86,9 @@ internal static class ConfigureServices
                 {
                     options.MigrationsAssembly("Wayd.Infrastructure.Migrators.MSSQL");
                     options.UseNodaTime();
+
+                    if (commandTimeoutSeconds is { } seconds)
+                        options.CommandTimeout(seconds);
                 });
 
             //case DbProviderKeys.Npgsql:

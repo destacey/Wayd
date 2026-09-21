@@ -26,6 +26,17 @@ public interface IImportDbContext
     /// </summary>
     ChangeTracker ChangeTracker { get; }
 
+    /// <summary>
+    /// Raises the command timeout for the run, putting back the context's own ceiling when disposed.
+    /// </summary>
+    /// <remarks>
+    /// An import is not a request: its size is bounded by the row cap, not by anyone waiting, and a chunk
+    /// of a few hundred records with their audit trail and activity log is well past what a request-path
+    /// write should ever be allowed. A run used to fail on the default ceiling with nothing to say but
+    /// "Execution Timeout Expired", three attempts running.
+    /// </remarks>
+    IDisposable WithCommandTimeout(TimeSpan timeout);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
     /// <summary>

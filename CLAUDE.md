@@ -365,6 +365,21 @@ superseded generation is deleted or left un-obsoleted — see
 
 Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistence/Configuration/`. Migrations in `Wayd.Infrastructure.Migrators.MSSQL`. Auto-applied on startup via `app.Services.InitializeDatabases()`.
 
+**A save commits its rows together with what records them** — audit trails, activity log entries and outbox
+envelopes — and dispatches only once that transaction commits. Spanning several saves goes through
+`BaseDbContext.BeginUnitOfWork`, whose `CommitAsync` commits *and* dispatches; a bare
+`Database.BeginTransactionAsync` commits without delivering what those saves raised, and
+`TransactionScopeTests` fails the build if one appears outside the context. Because the save owns the
+transaction, `EnableRetryOnFailure` cannot be turned on — a retrying strategy refuses a user transaction it
+did not start, which would break every save. See
+[domain-events.mdx](docs/contributing/domain-events.mdx#what-a-save-commits).
+
+**Wayd expects `READ_COMMITTED_SNAPSHOT`**, which Azure SQL Database enables by default and SQL Server does
+not. Startup turns it on in Development and warns elsewhere. The command timeout is the context's
+(`DatabaseSettings:CommandTimeoutSeconds`, default 30); an operation that legitimately runs longer raises it
+for its own scope with `WithCommandTimeout`, never globally. See
+[configuration.mdx](docs/contributing/configuration.mdx#database).
+
 **The twelve `IXxxDbContext` interfaces are views over that one context, not separate contexts.** They constrain what each module can see; they are not persistence boundaries, and they overlap by design (`IPlanningDbContext : IWaydDbContext`). Keeping that true takes two things working together, and either alone leaves it broken:
 
 1. `AddDomainDbContexts` registers each as a **factory** (`sp => sp.GetRequiredService<WaydDbContext>()`). `AddScoped<IFoo, WaydDbContext>()` reads as an alias but is a distinct service descriptor, so it hands out a separate context per interface.

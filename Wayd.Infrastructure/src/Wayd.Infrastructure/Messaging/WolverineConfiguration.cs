@@ -250,8 +250,9 @@ public static class WolverineConfiguration
         opts.LocalQueue(ImportQueueName).MaximumParallelMessages(2);
 
         // The durable event policy above is scoped to its own message types, so the import message needs its
-        // own rule or it would get no retry and no dead-lettering at all.
-        opts.Policies.Add<ImportFailurePolicy>();
+        // own rule or it would get no retry and no dead-lettering at all. It also lifts the 60-second
+        // execution timeout, which a file of any size outlives.
+        opts.Policies.Add<ImportRunPolicy>();
 
         // Wolverine 6 codegen constructor-injects handler dependencies and, at the NotAllowed default, throws
         // when a dependency has a DI registration it cannot "see through". This used to be impossible here:

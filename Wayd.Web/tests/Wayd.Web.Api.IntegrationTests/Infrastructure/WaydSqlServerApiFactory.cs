@@ -57,6 +57,9 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
     /// <summary>Records what every save adds; inert unless a test is recording.</summary>
     public SaveRecorder Saves { get; } = new();
 
+    /// <summary>Fails a chosen save; inert unless a test arms it.</summary>
+    public SaveFaultInjector SaveFaults { get; } = new();
+
     /// <summary>How long an import submission waits on its run before answering 202.</summary>
     public ImportResponseTiming ImportResponseTiming { get; private set; } = _defaultImportResponseTiming;
 
@@ -137,7 +140,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         HandlerCodegenMode.Apply();
 
         builder.ConfigureServices(services =>
-            services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites, ImportClaims, Saves)));
+            services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites, ImportClaims, Saves, SaveFaults)));
 
         builder.ConfigureTestServices(services =>
         {

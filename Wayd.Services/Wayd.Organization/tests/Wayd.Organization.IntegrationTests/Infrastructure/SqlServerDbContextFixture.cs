@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
 using Testcontainers.MsSql;
@@ -54,11 +54,11 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
                 sql.MigrationsAssembly("Wayd.Infrastructure.Migrators.MSSQL");
                 sql.UseNodaTime();
 
-                // Several of these containers start at once on a CI runner with far fewer cores than
-                // containers. SQL Server accepts connections before it has finished warming up, so the
-                // first queries can hit transient timeouts and fail a test that has nothing wrong with
-                // it. Retry those rather than letting load masquerade as a test failure.
-                sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
+                // No EnableRetryOnFailure. BaseDbContext.SaveChangesAsync opens the transaction that commits
+                // the entities with their audit trail, activity log and outbox envelopes, and a retrying
+                // strategy refuses a transaction it did not start — so switching it on fails every save here
+                // while production, which has no retries either, works. SqlServerTestContainer waits on a real
+                // SELECT 1 before handing the container over, which is what the retries were covering for.
             })
             .Options;
 

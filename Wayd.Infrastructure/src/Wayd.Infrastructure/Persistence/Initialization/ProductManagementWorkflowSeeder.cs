@@ -93,13 +93,13 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
         var strategy = dbContext.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await using var unitOfWork = await dbContext.BeginUnitOfWork(cancellationToken);
 
             await dbContext.SaveChangesAsync(cancellationToken);
             RecordCreationActivity(dbContext, created);
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            await transaction.CommitAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
         });
     }
 

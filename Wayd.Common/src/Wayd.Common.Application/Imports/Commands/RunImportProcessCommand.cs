@@ -23,6 +23,13 @@ public sealed class RunImportProcessCommandHandler(
     IDateTimeProvider dateTimeProvider,
     ILogger<RunImportProcessCommandHandler> logger) : ICommandHandler<RunImportProcessCommand>
 {
+    /// <summary>
+    /// How long one of a run's commands may take. Generous rather than tuned: the point is that a run is
+    /// bounded by its row cap and not by a caller's patience, so the ceiling only has to be past anything a
+    /// capped file can reach. The stall sweep, not this, is what ends a run that is genuinely stuck.
+    /// </summary>
+    private static readonly TimeSpan ImportCommandTimeout = TimeSpan.FromMinutes(10);
+
     private readonly IImportDbContext _importDbContext = importDbContext;
     private readonly IImportDefinitionRegistry _registry = registry;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -66,6 +73,12 @@ public sealed class RunImportProcessCommandHandler(
         var definition = definitionResult.Value;
         var lastPassIndex = definition.Passes.Count - 1;
         var stoppedEarly = false;
+
+        // A chunk writes its records, their audit trail and their activity log in one transaction, and an
+        // atomic import does the whole file that way. That is minutes of work on a large file, against a
+        // ceiling meant for a request; without this the run fails on every attempt with nothing but
+        // "Execution Timeout Expired" to say why.
+        using var commandTimeout = _importDbContext.WithCommandTimeout(ImportCommandTimeout);
 
         try
         {

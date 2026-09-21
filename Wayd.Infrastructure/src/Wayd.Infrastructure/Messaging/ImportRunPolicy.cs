@@ -9,7 +9,7 @@ using Wolverine.Runtime.Handlers;
 namespace Wayd.Infrastructure.Messaging;
 
 /// <summary>
-/// Failure policy for the import runner: retry with a bounded cooldown, then dead-letter.
+/// What the import runner's message is allowed to do: how long a run may take, and what happens when one fails.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,8 +25,25 @@ namespace Wayd.Infrastructure.Messaging;
 /// dead-lettered while the run still sits Queued.
 /// </para>
 /// </remarks>
-public sealed class ImportFailurePolicy : IHandlerPolicy
+public sealed class ImportRunPolicy : IHandlerPolicy
 {
+    /// <summary>
+    /// How long a run may take before Wolverine cancels it.
+    /// </summary>
+    /// <remarks>
+    /// Wolverine's default is 60 seconds, which is a request's patience applied to an operation whose size is
+    /// bounded by its row cap instead. It cancels the handler's token mid-save, and the failure that surfaces
+    /// is a bare <c>TaskCanceledException</c>, or a SqlException about a severe error on the current command —
+    /// neither of which says anything about a timeout.
+    /// <para>
+    /// Deliberately longer than the command ceiling the runner raises for itself
+    /// (<c>RunImportProcessCommandHandler.ImportCommandTimeout</c>): a run that genuinely will not finish
+    /// should die on the database command, which names itself, rather than on the message. This is the outer
+    /// bound, and the stall sweep is what settles a run that is not making progress at all.
+    /// </para>
+    /// </remarks>
+    private static readonly TimeSpan MaximumRunDuration = 15.Minutes();
+
     // Matches the durable event cooldown: long enough to ride out a database blip or a deadlock, short
     // enough that a genuinely broken run reaches the dead-letter queue quickly.
     private static readonly TimeSpan[] Cooldown =
@@ -40,6 +57,8 @@ public sealed class ImportFailurePolicy : IHandlerPolicy
     {
         foreach (var chain in chains.Where(c => c.MessageType == typeof(RunImportProcessCommand)))
         {
+            chain.ExecutionTimeoutInSeconds = (int)MaximumRunDuration.TotalSeconds;
+
             chain.OnAnyException()
                 .RetryWithCooldown(Cooldown)
                 .Then

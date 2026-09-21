@@ -19,7 +19,7 @@ public sealed class ImportProcess : BaseEntity
     /// How many times a run may be claimed before an unexpected failure ends it instead of releasing it.
     /// </summary>
     /// <remarks>
-    /// Must stay below the number of deliveries <c>ImportFailurePolicy</c> allows the run message, so the
+    /// Must stay below the number of deliveries <c>ImportRunPolicy</c> allows the run message, so the
     /// run reaches a terminal state while Wolverine is still retrying. Above it, the message is
     /// dead-lettered with the run still Queued, and the stall sweep republishes it every time it runs.
     /// </remarks>

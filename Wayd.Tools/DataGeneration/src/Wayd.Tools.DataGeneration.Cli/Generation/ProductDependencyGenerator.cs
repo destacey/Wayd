@@ -14,6 +14,11 @@ public sealed class ProductDependencyModel
     /// <summary><c>Hard</c> or <c>Soft</c>, as the import reads it.</summary>
     public required string Strength { get; init; }
 
+    /// <summary>
+    /// <c>Synchronous</c>, <c>Asynchronous</c>, or both separated by a semicolon, as the import reads it.
+    /// </summary>
+    public string? InteractionStyles { get; init; }
+
     public string? Description { get; init; }
     public required DateOnly StartsOn { get; init; }
     public DateOnly? EndsOn { get; init; }
@@ -65,6 +70,19 @@ internal sealed class ProductDependencyGenerator
 
     /// <summary>What an out-degree of one means for each kind of node, before the recipe's average scales it.</summary>
     private const double BaselineDependenciesPerComponent = 3.5;
+
+    private const string Synchronous = "Synchronous";
+    private const string Asynchronous = "Asynchronous";
+
+    /// <summary>
+    /// Targets a product publishes to or consumes from rather than calls and waits on. A subset of
+    /// <see cref="SoftLeaningWords"/> and not the same question: a link can be soft and synchronous (search
+    /// degrades but is still called inline), or hard and asynchronous (an order is not placed until the
+    /// event is accepted).
+    /// </summary>
+    private static readonly string[] AsynchronousLeaningWords =
+        ["Notification", "Events", "Webhooks", "Exports", "Audit", "Observability", "Analytics", "Reporting",
+         "Insights", "Enrichment"];
 
     private static readonly string[] SoftLeaningWords =
         ["Notification", "Observability", "Audit", "Search", "Email", "Translation", "Media", "Events", "Exports",
@@ -460,10 +478,26 @@ internal sealed class ProductDependencyGenerator
             ProductName = link.From.Name,
             DependsOnProductName = link.To.Name,
             Strength = strength,
+            InteractionStyles = PickInteractionStyles(link),
             Description = description,
             StartsOn = startsOn,
             EndsOn = endsOn,
         };
+
+    /// <summary>
+    /// Derived from what the target is, not drawn at random: the style is a property of the link, so the two
+    /// rows a strength change produces have to agree on it.
+    /// </summary>
+    private static string PickInteractionStyles(Link link)
+    {
+        var asynchronous = AsynchronousLeaningWords.Any(w => link.To.Name.Contains(w, StringComparison.OrdinalIgnoreCase));
+
+        // An application and its own backend do both: the requests it waits on, and the events it publishes back.
+        if (asynchronous && link.OwnBackend)
+            return $"{Synchronous};{Asynchronous}";
+
+        return asynchronous ? Asynchronous : Synchronous;
+    }
 
     private static DateOnly Later(DateOnly a, DateOnly b) => a > b ? a : b;
 

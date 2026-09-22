@@ -126,6 +126,12 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         await using var context = CreateContext();
 
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectStatusHistory];", cancellationToken);
+
+        // Ahead of the projects: neither cascades from them. A task's parent is a self-reference with no cascade
+        // either, which one statement removing every task at once satisfies.
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectTasks];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectStages];", cancellationToken);
+
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[Projects];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[Portfolios];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectLifecycleStages];", cancellationToken);

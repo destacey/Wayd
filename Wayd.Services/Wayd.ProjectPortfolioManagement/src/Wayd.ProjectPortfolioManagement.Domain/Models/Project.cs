@@ -1049,9 +1049,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         _tasks.Add(task);
 
+        // Attaching here is all the linking a new task needs; nothing else in the tree moved. Rebuilding the whole
+        // tree after every creation is what made a project's tasks cost the square of their number.
         parentTask?.AddChild(task);
 
-        LinkTaskParents();
         RecalculateAncestorsForTask(task);
 
         return Result.Success(task);

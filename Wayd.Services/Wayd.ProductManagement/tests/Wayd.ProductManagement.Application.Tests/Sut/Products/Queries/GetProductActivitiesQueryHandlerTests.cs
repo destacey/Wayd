@@ -128,9 +128,12 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
         item.RaisedOn.Should().BeNull();
     }
 
+    // The tests tell entries apart by id, so each call needs its own.
+    private static long _nextActivityId;
+
     private static ActivityLogDto Activity(Guid aggregateId, bool isRelated) => new()
     {
-        Id = 1,
+        Id = Interlocked.Increment(ref _nextActivityId),
         EventType = "ProductReparentedEventV2",
         DomainArea = "ProductManagement",
         AggregateType = "Product",

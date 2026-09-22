@@ -36,7 +36,7 @@ jest.mock('antd', () => {
 const createActivity = (
   overrides: Partial<ActivityLogDto> = {},
 ): ActivityLogDto => ({
-  id: '11111111-1111-1111-1111-111111111111',
+  id: 1,
   eventType: 'TeamCreatedEvent',
   category: ActivityCategory.Created,
   domainArea: 'Organization',
@@ -122,12 +122,12 @@ describe('ExportActivitiesModal', () => {
     const onClose = jest.fn()
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         summary: 'Team Created',
         payload: JSON.stringify({ name: 'Alpha' }),
       }),
       createActivity({
-        id: 'act-2',
+        id: 3,
         summary: 'Team Updated',
         payload: JSON.stringify({ name: 'Alpha Prime' }),
       }),
@@ -166,10 +166,10 @@ describe('ExportActivitiesModal', () => {
     const user = userEvent.setup()
     const onClose = jest.fn()
 
-    const initialActivities = [createActivity({ id: 'act-1' })]
+    const initialActivities = [createActivity({ id: 2 })]
     const batch2 = [
-      createActivity({ id: 'act-2' }),
-      createActivity({ id: 'act-3' }),
+      createActivity({ id: 3 }),
+      createActivity({ id: 4 }),
     ]
 
     const onFetchBatch = jest.fn().mockImplementation(async (page: number) => {
@@ -209,8 +209,8 @@ describe('ExportActivitiesModal', () => {
     const onClose = jest.fn()
 
     const activities = [
-      createActivity({ id: 'act-1', summary: 'Sprint 1 Created' }),
-      createActivity({ id: 'act-2', summary: 'Member Added' }),
+      createActivity({ id: 2, summary: 'Sprint 1 Created' }),
+      createActivity({ id: 3, summary: 'Member Added' }),
     ]
 
     const isMatchingSearch = (act: ActivityLogDto, query: string) =>
@@ -235,6 +235,6 @@ describe('ExportActivitiesModal', () => {
     const [jsonString] = mockDownloadJsonWithTimestamp.mock.calls[0]
     const envelope = JSON.parse(jsonString)
     expect(envelope.totalEvents).toBe(1)
-    expect(envelope.events[0].id).toBe('act-1')
+    expect(envelope.events[0].id).toBe(2)
   })
 })

@@ -43625,7 +43625,7 @@ export interface PagedResponseOfActivityLogDto {
 }
 
 export interface ActivityLogDto {
-    id: string;
+    id: number;
     eventType: string;
     category: ActivityCategory;
     domainArea: string;

@@ -30,7 +30,7 @@ jest.mock('./compare-payload-modal', () => {
 const createActivity = (
   overrides: Partial<ActivityLogDto> = {},
 ): ActivityLogDto => ({
-  id: '11111111-1111-1111-1111-111111111111',
+  id: 1,
   eventType: 'TeamCreatedEvent',
   category: ActivityCategory.Created,
   domainArea: 'Organization',
@@ -73,12 +73,12 @@ describe('ActivityLogTimeline', () => {
   it('renders activity items in the ledger list with summary and actor kind', () => {
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         summary: 'Team Created',
         actorKind: EventActorKind.User,
       }),
       createActivity({
-        id: 'act-2',
+        id: 3,
         eventType: 'TeamDeactivatedEvent',
         summary: 'Team Deactivated',
         actorKind: EventActorKind.System,
@@ -105,7 +105,7 @@ describe('ActivityLogTimeline', () => {
   ])('badges the %s category as %s', (category, expectedBadge) => {
     render(
       <ActivityLogTimeline
-        activities={[createActivity({ id: 'act-1', category })]}
+        activities={[createActivity({ id: 2, category })]}
         isLoading={false}
       />,
     )
@@ -118,7 +118,7 @@ describe('ActivityLogTimeline', () => {
       <ActivityLogTimeline
         activities={[
           createActivity({
-            id: 'act-1',
+            id: 2,
             eventType: 'ProjectCreatedEvent',
             summary: 'Project Opened',
             category: ActivityCategory.StatusChanged,
@@ -139,7 +139,7 @@ describe('ActivityLogTimeline', () => {
       <ActivityLogTimeline
         activities={[
           createActivity({
-            id: 'act-1',
+            id: 2,
             eventType: 'ProjectBaselinedEvent',
             summary: 'Project Baselined',
             category: ActivityCategory.Baseline,
@@ -163,21 +163,21 @@ describe('ActivityLogTimeline', () => {
       <ActivityLogTimeline
         activities={[
           createActivity({
-            id: 'act-3',
+            id: 4,
             eventType: 'ProjectDetailsUpdatedEvent',
             summary: 'Project Details Updated',
             category: ActivityCategory.Updated,
             timestamp: new Date('2026-09-14T09:00:00Z'),
           }),
           createActivity({
-            id: 'act-2',
+            id: 3,
             eventType: 'ProjectBaselinedEvent',
             summary: 'Project Baselined',
             category: ActivityCategory.Baseline,
             timestamp: new Date('2026-09-13T09:00:00Z'),
           }),
           createActivity({
-            id: 'act-1',
+            id: 2,
             eventType: 'ProjectStatusChangedEvent',
             summary: 'Project Status Changed',
             category: ActivityCategory.StatusChanged,
@@ -199,13 +199,13 @@ describe('ActivityLogTimeline', () => {
       <ActivityLogTimeline
         activities={[
           createActivity({
-            id: 'act-2',
+            id: 3,
             eventType: 'ProjectDetailsUpdatedEvent',
             summary: 'Project Details Updated',
             category: ActivityCategory.Updated,
           }),
           createActivity({
-            id: 'act-1',
+            id: 2,
             eventType: 'ProjectBaselinedEvent',
             summary: 'Project Baselined',
             category: ActivityCategory.Baseline,
@@ -226,7 +226,7 @@ describe('ActivityLogTimeline', () => {
   it('selects the first activity by default and displays its properties in the inspector pane', () => {
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         payload: JSON.stringify({
           name: 'Phoenix Team',
           code: 'PHX',
@@ -245,7 +245,7 @@ describe('ActivityLogTimeline', () => {
   it('renders null or empty event properties as None', () => {
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         payload: JSON.stringify({
           name: 'Phoenix Team',
           description: null,
@@ -263,12 +263,12 @@ describe('ActivityLogTimeline', () => {
     const user = userEvent.setup()
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         summary: 'Team Created',
         payload: JSON.stringify({ name: 'Phoenix Team', code: 'PHX' }),
       }),
       createActivity({
-        id: 'act-2',
+        id: 3,
         eventType: 'TeamUpdatedEvent',
         summary: 'Team Updated',
         payload: JSON.stringify({ name: 'Orion Team', code: 'ORN' }),
@@ -291,7 +291,7 @@ describe('ActivityLogTimeline', () => {
   it('renders employee actor card with link when employee details are provided', () => {
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         employee: {
           id: 'emp-uuid-1',
           key: 42,
@@ -312,7 +312,7 @@ describe('ActivityLogTimeline', () => {
   it('renders direct action attribution when actor is user without linked employee', () => {
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         actorKind: EventActorKind.User,
         employee: undefined,
       }),
@@ -328,7 +328,7 @@ describe('ActivityLogTimeline', () => {
   it('renders system process attribution when actor is system', () => {
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         actorKind: EventActorKind.System,
         employee: undefined,
       }),
@@ -345,11 +345,11 @@ describe('ActivityLogTimeline', () => {
     const user = userEvent.setup()
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         summary: 'Deploy Production',
       }),
       createActivity({
-        id: 'act-2',
+        id: 3,
         eventType: 'RollbackEvent',
         summary: 'Rollback Release',
       }),
@@ -377,13 +377,13 @@ describe('ActivityLogTimeline', () => {
     const user = userEvent.setup()
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         eventType: 'IterationDateRangeChangedEvent',
         summary: 'Iteration Date Range Changed',
         category: ActivityCategory.ScheduleChanged,
       }),
       createActivity({
-        id: 'act-2',
+        id: 3,
         summary: 'Team Created',
       }),
     ]
@@ -404,7 +404,7 @@ describe('ActivityLogTimeline', () => {
   it('renders load more toolbar with remaining count and triggers callback on click', async () => {
     const user = userEvent.setup()
     const handleLoadMore = jest.fn()
-    const activities = [createActivity({ id: 'act-1' })]
+    const activities = [createActivity({ id: 2 })]
 
     render(
       <ActivityLogTimeline
@@ -428,7 +428,7 @@ describe('ActivityLogTimeline', () => {
 
   it('displays all loaded message when total count is reached', () => {
     const activities = Array.from({ length: 25 }, (_, i) =>
-      createActivity({ id: `act-${i}` }),
+      createActivity({ id: i + 1 }),
     )
 
     render(
@@ -455,7 +455,7 @@ describe('ActivityLogTimeline', () => {
 
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         payload: JSON.stringify({ name: 'Alpha Team' }),
       }),
     ]
@@ -479,7 +479,7 @@ describe('ActivityLogTimeline', () => {
   })
 
   it('does not render panel export button by default', () => {
-    const activities = [createActivity({ id: 'act-1' })]
+    const activities = [createActivity({ id: 2 })]
 
     render(
       <App>
@@ -497,7 +497,7 @@ describe('ActivityLogTimeline', () => {
   })
 
   it('renders export modal when isExportOpen is true', () => {
-    const activities = [createActivity({ id: 'act-1' })]
+    const activities = [createActivity({ id: 2 })]
 
     render(
       <App>
@@ -515,7 +515,7 @@ describe('ActivityLogTimeline', () => {
 
   it('opens export modal when showExportButton is enabled and clicked', async () => {
     const user = userEvent.setup()
-    const activities = [createActivity({ id: 'act-1' })]
+    const activities = [createActivity({ id: 2 })]
 
     render(
       <App>
@@ -541,19 +541,19 @@ describe('ActivityLogTimeline', () => {
     const user = userEvent.setup()
     const activities = [
       createActivity({
-        id: 'act-3',
+        id: 4,
         eventType: 'TeamDetailsUpdatedEvent',
         summary: 'Team Details Updated',
         timestamp: new Date('2026-04-01T11:00:00Z'),
       }),
       createActivity({
-        id: 'act-2',
+        id: 3,
         eventType: 'TeamDeactivatedEvent',
         summary: 'Team Deactivated',
         timestamp: new Date('2026-04-01T10:00:00Z'),
       }),
       createActivity({
-        id: 'act-1',
+        id: 2,
         eventType: 'TeamDetailsUpdatedEvent',
         summary: 'Team Details Updated',
         timestamp: new Date('2026-04-01T09:00:00Z'),
@@ -583,13 +583,13 @@ describe('ActivityLogTimeline', () => {
   it('shows the compare action against an earlier version of the same event', () => {
     const activities = [
       createActivity({
-        id: 'act-2',
+        id: 3,
         eventType: 'ProjectReparentedEventV2',
         eventVersion: '2.0',
         timestamp: new Date('2026-04-01T10:00:00Z'),
       }),
       createActivity({
-        id: 'act-1',
+        id: 2,
         eventType: 'ProjectReparentedEvent',
         timestamp: new Date('2026-04-01T09:00:00Z'),
       }),
@@ -613,13 +613,13 @@ describe('ActivityLogTimeline', () => {
   it('does not show the compare action when only events of other types precede it', () => {
     const activities = [
       createActivity({
-        id: 'act-2',
+        id: 3,
         eventType: 'TeamDetailsUpdatedEvent',
         summary: 'Team Details Updated',
         timestamp: new Date('2026-04-01T10:00:00Z'),
       }),
       createActivity({
-        id: 'act-1',
+        id: 2,
         eventType: 'TeamCreatedEvent',
         summary: 'Team Created',
         timestamp: new Date('2026-04-01T09:00:00Z'),
@@ -644,7 +644,7 @@ describe('ActivityLogTimeline', () => {
   it('does not compare an event with the same kind of event raised on another record', () => {
     const activities = [
       createActivity({
-        id: 'act-2',
+        id: 3,
         eventType: 'ProductReparentedEventV2',
         aggregateType: 'Product',
         aggregateId: 'child-a',
@@ -652,7 +652,7 @@ describe('ActivityLogTimeline', () => {
         timestamp: new Date('2026-04-01T10:00:00Z'),
       }),
       createActivity({
-        id: 'act-1',
+        id: 2,
         eventType: 'ProductReparentedEventV2',
         aggregateType: 'Product',
         aggregateId: 'child-b',
@@ -681,7 +681,7 @@ describe('ActivityLogTimeline', () => {
       <ActivityLogTimeline
         activities={[
           createActivity({
-            id: 'act-1',
+            id: 2,
             eventType: 'ProductReparentedEventV2',
             summary: 'Product Reparented',
             aggregateType: 'Product',
@@ -705,7 +705,7 @@ describe('ActivityLogTimeline', () => {
       <ActivityLogTimeline
         activities={[
           createActivity({
-            id: 'act-1',
+            id: 2,
             aggregateType: 'ProjectPortfolio',
             isRelated: true,
           }),
@@ -723,7 +723,7 @@ describe('ActivityLogTimeline', () => {
   it('does not mark an entry raised on the record itself', () => {
     render(
       <ActivityLogTimeline
-        activities={[createActivity({ id: 'act-1', isRelated: false })]}
+        activities={[createActivity({ id: 2, isRelated: false })]}
         isLoading={false}
       />,
     )
@@ -736,12 +736,12 @@ describe('ActivityLogTimeline', () => {
     const user = userEvent.setup()
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         summary: 'Product Reparented',
         isRelated: true,
         raisedOn: { id: 'child-id', key: 12, name: 'Storefront Web' },
       }),
-      createActivity({ id: 'act-2', summary: 'Team Created' }),
+      createActivity({ id: 3, summary: 'Team Created' }),
     ]
 
     render(<ActivityLogTimeline activities={activities} isLoading={false} />)
@@ -760,7 +760,7 @@ describe('ActivityLogTimeline', () => {
   it('does not show the compare action when viewing the oldest/initial event', () => {
     const activities = [
       createActivity({
-        id: 'act-1',
+        id: 2,
         eventType: 'TeamCreatedEvent',
         summary: 'Team Created',
       }),

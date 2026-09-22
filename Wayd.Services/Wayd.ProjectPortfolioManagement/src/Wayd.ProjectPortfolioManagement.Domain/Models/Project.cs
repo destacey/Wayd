@@ -1049,9 +1049,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         _tasks.Add(task);
 
+        // Attaching here is all the linking a new task needs; nothing else in the tree moved. Rebuilding the whole
+        // tree after every creation is what made a project's tasks cost the square of their number.
         parentTask?.AddChild(task);
 
-        LinkTaskParents();
         RecalculateAncestorsForTask(task);
 
         return Result.Success(task);
@@ -1260,16 +1261,19 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     public void LinkTaskParents()
     {
+        // Indexed once rather than searched per task: a scan inside the loop made this quadratic, and every task
+        // created called it, so a project's tasks cost the cube of their number.
+        var tasksById = _tasks.ToDictionary(t => t.Id);
+
         foreach (var t in _tasks)
         {
             t.ClearChildren();
         }
         foreach (var t in _tasks)
         {
-            if (t.ParentId.HasValue)
+            if (t.ParentId is { } parentId && tasksById.TryGetValue(parentId, out var parent))
             {
-                var parent = _tasks.FirstOrDefault(p => p.Id == t.ParentId.Value);
-                parent?.AddChild(t);
+                parent.AddChild(t);
             }
         }
     }

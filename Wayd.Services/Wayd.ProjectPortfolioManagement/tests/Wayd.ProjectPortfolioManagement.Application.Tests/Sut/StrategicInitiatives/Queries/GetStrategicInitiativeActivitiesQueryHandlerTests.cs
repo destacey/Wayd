@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using NodaTime;
 using NodaTime.Extensions;
@@ -53,7 +53,7 @@ public class GetStrategicInitiativeActivitiesQueryHandlerTests : IDisposable
         {
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = 1,
                 EventType = "StrategicInitiativeCreatedEvent",
                 DomainArea = "Ppm",
                 AggregateType = "StrategicInitiative",

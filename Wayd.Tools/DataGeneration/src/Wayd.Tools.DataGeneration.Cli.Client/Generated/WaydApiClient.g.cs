@@ -78851,8 +78851,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid Id { get; set; } = default!;
+        public long Id { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("eventType")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

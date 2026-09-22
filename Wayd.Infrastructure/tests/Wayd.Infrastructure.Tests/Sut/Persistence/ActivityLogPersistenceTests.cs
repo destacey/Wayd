@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
 using NodaTime;
@@ -37,9 +37,9 @@ public sealed class ActivityLogPersistenceTests
         await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.Id == domainEvent.EventId, TestContext.Current.CancellationToken);
+        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.EventId == domainEvent.EventId, TestContext.Current.CancellationToken);
         savedLog.Should().NotBeNull();
-        savedLog!.Id.Should().Be(domainEvent.EventId);
+        savedLog!.EventId.Should().Be(domainEvent.EventId);
         savedLog.EventType.Should().Be(nameof(TestBusinessEvent));
         savedLog.Category.Should().Be(ActivityCategory.StatusChanged);
         savedLog.AggregateType.Should().Be(nameof(ActivityTestEntity));
@@ -81,8 +81,8 @@ public sealed class ActivityLogPersistenceTests
             .Where(a => a.AggregateId == entity.Id)
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        entries.Single(a => a.Id == first.EventId).Ordinal.Should().Be(0);
-        entries.Single(a => a.Id == second.EventId).Ordinal.Should().Be(1);
+        entries.Single(a => a.EventId == first.EventId).Ordinal.Should().Be(0);
+        entries.Single(a => a.EventId == second.EventId).Ordinal.Should().Be(1);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class ActivityLogPersistenceTests
         await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.Id == deleted.EventId, TestContext.Current.CancellationToken);
+        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.EventId == deleted.EventId, TestContext.Current.CancellationToken);
         savedLog.Should().NotBeNull();
         savedLog!.AggregateId.Should().Be(entity.Id);
     }
@@ -128,7 +128,7 @@ public sealed class ActivityLogPersistenceTests
         await harness.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.Id == deleted.EventId, TestContext.Current.CancellationToken);
+        var savedLog = await harness.Context.ActivityLogs.SingleOrDefaultAsync(a => a.EventId == deleted.EventId, TestContext.Current.CancellationToken);
         savedLog.Should().BeNull();
     }
 

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Activities;
@@ -49,7 +49,7 @@ public sealed class GetPlanningIntervalActivitiesQueryHandlerTests : IDisposable
         [
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = 1,
                 EventType = "PlanningIntervalObjectivesLockedEvent",
                 DomainArea = "Planning",
                 AggregateType = "PlanningInterval",

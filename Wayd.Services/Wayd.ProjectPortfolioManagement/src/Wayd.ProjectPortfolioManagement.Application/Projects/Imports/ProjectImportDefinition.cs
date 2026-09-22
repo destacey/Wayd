@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using Wayd.Common.Application.Imports;
@@ -20,9 +20,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 /// lifecycle transitions.
 /// </summary>
 /// <remarks>
-/// Atomic, matching the single save the command it replaces did. Projects are what tasks, stages and
-/// strategic initiatives are imported against, so a half-applied file leaves those imports resolving only
-/// some of the keys they reference.
+/// Per group, keyed on the project the row creates. A row is not finished when the project is created: the
+/// lifecycle is assigned (which copies its stages onto the project) and the status walk writes history rows,
+/// and either can still refuse. The group is what makes the runner discard that half-built project rather
+/// than commit it alongside the rows that succeeded.
+/// <para>
+/// Projects are independent of one another, so the group is the project and not its program or portfolio —
+/// one bad row misstates nothing about the next. Later PPM files reference projects by key, so a rejected
+/// row will be reported again by whatever names it; that is a clearer failure than keeping every project out.
+/// </para>
 /// </remarks>
 public sealed class ProjectImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
@@ -37,14 +43,22 @@ public sealed class ProjectImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Projects;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "project";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end, so the cap stays where the all-or-nothing version had it. The preflight bound follows it, and
+    // would have to anyway: a preflight is one transaction rolled back at the end, so it cannot release
+    // its locks chunk by chunk the way a real run does — there, the file size is the lock time.
     public override int MaxRows => 10_000;
+
+    // Canonical by construction: ProjectKey trims and uppercases, so two rows spelling a key differently
+    // still land in the same group.
+    protected override string? GroupKey(ImportProjectDto row) => row.Key.Value;
 
     protected override IReadOnlyList<ImportPass<ImportProjectDto>> Steps =>
     [
-        new("CreateProjects", ImportPassScope.WholeSet, CreateProjects),
+        new("CreateProjects", ImportPassScope.Chunked, CreateProjects),
     ];
 
     /// <summary>
@@ -167,8 +181,9 @@ public sealed class ProjectImportDefinition(
                 continue;
             }
 
-            // Taken within the file as well as against the database: rows are applied before anything is
-            // saved, so a repeat would otherwise only surface at the unique index.
+            // Taken within the chunk as well as against the database: a chunk's rows are applied before any
+            // of them is saved, so a repeat would otherwise only surface at the unique index. A repeat in a
+            // later chunk is caught by the query above, which sees what the earlier chunk saved.
             takenKeys.Add(key);
             row.Created(project.Id);
         }
@@ -259,9 +274,15 @@ public sealed class ProjectImportDefinition(
     }
 
     /// <summary>
-    /// Loads each referenced portfolio with the programs and projects the aggregate needs in order to
-    /// accept new ones and to validate the program each project names.
+    /// Loads each referenced portfolio with the programs the aggregate needs in order to validate the
+    /// program each project names.
     /// </summary>
+    /// <remarks>
+    /// The projects are deliberately not included, matching the single-project handler. <c>CreateProject</c>
+    /// only appends to that collection and takes the rank it needs as an argument, so loading it buys
+    /// nothing — and because this pass runs once per chunk, it would reload every project the earlier
+    /// chunks committed, making the run quadratic in the size of the file.
+    /// </remarks>
     private async Task<Dictionary<Guid, ProjectPortfolio>> ResolvePortfolios(
         ImportPassContext<ImportProjectDto> context, CancellationToken cancellationToken)
     {
@@ -269,7 +290,6 @@ public sealed class ProjectImportDefinition(
 
         return await _projectPortfolioManagementDbContext.Portfolios
             .Include(p => p.Programs)
-            .Include(p => p.Projects)
             .Where(p => portfolioIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
     }

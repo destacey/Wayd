@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Activities;
@@ -48,7 +48,7 @@ public class GetReleasePackageActivitiesQueryHandlerTests : IDisposable
         {
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = 1,
                 EventType = "PackageAssembledEvent",
                 DomainArea = "ProductManagement",
                 AggregateType = "ReleasePackage",

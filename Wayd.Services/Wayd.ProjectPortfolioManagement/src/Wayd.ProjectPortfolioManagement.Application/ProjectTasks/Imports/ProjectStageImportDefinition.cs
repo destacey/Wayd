@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
@@ -16,9 +16,10 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 /// not derive a stage's status from its tasks, so whatever produced the file keeps full control and only
 /// what it supplied is written.
 /// <para>
-/// Atomic, matching the single save the command it replaces did. A stage import is a correction pass over
-/// projects that already exist, so a file that half applies leaves a project's stages disagreeing with each
-/// other with no record of which half landed.
+/// Per group, keyed on the project, because a project's stages are read against one another: one reported
+/// complete while a later one is still not started is a statement about the project, not about a stage. A
+/// rejected row therefore keeps that project's other stages at whatever they already said, and leaves every
+/// other project alone.
 /// </para>
 /// </remarks>
 public sealed class ProjectStageImportDefinition(
@@ -34,14 +35,22 @@ public sealed class ProjectStageImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Projects;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "project";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end, so the cap stays where the all-or-nothing version had it. The preflight bound follows it, and
+    // would have to anyway: a preflight is one transaction rolled back at the end, so it cannot release
+    // its locks chunk by chunk the way a real run does — there, the file size is the lock time.
     public override int MaxRows => 10_000;
+
+    // Canonical by construction: ProjectKey trims and uppercases, so two rows spelling a key differently
+    // still land in the same group.
+    protected override string? GroupKey(ImportProjectStageDto row) => row.ProjectKey.Value;
 
     protected override IReadOnlyList<ImportPass<ImportProjectStageDto>> Steps =>
     [
-        new("UpdateStages", ImportPassScope.WholeSet, UpdateStages),
+        new("UpdateStages", ImportPassScope.Chunked, UpdateStages),
     ];
 
     private async Task<Result> UpdateStages(ImportPassContext<ImportProjectStageDto> context, CancellationToken cancellationToken)

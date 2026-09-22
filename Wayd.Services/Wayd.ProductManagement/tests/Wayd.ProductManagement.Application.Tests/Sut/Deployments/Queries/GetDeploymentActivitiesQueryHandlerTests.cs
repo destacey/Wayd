@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Activities;
@@ -48,7 +48,7 @@ public class GetDeploymentActivitiesQueryHandlerTests : IDisposable
         {
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = 1,
                 EventType = "DeploymentStartedEvent",
                 DomainArea = "ProductManagement",
                 AggregateType = "Deployment",

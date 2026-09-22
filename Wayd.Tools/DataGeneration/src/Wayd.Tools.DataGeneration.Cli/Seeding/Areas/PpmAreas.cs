@@ -155,12 +155,13 @@ public sealed class ProgramsArea() : PpmSeedArea(
 public sealed class ProjectsArea() : PpmSeedArea(
     PpmArea.Projects, PpmArea.Portfolios, PpmArea.Programs, PpmArea.Themes, PpmArea.Settings, OrganizationArea.Employees)
 {
+    public override string BatchedImport => "ppm.projects";
+
     public override bool ShouldRun(SeedContext context) => context.Ppm?.Projects.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
     {
         var projects = Ppm(context).Projects;
-        context.Log($"Importing {projects.Count} projects...");
 
         var rows = projects.Select(p => new ProjectCsvRow
         {
@@ -189,10 +190,18 @@ public sealed class ProjectsArea() : PpmSeedArea(
             Owners = p.Owners,
             Managers = p.Managers,
             Members = p.Members,
-        });
+        }).ToList();
 
-        var run = await context.Client.ImportProjects(CsvFile.ToBytes(rows), cancellationToken);
-        context.Publish(Name, run.CreatedIdsByImportId);
+        // One row is one project, which is also the unit the import applies by, so the grouping only keeps
+        // a project's own row in one file. A dense recipe does not reach the cap today; batching here means
+        // a denser one never silently does.
+        var batches = Batch(context, rows, r => r.Key);
+        context.Log($"Importing {projects.Count} projects in {batches.Count} batch(es)...");
+
+        var created = await ImportBatches(context, "projects", batches,
+            batch => context.Client.ImportProjects(CsvFile.ToBytes(batch), cancellationToken));
+
+        context.Publish(Name, created);
     }
 
     private static int CategoryId(SeedContext context, string name) =>
@@ -235,21 +244,14 @@ public sealed class ProjectTasksArea() : PpmSeedArea(
             Assignees = t.Assignees,
         });
 
-        // Batched by project, because a dense breakdown across a few hundred projects runs past what one
-        // atomic import accepts. Each batch is its own run, so a failure names the file it happened in.
+        // Batched by project, because a dense breakdown across a few hundred projects runs past the row cap
+        // even now that the import applies project by project. The boundary is the import's own group, so a
+        // file never asks it to split a project. Each batch is its own run, naming the file a failure is in.
         var batches = Batch(context, rows, r => r.ProjectKey);
         context.Log($"Importing {tasks.Count} project tasks in {batches.Count} batch(es)...");
 
-        Dictionary<string, Guid> created = [];
-        for (var i = 0; i < batches.Count; i++)
-        {
-            if (batches.Count > 1)
-                context.Log($"  batch {i + 1} of {batches.Count}: {batches[i].Count} tasks");
-
-            var run = await context.Client.ImportProjectTasks(CsvFile.ToBytes(batches[i]), cancellationToken);
-            foreach (var (importId, id) in run.CreatedIdsByImportId)
-                created[importId] = id;
-        }
+        var created = await ImportBatches(context, "tasks", batches,
+            batch => context.Client.ImportProjectTasks(CsvFile.ToBytes(batch), cancellationToken));
 
         context.Publish(Name, created);
     }
@@ -268,12 +270,13 @@ public sealed class ProjectTasksArea() : PpmSeedArea(
 public sealed class ProjectStagesArea() : PpmSeedArea(
     PpmArea.ProjectStages, PpmArea.Projects, PpmArea.ProjectTasks)
 {
+    public override string BatchedImport => "ppm.project-stages";
+
     public override bool ShouldRun(SeedContext context) => context.Ppm?.ProjectStages.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
     {
         var stages = Ppm(context).ProjectStages;
-        context.Log($"Setting {stages.Count} project stage statuses...");
 
         var rows = stages.Select(s => new ProjectStageCsvRow
         {
@@ -281,10 +284,17 @@ public sealed class ProjectStagesArea() : PpmSeedArea(
             ProjectKey = s.ProjectKey,
             StageName = s.StageName,
             Status = s.Status,
-        });
+        }).ToList();
 
-        var run = await context.Client.ImportProjectStages(CsvFile.ToBytes(rows), cancellationToken);
-        context.Publish(Name, run.CreatedIdsByImportId);
+        // By project, the unit the import applies by: a project's stages are set together or not at all,
+        // so splitting one across two files would ask for half of a statement about that project.
+        var batches = Batch(context, rows, r => r.ProjectKey);
+        context.Log($"Setting {stages.Count} project stage statuses in {batches.Count} batch(es)...");
+
+        var created = await ImportBatches(context, "stages", batches,
+            batch => context.Client.ImportProjectStages(CsvFile.ToBytes(batch), cancellationToken));
+
+        context.Publish(Name, created);
     }
 }
 

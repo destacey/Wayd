@@ -18,8 +18,14 @@ namespace Wayd.ProjectPortfolioManagement.Application.Programs.Imports;
 /// Imports programs into the portfolios that own them.
 /// </summary>
 /// <remarks>
-/// Atomic, matching the single save the command it replaces did. Programs are what projects are imported
-/// into, so a half-applied file leaves the project import resolving only some parents.
+/// Per group, keyed on the program the row creates. A row is not finished when the program is created — it
+/// is then walked to its status — so a rejection partway has already staged the program, and the group is
+/// what makes the runner discard it rather than commit it beside the rows that succeeded.
+/// <para>
+/// Programs are independent of one another, so the group is the program rather than its portfolio. The
+/// project import names its program by the id this run reported, so a rejected program is reported again by
+/// every project that named it; that is a clearer failure than keeping every program out.
+/// </para>
 /// </remarks>
 public sealed class ProgramImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
@@ -38,14 +44,24 @@ public sealed class ProgramImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Programs;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "program";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end, so the cap stays where the all-or-nothing version had it. The preflight bound follows it, and
+    // would have to anyway: a preflight is one transaction rolled back at the end, so it cannot release
+    // its locks chunk by chunk the way a real run does — there, the file size is the lock time.
     public override int MaxRows => 10_000;
+
+    // The name, trimmed the one way the duplicate check trims it. Not case-folded: two rows naming the same
+    // program in different casing can never both apply — the second is refused as a duplicate whichever
+    // chunk it lands in — so they have no need to share a group, and folding a 128-character name risks
+    // passing the group key's own 128-character bound.
+    protected override string? GroupKey(ImportProgramDto row) => Normalize(row.Name);
 
     protected override IReadOnlyList<ImportPass<ImportProgramDto>> Steps =>
     [
-        new("CreatePrograms", ImportPassScope.WholeSet, CreatePrograms),
+        new("CreatePrograms", ImportPassScope.Chunked, CreatePrograms),
     ];
 
     /// <summary>
@@ -125,8 +141,9 @@ public sealed class ProgramImportDefinition(
                 continue;
             }
 
-            // Taken within the file as well as against the database: rows are applied before anything is
-            // saved, so a repeat would otherwise only surface at the unique index.
+            // Taken within the chunk as well as against the database: a chunk's rows are applied before any
+            // of them is saved, so a repeat would otherwise only surface at the unique index. A repeat in a
+            // later chunk is caught by the query above, which sees what the earlier chunk saved.
             takenNames.Add(name);
             row.Created(created.Value.Id);
         }

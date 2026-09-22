@@ -310,7 +310,7 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
   const minPanelHeight = 500
   const panelHeight = Math.max(minPanelHeight, remainingHeight)
 
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [internalIsExportOpen, setInternalIsExportOpen] = useState(false)
   const isExportOpen = controlledIsExportOpen ?? internalIsExportOpen
@@ -332,7 +332,7 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
 
   const selectedActivity = useMemo(() => {
     if (!filteredActivities || filteredActivities.length === 0) return null
-    if (selectedId) {
+    if (selectedId !== null) {
       const found = filteredActivities.find((a) => a.id === selectedId)
       if (found) return found
     }

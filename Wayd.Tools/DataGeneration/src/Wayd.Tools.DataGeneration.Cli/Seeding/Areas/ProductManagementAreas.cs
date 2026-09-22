@@ -126,6 +126,7 @@ public sealed class ProductDependenciesArea() : ProductManagementSeedArea(
             ProductId = context.Id(ProductManagementArea.Products, d.ProductName),
             DependsOnProductId = context.Id(ProductManagementArea.Products, d.DependsOnProductName),
             Strength = d.Strength,
+            InteractionStyles = d.InteractionStyles,
             Description = d.Description,
             StartsOn = d.StartsOn,
             EndsOn = d.EndsOn,

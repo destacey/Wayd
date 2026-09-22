@@ -7,7 +7,13 @@ namespace Wayd.Common.Application.Activities.Dtos;
 
 public sealed record ActivityLogDto : IMapFrom<ActivityLogEntry>
 {
-    public Guid Id { get; init; }
+    /// <summary>
+    /// The entry's key, which readers use only to tell one row from another. The event's own id is
+    /// <see cref="ActivityLogEntry.EventId"/> and is not published: it identifies the event, not the entry,
+    /// and nothing outside the log has a use for it.
+    /// </summary>
+    public long Id { get; init; }
+
     public required string EventType { get; init; }
     public ActivityCategory Category { get; init; }
     public required string DomainArea { get; init; }

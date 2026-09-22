@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wayd.Infrastructure.Persistence.Context;
 
@@ -12,9 +13,11 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    partial class WaydDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922000756_AuditTrailIdentityKey")]
+    partial class AuditTrailIdentityKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -231,11 +234,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Common.Domain.Activities.ActivityLogEntry", b =>
                 {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ActorKind")
                         .IsRequired()
@@ -265,9 +265,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("varchar");
 
                     b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("EventId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("EventType")
@@ -306,9 +303,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.HasIndex("EventId")
-                        .IsUnique();
-
                     b.HasIndex("Timestamp", "Ordinal");
 
                     b.HasIndex("UserId", "Timestamp", "Ordinal");
@@ -320,8 +314,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Common.Domain.Activities.ActivityLogRelatedAggregate", b =>
                 {
-                    b.Property<long>("ActivityLogId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("ActivityLogId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AggregateType")
                         .HasMaxLength(64)

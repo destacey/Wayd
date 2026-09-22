@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Activities;
 using Wayd.Infrastructure.Persistence.Converters;
@@ -11,8 +11,17 @@ public class ActivityLogConfiguration : IEntityTypeConfiguration<ActivityLogEntr
     {
         builder.ToTable("ActivityLogs", SchemaNames.App);
 
+        // An identity, so rows append. The key used to be the event id, a Guid the application supplied: a
+        // v7 sorts by its leading bytes, but SQL Server orders uniqueidentifier by bytes 10-15, which in a v7
+        // are random, so every insert landed at a random point in the clustered index. Eight bytes rather
+        // than sixteen also shrinks all four indexes below, each of which carries the clustering key.
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).ValueGeneratedNever();
+        builder.Property(x => x.Id).ValueGeneratedOnAdd();
+
+        // The deduplication identity the key used to provide. A backfill replaying old records produces the
+        // same event id, and this is now what makes the second run collide rather than insert a copy.
+        builder.Property(x => x.EventId).IsRequired();
+        builder.HasIndex(x => x.EventId).IsUnique();
 
         builder.Property(x => x.EventType).IsRequired().HasColumnType("varchar").HasMaxLength(128);
         builder.Property(x => x.Category)
@@ -76,7 +85,7 @@ public class ActivityLogRelatedAggregateConfiguration : IEntityTypeConfiguration
     {
         builder.ToTable("ActivityLogRelatedAggregates", SchemaNames.App);
 
-        builder.Property<Guid>("ActivityLogId");
+        builder.Property<long>("ActivityLogId");
         builder.HasKey("ActivityLogId", nameof(ActivityLogRelatedAggregate.AggregateType), nameof(ActivityLogRelatedAggregate.AggregateId));
 
         builder.Property(x => x.AggregateType).IsRequired().HasColumnType("varchar").HasMaxLength(64);

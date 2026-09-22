@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -487,7 +487,20 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                 SchemaName = entry.Metadata.GetSchema(),
                 TableName = entry.Entity.GetType().Name,
                 UserId = userId,
-                CorrelationId = correlationId
+                CorrelationId = correlationId,
+
+                // From the state, not from the properties. The loop below assigns the type as it walks them,
+                // but it skips keys, complex types and the audit columns first — so a join entity whose every
+                // property is part of its composite key never reached the assignment and was written as
+                // Type="None" despite being an insert. RoleAssignment is the case that surfaced it, at more
+                // rows than any real change in the table. A modification is the one state the properties
+                // genuinely decide, because an update that changed nothing is dropped further down.
+                TrailType = entry.State switch
+                {
+                    EntityState.Added => TrailType.Create,
+                    EntityState.Deleted => TrailType.Delete,
+                    _ => TrailType.None,
+                }
             };
             trailEntries.Add(trailEntry);
             // Track which complex properties we've already processed
@@ -524,13 +537,13 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
                 switch (entry.State)
                 {
+                    // Added and Deleted no longer set the type here — it is settled from the state above,
+                    // so that an entity with nothing but key properties still records which one it was.
                     case EntityState.Added:
-                        trailEntry.TrailType = TrailType.Create;
                         trailEntry.NewValues[propertyName] = property.CurrentValue;
                         break;
 
                     case EntityState.Deleted:
-                        trailEntry.TrailType = TrailType.Delete;
                         trailEntry.OldValues[propertyName] = property.OriginalValue;
                         break;
 

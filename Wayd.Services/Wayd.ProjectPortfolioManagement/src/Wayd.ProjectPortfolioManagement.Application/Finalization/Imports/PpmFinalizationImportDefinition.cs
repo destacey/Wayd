@@ -18,10 +18,17 @@ namespace Wayd.ProjectPortfolioManagement.Application.Finalization.Imports;
 /// <i>active</i> program or portfolio, but one can only be closed when everything inside it is already
 /// closed. Historical work is therefore imported active and finished here.
 /// <para>
-/// <see cref="ImportPassScope.WholeSet"/> because rows are not independent: program rows are applied
-/// before portfolio rows whatever order the file lists them in, since a portfolio cannot close while one
-/// of its programs is still open. Atomic for the same reason — a file that half applies leaves the
-/// portfolio open with some of its programs closed, and no record of which.
+/// <see cref="ImportPassScope.WholeSet"/> because rows are not independent: program rows are applied before
+/// portfolio rows whatever order the file lists them in, since a portfolio cannot close while one of its
+/// programs is still open. A chunk could put a portfolio in an earlier save than its programs and refuse it
+/// for a reason the file did not contain, and the group that would prevent that — a portfolio with its
+/// programs — cannot be derived from a program row, which carries only its own id.
+/// </para>
+/// <para>
+/// Per group nonetheless, keyed on the record the row closes: a portfolio is closed and may then be
+/// archived, so a rejection partway has already staged the close. Being whole-set costs nothing here — this
+/// file has one row per program or portfolio being finished, never many — and it means a program that
+/// cannot close reports why, its portfolio reports the open program, and every other portfolio still closes.
 /// </para>
 /// </remarks>
 public sealed class PpmFinalizationImportDefinition(
@@ -39,10 +46,16 @@ public sealed class PpmFinalizationImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.ProjectPortfolios;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "program or portfolio";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // A whole-set pass is one transaction whatever its atomicity, so the row cap is what actually bounds
+    // one run. This file holds one row per record being finished, so it never comes near the cap.
     public override int MaxRows => 10_000;
+
+    // The record the row closes. Type is part of it because the two id spaces are distinct collections
+    // here, and a Guid formats the one way so two rows naming a record differently still group together.
+    protected override string? GroupKey(FinalizePpmItemDto row) => $"{row.Type}|{row.Id}";
 
     protected override IReadOnlyList<ImportPass<FinalizePpmItemDto>> Steps =>
     [

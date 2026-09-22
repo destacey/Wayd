@@ -231,10 +231,10 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
     return earlier.filter((a) => isComparableActivity(a, currentActivity))
   }, [currentActivity, allActivities, previousActivity])
 
-  const [selectedBaseId, setSelectedBaseId] = useState<string | null>(null)
+  const [selectedBaseId, setSelectedBaseId] = useState<number | null>(null)
 
   const activeBaseActivity = useMemo(() => {
-    if (selectedBaseId) {
+    if (selectedBaseId !== null) {
       const found = earlierActivities.find((a) => a.id === selectedBaseId)
       if (found) return found
     }

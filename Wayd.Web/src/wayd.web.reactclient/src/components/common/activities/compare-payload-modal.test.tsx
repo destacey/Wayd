@@ -37,7 +37,7 @@ jest.mock('antd', () => {
 const createActivity = (
   overrides: Partial<ActivityLogDto> = {},
 ): ActivityLogDto => ({
-  id: '11111111-1111-1111-1111-111111111111',
+  id: 1,
   eventType: 'TeamUpdatedEvent',
   category: ActivityCategory.Updated,
   domainArea: 'Organization',
@@ -113,7 +113,7 @@ describe('computePayloadDiff helper', () => {
 
 describe('ComparePayloadModal component', () => {
   const prevActivity = createActivity({
-    id: 'prev-1',
+    id: 2,
     eventType: 'TeamUpdatedEvent',
     summary: 'Team Updated',
     timestamp: new Date('2026-04-01T09:00:00Z'),
@@ -125,7 +125,7 @@ describe('ComparePayloadModal component', () => {
   })
 
   const currActivity = createActivity({
-    id: 'curr-1',
+    id: 3,
     eventType: 'TeamUpdatedEvent',
     summary: 'Team Updated',
     timestamp: new Date('2026-04-01T10:00:00Z'),
@@ -155,14 +155,14 @@ describe('ComparePayloadModal component', () => {
 
   it('compares only against earlier events of the same type', () => {
     const otherType = createActivity({
-      id: 'other-1',
+      id: 4,
       eventType: 'TeamDeactivatedEvent',
       summary: 'Team Deactivated',
       timestamp: new Date('2026-04-01T09:30:00Z'),
       payload: JSON.stringify({ name: 'Deactivated Payload' }),
     })
     const oldest = createActivity({
-      id: 'oldest-1',
+      id: 5,
       eventType: 'TeamUpdatedEvent',
       timestamp: new Date('2026-04-01T08:00:00Z'),
       payload: JSON.stringify({ name: 'Oldest Core Team' }),
@@ -187,7 +187,7 @@ describe('ComparePayloadModal component', () => {
 
   it('compares only against earlier events raised on the same record', () => {
     const otherRecord = createActivity({
-      id: 'other-record-1',
+      id: 6,
       eventType: 'TeamUpdatedEvent',
       aggregateId: '33333333-3333-3333-3333-333333333333',
       isRelated: true,
@@ -214,12 +214,12 @@ describe('ComparePayloadModal component', () => {
 
   it('marks a comparison between different versions of an event', () => {
     const v1 = createActivity({
-      id: 'v1',
+      id: 7,
       eventType: 'TeamReparentedEvent',
       timestamp: new Date('2026-04-01T09:00:00Z'),
     })
     const v2 = createActivity({
-      id: 'v2',
+      id: 8,
       eventType: 'TeamReparentedEventV2',
       eventVersion: '2.0',
       timestamp: new Date('2026-04-01T10:00:00Z'),
@@ -300,11 +300,11 @@ describe('ComparePayloadModal component', () => {
 
   it('handles empty or malformed payload gracefully', () => {
     const emptyPrev = createActivity({
-      id: 'prev-empty',
+      id: 9,
       payload: '',
     })
     const emptyCurr = createActivity({
-      id: 'curr-empty',
+      id: 10,
       payload: 'invalid-json',
     })
 

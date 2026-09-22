@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
 using Wayd.Common.Application.Events;
@@ -161,7 +161,7 @@ public sealed class DomainEventEnvelopeTests
         harness.PublishedToOutbox.Should().BeEmpty();
 
         var log = await harness.Context.ActivityLogs.SingleAsync(TestContext.Current.CancellationToken);
-        log.Id.Should().Be(baseline.EventId);
+        log.EventId.Should().Be(baseline.EventId);
         log.Category.Should().Be(ActivityCategory.Baseline);
         log.AggregateType.Should().Be("Project");
         log.AggregateId.Should().Be(baseline.Id);

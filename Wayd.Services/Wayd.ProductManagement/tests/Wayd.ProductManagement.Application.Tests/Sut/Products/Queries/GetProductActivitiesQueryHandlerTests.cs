@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Activities;
@@ -48,7 +48,7 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
         {
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = 1,
                 EventType = "ProductAddedEvent",
                 DomainArea = "ProductManagement",
                 AggregateType = "Product",
@@ -130,7 +130,7 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
 
     private static ActivityLogDto Activity(Guid aggregateId, bool isRelated) => new()
     {
-        Id = Guid.NewGuid(),
+        Id = 1,
         EventType = "ProductReparentedEventV2",
         DomainArea = "ProductManagement",
         AggregateType = "Product",

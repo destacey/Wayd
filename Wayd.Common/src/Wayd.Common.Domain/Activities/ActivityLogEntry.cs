@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using NodaTime;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
@@ -9,14 +9,14 @@ namespace Wayd.Common.Domain.Activities;
 /// An immutable, append-only record of a domain business event.
 /// Captures what occurred, on what aggregate, by whom, and when.
 /// </summary>
-public sealed class ActivityLogEntry : BaseEntity
+public sealed class ActivityLogEntry : BaseEntity<long>
 {
     private readonly List<ActivityLogRelatedAggregate> _relatedAggregates = [];
 
     private ActivityLogEntry() { }
 
     public ActivityLogEntry(
-        Guid id,
+        Guid eventId,
         string eventType,
         ActivityCategory category,
         string domainArea,
@@ -31,7 +31,7 @@ public sealed class ActivityLogEntry : BaseEntity
         string eventVersion = "1.0",
         IEnumerable<AggregateReference>? relatedAggregates = null)
     {
-        Id = Guard.Against.Default(id, nameof(id));
+        EventId = Guard.Against.Default(eventId, nameof(eventId));
         EventType = Guard.Against.NullOrWhiteSpace(eventType, nameof(eventType)).Trim();
         Category = Guard.Against.EnumOutOfRange(category, nameof(category));
         EventVersion = string.IsNullOrWhiteSpace(eventVersion) ? "1.0" : eventVersion.Trim();
@@ -71,10 +71,20 @@ public sealed class ActivityLogEntry : BaseEntity
     private static bool IsSameRecord(string type, Guid id, string otherType, Guid otherId) =>
         id == otherId && string.Equals(type, otherType, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>The id of the domain event this entry records.</summary>
+    /// <remarks>
+    /// The deduplication identity, and the reason this is not just another column: an aggregate that writes a
+    /// durable record and an event about the same occurrence gives the event that record's id, so a backfill
+    /// replaying old records produces the same value and collides instead of inserting a second copy. The
+    /// unique index is what enforces that — it used to be the primary key, and the guarantee moved with the
+    /// name rather than being given up.
+    /// </remarks>
+    public Guid EventId { get; private init; }
+
     /// <summary>Where this entry sits among the entries written by the same unit of work.</summary>
     /// <remarks>
     /// <para>
-    /// The ordering identity, as <see cref="BaseEntity{TId}.Id"/> is the deduplication identity. The events of
+    /// The ordering identity, as <see cref="EventId"/> is the deduplication identity. The events of
     /// one command are stamped microseconds apart where each domain call reads the clock, and share a
     /// <see cref="Timestamp"/> exactly where the caller reads it once for the batch — an import or a sync. So
     /// timestamp alone is not a sort key: tied rows come back in whatever order the database chooses, which

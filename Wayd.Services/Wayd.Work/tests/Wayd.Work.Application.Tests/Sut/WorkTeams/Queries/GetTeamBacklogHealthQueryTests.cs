@@ -174,12 +174,14 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         AddItem(_team, WorkStatusCategory.Removed, done: _now - Duration.FromDays(2));
         AddItem(_team, created: _now - Duration.FromDays(5));
         AddItem(_team, created: _now - Duration.FromDays(95));
+        AddItem(_team, WorkStatusCategory.Removed, created: _now - Duration.FromDays(4), done: _now - Duration.FromDays(1));
 
         // Act
         var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);
 
         // Assert
         var health = result.Value!;
+        health.MinimumItemsCompleted.Should().Be(BacklogHealthAssessor.MinimumItemsCompleted);
         health.LookbackDays.Should().Be(90);
         health.To.Should().Be(new LocalDate(2026, 9, 21));
         health.From.Should().Be(new LocalDate(2026, 6, 24));

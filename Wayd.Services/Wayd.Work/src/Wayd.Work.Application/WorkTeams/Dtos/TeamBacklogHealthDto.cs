@@ -38,9 +38,14 @@ public sealed record TeamBacklogHealthDto
     public int ItemsCompleted { get; init; }
 
     /// <summary>
-    /// Backlog work items created for the team in the lookback window, whatever their status now.
+    /// Backlog work items created for the team in the lookback window and not since removed.
     /// </summary>
     public int ItemsCreated { get; init; }
+
+    /// <summary>
+    /// The completed work items the history needs before the checks that measure the team against its own past are graded.
+    /// </summary>
+    public int MinimumItemsCompleted { get; init; }
 
     /// <summary>
     /// The team's members, or null when the team is not known to the organization.

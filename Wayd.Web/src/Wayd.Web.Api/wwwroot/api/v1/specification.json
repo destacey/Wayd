@@ -57486,6 +57486,7 @@
           "activeWorkItems",
           "itemsCompleted",
           "itemsCreated",
+          "minimumItemsCompleted",
           "readinessWindowWorkItems",
           "checks",
           "workItems"
@@ -57530,6 +57531,10 @@
             "format": "int32"
           },
           "itemsCreated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minimumItemsCompleted": {
             "type": "integer",
             "format": "int32"
           },

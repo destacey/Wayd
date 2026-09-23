@@ -164,7 +164,9 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             })
             .ToListAsync(cancellationToken);
 
+        // Removed items are left out as completions are, so triaging work away does not read as growth.
         var itemsCreated = await teamBacklogItems
+            .Where(w => w.StatusCategory != WorkStatusCategory.Removed)
             .CountAsync(w => w.Created >= start && w.Created < end, cancellationToken);
 
         var memberCount = await _dispatcher.Send(new GetTeamMemberCountQuery(team.Id), cancellationToken);
@@ -207,6 +209,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             ActiveWorkItems = backlog.Count(i => i.StatusCategory == WorkStatusCategory.Active),
             ItemsCompleted = completions.Count,
             ItemsCreated = itemsCreated,
+            MinimumItemsCompleted = BacklogHealthAssessor.MinimumItemsCompleted,
             MemberCount = memberCount,
             ReadinessWindowWorkItems = assessment.ReadinessWindowItems,
             AgingWipDays = assessment.AgingWipDays,

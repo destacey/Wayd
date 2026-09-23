@@ -9,13 +9,16 @@ public sealed class GetTeamMemberCountQueryHandler(IOrganizationDbContext organi
 
     public async Task<int?> Handle(GetTeamMemberCountQuery request, CancellationToken cancellationToken)
     {
-        // A member holds one row per role, so employees are counted, not rows.
-        return await _organizationDbContext.BaseTeams
+        var memberIds = await _organizationDbContext.BaseTeams
             .Where(t => t.Id == request.TeamId)
-            .Select(t => (int?)t.Members
-                .Select(m => m.EmployeeId)
-                .Distinct()
-                .Count())
+            .Select(t => t.Members.Select(m => m.EmployeeId).ToList())
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (memberIds is null)
+            return null;
+
+        // Counting employees rather than member rows counts a member with several roles once.
+        return await _organizationDbContext.Employees
+            .CountAsync(e => e.IsActive && memberIds.Contains(e.Id), cancellationToken);
     }
 }

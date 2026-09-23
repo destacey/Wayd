@@ -92896,6 +92896,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("itemsCreated")]
         public int ItemsCreated { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("minimumItemsCompleted")]
+        public int MinimumItemsCompleted { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("memberCount")]
         public int? MemberCount { get; set; } = default!;
 

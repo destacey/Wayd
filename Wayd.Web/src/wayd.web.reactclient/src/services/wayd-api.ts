@@ -48453,6 +48453,7 @@ export interface TeamBacklogHealthDto {
     activeWorkItems: number;
     itemsCompleted: number;
     itemsCreated: number;
+    minimumItemsCompleted: number;
     memberCount?: number | undefined;
     readinessWindowWorkItems: number;
     agingWipDays?: number | undefined;

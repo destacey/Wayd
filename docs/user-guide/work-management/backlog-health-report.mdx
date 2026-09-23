@@ -1,0 +1,97 @@
+---
+title: Backlog Health Report
+description: Grading a team's backlog for runway, flow, staleness, readiness and ordering problems in Wayd.
+sidebar_position: 4
+audience: [user, agent]
+---
+
+# Backlog Health Report
+
+The **Backlog Health Report** grades a team's open backlog and lists the work items behind each problem, so the team knows what to refine, close or reorder. It is available from the **Reports** menu on a team's detail page.
+
+The report looks at **Requirement-tier** work items, such as User Stories and Bugs, that are **Proposed** or **Active**, in the order of the team's backlog. Portfolio-tier items such as Epics and Features are not graded, but they appear as the parents of the items that are.
+
+## How Checks Are Graded
+
+Every check is graded **Healthy**, **At Risk** or **Unhealthy**, or explains why it could not be:
+
+- **Not enough history** — the team completed fewer than 10 work items in the history window, too few to measure it against its own past
+- **Not applicable** — no work items fall within the check's scope, such as carry-over for a team that does not run sprints
+
+Checks that flag work items are graded by the **percent of the items in scope that were flagged**: At Risk at 10% and Unhealthy at 25% by default. Rank inversions are the exception: any inversion is Unhealthy, because the team can fix it by reordering.
+
+Each check's tooltip states the values it was graded with.
+
+## Backlog Measures
+
+The cards at the top of the report measure the backlog as a whole.
+
+| Measure | What It Shows | Default Grading |
+|---------|---------------|-----------------|
+| **Backlog** | Open work items, split into Proposed and Active, with their total story points | Not graded |
+| **Runway** | Weeks the backlog lasts at the team's throughput over the history window | Unhealthy below 2 weeks; At Risk below 4 or above 26 weeks |
+| **Net Flow** | Work items created for every work item completed in the history window | At Risk above 1.2, Unhealthy above 1.5 |
+| **WIP Load** | Active work items per team member | At Risk above 1.5, Unhealthy above 2 |
+
+A runway that is too long is At Risk because refining work far ahead of when it will be started is likely to be wasted. Net Flow above 1 means the backlog is growing faster than the team is completing it. WIP Load counts every member of the team, whatever their role.
+
+## Work Item Checks
+
+| Check | A Work Item Is Flagged When |
+|-------|-----------------------------|
+| **Stale** | It has not been modified in 90 days |
+| **Old Proposed** | It is Proposed and was created more than 180 days ago |
+| **Aging WIP** | It is Active and has been active longer than the team's 85th percentile cycle time |
+| **Missing Story Points** | It is in the readiness window and has no estimate |
+| **Oversized** | It is in the readiness window and is estimated above the 85th percentile of the story points on work the team completed |
+| **No Parent** | It is in the readiness window and has no parent |
+| **No Project** | It is in the readiness window and is not linked to a project |
+| **Unassigned Active** | It is Active and no one is assigned |
+| **Carry-over** | It is still open in a sprint that has completed |
+| **Closed Parent** | Its parent is Done or Removed |
+| **Rank Inversion** | It is ranked above a work item it depends on, in the same team's backlog |
+
+The **readiness window** is the top of the backlog: the work items the team is expected to reach in the next 4 weeks at its recent throughput. Without enough history to size it, the window is the top 20 work items.
+
+**Aging WIP** and **Oversized** compare work against the team's own completed work, so they need at least 10 completed work items in the history window. **No Project** is checked only for teams that link their work to projects.
+
+**Stale** relies on the date the source system last changed the work item, so any edit counts, not only refinement.
+
+**Rank Inversion** compares only dependencies within the team's backlog. A dependency on another team's work is not compared by rank; see the team's [Dependencies](../organizations/index.mdx#dependencies) section for those.
+
+## Finding The Work Items Behind A Check
+
+The checks table lists each work item check with its grade and result. Select a check to narrow the grid below it to the work items that check flagged; select it again, or close the tag above the grid, to see the whole backlog.
+
+The grid shows every open work item in backlog order with a **Flags** column listing the checks that flagged it. It can be filtered, sorted and exported like other grids in Wayd.
+
+## Changing The Thresholds
+
+Open **Thresholds** to change the history window or any threshold, then select **Apply**. The report is graded again with the new values, and a **Custom thresholds** tag shows that the report no longer uses the defaults. **Reset to defaults** removes every change.
+
+Thresholds are for exploring scenarios, not a team setting:
+
+- Your changes are kept for you, per team, in your browser
+- They are added to the page link, so a link you share shows the recipient the same grades
+- Other people viewing the team still see the defaults unless they open your link
+
+| Setting | Default |
+|---------|---------|
+| History | 90 days (14–365) |
+| Stale after | 90 days |
+| Old proposed after | 180 days |
+| Aging WIP beyond | 85th percentile cycle time |
+| Oversized above | 85th percentile story points |
+| Readiness window | 4 weeks |
+| Readiness window without history | 20 work items |
+| At Risk / Unhealthy at | 10% / 25% flagged |
+| Runway At Risk / Unhealthy below | 4 / 2 weeks |
+| Runway At Risk above | 26 weeks |
+| Net Flow At Risk / Unhealthy above | 1.2 / 1.5 |
+| WIP Load At Risk / Unhealthy above | 1.5 / 2 per member |
+
+## How To Open The Report
+
+1. Navigate to the team's detail page
+2. Open **Reports > Backlog Health**
+3. Select a check to see the work items it flagged

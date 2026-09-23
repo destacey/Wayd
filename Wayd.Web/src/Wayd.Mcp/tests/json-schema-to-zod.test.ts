@@ -40,6 +40,16 @@ describe('emit', () => {
     );
   });
 
+  test('applies numeric range constraints', () => {
+    // Arrange & Act & Assert
+    assert.equal(emit({ type: 'integer', minimum: 14 }), 'z.number().min(14)');
+    assert.equal(emit({ type: 'number', maximum: 1.5 }), 'z.number().max(1.5)');
+    assert.equal(
+      emit({ type: 'integer', minimum: 0, maximum: 100 }),
+      'z.number().min(0).max(100)'
+    );
+  });
+
   test('maps scalar and array types', () => {
     // Arrange & Act & Assert
     assert.equal(emit({ type: 'number' }), 'z.number()');

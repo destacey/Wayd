@@ -62,6 +62,16 @@ const CycleTimeReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const BacklogHealthReport = dynamic(
+  () =>
+    import('@/src/components/common/work/backlog-health/backlog-health-report').then(
+      (mod) => ({
+        default: mod.BacklogHealthReport,
+      }),
+    ),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 const TeamBacklog = dynamic(
   () => import('@/src/app/organizations/teams/_components/team-backlog'),
   {
@@ -80,6 +90,7 @@ enum TeamTabs {
   Members = 'members',
   OperatingModelHistory = 'operating-model-history',
   CycleTimeReport = 'cycle-time-report',
+  BacklogHealth = 'backlog-health',
   ThroughputForecast = 'throughput-forecast',
   Activities = 'activities',
 }
@@ -299,6 +310,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamMembersGrid teamId={team!.id!} teamType="Team" />
       case TeamTabs.CycleTimeReport:
         return <CycleTimeReport teamCode={team!.code} />
+      case TeamTabs.BacklogHealth:
+        return <BacklogHealthReport teamCode={team!.code} />
       case TeamTabs.ThroughputForecast:
         return <TeamThroughputForecastReport teamCode={team!.code} />
       case TeamTabs.Activities:
@@ -341,6 +354,11 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       id: TeamTabs.CycleTimeReport,
       label: 'Cycle Time',
       // The report renders its own title alongside its controls.
+      hideHeading: true,
+    },
+    {
+      id: TeamTabs.BacklogHealth,
+      label: 'Backlog Health',
       hideHeading: true,
     },
     ...(forecastingEnabled

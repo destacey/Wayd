@@ -27,8 +27,20 @@ import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { getTeamsClient, getTeamsOfTeamsClient } from '@/src/services/clients'
 import { BaseOptionType } from 'antd/es/select'
-import { DependencyDto, WorkItemBacklogItemDto } from '@/src/services/wayd-api'
+import {
+  BacklogHealthThresholds,
+  DependencyDto,
+  TeamBacklogHealthDto,
+  WorkItemBacklogItemDto,
+} from '@/src/services/wayd-api'
 import { OptionModel } from '@/src/components/types'
+
+export interface GetTeamBacklogHealthRequest {
+  teamIdOrCode: string
+  lookbackDays?: number
+  /** Omitted thresholds take the API's defaults. */
+  thresholds?: Partial<BacklogHealthThresholds>
+}
 
 export const teamApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -169,6 +181,44 @@ export const teamApi = apiSlice.injectEndpoints({
       providesTags: (result, error, arg) => [
         QueryTags.TeamBacklog,
         { type: QueryTags.TeamBacklog, id: arg },
+      ],
+    }),
+
+    getTeamBacklogHealth: builder.query<
+      TeamBacklogHealthDto,
+      GetTeamBacklogHealthRequest
+    >({
+      queryFn: async ({ teamIdOrCode, lookbackDays, thresholds = {} }) => {
+        try {
+          const data = await getTeamsClient().getTeamBacklogHealth(
+            teamIdOrCode,
+            lookbackDays,
+            thresholds.staleDays,
+            thresholds.oldProposedDays,
+            thresholds.agingWipPercentile,
+            thresholds.oversizedPercentile,
+            thresholds.readinessWindowWeeks,
+            thresholds.readinessFallbackItems,
+            thresholds.atRiskPercent,
+            thresholds.unhealthyPercent,
+            thresholds.runwayAtRiskWeeks,
+            thresholds.runwayUnhealthyWeeks,
+            thresholds.runwayTooLongWeeks,
+            thresholds.netFlowAtRisk,
+            thresholds.netFlowUnhealthy,
+            thresholds.wipLoadAtRisk,
+            thresholds.wipLoadUnhealthy,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Graded from the backlog, so it goes stale whenever the backlog does.
+      providesTags: (result, error, arg) => [
+        QueryTags.TeamBacklog,
+        { type: QueryTags.TeamBacklog, id: arg.teamIdOrCode },
       ],
     }),
 
@@ -875,6 +925,7 @@ export const {
   useDeactivateTeamOfTeamsMutation,
   useGetTeamOptionsQuery,
   useGetTeamBacklogQuery,
+  useGetTeamBacklogHealthQuery,
   useGetTeamWorkItemsQuery,
   useGetTeamDependenciesQuery,
   useGetTeamSprintsQuery,

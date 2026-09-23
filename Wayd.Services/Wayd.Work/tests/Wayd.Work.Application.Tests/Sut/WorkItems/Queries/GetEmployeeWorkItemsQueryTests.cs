@@ -84,6 +84,7 @@ public sealed class GetEmployeeWorkItemsQueryTests
             : null);
         var faker = new WorkItemFaker(workspace.Id)
             .WithExternalId(externalId)
+            .WithKey(new WorkItemKey(workspace.Key, externalId))
             .WithType(workType).WithStatus(status).WithStatusCategory(statusCategory).WithAssignedToId(employeeId).WithCreated(created).WithActivatedTimestamp(activated).WithDoneTimestamp(done);
 
         faker.RuleFor(x => x.Workspace, workspace);

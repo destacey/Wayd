@@ -7,7 +7,8 @@
  *
  * This covers exactly the JSON Schema subset that NSwag produces for the Wayd
  * API — verified against all tool definitions: `type`, `properties`, `required`,
- * `items`, `enum`, `format`, `maxLength`, `minLength`, `pattern`, `description`,
+ * `items`, `enum`, `format`, `maxLength`, `minLength`, `pattern`, `minimum`,
+ * `maximum`, `description`,
  * and union types expressed as `type: [...]`. There is deliberately no support for `$ref`,
  * `allOf`/`anyOf`/`oneOf`, conditionals, or `additionalProperties`: none appear
  * in the input, and `assertSupported` fails the build if any ever do rather
@@ -24,6 +25,8 @@ export interface JsonSchema {
     maxLength?: number;
     minLength?: number;
     pattern?: string;
+    minimum?: number;
+    maximum?: number;
     description?: string;
     [key: string]: unknown;
 }
@@ -39,6 +42,8 @@ const SUPPORTED_KEYWORDS = new Set([
     'maxLength',
     'minLength',
     'pattern',
+    'minimum',
+    'maximum',
     'description',
 ]);
 
@@ -96,8 +101,12 @@ function emitForType(type: string, schema: JsonSchema, path: string): string {
         }
 
         case 'number':
-        case 'integer':
-            return 'z.number()';
+        case 'integer': {
+            let result = 'z.number()';
+            if (schema.minimum !== undefined) result += `.min(${schema.minimum})`;
+            if (schema.maximum !== undefined) result += `.max(${schema.maximum})`;
+            return result;
+        }
 
         case 'boolean':
             return 'z.boolean()';

@@ -143,7 +143,7 @@ Nine self-contained skills are available:
 | `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
 | `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
-| `wayd-teams` | Team lookup — resolve a team name to an ID |
+| `wayd-teams` | Team lookup — resolve a team name to an ID; grade a team's backlog health |
 | `wayd-users` | User lookup — resolve a user name to a UUID for assignees and project roles |
 | `wayd-imports` | CSV imports — write a file in the right format, preflight it, import the rows it checked, and follow or re-run import runs |
 
@@ -228,7 +228,7 @@ Two rules the tools enforce and the `wayd-delivery` skill explains: a version sh
 
 | Category | Operations |
 | --- | --- |
-| **Teams** | List, get details, get activity history |
+| **Teams** | List, get details, get activity history, grade backlog health |
 | **Users** | List, get details |
 
 ### Imports

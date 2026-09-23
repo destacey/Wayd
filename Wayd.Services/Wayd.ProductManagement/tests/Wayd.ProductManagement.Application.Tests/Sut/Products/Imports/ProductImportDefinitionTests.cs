@@ -131,13 +131,57 @@ public sealed class ProductImportDefinitionTests
             new ImportProductDto(name, description, productTypeName, parentImportId, externalId, status,
                 [.. tags.Select(t => new ProductTagReference(t.Category, t.Tag))]));
 
+    private IReadOnlyList<string?> GroupKeys(params (string ImportId, ImportProductDto Data)[] rows) =>
+        _definition.GroupKeysOf([.. rows.Select(r => (r.ImportId, _definition.SerializeRow(r.Data)))]);
+
     [Fact]
-    public void Definition_IsAtomicAndCannotBeChunked()
+    public void Definition_AppliesTreeByTree()
     {
-        // Arrange & Act & Assert — a child row names a parent row in the same file, so a chunk could be
-        // handed a child whose parent has not been created
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
-        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.WholeSet);
+        // Arrange & Act & Assert — chunked, which is safe only because a tree is one group and the runner
+        // never splits a group
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("product tree");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeysOf_IsTheRootOfEachRowsTree_WhateverOrderTheFileListsThem()
+    {
+        // Act — a grandchild ahead of its parent and root, and a second tree interleaved
+        var keys = GroupKeys(
+            Row("web", "Storefront Web", parentImportId: "sf"),
+            Row("cart", "Cart", parentImportId: "web"),
+            Row("id", "Identity"),
+            Row("sf", "Storefront"),
+            Row("sso", "Single sign-on", parentImportId: "id"));
+
+        // Assert
+        keys.Should().Equal("sf", "sf", "id", "sf", "id");
+    }
+
+    [Fact]
+    public void GroupKeysOf_IsTheRootAsItsOwnRowSpellsIt()
+    {
+        // Act — the child names its parent in different casing, which the pass resolves; the group must still
+        // be one string for the whole tree
+        var keys = GroupKeys(
+            Row("Storefront", "Storefront"),
+            Row("web", "Storefront Web", parentImportId: " STOREFRONT "));
+
+        // Assert
+        keys.Should().Equal("Storefront", "Storefront");
+    }
+
+    [Fact]
+    public void GroupKeysOf_Terminates_OnACycleTheSubmissionWouldRefuse()
+    {
+        // Act
+        var keys = GroupKeys(
+            Row("a", "A", parentImportId: "b"),
+            Row("b", "B", parentImportId: "a"));
+
+        // Assert
+        keys.Should().HaveCount(2).And.OnlyContain(k => k == "a" || k == "b");
     }
 
     [Fact]

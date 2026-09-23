@@ -21,11 +21,13 @@ namespace Wayd.ProductManagement.Application.Deployments.Imports;
 /// in the domain rather than duplicated here.
 /// <para>
 /// A deployment has no natural key: two builds of one version reaching one environment are two
-/// deployments. The import is therefore additive, and re-running a file records everything in it again.
+/// deployments. The import is therefore additive, and re-running a file records everything in it again —
+/// after a partial run, resubmit only the rejected rows.
 /// </para>
 /// <para>
-/// Atomic, and a single pass: every row is created and walked before anything is saved, so a row is
-/// either wholly applied or not at all.
+/// Per row, because nothing groups deployments: each reads only records earlier imports saved, and none
+/// changes another. A row is created and walked in memory and added only once its last step succeeds, so a
+/// rejected row leaves nothing staged for its chunk's save to carry.
 /// </para>
 /// </remarks>
 public sealed class DeploymentImportDefinition(
@@ -49,9 +51,10 @@ public sealed class DeploymentImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Delivery;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerRow;
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end.
     public override int MaxRows => 10_000;
 
     protected override IReadOnlyList<ImportPass<ImportDeploymentDto>> Steps =>

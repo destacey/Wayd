@@ -115,11 +115,27 @@ public sealed class VersionImportDefinitionTests
         new(productId, number, name, targetDate, cutDate, releasedDate, sequence, notes);
 
     [Fact]
-    public void Definition_IsAtomic()
+    public void Definition_AppliesProductByProduct()
     {
         // Arrange & Act & Assert
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("product");
         _definition.Passes.Single().Name.Should().Be("CreateVersions");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeysOf_IsTheProduct()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+
+        // Act
+        var keys = _definition.GroupKeysOf(
+            [("r1", _definition.SerializeRow(Row(productId, "1.0"))), ("r2", _definition.SerializeRow(Row(productId, "2.0")))]);
+
+        // Assert
+        keys.Should().Equal(productId.ToString(), productId.ToString());
     }
 
     [Fact]

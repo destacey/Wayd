@@ -32,7 +32,10 @@ namespace Wayd.ProductManagement.Application.Versions.Imports;
 /// documents as the case historical import depends on.
 /// </para>
 /// <para>
-/// Atomic, matching the single save the command it replaces did.
+/// Per group, keyed on the product: the file's history for a product lands whole or not at all, never with a
+/// gap where one version was refused. No version row reads another — a number is unique per product, checked
+/// across the file at submission and against the database here — so the pass carries on past a rejection
+/// and reports every refused version in the product, not only the first.
 /// </para>
 /// </remarks>
 public sealed class VersionImportDefinition(
@@ -56,14 +59,20 @@ public sealed class VersionImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Delivery;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "product";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end.
     public override int MaxRows => 10_000;
+
+    // Formatted the one way a Guid formats by default, so two rows naming a product in different casing still
+    // land in the same group.
+    protected override string? GroupKey(ImportVersionDto row) => row.ProductId.ToString();
 
     protected override IReadOnlyList<ImportPass<ImportVersionDto>> Steps =>
     [
-        new("CreateVersions", ImportPassScope.WholeSet, CreateVersions),
+        new("CreateVersions", ImportPassScope.Chunked, CreateVersions),
     ];
 
     private async Task<Result> CreateVersions(ImportPassContext<ImportVersionDto> context, CancellationToken cancellationToken)

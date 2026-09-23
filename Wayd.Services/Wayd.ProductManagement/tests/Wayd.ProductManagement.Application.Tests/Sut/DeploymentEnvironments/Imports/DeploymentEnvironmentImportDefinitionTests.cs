@@ -60,11 +60,23 @@ public sealed class DeploymentEnvironmentImportDefinitionTests
         new(name, category, ringOrder, isActive);
 
     [Fact]
-    public void Definition_IsAtomic()
+    public void Definition_AppliesEnvironmentByEnvironment()
     {
         // Arrange & Act & Assert
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("environment");
         _definition.Passes.Single().Name.Should().Be("CreateEnvironments");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeysOf_IsTheTrimmedName()
+    {
+        // Act
+        var key = _definition.GroupKeysOf([("r1", _definition.SerializeRow(Row(" Production ")))]).Single();
+
+        // Assert
+        key.Should().Be("Production");
     }
 
     [Fact]

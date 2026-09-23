@@ -124,11 +124,23 @@ public sealed class ReleasePackageImportDefinitionTests
             components.Length > 0 ? components : [Component(productId)]);
 
     [Fact]
-    public void Definition_IsAtomic()
+    public void Definition_AppliesPackageByPackage()
     {
         // Arrange & Act & Assert
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("release package");
         _definition.Passes.Single().Name.Should().Be("CreatePackages");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeysOf_IsTheTrimmedVersion()
+    {
+        // Act
+        var key = _definition.GroupKeysOf([("r1", _definition.SerializeRow(Row(Guid.NewGuid(), " WAYD-2026.09 ")))]).Single();
+
+        // Assert
+        key.Should().Be("WAYD-2026.09");
     }
 
     [Fact]

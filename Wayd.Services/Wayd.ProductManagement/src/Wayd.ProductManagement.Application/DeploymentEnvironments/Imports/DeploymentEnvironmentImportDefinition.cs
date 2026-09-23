@@ -10,8 +10,8 @@ namespace Wayd.ProductManagement.Application.DeploymentEnvironments.Imports;
 /// Imports deployment environments, the reference data the deployments import resolves against by name.
 /// </summary>
 /// <remarks>
-/// Atomic. Environment names are the natural key the deployments import resolves against, so a
-/// half-applied file would leave that import silently resolving some names and rejecting others.
+/// Per group, keyed on the environment's name. Environments are independent of one another, and a
+/// deployment naming one that was kept out is rejected by name rather than recorded against anything else.
 /// </remarks>
 public sealed class DeploymentEnvironmentImportDefinition(
     IProductManagementDbContext productManagementDbContext,
@@ -30,10 +30,12 @@ public sealed class DeploymentEnvironmentImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.DeploymentEnvironments;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "environment";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
     public override int MaxRows => 10_000;
+
+    protected override string? GroupKey(ImportDeploymentEnvironmentDto row) => Normalize(row.Name);
 
     protected override IReadOnlyList<ImportPass<ImportDeploymentEnvironmentDto>> Steps =>
     [

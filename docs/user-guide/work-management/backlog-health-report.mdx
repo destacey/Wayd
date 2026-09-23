@@ -33,14 +33,14 @@ The cards at the top of the report measure the backlog as a whole.
 | **Net Flow** | Work items created for every work item completed in the history window | At Risk above 1.2, Unhealthy above 1.5 |
 | **WIP Load** | Active work items per team member | At Risk above 1.5, Unhealthy above 2 |
 
-A runway that is too long is At Risk because refining work far ahead of when it will be started is likely to be wasted. Net Flow above 1 means the backlog is growing faster than the team is completing it. WIP Load counts every member of the team, whatever their role.
+A runway that is too long is At Risk because refining work far ahead of when it will be started is likely to be wasted. Net Flow above 1 means the backlog is growing faster than the team is completing it; work items created and later Removed are not counted, just as removed work does not count as completed, so triaging work away does not look like growth. WIP Load counts every active employee on the team, whatever their role.
 
 ## Work Item Checks
 
 | Check | A Work Item Is Flagged When |
 |-------|-----------------------------|
-| **Stale** | It has not been modified in 90 days |
-| **Old Proposed** | It is Proposed and was created more than 180 days ago |
+| **Stale** | It has not been modified for 90 days or more |
+| **Old Proposed** | It is Proposed and was created 180 or more days ago |
 | **Aging WIP** | It is Active and has been active longer than the team's 85th percentile cycle time |
 | **Missing Story Points** | It is in the readiness window and has no estimate |
 | **Oversized** | It is in the readiness window and is estimated above the 85th percentile of the story points on work the team completed |
@@ -68,6 +68,8 @@ The grid shows every open work item in backlog order with a **Flags** column lis
 ## Changing The Thresholds
 
 Open **Thresholds** to change the history window or any threshold, then select **Apply**. The report is graded again with the new values, and a **Custom thresholds** tag shows that the report no longer uses the defaults. **Reset to defaults** removes every change.
+
+Each Unhealthy limit must be at least as strict as its At Risk limit, and **Apply** stays disabled until they agree. If a link carries thresholds that cannot be used, the report explains why and offers **Reset to defaults**.
 
 Thresholds are for exploring scenarios, not a team setting:
 

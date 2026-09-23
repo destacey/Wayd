@@ -6,6 +6,8 @@ import RisksGrid, {
   RisksGridProps,
 } from '@/src/components/common/planning/risks-grid'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useFeatureFlag } from '@/src/hooks'
+import { TeamThroughputForecastReport } from '@/src/components/common/forecasting'
 import useAuth from '@/src/components/contexts/auth'
 import {
   useGetTeamActivitiesQuery,
@@ -78,12 +80,17 @@ enum TeamTabs {
   Members = 'members',
   OperatingModelHistory = 'operating-model-history',
   CycleTimeReport = 'cycle-time-report',
+  ThroughputForecast = 'throughput-forecast',
   Activities = 'activities',
 }
 
 const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
   const teamKey = Number(key)
+
+  const { isEnabled: forecastingEnabled } = useFeatureFlag(
+    'delivery-forecasting',
+  )
 
   // The active section lives in the URL (?section=), owned by RecordLayout.
   // Read here only to enable the queries that load lazily on first visit.
@@ -292,6 +299,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamMembersGrid teamId={team!.id!} teamType="Team" />
       case TeamTabs.CycleTimeReport:
         return <CycleTimeReport teamCode={team!.code} />
+      case TeamTabs.ThroughputForecast:
+        return <TeamThroughputForecastReport teamCode={team!.code} />
       case TeamTabs.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       default:
@@ -334,6 +343,9 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       // The report renders its own title alongside its controls.
       hideHeading: true,
     },
+    ...(forecastingEnabled
+      ? [{ id: TeamTabs.ThroughputForecast, label: 'Throughput Forecast' }]
+      : []),
     { id: TeamTabs.OperatingModelHistory, label: 'Operating Model History' },
   ]
 

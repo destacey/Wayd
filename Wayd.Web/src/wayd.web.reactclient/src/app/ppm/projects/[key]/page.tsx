@@ -4,7 +4,8 @@ import { LifecycleStatusTag, PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
+import { ProjectForecastReport } from '@/src/components/common/forecasting'
 import {
   useGetProjectActivitiesQuery,
   useGetProjectQuery,
@@ -72,10 +73,14 @@ enum ProjectSections {
   WorkItems = 'work-items',
   Activities = 'activities',
   HealthReport = 'health-report',
+  Forecast = 'forecast',
 }
 
-const reports: RecordSection[] = [
+const getReports = (forecastingEnabled: boolean): RecordSection[] => [
   { id: ProjectSections.HealthReport, label: 'Health Report' },
+  ...(forecastingEnabled
+    ? [{ id: ProjectSections.Forecast, label: 'Forecast' }]
+    : []),
 ]
 
 enum ProjectAction {
@@ -94,6 +99,10 @@ enum ProjectAction {
 
 const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key: projectKey } = use(props.params)
+
+  const { isEnabled: forecastingEnabled } = useFeatureFlag(
+    'delivery-forecasting',
+  )
 
   const [openEditProjectForm, setOpenEditProjectForm] = useState<boolean>(false)
   const [openChangeProgramForm, setOpenChangeProgramForm] =
@@ -466,6 +475,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       case ProjectSections.HealthReport:
         return <ProjectHealthReport projectId={projectData.id} />
+      case ProjectSections.Forecast:
+        return <ProjectForecastReport projectKey={projectData.key} />
       default:
         return (
           <Flex vertical gap="middle">
@@ -480,7 +491,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     <>
       <RecordLayout
         sections={sections}
-        reports={reports}
+        reports={getReports(forecastingEnabled)}
         defaultSection={ProjectSections.Overview}
         record={{
           name: projectData.name,

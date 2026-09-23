@@ -1,6 +1,8 @@
 ﻿using CSharpFunctionalExtensions;
 using CsvHelper;
 using Mapster;
+using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
@@ -21,6 +23,7 @@ using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Planning.HealthChecks;
 using Wayd.Web.Api.Models.Planning.PlanningIntervals;
 using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkItems.Queries;
 
 namespace Wayd.Web.Api.Controllers.Planning;
@@ -748,6 +751,41 @@ public class PlanningIntervalsController : ControllerBase
             workItemsSummary.WorkItems = [.. workItemsSummary.WorkItems.OrderBy(w => w.StackRank)];
 
         return Ok(workItemsSummary);
+    }
+
+    [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/forecast")]
+    [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
+    [OpenApiOperation("Forecast when an objective's work items will be done.", "A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WorkItemForecastDto>> GetObjectiveForecast(
+        string idOrKey,
+        string objectiveIdOrKey,
+        [FromQuery] string? targetDate,
+        [FromQuery] int? lookbackDays,
+        [FromQuery] bool? ignoreDependencies,
+        CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(targetDate, out var targetDateOverride))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        var objective = await _dispatcher.Send(new GetPlanningIntervalObjectiveQuery(idOrKey, objectiveIdOrKey), cancellationToken);
+        if (objective is null)
+            return NotFound();
+
+        var effectiveTargetDate = targetDateOverride
+            ?? objective.TargetDate
+            ?? (await _dispatcher.Send(new GetPlanningIntervalQuery(idOrKey), cancellationToken))?.End;
+
+        var options = new ForecastOptions
+        {
+            LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
+            IgnoreDependencies = ignoreDependencies ?? false,
+        };
+
+        return Ok(await _dispatcher.Send(new GetExternalObjectForecastQuery(objective.Id, effectiveTargetDate, options), cancellationToken));
     }
 
     [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/work-items/metrics")]

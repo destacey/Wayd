@@ -17737,6 +17737,83 @@ export class ProjectsClient {
     }
 
     /**
+     * Forecast when a project's work items will be done.
+     * @param targetDate (optional) 
+     * @param lookbackDays (optional) 
+     * @param ignoreDependencies (optional) 
+     */
+    getProjectForecast(idOrKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/forecast?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (targetDate !== undefined && targetDate !== null)
+            url_ += "targetDate=" + encodeURIComponent("" + targetDate) + "&";
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (ignoreDependencies !== undefined && ignoreDependencies !== null)
+            url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetProjectForecast(_response);
+        });
+    }
+
+    protected processGetProjectForecast(response: AxiosResponse): Promise<WorkItemForecastDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemForecastDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemForecastDto>(null as any);
+    }
+
+    /**
      * Assign a lifecycle to a project.
      */
     assignLifecycle(id: string, request: AssignProjectLifecycleRequest, cancelToken?: CancelToken): Promise<void> {
@@ -23634,6 +23711,86 @@ export class PlanningIntervalsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<WorkItemsSummaryDto>(null as any);
+    }
+
+    /**
+     * Forecast when an objective's work items will be done.
+     * @param targetDate (optional) 
+     * @param lookbackDays (optional) 
+     * @param ignoreDependencies (optional) 
+     */
+    getObjectiveForecast(idOrKey: string, objectiveIdOrKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
+        let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/forecast?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (objectiveIdOrKey === undefined || objectiveIdOrKey === null)
+            throw new globalThis.Error("The parameter 'objectiveIdOrKey' must be defined.");
+        url_ = url_.replace("{objectiveIdOrKey}", encodeURIComponent("" + objectiveIdOrKey));
+        if (targetDate !== undefined && targetDate !== null)
+            url_ += "targetDate=" + encodeURIComponent("" + targetDate) + "&";
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (ignoreDependencies !== undefined && ignoreDependencies !== null)
+            url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetObjectiveForecast(_response);
+        });
+    }
+
+    protected processGetObjectiveForecast(response: AxiosResponse): Promise<WorkItemForecastDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemForecastDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemForecastDto>(null as any);
     }
 
     /**
@@ -31234,6 +31391,86 @@ export class WorkspacesClient {
     }
 
     /**
+     * Forecast when a work item will be done.
+     * @param targetDate (optional) 
+     * @param lookbackDays (optional) 
+     * @param ignoreDependencies (optional) 
+     */
+    getWorkItemForecast(idOrKey: string, workItemKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
+        let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/forecast?";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (workItemKey === undefined || workItemKey === null)
+            throw new globalThis.Error("The parameter 'workItemKey' must be defined.");
+        url_ = url_.replace("{workItemKey}", encodeURIComponent("" + workItemKey));
+        if (targetDate !== undefined && targetDate !== null)
+            url_ += "targetDate=" + encodeURIComponent("" + targetDate) + "&";
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (ignoreDependencies !== undefined && ignoreDependencies !== null)
+            url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItemForecast(_response);
+        });
+    }
+
+    protected processGetWorkItemForecast(response: AxiosResponse): Promise<WorkItemForecastDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemForecastDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemForecastDto>(null as any);
+    }
+
+    /**
      * Get metrics for a work item.
      */
     getMetrics(idOrKey: string, workItemKey: string, cancelToken?: CancelToken): Promise<WorkItemProgressDailyRollupDto[]> {
@@ -34464,6 +34701,82 @@ export class TeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<WorkItemBacklogItemDto[]>(null as any);
+    }
+
+    /**
+     * Forecast how many backlog work items a team will finish by a date.
+     * @param targetDate (optional) 
+     * @param lookbackDays (optional) 
+     */
+    getTeamThroughputForecast(idOrCode: string, targetDate?: string | undefined, lookbackDays?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamThroughputForecastDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/throughput-forecast?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (targetDate === null)
+            throw new globalThis.Error("The parameter 'targetDate' cannot be null.");
+        else if (targetDate !== undefined)
+            url_ += "targetDate=" + encodeURIComponent("" + targetDate) + "&";
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeamThroughputForecast(_response);
+        });
+    }
+
+    protected processGetTeamThroughputForecast(response: AxiosResponse): Promise<TeamThroughputForecastDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamThroughputForecastDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamThroughputForecastDto>(null as any);
     }
 
     /**
@@ -45657,6 +45970,67 @@ export interface WorkProjectNavigationDto {
     name: string;
 }
 
+export interface WorkItemForecastDto {
+    outcome: SimpleNavigationDto;
+    forecastStart: Date;
+    lookbackDays: number;
+    ignoreDependencies: boolean;
+    backlogPosition?: number | undefined;
+    remainingWorkItems: number;
+    excludedWorkItems: ForecastWorkItemDto[];
+    teams: ForecastTeamDto[];
+    targetDate?: Date | undefined;
+    chanceOfFinishingByTargetDate?: number | undefined;
+    trials: number;
+    trialsBeyondHorizon: number;
+    percentiles: ForecastPercentileDto[];
+    histogram: ForecastHistogramBucketDto[];
+    dependencies: ForecastDependencyInfluenceDto[];
+    ignoredDependencies: ForecastDependencyLinkDto[];
+    issues: ForecastIssueDto[];
+}
+
+export interface ForecastWorkItemDto {
+    id: string;
+    key: string;
+    workspaceKey: string;
+    title: string;
+}
+
+export interface ForecastTeamDto {
+    team: WorkTeamNavigationDto;
+    from: Date;
+    to: Date;
+    itemsCompleted: number;
+}
+
+export interface ForecastPercentileDto {
+    confidence: number;
+    date?: Date | undefined;
+}
+
+export interface ForecastHistogramBucketDto {
+    date: Date;
+    trials: number;
+}
+
+export interface ForecastDependencyInfluenceDto {
+    predecessor: ForecastWorkItemDto;
+    successor: ForecastWorkItemDto;
+    shareOfTrialsSettingFinish?: number | undefined;
+}
+
+export interface ForecastDependencyLinkDto {
+    predecessor: ForecastWorkItemDto;
+    successor: ForecastWorkItemDto;
+    reason: SimpleNavigationDto;
+}
+
+export interface ForecastIssueDto {
+    workItem: ForecastWorkItemDto;
+    type: SimpleNavigationDto;
+}
+
 export interface AssignProjectLifecycleRequest {
     /** The ID of the lifecycle to assign to the project. */
     lifecycleId: string;
@@ -47942,6 +48316,30 @@ export interface WorkItemBacklogItemDto {
     stackRank: number;
     storyPoints?: number | undefined;
     tags: string[];
+}
+
+export interface TeamThroughputForecastDto {
+    outcome: SimpleNavigationDto;
+    team: ForecastTeamDto;
+    forecastStart: Date;
+    targetDate: Date;
+    lookbackDays: number;
+    days: number;
+    backlogWorkItems: number;
+    trials: number;
+    percentiles: ThroughputPercentileDto[];
+    histogram: ThroughputHistogramBucketDto[];
+}
+
+export interface ThroughputPercentileDto {
+    confidence: number;
+    workItems: number;
+    throughWorkItem?: ForecastWorkItemDto | undefined;
+}
+
+export interface ThroughputHistogramBucketDto {
+    workItems: number;
+    trials: number;
 }
 
 export interface DependencyDto {

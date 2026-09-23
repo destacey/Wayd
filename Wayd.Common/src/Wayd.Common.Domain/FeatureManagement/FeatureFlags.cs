@@ -10,6 +10,7 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition PlanningPoker = new(Names.PlanningPoker, "Planning Poker", "Controls visibility of the Planning Poker feature.");
     public static readonly FeatureFlagDefinition StoryMaps = new(Names.StoryMaps, "Story Maps", "Controls visibility of the Story Maps feature.");
     public static readonly FeatureFlagDefinition ProductManagement = new(Names.ProductManagement, "Product Management", "Controls availability of the Product Management module.");
+    public static readonly FeatureFlagDefinition DeliveryForecasting = new(Names.DeliveryForecasting, "Delivery Forecasting", "Controls availability of Monte Carlo delivery forecasts.");
 
     /// <summary>
     /// Compile-time constant names for use in attributes (e.g., [FeatureGate]).
@@ -19,6 +20,7 @@ public static class FeatureFlags
         public const string PlanningPoker = "planning-poker";
         public const string StoryMaps = "story-maps";
         public const string ProductManagement = "product-management";
+        public const string DeliveryForecasting = "delivery-forecasting";
     }
 }
 

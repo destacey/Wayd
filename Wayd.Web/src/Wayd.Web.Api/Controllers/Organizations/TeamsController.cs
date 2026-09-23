@@ -1,9 +1,11 @@
 using CsvHelper;
+using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Dtos;
@@ -20,6 +22,9 @@ using Wayd.Web.Api.Models.Planning.Risks;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Work.Application.WorkItems.Forecasting;
+using Wayd.Work.Application.WorkTeams.Dtos;
+using Wayd.Work.Application.WorkTeams.Queries;
 
 namespace Wayd.Web.Api.Controllers.Organizations;
 
@@ -346,6 +351,35 @@ public class TeamsController(
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{idOrCode}/throughput-forecast")]
+    [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [OpenApiOperation("Forecast how many backlog work items a team will finish by a date.", "A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamThroughputForecastDto>> GetTeamThroughputForecast(
+        string idOrCode,
+        [FromQuery] string targetDate,
+        [FromQuery] int? lookbackDays,
+        CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(targetDate, out var parsedTargetDate) || parsedTargetDate is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        var query = new GetTeamThroughputForecastQuery(
+            idOrCode,
+            parsedTargetDate.Value,
+            lookbackDays ?? ForecastOptions.DefaultLookbackDays);
+        var result = await _dispatcher.Send(query, cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
     }
 
     [HttpGet("{idOrCode}/work-items")]

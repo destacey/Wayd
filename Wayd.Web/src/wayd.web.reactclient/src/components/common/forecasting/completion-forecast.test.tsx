@@ -76,19 +76,33 @@ describe('CompletionForecast', () => {
     expect(screen.getByText('Beyond 2 years')).toBeInTheDocument()
   })
 
-  it('shows the chance of finishing by the target date', () => {
+  it("shows the chance of finishing by the record's target date", () => {
     render(
       <CompletionForecast
         forecast={createForecast({
           targetDate: '2026-10-05' as unknown as Date,
-          chanceOfFinishingByTargetDate: 0.62,
         })}
         isLoading={false}
       />,
     )
 
     expect(screen.getByText('Chance by Oct 5, 2026')).toBeInTheDocument()
-    expect(screen.getByText('62%')).toBeInTheDocument()
+    expect(screen.getByText('60%')).toBeInTheDocument()
+  })
+
+  it('measures against a picked date without the forecast being re-run', () => {
+    render(
+      <CompletionForecast
+        forecast={createForecast({
+          targetDate: '2026-10-05' as unknown as Date,
+        })}
+        isLoading={false}
+        targetDateOverride="2026-10-09"
+      />,
+    )
+
+    expect(screen.getByText('Chance by Oct 9, 2026')).toBeInTheDocument()
+    expect(screen.getByText('100%')).toBeInTheDocument()
   })
 
   it('names the teams and history the forecast is based on', () => {

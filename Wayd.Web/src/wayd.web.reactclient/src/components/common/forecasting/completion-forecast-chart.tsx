@@ -22,6 +22,8 @@ const Column = dynamic(
 
 export interface CompletionForecastChartProps {
   forecast: WorkItemForecastDto
+  /** The date the report measures against, when there is one. */
+  targetDate?: Date | string
 }
 
 interface ChartDatum {
@@ -39,12 +41,11 @@ interface ChartDatum {
  */
 const CompletionForecastChart: FC<CompletionForecastChartProps> = ({
   forecast,
+  targetDate: target,
 }) => {
   const { antDesignChartsTheme, token } = useTheme()
 
-  const targetDate = forecast.targetDate
-    ? dayjs.utc(forecast.targetDate)
-    : undefined
+  const targetDate = target ? dayjs.utc(target) : undefined
 
   const data = [...forecast.histogram]
     .sort((a, b) => dayjs.utc(a.date).diff(dayjs.utc(b.date)))

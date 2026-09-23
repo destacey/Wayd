@@ -40,6 +40,10 @@ export interface GetTeamThroughputForecastRequest {
   lookbackDays?: number
 }
 
+// A forecast changes only when the day or the data does, so a cached one
+// stays good well past RTK Query's one-minute default.
+const FORECAST_CACHE_SECONDS = 15 * 60
+
 const optionsTag = (options: ForecastOptionsRequest) =>
   `${options.targetDate ?? ''}:${options.lookbackDays ?? ''}:${options.ignoreDependencies ?? ''}`
 
@@ -49,6 +53,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
       WorkItemForecastDto,
       GetWorkItemForecastRequest
     >({
+      keepUnusedDataFor: FORECAST_CACHE_SECONDS,
       queryFn: async (request) => {
         try {
           const data = await getWorkspacesClient().getWorkItemForecast(
@@ -75,6 +80,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
       WorkItemForecastDto,
       GetObjectiveForecastRequest
     >({
+      keepUnusedDataFor: FORECAST_CACHE_SECONDS,
       queryFn: async (request) => {
         try {
           const data = await getPlanningIntervalsClient().getObjectiveForecast(
@@ -101,6 +107,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
       WorkItemForecastDto,
       GetProjectForecastRequest
     >({
+      keepUnusedDataFor: FORECAST_CACHE_SECONDS,
       queryFn: async (request) => {
         try {
           const data = await getProjectsClient().getProjectForecast(
@@ -126,6 +133,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
       TeamThroughputForecastDto,
       GetTeamThroughputForecastRequest
     >({
+      keepUnusedDataFor: FORECAST_CACHE_SECONDS,
       queryFn: async ({ teamIdOrCode, targetDate, lookbackDays }) => {
         try {
           const data = await getTeamsClient().getTeamThroughputForecast(

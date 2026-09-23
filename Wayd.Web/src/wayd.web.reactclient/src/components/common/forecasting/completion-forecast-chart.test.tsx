@@ -49,14 +49,15 @@ describe('CompletionForecastChart', () => {
   it('marks dates after the target date', () => {
     const forecast = {
       trials: 2,
-      targetDate: '2026-10-01',
       histogram: [
         { date: '2026-10-01', trials: 1 },
         { date: '2026-10-02', trials: 1 },
       ],
     } as unknown as WorkItemForecastDto
 
-    render(<CompletionForecastChart forecast={forecast} />)
+    render(
+      <CompletionForecastChart forecast={forecast} targetDate="2026-10-01" />,
+    )
 
     expect(chartData().map((d: any) => d.byTargetDate)).toEqual([true, false])
   })

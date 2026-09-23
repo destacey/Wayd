@@ -8,6 +8,7 @@ import { FC, ReactNode } from 'react'
 import { ChartCard, METRIC_CARD_FLEX, MetricCard } from '../metrics'
 import CompletionForecastChart from './completion-forecast-chart'
 import {
+  chanceOfFinishingBy,
   ForecastOutcome,
   formatForecastDate,
   formatPercent,
@@ -20,6 +21,12 @@ export interface CompletionForecastProps {
   forecast?: WorkItemForecastDto
   isLoading: boolean
   error?: unknown
+  /**
+   * A date picked in the report, measured against in place of the record's
+   * own. The chance is worked out from the histogram, so picking a date does
+   * not re-run the forecast.
+   */
+  targetDateOverride?: Date | string
 }
 
 const outcomeAlerts: Record<
@@ -71,6 +78,7 @@ const CompletionForecast: FC<CompletionForecastProps> = ({
   forecast,
   isLoading,
   error,
+  targetDateOverride,
 }) => {
   if (isLoading) {
     return <Skeleton active />
@@ -82,6 +90,11 @@ const CompletionForecast: FC<CompletionForecastProps> = ({
 
   const isForecast = forecast.outcome.id === ForecastOutcome.Forecast
   const outcomeAlert = outcomeAlerts[forecast.outcome.id]
+
+  const targetDate = targetDateOverride ?? forecast.targetDate
+  const chance = targetDate
+    ? chanceOfFinishingBy(forecast.histogram, forecast.trials, targetDate)
+    : undefined
 
   const dependencies = [...forecast.dependencies].sort(
     (a, b) =>
@@ -120,25 +133,26 @@ const CompletionForecast: FC<CompletionForecastProps> = ({
                 tooltip={`${p.confidence}% of simulations finished on or before this date.`}
               />
             ))}
-            {forecast.targetDate &&
-              forecast.chanceOfFinishingByTargetDate !== undefined && (
-                <MetricCard
-                  title={`Chance by ${formatForecastDate(forecast.targetDate)}`}
-                  value={formatPercent(forecast.chanceOfFinishingByTargetDate)}
-                  cardStyle={METRIC_CARD_FLEX}
-                  tooltip="The share of simulations that finished on or before the target date."
-                />
-              )}
+            {targetDate && chance !== undefined && (
+              <MetricCard
+                title={`Chance by ${formatForecastDate(targetDate)}`}
+                value={formatPercent(chance)}
+                cardStyle={METRIC_CARD_FLEX}
+                tooltip="The share of simulations that finished on or before the target date."
+              />
+            )}
           </Flex>
 
           <ChartCard title="Simulated completion dates">
-            <CompletionForecastChart forecast={forecast} />
+            <CompletionForecastChart
+              forecast={forecast}
+              targetDate={targetDate}
+            />
             <Text type="secondary">
               {forecast.trials.toLocaleString()} simulations from the last{' '}
               {forecast.lookbackDays} days of history, starting{' '}
               {formatForecastDate(forecast.forecastStart)}
-              {forecast.targetDate &&
-                '; lighter bars finish after the target date'}
+              {targetDate && '; lighter bars finish after the target date'}
               {forecast.trialsBeyondHorizon > 0 &&
                 `; ${forecast.trialsBeyondHorizon.toLocaleString()} did not finish within 2 years`}
               .

@@ -17,8 +17,10 @@ import ForecastSettingsBar, {
 } from './forecast-settings-bar'
 import ThroughputForecast from './throughput-forecast'
 
+// The target date is left out: it changes only the chance of making it,
+// which the view works out from the histogram, so picking one needs no
+// request.
 const toRequest = (settings: ForecastSettings): ForecastOptionsRequest => ({
-  targetDate: settings.targetDate?.format('YYYY-MM-DD'),
   lookbackDays: settings.lookbackDays,
   ignoreDependencies: settings.ignoreDependencies,
 })
@@ -59,6 +61,7 @@ export const WorkItemForecastReport: FC<{
         forecast={data}
         isLoading={isFetching}
         error={error}
+        targetDateOverride={settings.targetDate?.format('YYYY-MM-DD')}
       />
     </ReportLayout>
   )
@@ -90,6 +93,7 @@ export const ObjectiveForecastReport: FC<{
         forecast={data}
         isLoading={isFetching}
         error={error}
+        targetDateOverride={settings.targetDate?.format('YYYY-MM-DD')}
       />
     </ReportLayout>
   )
@@ -119,6 +123,7 @@ export const ProjectForecastReport: FC<{ projectKey: string }> = ({
         forecast={data}
         isLoading={isFetching}
         error={error}
+        targetDateOverride={settings.targetDate?.format('YYYY-MM-DD')}
       />
     </ReportLayout>
   )

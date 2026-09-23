@@ -143,7 +143,7 @@ Nine self-contained skills are available:
 | `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
 | `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
-| `wayd-teams` | Team lookup — resolve a team name to an ID; grade a team's backlog health |
+| `wayd-teams` | Team lookup — resolve a team name to an ID; grade a team's backlog health; forecast work items, objectives, projects and team throughput |
 | `wayd-users` | User lookup — resolve a user name to a UUID for assignees and project roles |
 | `wayd-imports` | CSV imports — write a file in the right format, preflight it, import the rows it checked, and follow or re-run import runs |
 
@@ -185,14 +185,14 @@ Records that raise domain events expose an **activity history** — every record
 | **Programs** | List, get details, get activity history, get projects. Create, update. Status: activate, complete, cancel |
 | **Project Lifecycles** | List (with state filter), get details |
 | **Expenditure Categories** | Get options (for project create/update) |
-| **Projects** | List (with role filter), get details, get activity history, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
+| **Projects** | List (with role filter), get details, get activity history, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check, forecast completion. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
 | **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
 
 ### Planning
 
 | Category | Operations |
 | --- | --- |
-| **Planning Intervals** | List, get details, activity history, calendar, predictability, teams, iterations, objectives, objective activity history, risks, objective health check history, get/create objective health check |
+| **Planning Intervals** | List, get details, activity history, calendar, predictability, teams, iterations, objectives, objective activity history, risks, objective health check history, get/create objective health check, objective forecast |
 | **Roadmaps** | List, get details, get items and activities |
 | **Story Maps** | List, get full map. Create, update, archive, delete maps. Manage goals, steps, tasks, checklists, swim lanes, personas, and work item links |
 
@@ -228,8 +228,11 @@ Two rules the tools enforce and the `wayd-delivery` skill explains: a version sh
 
 | Category | Operations |
 | --- | --- |
-| **Teams** | List, get details, get activity history, grade backlog health |
+| **Teams** | List, get details, get activity history, grade backlog health, forecast throughput by a date |
+| **Work Items** | Forecast when a work item will be done |
 | **Users** | List, get details |
+
+Forecasts require the `delivery-forecasting` feature flag and return 404 when it is off. They are Monte Carlo simulations of each team's recent throughput, reported as dates (or counts) at 50/70/85/95% confidence; the `wayd-teams` skill explains how to read them.
 
 ### Imports
 

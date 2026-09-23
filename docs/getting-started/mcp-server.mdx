@@ -22,7 +22,8 @@ The MCP server exposes 150+ tools across Wayd's core modules:
 | **[Planning](../user-guide/planning/index.mdx)** | List/view planning intervals, iterations, objectives, risks, and the activity history of intervals and objectives. Get PI predictability and health reports. Review and log objective health checks. View calendars. |
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)** | List/view roadmaps and their items (activities, milestones, timeboxes). |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)** | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links. |
-| **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. Review a team's activity history. |
+| **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. Review a team's activity history. Grade a team's backlog health. |
+| **[Delivery Forecasting](../user-guide/work-management/delivery-forecasting.mdx)** | Forecast when a work item, PI objective, or project will be done, and how many backlog work items a team finishes by a date. |
 | **[Imports](../user-guide/settings/imports.mdx)** | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run. |
 
 ## Prerequisites
@@ -135,7 +136,7 @@ For Claude Code users, nine pre-built skills provide guided workflows:
 - **`/wayd-delivery`** — Releases, versions, release packages, deployments, environments, and delivery metrics
 - **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
 - **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
-- **`/wayd-teams`** — Team lookup and resolving team names to IDs
+- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, and delivery forecasts
 - **`/wayd-users`** — User lookup and resolving names to UUIDs for assignees and project roles
 - **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
 
@@ -187,6 +188,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | `Projects_Approve` / `Projects_Activate` / `Projects_Complete` / `Projects_Cancel` | Change project status |
 | `Projects_RevertStatus` | Move a project backwards to an earlier status — reopening a completed one, or returning an active one to approved |
 | `Projects_GetWorkItems` | Get the work items linked to a project |
+| `Projects_GetForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a project's work items will be done, and the chance of finishing by its planned end |
 | `ProjectLifecycles_GetProjectLifecycles` | List lifecycles with state filter |
 | `ProjectLifecycles_GetProjectLifecycle` | Get lifecycle details |
 | `ExpenditureCategories_GetOptions` | Resolve the expenditure category needed to create a project |
@@ -250,6 +252,7 @@ Most records expose an **activity history**: every recorded change, newest first
 | `PlanningIntervals_GetIterationBacklog` | An iteration's backlog |
 | `PlanningIntervals_GetObjectiveStatuses` | Resolve objective status values |
 | `PlanningIntervals_GetObjectiveWorkItems` / `PlanningIntervals_GetObjectiveWorkItemMetrics` | Work items behind an objective, and their metrics |
+| `PlanningIntervals_GetObjectiveForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when an objective's work items will be done, and the chance of finishing by its target date |
 | `Roadmaps_GetRoadmaps` | List all roadmaps |
 | `Roadmaps_GetRoadmap` | Get roadmap details |
 | `Roadmaps_GetItems` | Get all roadmap items |
@@ -380,6 +383,8 @@ Environments are **retired rather than deleted**, because historical deployments
 | `Teams_GetTeam` | Get team details |
 | `Teams_GetActivities` | Every recorded change to a team |
 | `Teams_GetBacklogHealth` | Grade a team's backlog and list the work items each check flagged, with optional what-if thresholds |
+| `Teams_GetThroughputForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) how many backlog work items a team finishes by a date, and which work item that reaches |
+| `Workspaces_GetWorkItemForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a work item will be done, from its team's throughput, backlog position and predecessors |
 | `Users_GetUsers` | List all users |
 | `Users_GetUser` | Get user details |
 

@@ -157,6 +157,7 @@ Both return aggregate counts, not the projects or tasks themselves — follow up
 | Unified plan tree (stages + tasks) | `Projects_GetProjectPlanTree` | Top-level nodes are stages; tasks nested within with WBS codes |
 | Plan summary metrics | `Projects_GetProjectPlanSummary` | Returns overdue, due this week, upcoming, and total task counts; optional `employeeId` to scope to one person |
 | Work items linked to a project | `Projects_GetWorkItems` | Takes project `id` (UUID) |
+| When the project's work items will be done | `Projects_GetForecast` | Takes `idOrKey`; reports the chance of finishing by the planned end. Requires the `delivery-forecasting` feature flag; see the `wayd-teams` skill for reading forecasts |
 
 Prefer `Projects_GetProjectPlanTree` over `Tasks_GetProjectTasks` when you need a full hierarchical view of the project plan including stages.
 

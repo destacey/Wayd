@@ -200,6 +200,29 @@ export const definitions: [string, McpToolDefinition][] = [
     securityRequirements: [{"ApiKey":[]}],
   }],
 
+  ['PlanningIntervals_GetObjectiveForecast', {
+    name: 'PlanningIntervals_GetObjectiveForecast',
+    description: `Forecast when a planning interval objective's linked work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors. Returns an \`outcome\` (Forecast, Done, Not Enough History, Blocked by Dependency, Cannot Forecast, Nothing Remaining); on Forecast, completion \`percentiles\` (a \`date\` per \`confidence\`) and \`chanceOfFinishingByTargetDate\` (0 to 1) against \`targetDate\` when given, else the objective's target date, else the planning interval's end. \`excludedWorkItems\` could not be forecast (see \`issues\`), which makes the dates a lower bound; \`dependencies\` gives each predecessor's \`shareOfTrialsSettingFinish\`. Requires the delivery-forecasting feature flag; returns 404 when it is off.`,
+    inputSchema: {"type":"object","properties":{
+      "idOrKey":{"type":"string","description":"Planning interval ID (UUID) or key."},
+      "objectiveIdOrKey":{"type":"string","description":"Objective ID (UUID) or key."},
+      "targetDate":{"type":"string","format":"date","description":"Date to report the chance of finishing by, as YYYY-MM-DD. Overrides the objective's target date and the planning interval's end."},
+      "lookbackDays":{"type":"integer","minimum":14,"maximum":365,"description":"Days of history, ending yesterday (UTC), to sample throughput from (default 90)."},
+      "ignoreDependencies":{"type":"boolean","description":"What-if: forecast as if nothing waited on its predecessors (default false)."}
+    },"required":["idOrKey","objectiveIdOrKey"]},
+    method: 'get',
+    pathTemplate: '/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/forecast',
+    executionParameters: [
+      {"name":"idOrKey","in":"path"},
+      {"name":"objectiveIdOrKey","in":"path"},
+      {"name":"targetDate","in":"query"},
+      {"name":"lookbackDays","in":"query"},
+      {"name":"ignoreDependencies","in":"query"}
+    ],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+  }],
+
   ['PlanningIntervals_GetRisks', {
     name: 'PlanningIntervals_GetRisks',
     description: `Get planning interval risks. The default value for includeClosed is false. Optionally filter by teamId.`,

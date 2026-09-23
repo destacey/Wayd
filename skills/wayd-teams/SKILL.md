@@ -1,6 +1,6 @@
 ---
 name: wayd-teams
-description: Guides agents working with Wayd Teams via the Wayd MCP server. Use when looking up teams, resolving a team name to an ID, or assessing the health of a team's backlog.
+description: Guides agents working with Wayd Teams via the Wayd MCP server. Use when looking up teams, resolving a team name to an ID, assessing the health of a team's backlog, or forecasting when work will be done — a work item, PI objective, or project — or how much a team will finish by a date.
 ---
 
 # Wayd Teams
@@ -12,6 +12,7 @@ description: Guides agents working with Wayd Teams via the Wayd MCP server. Use 
 - Resolving a team name to an integer ID for use in other tools (e.g. Planning Interval team filters)
 - Finding out when a team was created, renamed, activated or deactivated
 - Assessing a team's backlog: runway, net flow, WIP load, stale or aging work, readiness gaps, carry-over, rank inversions
+- Forecasting when a work item, PI objective or project will be done, or how many backlog work items a team will finish by a date
 
 ---
 
@@ -51,6 +52,26 @@ description: Guides agents working with Wayd Teams via the Wayd MCP server. Use 
 - **Thresholds are what-ifs, not settings.** Pass any threshold to see how the grades change; nothing is saved. Quote the `thresholds` in the response when reporting grades, since they may not be the defaults.
 - **Readiness checks cover only the top of the backlog.** Missing Story Points, Oversized, No Parent and No Project look at `readinessWindowWorkItems` top-ranked items, not the whole backlog.
 - **Rank Inversion compares only dependencies within the team.** Cross-team dependencies are not ranked against each other.
+
+### Delivery forecasts
+
+Monte Carlo forecasts from each team's recent daily throughput (10,000 trials, history ending yesterday UTC). They need the `delivery-forecasting` feature flag; a 404 on an item you know exists means the flag is off — say so rather than reporting the record missing.
+
+| Question | Tool | Identifies the work by |
+|---|---|---|
+| When will this work item be done? | `Workspaces_GetWorkItemForecast` | `idOrKey` (workspace key — the prefix of the work item key) + `workItemKey` (`CORE-123`) |
+| When will this PI objective's work be done? | `PlanningIntervals_GetObjectiveForecast` | `idOrKey` + `objectiveIdOrKey` |
+| When will this project's work be done? | `Projects_GetForecast` | `idOrKey` (project UUID or key) |
+| How many backlog work items will this team finish by a date? | `Teams_GetThroughputForecast` | `idOrCode` (team UUID or code, not the integer `id`) + required `targetDate` |
+
+- **Read the `outcome` first.** Only `Forecast` fills `percentiles`. `Done`, `Not Enough History` (the team finished fewer than 10 backlog work items in the window), `Blocked by Dependency`, `Cannot Forecast` and `Nothing Remaining` each mean there are no dates — report which, and why from `issues`.
+- **Report a range, lead with 85%.** Quote the 85% date (or count) as the planning figure and the 50% as a coin flip; never collapse the forecast to one date. A percentile with a null `date` did not finish within two years — say "beyond 2 years".
+- **Chance by target date.** `chanceOfFinishingByTargetDate` is 0 to 1; state it as a percent against `targetDate`. An objective defaults to its target date, else the PI's end; a project to its planned end; a work item has none unless you pass `targetDate`.
+- **Exclusions make it a lower bound.** When `excludedWorkItems` is non-empty, the dates cover only what could be forecast — say so and list the excluded keys with their issue.
+- **Name the dependency to chase.** `dependencies[].shareOfTrialsSettingFinish` is how often waiting on that predecessor decided the finish; cite the highest. To show what dependencies cost, compare against `ignoreDependencies: true` and label that result a what-if. `ignoredDependencies` lists links left out (Predecessor Removed, Closes a Cycle) that likely need cleaning up.
+- **Backlog position drives a work item's date.** Everything ranked ahead of it in its team's backlog counts; report `backlogPosition` alongside the date.
+- **Team throughput** answers with a count: each percentile's `workItems` is finished at least that often, and `throughWorkItem` names how far down the backlog that reaches ("at 85%, through CORE-123").
+- **History window.** `lookbackDays` (14–365, default 90). Use a shorter window when a team's pace recently changed, and state the window you used. Nothing is saved.
 
 ### Common usage patterns
 

@@ -89,6 +89,7 @@ Planning Interval (PI)
 - Resolve objective status values: `PlanningIntervals_GetObjectiveStatuses`
 - Work items linked to an objective: `PlanningIntervals_GetObjectiveWorkItems`
 - Daily work item metrics for an objective: `PlanningIntervals_GetObjectiveWorkItemMetrics`
+- When an objective's work will be done, and its chance of finishing by the objective's target date (else the PI's end): `PlanningIntervals_GetObjectiveForecast`. Requires the `delivery-forecasting` feature flag; see the `wayd-teams` skill for reading forecasts.
 
 ### Health report and per-objective health checks
 

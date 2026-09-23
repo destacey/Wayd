@@ -430,6 +430,27 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task Build_SeveralPortfolioItems_ExpandTogetherAndCountSharedWorkOnce()
+    {
+        // Arrange
+        var team = _scenario.NewTeam();
+        _scenario.AddHistory(team);
+        var epic = _scenario.AddItem(teamId: null, type: _scenario.Epic);
+        var feature = _scenario.AddItem(teamId: null, type: _scenario.Feature, parentId: epic.Id);
+        var otherEpic = _scenario.AddItem(teamId: null, type: _scenario.Epic);
+        _scenario.AddItem(team, stackRank: 1, parentId: feature.Id);
+        _scenario.AddItem(team, stackRank: 2, parentId: epic.Id);
+        _scenario.AddItem(team, stackRank: 3, parentId: otherEpic.Id);
+
+        // Act
+        var forecast = await Forecast(epic, feature, otherEpic);
+
+        // Assert
+        forecast.RemainingWorkItems.Should().Be(3);
+        forecast.Percentiles.Should().OnlyContain(p => p.Date == _start.PlusDays(2));
+    }
+
+    [Fact]
     public async Task Build_PortfolioItemWithNoOpenBacklogDescendants_HasNothingRemaining()
     {
         // Arrange

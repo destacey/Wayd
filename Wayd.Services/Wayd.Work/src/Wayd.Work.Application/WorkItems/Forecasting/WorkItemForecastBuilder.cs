@@ -48,14 +48,12 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
             .ToListAsync(cancellationToken);
 
         var loader = new ForecastNetworkLoader(_workDbContext);
-        var remaining = new HashSet<Guid>();
-        foreach (var root in roots.Where(r => r.StatusCategory is WorkStatusCategory.Proposed or WorkStatusCategory.Active))
-        {
-            if (root.Tier == WorkTypeTier.Portfolio)
-                remaining.UnionWith(await loader.OpenBacklogDescendants(root.Id, cancellationToken));
-            else
-                remaining.Add(root.Id);
-        }
+        var openRoots = roots.Where(r => r.StatusCategory is WorkStatusCategory.Proposed or WorkStatusCategory.Active).ToList();
+        var portfolioRoots = openRoots.Where(r => r.Tier == WorkTypeTier.Portfolio).Select(r => r.Id).ToList();
+
+        var remaining = openRoots.Where(r => r.Tier != WorkTypeTier.Portfolio).Select(r => r.Id).ToHashSet();
+        if (portfolioRoots.Count > 0)
+            remaining.UnionWith(await loader.OpenBacklogDescendants(portfolioRoots, cancellationToken));
 
         if (remaining.Count == 0)
         {

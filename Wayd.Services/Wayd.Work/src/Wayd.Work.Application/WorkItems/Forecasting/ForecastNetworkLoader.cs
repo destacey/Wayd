@@ -75,13 +75,14 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
     }
 
     /// <summary>
-    /// The open backlog work items beneath a portfolio work item, at any depth.
+    /// The open backlog work items beneath any of the given portfolio work items, at any depth.
+    /// Walks every root's tree together, one query per level.
     /// </summary>
-    public async Task<List<Guid>> OpenBacklogDescendants(Guid workItemId, CancellationToken cancellationToken)
+    public async Task<HashSet<Guid>> OpenBacklogDescendants(IReadOnlyCollection<Guid> portfolioItemIds, CancellationToken cancellationToken)
     {
-        var descendants = new List<Guid>();
-        var visited = new HashSet<Guid> { workItemId };
-        var frontier = new List<Guid> { workItemId };
+        var descendants = new HashSet<Guid>();
+        var visited = portfolioItemIds.ToHashSet();
+        var frontier = visited.ToList();
 
         while (frontier.Count > 0)
         {

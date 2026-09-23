@@ -60,7 +60,7 @@ public sealed class ProjectTaskImportTests(WaydSqlServerApiFactory factory)
             ("g1", Row(gemini, "Discovery")),
             ("g2", Row(gemini, "Discovery detail") with { ParentImportId = "g1" }));
 
-        var run = await WaitForRun(runId, ct);
+        var run = await ImportRuns.WaitFor(_factory.Services, runId);
 
         // Assert
         Assert.Equal(ImportProcessStatus.PartiallySucceeded, run.Status);
@@ -107,17 +107,17 @@ public sealed class ProjectTaskImportTests(WaydSqlServerApiFactory factory)
         var ct = TestContext.Current.CancellationToken;
         var (apollo, _) = await TwoProjects(ct);
 
-        var failed = await WaitForRun(
+        var failed = await ImportRuns.WaitFor(
+            _factory.Services,
             await SubmitTasks(ct,
                 ("a1", Row(apollo, "Design")),
-                ("a2", Row(apollo, "Build") with { StageName = "Nonexistent" })),
-            ct);
+                ("a2", Row(apollo, "Build") with { StageName = "Nonexistent" })));
         Assert.Equal(ImportProcessStatus.Failed, failed.Status);
 
         // Act — the same file with the stage corrected
-        var run = await WaitForRun(
-            await SubmitTasks(ct, ("a1", Row(apollo, "Design")), ("a2", Row(apollo, "Build"))),
-            ct);
+        var run = await ImportRuns.WaitFor(
+            _factory.Services,
+            await SubmitTasks(ct, ("a1", Row(apollo, "Design")), ("a2", Row(apollo, "Build"))));
 
         // Assert
         Assert.Equal(ImportProcessStatus.Succeeded, run.Status);
@@ -182,35 +182,31 @@ public sealed class ProjectTaskImportTests(WaydSqlServerApiFactory factory)
 
         // Imported active rather than created and then activated: activation is delivery-leadership gated,
         // and the import runs as the system actor.
-        var portfolioRun = await WaitForRun(
-            await Submit(
-                scope,
-                new ImportProjectPortfoliosCommand([
-                    new SubmittedImportRow<ImportProjectPortfolioDto>(
-                        "p1",
-                        new(
-                            $"Portfolio {suffix}",
-                            "Task import test portfolio",
-                            ProjectPortfolioStatus.Active,
-                            Created,
-                            Created,
-                            [], [], []))
-                ])),
-            ct);
+        var portfolioRun = await ImportRuns.SubmitAndWait(
+            scope,
+            new ImportProjectPortfoliosCommand([
+                new SubmittedImportRow<ImportProjectPortfolioDto>(
+                    "p1",
+                    new(
+                        $"Portfolio {suffix}",
+                        "Task import test portfolio",
+                        ProjectPortfolioStatus.Active,
+                        Created,
+                        Created,
+                        [], [], []))
+            ]));
         Assert.Equal(ImportProcessStatus.Succeeded, portfolioRun.Status);
         var portfolioId = portfolioRun.Rows.Single().CreatedEntityId!.Value;
 
         var apollo = new ProjectKey($"AP{suffix}"[..10].ToUpperInvariant());
         var gemini = new ProjectKey($"GE{suffix}"[..10].ToUpperInvariant());
 
-        var projectRun = await WaitForRun(
-            await Submit(
-                scope,
-                new ImportProjectsCommand([
-                    new SubmittedImportRow<ImportProjectDto>("j1", Project(apollo, portfolioId, category.Value, lifecycle.Value)),
-                    new SubmittedImportRow<ImportProjectDto>("j2", Project(gemini, portfolioId, category.Value, lifecycle.Value)),
-                ])),
-            ct);
+        var projectRun = await ImportRuns.SubmitAndWait(
+            scope,
+            new ImportProjectsCommand([
+                new SubmittedImportRow<ImportProjectDto>("j1", Project(apollo, portfolioId, category.Value, lifecycle.Value)),
+                new SubmittedImportRow<ImportProjectDto>("j2", Project(gemini, portfolioId, category.Value, lifecycle.Value)),
+            ]));
         Assert.Equal(ImportProcessStatus.Succeeded, projectRun.Status);
 
         return (apollo, gemini);
@@ -244,40 +240,9 @@ public sealed class ProjectTaskImportTests(WaydSqlServerApiFactory factory)
         using var scope = _factory.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId(UserId);
 
-        return await Submit(
+        return await ImportRuns.Submit(
             scope,
             new ImportProjectTasksCommand(
                 [.. rows.Select(r => new SubmittedImportRow<ImportProjectTaskDto>(r.ImportId, r.Row))]));
-    }
-
-    private static async Task<Guid> Submit(IServiceScope scope, ICommand<Guid> command)
-    {
-        var submitted = await scope.ServiceProvider.GetRequiredService<IDispatcher>()
-            .Send(command, TestContext.Current.CancellationToken);
-
-        Assert.True(submitted.IsSuccess, submitted.IsFailure ? submitted.Error : null);
-        return submitted.Value;
-    }
-
-    private async Task<ImportProcess> WaitForRun(Guid runId, CancellationToken ct)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
-
-        while (DateTime.UtcNow < deadline)
-        {
-            using var scope = _factory.Services.CreateScope();
-
-            var run = await scope.ServiceProvider.GetRequiredService<IImportDbContext>().ImportProcesses
-                .AsNoTracking()
-                .Include(p => p.Rows)
-                .SingleAsync(p => p.Id == runId, ct);
-
-            if (run.IsTerminal)
-                return run;
-
-            await Task.Delay(200, ct);
-        }
-
-        throw new TimeoutException($"Import run {runId} did not reach a terminal status.");
     }
 }

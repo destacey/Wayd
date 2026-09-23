@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -42,8 +41,6 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 [Collection(SqlServerApiTestCollection.Name)]
 public sealed class ImportPreflightTests(WaydSqlServerApiFactory factory)
 {
-    private static readonly TimeSpan _runTimeout = TimeSpan.FromSeconds(60);
-
     private readonly WaydSqlServerApiFactory _factory = factory;
 
     [Fact]
@@ -232,26 +229,7 @@ public sealed class ImportPreflightTests(WaydSqlServerApiFactory factory)
         return scope;
     }
 
-    /// <summary>Reads the run back in a scope of its own once it has finished, rows included.</summary>
-    private async Task<ImportProcess> WaitForRun(Guid importProcessId)
-    {
-        var elapsed = Stopwatch.StartNew();
-
-        while (true)
-        {
-            using var scope = _factory.Services.CreateScope();
-            var run = await scope.ServiceProvider.GetRequiredService<IImportDbContext>().ImportProcesses
-                .AsNoTracking()
-                .Include(p => p.Rows)
-                .SingleAsync(p => p.Id == importProcessId, TestContext.Current.CancellationToken);
-
-            if (run.IsTerminal)
-                return run;
-
-            Assert.True(elapsed.Elapsed < _runTimeout, $"Import {importProcessId} was still {run.Status} after {_runTimeout}.");
-            await Task.Delay(100, TestContext.Current.CancellationToken);
-        }
-    }
+    private Task<ImportProcess> WaitForRun(Guid importProcessId) => ImportRuns.WaitFor(_factory.Services, importProcessId);
 
     private static async Task AssertNoneSurvived(IServiceScope scope, List<ActivityLogEntry> recorded)
     {

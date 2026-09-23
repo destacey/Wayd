@@ -45,8 +45,8 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
         var name = UniqueName();
 
         // Act
-        var runId = await Submit(ct, Row(name, teamIds: [teamId]));
-        var status = await WaitForRun(runId, ct);
+        var runId = await Submit(Row(name, teamIds: [teamId]));
+        var status = await WaitForRun(runId);
 
         // Assert
         Assert.Equal(ImportProcessStatus.Succeeded, status);
@@ -81,8 +81,8 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
         var name = UniqueName();
 
         // Act
-        var runId = await Submit(ct, Row(name, teamIds: []));
-        var status = await WaitForRun(runId, ct);
+        var runId = await Submit(Row(name, teamIds: []));
+        var status = await WaitForRun(runId);
 
         // Assert
         Assert.Equal(ImportProcessStatus.Succeeded, status);
@@ -103,10 +103,10 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName();
 
-        Assert.Equal(ImportProcessStatus.Succeeded, await WaitForRun(await Submit(ct, Row(name, teamIds: [])), ct));
+        Assert.Equal(ImportProcessStatus.Succeeded, await WaitForRun(await Submit(Row(name, teamIds: []))));
 
         // Act
-        var status = await WaitForRun(await Submit(ct, Row(name, teamIds: [])), ct);
+        var status = await WaitForRun(await Submit(Row(name, teamIds: [])));
 
         // Assert — atomic, so the duplicate is not written and the original is untouched
         Assert.Equal(ImportProcessStatus.Failed, status);
@@ -126,8 +126,8 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
         var name = UniqueName();
 
         // Act
-        var runId = await Submit(ct, Row(name, teamIds: [Guid.CreateVersion7()]));
-        var status = await WaitForRun(runId, ct);
+        var runId = await Submit(Row(name, teamIds: [Guid.CreateVersion7()]));
+        var status = await WaitForRun(runId);
 
         // Assert — rejected as a bad row, and nothing written
         Assert.Equal(ImportProcessStatus.Failed, status);
@@ -152,17 +152,14 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
     private static ImportPlanningIntervalDto Row(string name, IReadOnlyList<Guid> teamIds) =>
         new(name, "Submitted by the planning interval import test.", Start, End, 2, "PI-", teamIds);
 
-    private async Task<Guid> Submit(CancellationToken ct, ImportPlanningIntervalDto row)
+    private async Task<Guid> Submit(ImportPlanningIntervalDto row)
     {
         using var scope = _factory.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>()
             .SetCurrentUserId("planning-interval-import-test");
 
-        var submitted = await scope.ServiceProvider.GetRequiredService<IDispatcher>().Send(
-            new ImportPlanningIntervalsCommand([new SubmittedImportRow<ImportPlanningIntervalDto>("r1", row)]), ct);
-
-        Assert.True(submitted.IsSuccess, submitted.IsFailure ? submitted.Error : null);
-        return submitted.Value;
+        return await ImportRuns.Submit(
+            scope, new ImportPlanningIntervalsCommand([new SubmittedImportRow<ImportPlanningIntervalDto>("r1", row)]));
     }
 
     /// <summary>
@@ -197,23 +194,8 @@ public sealed class PlanningIntervalImportTests(WaydSqlServerApiFactory factory)
         return teamId;
     }
 
-    private async Task<ImportProcessStatus> WaitForRun(Guid runId, CancellationToken ct)
-    {
-        var status = await WaitFor(
-            async sp =>
-            {
-                var current = await sp.GetRequiredService<IImportDbContext>().ImportProcesses
-                    .Where(p => p.Id == runId)
-                    .Select(p => p.Status)
-                    .SingleAsync(ct);
-
-                return ImportProcess.IsTerminalStatus(current) ? current : (ImportProcessStatus?)null;
-            },
-            ct);
-
-        Assert.True(status.HasValue, $"Import run {runId} did not reach a terminal status.");
-        return status!.Value;
-    }
+    private async Task<ImportProcessStatus> WaitForRun(Guid runId) =>
+        (await ImportRuns.WaitFor(_factory.Services, runId)).Status;
 
     private async Task<T?> WaitFor<T>(Func<IServiceProvider, Task<T?>> read, CancellationToken ct) where T : struct
     {

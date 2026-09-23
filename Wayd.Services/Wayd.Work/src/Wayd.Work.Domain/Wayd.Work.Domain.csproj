@@ -10,4 +10,8 @@
         <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Wayd.Work.Domain.Tests" />
+    </ItemGroup>
+
 </Project>

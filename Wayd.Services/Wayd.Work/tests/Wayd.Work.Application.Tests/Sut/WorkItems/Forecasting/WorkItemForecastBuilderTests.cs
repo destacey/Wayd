@@ -430,6 +430,61 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task Build_ManyItemsOnATeam_FinishWithTheFurthestDownTheBacklog()
+    {
+        // Arrange — uneven history, so trials differ
+        var team = _scenario.NewTeam();
+        for (var day = 1; day <= 90; day += 3)
+        {
+            _scenario.AddItem(team, WorkStatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
+            _scenario.AddItem(team, WorkStatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
+        }
+        var epic = _scenario.AddItem(teamId: null, type: _scenario.Epic);
+        WorkItem? furthest = null;
+        for (var rank = 1; rank <= 25; rank++)
+        {
+            var inEpic = rank % 2 == 0;
+            var item = _scenario.AddItem(team, stackRank: rank, parentId: inEpic ? epic.Id : null);
+            if (inEpic)
+                furthest = item;
+        }
+
+        // Act
+        var epicForecast = await Forecast(epic);
+        var furthestForecast = await Forecast(furthest!);
+
+        // Assert
+        epicForecast.RemainingWorkItems.Should().Be(12);
+        epicForecast.Histogram.Should().Equal(furthestForecast.Histogram);
+        epicForecast.Percentiles.Should().Equal(furthestForecast.Percentiles);
+    }
+
+    [Fact]
+    public async Task Build_LinkedItemWaitingLonger_SetsTheFinishOverUnlinkedOnes()
+    {
+        // Arrange — the linked story sits first on team A but waits on day 5 of team B
+        var teamA = _scenario.NewTeam();
+        var teamB = _scenario.NewTeam();
+        _scenario.AddHistory(teamA);
+        _scenario.AddHistory(teamB);
+        var epic = _scenario.AddItem(teamId: null, type: _scenario.Epic);
+        var linked = _scenario.AddItem(teamA, stackRank: 1, parentId: epic.Id);
+        _scenario.AddItem(teamA, stackRank: 2, parentId: epic.Id);
+        _scenario.AddItem(teamA, stackRank: 3, parentId: epic.Id);
+        for (var rank = 1; rank <= 4; rank++)
+            _scenario.AddItem(teamB, stackRank: rank);
+        _scenario.AddDependency(_scenario.AddItem(teamB, stackRank: 5), linked);
+
+        // Act
+        var forecast = await Forecast(epic);
+
+        // Assert
+        forecast.RemainingWorkItems.Should().Be(3);
+        forecast.Percentiles.Should().OnlyContain(p => p.Date == _start.PlusDays(4));
+        forecast.Dependencies.Should().ContainSingle().Which.ShareOfTrialsSettingFinish.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Build_SeveralPortfolioItems_ExpandTogetherAndCountSharedWorkOnce()
     {
         // Arrange

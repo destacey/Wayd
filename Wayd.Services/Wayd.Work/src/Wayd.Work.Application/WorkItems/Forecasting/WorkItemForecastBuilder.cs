@@ -80,7 +80,15 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
         var samples = await new TeamThroughputSampler(_workDbContext).Sample(teamIds, from, to, cancellationToken);
 
         var issues = new List<(Guid WorkItemId, ForecastIssueType Type)>();
-        var ownForecasts = network.Items.Keys.ToDictionary(id => id, _ => (CompletionForecast?)null);
+
+        // Items in a dependency need forecasts of their own, trial by trial. The rest only matter
+        // to the combined date, and within one team's simulated run an item further down the
+        // backlog never finishes earlier, so only the furthest-down of them on each team is
+        // simulated. The furthest position overall is unchanged, so are the draws.
+        var linked = network.Dependencies.SelectMany(d => new[] { d.Predecessor, d.Successor }).ToHashSet();
+        var ownForecasts = linked.ToDictionary(id => id, _ => (CompletionForecast?)null);
+        var unlinkedLatest = new Dictionary<Guid, CompletionForecast>();
+        var hasOwnForecast = new HashSet<Guid>();
 
         foreach (var item in network.Items.Values)
         {
@@ -109,21 +117,39 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
                 continue;
             }
 
-            var forecasts = MonteCarloForecaster.ForecastBacklogPositions(samples[teamId], [.. teamItems.Select(p => (double)p.Value)], random);
-            foreach (var (item, forecast) in teamItems.Zip(forecasts))
-                ownForecasts[item.Key] = forecast;
+            hasOwnForecast.UnionWith(teamItems.Select(p => p.Key));
+
+            var simulated = teamItems.Where(p => linked.Contains(p.Key)).ToList();
+            var unlinked = teamItems.Where(p => !linked.Contains(p.Key)).ToList();
+            if (unlinked.Count > 0)
+                simulated.Add(unlinked.MaxBy(p => p.Value));
+
+            var forecasts = MonteCarloForecaster.ForecastBacklogPositions(samples[teamId], [.. simulated.Select(p => (double)p.Value)], random);
+            foreach (var (item, forecast) in simulated.Zip(forecasts))
+            {
+                if (linked.Contains(item.Key))
+                    ownForecasts[item.Key] = forecast;
+                else
+                    unlinkedLatest[teamId] = forecast;
+            }
         }
 
         var result = DependencyForecaster.Apply(ownForecasts, network.Dependencies);
 
-        var forecastable = remaining.Where(id => result.Items[id].Forecast is not null).ToList();
+        var forecastable = remaining
+            .Where(id => linked.Contains(id) ? result.Items[id].Forecast is not null : hasOwnForecast.Contains(id))
+            .ToList();
         var combined = forecastable.Count == 0
             ? null
-            : CompletionForecast.LatestOf([.. forecastable.Select(id => result.Items[id].Forecast!)]);
+            : CompletionForecast.LatestOf(
+            [
+                .. forecastable.Where(linked.Contains).Select(id => result.Items[id].Forecast!),
+                .. unlinkedLatest.Values,
+            ]);
 
         var finalOutcome = combined is not null
             ? WorkItemForecastOutcome.Forecast
-            : remaining.Select(id => OutcomeOf(id, ownForecasts, issues)).Distinct().ToList() is [var shared]
+            : remaining.Select(id => OutcomeOf(id, hasOwnForecast, issues)).Distinct().ToList() is [var shared]
                 ? shared
                 : WorkItemForecastOutcome.CannotForecast;
 
@@ -196,9 +222,9 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
     /// </summary>
     private static WorkItemForecastOutcome OutcomeOf(
         Guid workItemId,
-        Dictionary<Guid, CompletionForecast?> ownForecasts,
+        HashSet<Guid> hasOwnForecast,
         List<(Guid WorkItemId, ForecastIssueType Type)> issues)
-        => ownForecasts[workItemId] is not null ? WorkItemForecastOutcome.BlockedByDependency
+        => hasOwnForecast.Contains(workItemId) ? WorkItemForecastOutcome.BlockedByDependency
             : issues.Contains((workItemId, ForecastIssueType.NotEnoughHistory)) ? WorkItemForecastOutcome.NotEnoughHistory
             : WorkItemForecastOutcome.CannotForecast;
 

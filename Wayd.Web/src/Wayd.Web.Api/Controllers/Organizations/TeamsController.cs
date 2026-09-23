@@ -353,6 +353,27 @@ public class TeamsController(
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpGet("{idOrCode}/backlog-health")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [OpenApiOperation("Grade a team's backlog health.", "Checks the team's open backlog for runway, net flow, WIP load, staleness, aging work, readiness gaps, carry-over, closed parents and rank inversions. Every threshold is optional and falls back to its default; the response states the thresholds used.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamBacklogHealthDto>> GetTeamBacklogHealth(
+        string idOrCode,
+        [FromQuery] GetTeamBacklogHealthRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToGetTeamBacklogHealthQuery(idOrCode), cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
+    }
+
     [HttpGet("{idOrCode}/throughput-forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]

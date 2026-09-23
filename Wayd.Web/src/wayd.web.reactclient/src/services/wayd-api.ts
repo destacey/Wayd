@@ -34704,6 +34704,129 @@ export class TeamsClient {
     }
 
     /**
+     * Grade a team's backlog health.
+     * @param lookbackDays (optional) Days of history to measure throughput, cycle time and net flow over (14-365, default 90).
+     * @param staleDays (optional) Days without a change before a work item is stale (default 90).
+     * @param oldProposedDays (optional) Days since creation before a proposed work item is old (default 180).
+     * @param agingWipPercentile (optional) The cycle time percentile an active work item is aging beyond (default 85).
+     * @param oversizedPercentile (optional) The story point percentile a work item is oversized above (default 85).
+     * @param readinessWindowWeeks (optional) Weeks of throughput the readiness checks look ahead (default 4).
+     * @param readinessFallbackItems (optional) Top-ranked work items the readiness checks look at without enough history (default 20).
+     * @param atRiskPercent (optional) Percent of work items flagged at which a check is At Risk (default 10).
+     * @param unhealthyPercent (optional) Percent of work items flagged at which a check is Unhealthy (default 25).
+     * @param runwayAtRiskWeeks (optional) Runway weeks below which the backlog is At Risk (default 4).
+     * @param runwayUnhealthyWeeks (optional) Runway weeks below which the backlog is Unhealthy (default 2).
+     * @param runwayTooLongWeeks (optional) Runway weeks above which the backlog is At Risk for being too long (default 26).
+     * @param netFlowAtRisk (optional) Work items created per item completed above which net flow is At Risk (default 1.2).
+     * @param netFlowUnhealthy (optional) Work items created per item completed above which net flow is Unhealthy (default 1.5).
+     * @param wipLoadAtRisk (optional) Active work items per member above which WIP load is At Risk (default 1.5).
+     * @param wipLoadUnhealthy (optional) Active work items per member above which WIP load is Unhealthy (default 2).
+     */
+    getTeamBacklogHealth(idOrCode: string, lookbackDays?: number | null | undefined, staleDays?: number | null | undefined, oldProposedDays?: number | null | undefined, agingWipPercentile?: number | null | undefined, oversizedPercentile?: number | null | undefined, readinessWindowWeeks?: number | null | undefined, readinessFallbackItems?: number | null | undefined, atRiskPercent?: number | null | undefined, unhealthyPercent?: number | null | undefined, runwayAtRiskWeeks?: number | null | undefined, runwayUnhealthyWeeks?: number | null | undefined, runwayTooLongWeeks?: number | null | undefined, netFlowAtRisk?: number | null | undefined, netFlowUnhealthy?: number | null | undefined, wipLoadAtRisk?: number | null | undefined, wipLoadUnhealthy?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamBacklogHealthDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/backlog-health?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (lookbackDays !== undefined && lookbackDays !== null)
+            url_ += "LookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (staleDays !== undefined && staleDays !== null)
+            url_ += "StaleDays=" + encodeURIComponent("" + staleDays) + "&";
+        if (oldProposedDays !== undefined && oldProposedDays !== null)
+            url_ += "OldProposedDays=" + encodeURIComponent("" + oldProposedDays) + "&";
+        if (agingWipPercentile !== undefined && agingWipPercentile !== null)
+            url_ += "AgingWipPercentile=" + encodeURIComponent("" + agingWipPercentile) + "&";
+        if (oversizedPercentile !== undefined && oversizedPercentile !== null)
+            url_ += "OversizedPercentile=" + encodeURIComponent("" + oversizedPercentile) + "&";
+        if (readinessWindowWeeks !== undefined && readinessWindowWeeks !== null)
+            url_ += "ReadinessWindowWeeks=" + encodeURIComponent("" + readinessWindowWeeks) + "&";
+        if (readinessFallbackItems !== undefined && readinessFallbackItems !== null)
+            url_ += "ReadinessFallbackItems=" + encodeURIComponent("" + readinessFallbackItems) + "&";
+        if (atRiskPercent !== undefined && atRiskPercent !== null)
+            url_ += "AtRiskPercent=" + encodeURIComponent("" + atRiskPercent) + "&";
+        if (unhealthyPercent !== undefined && unhealthyPercent !== null)
+            url_ += "UnhealthyPercent=" + encodeURIComponent("" + unhealthyPercent) + "&";
+        if (runwayAtRiskWeeks !== undefined && runwayAtRiskWeeks !== null)
+            url_ += "RunwayAtRiskWeeks=" + encodeURIComponent("" + runwayAtRiskWeeks) + "&";
+        if (runwayUnhealthyWeeks !== undefined && runwayUnhealthyWeeks !== null)
+            url_ += "RunwayUnhealthyWeeks=" + encodeURIComponent("" + runwayUnhealthyWeeks) + "&";
+        if (runwayTooLongWeeks !== undefined && runwayTooLongWeeks !== null)
+            url_ += "RunwayTooLongWeeks=" + encodeURIComponent("" + runwayTooLongWeeks) + "&";
+        if (netFlowAtRisk !== undefined && netFlowAtRisk !== null)
+            url_ += "NetFlowAtRisk=" + encodeURIComponent("" + netFlowAtRisk) + "&";
+        if (netFlowUnhealthy !== undefined && netFlowUnhealthy !== null)
+            url_ += "NetFlowUnhealthy=" + encodeURIComponent("" + netFlowUnhealthy) + "&";
+        if (wipLoadAtRisk !== undefined && wipLoadAtRisk !== null)
+            url_ += "WipLoadAtRisk=" + encodeURIComponent("" + wipLoadAtRisk) + "&";
+        if (wipLoadUnhealthy !== undefined && wipLoadUnhealthy !== null)
+            url_ += "WipLoadUnhealthy=" + encodeURIComponent("" + wipLoadUnhealthy) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeamBacklogHealth(_response);
+        });
+    }
+
+    protected processGetTeamBacklogHealth(response: AxiosResponse): Promise<TeamBacklogHealthDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamBacklogHealthDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamBacklogHealthDto>(null as any);
+    }
+
+    /**
      * Forecast how many backlog work items a team will finish by a date.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
@@ -48316,6 +48439,74 @@ export interface WorkItemBacklogItemDto {
     stackRank: number;
     storyPoints?: number | undefined;
     tags: string[];
+}
+
+export interface TeamBacklogHealthDto {
+    team: WorkTeamNavigationDto;
+    thresholds: BacklogHealthThresholds;
+    lookbackDays: number;
+    from: Date;
+    to: Date;
+    totalWorkItems: number;
+    totalStoryPoints: number;
+    proposedWorkItems: number;
+    activeWorkItems: number;
+    itemsCompleted: number;
+    itemsCreated: number;
+    memberCount?: number | undefined;
+    readinessWindowWorkItems: number;
+    agingWipDays?: number | undefined;
+    oversizedStoryPoints?: number | undefined;
+    checks: BacklogHealthCheckDto[];
+    workItems: BacklogHealthWorkItemDto[];
+}
+
+export interface BacklogHealthThresholds {
+    staleDays: number;
+    oldProposedDays: number;
+    agingWipPercentile: number;
+    oversizedPercentile: number;
+    readinessWindowWeeks: number;
+    readinessFallbackItems: number;
+    atRiskPercent: number;
+    unhealthyPercent: number;
+    runwayAtRiskWeeks: number;
+    runwayUnhealthyWeeks: number;
+    runwayTooLongWeeks: number;
+    netFlowAtRisk: number;
+    netFlowUnhealthy: number;
+    wipLoadAtRisk: number;
+    wipLoadUnhealthy: number;
+}
+
+export interface BacklogHealthCheckDto {
+    check: SimpleNavigationDto;
+    outcome: SimpleNavigationDto;
+    grade?: SimpleNavigationDto | undefined;
+    value?: number | undefined;
+    flagged?: number | undefined;
+    inScope?: number | undefined;
+}
+
+export interface BacklogHealthWorkItemDto {
+    id: string;
+    key: string;
+    title: string;
+    workspace: WorkspaceNavigationDto;
+    type: string;
+    status: string;
+    statusCategory: SimpleNavigationDto;
+    parent?: WorkItemNavigationDto | undefined;
+    sprint?: WorkIterationNavigationDto | undefined;
+    assignedTo?: EmployeeNavigationDto | undefined;
+    project?: WorkProjectNavigationDto | undefined;
+    storyPoints?: number | undefined;
+    created: Date;
+    lastModified: Date;
+    activated?: Date | undefined;
+    externalViewWorkItemUrl?: string | undefined;
+    rank: number;
+    flags: SimpleNavigationDto[];
 }
 
 export interface TeamThroughputForecastDto {

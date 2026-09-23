@@ -30429,6 +30429,250 @@
         ]
       }
     },
+    "/api/organization/teams/{idOrCode}/backlog-health": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Grade a team's backlog health.",
+        "description": "Checks the team's open backlog for runway, net flow, WIP load, staleness, aging work, readiness gaps, carry-over, closed parents and rank inversions. Every threshold is optional and falls back to its default; the response states the thresholds used.",
+        "operationId": "Teams_GetTeamBacklogHealth",
+        "parameters": [
+          {
+            "name": "idOrCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "LookbackDays",
+            "in": "query",
+            "description": "Days of history to measure throughput, cycle time and net flow over (14-365, default 90).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "StaleDays",
+            "in": "query",
+            "description": "Days without a change before a work item is stale (default 90).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "OldProposedDays",
+            "in": "query",
+            "description": "Days since creation before a proposed work item is old (default 180).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "AgingWipPercentile",
+            "in": "query",
+            "description": "The cycle time percentile an active work item is aging beyond (default 85).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 5
+          },
+          {
+            "name": "OversizedPercentile",
+            "in": "query",
+            "description": "The story point percentile a work item is oversized above (default 85).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 6
+          },
+          {
+            "name": "ReadinessWindowWeeks",
+            "in": "query",
+            "description": "Weeks of throughput the readiness checks look ahead (default 4).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 7
+          },
+          {
+            "name": "ReadinessFallbackItems",
+            "in": "query",
+            "description": "Top-ranked work items the readiness checks look at without enough history (default 20).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 8
+          },
+          {
+            "name": "AtRiskPercent",
+            "in": "query",
+            "description": "Percent of work items flagged at which a check is At Risk (default 10).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 9
+          },
+          {
+            "name": "UnhealthyPercent",
+            "in": "query",
+            "description": "Percent of work items flagged at which a check is Unhealthy (default 25).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 10
+          },
+          {
+            "name": "RunwayAtRiskWeeks",
+            "in": "query",
+            "description": "Runway weeks below which the backlog is At Risk (default 4).",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "x-position": 11
+          },
+          {
+            "name": "RunwayUnhealthyWeeks",
+            "in": "query",
+            "description": "Runway weeks below which the backlog is Unhealthy (default 2).",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "x-position": 12
+          },
+          {
+            "name": "RunwayTooLongWeeks",
+            "in": "query",
+            "description": "Runway weeks above which the backlog is At Risk for being too long (default 26).",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "x-position": 13
+          },
+          {
+            "name": "NetFlowAtRisk",
+            "in": "query",
+            "description": "Work items created per item completed above which net flow is At Risk (default 1.2).",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "x-position": 14
+          },
+          {
+            "name": "NetFlowUnhealthy",
+            "in": "query",
+            "description": "Work items created per item completed above which net flow is Unhealthy (default 1.5).",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "x-position": 15
+          },
+          {
+            "name": "WipLoadAtRisk",
+            "in": "query",
+            "description": "Active work items per member above which WIP load is At Risk (default 1.5).",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "x-position": 16
+          },
+          {
+            "name": "WipLoadUnhealthy",
+            "in": "query",
+            "description": "Active work items per member above which WIP load is Unhealthy (default 2).",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "x-position": 17
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamBacklogHealthDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/teams/{idOrCode}/throughput-forecast": {
       "get": {
         "tags": [
@@ -57223,6 +57467,360 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          }
+        }
+      },
+      "TeamBacklogHealthDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "team",
+          "thresholds",
+          "from",
+          "to",
+          "lookbackDays",
+          "totalWorkItems",
+          "totalStoryPoints",
+          "proposedWorkItems",
+          "activeWorkItems",
+          "itemsCompleted",
+          "itemsCreated",
+          "readinessWindowWorkItems",
+          "checks",
+          "workItems"
+        ],
+        "properties": {
+          "team": {
+            "$ref": "#/components/schemas/WorkTeamNavigationDto"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/BacklogHealthThresholds"
+          },
+          "lookbackDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalWorkItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalStoryPoints": {
+            "type": "number",
+            "format": "double"
+          },
+          "proposedWorkItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeWorkItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemsCreated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "memberCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "readinessWindowWorkItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "agingWipDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "oversizedStoryPoints": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BacklogHealthCheckDto"
+            }
+          },
+          "workItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BacklogHealthWorkItemDto"
+            }
+          }
+        }
+      },
+      "BacklogHealthThresholds": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "staleDays",
+          "oldProposedDays",
+          "agingWipPercentile",
+          "oversizedPercentile",
+          "readinessWindowWeeks",
+          "readinessFallbackItems",
+          "atRiskPercent",
+          "unhealthyPercent",
+          "runwayAtRiskWeeks",
+          "runwayUnhealthyWeeks",
+          "runwayTooLongWeeks",
+          "netFlowAtRisk",
+          "netFlowUnhealthy",
+          "wipLoadAtRisk",
+          "wipLoadUnhealthy"
+        ],
+        "properties": {
+          "staleDays": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 3650.0,
+            "minimum": 1.0
+          },
+          "oldProposedDays": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 3650.0,
+            "minimum": 1.0
+          },
+          "agingWipPercentile": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100.0,
+            "minimum": 1.0
+          },
+          "oversizedPercentile": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100.0,
+            "minimum": 1.0
+          },
+          "readinessWindowWeeks": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 52.0,
+            "minimum": 1.0
+          },
+          "readinessFallbackItems": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 1000.0,
+            "minimum": 1.0
+          },
+          "atRiskPercent": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100.0,
+            "minimum": 1.0
+          },
+          "unhealthyPercent": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100.0,
+            "minimum": 1.0
+          },
+          "runwayAtRiskWeeks": {
+            "type": "number",
+            "format": "double",
+            "maximum": 520.0,
+            "minimum": 0.0
+          },
+          "runwayUnhealthyWeeks": {
+            "type": "number",
+            "format": "double",
+            "maximum": 520.0,
+            "minimum": 0.0
+          },
+          "runwayTooLongWeeks": {
+            "type": "number",
+            "format": "double",
+            "maximum": 520.0,
+            "minimum": 1.0
+          },
+          "netFlowAtRisk": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100.0,
+            "minimum": 0.01
+          },
+          "netFlowUnhealthy": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100.0,
+            "minimum": 0.01
+          },
+          "wipLoadAtRisk": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100.0,
+            "minimum": 0.01
+          },
+          "wipLoadUnhealthy": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100.0,
+            "minimum": 0.01
+          }
+        }
+      },
+      "BacklogHealthCheckDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check",
+          "outcome"
+        ],
+        "properties": {
+          "check": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "grade": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ]
+          },
+          "value": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "flagged": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "inScope": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "BacklogHealthWorkItemDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "title",
+          "workspace",
+          "type",
+          "status",
+          "statusCategory",
+          "id",
+          "created",
+          "lastModified",
+          "rank",
+          "flags"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/WorkspaceNavigationDto"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "statusCategory": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "parent": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkItemNavigationDto"
+              }
+            ]
+          },
+          "sprint": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkIterationNavigationDto"
+              }
+            ]
+          },
+          "assignedTo": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ]
+          },
+          "project": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkProjectNavigationDto"
+              }
+            ]
+          },
+          "storyPoints": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "activated": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "externalViewWorkItemUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimpleNavigationDto"
             }
           }
         }

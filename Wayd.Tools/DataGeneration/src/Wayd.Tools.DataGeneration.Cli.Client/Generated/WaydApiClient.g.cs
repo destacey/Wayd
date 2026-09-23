@@ -30282,10 +30282,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a project's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end.
+        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -32537,10 +32537,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a project's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end.
+        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -32560,6 +32560,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("api/ppm/projects/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/forecast");
+                    urlBuilder_.Append('?');
+                    if (targetDate != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("targetDate")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(targetDate, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (ignoreDependencies != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -32592,6 +32606,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -39560,10 +39584,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when an objective's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none.
+        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -42649,10 +42673,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when an objective's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none.
+        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -42677,6 +42701,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("/objectives/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(objectiveIdOrKey, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/forecast");
+                    urlBuilder_.Append('?');
+                    if (targetDate != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("targetDate")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(targetDate, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (ignoreDependencies != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -42709,6 +42747,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -54909,10 +54957,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a work item will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants.
+        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -55841,10 +55889,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a work item will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants.
+        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -55869,6 +55917,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("/work-items/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(workItemKey, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/forecast");
+                    urlBuilder_.Append('?');
+                    if (targetDate != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("targetDate")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(targetDate, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (ignoreDependencies != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -60757,13 +60819,39 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Grade a team's backlog health.
+        /// </summary>
+        /// <remarks>
+        /// Checks the team's open backlog for runway, net flow, WIP load, staleness, aging work, readiness gaps, carry-over, closed parents and rank inversions. Every threshold is optional and falls back to its default; the response states the thresholds used.
+        /// </remarks>
+        /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
+        /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
+        /// <param name="oldProposedDays">Days since creation before a proposed work item is old (default 180).</param>
+        /// <param name="agingWipPercentile">The cycle time percentile an active work item is aging beyond (default 85).</param>
+        /// <param name="oversizedPercentile">The story point percentile a work item is oversized above (default 85).</param>
+        /// <param name="readinessWindowWeeks">Weeks of throughput the readiness checks look ahead (default 4).</param>
+        /// <param name="readinessFallbackItems">Top-ranked work items the readiness checks look at without enough history (default 20).</param>
+        /// <param name="atRiskPercent">Percent of work items flagged at which a check is At Risk (default 10).</param>
+        /// <param name="unhealthyPercent">Percent of work items flagged at which a check is Unhealthy (default 25).</param>
+        /// <param name="runwayAtRiskWeeks">Runway weeks below which the backlog is At Risk (default 4).</param>
+        /// <param name="runwayUnhealthyWeeks">Runway weeks below which the backlog is Unhealthy (default 2).</param>
+        /// <param name="runwayTooLongWeeks">Runway weeks above which the backlog is At Risk for being too long (default 26).</param>
+        /// <param name="netFlowAtRisk">Work items created per item completed above which net flow is At Risk (default 1.2).</param>
+        /// <param name="netFlowUnhealthy">Work items created per item completed above which net flow is Unhealthy (default 1.5).</param>
+        /// <param name="wipLoadAtRisk">Active work items per member above which WIP load is At Risk (default 1.5).</param>
+        /// <param name="wipLoadUnhealthy">Active work items per member above which WIP load is Unhealthy (default 2).</param>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamBacklogHealthDto> GetTeamBacklogHealthAsync(string idOrCode, int? lookbackDays = null, int? staleDays = null, int? oldProposedDays = null, int? agingWipPercentile = null, int? oversizedPercentile = null, int? readinessWindowWeeks = null, int? readinessFallbackItems = null, int? atRiskPercent = null, int? unhealthyPercent = null, double? runwayAtRiskWeeks = null, double? runwayUnhealthyWeeks = null, double? runwayTooLongWeeks = null, double? netFlowAtRisk = null, double? netFlowUnhealthy = null, double? wipLoadAtRisk = null, double? wipLoadUnhealthy = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Forecast how many backlog work items a team will finish by a date.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd).
+        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -62373,13 +62461,206 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Grade a team's backlog health.
+        /// </summary>
+        /// <remarks>
+        /// Checks the team's open backlog for runway, net flow, WIP load, staleness, aging work, readiness gaps, carry-over, closed parents and rank inversions. Every threshold is optional and falls back to its default; the response states the thresholds used.
+        /// </remarks>
+        /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
+        /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
+        /// <param name="oldProposedDays">Days since creation before a proposed work item is old (default 180).</param>
+        /// <param name="agingWipPercentile">The cycle time percentile an active work item is aging beyond (default 85).</param>
+        /// <param name="oversizedPercentile">The story point percentile a work item is oversized above (default 85).</param>
+        /// <param name="readinessWindowWeeks">Weeks of throughput the readiness checks look ahead (default 4).</param>
+        /// <param name="readinessFallbackItems">Top-ranked work items the readiness checks look at without enough history (default 20).</param>
+        /// <param name="atRiskPercent">Percent of work items flagged at which a check is At Risk (default 10).</param>
+        /// <param name="unhealthyPercent">Percent of work items flagged at which a check is Unhealthy (default 25).</param>
+        /// <param name="runwayAtRiskWeeks">Runway weeks below which the backlog is At Risk (default 4).</param>
+        /// <param name="runwayUnhealthyWeeks">Runway weeks below which the backlog is Unhealthy (default 2).</param>
+        /// <param name="runwayTooLongWeeks">Runway weeks above which the backlog is At Risk for being too long (default 26).</param>
+        /// <param name="netFlowAtRisk">Work items created per item completed above which net flow is At Risk (default 1.2).</param>
+        /// <param name="netFlowUnhealthy">Work items created per item completed above which net flow is Unhealthy (default 1.5).</param>
+        /// <param name="wipLoadAtRisk">Active work items per member above which WIP load is At Risk (default 1.5).</param>
+        /// <param name="wipLoadUnhealthy">Active work items per member above which WIP load is Unhealthy (default 2).</param>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamBacklogHealthDto> GetTeamBacklogHealthAsync(string idOrCode, int? lookbackDays = null, int? staleDays = null, int? oldProposedDays = null, int? agingWipPercentile = null, int? oversizedPercentile = null, int? readinessWindowWeeks = null, int? readinessFallbackItems = null, int? atRiskPercent = null, int? unhealthyPercent = null, double? runwayAtRiskWeeks = null, double? runwayUnhealthyWeeks = null, double? runwayTooLongWeeks = null, double? netFlowAtRisk = null, double? netFlowUnhealthy = null, double? wipLoadAtRisk = null, double? wipLoadUnhealthy = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrCode == null)
+                throw new System.ArgumentNullException("idOrCode");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{idOrCode}/backlog-health"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/backlog-health");
+                    urlBuilder_.Append('?');
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("LookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (staleDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("StaleDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(staleDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (oldProposedDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("OldProposedDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(oldProposedDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (agingWipPercentile != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("AgingWipPercentile")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(agingWipPercentile, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (oversizedPercentile != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("OversizedPercentile")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(oversizedPercentile, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (readinessWindowWeeks != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ReadinessWindowWeeks")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(readinessWindowWeeks, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (readinessFallbackItems != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ReadinessFallbackItems")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(readinessFallbackItems, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (atRiskPercent != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("AtRiskPercent")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(atRiskPercent, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (unhealthyPercent != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("UnhealthyPercent")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(unhealthyPercent, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (runwayAtRiskWeeks != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("RunwayAtRiskWeeks")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(runwayAtRiskWeeks, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (runwayUnhealthyWeeks != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("RunwayUnhealthyWeeks")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(runwayUnhealthyWeeks, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (runwayTooLongWeeks != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("RunwayTooLongWeeks")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(runwayTooLongWeeks, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (netFlowAtRisk != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("NetFlowAtRisk")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(netFlowAtRisk, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (netFlowUnhealthy != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("NetFlowUnhealthy")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(netFlowUnhealthy, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (wipLoadAtRisk != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("WipLoadAtRisk")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(wipLoadAtRisk, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (wipLoadUnhealthy != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("WipLoadUnhealthy")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(wipLoadUnhealthy, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamBacklogHealthDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Forecast how many backlog work items a team will finish by a date.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd).
+        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrCode == null)
                 throw new System.ArgumentNullException("idOrCode");
@@ -62403,6 +62684,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (targetDate != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("targetDate")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(targetDate, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (lookbackDays != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -85388,6 +85673,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset ForecastStart { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
+        public int LookbackDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ignoreDependencies")]
+        public bool IgnoreDependencies { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("backlogPosition")]
         public int? BacklogPosition { get; set; } = default!;
 
@@ -85537,6 +85828,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("successor")]
         [System.ComponentModel.DataAnnotations.Required]
         public ForecastWorkItemDto Successor { get; set; } = new ForecastWorkItemDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Reason { get; set; } = new SimpleNavigationDto();
 
     }
 
@@ -92559,6 +92854,233 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamBacklogHealthDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkTeamNavigationDto Team { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("thresholds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public BacklogHealthThresholds Thresholds { get; set; } = new BacklogHealthThresholds();
+
+        [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
+        public int LookbackDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
+        public int TotalWorkItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
+        public double TotalStoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("proposedWorkItems")]
+        public int ProposedWorkItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("activeWorkItems")]
+        public int ActiveWorkItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("itemsCompleted")]
+        public int ItemsCompleted { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("itemsCreated")]
+        public int ItemsCreated { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memberCount")]
+        public int? MemberCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("readinessWindowWorkItems")]
+        public int ReadinessWindowWorkItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("agingWipDays")]
+        public double? AgingWipDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("oversizedStoryPoints")]
+        public double? OversizedStoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("checks")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<BacklogHealthCheckDto> Checks { get; set; } = new System.Collections.ObjectModel.Collection<BacklogHealthCheckDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("workItems")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<BacklogHealthWorkItemDto> WorkItems { get; set; } = new System.Collections.ObjectModel.Collection<BacklogHealthWorkItemDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BacklogHealthThresholds
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("staleDays")]
+        [System.ComponentModel.DataAnnotations.Range(1, 3650)]
+        public int StaleDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("oldProposedDays")]
+        [System.ComponentModel.DataAnnotations.Range(1, 3650)]
+        public int OldProposedDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("agingWipPercentile")]
+        [System.ComponentModel.DataAnnotations.Range(1, 100)]
+        public int AgingWipPercentile { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("oversizedPercentile")]
+        [System.ComponentModel.DataAnnotations.Range(1, 100)]
+        public int OversizedPercentile { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("readinessWindowWeeks")]
+        [System.ComponentModel.DataAnnotations.Range(1, 52)]
+        public int ReadinessWindowWeeks { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("readinessFallbackItems")]
+        [System.ComponentModel.DataAnnotations.Range(1, 1000)]
+        public int ReadinessFallbackItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("atRiskPercent")]
+        [System.ComponentModel.DataAnnotations.Range(1, 100)]
+        public int AtRiskPercent { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("unhealthyPercent")]
+        [System.ComponentModel.DataAnnotations.Range(1, 100)]
+        public int UnhealthyPercent { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("runwayAtRiskWeeks")]
+        [System.ComponentModel.DataAnnotations.Range(0.0D, 520.0D)]
+        public double RunwayAtRiskWeeks { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("runwayUnhealthyWeeks")]
+        [System.ComponentModel.DataAnnotations.Range(0.0D, 520.0D)]
+        public double RunwayUnhealthyWeeks { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("runwayTooLongWeeks")]
+        [System.ComponentModel.DataAnnotations.Range(1.0D, 520.0D)]
+        public double RunwayTooLongWeeks { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("netFlowAtRisk")]
+        [System.ComponentModel.DataAnnotations.Range(0.01D, 100.0D)]
+        public double NetFlowAtRisk { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("netFlowUnhealthy")]
+        [System.ComponentModel.DataAnnotations.Range(0.01D, 100.0D)]
+        public double NetFlowUnhealthy { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("wipLoadAtRisk")]
+        [System.ComponentModel.DataAnnotations.Range(0.01D, 100.0D)]
+        public double WipLoadAtRisk { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("wipLoadUnhealthy")]
+        [System.ComponentModel.DataAnnotations.Range(0.01D, 100.0D)]
+        public double WipLoadUnhealthy { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BacklogHealthCheckDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("check")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Check { get; set; } = new SimpleNavigationDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("outcome")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Outcome { get; set; } = new SimpleNavigationDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("grade")]
+        public SimpleNavigationDto? Grade { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public double? Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("flagged")]
+        public int? Flagged { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inScope")]
+        public int? InScope { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BacklogHealthWorkItemDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("workspace")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkspaceNavigationDto Workspace { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Status { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto StatusCategory { get; set; } = new SimpleNavigationDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("parent")]
+        public WorkItemNavigationDto? Parent { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sprint")]
+        public WorkIterationNavigationDto? Sprint { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("assignedTo")]
+        public EmployeeNavigationDto? AssignedTo { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("project")]
+        public WorkProjectNavigationDto? Project { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
+        public double? StoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Created { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastModified")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset LastModified { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("activated")]
+        public System.DateTimeOffset? Activated { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("externalViewWorkItemUrl")]
+        public string? ExternalViewWorkItemUrl { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rank")]
+        public int Rank { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("flags")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SimpleNavigationDto> Flags { get; set; } = new System.Collections.ObjectModel.Collection<SimpleNavigationDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamThroughputForecastDto
     {
 
@@ -92579,6 +93101,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset TargetDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
+        public int LookbackDays { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         public int Days { get; set; } = default!;

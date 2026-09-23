@@ -13,12 +13,14 @@ public sealed class CompletionForecast
     // holds HorizonDays + 1.
     private readonly int[] _trialDays;
     private readonly Lazy<int[]> _sorted;
+    private readonly Lazy<int> _trialsBeyondHorizon;
 
     internal CompletionForecast(int[] trialDays, int horizonDays)
     {
         _trialDays = trialDays;
         HorizonDays = horizonDays;
         _sorted = new Lazy<int[]>(() => _trialDays.Order().ToArray());
+        _trialsBeyondHorizon = new Lazy<int>(() => _trialDays.Count(d => d > HorizonDays));
     }
 
     public int Trials => _trialDays.Length;
@@ -33,7 +35,7 @@ public sealed class CompletionForecast
     /// <summary>
     /// The number of trials that did not finish within <see cref="HorizonDays"/>.
     /// </summary>
-    public int TrialsBeyondHorizon => _trialDays.Count(d => d > HorizonDays);
+    public int TrialsBeyondHorizon => _trialsBeyondHorizon.Value;
 
     /// <summary>
     /// Days needed per trial, sorted ascending; trials beyond the horizon are omitted

@@ -122,11 +122,30 @@ public static class DependencyForecaster
         var kept = new List<ForecastDependency<TKey>>();
         var ignored = new List<ForecastDependency<TKey>>();
 
-        void Walk(TKey item)
+        // An explicit stack rather than recursion: a chain as long as the call stack is deep
+        // would end the process with an uncatchable stack overflow. Each frame is an item on
+        // the chain and the index of the next of its dependencies to follow.
+        var chain = new Stack<(TKey Item, int Next)>();
+        foreach (var start in starts)
         {
-            onChain.Add(item);
-            foreach (var edge in successors[item])
+            if (finished.Contains(start))
+                continue;
+
+            onChain.Add(start);
+            chain.Push((start, 0));
+            while (chain.TryPop(out var frame))
             {
+                var itemSuccessors = successors[frame.Item];
+                if (frame.Next == itemSuccessors.Count)
+                {
+                    onChain.Remove(frame.Item);
+                    finished.Add(frame.Item);
+                    postOrder.Add(frame.Item);
+                    continue;
+                }
+
+                chain.Push((frame.Item, frame.Next + 1));
+                var edge = itemSuccessors[frame.Next];
                 if (onChain.Contains(edge.Successor))
                 {
                     ignored.Add(edge);
@@ -135,17 +154,11 @@ public static class DependencyForecaster
 
                 kept.Add(edge);
                 if (!finished.Contains(edge.Successor))
-                    Walk(edge.Successor);
+                {
+                    onChain.Add(edge.Successor);
+                    chain.Push((edge.Successor, 0));
+                }
             }
-            onChain.Remove(item);
-            finished.Add(item);
-            postOrder.Add(item);
-        }
-
-        foreach (var start in starts)
-        {
-            if (!finished.Contains(start))
-                Walk(start);
         }
 
         postOrder.Reverse();

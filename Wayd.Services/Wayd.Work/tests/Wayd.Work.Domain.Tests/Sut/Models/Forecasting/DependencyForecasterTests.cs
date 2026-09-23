@@ -206,6 +206,22 @@ public class DependencyForecasterTests
     }
 
     [Fact]
+    public void Apply_VeryLongChain_DoesNotOverflowTheStack()
+    {
+        // Arrange
+        const int length = 100_000;
+        var own = Enumerable.Range(0, length).ToDictionary(i => i.ToString(), i => (CompletionForecast?)Forecast(i % 7));
+        var chain = Enumerable.Range(1, length - 1).Select(i => new ForecastDependency<string>((i - 1).ToString(), i.ToString()));
+
+        // Act
+        var result = DependencyForecaster.Apply(own, chain);
+
+        // Assert
+        TrialDays(result.Items[(length - 1).ToString()].Forecast!).Should().Equal(6);
+        result.IgnoredDependencies.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Apply_DependencyOnAnUnknownItem_Throws()
     {
         // Arrange

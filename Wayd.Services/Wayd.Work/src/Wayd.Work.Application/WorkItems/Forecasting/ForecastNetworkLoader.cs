@@ -48,13 +48,14 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
                 .Select(d => new { d.SourceId, d.TargetId })
                 .ToListAsync(cancellationToken);
 
-            frontier = [];
+            var next = new HashSet<Guid>();
             foreach (var link in links)
             {
                 dependencies.Add(new ForecastDependency<Guid>(link.SourceId, link.TargetId));
-                if (!items.ContainsKey(link.SourceId) && !frontier.Contains(link.SourceId))
-                    frontier.Add(link.SourceId);
+                if (!items.ContainsKey(link.SourceId))
+                    next.Add(link.SourceId);
             }
+            frontier = [.. next];
         }
 
         var targets = targetIds.ToHashSet();

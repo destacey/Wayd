@@ -1,8 +1,11 @@
-﻿using Wayd.Common.Extensions;
+﻿using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Extensions;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Work.Workspaces;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Application.Workspaces.Commands;
 using Wayd.Work.Application.Workspaces.Dtos;
@@ -235,6 +238,38 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
             : result.Value is not null
                 ? Ok(result.Value.OrderBy(w => w.CreatedOn))
                 : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/work-items/{workItemKey}/forecast")]
+    [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [OpenApiOperation("Forecast when a work item will be done.", "A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<WorkItemForecastDto>> GetWorkItemForecast(
+        string idOrKey,
+        string workItemKey,
+        [FromQuery] string? targetDate,
+        [FromQuery] int? lookbackDays,
+        [FromQuery] bool? ignoreDependencies,
+        CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(targetDate, out var parsedTargetDate))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        var key = new WorkItemKey(workItemKey);
+        var options = new ForecastOptions
+        {
+            LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
+            IgnoreDependencies = ignoreDependencies ?? false,
+        };
+
+        var forecast = await _dispatcher.Send(new GetWorkItemForecastQuery(idOrKey, key, parsedTargetDate, options), cancellationToken);
+
+        return forecast is not null
+            ? Ok(forecast)
+            : NotFound();
     }
 
     [HttpGet("{idOrKey}/work-items/{workItemKey}/metrics")]

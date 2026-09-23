@@ -1,5 +1,7 @@
 using CsvHelper;
+using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Imports.Commands;
+using Wayd.Common.Domain.FeatureManagement;
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
@@ -18,6 +20,7 @@ using Wayd.Web.Api.Models.Ppm.ProjectLifecycles;
 using Wayd.Web.Api.Models.Ppm.Projects;
 using Wayd.Web.Api.Models.Ppm.ProjectTasks;
 using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkItems.Queries;
 
 namespace Wayd.Web.Api.Controllers.Ppm;
@@ -446,6 +449,36 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         return result.IsSuccess
             ? Ok(result.Value.OrderBy(w => w.StackRank))
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{idOrKey}/forecast")]
+    [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
+    [OpenApiOperation("Forecast when a project's work items will be done.", "A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WorkItemForecastDto>> GetProjectForecast(
+        string idOrKey,
+        [FromQuery] string? targetDate,
+        [FromQuery] int? lookbackDays,
+        [FromQuery] bool? ignoreDependencies,
+        CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(targetDate, out var targetDateOverride))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        var project = await _dispatcher.Send(new GetProjectQuery(idOrKey), cancellationToken);
+        if (project is null)
+            return NotFound();
+
+        var options = new ForecastOptions
+        {
+            LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
+            IgnoreDependencies = ignoreDependencies ?? false,
+        };
+
+        return Ok(await _dispatcher.Send(new GetProjectForecastQuery(project.Id, targetDateOverride ?? project.End, options), cancellationToken));
     }
 
     [HttpPost("{id}/lifecycle")]

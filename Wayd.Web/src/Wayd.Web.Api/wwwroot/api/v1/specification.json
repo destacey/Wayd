@@ -15076,6 +15076,92 @@
         ]
       }
     },
+    "/api/ppm/projects/{idOrKey}/forecast": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Forecast when a project's work items will be done.",
+        "description": "A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.",
+        "operationId": "Projects_GetProjectForecast",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "targetDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "ignoreDependencies",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItemForecastDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/ppm/projects/{id}/lifecycle": {
       "post": {
         "tags": [
@@ -20424,6 +20510,101 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WorkItemsSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/forecast": {
+      "get": {
+        "tags": [
+          "PlanningIntervals"
+        ],
+        "summary": "Forecast when an objective's work items will be done.",
+        "description": "A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.",
+        "operationId": "PlanningIntervals_GetObjectiveForecast",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "objectiveIdOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "targetDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "ignoreDependencies",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItemForecastDto"
                 }
               }
             }
@@ -27411,6 +27592,101 @@
         ]
       }
     },
+    "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/forecast": {
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Forecast when a work item will be done.",
+        "description": "A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.",
+        "operationId": "Workspaces_GetWorkItemForecast",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workItemKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "targetDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "ignoreDependencies",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItemForecastDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/metrics": {
       "get": {
         "tags": [
@@ -30136,6 +30412,82 @@
             }
           },
           "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams/{idOrCode}/throughput-forecast": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Forecast how many backlog work items a team will finish by a date.",
+        "description": "A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).",
+        "operationId": "Teams_GetTeamThroughputForecast",
+        "parameters": [
+          {
+            "name": "idOrCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "targetDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamThroughputForecastDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
             "description": "",
             "content": {
               "application/json": {
@@ -47247,6 +47599,258 @@
           }
         }
       },
+      "WorkItemForecastDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome",
+          "forecastStart",
+          "lookbackDays",
+          "ignoreDependencies",
+          "remainingWorkItems",
+          "excludedWorkItems",
+          "teams",
+          "trials",
+          "trialsBeyondHorizon",
+          "percentiles",
+          "histogram",
+          "dependencies",
+          "ignoredDependencies",
+          "issues"
+        ],
+        "properties": {
+          "outcome": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "forecastStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "lookbackDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ignoreDependencies": {
+            "type": "boolean"
+          },
+          "backlogPosition": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "remainingWorkItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "excludedWorkItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastWorkItemDto"
+            }
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastTeamDto"
+            }
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "chanceOfFinishingByTargetDate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "trials": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trialsBeyondHorizon": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "percentiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastPercentileDto"
+            }
+          },
+          "histogram": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastHistogramBucketDto"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastDependencyInfluenceDto"
+            }
+          },
+          "ignoredDependencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastDependencyLinkDto"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastIssueDto"
+            }
+          }
+        }
+      },
+      "ForecastWorkItemDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "workspaceKey",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "string"
+          },
+          "workspaceKey": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ForecastTeamDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "team",
+          "from",
+          "to",
+          "itemsCompleted"
+        ],
+        "properties": {
+          "team": {
+            "$ref": "#/components/schemas/WorkTeamNavigationDto"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "itemsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ForecastPercentileDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "confidence"
+        ],
+        "properties": {
+          "confidence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "ForecastHistogramBucketDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "trials"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "trials": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ForecastDependencyInfluenceDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "predecessor",
+          "successor"
+        ],
+        "properties": {
+          "predecessor": {
+            "$ref": "#/components/schemas/ForecastWorkItemDto"
+          },
+          "successor": {
+            "$ref": "#/components/schemas/ForecastWorkItemDto"
+          },
+          "shareOfTrialsSettingFinish": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "ForecastDependencyLinkDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "predecessor",
+          "successor",
+          "reason"
+        ],
+        "properties": {
+          "predecessor": {
+            "$ref": "#/components/schemas/ForecastWorkItemDto"
+          },
+          "successor": {
+            "$ref": "#/components/schemas/ForecastWorkItemDto"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          }
+        }
+      },
+      "ForecastIssueDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workItem",
+          "type"
+        ],
+        "properties": {
+          "workItem": {
+            "$ref": "#/components/schemas/ForecastWorkItemDto"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          }
+        }
+      },
       "AssignProjectLifecycleRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -56620,6 +57224,110 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "TeamThroughputForecastDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome",
+          "team",
+          "forecastStart",
+          "targetDate",
+          "lookbackDays",
+          "days",
+          "backlogWorkItems",
+          "trials",
+          "percentiles",
+          "histogram"
+        ],
+        "properties": {
+          "outcome": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "team": {
+            "$ref": "#/components/schemas/ForecastTeamDto"
+          },
+          "forecastStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "lookbackDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backlogWorkItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trials": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "percentiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThroughputPercentileDto"
+            }
+          },
+          "histogram": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThroughputHistogramBucketDto"
+            }
+          }
+        }
+      },
+      "ThroughputPercentileDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "confidence",
+          "workItems"
+        ],
+        "properties": {
+          "confidence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "throughWorkItem": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ForecastWorkItemDto"
+              }
+            ]
+          }
+        }
+      },
+      "ThroughputHistogramBucketDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workItems",
+          "trials"
+        ],
+        "properties": {
+          "workItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trials": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

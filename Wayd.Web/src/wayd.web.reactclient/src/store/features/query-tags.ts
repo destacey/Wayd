@@ -171,6 +171,7 @@ export enum QueryTags {
   UserSessions = 'UserManagement.UserSessions',
 
   // WORK MANAGEMENT
+  Forecast = 'Work.Forecast',
   WorkItem = 'Work.WorkItem',
   WorkItemChildren = 'Work.WorkItem.Children',
   WorkItemDependency = 'Work.WorkItem.Dependency',

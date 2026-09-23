@@ -1,6 +1,7 @@
 'use client'
 
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
+import { WorkItemForecastReport } from '@/src/components/common/forecasting'
 import {
   useGetChildWorkItemsQuery,
   useGetWorkItemQuery,
@@ -27,7 +28,20 @@ enum WorkItemSections {
   Overview = 'overview',
   WorkItems = 'work-items',
   Dependencies = 'dependencies',
+  Forecast = 'forecast',
 }
+
+// Only backlog and portfolio work items have a forecast: other tiers are not
+// on a team's backlog, so the API reports them as not forecastable.
+const getReports = (
+  workItem: WorkItemDetailsDto,
+  forecastingEnabled: boolean,
+): RecordSection[] =>
+  forecastingEnabled &&
+  (workItem.type.tier.id === WorkTypeTier.Portfolio ||
+    workItem.type.tier.id === WorkTypeTier.Requirement)
+    ? [{ id: WorkItemSections.Forecast, label: 'Forecast' }]
+    : []
 
 // Overview is unconditional: it is the default section, so a record where it
 // disappeared would open on whatever happened to be next.
@@ -54,6 +68,10 @@ const WorkItemDetailsPage = (props: {
 
   const router = useRouter()
   const pathname = usePathname()
+
+  const { isEnabled: forecastingEnabled } = useFeatureFlag(
+    'delivery-forecasting',
+  )
 
   const { hasPermissionClaim } = useAuth()
   const canManageProjectWorkItems = hasPermissionClaim(
@@ -125,6 +143,13 @@ const WorkItemDetailsPage = (props: {
         )
       case WorkItemSections.Dependencies:
         return <WorkItemDependencies workItem={workItemData} />
+      case WorkItemSections.Forecast:
+        return (
+          <WorkItemForecastReport
+            workspaceKey={upperWorkspaceKey}
+            workItemKey={upperWorkItemKey}
+          />
+        )
       default:
         return (
           <WorkItemOverview
@@ -145,6 +170,7 @@ const WorkItemDetailsPage = (props: {
     <>
       <RecordLayout
         sections={getSections(workItemData)}
+        reports={getReports(workItemData, forecastingEnabled)}
         defaultSection={WorkItemSections.Overview}
         record={{
           name: (

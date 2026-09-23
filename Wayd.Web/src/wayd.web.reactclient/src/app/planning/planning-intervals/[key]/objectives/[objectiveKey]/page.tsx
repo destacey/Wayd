@@ -11,7 +11,12 @@ import { PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
+import {
+  useDocumentTitle,
+  useFeatureFlag,
+  useLinkedEmployee,
+} from '@/src/hooks'
+import { ObjectiveForecastReport } from '@/src/components/common/forecasting'
 import {
   useGetPlanningIntervalObjectiveActivitiesQuery,
   useGetPlanningIntervalObjectiveQuery,
@@ -36,6 +41,7 @@ enum ObjectiveSections {
   Overview = 'overview',
   WorkItems = 'work-items',
   HealthReport = 'health-report',
+  Forecast = 'forecast',
   Activities = 'activities',
 }
 
@@ -45,14 +51,21 @@ const sections: RecordSection[] = [
   { id: ObjectiveSections.Activities, label: 'Activity' },
 ]
 
-const reports: RecordSection[] = [
+const getReports = (forecastingEnabled: boolean): RecordSection[] => [
   { id: ObjectiveSections.HealthReport, label: 'Health Report' },
+  ...(forecastingEnabled
+    ? [{ id: ObjectiveSections.Forecast, label: 'Forecast' }]
+    : []),
 ]
 
 const PlanningIntervalObjectivePage = (props: {
   params: Promise<{ key: string; objectiveKey: string }>
 }) => {
   const { key, objectiveKey } = use(props.params)
+
+  const { isEnabled: forecastingEnabled } = useFeatureFlag(
+    'delivery-forecasting',
+  )
 
   const [openUpdateForm, setOpenUpdateForm] = useState<boolean>(false)
   const [openDeleteForm, setOpenDeleteForm] = useState<boolean>(false)
@@ -181,6 +194,13 @@ const PlanningIntervalObjectivePage = (props: {
             canLinkWorkItems={canManageObjectives}
           />
         )
+      case ObjectiveSections.Forecast:
+        return (
+          <ObjectiveForecastReport
+            planningIntervalKey={String(objective.planningInterval.key)}
+            objectiveKey={String(objective.key)}
+          />
+        )
       case ObjectiveSections.HealthReport:
         return (
           <PiObjectiveHealthReportGrid
@@ -202,7 +222,7 @@ const PlanningIntervalObjectivePage = (props: {
     <>
       <RecordLayout
         sections={sections}
-        reports={reports}
+        reports={getReports(forecastingEnabled)}
         defaultSection={ObjectiveSections.Overview}
         record={{
           name: objective.name,

@@ -122,9 +122,11 @@ behaves this way.
 :::
 
 Others apply **group by group**: every row for the same record goes in together or not at all, and the
-other groups are still imported. Product dependencies apply product by product, so a product's links are
-never half recorded, and every [PPM import](../ppm/bulk-import.mdx#limits) applies by the record its rows
-build — a project, or the project a task or stage belongs to. The run says what a group is. A row kept out only because another row in
+other groups are still imported. Every [PPM import](../ppm/bulk-import.mdx#limits) applies by the record its
+rows build — a project, or the project a task or stage belongs to — and every
+[Product Management import](../product-management/bulk-import.mdx#limits) but deployments applies by a
+product tree, a product, a package, a release or an environment; deployments apply row by row. The run says
+what a group is. A row kept out only because another row in
 its group was rejected says so — "Not applied: another row for the same … was rejected" — and names the
 row that was, so the fix is always to that one row. Retrying the failed rows puts the whole group through again.
 
@@ -193,7 +195,7 @@ kind it is.
 
 | Rule | Value |
 |---|---|
-| Rows per file | 50,000 for an import applied row by row (employees) or group by group (product dependencies); 10,000 for an all-or-nothing import, which is one database transaction, and for the PPM imports, which apply group by group but keep the lower cap until a larger file has been proven. Over the cap, the file is rejected before anything is queued. |
+| Rows per file | 50,000 for an import applied row by row (employees) or group by group (product dependencies); 10,000 for an all-or-nothing import, which is one database transaction, and for the PPM imports and every other Product Management import, which apply group by group (deployments row by row) but keep the lower cap until a larger file has been proven. Over the cap, the file is rejected before anything is queued. |
 | Request size | About 30 MB, the web server's default. A 50,000-row file is a few megabytes. |
 | Empty file | Rejected: a file with no rows never becomes a run. A missing file returns 422. |
 | `ImportId` | Optional. At most 128 characters, trimmed, and unique within the file compared **case-insensitively** (`abc` and `ABC` collide). Blank uses the row's position, counting from one. |

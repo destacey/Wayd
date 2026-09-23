@@ -165,7 +165,8 @@ public sealed class VersionsArea() : ProductManagementSeedArea(
             Notes = v.Notes,
         }).ToList();
 
-        // Rows are independent, so the product grouping only keeps one product's history in one file.
+        // Split between products, never inside one: the import applies a product's versions together, and a
+        // product in two files would be two groups, one of which could land without the other.
         var batches = Batch(context, rows, r => r.ProductId);
         context.Log($"Importing {versions.Count} versions in {batches.Count} batch(es)...");
 

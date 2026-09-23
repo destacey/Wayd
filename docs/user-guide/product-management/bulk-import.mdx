@@ -44,8 +44,8 @@ A few rules apply to every import:
 - **A file can be checked before it is imported.** Add `validateOnly=true` to the post, or choose
   **Check File** in [Settings → Imports](../settings/imports.mdx#checking-a-file-first), and every row goes
   through the import's own checks without anything being created: each comes back passed or rejected
-  with its reason, and an all-or-nothing file reports every rejection rather than stopping at the first
-  step that finds one. It is advice, not a promise — the data can change before you import — and a
+  with its reason, and a row kept out only because another row in its group was rejected is reported the
+  same way the real run would. It is advice, not a promise — the data can change before you import — and a
   finished check can be imported for real from its page without posting the file again.
 - **Files posted together can be grouped.** Every import endpoint takes an optional `submissionGroupId`
   query parameter — any GUID you choose — and records it on the run, so a set of files posted under one
@@ -57,10 +57,10 @@ A few rules apply to every import:
   case-insensitively. Row outcomes are reported against it, rows reference each other by it (a child
   product names its parent's, a manifest line its package's), and leaving it blank uses the row's
   position instead. It is never written onto the records the import creates.
-- **All-or-nothing, except dependencies.** Every import here but one is atomic: if any row is rejected —
-  a reference that does not exist or is inactive, a duplicate within the file, or something the domain
-  refuses — the **entire import fails**, nothing is saved, and the run names the row and the reason. The
-  [dependencies import](#dependencies-import) applies **product by product** instead.
+- **Group by group, or row by row.** A rejected row — a reference that does not exist or is inactive, a
+  duplicate, or something the domain refuses — keeps out its own group and nothing else, and the run names
+  the row and the reason. What a group is differs by import; deployments have none and apply row by row.
+  See [Limits](#limits).
 - **Every column must be present, even the optional ones.** *Required* below means the cell needs a
   value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
@@ -142,15 +142,38 @@ with the timestamps its row carries. Every record reaches its final state in one
 
 ## Limits
 
-Every import here except dependencies is all-or-nothing and accepts at most **10,000 rows per file** —
-one file is one database transaction, and the cap bounds it. The dependencies import applies product by
-product, saving as it goes, and accepts **50,000**. For the two-file imports (packages with their manifest,
-releases with their contents) the cap applies to the first file; the second is read alongside it. A file
-over the cap is rejected before anything is queued, with a message naming the cap.
+Every import here applies **group by group**, except deployments, which apply row by row: the rows for one
+group go in together or not at all, and a rejected row keeps out only its own group. The other groups are
+still imported, and the run finishes as *Partially succeeded* with the reason on each row it refused. A row
+kept out only because another row in its group was rejected says so and names that row, so the fix is
+always to one row.
 
-Splitting a larger products file has a rule of its own: a child names its parent's `ImportId` in the same
-file, so split on **top-level products**, keeping each tree whole. Post the parts one at a time, waiting
-for each run; one `submissionGroupId` across them keeps the runs findable as one import.
+| Import | A group is | One rejected row keeps out |
+|---|---|---|
+| Products | one **tree** — a top-level product and everything under it | that whole tree |
+| Dependencies | one **product**, with every link it holds | that product's links |
+| Versions | one **product** | that product's versions in the file |
+| Release packages | one package, with its manifest | that package |
+| Releases | one release, with its contents | that release |
+| Environments | one environment | that environment |
+| Deployments | — (row by row) | that deployment |
+
+Products group by the tree because a child names its parent's `ImportId` in the same file, and a child
+whose parent was rejected has nowhere to hang. One rejected product therefore keeps out its siblings as
+well as its descendants. Versions group by the product so the file's history for a product goes in whole,
+never with a gap where one version was refused. A package's manifest and a release's contents are read
+onto their row before the run starts, so they always go in with it.
+
+Every import here except dependencies accepts at most **10,000 rows per file**; dependencies accept
+**50,000**. For the two-file imports (packages with their manifest, releases with their contents) the cap
+applies to the first file; the second is read alongside it. A file over the cap is rejected before anything
+is queued, with a message naming the cap. Applying group by group saves in stages rather than in one
+transaction, so the cap is no longer what bounds a run, but it stays where it was until a larger file has
+been proven end to end.
+
+Splitting a larger file follows the same grouping: split a products file on **top-level products**, keeping
+each tree whole, and a versions file on **product boundaries**. Post the parts one at a time, waiting for
+each run; one `submissionGroupId` across them keeps the runs findable as one import.
 
 The rules every file shares — request size, `ImportId` length, how long the post waits, retries, stalls
 and retention — are in [Settings → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
@@ -256,6 +279,10 @@ row by hand.
 The import is **additive** and does not check whether a product of the same name already exists — names
 legitimately repeat in a tree, so it cannot. Running the same file twice creates a second copy of
 everything in it.
+
+That matters after a partially succeeded run: the trees that went in are saved, so posting the corrected
+file again duplicates every one of them. Fix and resubmit **only the rejected trees**, or retry them from
+the run's page in [Settings → Imports](../settings/imports.mdx).
 
 ## Dependencies import
 
@@ -584,6 +611,10 @@ deployments before reclassifying, where that matters.
 A deployment has no natural key — two builds of one version reaching one environment are two
 deployments — so the import is **additive** and cannot tell a re-run from a second shipment. Running the
 same file twice records everything in it again.
+
+That matters after a partially succeeded run: the rows that went in are saved, so posting the corrected
+file again duplicates every one of them. Fix and resubmit **only the rejected rows**, or retry them from
+the run's page in [Settings → Imports](../settings/imports.mdx).
 
 ## Related
 

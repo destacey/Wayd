@@ -1,0 +1,111 @@
+---
+title: Delivery Forecasting
+description: Monte Carlo forecasts of when work will be done and how much a team will finish, from each team's recent throughput.
+sidebar_position: 4
+audience: [user, agent]
+---
+
+# Delivery Forecasting
+
+> This feature is behind the `delivery-forecasting` feature flag. See [Feature Flags](../settings/index.mdx#feature-management) for details.
+
+**Delivery Forecasting** answers two questions with ranges instead of single dates:
+
+- **When will it be done?** The date the remaining work finishes, at 50%, 70%, 85%, and 95% confidence.
+- **How many will be done by then?** The number of backlog work items a team finishes by a date, at the same confidence levels.
+
+Forecasts come from what each team has actually finished recently, not from estimates, so they need no story points and no extra data entry.
+
+## Where to Find It
+
+| Page | Report | Forecasts |
+|------|--------|-----------|
+| Work item detail | **Forecast** | When the work item is done. A portfolio work item (an Epic or Feature, say) is done when the last of its open backlog work items is. |
+| PI objective detail | **Forecast** | When the objective's linked work items are done, and the chance of finishing by the objective's target date — or the planning interval's end when it has none. |
+| Project detail | **Forecast** | When the project's work items are done, and the chance of finishing by the project's planned end. |
+| Team detail | **Throughput Forecast** | How many backlog work items the team finishes by a date you choose. |
+
+## Options
+
+Each report has controls above the results. Nothing is saved: every option starts at its default each time the report opens, and the report states what it used.
+
+| Option | Default | Use it to |
+|--------|---------|-----------|
+| **History** | Last 90 days | Forecast from a shorter window when a team's pace changed recently (a reorganization, the end of a holiday period), or a longer one for a stable team. Choose 30, 60, 90, 120, or 180 days. |
+| **Target date** | The objective's target date (or the planning interval's end), or the project's planned end; none on a work item | Ask "what is our chance by this date?". On the team report, **Forecast through** sets the date to count up to. |
+| **Ignore dependencies** | Off | See the forecast as if nothing waited on its predecessors. Comparing the two dates shows what the dependencies cost. The report is marked as a what-if. |
+
+## How It Works
+
+1. **Throughput history.** For each team, Wayd counts the backlog work items it finished on each day of the history window (90 days by default), ending yesterday (UTC). Days with nothing finished count too — they are part of the team's real pace.
+2. **Simulation.** Wayd replays that history 10,000 times: each simulated day, it picks one of the real days at random and takes that day's completions. Each replay is one possible future.
+3. **Results.** Sorting the 10,000 outcomes gives the confidence levels. An 85% date means 85% of the simulations finished on or before it.
+
+The same forecast is returned all day for the same work, so refreshing the page does not change it. It is recalculated each day, and whenever the backlog or history changes.
+
+### Backlog Position
+
+A team rarely works on one thing at a time. The forecast for a work item counts **everything ranked ahead of it** in its team's backlog, not just the item itself. A story at position 12 has to wait for the 11 items above it.
+
+Backlog order is the same as the team's [Backlog](../organizations/index.mdx#backlog): by backlog rank, then by creation date. Work items the source system has not ranked follow every ranked item, oldest first, so every item on the backlog has a position.
+
+### Dependencies
+
+When a work item has an open predecessor, it cannot finish before that predecessor does. The forecast follows predecessors up the whole chain, including those on other teams, and uses each predecessor's own team and backlog position.
+
+For each dependency, the report shows **how often waiting on the predecessor decided the finish date** — the share of simulations where, without it, the work would have finished sooner. A dependency at 64% is the one to chase.
+
+Done predecessors are ignored. Two kinds of dependency are left out and listed under **Ignored dependencies**, each with its reason, because the link itself likely needs cleaning up:
+
+- **Predecessor Removed** — the predecessor was removed without being completed, so nothing can wait on it.
+- **Closes a Cycle** — the dependencies form a cycle (A waits on B, which waits on A); the one that closes the cycle is left out.
+
+### Work Items That Count
+
+Forecasting uses the **tier** of each work type, not its name, so it follows however your work process maps types to tiers:
+
+| Tier | In forecasts |
+|------|--------------|
+| **Requirement** | Counted for throughput, placed in the team backlog, and forecast individually. |
+| **Portfolio** | Forecast from its open Requirement-tier work items at any depth. |
+| **Task**, **Other** | Not forecast. |
+
+A work type left in the **Other** tier (the default for new types) is not counted, so check the tier mapping in [Work Configuration](./work-configuration.mdx) if a team's history looks too low.
+
+## Reading the Results
+
+- **Confidence dates.** Plan against the 85% date; the 50% date is a coin flip.
+- **Chance by target date.** The share of simulations that finished on or before the target date. On the chart, bars after the target date are lighter.
+- **Chart.** The spread of simulated finish dates (or, on the team report, work items finished). Hover a bar to see the share finishing by that point.
+- **Based on.** The teams whose history was used, and how many work items each finished in the window.
+- **Through.** On the team report, each confidence level names the backlog work item that count reaches — "at 85%, through CORE-123".
+
+### Outcomes
+
+| Outcome | Meaning |
+|---------|---------|
+| **Forecast** | Dates (or counts) were forecast. |
+| **Done** | All of the work is already done. |
+| **Not Enough History** | The team finished fewer than 10 backlog work items in the history window. |
+| **Blocked by Dependency** | The work waits on a predecessor that cannot be forecast. |
+| **Cannot Forecast** | None of the remaining work can be forecast. |
+| **Nothing Remaining** | There are no open backlog work items, though not everything is done. |
+
+### Issues
+
+| Issue | Effect |
+|-------|--------|
+| **No Team** | The work item is not assigned to a team, so it has no backlog position or history. |
+| **Not a Backlog Item** | The work item is not in the Requirement tier. |
+| **Not Enough History** | The work item's team has too little recent history. |
+
+For a portfolio work item, objective, or project, work items that cannot be forecast are **left out** and listed. The dates then cover only what could be forecast, so they are a lower bound.
+
+## Limits
+
+- **The future resembles the history window.** A team that changed size, focus, or process recently will forecast from its old pace; choose a shorter window.
+- **Rank order is optimistic for low-ranked items.** Teams do not pull strictly in rank order, so items far down the backlog tend to finish later than forecast.
+- **The backlog as it is today.** New work added above an item later will push it back; the forecast cannot see it coming.
+- **Dependencies finish together.** A successor is assumed able to finish the day its last predecessor does, and a team waiting on one item is assumed to keep finishing others.
+- **Two years.** Simulations that have not finished after two years are reported as "Beyond 2 years".
+- **Dates are UTC.** Completion dates and forecast days are UTC calendar days.

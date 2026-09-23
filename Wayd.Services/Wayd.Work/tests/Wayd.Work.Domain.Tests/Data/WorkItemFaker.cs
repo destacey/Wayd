@@ -88,6 +88,21 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
+    public static WorkItemFaker WithWorkspace(this WorkItemFaker faker, Workspace workspace)
+    {
+        faker.RuleFor(x => x.WorkspaceId, workspace.Id);
+        faker.RuleFor(x => x.Workspace, workspace);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithKey(this WorkItemFaker faker, WorkItemKey key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
     public static WorkItemFaker WithTitle(this WorkItemFaker faker, string? title)
     {
         faker.RuleFor(x => x.Title, title);
@@ -170,6 +185,13 @@ public static class WorkItemFakerExtensions
     public static WorkItemFaker WithStackRank(this WorkItemFaker faker, double stackRank)
     {
         faker.RuleFor(x => x.StackRank, stackRank);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithTeamId(this WorkItemFaker faker, Guid? teamId)
+    {
+        faker.RuleFor(x => x.TeamId, teamId);
 
         return faker;
     }

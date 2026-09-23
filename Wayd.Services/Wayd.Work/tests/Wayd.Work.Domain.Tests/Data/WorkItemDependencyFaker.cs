@@ -1,3 +1,4 @@
+using FluentAssertions.Extensions;
 using NodaTime;
 using NodaTime.Extensions;
 using Wayd.Tests.Shared.Data;
@@ -23,7 +24,7 @@ public class WorkItemDependencyFaker : PrivateConstructorFaker<WorkItemDependenc
         RuleFor(x => x.TargetStatusCategory, targetWorkItem.StatusCategory);
         RuleFor(x => x.SourcePlannedOn, f => null);
         RuleFor(x => x.TargetPlannedOn, f => null);
-        RuleFor(x => x.CreatedOn, f => f.Date.Past().ToInstant());
+        RuleFor(x => x.CreatedOn, f => f.Date.Past().AsUtc().ToInstant());
         RuleFor(x => x.CreatedById, f => f.Random.Guid());
         RuleFor(x => x.Comment, f => f.Lorem.Sentence());
 

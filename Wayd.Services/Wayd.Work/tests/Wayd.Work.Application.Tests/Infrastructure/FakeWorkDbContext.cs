@@ -154,6 +154,13 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public void AddWorkIteration(WorkIteration iteration) => _workIterations.Add(iteration);
     public void AddWorkIterations(IEnumerable<WorkIteration> iterations) => _workIterations.AddRange(iterations);
 
+    // WorkItemReference
+    public void AddWorkItemReference(WorkItemReference reference) => _workItemReferences.Add(reference);
+
+    // WorkItemDependency
+    public void AddWorkItemDependency(WorkItemDependency dependency) => _workItemDependencies.Add(dependency);
+    public void AddWorkItemDependencies(IEnumerable<WorkItemDependency> dependencies) => _workItemDependencies.AddRange(dependencies);
+
     // Employee
     public void AddEmployee(Employee employee) => _employees.Add(employee);
     public void AddEmployees(IEnumerable<Employee> employees) => _employees.AddRange(employees);

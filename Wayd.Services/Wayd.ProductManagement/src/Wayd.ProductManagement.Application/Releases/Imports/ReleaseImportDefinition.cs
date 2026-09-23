@@ -30,7 +30,11 @@ namespace Wayd.ProductManagement.Application.Releases.Imports;
 /// something the file did not say.
 /// </para>
 /// <para>
-/// Atomic, matching the single save the command it replaces did.
+/// Per group, keyed on the release. Its contents arrive on its own row — the endpoint folds the contents
+/// file onto the release rows before submission — so a release and what it announces apply together by
+/// construction. What a release checks against — the versions and packages it carries and whether they
+/// shipped — are records earlier imports saved, never other rows in this file, so releases are independent
+/// of one another.
 /// </para>
 /// </remarks>
 public sealed class ReleaseImportDefinition(
@@ -54,14 +58,18 @@ public sealed class ReleaseImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Releases;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "release";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end. The cap counts releases; the contents riding on them are not counted.
     public override int MaxRows => 10_000;
+
+    protected override string? GroupKey(ImportReleaseDto row) => Normalize(row.Version);
 
     protected override IReadOnlyList<ImportPass<ImportReleaseDto>> Steps =>
     [
-        new("CreateReleases", ImportPassScope.WholeSet, CreateReleases),
+        new("CreateReleases", ImportPassScope.Chunked, CreateReleases),
     ];
 
     private async Task<Result> CreateReleases(ImportPassContext<ImportReleaseDto> context, CancellationToken cancellationToken)

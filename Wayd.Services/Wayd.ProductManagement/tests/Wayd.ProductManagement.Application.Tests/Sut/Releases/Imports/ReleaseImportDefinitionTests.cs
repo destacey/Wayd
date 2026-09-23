@@ -147,11 +147,23 @@ public sealed class ReleaseImportDefinitionTests
         new(ReleaseContentKind.Version, null, versionId);
 
     [Fact]
-    public void Definition_IsAtomic()
+    public void Definition_AppliesReleaseByRelease()
     {
         // Arrange & Act & Assert
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerGroup);
+        _definition.GroupNoun.Should().Be("release");
         _definition.Passes.Single().Name.Should().Be("CreateReleases");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
+    }
+
+    [Fact]
+    public void GroupKeysOf_IsTheTrimmedVersion()
+    {
+        // Act
+        var key = _definition.GroupKeysOf([("r1", _definition.SerializeRow(Row(" 2026.07 ")))]).Single();
+
+        // Assert
+        key.Should().Be("2026.07");
     }
 
     [Fact]

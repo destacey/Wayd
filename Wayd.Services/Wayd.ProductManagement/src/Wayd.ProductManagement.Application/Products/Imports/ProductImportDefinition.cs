@@ -19,12 +19,11 @@ namespace Wayd.ProductManagement.Application.Products.Imports;
 /// created.
 /// </summary>
 /// <remarks>
-/// <see cref="ImportPassScope.WholeSet"/> because rows are not independent: a child row names a parent row
-/// in the same file, so a chunk could be handed a child whose parent has not been created.
-/// <para>
-/// Atomic, matching the single save the command it replaces did. A half-applied catalog is a tree with
-/// missing branches and nothing to say which, and a child whose parent was rejected has nowhere to hang.
-/// </para>
+/// Per group, keyed on the root of each row's tree. Rows are not independent: a child names a parent row in
+/// the same file, and a child whose parent was rejected has nowhere to hang. A parent must be a row in the
+/// file, so every tree is closed within it, and grouping by the root keeps each tree in one chunk — the
+/// runner never splits a group — where the pass can find every parent it created. One rejected product keeps
+/// out its whole tree, siblings included; the runner has no unit smaller than the group to keep out.
 /// </remarks>
 public sealed class ProductImportDefinition(
     IProductManagementDbContext productManagementDbContext,
@@ -47,14 +46,46 @@ public sealed class ProductImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Products;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "product tree";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end. One tree is still one transaction whatever its size.
     public override int MaxRows => 10_000;
+
+    /// <summary>
+    /// The import id of the root each row's parent chain ends at, which only the whole file can say.
+    /// </summary>
+    /// <remarks>
+    /// The submission command refuses a parent that is not in the file and a chain that loops, so every walk
+    /// ends at a row with no parent. The walk still stops on a row it has seen, so a cycle cannot hang it.
+    /// </remarks>
+    protected override IReadOnlyList<string?> GroupKeys(IReadOnlyList<(string ImportId, ImportProductDto Row)> rows)
+    {
+        var parents = rows.ToDictionary(
+            r => r.ImportId,
+            r => r.Row.ParentImportId?.Trim(),
+            StringComparer.OrdinalIgnoreCase);
+
+        // Keyed by the id as the file wrote it on the row, not as a child spelled it, so every member of a
+        // tree returns the same string.
+        var canonical = rows.ToDictionary(r => r.ImportId, r => r.ImportId, StringComparer.OrdinalIgnoreCase);
+
+        return [.. rows.Select(r =>
+        {
+            HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+            var current = r.ImportId;
+
+            while (seen.Add(current) && parents[current] is { } parent && parents.ContainsKey(parent))
+                current = parent;
+
+            return canonical[current];
+        })];
+    }
 
     protected override IReadOnlyList<ImportPass<ImportProductDto>> Steps =>
     [
-        new("CreateProducts", ImportPassScope.WholeSet, CreateProducts),
+        new("CreateProducts", ImportPassScope.Chunked, CreateProducts),
     ];
 
     private async Task<Result> CreateProducts(ImportPassContext<ImportProductDto> context, CancellationToken cancellationToken)

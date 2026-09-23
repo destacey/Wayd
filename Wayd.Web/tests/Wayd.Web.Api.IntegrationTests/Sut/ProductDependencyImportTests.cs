@@ -27,8 +27,6 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 [Collection(SqlServerApiTestCollection.Name)]
 public sealed class ProductDependencyImportTests(WaydSqlServerApiFactory factory)
 {
-    private static readonly TimeSpan RunTimeout = TimeSpan.FromSeconds(60);
-
     private readonly WaydSqlServerApiFactory _factory = factory;
 
     private static async Task<Guid> CreateProduct(IDispatcher dispatcher, Guid productTypeId, Guid? parentId = null)
@@ -41,34 +39,10 @@ public sealed class ProductDependencyImportTests(WaydSqlServerApiFactory factory
         return created.Value.Id;
     }
 
-    private static async Task<ImportProcess> SubmitAndWait(
-        IServiceScope scope, params (string ImportId, ImportProductDependencyDto Row)[] rows)
-    {
-        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
-        var importDbContext = scope.ServiceProvider.GetRequiredService<IImportDbContext>();
-
-        var submitted = await dispatcher.Send(
-            new ImportProductDependenciesCommand(
-                [.. rows.Select(r => new SubmittedImportRow<ImportProductDependencyDto>(r.ImportId, r.Row))]),
-            TestContext.Current.CancellationToken);
-        Assert.True(submitted.IsSuccess, submitted.IsFailure ? submitted.Error : null);
-
-        var deadline = DateTime.UtcNow + RunTimeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            var process = await importDbContext.ImportProcesses
-                .AsNoTracking()
-                .Include(p => p.Rows)
-                .SingleAsync(p => p.Id == submitted.Value, TestContext.Current.CancellationToken);
-
-            if (process.IsTerminal)
-                return process;
-
-            await Task.Delay(200, TestContext.Current.CancellationToken);
-        }
-
-        throw new TimeoutException($"Import {submitted.Value} did not finish within {RunTimeout}.");
-    }
+    private static Task<ImportProcess> SubmitAndWait(
+        IServiceScope scope, params (string ImportId, ImportProductDependencyDto Row)[] rows) =>
+        ImportRuns.SubmitAndWait(scope, new ImportProductDependenciesCommand(
+            [.. rows.Select(r => new SubmittedImportRow<ImportProductDependencyDto>(r.ImportId, r.Row))]));
 
     [Fact]
     public async Task Import_KeepsOutEveryLinkOfAProductWithARejectedRow_AndKeepsTheOtherProducts()

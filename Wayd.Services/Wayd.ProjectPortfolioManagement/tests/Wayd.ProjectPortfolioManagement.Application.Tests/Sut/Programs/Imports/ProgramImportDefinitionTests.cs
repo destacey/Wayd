@@ -73,13 +73,13 @@ public sealed class ProgramImportDefinitionTests : IDisposable
     }
 
     [Fact]
-    public void GroupKeyOf_IsTheTrimmedName()
+    public void GroupKeysOf_IsTheTrimmedName()
     {
         // Arrange — trimmed the one way the duplicate check trims it
         var row = Row(" Modernization ", ProgramStatus.Proposed);
 
         // Act
-        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+        var key = _definition.GroupKeysOf([("r1", _definition.SerializeRow(row))]).Single();
 
         // Assert
         key.Should().Be("Modernization");

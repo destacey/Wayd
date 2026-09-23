@@ -51,9 +51,9 @@ A few rules apply to every import:
   case-insensitively. Row outcomes are reported against it, rows reference each other by it (a KPI names
   its initiative's `ImportId`, a task its parent's), and leaving it blank uses the row's position instead.
   It is never written onto the records the import creates.
-- **All-or-nothing.** Every PPM import is atomic: if any row is rejected — a reference that does not
-  exist, a duplicate within the file, or a transition the domain refuses — the **entire import fails**,
-  nothing is saved, and the run names the row and the reason. This keeps a run safe to fix and re-try.
+- **Group by group.** A rejected row — a reference that does not exist, a duplicate within the file, or a
+  transition the domain refuses — keeps out its own group and nothing else, and the run names the row and
+  the reason. What a group is differs by import; see [Limits](#limits).
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
   needs a value; it does not mean the column can be left out. A missing header fails the file with
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.

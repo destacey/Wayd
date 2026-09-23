@@ -704,11 +704,12 @@ several imports later and leaves the copy time to catch up.
 
 ### One area can be more than one file
 
-An import rejects a file past its row cap outright, and the atomic ones — which is all of the Product
-Management and Planning imports except product dependencies — cap at 10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a
-run that is applied as one transaction; it is the server's guard against an arbitrary client, and the seed
-is a client like any other. The PPM imports apply group by group and save chunk by chunk, so the cap no
-longer bounds a run there, but it stays at 10,000 until a larger file has been proven end to end.
+An import rejects a file past its row cap outright, and the atomic ones — the Planning imports — cap at
+10,000 rows. An atomic import cannot be split server-side, so that cap is the only thing bounding a run that
+is applied as one transaction; it is the server's guard against an arbitrary client, and the seed is a
+client like any other. The PPM and Product Management imports apply group by group (deployments row by row)
+and save chunk by chunk, so the cap no longer bounds a run there, but it stays at 10,000 until a larger file
+has been proven end to end.
 
 The seed does not keep its own copy of those caps. Before posting anything it reads each import's `maxRows`
 from `GET /api/imports/definitions` and fills every file up to it, so an import that changes its cap
@@ -734,12 +735,13 @@ whole and rejected rather than split, because a named failure beats a file that 
 Projects and stages are batched the same way, by project, though neither comes near the cap at the built-in
 sizes.
 
-Product dependencies are batched by the product that holds them, which is also the unit that import applies
-— each product's rows save together or not at all — so a product is never split across two files. Versions,
-release packages, releases and deployments are batched the same way — by product, by package
-(with that package's manifest lines), by release (with its contents) and by what was deployed. Deployments
-are the one that needs it: a `large-tech` seed produces more than 10,000. Products and environments are
-always one file each, because a product's parent has to be a row in the same file. Planning intervals,
+Product dependencies and versions are batched by the product, which is also the unit those imports apply —
+each product's rows save together or not at all — so a product is never split across two files. Release
+packages, releases and deployments are batched by package (with that package's manifest lines), by release
+(with its contents) and by what was deployed; each of those applies one record at a time, so the batching
+only keeps related rows in one file. Deployments are the one that needs it: a `large-tech` seed produces
+more than 10,000. Products and environments are always one file each, because a product's parent has to be
+a row in the same file, which keeps every tree — the unit the products import applies — whole. Planning intervals,
 objectives and risks are batched too — by interval, by interval and by team — though none of them comes
 near the cap at the built-in sizes.
 
@@ -759,9 +761,10 @@ run and prints at the start (`Submitting every file under import group …`). Ea
 carries it as `submissionGroupId`, so the fifteen or so runs one seed produces can be found together
 afterwards rather than picked out of everything else the environment has imported.
 
-Each import applies as its definition says — the employee file row by row, the PPM and product dependency
-files group by group, the rest all-or-nothing — and the seed aborts on anything short of a clean run in
-every case, naming the rows that were rejected by their import id. A partly applied PPM file is a
+Each import applies as its definition says — the employee and deployment files row by row, the PPM and
+the other Product Management files group by group, the rest all-or-nothing — and the seed aborts on anything
+short of a clean run in every case, naming the rows that were rejected by their import id. A partly applied
+PPM or Product Management file is a
 generator bug rather than something to carry on from: the next stage resolves ids from this run's
 outcomes, so a missing record would surface far from its cause. References resolve by natural key where a record has one — employee
 number, team code, project key — and by id otherwise. Pass `--skip-ppm` to stop after the organization;

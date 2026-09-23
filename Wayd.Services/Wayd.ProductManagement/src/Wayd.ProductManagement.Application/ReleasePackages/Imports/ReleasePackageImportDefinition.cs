@@ -30,7 +30,9 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Imports;
 /// string is therefore <em>not</em> an error.
 /// </para>
 /// <para>
-/// Atomic, matching the single save the command it replaces did.
+/// Per group, keyed on the package. The endpoint folds the manifest file onto the package rows before
+/// submission, so a package and its manifest apply together by construction, and a manifest line reads only
+/// products and versions already saved — never another package row.
 /// </para>
 /// </remarks>
 public sealed class ReleasePackageImportDefinition(
@@ -54,14 +56,18 @@ public sealed class ReleasePackageImportDefinition(
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Delivery;
 
-    public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
+    public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+    public override string? GroupNoun => "release package";
 
-    // An atomic import cannot be split, so the row cap is what actually bounds one run.
+    // Saving chunk by chunk makes a larger file possible, but a run at that size is not yet proven end to
+    // end. The cap counts packages; their manifest lines are not counted.
     public override int MaxRows => 10_000;
+
+    protected override string? GroupKey(ImportReleasePackageDto row) => Normalize(row.Version);
 
     protected override IReadOnlyList<ImportPass<ImportReleasePackageDto>> Steps =>
     [
-        new("CreatePackages", ImportPassScope.WholeSet, CreatePackages),
+        new("CreatePackages", ImportPassScope.Chunked, CreatePackages),
     ];
 
     private async Task<Result> CreatePackages(ImportPassContext<ImportReleasePackageDto> context, CancellationToken cancellationToken)

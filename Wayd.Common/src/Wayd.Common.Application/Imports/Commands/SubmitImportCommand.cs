@@ -104,7 +104,26 @@ public sealed class SubmitImportCommandHandler(
             return Result.Failure<Guid>(
                 $"This file has {command.Rows.Count:N0} rows; a {definition.DisplayName} preflight checks at most {definition.PreflightMaxRows:N0} at a time. Split the file to check it.");
 
-        var rows = BuildRows(command.Rows, definition);
+        var keyed = KeyRows(command.Rows);
+
+        // Caught here rather than at SaveChanges, where the storage bound would surface as a 500 naming a
+        // column instead of the row the caller has to fix.
+        var overlong = keyed.FindIndex(r => r.ImportId.Length > ImportProcessRow.MaxImportIdLength);
+        if (overlong >= 0)
+            return Result.Failure<Guid>(
+                $"Row {overlong + 1} has an import id of {keyed[overlong].ImportId.Length} characters; the most allowed is {ImportProcessRow.MaxImportIdLength}.");
+
+        // Ahead of grouping, because a definition that groups by the whole file looks rows up by import id.
+        var duplicate = keyed.GroupBy(r => r.ImportId, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (duplicate is not null)
+            return Result.Failure<Guid>($"The import id '{duplicate.Key}' appears on more than one row; each must be unique within a file.");
+
+        var groupKeys = definition.GroupKeysOf(keyed);
+        var rows = keyed
+            .Select((row, index) => ImportProcessRow.Create(row.ImportId, index + 1, row.Payload, groupKeys[index]))
+            .ToList();
 
         if (definition.Atomicity == ImportAtomicity.PerGroup)
         {
@@ -119,19 +138,6 @@ public sealed class SubmitImportCommandHandler(
                 return Result.Failure<Guid>(
                     $"Row {overlongGroup.RowNumber} names a {definition.GroupNoun} longer than {ImportProcessRow.MaxGroupKeyLength} characters.");
         }
-
-        // Caught here rather than at SaveChanges, where the storage bound would surface as a 500 naming a
-        // column instead of the row the caller has to fix.
-        var overlong = rows.Find(r => r.ImportId.Length > ImportProcessRow.MaxImportIdLength);
-        if (overlong is not null)
-            return Result.Failure<Guid>(
-                $"Row {overlong.RowNumber} has an import id of {overlong.ImportId.Length} characters; the most allowed is {ImportProcessRow.MaxImportIdLength}.");
-
-        var duplicate = rows.GroupBy(r => r.ImportId, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault(g => g.Count() > 1);
-
-        if (duplicate is not null)
-            return Result.Failure<Guid>($"The import id '{duplicate.Key}' appears on more than one row; each must be unique within a file.");
 
         var process = command.ValidateOnly
             ? ImportProcess.CreatePreflight(definition.Key, _currentUser.GetUserId(), command.SubmissionGroupId, rows, _dateTimeProvider.Now)
@@ -154,11 +160,6 @@ public sealed class SubmitImportCommandHandler(
     /// Falls back to the row's position when the caller supplied no key, so a hand-authored file works
     /// without one while a tool still gets to choose its own.
     /// </summary>
-    private static List<ImportProcessRow> BuildRows(IReadOnlyList<SubmittedImportRow> submitted, IImportDefinition definition) =>
-        [.. submitted.Select((row, index) =>
-            ImportProcessRow.Create(
-                SubmittedImportRow.KeyFor(row.ImportId, index + 1),
-                index + 1,
-                row.Payload,
-                definition.GroupKeyOf(row.Payload)))];
+    private static List<(string ImportId, string Payload)> KeyRows(IReadOnlyList<SubmittedImportRow> submitted) =>
+        [.. submitted.Select((row, index) => (SubmittedImportRow.KeyFor(row.ImportId, index + 1), row.Payload))];
 }

@@ -146,11 +146,12 @@ public sealed class DeploymentImportDefinitionTests
         new(versionId, packageId, environmentName, artifactId, Started, outcome, completedAt, rolledBackAt, reason);
 
     [Fact]
-    public void Definition_IsAtomic()
+    public void Definition_AppliesRowByRow()
     {
-        // Arrange & Act & Assert
-        _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
+        // Arrange & Act & Assert — nothing groups deployments, and a rejected row stages nothing
+        _definition.Atomicity.Should().Be(ImportAtomicity.PerRow);
         _definition.Passes.Single().Name.Should().Be("CreateDeployments");
+        _definition.Passes.Single().Scope.Should().Be(ImportPassScope.Chunked);
     }
 
     [Fact]

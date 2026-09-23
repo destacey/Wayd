@@ -75,8 +75,18 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
     /// </summary>
     protected virtual string? GroupKey(TRow row) => null;
 
-    public string? GroupKeyOf(string payload) =>
-        Atomicity == ImportAtomicity.PerGroup ? GroupKey(_serializer.Deserialize<TRow>(payload)) : null;
+    /// <summary>
+    /// Every row's group at once, for an import whose group cannot be read off one row alone — a product's
+    /// is the root of its tree, which only the rest of the file can say. Returns one key per row, in order.
+    /// Defaults to <see cref="GroupKey"/> row by row.
+    /// </summary>
+    protected virtual IReadOnlyList<string?> GroupKeys(IReadOnlyList<(string ImportId, TRow Row)> rows) =>
+        [.. rows.Select(r => GroupKey(r.Row))];
+
+    public IReadOnlyList<string?> GroupKeysOf(IReadOnlyList<(string ImportId, string Payload)> rows) =>
+        Atomicity == ImportAtomicity.PerGroup
+            ? GroupKeys([.. rows.Select(r => (r.ImportId, _serializer.Deserialize<TRow>(r.Payload)))])
+            : [.. rows.Select(_ => (string?)null)];
 
     /// <summary>Serializes a parsed row for storage at submission time.</summary>
     public string SerializeRow(TRow row) => _serializer.Serialize(row);

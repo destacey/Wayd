@@ -34,10 +34,11 @@ public interface IImportDefinition
     string? GroupNoun { get; }
 
     /// <summary>
-    /// The group a stored row belongs to, for a <see cref="ImportAtomicity.PerGroup"/> import. Null for any
-    /// other import. Read from the payload once, at submission, and kept on the row.
+    /// The group each stored row belongs to, in the order given, for a <see cref="ImportAtomicity.PerGroup"/>
+    /// import. Nulls for any other import. Read from the whole file once, at submission, and kept on the row.
     /// </summary>
-    string? GroupKeyOf(string payload);
+    /// <param name="rows">Each row's import id — after the positional fallback — and its payload.</param>
+    IReadOnlyList<string?> GroupKeysOf(IReadOnlyList<(string ImportId, string Payload)> rows);
 
     /// <summary>Above this many rows the submission is rejected outright, before anything is persisted.</summary>
     int MaxRows { get; }

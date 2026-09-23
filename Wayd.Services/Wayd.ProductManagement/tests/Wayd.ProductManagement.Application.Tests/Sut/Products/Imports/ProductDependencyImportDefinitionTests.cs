@@ -82,14 +82,14 @@ public sealed class ProductDependencyImportDefinitionTests
     }
 
     [Fact]
-    public void GroupKeyOf_IsTheProductThatHoldsTheLink()
+    public void GroupKeysOf_IsTheProductThatHoldsTheLink()
     {
         // Arrange
         var storefront = SeedProduct();
         var identity = SeedProduct();
 
         // Act
-        var key = _definition.GroupKeyOf(_definition.SerializeRow(Link(storefront, identity)));
+        var key = _definition.GroupKeysOf([("r1", _definition.SerializeRow(Link(storefront, identity)))]).Single();
 
         // Assert
         key.Should().Be(storefront.Id.ToString());

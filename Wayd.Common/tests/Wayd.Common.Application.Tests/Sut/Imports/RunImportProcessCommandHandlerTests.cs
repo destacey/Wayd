@@ -510,11 +510,12 @@ public sealed class RunImportProcessCommandHandlerTests : IDisposable
     {
         var definition = new TestGroupedImportDefinition(new ImportPayloadSerializer()) { ChunkSizeOverride = chunkSize };
 
-        var processRows = rows.Select((r, i) =>
-        {
-            var payload = definition.SerializeRow(new TestGroupedImportRow(r.Group, r.ShouldFail));
-            return ImportProcessRow.Create(r.ImportId, i + 1, payload, definition.GroupKeyOf(payload));
-        });
+        var payloads = rows
+            .Select(r => (r.ImportId, Payload: definition.SerializeRow(new TestGroupedImportRow(r.Group, r.ShouldFail))))
+            .ToList();
+        var groupKeys = definition.GroupKeysOf(payloads);
+
+        var processRows = payloads.Select((r, i) => ImportProcessRow.Create(r.ImportId, i + 1, r.Payload, groupKeys[i]));
 
         var process = preflight
             ? ImportProcess.CreatePreflight(definition.Key, "user-1", null, processRows, _now)

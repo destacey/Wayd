@@ -63,15 +63,15 @@ public sealed class PpmFinalizationImportDefinitionTests : IDisposable
     }
 
     [Fact]
-    public void GroupKeyOf_IsTheRecordTheRowCloses_TypeIncluded()
+    public void GroupKeysOf_IsTheRecordTheRowCloses_TypeIncluded()
     {
         // Arrange — a program and a portfolio with the same id would otherwise share a group
         var id = Guid.CreateVersion7();
 
         // Act
-        var programKey = _definition.GroupKeyOf(_definition.SerializeRow(ProgramRow(id, FinalizePpmItemStatus.Completed)));
-        var portfolioKey = _definition.GroupKeyOf(
-            _definition.SerializeRow(new FinalizePpmItemDto(FinalizePpmItemType.Portfolio, id, FinalizePpmItemStatus.Closed, _end)));
+        var programKey = _definition.GroupKeysOf([("r1", _definition.SerializeRow(ProgramRow(id, FinalizePpmItemStatus.Completed)))]).Single();
+        var portfolioKey = _definition.GroupKeysOf(
+            [("r1", _definition.SerializeRow(new FinalizePpmItemDto(FinalizePpmItemType.Portfolio, id, FinalizePpmItemStatus.Closed, _end)))]).Single();
 
         // Assert
         programKey.Should().Be($"Program|{id}");

@@ -175,7 +175,11 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
         _db.ImportProcesses.Single().Rows.Select(r => r.ImportId).Should().Equal("1", "2", "3");
     }
 
-    private async Task<CSharpFunctionalExtensions.Result<Guid>> SubmitGrouped(params string[] groups)
+    private Task<CSharpFunctionalExtensions.Result<Guid>> SubmitGrouped(params string[] groups) =>
+        SubmitGroupedRows([.. groups.Select((g, i) => ((string?)$"r{i + 1}", new TestGroupedImportRow(g)))]);
+
+    private async Task<CSharpFunctionalExtensions.Result<Guid>> SubmitGroupedRows(
+        params (string? ImportId, TestGroupedImportRow Row)[] submitted)
     {
         var definition = new TestGroupedImportDefinition(new ImportPayloadSerializer());
         var clock = new Mock<IDateTimeProvider>();
@@ -187,11 +191,41 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
             _db, new ImportDefinitionRegistry([definition]), currentUser.Object, clock.Object, _dispatcher.Object,
             NullLogger<SubmitImportCommandHandler>.Instance);
 
-        var rows = groups
-            .Select((g, i) => new SubmittedImportRow($"r{i + 1}", definition.SerializeRow(new TestGroupedImportRow(g))))
+        var rows = submitted
+            .Select(r => new SubmittedImportRow(r.ImportId, definition.SerializeRow(r.Row)))
             .ToList();
 
         return await handler.Handle(new SubmitImportCommand(definition.Key, rows), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Handle_RejectsARepeatedImportId_BeforeADefinitionGroupsByImportId()
+    {
+        // Act — a definition grouping by the whole file looks rows up by import id, so it must never be
+        // handed a file in which one id names two rows
+        var result = await SubmitGroupedRows(
+            ("r1", new TestGroupedImportRow("a")),
+            ("r1", new TestGroupedImportRow("b")));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The import id 'r1' appears on more than one row; each must be unique within a file.");
+        _db.ImportProcesses.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_GroupsFromTheWholeFile_ForAnImportWhoseGroupOneRowCannotSay()
+    {
+        // Act — the last row joins the group of a row named by its positional import id, which only exists
+        // once the fallback has been applied to the file
+        await SubmitGroupedRows(
+            ("r1", new TestGroupedImportRow("a")),
+            (null, new TestGroupedImportRow("b")),
+            ("r3", new TestGroupedImportRow("ignored", SameGroupAs: "2")));
+
+        // Assert
+        _db.ImportProcesses.Single().Rows.OrderBy(r => r.RowNumber).Select(r => r.GroupKey)
+            .Should().Equal("a", "b", "b");
     }
 
     [Fact]

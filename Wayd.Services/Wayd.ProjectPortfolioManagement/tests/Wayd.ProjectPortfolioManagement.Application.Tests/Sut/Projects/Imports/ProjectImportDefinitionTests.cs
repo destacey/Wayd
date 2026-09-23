@@ -77,13 +77,13 @@ public sealed class ProjectImportDefinitionTests : IDisposable
     }
 
     [Fact]
-    public void GroupKeyOf_IsTheProjectKey_Canonically()
+    public void GroupKeysOf_IsTheProjectKey_Canonically()
     {
         // Arrange — ProjectKey trims and uppercases, so a file spelling a key either way groups the same
         var row = Row("apollo ", ProjectStatus.Proposed, start: null);
 
         // Act
-        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+        var key = _definition.GroupKeysOf([("r1", _definition.SerializeRow(row))]).Single();
 
         // Assert
         key.Should().Be("APOLLO");

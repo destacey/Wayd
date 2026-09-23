@@ -83,13 +83,13 @@ public sealed class ProjectStageImportDefinitionTests : IDisposable
     }
 
     [Fact]
-    public void GroupKeyOf_IsTheProjectKey()
+    public void GroupKeysOf_IsTheProjectKey()
     {
         // Arrange
         var row = Row(StageName, TaskStatus.Completed);
 
         // Act
-        var key = _definition.GroupKeyOf(_definition.SerializeRow(row));
+        var key = _definition.GroupKeysOf([("r1", _definition.SerializeRow(row))]).Single();
 
         // Assert
         key.Should().Be(ProjectKeyValue);

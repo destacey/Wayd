@@ -167,6 +167,30 @@ export const THRESHOLD_GROUPS: ThresholdGroup[] = [
   },
 ]
 
+/**
+ * The rules between thresholds that BacklogHealthThresholdsValidator enforces.
+ * Checked before applying: the API would reject the pair, and a rejected
+ * report has no thresholds to show.
+ */
+export const thresholdConflicts = (t: BacklogHealthThresholds): string[] => {
+  const conflicts: string[] = []
+  if (t.unhealthyPercent < t.atRiskPercent)
+    conflicts.push('Unhealthy % must not be below At Risk %.')
+  if (t.runwayAtRiskWeeks < t.runwayUnhealthyWeeks)
+    conflicts.push(
+      'Runway At Risk weeks must not be below Runway Unhealthy weeks.',
+    )
+  if (t.runwayTooLongWeeks <= t.runwayAtRiskWeeks)
+    conflicts.push(
+      'Runway At Risk above must be longer than Runway At Risk below.',
+    )
+  if (t.netFlowUnhealthy < t.netFlowAtRisk)
+    conflicts.push('Net flow Unhealthy must not be below Net flow At Risk.')
+  if (t.wipLoadUnhealthy < t.wipLoadAtRisk)
+    conflicts.push('WIP load Unhealthy must not be below WIP load At Risk.')
+  return conflicts
+}
+
 const THRESHOLD_KEYS: ThresholdKey[] = THRESHOLD_GROUPS.flatMap((g) =>
   g.fields.map((f) => f.key),
 )

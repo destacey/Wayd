@@ -115,6 +115,25 @@ describe('BacklogHealthSettingsPopover', () => {
     expect(screen.getByText('Custom thresholds')).toBeInTheDocument()
   })
 
+  it('will not apply thresholds the API would reject', async () => {
+    const onChange = jest.fn()
+    render(
+      <BacklogHealthSettingsPopover
+        settings={{ thresholds: {} }}
+        effective={effective}
+        onChange={onChange}
+      />,
+    )
+
+    await openPopover()
+    await changeInput('Unhealthy at', '5')
+
+    expect(
+      screen.getByText('Unhealthy % must not be below At Risk %.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled()
+  })
+
   it('is disabled until a report has loaded', () => {
     render(
       <BacklogHealthSettingsPopover

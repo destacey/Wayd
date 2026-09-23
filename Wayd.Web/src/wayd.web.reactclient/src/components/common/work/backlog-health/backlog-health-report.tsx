@@ -1,7 +1,16 @@
 'use client'
 
 import { InfoCircleOutlined } from '@ant-design/icons'
-import { Alert, Flex, Space, Table, Tag, Tooltip, Typography } from 'antd'
+import {
+  Alert,
+  Button,
+  Flex,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import { FC, ReactNode, useState } from 'react'
@@ -10,6 +19,7 @@ import {
   TeamBacklogHealthDto,
 } from '@/src/services/wayd-api'
 import { useGetTeamBacklogHealthQuery } from '@/src/store/features/organizations/team-api'
+import { isApiError } from '@/src/utils/problem-details'
 import { healthCheckTagColor } from '../../health-check/health-check-utils'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import BacklogHealthGrid from './backlog-health-grid'
@@ -20,6 +30,10 @@ import {
   formatCheckValue,
   isMeasureCheck,
 } from './backlog-health-formatting'
+import {
+  EMPTY_BACKLOG_HEALTH_SETTINGS,
+  hasOverrides,
+} from './backlog-health-settings'
 import BacklogHealthSettingsPopover from './backlog-health-settings-popover'
 import { useBacklogHealthSettings } from './use-backlog-health-settings'
 
@@ -74,7 +88,13 @@ export interface BacklogHealthReportViewProps {
   settings: ReactNode
   /** Column layout persistence key for the hosting page (see WaydGridProps). */
   persistStateKey?: string
+  /** Returns the report to the default thresholds; offered when it fails to load. */
+  onReset?: () => void
 }
+
+/** The API's validation messages, when the request was rejected as invalid. */
+const validationMessages = (error: unknown): string[] =>
+  isApiError(error) && error.errors ? Object.values(error.errors).flat() : []
 
 export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
   health,
@@ -83,6 +103,7 @@ export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
   refetch,
   settings,
   persistStateKey,
+  onReset,
 }) => {
   const [selectedCheck, setSelectedCheck] = useState<BacklogHealthCheck>()
 
@@ -137,6 +158,25 @@ export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
         <Alert
           type="error"
           title="The backlog health report could not be loaded."
+          description={
+            validationMessages(error).length > 0 && (
+              <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+                {validationMessages(error).map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            )
+          }
+          // The failing request may be using thresholds the viewer saved, and
+          // the thresholds control needs a loaded report to open, so the way
+          // back to the defaults is offered here too.
+          action={
+            onReset && (
+              <Button size="small" onClick={onReset}>
+                Reset to defaults
+              </Button>
+            )
+          }
           showIcon
         />
       ) : (
@@ -163,9 +203,9 @@ export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
               style={{ display: 'block', marginBottom: 16 }}
             >
               {`History ${dayjs(health.from).format('MMM D, YYYY')} – ${dayjs(health.to).format('MMM D, YYYY')}: ${health.itemsCompleted} completed, ${health.itemsCreated} created. Readiness checks look at the top ${health.readinessWindowWorkItems} work items.`}
-              {health.agingWipDays !== undefined &&
+              {health.agingWipDays != null &&
                 ` Aging beyond ${Number(health.agingWipDays.toFixed(1))} days.`}
-              {health.oversizedStoryPoints !== undefined &&
+              {health.oversizedStoryPoints != null &&
                 ` Oversized above ${health.oversizedStoryPoints} points.`}
             </Text>
           )}
@@ -237,6 +277,11 @@ export const BacklogHealthReport: FC<{ teamCode: string }> = ({ teamCode }) => {
       error={error}
       refetch={refetch}
       persistStateKey="team-backlog-health"
+      onReset={
+        hasOverrides(settings)
+          ? () => setSettings(EMPTY_BACKLOG_HEALTH_SETTINGS)
+          : undefined
+      }
       settings={
         <BacklogHealthSettingsPopover
           settings={settings}

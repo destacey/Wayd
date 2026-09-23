@@ -52,7 +52,7 @@ export const formatCheckValue = (check: BacklogHealthCheckDto): string => {
     case BacklogHealthCheck.Runway:
       return `${round(check.value ?? 0, 1)} weeks`
     case BacklogHealthCheck.NetFlow:
-      return check.value === undefined
+      return check.value == null
         ? 'Nothing completed'
         : `${round(check.value, 2)} created per completed`
     case BacklogHealthCheck.WipLoad:
@@ -65,6 +65,9 @@ export const formatCheckValue = (check: BacklogHealthCheckDto): string => {
 /**
  * What a check looks for and where it draws the line, in the values the
  * report was graded with — so a changed threshold shows in its explanation.
+ *
+ * The API sends a missing value as null, not undefined, so absence is tested
+ * with `== null`.
  */
 export const describeCheck = (
   check: BacklogHealthCheck,
@@ -73,7 +76,7 @@ export const describeCheck = (
   const t = health.thresholds
   const window = `the top ${health.readinessWindowWorkItems} ranked work items`
   const byShare = `At Risk at ${t.atRiskPercent}% flagged, Unhealthy at ${t.unhealthyPercent}%.`
-  const needsHistory = 'Needs at least 10 completed work items in the history.'
+  const needsHistory = `Needs at least ${health.minimumItemsCompleted} completed work items in the history.`
 
   switch (check) {
     case BacklogHealthCheck.Runway:
@@ -81,19 +84,19 @@ export const describeCheck = (
     case BacklogHealthCheck.NetFlow:
       return `Work items created per work item completed over the last ${health.lookbackDays} days. At Risk above ${t.netFlowAtRisk}, Unhealthy above ${t.netFlowUnhealthy}.`
     case BacklogHealthCheck.WipLoad:
-      return `Active work items per team member${health.memberCount ? ` (${health.memberCount} members)` : ''}. At Risk above ${t.wipLoadAtRisk}, Unhealthy above ${t.wipLoadUnhealthy}.`
+      return `Active work items per active team member, whatever their role${health.memberCount ? ` (${health.memberCount} members)` : ''}. At Risk above ${t.wipLoadAtRisk}, Unhealthy above ${t.wipLoadUnhealthy}.`
     case BacklogHealthCheck.Stale:
-      return `Work items not modified in the last ${t.staleDays} days. ${byShare}`
+      return `Work items not modified for ${t.staleDays} days or more. ${byShare}`
     case BacklogHealthCheck.OldProposed:
-      return `Proposed work items created more than ${t.oldProposedDays} days ago. ${byShare}`
+      return `Proposed work items created ${t.oldProposedDays} or more days ago. ${byShare}`
     case BacklogHealthCheck.AgingWip:
-      return health.agingWipDays === undefined
+      return health.agingWipDays == null
         ? `Active work items open longer than the team's ${t.agingWipPercentile}th percentile cycle time. ${needsHistory}`
         : `Active work items open longer than ${round(health.agingWipDays, 1)} days, the team's ${t.agingWipPercentile}th percentile cycle time. ${byShare}`
     case BacklogHealthCheck.MissingStoryPoints:
       return `Work items among ${window} without an estimate. ${byShare}`
     case BacklogHealthCheck.Oversized:
-      return health.oversizedStoryPoints === undefined
+      return health.oversizedStoryPoints == null
         ? `Work items among ${window} estimated above the team's ${t.oversizedPercentile}th percentile. ${needsHistory}`
         : `Work items among ${window} estimated above ${health.oversizedStoryPoints} points, the team's ${t.oversizedPercentile}th percentile. ${byShare}`
     case BacklogHealthCheck.NoParent:

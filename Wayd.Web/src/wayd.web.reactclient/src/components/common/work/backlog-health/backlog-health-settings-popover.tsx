@@ -18,6 +18,7 @@ import {
   THRESHOLD_GROUPS,
   ThresholdKey,
   hasOverrides,
+  thresholdConflicts,
 } from './backlog-health-settings'
 
 const { Text } = Typography
@@ -79,6 +80,8 @@ const BacklogHealthSettingsPopover: FC<BacklogHealthSettingsPopoverProps> = ({
     setOpen(false)
   }
 
+  const conflicts = draft ? thresholdConflicts(draft.thresholds) : []
+
   const setThreshold = (key: ThresholdKey, value: number | null) => {
     if (value === null || !draft) return
     setDraft({ ...draft, thresholds: { ...draft.thresholds, [key]: value } })
@@ -128,11 +131,16 @@ const BacklogHealthSettingsPopover: FC<BacklogHealthSettingsPopoverProps> = ({
           ))}
         </Flex>
       ))}
+      {conflicts.map((conflict) => (
+        <Text key={conflict} type="danger">
+          {conflict}
+        </Text>
+      ))}
       <Flex justify="end" gap="small" style={{ marginTop: 8 }}>
         <Button onClick={reset} disabled={!hasOverrides(settings)}>
           Reset to defaults
         </Button>
-        <Button type="primary" onClick={apply}>
+        <Button type="primary" onClick={apply} disabled={conflicts.length > 0}>
           Apply
         </Button>
       </Flex>

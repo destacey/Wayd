@@ -168,4 +168,46 @@ describe('BacklogHealthReportView', () => {
     ).toBeInTheDocument()
     expect(screen.queryByTestId('grid')).not.toBeInTheDocument()
   })
+
+  it('shows why thresholds were rejected and offers a way back to the defaults', () => {
+    const onReset = jest.fn()
+    render(
+      <BacklogHealthReportView
+        isLoading={false}
+        error={{
+          status: 422,
+          errors: {
+            'Thresholds.UnhealthyPercent': [
+              'The Unhealthy percent must not be below the At Risk percent.',
+            ],
+          },
+        }}
+        refetch={jest.fn()}
+        settings={null}
+        onReset={onReset}
+      />,
+    )
+
+    expect(
+      screen.getByText(
+        'The Unhealthy percent must not be below the At Risk percent.',
+      ),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }))
+    expect(onReset).toHaveBeenCalled()
+  })
+
+  it('renders a team without enough history, whose limits the API sends as null', () => {
+    const health = {
+      ...createHealth(),
+      agingWipDays: null,
+      oversizedStoryPoints: null,
+      memberCount: null,
+    } as unknown as TeamBacklogHealthDto
+
+    renderView(health)
+
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.queryByText(/null/)).not.toBeInTheDocument()
+  })
 })

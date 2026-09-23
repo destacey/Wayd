@@ -33,9 +33,12 @@ describe('formatCheckValue', () => {
   })
 
   it('says when net flow has nothing completed to compare with', () => {
-    expect(formatCheckValue(check(BacklogHealthCheck.NetFlow))).toBe(
-      'Nothing completed',
-    )
+    // The API sends the missing ratio as null.
+    const noRatio = check(BacklogHealthCheck.NetFlow, {
+      value: null as unknown as undefined,
+    })
+
+    expect(formatCheckValue(noRatio)).toBe('Nothing completed')
   })
 
   it('shows WIP load per member', () => {
@@ -78,7 +81,9 @@ describe('describeCheck', () => {
     lookbackDays: 60,
     readinessWindowWorkItems: 8,
     memberCount: 4,
+    minimumItemsCompleted: 10,
     agingWipDays: 12.34,
+    oversizedStoryPoints: null,
     thresholds: {
       staleDays: 45,
       atRiskPercent: 10,
@@ -93,7 +98,25 @@ describe('describeCheck', () => {
 
   it('states the threshold a work item check flags against and how it is graded', () => {
     expect(describeCheck(BacklogHealthCheck.Stale, health)).toBe(
-      'Work items not modified in the last 45 days. At Risk at 10% flagged, Unhealthy at 25%.',
+      'Work items not modified for 45 days or more. At Risk at 10% flagged, Unhealthy at 25%.',
+    )
+  })
+
+  it('describes every check when the API sent its limits as null', () => {
+    const noHistory = {
+      ...health,
+      agingWipDays: null,
+      oversizedStoryPoints: null,
+      memberCount: null,
+    } as unknown as TeamBacklogHealthDto
+
+    for (const id of Object.values(BacklogHealthCheck).filter(
+      (v): v is BacklogHealthCheck => typeof v === 'number',
+    )) {
+      expect(describeCheck(id, noHistory)).not.toContain('null')
+    }
+    expect(describeCheck(BacklogHealthCheck.AgingWip, noHistory)).toContain(
+      'Needs at least 10 completed work items',
     )
   })
 

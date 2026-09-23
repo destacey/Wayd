@@ -1,7 +1,9 @@
+import { BacklogHealthThresholds } from '@/src/services/wayd-api'
 import {
   EMPTY_BACKLOG_HEALTH_SETTINGS,
   hasOverrides,
   settingsFromSearchParams,
+  thresholdConflicts,
   writeSettingsToSearchParams,
 } from './backlog-health-settings'
 
@@ -66,6 +68,46 @@ describe('writeSettingsToSearchParams', () => {
     )
 
     expect(next.toString()).toBe('section=backlog-health')
+  })
+})
+
+describe('thresholdConflicts', () => {
+  const valid: BacklogHealthThresholds = {
+    staleDays: 90,
+    oldProposedDays: 180,
+    agingWipPercentile: 85,
+    oversizedPercentile: 85,
+    readinessWindowWeeks: 4,
+    readinessFallbackItems: 20,
+    atRiskPercent: 10,
+    unhealthyPercent: 25,
+    runwayAtRiskWeeks: 4,
+    runwayUnhealthyWeeks: 2,
+    runwayTooLongWeeks: 26,
+    netFlowAtRisk: 1.2,
+    netFlowUnhealthy: 1.5,
+    wipLoadAtRisk: 1.5,
+    wipLoadUnhealthy: 2,
+  }
+
+  it('finds none in the defaults', () => {
+    expect(thresholdConflicts(valid)).toEqual([])
+  })
+
+  it('allows an Unhealthy limit equal to its At Risk limit', () => {
+    expect(
+      thresholdConflicts({ ...valid, atRiskPercent: 20, unhealthyPercent: 20 }),
+    ).toEqual([])
+  })
+
+  it.each<[string, Partial<BacklogHealthThresholds>]>([
+    ['percent', { atRiskPercent: 30, unhealthyPercent: 20 }],
+    ['runway', { runwayAtRiskWeeks: 1, runwayUnhealthyWeeks: 2 }],
+    ['runway too long', { runwayTooLongWeeks: 4 }],
+    ['net flow', { netFlowUnhealthy: 1.1 }],
+    ['WIP load', { wipLoadUnhealthy: 1 }],
+  ])('reports a %s pair the API would reject', (_, change) => {
+    expect(thresholdConflicts({ ...valid, ...change })).toHaveLength(1)
   })
 })
 

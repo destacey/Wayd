@@ -59,7 +59,8 @@ public sealed class GetTeamThroughputForecastQueryHandler(
             return Result.Failure<TeamThroughputForecastDto?>($"The target date must be within {MonteCarloForecaster.DefaultHorizonDays} days.");
 
         var sample = (await new TeamThroughputSampler(_workDbContext).Sample([team.Id], from, to, cancellationToken))[team.Id];
-        var backlog = await new ForecastNetworkLoader(_workDbContext).TeamBacklog(team.Id, cancellationToken);
+        var loader = new ForecastNetworkLoader(_workDbContext);
+        var backlog = await loader.TeamBacklog(team.Id, cancellationToken);
 
         var forecastTeam = new ForecastTeamDto { Team = team, From = from, To = to, ItemsCompleted = (int)sample.Total };
 
@@ -79,6 +80,11 @@ public sealed class GetTeamThroughputForecastQueryHandler(
 
         var forecast = MonteCarloForecaster.ForecastThroughput(sample, days, new Random(ForecastSeed.From(team.Id, start)));
 
+        var counts = _confidenceLevels.ToDictionary(p => p, p => (int)forecast.AmountAtConfidence(p));
+        var through = await loader.Entries(
+            [.. counts.Values.Where(n => n > 0 && n <= backlog.Count).Select(n => backlog[n - 1]).Distinct()],
+            cancellationToken);
+
         return new TeamThroughputForecastDto
         {
             Outcome = SimpleNavigationDto.FromEnum(WorkItemForecastOutcome.Forecast),
@@ -89,15 +95,11 @@ public sealed class GetTeamThroughputForecastQueryHandler(
             Days = days,
             BacklogWorkItems = backlog.Count,
             Trials = forecast.Trials,
-            Percentiles = [.. _confidenceLevels.Select(p =>
+            Percentiles = [.. _confidenceLevels.Select(p => new ThroughputPercentileDto
             {
-                var workItems = (int)forecast.AmountAtConfidence(p);
-                return new ThroughputPercentileDto
-                {
-                    Confidence = p,
-                    WorkItems = workItems,
-                    ThroughWorkItem = workItems > 0 && workItems <= backlog.Count ? ToDto(backlog[workItems - 1]) : null,
-                };
+                Confidence = p,
+                WorkItems = counts[p],
+                ThroughWorkItem = counts[p] > 0 && counts[p] <= backlog.Count ? ToDto(through[backlog[counts[p] - 1]]) : null,
             })],
             Histogram = [.. forecast.TrialTotals
                 .GroupBy(total => (int)total)

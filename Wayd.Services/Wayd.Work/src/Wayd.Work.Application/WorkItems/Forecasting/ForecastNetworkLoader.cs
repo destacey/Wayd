@@ -123,10 +123,10 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
         var positions = new Dictionary<Guid, int>();
         foreach (var backlog in backlogs.Values)
         {
-            foreach (var (index, item) in backlog.Index())
+            foreach (var (index, id) in backlog.Index())
             {
-                if (wanted.Contains(item.Id))
-                    positions[item.Id] = index + 1;
+                if (wanted.Contains(id))
+                    positions[id] = index + 1;
             }
         }
 
@@ -134,22 +134,38 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
     }
 
     /// <summary>
-    /// A team's open backlog items, first-ranked first.
+    /// The ids of a team's open backlog items, first-ranked first.
     /// </summary>
-    public async Task<List<ForecastBacklogEntry>> TeamBacklog(Guid teamId, CancellationToken cancellationToken) =>
+    public async Task<List<Guid>> TeamBacklog(Guid teamId, CancellationToken cancellationToken) =>
         (await OrderedBacklogs([teamId], cancellationToken)).GetValueOrDefault(teamId) ?? [];
+
+    public async Task<Dictionary<Guid, ForecastBacklogEntry>> Entries(IReadOnlyCollection<Guid> workItemIds, CancellationToken cancellationToken)
+    {
+        if (workItemIds.Count == 0)
+            return [];
+
+        return await _workDbContext.WorkItems
+            .Where(w => workItemIds.Contains(w.Id))
+            .Select(w => new ForecastBacklogEntry(w.Id, w.Key, w.Title))
+            .ToDictionaryAsync(e => e.Id, cancellationToken);
+    }
 
     /// <summary>
     /// The same backlogs GetTeamBacklogQuery shows, in the same order. Items the source system
     /// has not ranked share one high rank, so they fall behind every ranked item, oldest first.
     /// </summary>
-    private async Task<Dictionary<Guid, List<ForecastBacklogEntry>>> OrderedBacklogs(List<Guid> teamIds, CancellationToken cancellationToken)
+    /// <remarks>
+    /// Ordered here rather than in SQL: SQL Server orders GUIDs differently from .NET, so the
+    /// tie-break would disagree with positions computed elsewhere. Only the ordering columns are
+    /// read — a team's backlog can run to thousands of items.
+    /// </remarks>
+    private async Task<Dictionary<Guid, List<Guid>>> OrderedBacklogs(List<Guid> teamIds, CancellationToken cancellationToken)
     {
         var items = await _workDbContext.WorkItems
             .Where(w => w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value))
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
             .Where(w => w.StatusCategory == WorkStatusCategory.Proposed || w.StatusCategory == WorkStatusCategory.Active)
-            .Select(w => new { w.Id, w.Key, w.Title, TeamId = w.TeamId!.Value, w.StackRank, w.Created })
+            .Select(w => new { w.Id, TeamId = w.TeamId!.Value, w.StackRank, w.Created })
             .ToListAsync(cancellationToken);
 
         return items
@@ -157,7 +173,7 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
             .ToDictionary(
                 g => g.Key,
                 g => g.OrderBy(w => w.StackRank).ThenBy(w => w.Created).ThenBy(w => w.Id)
-                    .Select(w => new ForecastBacklogEntry(w.Id, w.Key, w.Title))
+                    .Select(w => w.Id)
                     .ToList());
     }
 }

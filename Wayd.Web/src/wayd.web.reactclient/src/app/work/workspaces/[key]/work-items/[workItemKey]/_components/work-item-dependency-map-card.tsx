@@ -16,7 +16,15 @@ import {
   WorkItemDetailsDto,
 } from '@/src/services/wayd-api'
 import { toFileName } from '@/src/utils'
-import { Card, Flex, Segmented, Skeleton, theme, Typography } from 'antd'
+import {
+  Button,
+  Card,
+  Flex,
+  Segmented,
+  Skeleton,
+  theme,
+  Typography,
+} from 'antd'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { useExpandedWorkItemDependencies } from './use-expanded-work-item-dependencies'
@@ -79,6 +87,8 @@ const WorkItemDependencyMapCard = ({
   const [filter, setFilter] = useWorkItemDependencyFilter()
   const [state, setState] = useDependencyMapExpansions(workItem.id)
   const [opened, setOpened] = useState<WorkItemMapRef | null>(null)
+  // Separate from the item, so the drawer stays mounted, and slides out, after it closes.
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const expandedIds = FAR_SIDES.flatMap((side) => Object.keys(state[side]))
   const loaded = useExpandedWorkItemDependencies(dependencies, expandedIds)
@@ -120,9 +130,11 @@ const WorkItemDependencyMapCard = ({
 
   // Whether the card shows is decided on every link, not the filtered ones: a work item whose links are
   // all done would otherwise lose the map, and with it the control that would turn the filter back off.
+  // The same two types toWorkItemLinks draws.
   const hasDependencies =
-    buildWorkItemDependencyNeighbourhood({ workItem: subject, dependencies })
-      .edges.length > 0
+    dependencies?.some(
+      (d) => d.type === 'Predecessor' || d.type === 'Successor',
+    ) ?? false
   const neighbourhood = build(state)
 
   if (!hasDependencies) return null
@@ -152,8 +164,12 @@ const WorkItemDependencyMapCard = ({
       ...Object.values(loaded).flatMap((entry) => entry.dependencies ?? []),
     ].map(({ dependency }) => [dependency.id, dependency]),
   )
-  const onOpenRecord = ({ recordId }: { recordId: string }) =>
-    setOpened(drawable.get(recordId) ?? null)
+  const onOpenRecord = ({ recordId }: { recordId: string }) => {
+    const item = drawable.get(recordId)
+    if (!item) return
+    setOpened(item)
+    setDrawerOpen(true)
+  }
 
   // Health in the colours its tags use everywhere else, so a red line and a red Unhealthy tag mean the
   // same thing. Done is dashed and faint: it is history, not a risk, and must not compete with them.
@@ -177,7 +193,18 @@ const WorkItemDependencyMapCard = ({
     <Card
       size="small"
       title="Dependency Map"
-      extra={onViewAll && <a onClick={onViewAll}>View all</a>}
+      extra={
+        onViewAll && (
+          <Button
+            type="link"
+            size="small"
+            onClick={onViewAll}
+            styles={{ root: { padding: 0 } }}
+          >
+            View all
+          </Button>
+        )
+      }
     >
       <DependencyMap
         nodes={neighbourhood.nodes}
@@ -220,8 +247,8 @@ const WorkItemDependencyMapCard = ({
         <WorkItemDrawer
           workspaceKey={opened.workspaceKey}
           workItemKey={opened.key}
-          open
-          onClose={() => setOpened(null)}
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
         />
       )}
     </Card>

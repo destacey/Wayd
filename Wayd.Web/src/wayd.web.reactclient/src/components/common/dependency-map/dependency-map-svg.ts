@@ -153,7 +153,7 @@ export const renderDependencyMapSvg = ({
     })
     .join('')
 
-  const products = nodes
+  const records = nodes
     .filter((node) => !node.isGroup)
     .map((node) => {
       const lines = wrapToWidth(
@@ -209,7 +209,7 @@ export const renderDependencyMapSvg = ({
     `<rect width="${width}" height="${height}" fill="${theme.background}" />` +
     groups +
     paths +
-    products +
+    records +
     `</svg>`
 
   return { svg, width, height }

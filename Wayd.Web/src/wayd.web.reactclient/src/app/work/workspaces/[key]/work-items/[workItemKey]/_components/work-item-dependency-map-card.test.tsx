@@ -68,17 +68,20 @@ jest.mock('./work-item-drawer', () => ({
   default: ({
     workspaceKey,
     workItemKey,
+    open,
     onClose,
   }: {
     workspaceKey: string
     workItemKey: string
+    open: boolean
     onClose: () => void
-  }) => (
-    <div data-testid="work-item-drawer">
-      {`${workspaceKey}/${workItemKey}`}
-      <button onClick={onClose}>Close drawer</button>
-    </div>
-  ),
+  }) =>
+    open && (
+      <div data-testid="work-item-drawer">
+        {`${workspaceKey}/${workItemKey}`}
+        <button onClick={onClose}>Close drawer</button>
+      </div>
+    ),
 }))
 
 jest.mock('./use-expanded-work-item-dependencies', () => ({

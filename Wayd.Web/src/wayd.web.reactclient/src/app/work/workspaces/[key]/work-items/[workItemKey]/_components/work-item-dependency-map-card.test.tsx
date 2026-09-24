@@ -165,6 +165,7 @@ describe('WorkItemDependencyMapCard', () => {
 
   it('draws every link, each in a style the card defines', async () => {
     // Arrange
+    session[WORK_ITEM_DEPENDENCY_FILTER_KEY] = 'all'
     renderCard([
       dependency('d1', auth, 'Predecessor', 'To Do', 'Unhealthy'),
       dependency('d2', refund, 'Successor', 'Done'),
@@ -179,6 +180,9 @@ describe('WorkItemDependencyMapCard', () => {
   })
 
   it('keys every line style in the legend', async () => {
+    // Arrange
+    session[WORK_ITEM_DEPENDENCY_FILTER_KEY] = 'all'
+
     // Act
     renderCard([dependency('d1', auth, 'Predecessor')])
 
@@ -195,7 +199,20 @@ describe('WorkItemDependencyMapCard', () => {
     }
   })
 
-  it('draws only open links, and remembers the choice for the session', async () => {
+  it('draws only open links by default', async () => {
+    // Act
+    renderCard([
+      dependency('open', auth, 'Predecessor'),
+      dependency('done', refund, 'Successor', 'Done'),
+    ])
+
+    // Assert
+    expect(await screen.findByTestId('map-edges')).toHaveTextContent(/^open$/)
+    // A key to a line the map does not draw would only mislead.
+    expect(screen.queryByText('Done')).not.toBeInTheDocument()
+  })
+
+  it('draws done links once asked, and remembers the choice for the session', async () => {
     // Arrange
     const user = userEvent.setup()
     renderCard([
@@ -204,19 +221,15 @@ describe('WorkItemDependencyMapCard', () => {
     ])
 
     // Act
-    await user.click(await screen.findByText('Open only'))
+    await user.click(await screen.findByText('All'))
 
     // Assert
-    expect(screen.getByTestId('map-edges')).toHaveTextContent(/^open$/)
-    expect(session[WORK_ITEM_DEPENDENCY_FILTER_KEY]).toBe('open')
-    // A key to a line the map no longer draws would only mislead.
-    expect(screen.queryByText('Done')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map-edges')).toHaveTextContent('done,open')
+    expect(session[WORK_ITEM_DEPENDENCY_FILTER_KEY]).toBe('all')
+    expect(screen.getByText('Done')).toBeInTheDocument()
   })
 
   it('keeps the map, and its filter, when every link is done', async () => {
-    // Arrange
-    session[WORK_ITEM_DEPENDENCY_FILTER_KEY] = 'open'
-
     // Act
     renderCard([dependency('done', auth, 'Predecessor', 'Done')])
 

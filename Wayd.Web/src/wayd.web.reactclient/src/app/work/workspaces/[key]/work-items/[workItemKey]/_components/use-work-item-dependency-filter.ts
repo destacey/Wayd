@@ -7,25 +7,26 @@ export const WORK_ITEM_DEPENDENCY_FILTER_KEY =
   'wayd.workItemDependencyMap.filter'
 
 const read = (): WorkItemDependencyFilter => {
-  if (typeof window === 'undefined') return 'all'
+  if (typeof window === 'undefined') return 'open'
 
   try {
     return window.sessionStorage.getItem(WORK_ITEM_DEPENDENCY_FILTER_KEY) ===
-      'open'
-      ? 'open'
-      : 'all'
+      'all'
+      ? 'all'
+      : 'open'
   } catch {
-    return 'all'
+    return 'open'
   }
 }
 
 /**
- * The map's filter, kept for the browser session.
+ * The map's filter, kept for the browser session. Open only by default: a done link no longer holds
+ * anything up, and a long history of them buries the few that still do.
  *
  * Session rather than local storage: someone chasing what blocks a release moves from item to item and
- * should not have to reapply it on each, but a filter that outlives the session is one a reader forgets is
- * on and reads a partial map as the whole one. Storage can throw or be empty (private windows, blocked
- * site data), in which case the map shows everything.
+ * should not have to reapply it on each, but a choice that outlives the session is one a reader forgets
+ * they made. Storage can throw or be empty (private windows, blocked site data), in which case the map
+ * falls back to the default.
  */
 export const useWorkItemDependencyFilter = (): [
   WorkItemDependencyFilter,

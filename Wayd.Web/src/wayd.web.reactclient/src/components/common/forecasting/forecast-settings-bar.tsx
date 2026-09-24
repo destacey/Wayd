@@ -3,6 +3,7 @@
 import { DatePicker, Flex, Select, Switch, Typography } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC } from 'react'
+import WaydTooltip from '../wayd-tooltip'
 
 const { Text } = Typography
 
@@ -17,11 +18,13 @@ export interface ForecastSettings {
   /** Unset uses the record's own date, when it has one. */
   targetDate?: Dayjs
   ignoreDependencies: boolean
+  startedWorkFirst: boolean
 }
 
 export const DEFAULT_FORECAST_SETTINGS: ForecastSettings = {
   lookbackDays: DEFAULT_LOOKBACK_DAYS,
   ignoreDependencies: false,
+  startedWorkFirst: true,
 }
 
 export interface ForecastSettingsBarProps {
@@ -82,10 +85,27 @@ const ForecastSettingsBar: FC<ForecastSettingsBarProps> = ({
         style={{ width: 140 }}
       />
     </Flex>
+    <Flex gap="small" align="center">
+      <Switch
+        size="small"
+        aria-label="Started work first"
+        checked={value.startedWorkFirst}
+        onChange={(startedWorkFirst) =>
+          onChange({ ...value, startedWorkFirst })
+        }
+      />
+      <WaydTooltip
+        title="Count in-progress items ahead of unstarted ones: teams usually finish what they have started before starting more."
+        helpCursor
+      >
+        <Text>Started work first</Text>
+      </WaydTooltip>
+    </Flex>
     {showIgnoreDependencies && (
       <Flex gap="small" align="center">
         <Switch
           size="small"
+          aria-label="Ignore dependencies"
           checked={value.ignoreDependencies}
           onChange={(ignoreDependencies) =>
             onChange({ ...value, ignoreDependencies })

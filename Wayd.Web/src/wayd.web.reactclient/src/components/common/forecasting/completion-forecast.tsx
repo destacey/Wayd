@@ -168,6 +168,10 @@ const CompletionForecast: FC<CompletionForecastProps> = ({
             {forecast.remainingWorkItems === 1 ? 'item' : 'items'}
             {forecast.backlogPosition !== undefined &&
               `, at position ${forecast.backlogPosition} in its team's backlog`}
+            , with backlogs in{' '}
+            {forecast.startedWorkFirst
+              ? 'rank order after started work'
+              : 'rank order'}
             .
           </Text>
           {forecast.teams.map((t) => (

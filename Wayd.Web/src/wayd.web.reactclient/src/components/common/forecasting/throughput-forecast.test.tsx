@@ -38,6 +38,7 @@ const createForecast = (
     days: 14,
     backlogWorkItems: 8,
     lookbackDays: 90,
+    startedWorkFirst: true,
     trials: 100,
     percentiles: [
       {

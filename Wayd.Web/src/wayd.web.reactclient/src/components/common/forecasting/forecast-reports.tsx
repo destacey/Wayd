@@ -23,6 +23,7 @@ import ThroughputForecast from './throughput-forecast'
 const toRequest = (settings: ForecastSettings): ForecastOptionsRequest => ({
   lookbackDays: settings.lookbackDays,
   ignoreDependencies: settings.ignoreDependencies,
+  startedWorkFirst: settings.startedWorkFirst,
 })
 
 const ReportLayout: FC<{ settings: ReactNode; children: ReactNode }> = ({
@@ -142,6 +143,7 @@ export const TeamThroughputForecastReport: FC<{ teamCode: string }> = ({
     teamIdOrCode: teamCode,
     targetDate: settings.targetDate!.format('YYYY-MM-DD'),
     lookbackDays: settings.lookbackDays,
+    startedWorkFirst: settings.startedWorkFirst,
   })
 
   return (

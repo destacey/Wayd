@@ -49,6 +49,7 @@ const createForecast = (
     ],
     lookbackDays: 90,
     ignoreDependencies: false,
+    startedWorkFirst: true,
     trials: 100,
     trialsBeyondHorizon: 0,
     percentiles: [
@@ -197,6 +198,19 @@ describe('CompletionForecast', () => {
 
     expect(
       screen.getByText(/from the last 60 days of history/),
+    ).toBeInTheDocument()
+  })
+
+  it('states the backlog order it used', () => {
+    render(
+      <CompletionForecast
+        forecast={createForecast({ startedWorkFirst: false })}
+        isLoading={false}
+      />,
+    )
+
+    expect(
+      screen.getByText(/with backlogs in rank order\./),
     ).toBeInTheDocument()
   })
 

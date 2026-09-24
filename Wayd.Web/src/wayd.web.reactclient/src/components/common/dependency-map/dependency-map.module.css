@@ -43,7 +43,7 @@
   border-color: var(--ant-color-primary-border-hover);
 }
 
-/* Outlined without the subject's fill: it belongs to the reader's path out, not to the product the map
+/* Outlined without the subject's fill: it belongs to the reader's path out, not to the record the map
    is about. */
 .expanded {
   border-color: var(--ant-color-primary);
@@ -68,7 +68,7 @@
   translate: 50% 0;
 }
 
-/* A note about the column rather than a product in it: dashed and unfilled, like a placeholder. */
+/* A note about the column rather than a record in it: dashed and unfilled, like a placeholder. */
 .overflow {
   box-sizing: border-box;
   width: 180px;
@@ -114,7 +114,7 @@
   cursor: pointer;
 }
 
-/* Product names are long and mostly differ at the end ("Onboarding Fulfillment Mobile"), so a single
+/* Names are long and mostly differ at the end ("Onboarding Fulfillment Mobile"), so a single
    truncated line would leave several nodes reading the same. Two lines, then ellipsis. */
 .label {
   display: -webkit-box;
@@ -141,6 +141,16 @@
 .link:hover,
 .groupLabel:hover {
   color: var(--ant-color-primary);
+}
+
+/* A record with nowhere to go: centred like a link, without inviting a click. */
+.plain {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
 }
 
 /* The dots are decoration; hiding them keeps a read-only map from inviting a drag that does nothing. */

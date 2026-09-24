@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/src/hooks'
 import { productsApi } from '@/src/store/features/product-management/products-api'
 import { shallowEqual } from 'react-redux'
 import { useEffect } from 'react'
-import type { DependencyExpansion } from './dependency-neighbourhood'
+import type { ProductDependencyExpansion } from './product-dependency-neighbourhood'
 
 const argsFor = (productId: string) => ({
   idOrKey: productId,
@@ -38,7 +38,10 @@ const selectorFor = (productId: string) => {
  */
 export const useExpandedProductDependencies = (
   productIds: string[],
-): Record<string, Pick<DependencyExpansion, 'dependencies' | 'isError'>> => {
+): Record<
+  string,
+  Pick<ProductDependencyExpansion, 'dependencies' | 'isError'>
+> => {
   const dispatch = useAppDispatch()
   const subscribed = [...new Set(productIds)].sort().join('|')
 

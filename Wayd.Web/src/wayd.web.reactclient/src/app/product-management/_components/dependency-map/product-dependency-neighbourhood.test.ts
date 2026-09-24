@@ -5,17 +5,19 @@ import {
   ProductDependencyDto,
 } from '@/src/services/wayd-api'
 import {
-  buildDependencyNeighbourhood,
   DEPENDENCY_HANDLES,
   groupNodeId,
   overflowNodeId,
   sideNodeId,
-  type BuildDependencyNeighbourhoodOptions,
-  type DependencyExpansions,
   type DependencyNode,
   type DependencyNodeData,
   type DependencyNodeSide,
-} from './dependency-neighbourhood'
+} from '@/src/components/common/dependency-map/dependency-neighbourhood'
+import {
+  buildProductDependencyNeighbourhood,
+  type BuildProductDependencyNeighbourhoodOptions,
+  type ProductDependencyExpansions,
+} from './product-dependency-neighbourhood'
 
 const PRODUCT_ID = '11111111-1111-1111-1111-111111111111'
 
@@ -47,7 +49,7 @@ const dependencies = (
 ): ProductDependenciesDto => ({ dependsOn, usedBy })
 
 const build = (deps: ProductDependenciesDto | undefined, maxPerSide?: number) =>
-  buildDependencyNeighbourhood({
+  buildProductDependencyNeighbourhood({
     productId: PRODUCT_ID,
     productName: 'Storefront',
     productKey: 7,
@@ -65,7 +67,7 @@ const inside = (
     .filter((node) => node.parentId === groupNodeId(side, productId))
     .map((node) => node.id)
 
-describe('buildDependencyNeighbourhood', () => {
+describe('buildProductDependencyNeighbourhood', () => {
   it('centres the product and puts each side in its own column', () => {
     // Arrange
     const self = nav(PRODUCT_ID, 'Storefront', 7)
@@ -80,12 +82,10 @@ describe('buildDependencyNeighbourhood', () => {
     // Assert
     const byId = Object.fromEntries(graph.nodes.map((n) => [n.id, n]))
     expect(byId[PRODUCT_ID].data.side).toBe('center')
-    expect(byId['dependsOn:22'].data.side).toBe('dependsOn')
-    expect(byId['usedBy:33'].data.side).toBe('usedBy')
-    expect(byId['usedBy:33'].position.x).toBeLessThan(
-      byId[PRODUCT_ID].position.x,
-    )
-    expect(byId['dependsOn:22'].position.x).toBeGreaterThan(
+    expect(byId['right:22'].data.side).toBe('right')
+    expect(byId['left:33'].data.side).toBe('left')
+    expect(byId['left:33'].position.x).toBeLessThan(byId[PRODUCT_ID].position.x)
+    expect(byId['right:22'].position.x).toBeGreaterThan(
       byId[PRODUCT_ID].position.x,
     )
   })
@@ -107,11 +107,11 @@ describe('buildDependencyNeighbourhood', () => {
       expect.objectContaining({
         id: 'a',
         source: PRODUCT_ID,
-        target: 'dependsOn:22',
+        target: 'right:22',
       }),
       expect.objectContaining({
         id: 'b',
-        source: 'usedBy:33',
+        source: 'left:33',
         target: PRODUCT_ID,
       }),
     ])
@@ -151,10 +151,10 @@ describe('buildDependencyNeighbourhood', () => {
     )
 
     // Assert
-    expect(graph.nodes.filter((n) => n.id === 'dependsOn:22')).toHaveLength(1)
+    expect(graph.nodes.filter((n) => n.id === 'right:22')).toHaveLength(1)
     expect(graph.edges.map((e) => [e.source, e.target])).toEqual([
-      ['44', 'dependsOn:22'],
-      ['55', 'dependsOn:22'],
+      ['44', 'right:22'],
+      ['55', 'right:22'],
     ])
   })
 
@@ -213,8 +213,8 @@ describe('buildDependencyNeighbourhood', () => {
 
     // Assert
     // A row carrying only "Identity Service" cannot say whose service it is; the box does.
-    expect(inside(graph.nodes, '20', 'dependsOn')).toEqual(['dependsOn:22'])
-    expect(graph.edges[0].target).toBe('dependsOn:22')
+    expect(inside(graph.nodes, '20', 'right')).toEqual(['right:22'])
+    expect(graph.edges[0].target).toBe('right:22')
   })
 
   it('draws one box for two services of the same platform', () => {
@@ -236,12 +236,9 @@ describe('buildDependencyNeighbourhood', () => {
 
     // Assert
     expect(
-      graph.nodes.filter((n) => n.id === groupNodeId('dependsOn', '20')),
+      graph.nodes.filter((n) => n.id === groupNodeId('right', '20')),
     ).toHaveLength(1)
-    expect(inside(graph.nodes, '20', 'dependsOn')).toEqual([
-      'dependsOn:22',
-      'dependsOn:23',
-    ])
+    expect(inside(graph.nodes, '20', 'right')).toEqual(['right:22', 'right:23'])
   })
 
   it('sizes a box to hold everything inside it', () => {
@@ -323,13 +320,13 @@ describe('buildDependencyNeighbourhood', () => {
     // Assert
     // The product is not in its own path, so an untrimmed chain built its parents inside its box —
     // reading as though Trust & Safety Reporting were part of Accounts API rather than the reverse.
-    expect(graph.nodes.filter((n) => n.type === 'productGroup')).toHaveLength(0)
+    expect(graph.nodes.filter((n) => n.type === 'recordGroup')).toHaveLength(0)
     expect(graph.nodes.map((n) => n.data.label)).not.toContain(
       'Trust & Safety Reporting',
     )
     expect(graph.edges.map((e) => [e.source, e.target])).toEqual([
-      [PRODUCT_ID, 'dependsOn:22'],
-      ['usedBy:33', PRODUCT_ID],
+      [PRODUCT_ID, 'right:22'],
+      ['left:33', PRODUCT_ID],
     ])
   })
 
@@ -344,8 +341,8 @@ describe('buildDependencyNeighbourhood', () => {
 
     // Assert
     // A box around the subject alone adds a frame that says nothing.
-    expect(graph.nodes.some((n) => n.type === 'productGroup')).toBe(false)
-    expect(graph.hasContainedProducts).toBe(false)
+    expect(graph.nodes.some((n) => n.type === 'recordGroup')).toBe(false)
+    expect(graph.hasContainedRecords).toBe(false)
   })
 
   it('draws a product on both sides of a cycle in each column', () => {
@@ -363,8 +360,8 @@ describe('buildDependencyNeighbourhood', () => {
     // only sign that the product is on the wrong side — and would drag its whole box across with it.
     expect(graph.nodes.map((n) => n.id)).toEqual(
       expect.arrayContaining([
-        sideNodeId('dependsOn', '22'),
-        sideNodeId('usedBy', '22'),
+        sideNodeId('right', '22'),
+        sideNodeId('left', '22'),
       ]),
     )
     expect(graph.edges).toHaveLength(2)
@@ -382,13 +379,11 @@ describe('buildDependencyNeighbourhood', () => {
 
     // Assert
     expect(
-      graph.nodes.filter(
-        (n) => n.type === 'product' && n.data.side === 'dependsOn',
-      ),
+      graph.nodes.filter((n) => n.type === 'record' && n.data.side === 'right'),
     ).toHaveLength(3)
     expect(graph.hiddenCount).toBe(2)
     expect(
-      graph.nodes.find((n) => n.id === overflowNodeId('dependsOn', null))?.data,
+      graph.nodes.find((n) => n.id === overflowNodeId('right', null))?.data,
     ).toEqual(expect.objectContaining({ label: '+2 more', count: 2 }))
   })
 
@@ -434,8 +429,8 @@ describe('buildDependencyNeighbourhood', () => {
       edges: [],
       hiddenCount: 0,
       height: 0,
-      hasContainedProducts: false,
-      placed: { usedBy: [], dependsOn: [] },
+      hasContainedRecords: false,
+      placed: { left: [], right: [] },
     })
   })
 
@@ -461,12 +456,12 @@ describe('buildDependencyNeighbourhood', () => {
   })
 })
 
-describe('buildDependencyNeighbourhood with only hard links', () => {
+describe('buildProductDependencyNeighbourhood with only hard links', () => {
   const self = nav(PRODUCT_ID, 'Storefront', 7)
   const soft = { strength: DependencyStrength.Soft }
 
   const buildHard = (deps: ProductDependenciesDto, maxPerSide?: number) =>
-    buildDependencyNeighbourhood({
+    buildProductDependencyNeighbourhood({
       productId: PRODUCT_ID,
       productName: 'Storefront',
       productKey: 7,
@@ -491,7 +486,7 @@ describe('buildDependencyNeighbourhood with only hard links', () => {
 
     // Assert
     expect(graph.edges.map((e) => e.id)).toEqual(['a'])
-    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:22'])
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'right:22'])
   })
 
   it('drops a box once nothing inside it is left', () => {
@@ -517,8 +512,8 @@ describe('buildDependencyNeighbourhood with only hard links', () => {
 
     // Assert
     // An empty box would read as a product the subject relies on, with no line to say how.
-    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:24'])
-    expect(graph.hasContainedProducts).toBe(false)
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'right:24'])
+    expect(graph.hasContainedRecords).toBe(false)
   })
 
   it('keeps a box for the one service still relied on hard, without its soft sibling', () => {
@@ -539,7 +534,7 @@ describe('buildDependencyNeighbourhood with only hard links', () => {
     )
 
     // Assert
-    expect(inside(graph.nodes, '20', 'dependsOn')).toEqual(['dependsOn:22'])
+    expect(inside(graph.nodes, '20', 'right')).toEqual(['right:22'])
   })
 
   it('caps after filtering, so soft links cannot crowd out hard ones', () => {
@@ -574,7 +569,7 @@ describe('buildDependencyNeighbourhood with only hard links', () => {
     )
 
     // Assert
-    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'dependsOn:22'])
+    expect(graph.nodes.map((n) => n.id)).toEqual([PRODUCT_ID, 'right:22'])
   })
 
   it('returns an empty graph when every link is soft', () => {
@@ -589,22 +584,22 @@ describe('buildDependencyNeighbourhood with only hard links', () => {
   })
 })
 
-describe('buildDependencyNeighbourhood with expansions', () => {
+describe('buildProductDependencyNeighbourhood with expansions', () => {
   const self = nav(PRODUCT_ID, 'Storefront', 7)
   const identity = nav('22', 'Identity Service', 12)
   const kiosk = nav('33', 'Storefront Kiosk', 14)
 
-  const noExpansions = (): DependencyExpansions => ({
-    usedBy: {},
-    dependsOn: {},
+  const noExpansions = (): ProductDependencyExpansions => ({
+    left: {},
+    right: {},
   })
 
   const buildWith = (
     deps: ProductDependenciesDto,
-    expansions: DependencyExpansions,
-    options: Partial<BuildDependencyNeighbourhoodOptions> = {},
+    expansions: ProductDependencyExpansions,
+    options: Partial<BuildProductDependencyNeighbourhoodOptions> = {},
   ) =>
-    buildDependencyNeighbourhood({
+    buildProductDependencyNeighbourhood({
       productId: PRODUCT_ID,
       productName: 'Storefront',
       productKey: 7,
@@ -620,7 +615,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Arrange
     const directory = nav('40', 'Directory', 20)
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies([link('x', identity, directory)]),
     }
 
@@ -632,11 +627,11 @@ describe('buildDependencyNeighbourhood with expansions', () => {
 
     // Assert
     expect(graph.edges.map((e) => [e.source, e.target])).toEqual([
-      [PRODUCT_ID, 'dependsOn:22'],
-      ['dependsOn:22', 'dependsOn:40'],
+      [PRODUCT_ID, 'right:22'],
+      ['right:22', 'right:40'],
     ])
-    expect(node(graph, 'dependsOn:40')!.position.x).toBeGreaterThan(
-      node(graph, 'dependsOn:22')!.position.x,
+    expect(node(graph, 'right:40')!.position.x).toBeGreaterThan(
+      node(graph, 'right:22')!.position.x,
     )
   })
 
@@ -644,7 +639,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Arrange
     const signage = nav('50', 'Signage', 21)
     const expansions = noExpansions()
-    expansions.usedBy['33'] = {
+    expansions.left['33'] = {
       dependencies: dependencies([], [link('y', signage, kiosk)]),
     }
 
@@ -657,18 +652,18 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Assert
     // What relies on a consumer: an outage reaches it through the consumer, so it sits further left.
     expect(graph.edges.map((e) => [e.source, e.target])).toEqual([
-      ['usedBy:33', PRODUCT_ID],
-      ['usedBy:50', 'usedBy:33'],
+      ['left:33', PRODUCT_ID],
+      ['left:50', 'left:33'],
     ])
-    expect(node(graph, 'usedBy:50')!.position.x).toBeLessThan(
-      node(graph, 'usedBy:33')!.position.x,
+    expect(node(graph, 'left:50')!.position.x).toBeLessThan(
+      node(graph, 'left:33')!.position.x,
     )
   })
 
   it('never turns an expansion back toward the centre', () => {
     // Arrange — the provider's response also lists what relies on it.
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies(
         [],
         [link('z', nav('60', 'Admin Console', 30), identity)],
@@ -683,7 +678,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
 
     // Assert
     expect(graph.edges.map((e) => e.id)).toEqual(['a'])
-    expect(node(graph, 'dependsOn:22')!.data.expansion).toBe('empty')
+    expect(node(graph, 'right:22')!.data.expansion).toBe('empty')
   })
 
   it('draws only the links the expanded product holds itself', () => {
@@ -691,7 +686,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     const platform = nav('20', 'Core Platform', 30)
     const tokens = nav('24', 'Token Service', 31)
     const expansions = noExpansions()
-    expansions.dependsOn['20'] = {
+    expansions.right['20'] = {
       dependencies: dependencies([
         link('own', platform, nav('70', 'Cloud Hosting', 40)),
         link('child', tokens, nav('71', 'Key Vault', 41), {
@@ -708,14 +703,14 @@ describe('buildDependencyNeighbourhood with expansions', () => {
 
     // Assert
     expect(graph.edges.map((e) => e.id)).toEqual(['a', 'own'])
-    expect(node(graph, 'dependsOn:71')).toBeUndefined()
+    expect(node(graph, 'right:71')).toBeUndefined()
   })
 
   it('leaves out links back into the subject, which the centre already draws', () => {
     // Arrange — the provider depends on something beneath the subject.
     const web = nav('44', 'Storefront Web', 9)
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies([
         link('back', identity, web, { dependsOnProductPath: [self] }),
       ]),
@@ -735,7 +730,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Arrange — the subject depends on both, and one of them depends on the other.
     const directory = nav('40', 'Directory', 20)
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies([link('x', identity, directory)]),
     }
 
@@ -747,9 +742,9 @@ describe('buildDependencyNeighbourhood with expansions', () => {
 
     // Assert
     // The link between them is drawn within the column rather than moving Directory further out.
-    expect(graph.nodes.filter((n) => n.id === 'dependsOn:40')).toHaveLength(1)
-    expect(node(graph, 'dependsOn:40')!.position.x).toBe(
-      node(graph, 'dependsOn:22')!.position.x,
+    expect(graph.nodes.filter((n) => n.id === 'right:40')).toHaveLength(1)
+    expect(node(graph, 'right:40')!.position.x).toBe(
+      node(graph, 'right:22')!.position.x,
     )
     expect(graph.edges.map((e) => e.id)).toEqual(['a', 'b', 'x'])
   })
@@ -758,7 +753,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Arrange — the subject depends on both, and one of them depends on the other.
     const directory = nav('40', 'Directory', 20)
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies([link('x', identity, directory)]),
     }
 
@@ -783,10 +778,10 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     const gateway = nav('30', 'Gateway', 19)
     const directory = nav('40', 'Directory', 20)
     const expansions = noExpansions()
-    expansions.dependsOn['30'] = {
+    expansions.right['30'] = {
       dependencies: dependencies([link('x', gateway, directory)]),
     }
-    expansions.dependsOn['40'] = {
+    expansions.right['40'] = {
       dependencies: dependencies([link('y', directory, identity)]),
     }
 
@@ -800,8 +795,8 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Leaving the right side would loop the curve across the whole map and through every box on the way.
     expect(graph.edges.find((e) => e.id === 'y')).toEqual(
       expect.objectContaining({
-        source: 'dependsOn:40',
-        target: 'dependsOn:22',
+        source: 'right:40',
+        target: 'right:22',
         sourceHandle: DEPENDENCY_HANDLES.outLeft,
         targetHandle: DEPENDENCY_HANDLES.inRight,
       }),
@@ -818,7 +813,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Arrange — two consumers of the subject, one of which uses the other.
     const signage = nav('50', 'Signage', 21)
     const expansions = noExpansions()
-    expansions.usedBy['33'] = {
+    expansions.left['33'] = {
       dependencies: dependencies([], [link('y', signage, kiosk)]),
     }
 
@@ -842,8 +837,8 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     const directory = nav('40', 'Directory', 20)
     const shared = link('x', identity, directory)
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = { dependencies: dependencies([shared]) }
-    expansions.dependsOn['40'] = {
+    expansions.right['22'] = { dependencies: dependencies([shared]) }
+    expansions.right['40'] = {
       dependencies: dependencies([], [shared]),
     }
 
@@ -864,9 +859,9 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     const three = nav('83', 'Three', 83)
     const four = nav('84', 'Four', 84)
     const expansions = noExpansions()
-    expansions.dependsOn['82'] = {}
-    expansions.dependsOn['83'] = { isError: true }
-    expansions.dependsOn['84'] = {
+    expansions.right['82'] = {}
+    expansions.right['83'] = { isError: true }
+    expansions.right['84'] = {
       dependencies: dependencies([link('x', four, nav('90', 'Beyond', 90))]),
     }
 
@@ -883,7 +878,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
 
     // Assert
     const status = (id: string) =>
-      (node(graph, `dependsOn:${id}`)!.data as DependencyNodeData).expansion
+      (node(graph, `right:${id}`)!.data as DependencyNodeData).expansion
     expect(status('81')).toBe('collapsed')
     expect(status('82')).toBe('loading')
     expect(status('83')).toBe('error')
@@ -898,7 +893,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
   it('caps an expansion, and names whose products the count is of', () => {
     // Arrange
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies(
         Array.from({ length: 4 }, (_, i) =>
           link(`x${i}`, identity, nav(`p${i}`, `Provider ${i}`, 100 + i)),
@@ -914,7 +909,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     )
 
     // Assert
-    expect(node(graph, overflowNodeId('dependsOn', '22'))!.data).toEqual(
+    expect(node(graph, overflowNodeId('right', '22'))!.data).toEqual(
       expect.objectContaining({
         label: '+1 more for Identity Service',
         ownerId: '22',
@@ -928,7 +923,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
   it('draws the rest of an expansion once asked', () => {
     // Arrange
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       showAll: true,
       dependencies: dependencies(
         Array.from({ length: 4 }, (_, i) =>
@@ -946,7 +941,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
 
     // Assert
     expect(graph.edges).toHaveLength(5)
-    expect(node(graph, overflowNodeId('dependsOn', '22'))).toBeUndefined()
+    expect(node(graph, overflowNodeId('right', '22'))).toBeUndefined()
   })
 
   it("draws the rest of the subject's own column once asked", () => {
@@ -958,7 +953,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Act
     const graph = buildWith(dependencies(links), noExpansions(), {
       maxPerSide: 3,
-      subjectShowAll: ['dependsOn'],
+      subjectShowAll: ['right'],
     })
 
     // Assert
@@ -970,7 +965,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Arrange — Directory is still in the expansion state, but nothing on the map leads to it.
     const directory = nav('40', 'Directory', 20)
     const expansions = noExpansions()
-    expansions.dependsOn['40'] = {
+    expansions.right['40'] = {
       dependencies: dependencies([link('y', directory, nav('41', 'LDAP', 21))]),
     }
 
@@ -981,14 +976,14 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     )
 
     // Assert
-    expect(graph.placed.dependsOn).toEqual(['22'])
+    expect(graph.placed.right).toEqual(['22'])
     expect(graph.edges.map((e) => e.id)).toEqual(['a'])
   })
 
   it('applies the strength filter to an expansion too', () => {
     // Arrange
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies([
         link('x', identity, nav('40', 'Directory', 20), {
           strength: DependencyStrength.Soft,
@@ -1006,7 +1001,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     // Assert
     expect(graph.edges.map((e) => e.id)).toEqual(['a'])
     expect(
-      (node(graph, 'dependsOn:22')!.data as DependencyNodeData).expansion,
+      (node(graph, 'right:22')!.data as DependencyNodeData).expansion,
     ).toBe('empty')
   })
 
@@ -1015,10 +1010,10 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     const upper = nav('91', 'Aardvark', 91)
     const lower = nav('92', 'Zebra', 92)
     const expansions = noExpansions()
-    expansions.dependsOn['91'] = {
+    expansions.right['91'] = {
       dependencies: dependencies([link('u', upper, nav('93', 'Zulu', 93))]),
     }
-    expansions.dependsOn['92'] = {
+    expansions.right['92'] = {
       dependencies: dependencies([link('l', lower, nav('94', 'Alpha', 94))]),
     }
 
@@ -1029,8 +1024,8 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     )
 
     // Assert
-    expect(node(graph, 'dependsOn:93')!.position.y).toBeLessThan(
-      node(graph, 'dependsOn:94')!.position.y,
+    expect(node(graph, 'right:93')!.position.y).toBeLessThan(
+      node(graph, 'right:94')!.position.y,
     )
   })
 
@@ -1039,7 +1034,7 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     const platform = nav('20', 'Core Platform', 30)
     const search = nav('23', 'Search Service', 13)
     const expansions = noExpansions()
-    expansions.dependsOn['22'] = {
+    expansions.right['22'] = {
       dependencies: dependencies([
         link('x', identity, search, { dependsOnProductPath: [platform] }),
       ]),
@@ -1054,12 +1049,12 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     )
 
     // Assert
-    expect(inside(graph.nodes, '20', 'dependsOn')).toEqual(['dependsOn:22'])
+    expect(inside(graph.nodes, '20', 'right')).toEqual(['right:22'])
     expect(
       graph.nodes
-        .filter((n) => n.parentId === groupNodeId('dependsOn', '20', 2))
+        .filter((n) => n.parentId === groupNodeId('right', '20', 2))
         .map((n) => n.id),
-    ).toEqual(['dependsOn:23'])
+    ).toEqual(['right:23'])
   })
 
   it('explains the box only when the subject is drawn as one', () => {
@@ -1075,6 +1070,6 @@ describe('buildDependencyNeighbourhood with expansions', () => {
     )
 
     // Assert
-    expect(graph.hasContainedProducts).toBe(false)
+    expect(graph.hasContainedRecords).toBe(false)
   })
 })

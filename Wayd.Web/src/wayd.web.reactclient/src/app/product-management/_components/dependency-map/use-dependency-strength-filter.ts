@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { DependencyStrengthFilter } from './dependency-neighbourhood'
+import type { DependencyStrengthFilter } from './product-dependency-neighbourhood'
 
 export const DEPENDENCY_STRENGTH_FILTER_KEY =
   'wayd.dependencyMap.strengthFilter'

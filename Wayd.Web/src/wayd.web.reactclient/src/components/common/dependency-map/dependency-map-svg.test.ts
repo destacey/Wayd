@@ -1,6 +1,6 @@
-import { DependencyStrength } from '@/src/services/wayd-api'
 import {
   renderDependencyMapSvg,
+  type DependencyEdgeStyle,
   type DependencySvgNode,
   type DependencySvgTheme,
 } from './dependency-map-svg'
@@ -15,11 +15,16 @@ const theme: DependencySvgTheme = {
   groupFill: '#181818',
   groupStroke: '#303030',
   groupText: '#a0a0a0',
-  hardStroke: '#cccccc',
-  softStroke: '#666666',
   fontFamily: 'Segoe UI',
   fontSize: 12,
   borderRadius: 6,
+}
+
+const solid: DependencyEdgeStyle = { stroke: '#cccccc', width: 2 }
+const dashed: DependencyEdgeStyle = {
+  stroke: '#666666',
+  width: 1.5,
+  dashed: true,
 }
 
 const node = (
@@ -101,7 +106,7 @@ describe('renderDependencyMapSvg', () => {
     expect(svg).not.toMatch(/(x|y)="-/)
   })
 
-  it('dashes a soft dependency and leaves a hard one solid', () => {
+  it('dashes an edge whose style asks for it and leaves the rest solid', () => {
     // Arrange
     const nodes = [
       node('a', 'Storefront Web', 0, 0),
@@ -111,15 +116,41 @@ describe('renderDependencyMapSvg', () => {
 
     // Act
     const { svg } = render(nodes, [
-      { source: 'a', target: 'b', strength: DependencyStrength.Hard },
-      { source: 'a', target: 'c', strength: DependencyStrength.Soft },
+      { source: 'a', target: 'b', style: solid },
+      { source: 'a', target: 'c', style: dashed },
     ])
 
     // Assert
-    // Strength is the whole reason the map is worth exporting, so it has to survive the file.
+    // The kind of link is the whole reason the map is worth exporting, so it has to survive the file.
     const paths = edgePaths(svg)
     expect(paths).toHaveLength(2)
     expect(paths.filter((p) => p.includes('stroke-dasharray'))).toHaveLength(1)
+  })
+
+  it('points each edge at an arrowhead in its own colour', () => {
+    // Arrange
+    const nodes = [
+      node('a', 'Storefront Web', 0, 0),
+      node('b', 'Identity Service', 400, 0),
+      node('c', 'Mapping API', 400, 100),
+    ]
+
+    // Act
+    const { svg } = render(nodes, [
+      { source: 'a', target: 'b', style: solid },
+      { source: 'a', target: 'c', style: dashed },
+    ])
+
+    // Assert
+    // A marker's fill is fixed, so a shared arrowhead would paint every edge's tip one colour.
+    const markers = svg.match(/<marker [^>]*>.*?<\/marker>/g) ?? []
+    expect(markers).toHaveLength(2)
+    const [first, second] = edgePaths(svg)
+    const tipOf = (path: string) => path.match(/url\(#([^)]+)\)/)![1]
+    expect(tipOf(first)).not.toBe(tipOf(second))
+    expect(markers.find((m) => m.includes(`id="${tipOf(second)}"`))).toContain(
+      'fill="#666666"',
+    )
   })
 
   it('draws an edge between the facing sides of its two nodes', () => {
@@ -130,9 +161,7 @@ describe('renderDependencyMapSvg', () => {
     ]
 
     // Act
-    const { svg } = render(nodes, [
-      { source: 'a', target: 'b', strength: DependencyStrength.Hard },
-    ])
+    const { svg } = render(nodes, [{ source: 'a', target: 'b', style: solid }])
 
     // Assert
     // Leaves the source's right edge (32 + 180) at its middle (32 + 24) and lands on the target's left.
@@ -153,7 +182,7 @@ describe('renderDependencyMapSvg', () => {
       {
         source: 'b',
         target: 'a',
-        strength: DependencyStrength.Hard,
+        style: solid,
         leavesLeft: true,
         entersRight: true,
       },
@@ -172,7 +201,7 @@ describe('renderDependencyMapSvg', () => {
 
     // Act
     const { svg } = render(nodes, [
-      { source: 'a', target: 'missing', strength: DependencyStrength.Hard },
+      { source: 'a', target: 'missing', style: solid },
     ])
 
     // Assert

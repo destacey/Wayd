@@ -178,7 +178,7 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
             .GroupBy(w => w.TeamId)
             .ToDictionary(
                 g => g.Key,
-                g => g.OrderBy(w => startedWorkFirst && w.StatusCategory != WorkStatusCategory.Active)
+                g => g.OrderBy(w => startedWorkFirst && w.StatusCategory != WorkStatusCategory.Active ? 1 : 0)
                     .ThenBy(w => w.StackRank)
                     .ThenBy(w => w.Created)
                     .ThenBy(w => w.Id)

@@ -305,6 +305,12 @@ fields. **Compare after assignment, never
 against the arguments**: `Name` and `Description` normalise in their setters, so `if (Name == name)` reports
 a change for a caller who passed `"Atlas "` over a stored `"Atlas"`.
 
+**An evented aggregate changes only through events.** Once an aggregate raises any event, every public
+method that changes its state must raise too, and nothing may write its table set-based — `ExecuteUpdate`,
+`ExecuteDelete`, raw SQL, or a data fix in a new migration. `EventCoverageTests` enforces both from the
+`EventedAggregates` list; a deliberate exception goes on its allow-list with the reason — see
+[domain-events.mdx](docs/contributing/domain-events.mdx#an-evented-aggregate-changes-only-through-events).
+
 **A change carries both ends.** The before value is part of the fact, and a consumer must not need an
 earlier event to learn what moved: status changes carry `From*`/`To*`, timeline changes `PreviousDateRange`,
 lifecycle and scoring-model changes the previous id and name. Ledger entries (a health check added, a score

@@ -95,7 +95,7 @@ const ForecastSettingsBar: FC<ForecastSettingsBarProps> = ({
         }
       />
       <WaydTooltip
-        title="Count in-progress items ahead of unstarted ones: teams usually finish what they have started before starting more."
+        title="Count in-progress items ahead of unstarted ones."
         helpCursor
       >
         <Text>Started work first</Text>

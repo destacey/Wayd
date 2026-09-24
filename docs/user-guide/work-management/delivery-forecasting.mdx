@@ -34,6 +34,7 @@ Each report has controls above the results. Nothing is saved: every option start
 | **History** | Last 90 days | Forecast from a shorter window when a team's pace changed recently (a reorganization, the end of a holiday period), or a longer one for a stable team. Choose 30, 60, 90, 120, or 180 days. |
 | **Target date** | The objective's target date (or the planning interval's end), or the project's planned end; none on a work item | Ask "what is our chance by this date?". On the team report, **Forecast through** sets the date to count up to. |
 | **Ignore dependencies** | Off | See the forecast as if nothing waited on its predecessors. Comparing the two dates shows what the dependencies cost. The report is marked as a what-if. |
+| **Started work first** | On | Count active work items ahead of proposed ones, since teams usually finish what they have started. Turn it off to forecast in rank order alone. See [Backlog Position](#backlog-position). |
 
 ## How It Works
 
@@ -45,9 +46,11 @@ The same forecast is returned all day for the same work, so refreshing the page 
 
 ### Backlog Position
 
-A team rarely works on one thing at a time. The forecast for a work item counts **everything ranked ahead of it** in its team's backlog, not just the item itself. A story at position 12 has to wait for the 11 items above it.
+A team rarely works on one thing at a time. The forecast for a work item counts **everything ahead of it** in its team's backlog, not just the item itself. A story at position 12 has to wait for the 11 items above it.
 
-Backlog order is the same as the team's [Backlog](../organizations/index.mdx#backlog): by backlog rank, then by creation date. Work items the source system has not ranked follow every ranked item, oldest first, so every item on the backlog has a position.
+By default, **started work comes first**: active work items count ahead of proposed ones, each in rank order, because a team usually finishes what it has started before starting more. An active item ranked tenth, behind four proposed items, is forecast at position 6. This is why a forecast's position can differ from the team's [Backlog](../organizations/index.mdx#backlog), which lists items by rank alone. Turn off **Started work first** to forecast in that order.
+
+Within each group, and with the option off, items are ordered by backlog rank, then by creation date. Work items the source system has not ranked follow every ranked item, oldest first, so every item on the backlog has a position.
 
 ### Dependencies
 

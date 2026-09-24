@@ -25,6 +25,7 @@ jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
     filters,
     emptyText,
     onToggleExpansion,
+    onOpenRecord,
   }: {
     nodes: DependencyNode[]
     edges: { id: string; data?: { variant: string } }[]
@@ -32,6 +33,7 @@ jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
     filters?: React.ReactNode
     emptyText?: React.ReactNode
     onToggleExpansion?: (side: string, recordId: string) => void
+    onOpenRecord?: (node: DependencyNodeData) => void
   }) => (
     <div data-testid="dependency-map">
       {filters}
@@ -43,15 +45,38 @@ jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
         const data = node.data as DependencyNodeData
         if (node.type !== 'record' || !data.expansion) return null
         return (
-          <button
-            key={node.id}
-            onClick={() => onToggleExpansion?.(data.side, data.recordId)}
-          >
-            {`Toggle ${data.label}`}
-          </button>
+          <span key={node.id}>
+            <button
+              onClick={() => onToggleExpansion?.(data.side, data.recordId)}
+            >
+              {`Toggle ${data.label}`}
+            </button>
+            <button onClick={() => onOpenRecord?.(data)}>
+              {`Open ${data.label}`}
+            </button>
+          </span>
         )
       })}
       {nodes.length === 0 && emptyText}
+    </div>
+  ),
+}))
+
+// The drawer fetches its work item; the card only decides which one it opens.
+jest.mock('./work-item-drawer', () => ({
+  __esModule: true,
+  default: ({
+    workspaceKey,
+    workItemKey,
+    onClose,
+  }: {
+    workspaceKey: string
+    workItemKey: string
+    onClose: () => void
+  }) => (
+    <div data-testid="work-item-drawer">
+      {`${workspaceKey}/${workItemKey}`}
+      <button onClick={onClose}>Close drawer</button>
     </div>
   ),
 }))
@@ -233,6 +258,53 @@ describe('WorkItemDependencyMapCard', () => {
     expect(JSON.parse(session[expansionStorageKey(workItem.id)]).left).toEqual({
       [auth.id]: {},
     })
+  })
+
+  it('opens a linked work item in a drawer, and closes it', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderCard([dependency('d1', auth, 'Predecessor')])
+
+    // Act
+    await user.click(
+      await screen.findByRole('button', { name: 'Open ID-7 · Title ID-7' }),
+    )
+
+    // Assert
+    expect(screen.getByTestId('work-item-drawer')).toHaveTextContent('ID/ID-7')
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Close drawer' }))
+
+    // Assert
+    expect(screen.queryByTestId('work-item-drawer')).not.toBeInTheDocument()
+  })
+
+  it('opens a work item reached only through an expansion', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const keys = item('w-5', 'SEC-2')
+    session[expansionStorageKey(workItem.id)] = JSON.stringify({
+      left: { [auth.id]: {} },
+      right: {},
+    })
+    expanded.mockReturnValue({
+      [auth.id]: {
+        workItem: auth,
+        dependencies: [dependency('beyond', keys, 'Predecessor')],
+      },
+    })
+    renderCard([dependency('d1', auth, 'Predecessor')])
+
+    // Act
+    await user.click(
+      await screen.findByRole('button', { name: 'Open SEC-2 · Title SEC-2' }),
+    )
+
+    // Assert
+    expect(screen.getByTestId('work-item-drawer')).toHaveTextContent(
+      'SEC/SEC-2',
+    )
   })
 
   it('opens the Dependencies section from View all', async () => {

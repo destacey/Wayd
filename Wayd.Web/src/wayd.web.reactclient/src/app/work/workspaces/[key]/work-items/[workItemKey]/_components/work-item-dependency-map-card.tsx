@@ -18,8 +18,10 @@ import {
 import { toFileName } from '@/src/utils'
 import { Card, Flex, Segmented, Skeleton, theme, Typography } from 'antd'
 import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import { useExpandedWorkItemDependencies } from './use-expanded-work-item-dependencies'
 import { useWorkItemDependencyFilter } from './use-work-item-dependency-filter'
+import WorkItemDrawer from './work-item-drawer'
 import {
   buildWorkItemDependencyNeighbourhood,
   WORK_ITEM_DEPENDENCY_VARIANTS,
@@ -76,6 +78,7 @@ const WorkItemDependencyMapCard = ({
   const { token } = theme.useToken()
   const [filter, setFilter] = useWorkItemDependencyFilter()
   const [state, setState] = useDependencyMapExpansions(workItem.id)
+  const [opened, setOpened] = useState<WorkItemMapRef | null>(null)
 
   const expandedIds = FAR_SIDES.flatMap((side) => Object.keys(state[side]))
   const loaded = useExpandedWorkItemDependencies(dependencies, expandedIds)
@@ -141,6 +144,16 @@ const WorkItemDependencyMapCard = ({
   const onShowAll = (side: DependencyFarSide, ownerId: string | null) =>
     setState(revealOverflow(state, side, ownerId))
 
+  // Every work item the map can draw, by id, since a node carries only its id and label.
+  const drawable = new Map<string, WorkItemMapRef>(
+    [
+      ...(dependencies ?? []),
+      ...Object.values(loaded).flatMap((entry) => entry.dependencies ?? []),
+    ].map(({ dependency }) => [dependency.id, dependency]),
+  )
+  const onOpenRecord = ({ recordId }: { recordId: string }) =>
+    setOpened(drawable.get(recordId) ?? null)
+
   // Health in the colours its tags use everywhere else, so a red line and a red Unhealthy tag mean the
   // same thing. Done is dashed and faint: it is history, not a risk, and must not compete with them.
   const edgeStyles: Record<WorkItemDependencyVariant, DependencyEdgeStyle> = {
@@ -189,6 +202,7 @@ const WorkItemDependencyMapCard = ({
         emptyText="No open dependencies in either direction."
         onToggleExpansion={onToggleExpansion}
         onShowAll={onShowAll}
+        onOpenRecord={onOpenRecord}
       />
       <Flex vertical gap={4}>
         <DependencyMapLegend items={legend} />
@@ -201,6 +215,14 @@ const WorkItemDependencyMapCard = ({
             ' Use + on a work item to follow the chain further out.'}
         </Text>
       </Flex>
+      {opened && (
+        <WorkItemDrawer
+          workspaceKey={opened.workspaceKey}
+          workItemKey={opened.key}
+          open
+          onClose={() => setOpened(null)}
+        />
+      )}
     </Card>
   )
 }

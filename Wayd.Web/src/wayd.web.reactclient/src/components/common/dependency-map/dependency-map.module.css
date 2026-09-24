@@ -155,6 +155,19 @@
   padding: 8px 12px;
 }
 
+/* A record without a page of its own that still opens in place: a button, reset to look like the node. */
+.opens {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.opens:hover {
+  color: var(--ant-color-primary);
+}
+
 /* The dots are decoration; hiding them keeps a read-only map from inviting a drag that does nothing. */
 .handle {
   opacity: 0;

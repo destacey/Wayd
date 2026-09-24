@@ -89,11 +89,17 @@ export interface DependencyMapProps {
   onToggleExpansion?: (side: DependencyFarSide, recordId: string) => void
   /** Draws the records a count left off: an expansion's, or the subject's own when `ownerId` is null. */
   onShowAll?: (side: DependencyFarSide, ownerId: string | null) => void
+  /**
+   * Opens a record in place, typically in a drawer, instead of navigating to it. Without it, clicking a
+   * record goes to its page. Never called for the subject, whose page the reader is already on.
+   */
+  onOpenRecord?: (node: DependencyNodeData) => void
 }
 
 interface DependencyMapActions {
   onToggleExpansion?: DependencyMapProps['onToggleExpansion']
   onShowAll?: DependencyMapProps['onShowAll']
+  onOpenRecord?: DependencyMapProps['onOpenRecord']
   expandTooltips?: DependencyMapProps['expandTooltips']
 }
 
@@ -169,8 +175,18 @@ const ExpandButton = ({ node }: { node: DependencyNodeData }) => {
   )
 }
 
+/** A click the browser gives its own meaning: a new tab or window, or a download. */
+const isModifiedClick = (event: React.MouseEvent) =>
+  event.button !== 0 ||
+  event.metaKey ||
+  event.ctrlKey ||
+  event.shiftKey ||
+  event.altKey
+
 const RecordNode = ({ data }: NodeProps<DependencyNode>) => {
   const node = data as DependencyNodeData
+  const { onOpenRecord } = useContext(DependencyMapActionsContext)
+  const opensInPlace = !!onOpenRecord && !node.isSubject
   const isExpanded =
     node.expansion !== undefined && node.expansion !== 'collapsed'
 
@@ -193,9 +209,29 @@ const RecordNode = ({ data }: NodeProps<DependencyNode>) => {
         className={styles.handle}
       />
       {node.href ? (
-        <Link href={node.href} className={styles.link} title={node.label}>
+        // Still a real link when it opens in place: a modified click opens the page in a new tab, and the
+        // address shows on hover.
+        <Link
+          href={node.href}
+          className={styles.link}
+          title={node.label}
+          onClick={(event) => {
+            if (!opensInPlace || isModifiedClick(event)) return
+            event.preventDefault()
+            onOpenRecord?.(node)
+          }}
+        >
           <span className={styles.label}>{node.label}</span>
         </Link>
+      ) : opensInPlace ? (
+        <button
+          type="button"
+          className={`${styles.plain} ${styles.opens}`}
+          title={node.label}
+          onClick={() => onOpenRecord?.(node)}
+        >
+          <span className={styles.label}>{node.label}</span>
+        </button>
       ) : (
         <span className={styles.plain} title={node.label}>
           <span className={styles.label}>{node.label}</span>
@@ -448,6 +484,7 @@ const DependencyMap = ({
   emptyText,
   onToggleExpansion,
   onShowAll,
+  onOpenRecord,
 }: DependencyMapProps) => {
   const { currentMode } = useTheme()
   const { token } = theme.useToken()
@@ -508,7 +545,7 @@ const DependencyMap = ({
 
   return (
     <DependencyMapActionsContext.Provider
-      value={{ onToggleExpansion, onShowAll, expandTooltips }}
+      value={{ onToggleExpansion, onShowAll, onOpenRecord, expandTooltips }}
     >
       <div
         className={`${styles.surface} ${isFullScreen ? styles.fullscreen : ''}`}
@@ -527,8 +564,9 @@ const DependencyMap = ({
             if ((event.target as HTMLElement).closest('a, button')) return
             if (node.type === 'overflow') return
 
-            const { href } = node.data as DependencyNodeData
-            if (href) router.push(href)
+            const record = node.data as DependencyNodeData
+            if (onOpenRecord && !record.isSubject) onOpenRecord(record)
+            else if (record.href) router.push(record.href)
           }}
           colorMode={currentMode === 'light' ? 'light' : 'dark'}
           fitView

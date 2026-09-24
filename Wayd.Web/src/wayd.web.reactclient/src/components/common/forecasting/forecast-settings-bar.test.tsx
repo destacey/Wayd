@@ -41,12 +41,32 @@ describe('ForecastSettingsBar', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('switch'))
+    fireEvent.click(screen.getByRole('switch', { name: 'Ignore dependencies' }))
 
     expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_FORECAST_SETTINGS,
       ignoreDependencies: true,
     })
     expect(screen.getByText('Target date')).toBeInTheDocument()
+  })
+
+  it('counts started work first by default, and reports turning it off', () => {
+    const onChange = jest.fn()
+    render(
+      <ForecastSettingsBar
+        value={DEFAULT_FORECAST_SETTINGS}
+        onChange={onChange}
+      />,
+    )
+
+    const toggle = screen.getByRole('switch', { name: 'Started work first' })
+    expect(toggle).toBeChecked()
+
+    fireEvent.click(toggle)
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_FORECAST_SETTINGS,
+      startedWorkFirst: false,
+    })
   })
 })

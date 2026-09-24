@@ -30282,10 +30282,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a project's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
+        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -32537,10 +32537,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a project's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
+        /// A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetProjectForecastAsync(string idOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -32572,6 +32572,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (ignoreDependencies != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -39584,10 +39588,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when an objective's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
+        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -42673,10 +42677,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when an objective's work items will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
+        /// A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetObjectiveForecastAsync(string idOrKey, string objectiveIdOrKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -42713,6 +42717,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (ignoreDependencies != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -54957,10 +54965,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a work item will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
+        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -55889,10 +55897,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast when a work item will be done.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.
+        /// A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<WorkItemForecastDto> GetWorkItemForecastAsync(string idOrKey, string workItemKey, string? targetDate = null, int? lookbackDays = null, bool? ignoreDependencies = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -55929,6 +55937,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (ignoreDependencies != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("ignoreDependencies")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ignoreDependencies, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -60848,10 +60860,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast how many backlog work items a team will finish by a date.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).
+        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90); startedWorkFirst (default true) counts active backlog items ahead of proposed ones when naming the item each confidence level reaches.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -62657,10 +62669,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Forecast how many backlog work items a team will finish by a date.
         /// </summary>
         /// <remarks>
-        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).
+        /// A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90); startedWorkFirst (default true) counts active backlog items ahead of proposed ones when naming the item each confidence level reaches.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<TeamThroughputForecastDto> GetTeamThroughputForecastAsync(string idOrCode, string? targetDate = null, int? lookbackDays = null, bool? startedWorkFirst = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrCode == null)
                 throw new System.ArgumentNullException("idOrCode");
@@ -62688,6 +62700,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (lookbackDays != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("lookbackDays")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(lookbackDays, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (startedWorkFirst != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startedWorkFirst")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startedWorkFirst, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -85679,6 +85695,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("ignoreDependencies")]
         public bool IgnoreDependencies { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("startedWorkFirst")]
+        public bool StartedWorkFirst { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("backlogPosition")]
         public int? BacklogPosition { get; set; } = default!;
 
@@ -93107,6 +93126,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
         public int LookbackDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("startedWorkFirst")]
+        public bool StartedWorkFirst { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("days")]
         public int Days { get; set; } = default!;

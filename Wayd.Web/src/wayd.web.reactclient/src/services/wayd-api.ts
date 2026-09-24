@@ -17741,8 +17741,9 @@ export class ProjectsClient {
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
      * @param ignoreDependencies (optional) 
+     * @param startedWorkFirst (optional) 
      */
-    getProjectForecast(idOrKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
+    getProjectForecast(idOrKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, startedWorkFirst?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/forecast?";
         if (idOrKey === undefined || idOrKey === null)
             throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
@@ -17753,6 +17754,8 @@ export class ProjectsClient {
             url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
         if (ignoreDependencies !== undefined && ignoreDependencies !== null)
             url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
+            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -23718,8 +23721,9 @@ export class PlanningIntervalsClient {
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
      * @param ignoreDependencies (optional) 
+     * @param startedWorkFirst (optional) 
      */
-    getObjectiveForecast(idOrKey: string, objectiveIdOrKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
+    getObjectiveForecast(idOrKey: string, objectiveIdOrKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, startedWorkFirst?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
         let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/forecast?";
         if (idOrKey === undefined || idOrKey === null)
             throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
@@ -23733,6 +23737,8 @@ export class PlanningIntervalsClient {
             url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
         if (ignoreDependencies !== undefined && ignoreDependencies !== null)
             url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
+            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -31395,8 +31401,9 @@ export class WorkspacesClient {
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
      * @param ignoreDependencies (optional) 
+     * @param startedWorkFirst (optional) 
      */
-    getWorkItemForecast(idOrKey: string, workItemKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
+    getWorkItemForecast(idOrKey: string, workItemKey: string, targetDate?: string | null | undefined, lookbackDays?: number | null | undefined, ignoreDependencies?: boolean | null | undefined, startedWorkFirst?: boolean | null | undefined, cancelToken?: CancelToken): Promise<WorkItemForecastDto> {
         let url_ = this.baseUrl + "/api/work/workspaces/{idOrKey}/work-items/{workItemKey}/forecast?";
         if (idOrKey === undefined || idOrKey === null)
             throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
@@ -31410,6 +31417,8 @@ export class WorkspacesClient {
             url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
         if (ignoreDependencies !== undefined && ignoreDependencies !== null)
             url_ += "ignoreDependencies=" + encodeURIComponent("" + ignoreDependencies) + "&";
+        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
+            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -34830,8 +34839,9 @@ export class TeamsClient {
      * Forecast how many backlog work items a team will finish by a date.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
+     * @param startedWorkFirst (optional) 
      */
-    getTeamThroughputForecast(idOrCode: string, targetDate?: string | undefined, lookbackDays?: number | null | undefined, cancelToken?: CancelToken): Promise<TeamThroughputForecastDto> {
+    getTeamThroughputForecast(idOrCode: string, targetDate?: string | undefined, lookbackDays?: number | null | undefined, startedWorkFirst?: boolean | null | undefined, cancelToken?: CancelToken): Promise<TeamThroughputForecastDto> {
         let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/throughput-forecast?";
         if (idOrCode === undefined || idOrCode === null)
             throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
@@ -34842,6 +34852,8 @@ export class TeamsClient {
             url_ += "targetDate=" + encodeURIComponent("" + targetDate) + "&";
         if (lookbackDays !== undefined && lookbackDays !== null)
             url_ += "lookbackDays=" + encodeURIComponent("" + lookbackDays) + "&";
+        if (startedWorkFirst !== undefined && startedWorkFirst !== null)
+            url_ += "startedWorkFirst=" + encodeURIComponent("" + startedWorkFirst) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -46098,6 +46110,7 @@ export interface WorkItemForecastDto {
     forecastStart: Date;
     lookbackDays: number;
     ignoreDependencies: boolean;
+    startedWorkFirst: boolean;
     backlogPosition?: number | undefined;
     remainingWorkItems: number;
     excludedWorkItems: ForecastWorkItemDto[];
@@ -48516,6 +48529,7 @@ export interface TeamThroughputForecastDto {
     forecastStart: Date;
     targetDate: Date;
     lookbackDays: number;
+    startedWorkFirst: boolean;
     days: number;
     backlogWorkItems: number;
     trials: number;

@@ -17,6 +17,7 @@ export interface ForecastOptionsRequest {
   targetDate?: string
   lookbackDays?: number
   ignoreDependencies?: boolean
+  startedWorkFirst?: boolean
 }
 
 export interface GetWorkItemForecastRequest extends ForecastOptionsRequest {
@@ -38,6 +39,7 @@ export interface GetTeamThroughputForecastRequest {
   /** A calendar date, yyyy-MM-dd. */
   targetDate: string
   lookbackDays?: number
+  startedWorkFirst?: boolean
 }
 
 // A forecast changes only when the day or the data does, so a cached one
@@ -45,7 +47,7 @@ export interface GetTeamThroughputForecastRequest {
 const FORECAST_CACHE_SECONDS = 15 * 60
 
 const optionsTag = (options: ForecastOptionsRequest) =>
-  `${options.targetDate ?? ''}:${options.lookbackDays ?? ''}:${options.ignoreDependencies ?? ''}`
+  `${options.targetDate ?? ''}:${options.lookbackDays ?? ''}:${options.ignoreDependencies ?? ''}:${options.startedWorkFirst ?? ''}`
 
 export const forecastsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -62,6 +64,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
             request.targetDate,
             request.lookbackDays,
             request.ignoreDependencies,
+            request.startedWorkFirst,
           )
           return { data }
         } catch (error) {
@@ -89,6 +92,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
             request.targetDate,
             request.lookbackDays,
             request.ignoreDependencies,
+            request.startedWorkFirst,
           )
           return { data }
         } catch (error) {
@@ -115,6 +119,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
             request.targetDate,
             request.lookbackDays,
             request.ignoreDependencies,
+            request.startedWorkFirst,
           )
           return { data }
         } catch (error) {
@@ -134,12 +139,18 @@ export const forecastsApi = apiSlice.injectEndpoints({
       GetTeamThroughputForecastRequest
     >({
       keepUnusedDataFor: FORECAST_CACHE_SECONDS,
-      queryFn: async ({ teamIdOrCode, targetDate, lookbackDays }) => {
+      queryFn: async ({
+        teamIdOrCode,
+        targetDate,
+        lookbackDays,
+        startedWorkFirst,
+      }) => {
         try {
           const data = await getTeamsClient().getTeamThroughputForecast(
             teamIdOrCode,
             targetDate,
             lookbackDays,
+            startedWorkFirst,
           )
           return { data }
         } catch (error) {
@@ -150,7 +161,7 @@ export const forecastsApi = apiSlice.injectEndpoints({
       providesTags: (result, error, arg) => [
         {
           type: QueryTags.Forecast,
-          id: `team:${arg.teamIdOrCode}:${arg.targetDate}:${arg.lookbackDays ?? ''}`,
+          id: `team:${arg.teamIdOrCode}:${arg.targetDate}:${arg.lookbackDays ?? ''}:${arg.startedWorkFirst ?? ''}`,
         },
       ],
     }),

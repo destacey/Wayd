@@ -9,14 +9,17 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
     private readonly IWorkDbContext _workDbContext = workDbContext;
 
     /// <summary>
-    /// Loads the targets and, unless <paramref name="followDependencies"/> is false, follows
-    /// active dependencies back from each open item to its predecessors. Done and removed
-    /// predecessors are left out with their dependencies: neither holds anything up, since
-    /// removed work will never be finished.
+    /// Loads the targets and, unless the options ignore dependencies, follows active
+    /// dependencies back from each open item to its predecessors. Done and removed predecessors
+    /// are left out with their dependencies: neither holds anything up, since removed work will
+    /// never be finished.
     /// </summary>
-    public async Task<ForecastNetwork> Load(IReadOnlyCollection<Guid> targetIds, bool followDependencies, CancellationToken cancellationToken)
+    public async Task<ForecastNetwork> Load(IReadOnlyCollection<Guid> targetIds, ForecastOptions options, CancellationToken cancellationToken)
     {
         Guard.Against.Null(targetIds);
+        Guard.Against.Null(options);
+
+        var followDependencies = !options.IgnoreDependencies;
 
         var items = new Dictionary<Guid, ForecastNetworkItem>();
         var dependencies = new HashSet<ForecastDependency<Guid>>();
@@ -72,7 +75,7 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
             .Select(d => (closed[d.Predecessor], items[d.Successor]))
             .ToList();
 
-        return new ForecastNetwork(items, network, removedPredecessorDependencies, await BacklogPositions(items.Values, cancellationToken));
+        return new ForecastNetwork(items, network, removedPredecessorDependencies, await BacklogPositions(items.Values, options.StartedWorkFirst, cancellationToken));
     }
 
     /// <summary>
@@ -111,14 +114,14 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
         return descendants;
     }
 
-    private async Task<Dictionary<Guid, int>> BacklogPositions(IEnumerable<ForecastNetworkItem> items, CancellationToken cancellationToken)
+    private async Task<Dictionary<Guid, int>> BacklogPositions(IEnumerable<ForecastNetworkItem> items, bool startedWorkFirst, CancellationToken cancellationToken)
     {
         var placeable = items.Where(i => i.IsOpen && i.IsBacklogItem && i.TeamId.HasValue).ToList();
         if (placeable.Count == 0)
             return [];
 
         var teamIds = placeable.Select(i => i.TeamId!.Value).Distinct().ToList();
-        var backlogs = await OrderedBacklogs(teamIds, cancellationToken);
+        var backlogs = await OrderedBacklogs(teamIds, startedWorkFirst, cancellationToken);
 
         var wanted = placeable.Select(i => i.Id).ToHashSet();
         var positions = new Dictionary<Guid, int>();
@@ -135,10 +138,10 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
     }
 
     /// <summary>
-    /// The ids of a team's open backlog items, first-ranked first.
+    /// The ids of a team's open backlog items, in the order the team will work them.
     /// </summary>
-    public async Task<List<Guid>> TeamBacklog(Guid teamId, CancellationToken cancellationToken) =>
-        (await OrderedBacklogs([teamId], cancellationToken)).GetValueOrDefault(teamId) ?? [];
+    public async Task<List<Guid>> TeamBacklog(Guid teamId, bool startedWorkFirst, CancellationToken cancellationToken) =>
+        (await OrderedBacklogs([teamId], startedWorkFirst, cancellationToken)).GetValueOrDefault(teamId) ?? [];
 
     public async Task<Dictionary<Guid, ForecastBacklogEntry>> Entries(IReadOnlyCollection<Guid> workItemIds, CancellationToken cancellationToken)
     {
@@ -152,28 +155,33 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
     }
 
     /// <summary>
-    /// The same backlogs GetTeamBacklogQuery shows, in the same order. Items the source system
-    /// has not ranked share one high rank, so they fall behind every ranked item, oldest first.
+    /// The backlogs GetTeamBacklogQuery shows, ordered by rank, then created. Items the source
+    /// system has not ranked share one high rank, so they fall behind every ranked item, oldest
+    /// first. With <paramref name="startedWorkFirst"/>, active items come ahead of proposed ones,
+    /// each in that order: a team usually finishes what it has started before starting more.
     /// </summary>
     /// <remarks>
     /// Ordered here rather than in SQL: SQL Server orders GUIDs differently from .NET, so the
     /// tie-break would disagree with positions computed elsewhere. Only the ordering columns are
     /// read — a team's backlog can run to thousands of items.
     /// </remarks>
-    private async Task<Dictionary<Guid, List<Guid>>> OrderedBacklogs(List<Guid> teamIds, CancellationToken cancellationToken)
+    private async Task<Dictionary<Guid, List<Guid>>> OrderedBacklogs(List<Guid> teamIds, bool startedWorkFirst, CancellationToken cancellationToken)
     {
         var items = await _workDbContext.WorkItems
             .Where(w => w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value))
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
             .Where(w => w.StatusCategory == WorkStatusCategory.Proposed || w.StatusCategory == WorkStatusCategory.Active)
-            .Select(w => new { w.Id, TeamId = w.TeamId!.Value, w.StackRank, w.Created })
+            .Select(w => new { w.Id, TeamId = w.TeamId!.Value, w.StatusCategory, w.StackRank, w.Created })
             .ToListAsync(cancellationToken);
 
         return items
             .GroupBy(w => w.TeamId)
             .ToDictionary(
                 g => g.Key,
-                g => g.OrderBy(w => w.StackRank).ThenBy(w => w.Created).ThenBy(w => w.Id)
+                g => g.OrderBy(w => startedWorkFirst && w.StatusCategory != WorkStatusCategory.Active ? 1 : 0)
+                    .ThenBy(w => w.StackRank)
+                    .ThenBy(w => w.Created)
+                    .ThenBy(w => w.Id)
                     .Select(w => w.Id)
                     .ToList());
     }

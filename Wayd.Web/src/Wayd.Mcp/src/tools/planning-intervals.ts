@@ -208,7 +208,8 @@ export const definitions: [string, McpToolDefinition][] = [
       "objectiveIdOrKey":{"type":"string","description":"Objective ID (UUID) or key."},
       "targetDate":{"type":"string","format":"date","description":"Date to report the chance of finishing by, as YYYY-MM-DD. Overrides the objective's target date and the planning interval's end."},
       "lookbackDays":{"type":"integer","minimum":14,"maximum":365,"description":"Days of history, ending yesterday (UTC), to sample throughput from (default 90)."},
-      "ignoreDependencies":{"type":"boolean","description":"What-if: forecast as if nothing waited on its predecessors (default false)."}
+      "ignoreDependencies":{"type":"boolean","description":"What-if: forecast as if nothing waited on its predecessors (default false)."},
+      "startedWorkFirst":{"type":"boolean","description":"Count active backlog items ahead of proposed ones, each in rank order, since teams usually finish what they have started (default true). False orders by rank alone."}
     },"required":["idOrKey","objectiveIdOrKey"]},
     method: 'get',
     pathTemplate: '/api/planning/planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/forecast',
@@ -217,7 +218,8 @@ export const definitions: [string, McpToolDefinition][] = [
       {"name":"objectiveIdOrKey","in":"path"},
       {"name":"targetDate","in":"query"},
       {"name":"lookbackDays","in":"query"},
-      {"name":"ignoreDependencies","in":"query"}
+      {"name":"ignoreDependencies","in":"query"},
+      {"name":"startedWorkFirst","in":"query"}
     ],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],

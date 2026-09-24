@@ -19,6 +19,28 @@ public sealed class GetTeamThroughputForecastQueryTests : IDisposable
 
     private GetTeamThroughputForecastQueryHandler Handler() => new(_scenario.Context, _scenario.DateTimeProvider);
 
+    [Theory]
+    [InlineData(true, "active")]
+    [InlineData(false, "proposed")]
+    public async Task Handle_NamesTheItemReachedInTheOrderAsked(bool startedWorkFirst, string expected)
+    {
+        // Arrange — one item a day, so one day reaches exactly the first item worked
+        var team = _scenario.NewTeam();
+        _scenario.AddHistory(team);
+        var proposed = _scenario.AddItem(team, stackRank: 1);
+        var active = _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 2);
+
+        // Act
+        var result = await Handler().Handle(
+            new GetTeamThroughputForecastQuery(team, _start, StartedWorkFirst: startedWorkFirst),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.StartedWorkFirst.Should().Be(startedWorkFirst);
+        var reached = expected == "active" ? active : proposed;
+        result.Value.Percentiles.Should().OnlyContain(p => p.ThroughWorkItem!.Key == reached.Key.Value);
+    }
+
     [Fact]
     public async Task Handle_ForecastsTheItemsFinishedByTheTargetDate()
     {

@@ -454,7 +454,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [HttpGet("{idOrKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Forecast when a project's work items will be done.", "A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.")]
+    [OpenApiOperation("Forecast when a project's work items will be done.", "A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -463,6 +463,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         [FromQuery] string? targetDate,
         [FromQuery] int? lookbackDays,
         [FromQuery] bool? ignoreDependencies,
+        [FromQuery] bool? startedWorkFirst,
         CancellationToken cancellationToken)
     {
         if (!IsoDateQuery.TryParse(targetDate, out var targetDateOverride))
@@ -476,6 +477,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         {
             LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
             IgnoreDependencies = ignoreDependencies ?? false,
+            StartedWorkFirst = startedWorkFirst ?? true,
         };
 
         return Ok(await _dispatcher.Send(new GetProjectForecastQuery(project.Id, targetDateOverride ?? project.End, options), cancellationToken));

@@ -13,10 +13,15 @@ namespace Wayd.Work.Application.WorkTeams.Queries;
 /// How many backlog work items a team will finish by a date, from its recent throughput.
 /// </summary>
 /// <param name="LookbackDays">Days of history to sample the team's throughput from.</param>
+/// <param name="StartedWorkFirst">
+/// Order the backlog with active items ahead of proposed ones when naming the item each
+/// confidence level reaches.
+/// </param>
 public sealed record GetTeamThroughputForecastQuery(
     TeamIdOrCode TeamIdOrCode,
     LocalDate TargetDate,
-    int LookbackDays = ForecastOptions.DefaultLookbackDays) : IQuery<Result<TeamThroughputForecastDto?>>;
+    int LookbackDays = ForecastOptions.DefaultLookbackDays,
+    bool StartedWorkFirst = true) : IQuery<Result<TeamThroughputForecastDto?>>;
 
 public sealed class GetTeamThroughputForecastQueryValidator : AbstractValidator<GetTeamThroughputForecastQuery>
 {
@@ -60,7 +65,7 @@ public sealed class GetTeamThroughputForecastQueryHandler(
 
         var sample = (await new TeamThroughputSampler(_workDbContext).Sample([team.Id], from, to, cancellationToken))[team.Id];
         var loader = new ForecastNetworkLoader(_workDbContext);
-        var backlog = await loader.TeamBacklog(team.Id, cancellationToken);
+        var backlog = await loader.TeamBacklog(team.Id, request.StartedWorkFirst, cancellationToken);
 
         var forecastTeam = new ForecastTeamDto { Team = team, From = from, To = to, ItemsCompleted = (int)sample.Total };
 
@@ -73,6 +78,7 @@ public sealed class GetTeamThroughputForecastQueryHandler(
                 ForecastStart = start,
                 TargetDate = request.TargetDate,
                 LookbackDays = request.LookbackDays,
+                StartedWorkFirst = request.StartedWorkFirst,
                 Days = days,
                 BacklogWorkItems = backlog.Count,
             };
@@ -92,6 +98,7 @@ public sealed class GetTeamThroughputForecastQueryHandler(
             ForecastStart = start,
             TargetDate = request.TargetDate,
             LookbackDays = request.LookbackDays,
+            StartedWorkFirst = request.StartedWorkFirst,
             Days = days,
             BacklogWorkItems = backlog.Count,
             Trials = forecast.Trials,

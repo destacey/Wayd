@@ -20,6 +20,12 @@ public sealed record ForecastOptions
     /// Forecast as if no work waited on its predecessors — a what-if showing what dependencies cost.
     /// </summary>
     public bool IgnoreDependencies { get; init; }
+
+    /// <summary>
+    /// Count active backlog items ahead of proposed ones, each in rank order: a team usually
+    /// finishes what it has started before starting more. Off, the backlog is in rank order alone.
+    /// </summary>
+    public bool StartedWorkFirst { get; init; } = true;
 }
 
 public sealed class ForecastOptionsValidator : AbstractValidator<ForecastOptions>

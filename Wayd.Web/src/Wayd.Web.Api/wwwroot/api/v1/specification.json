@@ -15082,7 +15082,7 @@
           "Projects"
         ],
         "summary": "Forecast when a project's work items will be done.",
-        "description": "A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.",
+        "description": "A Monte Carlo forecast over the project's work items, with the chance of finishing by the project's planned end. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.",
         "operationId": "Projects_GetProjectForecast",
         "parameters": [
           {
@@ -15121,6 +15121,15 @@
               "nullable": true
             },
             "x-position": 4
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 5
           }
         ],
         "responses": {
@@ -20548,7 +20557,7 @@
           "PlanningIntervals"
         ],
         "summary": "Forecast when an objective's work items will be done.",
-        "description": "A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.",
+        "description": "A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.",
         "operationId": "PlanningIntervals_GetObjectiveForecast",
         "parameters": [
           {
@@ -20596,6 +20605,15 @@
               "nullable": true
             },
             "x-position": 5
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 6
           }
         ],
         "responses": {
@@ -27598,7 +27616,7 @@
           "Workspaces"
         ],
         "summary": "Forecast when a work item will be done.",
-        "description": "A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.",
+        "description": "A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.",
         "operationId": "Workspaces_GetWorkItemForecast",
         "parameters": [
           {
@@ -27646,6 +27664,15 @@
               "nullable": true
             },
             "x-position": 5
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 6
           }
         ],
         "responses": {
@@ -30679,7 +30706,7 @@
           "Teams"
         ],
         "summary": "Forecast how many backlog work items a team will finish by a date.",
-        "description": "A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).",
+        "description": "A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90); startedWorkFirst (default true) counts active backlog items ahead of proposed ones when naming the item each confidence level reaches.",
         "operationId": "Teams_GetTeamThroughputForecast",
         "parameters": [
           {
@@ -30708,6 +30735,15 @@
               "nullable": true
             },
             "x-position": 3
+          },
+          {
+            "name": "startedWorkFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 4
           }
         ],
         "responses": {
@@ -47851,6 +47887,7 @@
           "forecastStart",
           "lookbackDays",
           "ignoreDependencies",
+          "startedWorkFirst",
           "remainingWorkItems",
           "excludedWorkItems",
           "teams",
@@ -47875,6 +47912,9 @@
             "format": "int32"
           },
           "ignoreDependencies": {
+            "type": "boolean"
+          },
+          "startedWorkFirst": {
             "type": "boolean"
           },
           "backlogPosition": {
@@ -57839,6 +57879,7 @@
           "forecastStart",
           "targetDate",
           "lookbackDays",
+          "startedWorkFirst",
           "days",
           "backlogWorkItems",
           "trials",
@@ -57863,6 +57904,9 @@
           "lookbackDays": {
             "type": "integer",
             "format": "int32"
+          },
+          "startedWorkFirst": {
+            "type": "boolean"
           },
           "days": {
             "type": "integer",

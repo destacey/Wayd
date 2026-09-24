@@ -73,18 +73,20 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Teams_GetThroughputForecast', {
     name: 'Teams_GetThroughputForecast',
-    description: `Forecast how many of a team's open backlog work items it will finish from today through \`targetDate\`, by Monte Carlo simulation of its recent daily throughput. Returns an \`outcome\` (Forecast, or Not Enough History when the team finished fewer than 10 backlog work items in the window), \`backlogWorkItems\` open today, \`percentiles\` — at each \`confidence\` the \`workItems\` count finished at least that often and \`throughWorkItem\`, the backlog work item that count reaches in rank order — and a \`histogram\` of trials by work items finished. Requires the delivery-forecasting feature flag; returns 404 when it is off.`,
+    description: `Forecast how many of a team's open backlog work items it will finish from today through \`targetDate\`, by Monte Carlo simulation of its recent daily throughput. Returns an \`outcome\` (Forecast, or Not Enough History when the team finished fewer than 10 backlog work items in the window), \`backlogWorkItems\` open today, \`percentiles\` — at each \`confidence\` the \`workItems\` count finished at least that often and \`throughWorkItem\`, the backlog work item that count reaches (active items first unless \`startedWorkFirst\` is false, then rank order) — and a \`histogram\` of trials by work items finished. Requires the delivery-forecasting feature flag; returns 404 when it is off.`,
     inputSchema: {"type":"object","properties":{
       "idOrCode":{"type":"string","description":"Team ID (UUID) or team code — not the integer key."},
       "targetDate":{"type":"string","format":"date","description":"The last day to count up to, as YYYY-MM-DD."},
-      "lookbackDays":{"type":"integer","minimum":14,"maximum":365,"description":"Days of history, ending yesterday (UTC), to sample throughput from (default 90)."}
+      "lookbackDays":{"type":"integer","minimum":14,"maximum":365,"description":"Days of history, ending yesterday (UTC), to sample throughput from (default 90)."},
+      "startedWorkFirst":{"type":"boolean","description":"Count active backlog items ahead of proposed ones, each in rank order, since teams usually finish what they have started (default true). False orders by rank alone."}
     },"required":["idOrCode","targetDate"]},
     method: 'get',
     pathTemplate: '/api/organization/teams/{idOrCode}/throughput-forecast',
     executionParameters: [
       {"name":"idOrCode","in":"path"},
       {"name":"targetDate","in":"query"},
-      {"name":"lookbackDays","in":"query"}
+      {"name":"lookbackDays","in":"query"},
+      {"name":"startedWorkFirst","in":"query"}
     ],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],

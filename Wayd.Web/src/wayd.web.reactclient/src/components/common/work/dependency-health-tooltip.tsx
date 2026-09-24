@@ -9,7 +9,7 @@ export interface DependencyHealthTooltipProps {
   children: ReactNode
 }
 
-const getHealthDescription = (health: DependencyHealth): string => {
+export const getHealthDescription = (health: DependencyHealth): string => {
   switch (health) {
     case DependencyHealth.Healthy:
       return 'The predecessor is done, planned with no successor plan, or is planned to complete on or before the successor.'

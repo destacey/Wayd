@@ -6,10 +6,7 @@ import {
   WorkItemProgressDailyRollupDto,
 } from '@/src/services/wayd-api'
 import BreakdownPie from '@/src/app/ppm/_components/breakdown-pie'
-import {
-  METRIC_CARD_FLEX,
-  MetricCard,
-} from '@/src/components/common/metrics'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { WorkItemsCumulativeFlowChart } from '@/src/components/common/work'
 import { getDependencyHealthColorScale } from '@/src/components/common/work/dependency-health-colors'
 import {
@@ -29,6 +26,7 @@ import {
   getCrossTeamDependencies,
   getDependencyHealthBreakdown,
 } from './work-item-breakdowns'
+import WorkItemDependencyMapCard from './work-item-dependency-map-card'
 
 export interface WorkItemOverviewProps {
   workItem: WorkItemDetailsDto
@@ -182,6 +180,15 @@ const WorkItemOverview = ({
             </Col>
           ))}
         </Row>
+      )}
+
+      {/* Full width: a map is read across, and halving it leaves each column a few words wide. */}
+      {!dependenciesLoading && (
+        <WorkItemDependencyMapCard
+          workItem={workItem}
+          dependencies={dependencyData}
+          onViewAll={() => onNavigateToSection(sectionIds.dependencies)}
+        />
       )}
 
       {/* Its own row at full width: a cumulative flow is a wide time series,

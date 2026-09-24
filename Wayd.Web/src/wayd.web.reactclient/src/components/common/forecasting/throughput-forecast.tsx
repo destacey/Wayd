@@ -93,10 +93,10 @@ const ThroughputForecast: FC<ThroughputForecastProps> = ({
           {forecast.days.toLocaleString()} days,{' '}
           {formatForecastDate(forecast.forecastStart)} to{' '}
           {formatForecastDate(forecast.targetDate)}, from the last{' '}
-          {forecast.lookbackDays} days of history. The backlog is in{' '}
+          {forecast.lookbackDays} days of history. The backlog is ordered{' '}
           {forecast.startedWorkFirst
-            ? 'rank order after started work'
-            : 'rank order'}
+            ? 'with started work first, then by rank'
+            : 'by rank'}
           .
         </Text>
       </ChartCard>

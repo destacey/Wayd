@@ -210,7 +210,38 @@ describe('CompletionForecast', () => {
     )
 
     expect(
-      screen.getByText(/with backlogs in rank order\./),
+      screen.getByText(/Backlogs are ordered by rank\./),
+    ).toBeInTheDocument()
+  })
+
+  it('gives a backlog position only when the forecast is for one work item', () => {
+    const { rerender } = render(
+      <CompletionForecast
+        forecast={createForecast({
+          backlogPosition: null as unknown as undefined,
+        })}
+        isLoading={false}
+      />,
+    )
+
+    expect(screen.queryByText(/position/)).not.toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /3 open backlog work items\. Backlogs are ordered with started work first, then by rank\./,
+      ),
+    ).toBeInTheDocument()
+
+    rerender(
+      <CompletionForecast
+        forecast={createForecast({ remainingWorkItems: 1, backlogPosition: 6 })}
+        isLoading={false}
+      />,
+    )
+
+    expect(
+      screen.getByText(
+        /1 open backlog work item, at position 6 in its team's backlog\./,
+      ),
     ).toBeInTheDocument()
   })
 

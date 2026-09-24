@@ -193,16 +193,12 @@ const RecordNode = ({ data }: NodeProps<DependencyNode>) => {
         className={styles.handle}
       />
       {node.href ? (
-        <Link
-          href={node.href}
-          className={`${styles.label} ${styles.link}`}
-          title={node.label}
-        >
-          {node.label}
+        <Link href={node.href} className={styles.link} title={node.label}>
+          <span className={styles.label}>{node.label}</span>
         </Link>
       ) : (
-        <span className={`${styles.label} ${styles.plain}`} title={node.label}>
-          {node.label}
+        <span className={styles.plain} title={node.label}>
+          <span className={styles.label}>{node.label}</span>
         </span>
       )}
       <ExpandButton node={node} />

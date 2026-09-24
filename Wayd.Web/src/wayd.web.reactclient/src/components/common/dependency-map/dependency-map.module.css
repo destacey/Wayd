@@ -115,7 +115,9 @@
 }
 
 /* Names are long and mostly differ at the end ("Onboarding Fulfillment Mobile"), so a single
-   truncated line would leave several nodes reading the same. Two lines, then ellipsis. */
+   truncated line would leave several nodes reading the same. Two lines, then ellipsis. Must sit on an
+   element of its own: `.link`/`.plain` are flex containers, and a shared element's `display: flex`
+   silently cancels the clamp. */
 .label {
   display: -webkit-box;
   -webkit-box-orient: vertical;

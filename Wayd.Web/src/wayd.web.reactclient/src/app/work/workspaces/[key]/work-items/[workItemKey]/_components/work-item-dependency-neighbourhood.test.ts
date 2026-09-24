@@ -137,6 +137,31 @@ describe('buildWorkItemDependencyNeighbourhood', () => {
     expect(graph.nodes.find((n) => n.id === 'left:w-2')?.parentId).toBe(box?.id)
   })
 
+  it('draws the work item inside its own team, as it draws the far ones', () => {
+    // Arrange
+    const dependencies = [dependency('d1', refund, 'Successor')]
+
+    // Act
+    const graph = buildWorkItemDependencyNeighbourhood({
+      workItem: { ...subject, team: payments },
+      dependencies,
+    })
+
+    // Assert
+    const box = graph.nodes.find((n) => n.id === groupNodeId('center', 't-1'))
+    expect(box?.data).toEqual(
+      expect.objectContaining({
+        label: 'Payments',
+        href: '/organizations/teams/1',
+      }),
+    )
+    expect(graph.nodes.find((n) => n.id === 'w-1')?.parentId).toBe(box?.id)
+    // Each column draws its own box, even for the same team.
+    expect(graph.nodes.find((n) => n.id === 'right:w-3')?.parentId).toBe(
+      groupNodeId('right', 't-1'),
+    )
+  })
+
   it('labels a work item by key and title and links it to its page', () => {
     // Arrange
     const dependencies = [dependency('d1', auth, 'Predecessor')]

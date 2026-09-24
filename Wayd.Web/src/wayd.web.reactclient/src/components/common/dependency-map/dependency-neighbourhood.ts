@@ -120,6 +120,11 @@ export interface DependencyNeighbourhood {
 
 export interface BuildDependencyNeighbourhoodOptions {
   subject: DependencyMapRecord
+  /**
+   * What the subject sits inside, outermost first, drawn as boxes around it. Far records are drawn in
+   * their paths' boxes, so a subject left bare reads as belonging to none of them.
+   */
+  subjectPath?: DependencyMapRecord[]
   /** The subject's links, already filtered to what the map should draw. */
   links: DependencyMapLinks | undefined
   /** Records drawn per column, per record whose links fill it, before the rest collapse into a count. */
@@ -494,6 +499,7 @@ const orderedRoots = (column: Column) =>
  */
 export const buildDependencyNeighbourhood = ({
   subject: subjectRecord,
+  subjectPath = [],
   links: subjectLinks,
   maxPerSide = 6,
   overflowQualifier,
@@ -685,11 +691,19 @@ export const buildDependencyNeighbourhood = ({
   const stacks = (side: DependencyFarSide) =>
     columns[side].map((column, index) => stack(column, side, index + 1, nodes))
 
+  const centreRoot = subjectPath.reduceRight<TreeNode>((inner, step) => {
+    const box = emptyNode(step)
+    box.children.set(inner.id, inner)
+    return box
+  }, subject)
+
   // Left to right: the furthest left column first.
   const left = stacks('left').reverse()
   const centre = stack(
     {
-      roots: new Map([[subjectId, { root: subject, rank: 0, order: 0 }]]),
+      roots: new Map([
+        [centreRoot.id, { root: centreRoot, rank: 0, order: 0 }],
+      ]),
       overflows: [],
     },
     'center',

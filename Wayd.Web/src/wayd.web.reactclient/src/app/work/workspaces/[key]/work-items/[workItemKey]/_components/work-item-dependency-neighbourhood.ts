@@ -40,6 +40,7 @@ export interface WorkItemMapRef {
   key: string
   title: string
   workspaceKey: string
+  team?: WorkTeamNavigationDto
 }
 
 /** A work item the reader expanded, with whatever has loaded for it. */
@@ -183,6 +184,7 @@ export const buildWorkItemDependencyNeighbourhood = ({
 
   return buildDependencyNeighbourhood({
     subject: record(workItem),
+    subjectPath: workItem.team ? [teamRecord(workItem.team)] : [],
     links: dependencies
       ? toWorkItemLinks(workItem, dependencies, filter)
       : undefined,

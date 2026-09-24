@@ -88,6 +88,7 @@ const WorkItemDependencyMapCard = ({
     key: workItem.key,
     title: workItem.title,
     workspaceKey: workItem.workspace.key,
+    team: workItem.team,
   }
 
   // An expansion whose item is not yet known is left out rather than shown as loading: it sits beyond one

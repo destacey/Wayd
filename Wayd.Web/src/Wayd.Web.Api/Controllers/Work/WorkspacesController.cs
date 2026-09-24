@@ -243,7 +243,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{idOrKey}/work-items/{workItemKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Forecast when a work item will be done.", "A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.")]
+    [OpenApiOperation("Forecast when a work item will be done.", "A Monte Carlo forecast from the team's recent throughput, the work item's backlog position, and the open predecessors it waits on. A portfolio work item is forecast from its open backlog descendants. Optional: targetDate (yyyy-MM-dd) to report the chance of finishing by; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -253,6 +253,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
         [FromQuery] string? targetDate,
         [FromQuery] int? lookbackDays,
         [FromQuery] bool? ignoreDependencies,
+        [FromQuery] bool? startedWorkFirst,
         CancellationToken cancellationToken)
     {
         if (!IsoDateQuery.TryParse(targetDate, out var parsedTargetDate))
@@ -263,6 +264,7 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
         {
             LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
             IgnoreDependencies = ignoreDependencies ?? false,
+            StartedWorkFirst = startedWorkFirst ?? true,
         };
 
         var forecast = await _dispatcher.Send(new GetWorkItemForecastQuery(idOrKey, key, parsedTargetDate, options), cancellationToken);

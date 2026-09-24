@@ -9,7 +9,7 @@ public sealed class ForecastOptionsTests
     private readonly ForecastOptionsValidator _validator = new();
 
     [Fact]
-    public void Default_UsesNinetyDaysAndFollowsDependencies()
+    public void Default_UsesNinetyDaysFollowsDependenciesAndCountsStartedWorkFirst()
     {
         // Act
         var options = ForecastOptions.Default;
@@ -17,6 +17,7 @@ public sealed class ForecastOptionsTests
         // Assert
         options.LookbackDays.Should().Be(90);
         options.IgnoreDependencies.Should().BeFalse();
+        options.StartedWorkFirst.Should().BeTrue();
     }
 
     [Theory]

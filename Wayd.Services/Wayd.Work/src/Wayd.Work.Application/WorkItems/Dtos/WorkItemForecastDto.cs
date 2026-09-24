@@ -26,6 +26,11 @@ public sealed record WorkItemForecastDto
     public bool IgnoreDependencies { get; init; }
 
     /// <summary>
+    /// Whether active backlog items were counted ahead of proposed ones.
+    /// </summary>
+    public bool StartedWorkFirst { get; init; }
+
+    /// <summary>
     /// The 1-based position in its team's backlog, when the forecast is for a single open backlog
     /// work item.
     /// </summary>

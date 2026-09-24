@@ -377,7 +377,7 @@ public class TeamsController(
     [HttpGet("{idOrCode}/throughput-forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
-    [OpenApiOperation("Forecast how many backlog work items a team will finish by a date.", "A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90).")]
+    [OpenApiOperation("Forecast how many backlog work items a team will finish by a date.", "A Monte Carlo forecast from the team's recent throughput, from today through the target date (yyyy-MM-dd). Optional: lookbackDays of history (14-365, default 90); startedWorkFirst (default true) counts active backlog items ahead of proposed ones when naming the item each confidence level reaches.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -385,6 +385,7 @@ public class TeamsController(
         string idOrCode,
         [FromQuery] string targetDate,
         [FromQuery] int? lookbackDays,
+        [FromQuery] bool? startedWorkFirst,
         CancellationToken cancellationToken)
     {
         if (!IsoDateQuery.TryParse(targetDate, out var parsedTargetDate) || parsedTargetDate is null)
@@ -393,7 +394,8 @@ public class TeamsController(
         var query = new GetTeamThroughputForecastQuery(
             idOrCode,
             parsedTargetDate.Value,
-            lookbackDays ?? ForecastOptions.DefaultLookbackDays);
+            lookbackDays ?? ForecastOptions.DefaultLookbackDays,
+            startedWorkFirst ?? true);
         var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsFailure

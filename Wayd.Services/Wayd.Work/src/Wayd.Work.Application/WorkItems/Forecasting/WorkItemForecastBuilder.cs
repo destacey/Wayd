@@ -66,11 +66,12 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
                 ForecastStart = start,
                 LookbackDays = options.LookbackDays,
                 IgnoreDependencies = options.IgnoreDependencies,
+                StartedWorkFirst = options.StartedWorkFirst,
                 TargetDate = targetDate,
             };
         }
 
-        var network = await loader.Load(remaining, followDependencies: !options.IgnoreDependencies, cancellationToken);
+        var network = await loader.Load(remaining, options, cancellationToken);
 
         var teamIds = network.BacklogPositions.Keys
             .Select(id => network.Items[id].TeamId!.Value)
@@ -164,6 +165,7 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
             ForecastStart = start,
             LookbackDays = options.LookbackDays,
             IgnoreDependencies = options.IgnoreDependencies,
+            StartedWorkFirst = options.StartedWorkFirst,
             BacklogPosition = remaining.Count == 1 && network.BacklogPositions.TryGetValue(remaining.Single(), out var position) ? position : null,
             RemainingWorkItems = remaining.Count,
             ExcludedWorkItems = combined is null ? [] : [.. remaining.Except(forecastable).Select(id => ToDto(network.Items[id]))],

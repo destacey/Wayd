@@ -756,7 +756,7 @@ public class PlanningIntervalsController : ControllerBase
     [HttpGet("{idOrKey}/objectives/{objectiveIdOrKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives)]
-    [OpenApiOperation("Forecast when an objective's work items will be done.", "A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if.")]
+    [OpenApiOperation("Forecast when an objective's work items will be done.", "A Monte Carlo forecast over the objective's linked work items, with the chance of finishing by the objective's target date, or the planning interval's end when it has none. Optional: targetDate (yyyy-MM-dd) overrides that date; lookbackDays of history (14-365, default 90); ignoreDependencies as a what-if; startedWorkFirst (default true) counts active backlog items ahead of proposed ones.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -766,6 +766,7 @@ public class PlanningIntervalsController : ControllerBase
         [FromQuery] string? targetDate,
         [FromQuery] int? lookbackDays,
         [FromQuery] bool? ignoreDependencies,
+        [FromQuery] bool? startedWorkFirst,
         CancellationToken cancellationToken)
     {
         if (!IsoDateQuery.TryParse(targetDate, out var targetDateOverride))
@@ -783,6 +784,7 @@ public class PlanningIntervalsController : ControllerBase
         {
             LookbackDays = lookbackDays ?? ForecastOptions.DefaultLookbackDays,
             IgnoreDependencies = ignoreDependencies ?? false,
+            StartedWorkFirst = startedWorkFirst ?? true,
         };
 
         return Ok(await _dispatcher.Send(new GetExternalObjectForecastQuery(objective.Id, effectiveTargetDate, options), cancellationToken));

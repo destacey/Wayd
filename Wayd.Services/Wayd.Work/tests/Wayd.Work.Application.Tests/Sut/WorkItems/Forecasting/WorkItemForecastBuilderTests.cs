@@ -59,6 +59,46 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
         forecast.Issues.Should().BeEmpty();
     }
 
+    [Theory]
+    [InlineData(true, 6)]
+    [InlineData(false, 10)]
+    public async Task Build_StartedWork_CountsAheadOfProposedWorkWhenAsked(bool startedWorkFirst, int expectedPosition)
+    {
+        // Arrange — five active items, four proposed, then an active item ranked tenth
+        var team = _scenario.NewTeam();
+        _scenario.AddHistory(team);
+        for (var rank = 1; rank <= 5; rank++)
+            _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: rank);
+        for (var rank = 6; rank <= 9; rank++)
+            _scenario.AddItem(team, stackRank: rank);
+        var target = _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 10);
+
+        // Act
+        var forecast = await Forecast([target], targetDate: null, new ForecastOptions { StartedWorkFirst = startedWorkFirst });
+
+        // Assert
+        forecast.StartedWorkFirst.Should().Be(startedWorkFirst);
+        forecast.BacklogPosition.Should().Be(expectedPosition);
+        forecast.Percentiles.Should().OnlyContain(p => p.Date == _start.PlusDays(expectedPosition - 1));
+    }
+
+    [Fact]
+    public async Task Build_StartedWorkFirst_PushesProposedWorkBack()
+    {
+        // Arrange
+        var team = _scenario.NewTeam();
+        _scenario.AddHistory(team);
+        var target = _scenario.AddItem(team, stackRank: 1);
+        _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 2);
+        _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 3);
+
+        // Act
+        var forecast = await Forecast(target);
+
+        // Assert
+        forecast.BacklogPosition.Should().Be(3);
+    }
+
     [Fact]
     public async Task Build_EqualRanks_OrderByCreated()
     {

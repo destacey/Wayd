@@ -30,6 +30,11 @@ public sealed record TeamThroughputForecastDto
     public int LookbackDays { get; init; }
 
     /// <summary>
+    /// Whether active backlog items were counted ahead of proposed ones.
+    /// </summary>
+    public bool StartedWorkFirst { get; init; }
+
+    /// <summary>
     /// Simulated days, <see cref="ForecastStart"/> through <see cref="TargetDate"/> inclusive.
     /// </summary>
     public int Days { get; init; }

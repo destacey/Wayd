@@ -3,7 +3,6 @@ import {
   wrapToWidth,
 } from '@/src/components/common/timeline/render/svg/measure-text'
 import { escapeXml } from '@/src/components/common/timeline/render/svg/render-svg'
-import { DependencyStrength } from '@/src/services/wayd-api'
 import { Position, getBezierPath } from '@xyflow/react'
 
 /**
@@ -19,10 +18,17 @@ export interface DependencySvgNode {
   height: number
   isGroup: boolean
   isSubject: boolean
-  /** A count of products left off, which reads as a note rather than a product. */
+  /** A count of records left off, which reads as a note rather than a record. */
   isOverflow?: boolean
-  /** A product the reader expanded, outlined as it is on screen. */
+  /** A record the reader expanded, outlined as it is on screen. */
   isExpanded?: boolean
+}
+
+/** How one kind of edge is drawn, with its colour resolved. */
+export interface DependencyEdgeStyle {
+  stroke: string
+  width: number
+  dashed?: boolean
 }
 
 export interface DependencySvgEdge {
@@ -32,7 +38,7 @@ export interface DependencySvgEdge {
   leavesLeft?: boolean
   /** Enters the target's right side rather than its left. */
   entersRight?: boolean
-  strength: DependencyStrength
+  style: DependencyEdgeStyle
 }
 
 /** Resolved colours, because a CSS variable means nothing in a file opened outside the app. */
@@ -46,8 +52,6 @@ export interface DependencySvgTheme {
   groupFill: string
   groupStroke: string
   groupText: string
-  hardStroke: string
-  softStroke: string
   fontFamily: string
   fontSize: number
   borderRadius: number
@@ -63,8 +67,6 @@ const PADDING = 32
 const NODE_TEXT_PADDING = 12
 const GROUP_LABEL_OFFSET = { x: 12, y: 20 }
 const MAX_LABEL_LINES = 2
-
-const markerId = (strength: DependencyStrength) => `arrow-${strength}`
 
 /**
  * Draws the map as an SVG document, from the same geometry the screen shows.
@@ -96,14 +98,15 @@ export const renderDependencyMapSvg = ({
   const shiftX = PADDING - minX
   const shiftY = PADDING - minY
 
-  const strokeFor = (strength: DependencyStrength) =>
-    strength === DependencyStrength.Hard ? theme.hardStroke : theme.softStroke
+  // One arrowhead per colour in use: a marker's fill is fixed, so every stroke needs its own.
+  const colours = [...new Set(edges.map((edge) => edge.style.stroke))]
+  const markerId = (stroke: string) => `arrow-${colours.indexOf(stroke)}`
 
-  const markers = [DependencyStrength.Hard, DependencyStrength.Soft]
+  const markers = colours
     .map(
-      (strength) =>
-        `<marker id="${markerId(strength)}" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto">` +
-        `<path d="M0,1 L9,5 L0,9 z" fill="${strokeFor(strength)}" />` +
+      (stroke) =>
+        `<marker id="${markerId(stroke)}" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto">` +
+        `<path d="M0,1 L9,5 L0,9 z" fill="${escapeXml(stroke)}" />` +
         `</marker>`,
     )
     .join('')
@@ -140,17 +143,17 @@ export const renderDependencyMapSvg = ({
         targetPosition: edge.entersRight ? Position.Right : Position.Left,
       })
 
-      const isSoft = edge.strength === DependencyStrength.Soft
+      const { stroke, width, dashed } = edge.style
 
       return (
-        `<path d="${path}" fill="none" stroke="${strokeFor(edge.strength)}" ` +
-        `stroke-width="${isSoft ? 1.5 : 2}"${isSoft ? ' stroke-dasharray="6 4"' : ''} ` +
-        `marker-end="url(#${markerId(edge.strength)})" />`
+        `<path d="${path}" fill="none" stroke="${escapeXml(stroke)}" ` +
+        `stroke-width="${width}"${dashed ? ' stroke-dasharray="6 4"' : ''} ` +
+        `marker-end="url(#${markerId(stroke)})" />`
       )
     })
     .join('')
 
-  const products = nodes
+  const records = nodes
     .filter((node) => !node.isGroup)
     .map((node) => {
       const lines = wrapToWidth(
@@ -206,7 +209,7 @@ export const renderDependencyMapSvg = ({
     `<rect width="${width}" height="${height}" fill="${theme.background}" />` +
     groups +
     paths +
-    products +
+    records +
     `</svg>`
 
   return { svg, width, height }

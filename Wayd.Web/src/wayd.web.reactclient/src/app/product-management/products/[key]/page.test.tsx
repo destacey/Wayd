@@ -8,7 +8,7 @@ jest.unmock('dayjs')
 
 // The graph canvas measures itself and reads the theme provider, neither of which this page supplies.
 // What belongs here is that the Overview places it; the map's own tests cover what it draws.
-jest.mock('../../_components/dependency-map/dependency-map', () => ({
+jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
   __esModule: true,
   default: () => <div data-testid="dependency-map" />,
 }))

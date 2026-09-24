@@ -11,15 +11,15 @@ import type {
   DependencyNode,
   DependencyNodeData,
   DependencyOverflowData,
-} from '../../../_components/dependency-map/dependency-neighbourhood'
-import { expansionStorageKey } from '../../../_components/dependency-map/use-dependency-map-expansions'
+} from '@/src/components/common/dependency-map/dependency-neighbourhood'
+import { expansionStorageKey } from '@/src/components/common/dependency-map/use-dependency-map-expansions'
 import { DEPENDENCY_STRENGTH_FILTER_KEY } from '../../../_components/dependency-map/use-dependency-strength-filter'
 import { useExpandedProductDependencies } from '../../../_components/dependency-map/use-expanded-product-dependencies'
 import ProductDependencyMapCard from './product-dependency-map-card'
 
 // The canvas measures itself and reads the theme provider, neither of which this test supplies. The stub
 // renders what the card hands it and exposes the map's buttons; the map's own tests cover drawing.
-jest.mock('../../../_components/dependency-map/dependency-map', () => ({
+jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
   __esModule: true,
   default: ({
     nodes,
@@ -33,7 +33,7 @@ jest.mock('../../../_components/dependency-map/dependency-map', () => ({
     edges: { id: string }[]
     filters?: React.ReactNode
     emptyText?: React.ReactNode
-    onToggleExpansion?: (side: string, productId: string) => void
+    onToggleExpansion?: (side: string, recordId: string) => void
     onShowAll?: (side: string, ownerId: string | null) => void
   }) => (
     <div data-testid="dependency-map">
@@ -52,12 +52,12 @@ jest.mock('../../../_components/dependency-map/dependency-map', () => ({
           )
         }
         const product = node.data as DependencyNodeData
-        if (node.type !== 'product' || !product.expansion) return null
+        if (node.type !== 'record' || !product.expansion) return null
         return (
           <button
             key={node.id}
             data-status={product.expansion}
-            onClick={() => onToggleExpansion?.(product.side, product.productId)}
+            onClick={() => onToggleExpansion?.(product.side, product.recordId)}
           >
             {`Toggle ${product.label}`}
           </button>
@@ -258,7 +258,7 @@ describe('ProductDependencyMapCard', () => {
     expect(
       screen.getByTestId('map-edges').textContent!.split(','),
     ).toHaveLength(8)
-    expect(storedExpansions().subjectShowAll).toEqual(['dependsOn'])
+    expect(storedExpansions().subjectShowAll).toEqual(['right'])
   })
 
   it('expands a product outward and keeps the expansion for the session', async () => {
@@ -282,14 +282,14 @@ describe('ProductDependencyMapCard', () => {
     // Assert
     expect(expanded).toHaveBeenLastCalledWith([identity.id])
     expect(screen.getByTestId('map-edges')).toHaveTextContent('a,beyond')
-    expect(storedExpansions().dependsOn).toEqual({ [identity.id]: {} })
+    expect(storedExpansions().right).toEqual({ [identity.id]: {} })
   })
 
   it('reopens with the expansions this product was left with', async () => {
     // Arrange
     session[expansionStorageKey(self.id)] = JSON.stringify({
-      usedBy: {},
-      dependsOn: { [identity.id]: {} },
+      left: {},
+      right: { [identity.id]: {} },
       subjectShowAll: [],
     })
 
@@ -305,8 +305,8 @@ describe('ProductDependencyMapCard', () => {
     // Arrange — Identity was expanded to Directory, and Directory to LDAP.
     const user = userEvent.setup()
     session[expansionStorageKey(self.id)] = JSON.stringify({
-      usedBy: {},
-      dependsOn: { [identity.id]: {}, [directory.id]: {} },
+      left: {},
+      right: { [identity.id]: {}, [directory.id]: {} },
       subjectShowAll: [],
     })
     const responses: Record<string, ProductDependenciesDto> = {
@@ -327,15 +327,15 @@ describe('ProductDependencyMapCard', () => {
     // Assert
     // Directory is no longer on the map, so its expansion goes too; expanding Identity again starts clean.
     expect(screen.getByTestId('map-edges')).toHaveTextContent(/^a$/)
-    expect(storedExpansions().dependsOn).toEqual({})
+    expect(storedExpansions().right).toEqual({})
   })
 
   it('shows the rest of an expansion in place', async () => {
     // Arrange
     const user = userEvent.setup()
     session[expansionStorageKey(self.id)] = JSON.stringify({
-      usedBy: {},
-      dependsOn: { [identity.id]: {} },
+      left: {},
+      right: { [identity.id]: {} },
       subjectShowAll: [],
     })
     expanded.mockReturnValue({
@@ -363,6 +363,6 @@ describe('ProductDependencyMapCard', () => {
     expect(
       within(map).getByTestId('map-edges').textContent!.split(','),
     ).toHaveLength(8)
-    expect(storedExpansions().dependsOn[identity.id]).toEqual({ showAll: true })
+    expect(storedExpansions().right[identity.id]).toEqual({ showAll: true })
   })
 })

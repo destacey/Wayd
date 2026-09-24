@@ -1,30 +1,45 @@
 'use client'
 
-import { ProductDependenciesDto, ProductDto } from '@/src/services/wayd-api'
-import { toFileName } from '@/src/utils'
-import { Card, Col, Segmented, Skeleton, Typography } from 'antd'
-import dynamic from 'next/dynamic'
 import {
-  buildDependencyNeighbourhood,
+  revealOverflow,
+  toggleExpansion,
   useDependencyMapExpansions,
-  useDependencyStrengthFilter,
-  useExpandedProductDependencies,
-  type DependencyExpansions,
+  type DependencyEdgeStyle,
   type DependencyFarSide,
   type DependencyMapExpansionState,
+} from '@/src/components/common/dependency-map'
+import {
+  DependencyStrength,
+  ProductDependenciesDto,
+  ProductDto,
+} from '@/src/services/wayd-api'
+import { toFileName } from '@/src/utils'
+import { Button, Card, Col, Segmented, Skeleton, theme, Typography } from 'antd'
+import dynamic from 'next/dynamic'
+import {
+  buildProductDependencyNeighbourhood,
+  useDependencyStrengthFilter,
+  useExpandedProductDependencies,
   type DependencyStrengthFilter,
+  type ProductDependencyExpansions,
 } from '../../../_components/dependency-map'
 
 // Loaded on demand: the graph canvas is the heaviest thing on this page and most products have no
 // dependencies at all, so it must not sit in the bundle every product page pays for.
 const DependencyMap = dynamic(
-  () => import('../../../_components/dependency-map/dependency-map'),
+  () => import('@/src/components/common/dependency-map/dependency-map'),
   { ssr: false, loading: () => <Skeleton active paragraph={{ rows: 4 }} /> },
 )
 
 const { Text } = Typography
 
-const FAR_SIDES: DependencyFarSide[] = ['usedBy', 'dependsOn']
+const FAR_SIDES: DependencyFarSide[] = ['left', 'right']
+
+// What relies on the product sits on its left, what it relies on on its right.
+const EXPAND_TOOLTIPS: Record<DependencyFarSide, (label: string) => string> = {
+  left: (label) => `Show what relies on ${label}`,
+  right: (label) => `Show what ${label} relies on`,
+}
 
 export interface ProductDependencyMapCardProps {
   product: ProductDto
@@ -46,6 +61,7 @@ const ProductDependencyMapCard = ({
   dependencies,
   onViewAll,
 }: ProductDependencyMapCardProps) => {
+  const { token } = theme.useToken()
   const [strengthFilter, setStrengthFilter] = useDependencyStrengthFilter()
   const [state, setState] = useDependencyMapExpansions(product.id)
   const hardOnly = strengthFilter === 'hard'
@@ -55,7 +71,7 @@ const ProductDependencyMapCard = ({
 
   const expansionsFor = (
     from: DependencyMapExpansionState,
-  ): DependencyExpansions => {
+  ): ProductDependencyExpansions => {
     const bySide = (side: DependencyFarSide) =>
       Object.fromEntries(
         Object.entries(from[side]).map(([id, options]) => [
@@ -64,7 +80,7 @@ const ProductDependencyMapCard = ({
         ]),
       )
 
-    return { usedBy: bySide('usedBy'), dependsOn: bySide('dependsOn') }
+    return { left: bySide('left'), right: bySide('right') }
   }
 
   const options = {
@@ -75,7 +91,7 @@ const ProductDependencyMapCard = ({
   }
 
   const build = (from: DependencyMapExpansionState) =>
-    buildDependencyNeighbourhood({
+    buildProductDependencyNeighbourhood({
       ...options,
       strengthFilter,
       expansions: expansionsFor(from),
@@ -84,58 +100,39 @@ const ProductDependencyMapCard = ({
 
   // Whether the card shows is decided on every link, not the filtered ones: a product whose links are
   // all soft would otherwise lose the map, and with it the control that would turn the filter back off.
-  const hasDependencies = buildDependencyNeighbourhood(options).edges.length > 0
+  const hasDependencies =
+    buildProductDependencyNeighbourhood(options).edges.length > 0
   const neighbourhood = build(state)
 
   if (!hasDependencies) return null
 
-  const toggleExpansion = (side: DependencyFarSide, productId: string) => {
-    const next: DependencyMapExpansionState = {
-      usedBy: { ...state.usedBy },
-      dependsOn: { ...state.dependsOn },
-      subjectShowAll: state.subjectShowAll,
-    }
+  // Pruning waits while anything is loading: a product not yet reached is not one no longer reachable.
+  const stillLoading = expandedIds.some(
+    (id) => !loaded[id]?.dependencies && !loaded[id]?.isError,
+  )
 
-    if (!next[side][productId]) {
-      next[side][productId] = {}
-      setState(next)
-      return
-    }
-
-    delete next[side][productId]
-
-    // Collapsing takes everything the expansion brought in with it, nested expansions included, so
-    // expanding the product again starts from one column rather than restoring a stale path. Skipped
-    // while anything is still loading, because a product not yet reached is not the same as one no
-    // longer reachable.
-    const stillLoading = expandedIds.some(
-      (id) => !loaded[id]?.dependencies && !loaded[id]?.isError,
+  const onToggleExpansion = (side: DependencyFarSide, productId: string) =>
+    setState(
+      toggleExpansion(
+        state,
+        side,
+        productId,
+        stillLoading ? null : (next) => build(next).placed,
+      ),
     )
-    if (!stillLoading) {
-      const { placed } = build(next)
-      for (const s of FAR_SIDES) {
-        for (const id of Object.keys(next[s])) {
-          if (!placed[s].includes(id)) delete next[s][id]
-        }
-      }
-    }
 
-    setState(next)
-  }
+  const onShowAll = (side: DependencyFarSide, ownerId: string | null) =>
+    setState(revealOverflow(state, side, ownerId))
 
-  const showAll = (side: DependencyFarSide, ownerId: string | null) => {
-    if (ownerId === null) {
-      setState({
-        ...state,
-        subjectShowAll: [...new Set([...state.subjectShowAll, side])],
-      })
-      return
-    }
-
-    setState({
-      ...state,
-      [side]: { ...state[side], [ownerId]: { showAll: true } },
-    })
+  // Hard is drawn heavier and solid, soft lighter and dashed, so the two still read apart in a greyscale
+  // print of the exported image.
+  const edgeStyles: Record<string, DependencyEdgeStyle> = {
+    [DependencyStrength.Hard]: { stroke: token.colorTextSecondary, width: 2 },
+    [DependencyStrength.Soft]: {
+      stroke: token.colorTextQuaternary,
+      width: 1.5,
+      dashed: true,
+    },
   }
 
   // A full-width row of its own on the Overview's grid, which the card owns so that a product with no
@@ -145,11 +142,24 @@ const ProductDependencyMapCard = ({
       <Card
         size="small"
         title="Dependencies"
-        extra={onViewAll && <a onClick={onViewAll}>View all</a>}
+        extra={
+          onViewAll && (
+            <Button
+              type="link"
+              size="small"
+              onClick={onViewAll}
+              styles={{ root: { padding: 0 } }}
+            >
+              View all
+            </Button>
+          )
+        }
       >
         <DependencyMap
           nodes={neighbourhood.nodes}
           edges={neighbourhood.edges}
+          edgeStyles={edgeStyles}
+          expandTooltips={EXPAND_TOOLTIPS}
           height={
             neighbourhood.edges.length > 0 ? neighbourhood.height : undefined
           }
@@ -169,15 +179,15 @@ const ProductDependencyMapCard = ({
             />
           }
           emptyText="No hard dependencies in either direction."
-          onToggleExpansion={toggleExpansion}
-          onShowAll={showAll}
+          onToggleExpansion={onToggleExpansion}
+          onShowAll={onShowAll}
         />
         <Text type="secondary">
           What this product relies on, and what relies on it.
           {hardOnly
             ? ' Showing hard dependencies only: what stops working if a product goes down.'
             : ' A solid line is a hard dependency, a dashed line a soft one.'}
-          {neighbourhood.hasContainedProducts &&
+          {neighbourhood.hasContainedRecords &&
             ' The box holds the products beneath this one that the dependencies were recorded against.'}
           {neighbourhood.edges.length > 0 &&
             ' Use + on a product to follow its own dependencies further out.'}

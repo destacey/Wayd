@@ -26,6 +26,7 @@ export {
 export { saveElementAsImage } from './save-element-as-image'
 export { toFileName } from './file-name'
 export { getInitials } from './get-initials'
+export { chunk } from './chunk'
 
 export {
   default as toFormErrors,

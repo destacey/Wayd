@@ -24,6 +24,15 @@ import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
 import { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
+import { chunk } from '@/src/utils'
+
+/**
+ * Project ids per plan-summaries request. The ids travel on the request line,
+ * and a scope of a few hundred projects would push it past what a reverse
+ * proxy accepts, so a large set goes as several requests merged into one
+ * result.
+ */
+const PLAN_SUMMARIES_CHUNK_SIZE = 50
 
 export interface GetProjectsRequest {
   status?: number[]
@@ -555,12 +564,21 @@ export const projectsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIds, role, employeeId, allTasks }) => {
         try {
-          const data = await getProjectsClient().getProjectsPlanSummaries(
-            projectIds,
-            role,
-            employeeId,
-            allTasks ?? false,
+          const client = getProjectsClient()
+          const pages = await Promise.all(
+            chunk(projectIds, PLAN_SUMMARIES_CHUNK_SIZE).map((ids) =>
+              client.getProjectsPlanSummaries(
+                ids,
+                role,
+                employeeId,
+                allTasks ?? false,
+              ),
+            ),
           )
+          const data = Object.assign({}, ...pages) as Record<
+            string,
+            ProjectPlanSummaryDto
+          >
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -139,6 +139,10 @@ will catch for you.
 
 - [ ] The domain method raises it with `AddDomainEvent`, only when something changed, comparing after
   assignment. *Domain test — assert both that it raises and that a no-op call does not.*
+- [ ] An aggregate raising its first event joins `EventedAggregates`, and from then on every public method
+  that changes its state raises. See
+  [An evented aggregate changes only through events](#an-evented-aggregate-changes-only-through-events).
+  *`EventCoverageTests`.*
 - [ ] A creation event whose `Key` is database-assigned is raised in `AddPostPersistenceAction`, with every
   other value captured in a local at creation. *Create-then-mutate domain test.*
 - [ ] An event raised by a mutation before the record's first save defers itself while `Key == 0`, if its
@@ -331,6 +335,27 @@ it. Comparing the stored values on both sides is what makes the guard correct ra
 
 Collections compare the same way, ignoring order: `RoleManager.Diff` for role assignments (the event is
 raised when it gained or lost anything, and carries both lists), a set difference for strategic themes.
+
+### An evented aggregate changes only through events
+
+Once an aggregate raises events, its activity log is its history, and one change that raises nothing makes
+that history incomplete — silently, because the row still saves. `EventCoverageTests` (in
+`Wayd.ArchitectureTests`) holds two lines:
+
+- **Every public method that changes an evented aggregate's state raises.** The test reads the compiled
+  domain code, following each public method, factory and constructor through the domain calls it makes, and
+  fails naming any that writes state with no `AddDomainEvent` on any path. The aggregates it checks are listed
+  in `EventedAggregates`, and that list must match the types that raise: a type raising its first event fails
+  the test until it is added.
+- **Nothing writes an evented aggregate's table in bulk.** `ExecuteUpdate`, `ExecuteDelete` and raw
+  `UPDATE`/`DELETE`/`INSERT`/`MERGE` never load the aggregate, so they cannot raise. The test fails on one in
+  shipped code or in a migration newer than the guard; load the records and change them through the aggregate
+  instead.
+
+A change that is deliberately not history goes on `UneventedMutators` with its reason, and a migration that
+accounts for its writes another way on `SetBasedWriteMigrations`. Both lists fail on an entry that no longer
+excuses anything. The method check is "raises somewhere", not "raises on every path": a method that raises in
+one branch and changes state unevented in another passes, so it is a floor, not a proof.
 
 ### A change carries both ends
 

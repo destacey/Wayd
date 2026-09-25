@@ -158,6 +158,16 @@ const buildColumns = (
       ),
   },
   {
+    // One click to the plan, without opening the drawer or the project first.
+    id: 'plan',
+    header: 'Plan',
+    size: 60,
+    enableSorting: false,
+    enableColumnFilter: false,
+    meta: { enableExport: false, align: 'right' },
+    cell: ({ row }) => <ProjectPlanLink project={row.original} />,
+  },
+  {
     id: 'overdue',
     accessorFn: (row) => planSummaries[row.id]?.overdue ?? 0,
     header: 'Tasks',
@@ -202,16 +212,6 @@ const buildColumns = (
         </span>
       )
     },
-  },
-  {
-    // One click to the plan, without opening the drawer or the project first.
-    id: 'plan',
-    header: 'Plan',
-    size: 60,
-    enableSorting: false,
-    enableColumnFilter: false,
-    meta: { enableExport: false, align: 'right' },
-    cell: ({ row }) => <ProjectPlanLink project={row.original} />,
   },
   {
     id: 'role',

@@ -149,4 +149,20 @@ describe('packLanes', () => {
     expect(result.lanes.has('bg')).toBe(false)
     expect(result.laneCount).toBe(1)
   })
+  it('gives a pinned item the top lane even when a child starts earlier', () => {
+    // Arrange — the parent spans days 2-10; one child begins before it
+    const items = [
+      range('child-early', 0, 4),
+      range('parent', 2, 10, { pinToTop: true }),
+      range('child-late', 5, 8),
+    ]
+    // Act
+    const result = packLanes(items)
+    // Assert — parent on lane 0; both children below it, on the same lane since
+    // they do not overlap each other
+    expect(result.lanes.get('parent')).toBe(0)
+    expect(result.lanes.get('child-early')).toBe(1)
+    expect(result.lanes.get('child-late')).toBe(1)
+    expect(result.laneCount).toBe(2)
+  })
 })

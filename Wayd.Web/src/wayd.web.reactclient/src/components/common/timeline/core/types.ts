@@ -38,6 +38,13 @@ export interface TimelineItem<T = unknown> {
   treeLevel?: number
   /** Optional deterministic ordering hint (lower = earlier in packing/placement). */
   order?: number
+  /**
+   * Packed before every other item in its row, whatever its start, so it
+   * takes the top lane: a parent's own span drawn above the children that
+   * fill it in. Packing otherwise goes by start date, which would hand the
+   * top lane to whichever child happens to begin first.
+   */
+  pinToTop?: boolean
   /** Progress 0..100, if the item supports a progress handle. */
   progress?: number
   /** Opaque payload the render layer / consumer carries through (DTO, etc.). */

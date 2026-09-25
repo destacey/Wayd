@@ -13,10 +13,11 @@ export interface PackOptions {
 /**
  * Greedy interval-scheduling lane assignment.
  *
- * Items are sorted by (start, then `order`, then id) for determinism, then each
- * item is placed in the first lane whose last item ends at or before this item's
- * start. If none fits, a new lane is opened. This yields the minimum number of
- * lanes for a set of intervals (classic greedy interval-graph colouring).
+ * Items are sorted by (`pinToTop` first, then start, then `order`, then id) for
+ * determinism, then each item is placed in the first lane whose last item ends
+ * at or before this item's start. If none fits, a new lane is opened. This
+ * yields the minimum number of lanes for a set of intervals (classic greedy
+ * interval-graph colouring); a pinned item is placed first and so takes lane 0.
  *
  * Two items "overlap" when one starts strictly before the other ends. Touching
  * intervals (a.end === b.start) do NOT overlap and may share a lane — matching
@@ -31,6 +32,7 @@ export function packLanes(
   const packable = items.filter((i) => i.kind !== 'background')
 
   const sorted = [...packable].sort((a, b) => {
+    if (!!a.pinToTop !== !!b.pinToTop) return a.pinToTop ? -1 : 1
     if (a.start !== b.start) return a.start - b.start
     const ao = a.order ?? 0
     const bo = b.order ?? 0

@@ -34,6 +34,13 @@ export const useWaydSlateTheme = (): AppThemeConfig =>
             colorTextSecondary: 'rgba(255, 255, 255, 0.72)',
             colorTextTertiary: 'rgba(255, 255, 255, 0.55)',
             colorTextQuaternary: 'rgba(255, 255, 255, 0.38)',
+            // Links derive from colorInfo, not colorPrimary, and the dark
+            // algorithm darkens them to #1668dc (≈2:1 on containers) with an
+            // even darker hover. Pinned light tints hold ≥4.5:1 on container
+            // and elevated surfaces, and hover brightens rather than dims.
+            colorLink: '#90caf9',
+            colorLinkHover: '#bbdefb',
+            colorLinkActive: '#64b5f6',
             // Default shadows are tuned for light backgrounds and vanish on
             // mid-tone surfaces; stronger alphas give floating surfaces
             // (dropdowns, popovers, modals) a visible lift beyond lightness.

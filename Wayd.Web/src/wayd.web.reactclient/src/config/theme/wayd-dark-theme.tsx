@@ -24,6 +24,14 @@ export const useWaydDarkTheme = (): AppThemeConfig =>
             colorBgElevated: '#282b31',
             colorBorder: '#3d434d',
             colorBorderSecondary: '#30353d',
+            // Links derive from colorInfo, not colorPrimary, and the dark
+            // algorithm darkens them to #1668dc (≈3:1 on containers) with an
+            // even darker hover. Pinned one step deeper than slate's tints —
+            // enough contrast here without glaring on near-black — and hover
+            // brightens rather than dims.
+            colorLink: '#64b5f6',
+            colorLinkHover: '#90caf9',
+            colorLinkActive: '#4dabf5',
             borderRadius: 4,
             wireframe: false,
             // Default shadows vanish on dark surfaces; stronger blacks give

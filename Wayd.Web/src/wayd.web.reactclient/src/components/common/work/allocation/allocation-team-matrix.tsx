@@ -90,7 +90,16 @@ const AllocationTeamMatrix: FC<AllocationTeamMatrixProps> = ({
     },
     ...allocation.groups.map((group, index) => ({
       key: group.id,
-      title: groupLabel(group, dimension),
+      // Project names make the header rows several lines deep, so a project column
+      // shows its key and names the project on hover.
+      title:
+        dimension === AllocationDimension.Project && group.recordKey ? (
+          <WaydTooltip title={groupLabel(group, dimension)}>
+            <span>{group.recordKey}</span>
+          </WaydTooltip>
+        ) : (
+          groupLabel(group, dimension)
+        ),
       width: 130,
       onCell: () => ({ style: { padding: 3 } }),
       render: (_: unknown, row: AllocationTeamRowDto) => {

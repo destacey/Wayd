@@ -409,7 +409,9 @@ export const AllocationReportView: FC<AllocationReportViewProps> = ({
             <Text type="secondary" style={{ fontSize: 12 }}>
               Each team&apos;s split is measured in its own sizing — story
               points, or items for teams that size by count — then teams are
-              combined by their share of completed items.
+              combined by their share of completed items, so the percentages
+              never add one team&apos;s story points to another&apos;s. Story
+              point totals are still plain sums across teams.
             </Text>
           )}
         </>

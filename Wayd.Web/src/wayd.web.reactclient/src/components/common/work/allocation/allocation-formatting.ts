@@ -128,7 +128,7 @@ export const MEASURE_LABELS: Record<AllocationMeasure, string> = {
 /** Worded like the Count / Story Points switch on sprint and iteration metrics. */
 export const measureTooltip = (isTeamOfTeams: boolean) =>
   isTeamOfTeams
-    ? "Switch between counting work items, summing story points, and each team's share of effort. Share of team effort splits each team's work in its own sizing, then combines teams by the work items each completed, so story points are never added across teams."
+    ? "Switch between counting work items, summing story points, and each team's share of effort. Share of team effort works out each team's split in its own sizing (story points, or work items for teams that size by count), then combines teams by the work items each completed, so its percentages never add one team's story points to another's. The story point totals shown alongside are still plain sums across teams."
     : 'Switch between counting work items and summing story points'
 
 export const formatShare = (share: number) =>

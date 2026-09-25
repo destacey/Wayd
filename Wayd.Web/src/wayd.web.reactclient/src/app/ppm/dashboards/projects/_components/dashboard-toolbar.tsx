@@ -2,7 +2,7 @@
 
 import {
   AppstoreOutlined,
-  BarsOutlined,
+  BuildOutlined,
   MenuOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
@@ -40,10 +40,11 @@ const SORT_OPTIONS: { label: string; value: SortBy }[] = [
   { label: 'Score', value: 'score' },
 ]
 
+// The same icon-only switch, in the same order, as the PPM view managers.
 const VIEW_OPTIONS = [
-  { label: 'List', value: 'list', icon: <MenuOutlined /> },
-  { label: 'Cards', value: 'cards', icon: <AppstoreOutlined /> },
-  { label: 'Timeline', value: 'timeline', icon: <BarsOutlined /> },
+  { value: 'cards', icon: <AppstoreOutlined title="Card view" /> },
+  { value: 'list', icon: <MenuOutlined title="List" /> },
+  { value: 'timeline', icon: <BuildOutlined title="Timeline" /> },
 ]
 
 const DashboardToolbar: FC<DashboardToolbarProps> = ({

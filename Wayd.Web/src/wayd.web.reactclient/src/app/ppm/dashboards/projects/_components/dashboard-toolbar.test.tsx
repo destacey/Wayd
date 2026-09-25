@@ -41,13 +41,13 @@ describe('DashboardToolbar', () => {
 
     // Act
     await userEvent.click(screen.getByText('Health'))
-    await userEvent.click(screen.getByText('Cards'))
+    await userEvent.click(screen.getByTitle('Card view'))
 
     // Assert
     expect(defaultProps.onGroupByChange).toHaveBeenCalledWith('health')
     expect(defaultProps.onViewChange).toHaveBeenCalledWith('cards')
 
-    await userEvent.click(screen.getByText('Timeline'))
+    await userEvent.click(screen.getByTitle('Timeline'))
     expect(defaultProps.onViewChange).toHaveBeenLastCalledWith('timeline')
   })
 

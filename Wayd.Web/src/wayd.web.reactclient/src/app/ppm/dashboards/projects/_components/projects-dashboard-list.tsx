@@ -1,6 +1,5 @@
 'use client'
 
-import { RightOutlined } from '@ant-design/icons'
 import { LifecycleStatusTag, WaydEmpty } from '@/src/components/common'
 import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
@@ -8,6 +7,7 @@ import { ProjectListDto } from '@/src/services/wayd-api'
 import { Skeleton } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC, useState } from 'react'
+import DashboardGroupHeader from './dashboard-group-header'
 import {
   collectLeadership,
   getEmployeeRoles,
@@ -32,7 +32,7 @@ export interface ProjectsDashboardListProps {
   height?: number
 }
 
-const formatEnd = (end: Date | undefined) =>
+export const formatEnd = (end: Date | undefined) =>
   end ? dayjs(end).format('MMM D, YYYY') : null
 
 interface RowProps {
@@ -136,24 +136,14 @@ const GroupSection: FC<GroupSectionProps> = ({
   ...rowProps
 }) => {
   const [collapsed, setCollapsed] = useState(false)
-  const count = group.projects.length
 
   return (
     <div>
-      <button
-        type="button"
-        className={styles.groupHeader}
-        onClick={() => setCollapsed((c) => !c)}
-        aria-expanded={!collapsed}
-      >
-        <RightOutlined
-          className={`${styles.collapseIcon} ${collapsed ? '' : styles.collapseIconExpanded}`}
-        />
-        <span className={styles.groupName}>{group.name}</span>
-        <span className={styles.groupMeta}>
-          {count} {count === 1 ? 'project' : 'projects'} · {group.summary}
-        </span>
-      </button>
+      <DashboardGroupHeader
+        group={group}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+      />
       {!collapsed &&
         group.projects.map((project) => (
           <ProjectRow

@@ -11,36 +11,36 @@ import {
   useLocalStorageState,
   useRemainingHeight,
 } from '@/src/hooks'
-import {
-  useGetProjectsPlanSummariesQuery,
-  useGetProjectsQuery,
-} from '@/src/store/features/ppm/projects-api'
 import ProjectDrawer from '@/src/app/ppm/_components/project-drawer'
 import { Grid } from 'antd'
 import dayjs from 'dayjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { FC, useEffect, useState } from 'react'
 import AttentionTiles from './_components/attention-tiles'
-import DashboardToolbar from './_components/dashboard-toolbar'
+import BreakdownStrip from './_components/breakdown-strip'
+import DashboardToolbar, {
+  DashboardView,
+} from './_components/dashboard-toolbar'
 import {
-  ALL_ROLES,
   AttentionFilter,
   computeAttention,
   DashboardScope,
   DEFAULT_STATUSES,
   GroupBy,
   groupProjects,
+  isPersonScope,
   matchesAttention,
   matchesSearch,
+  scopeFromSearchParams,
+  scopeToSearchParams,
   SortBy,
 } from './_components/dashboard-model'
+import ProjectsDashboardCards from './_components/projects-dashboard-cards'
 import ProjectsDashboardList from './_components/projects-dashboard-list'
 import ScopeBar from './_components/scope-bar'
+import { useScopedProjects } from './_components/use-scoped-projects'
 
 const { useBreakpoint } = Grid
-
-/** The `?employee=` query parameter that puts the page in person scope. */
-const EMPLOYEE_PARAM = 'employee'
 
 const ProjectsDashboardPage: FC = () => {
   useDocumentTitle('Projects Dashboard')
@@ -53,22 +53,12 @@ const ProjectsDashboardPage: FC = () => {
   const isMobile = !screens.md
   const [listRef, listHeight] = useRemainingHeight()
 
-  // The scope lives in the URL so a view of someone's projects can be shared;
-  // the filters stay local, as the other PPM filter bars keep theirs.
-  const employeeParam = searchParams.get(EMPLOYEE_PARAM)
-  const scope: DashboardScope =
-    employeeParam !== null || !hasLinkedEmployee
-      ? { kind: 'person', employeeId: employeeParam || null }
-      : { kind: 'me' }
+  // The scope lives in the URL so a view of someone's or something's projects
+  // can be shared; the filters stay local, as the other PPM filter bars keep theirs.
+  const scope = scopeFromSearchParams(searchParams, hasLinkedEmployee)
 
   const setScope = (next: DashboardScope) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (next.kind === 'me') {
-      params.delete(EMPLOYEE_PARAM)
-    } else {
-      params.set(EMPLOYEE_PARAM, next.employeeId ?? '')
-    }
-    const query = params.toString()
+    const query = scopeToSearchParams(next, searchParams).toString()
     router.replace(query ? `${pathname}?${query}` : pathname)
     setSelectedProjectKey(null)
   }
@@ -88,6 +78,12 @@ const ProjectsDashboardPage: FC = () => {
     'projects-dashboard-sort-by',
     'attention',
   )
+  const [view, setView] = useLocalStorageState<DashboardView>(
+    'projects-dashboard-view',
+    'list',
+  )
+  const [breakdownsExpanded, setBreakdownsExpanded] =
+    useLocalStorageState<boolean>('projects-dashboard-breakdowns', false)
   const [attention, setAttention] = useState<AttentionFilter>('all')
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
@@ -95,37 +91,14 @@ const ProjectsDashboardPage: FC = () => {
     null,
   )
 
-  const subjectEmployeeId =
-    scope.kind === 'me' ? myEmployeeId : scope.employeeId
-  // Me needs no explicit employee: the server resolves the principal, and the
-  // linkage it sees may be newer than the token this page decoded.
-  const employeeIdArg =
-    scope.kind === 'person' ? (scope.employeeId ?? undefined) : undefined
-  const hasSubject = subjectEmployeeId !== null
-
   const {
-    data: projects,
+    projects,
+    planSummaries,
     isLoading,
     error,
     refetch,
-  } = useGetProjectsQuery(
-    {
-      status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
-      role: selectedRoles.length > 0 ? selectedRoles : ALL_ROLES,
-      employeeId: employeeIdArg,
-    },
-    { skip: !hasSubject },
-  )
-
-  const projectIds = projects?.map((p) => p.id) ?? []
-  const { data: planSummaries } = useGetProjectsPlanSummariesQuery(
-    {
-      projectIds,
-      role: selectedRoles.length > 0 ? selectedRoles : undefined,
-      employeeId: employeeIdArg,
-    },
-    { skip: projectIds.length === 0 },
-  )
+    subjectEmployeeId,
+  } = useScopedProjects(scope, selectedStatuses, selectedRoles, myEmployeeId)
 
   useEffect(() => {
     if (error) {
@@ -135,15 +108,14 @@ const ProjectsDashboardPage: FC = () => {
   }, [error, messageApi])
 
   const today = dayjs()
-  const summaries = planSummaries ?? {}
   const inScope = projects ?? []
-  const counts = computeAttention(inScope, summaries, today)
+  const counts = computeAttention(inScope, planSummaries, today)
   const shown = inScope.filter(
     (p) =>
-      matchesAttention(p, attention, summaries, today) &&
+      matchesAttention(p, attention, planSummaries, today) &&
       matchesSearch(p, debouncedSearch),
   )
-  const groups = groupProjects(shown, groupBy, sortBy, summaries)
+  const groups = groupProjects(shown, groupBy, sortBy, planSummaries)
 
   const clearSelection = () => setSelectedProjectKey(null)
 
@@ -155,6 +127,8 @@ const ProjectsDashboardPage: FC = () => {
     clearSelection()
   }
 
+  const Body = view === 'cards' ? ProjectsDashboardCards : ProjectsDashboardList
+
   return (
     <div className="page-gutters">
       <BasicBreadcrumb
@@ -165,7 +139,7 @@ const ProjectsDashboardPage: FC = () => {
         ]}
       />
       <PageTitle title="Projects Dashboard" />
-      <UnlinkedEmployeeAlert consequence="Projects are assigned to employees, so the Me scope has nothing to show; pick a person instead." />
+      <UnlinkedEmployeeAlert consequence="Projects are assigned to employees, so the Me scope has nothing to show; pick a person, portfolio or program instead." />
       <ScopeBar
         scope={scope}
         onScopeChange={setScope}
@@ -190,8 +164,17 @@ const ProjectsDashboardPage: FC = () => {
           setAttention(filter)
           clearSelection()
         }}
-        isLoading={hasSubject && isLoading}
+        isLoading={isLoading}
       />
+      {/* Breakdowns describe a population; a person's handful of projects is not one. */}
+      {!isPersonScope(scope) && (
+        <BreakdownStrip
+          projects={inScope}
+          isLoading={isLoading}
+          expanded={breakdownsExpanded}
+          onExpandedChange={setBreakdownsExpanded}
+        />
+      )}
       <DashboardToolbar
         groupBy={groupBy}
         onGroupByChange={setGroupBy}
@@ -199,17 +182,19 @@ const ProjectsDashboardPage: FC = () => {
         onSortByChange={setSortBy}
         search={search}
         onSearchChange={setSearch}
+        view={view}
+        onViewChange={setView}
         shownCount={shown.length}
         totalCount={inScope.length}
       />
       <div ref={listRef}>
-        <ProjectsDashboardList
+        <Body
           groups={groups}
-          planSummaries={summaries}
+          planSummaries={planSummaries}
           employeeId={subjectEmployeeId}
           selectedProjectKey={selectedProjectKey}
           onSelectProject={setSelectedProjectKey}
-          isLoading={hasSubject && isLoading}
+          isLoading={isLoading}
           today={today}
           height={isMobile ? undefined : listHeight}
         />

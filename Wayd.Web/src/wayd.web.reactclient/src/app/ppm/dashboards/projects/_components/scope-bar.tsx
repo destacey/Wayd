@@ -2,14 +2,22 @@
 
 import { ClearOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useGetProjectStatusOptionsQuery } from '@/src/store/features/ppm/projects-api'
+import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
+import { useGetProgramOptionsQuery } from '@/src/store/features/ppm/programs-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
-import { Button, Flex, Segmented, Skeleton, theme } from 'antd'
+import { Button, Flex, Segmented, Select, Skeleton, theme } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import { EmployeeSelect } from '@/src/components/common/organizations'
+import { BaseOptionType } from 'antd/es/select'
 import { FC, RefObject } from 'react'
 import { LifecycleCategory } from '@/src/components/types'
 import { getLifecycleCategoryStatusSurface } from '@/src/utils'
-import { DashboardScope, ROLE_OPTIONS } from './dashboard-model'
+import {
+  DashboardScope,
+  isPersonScope,
+  ROLE_OPTIONS,
+  ScopeKind,
+} from './dashboard-model'
 import styles from '../projects-dashboard.module.css'
 
 export interface ScopeBarProps {
@@ -31,6 +39,26 @@ const toggle = (values: number[], value: number) =>
     ? values.filter((v) => v !== value)
     : [...values, value]
 
+const emptyScope = (kind: ScopeKind): DashboardScope => {
+  switch (kind) {
+    case 'me':
+      return { kind: 'me' }
+    case 'person':
+      return { kind: 'person', employeeId: null }
+    case 'portfolio':
+      return { kind: 'portfolio', portfolioId: null }
+    case 'program':
+      return { kind: 'program', programId: null }
+    case 'all':
+      return { kind: 'all' }
+  }
+}
+
+const filterByLabel = (input: string, option?: BaseOptionType): boolean =>
+  String(option?.label ?? '')
+    .toLowerCase()
+    .includes(input.toLowerCase())
+
 const ScopeBar: FC<ScopeBarProps> = ({
   scope,
   onScopeChange,
@@ -47,6 +75,12 @@ const ScopeBar: FC<ScopeBarProps> = ({
   const { data: employeeOptions } = useGetEmployeeOptionsQuery(false, {
     skip: scope.kind !== 'person',
   })
+  const { data: portfolioOptions } = useGetPortfolioOptionsQuery(undefined, {
+    skip: scope.kind !== 'portfolio',
+  })
+  const { data: programOptions } = useGetProgramOptionsQuery(undefined, {
+    skip: scope.kind !== 'program',
+  })
   const { token } = theme.useToken()
 
   if (isLoading) {
@@ -57,9 +91,12 @@ const ScopeBar: FC<ScopeBarProps> = ({
     )
   }
 
-  const scopeOptions = [
-    ...(hasLinkedEmployee ? [{ label: 'Me', value: 'me' }] : []),
+  const scopeOptions: { label: string; value: ScopeKind }[] = [
+    ...(hasLinkedEmployee ? [{ label: 'Me', value: 'me' as const }] : []),
     { label: 'Person', value: 'person' },
+    { label: 'Portfolio', value: 'portfolio' },
+    { label: 'Program', value: 'program' },
+    { label: 'All projects', value: 'all' },
   ]
 
   return (
@@ -71,16 +108,10 @@ const ScopeBar: FC<ScopeBarProps> = ({
             size="small"
             options={scopeOptions}
             value={scope.kind}
-            onChange={(value) =>
-              onScopeChange(
-                value === 'me'
-                  ? { kind: 'me' }
-                  : { kind: 'person', employeeId: null },
-              )
-            }
+            onChange={(value) => onScopeChange(emptyScope(value as ScopeKind))}
           />
           {scope.kind === 'person' && (
-            <div className={styles.employeeSelect}>
+            <div className={styles.scopePicker}>
               <EmployeeSelect
                 employees={employeeOptions ?? []}
                 placeholder="Choose an employee"
@@ -94,43 +125,83 @@ const ScopeBar: FC<ScopeBarProps> = ({
               />
             </div>
           )}
+          {scope.kind === 'portfolio' && (
+            <Select
+              className={styles.scopePicker}
+              size="small"
+              allowClear
+              showSearch
+              filterOption={filterByLabel}
+              placeholder="Choose a portfolio"
+              aria-label="Choose a portfolio"
+              options={portfolioOptions ?? []}
+              value={scope.portfolioId ?? undefined}
+              onChange={(value) =>
+                onScopeChange({ kind: 'portfolio', portfolioId: value ?? null })
+              }
+            />
+          )}
+          {scope.kind === 'program' && (
+            <Select
+              className={styles.scopePicker}
+              size="small"
+              allowClear
+              showSearch
+              filterOption={filterByLabel}
+              placeholder="Choose a program"
+              aria-label="Choose a program"
+              options={programOptions ?? []}
+              value={scope.programId ?? undefined}
+              onChange={(value) =>
+                onScopeChange({ kind: 'program', programId: value ?? null })
+              }
+            />
+          )}
         </Flex>
 
-        <div className={styles.scopeDivider} />
+        {isPersonScope(scope) && (
+          <>
+            <div className={styles.scopeDivider} />
 
-        <Flex gap={2} wrap align="center">
-          <span className={styles.scopeLabel}>Role</span>
-          <Button
-            size="small"
-            className={styles.chipButton}
-            color={selectedRoles.length === 0 ? 'primary' : 'default'}
-            variant="outlined"
-            style={
-              selectedRoles.length === 0 ? undefined : { borderStyle: 'dashed' }
-            }
-            onClick={() => onRoleChange([])}
-          >
-            All
-          </Button>
-          {ROLE_OPTIONS.map((role) => {
-            const isSelected = selectedRoles.includes(role.value)
-            return (
+            <Flex gap={2} wrap align="center">
+              <span className={styles.scopeLabel}>Role</span>
               <Button
-                key={role.value}
                 size="small"
                 className={styles.chipButton}
-                color={isSelected ? 'primary' : 'default'}
+                color={selectedRoles.length === 0 ? 'primary' : 'default'}
                 variant="outlined"
-                // Roles carry no status color, so the dash alone separates the two
-                // states — the same cue the status buttons beside them use.
-                style={isSelected ? undefined : { borderStyle: 'dashed' }}
-                onClick={() => onRoleChange(toggle(selectedRoles, role.value))}
+                style={
+                  selectedRoles.length === 0
+                    ? undefined
+                    : { borderStyle: 'dashed' }
+                }
+                onClick={() => onRoleChange([])}
               >
-                {role.label}
+                All
               </Button>
-            )
-          })}
-        </Flex>
+              {ROLE_OPTIONS.map((role) => {
+                const isSelected = selectedRoles.includes(role.value)
+                return (
+                  <Button
+                    key={role.value}
+                    size="small"
+                    className={styles.chipButton}
+                    color={isSelected ? 'primary' : 'default'}
+                    variant="outlined"
+                    // Roles carry no status color, so the dash alone separates the two
+                    // states — the same cue the status buttons beside them use.
+                    style={isSelected ? undefined : { borderStyle: 'dashed' }}
+                    onClick={() =>
+                      onRoleChange(toggle(selectedRoles, role.value))
+                    }
+                  >
+                    {role.label}
+                  </Button>
+                )
+              })}
+            </Flex>
+          </>
+        )}
 
         <div className={styles.scopeDivider} />
 

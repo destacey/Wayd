@@ -8,10 +8,91 @@ import dayjs, { Dayjs } from 'dayjs'
 
 /**
  * Who or what the dashboard is looking at. `me` is the signed-in user's linked
- * employee; `person` is any employee, chosen from the scope bar.
+ * employee and `person` any employee; `portfolio` and `program` are a record's
+ * projects; `all` is every project the viewer can see.
  */
 export type DashboardScope =
-  { kind: 'me' } | { kind: 'person'; employeeId: string | null }
+  | { kind: 'me' }
+  | { kind: 'person'; employeeId: string | null }
+  | { kind: 'portfolio'; portfolioId: string | null }
+  | { kind: 'program'; programId: string | null }
+  | { kind: 'all' }
+
+export type ScopeKind = DashboardScope['kind']
+
+/** Scopes about a person: role chips and the Role column apply to these only. */
+export const isPersonScope = (scope: DashboardScope) =>
+  scope.kind === 'me' || scope.kind === 'person'
+
+/**
+ * The scope's query parameters. One key per record kind, present (possibly
+ * empty) whenever that scope is chosen, so a shared link opens on the same
+ * view. Me has no parameter: it is what the page shows with none.
+ */
+const SCOPE_PARAMS = {
+  person: 'employee',
+  portfolio: 'portfolio',
+  program: 'program',
+  all: 'scope',
+} as const
+
+export const scopeFromSearchParams = (
+  params: URLSearchParams,
+  hasLinkedEmployee: boolean,
+): DashboardScope => {
+  const employee = params.get(SCOPE_PARAMS.person)
+  if (employee !== null) return { kind: 'person', employeeId: employee || null }
+  const portfolio = params.get(SCOPE_PARAMS.portfolio)
+  if (portfolio !== null)
+    return { kind: 'portfolio', portfolioId: portfolio || null }
+  const program = params.get(SCOPE_PARAMS.program)
+  if (program !== null) return { kind: 'program', programId: program || null }
+  if (params.get(SCOPE_PARAMS.all) === 'all') return { kind: 'all' }
+  // An unlinked account has no projects of its own, so it starts on the picker.
+  return hasLinkedEmployee
+    ? { kind: 'me' }
+    : { kind: 'person', employeeId: null }
+}
+
+export const scopeToSearchParams = (
+  scope: DashboardScope,
+  current: URLSearchParams,
+): URLSearchParams => {
+  const params = new URLSearchParams(current.toString())
+  for (const key of Object.values(SCOPE_PARAMS)) params.delete(key)
+  switch (scope.kind) {
+    case 'me':
+      break
+    case 'person':
+      params.set(SCOPE_PARAMS.person, scope.employeeId ?? '')
+      break
+    case 'portfolio':
+      params.set(SCOPE_PARAMS.portfolio, scope.portfolioId ?? '')
+      break
+    case 'program':
+      params.set(SCOPE_PARAMS.program, scope.programId ?? '')
+      break
+    case 'all':
+      params.set(SCOPE_PARAMS.all, 'all')
+      break
+  }
+  return params
+}
+
+/** The record or person the scope still needs before anything can load. */
+export const scopeIsComplete = (scope: DashboardScope) => {
+  switch (scope.kind) {
+    case 'me':
+    case 'all':
+      return true
+    case 'person':
+      return scope.employeeId !== null
+    case 'portfolio':
+      return scope.portfolioId !== null
+    case 'program':
+      return scope.programId !== null
+  }
+}
 
 export const PROJECT_STATUS = {
   Proposed: 1,

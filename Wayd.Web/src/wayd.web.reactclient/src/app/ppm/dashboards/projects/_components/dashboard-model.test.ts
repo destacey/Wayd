@@ -15,6 +15,9 @@ import {
   NO_HEALTH_CHECK_LABEL,
   NO_PROGRAM_LABEL,
   PlanSummaries,
+  scopeFromSearchParams,
+  scopeIsComplete,
+  scopeToSearchParams,
   sortProjects,
   summarizeGroup,
 } from './dashboard-model'
@@ -50,6 +53,59 @@ const summary = (overdue: number) => ({
   dueThisWeek: 0,
   upcoming: 0,
   totalLeafTasks: 5,
+})
+
+describe('scope in the URL', () => {
+  it('reads each scope from its own parameter, an empty value meaning nothing chosen yet', () => {
+    // Arrange / Act / Assert
+    expect(scopeFromSearchParams(new URLSearchParams(), true)).toEqual({
+      kind: 'me',
+    })
+    expect(
+      scopeFromSearchParams(new URLSearchParams('employee=ada'), true),
+    ).toEqual({ kind: 'person', employeeId: 'ada' })
+    expect(
+      scopeFromSearchParams(new URLSearchParams('portfolio='), true),
+    ).toEqual({ kind: 'portfolio', portfolioId: null })
+    expect(
+      scopeFromSearchParams(new URLSearchParams('program=prog-1'), true),
+    ).toEqual({ kind: 'program', programId: 'prog-1' })
+    expect(
+      scopeFromSearchParams(new URLSearchParams('scope=all'), true),
+    ).toEqual({ kind: 'all' })
+  })
+
+  it('starts an unlinked account on the person picker instead of Me', () => {
+    expect(scopeFromSearchParams(new URLSearchParams(), false)).toEqual({
+      kind: 'person',
+      employeeId: null,
+    })
+  })
+
+  it('writes one parameter per scope and clears the others, keeping unrelated ones', () => {
+    // Arrange
+    const current = new URLSearchParams('employee=ada&other=1')
+
+    // Act
+    const portfolio = scopeToSearchParams(
+      { kind: 'portfolio', portfolioId: 'port-1' },
+      current,
+    )
+    const me = scopeToSearchParams({ kind: 'me' }, current)
+    const all = scopeToSearchParams({ kind: 'all' }, current)
+
+    // Assert
+    expect(portfolio.toString()).toBe('other=1&portfolio=port-1')
+    expect(me.toString()).toBe('other=1')
+    expect(all.toString()).toBe('other=1&scope=all')
+  })
+
+  it('knows when a scope still needs a record chosen', () => {
+    expect(scopeIsComplete({ kind: 'me' })).toBe(true)
+    expect(scopeIsComplete({ kind: 'all' })).toBe(true)
+    expect(scopeIsComplete({ kind: 'person', employeeId: null })).toBe(false)
+    expect(scopeIsComplete({ kind: 'program', programId: 'p' })).toBe(true)
+  })
 })
 
 describe('isEndingSoon', () => {

@@ -545,14 +545,21 @@ export const projectsApi = apiSlice.injectEndpoints({
 
     getProjectsPlanSummaries: builder.query<
       Record<string, ProjectPlanSummaryDto>,
-      { projectIds: string[]; role?: number[]; employeeId?: string }
+      {
+        projectIds: string[]
+        role?: number[]
+        employeeId?: string
+        /** Count every task rather than the ones the employee can see. */
+        allTasks?: boolean
+      }
     >({
-      queryFn: async ({ projectIds, role, employeeId }) => {
+      queryFn: async ({ projectIds, role, employeeId, allTasks }) => {
         try {
           const data = await getProjectsClient().getProjectsPlanSummaries(
             projectIds,
             role,
             employeeId,
+            allTasks ?? false,
           )
           return { data }
         } catch (error) {

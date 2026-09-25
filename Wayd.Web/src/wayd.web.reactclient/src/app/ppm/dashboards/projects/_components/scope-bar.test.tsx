@@ -12,15 +12,27 @@ jest.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetProjectStatusOptionsQuery: jest.fn(),
 }))
 
+jest.mock('@/src/store/features/ppm/portfolios-api', () => ({
+  useGetPortfolioOptionsQuery: jest.fn(),
+}))
+
+jest.mock('@/src/store/features/ppm/programs-api', () => ({
+  useGetProgramOptionsQuery: jest.fn(),
+}))
+
 jest.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeOptionsQuery: jest.fn(),
 }))
 
 import { useGetProjectStatusOptionsQuery } from '@/src/store/features/ppm/projects-api'
+import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
+import { useGetProgramOptionsQuery } from '@/src/store/features/ppm/programs-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 
 const mockStatusQuery = useGetProjectStatusOptionsQuery as jest.Mock
 const mockEmployeeQuery = useGetEmployeeOptionsQuery as jest.Mock
+const mockPortfolioQuery = useGetPortfolioOptionsQuery as jest.Mock
+const mockProgramQuery = useGetProgramOptionsQuery as jest.Mock
 
 const defaultProps = {
   scope: { kind: 'me' } as const,
@@ -48,23 +60,40 @@ describe('ScopeBar', () => {
       data: [{ label: 'Ada Lovelace', value: 'emp-ada' }],
       isLoading: false,
     })
+    mockPortfolioQuery.mockReturnValue({
+      data: [{ label: 'Customer Platform', value: 'port-1' }],
+      isLoading: false,
+    })
+    mockProgramQuery.mockReturnValue({
+      data: [{ label: 'Payments', value: 'prog-1' }],
+      isLoading: false,
+    })
   })
 
-  it('switches to person scope with no employee chosen yet', async () => {
+  it('switches scope kind with nothing chosen yet', async () => {
     // Arrange
     render(<ScopeBar {...defaultProps} />)
 
     // Act
     await userEvent.click(screen.getByText('Person'))
+    await userEvent.click(screen.getByText('Portfolio'))
+    await userEvent.click(screen.getByText('All projects'))
 
     // Assert
-    expect(defaultProps.onScopeChange).toHaveBeenCalledWith({
+    expect(defaultProps.onScopeChange).toHaveBeenNthCalledWith(1, {
       kind: 'person',
       employeeId: null,
     })
+    expect(defaultProps.onScopeChange).toHaveBeenNthCalledWith(2, {
+      kind: 'portfolio',
+      portfolioId: null,
+    })
+    expect(defaultProps.onScopeChange).toHaveBeenNthCalledWith(3, {
+      kind: 'all',
+    })
   })
 
-  it('shows the employee picker only in person scope', () => {
+  it('shows the picker that matches the scope kind', () => {
     // Arrange / Act
     const { rerender } = render(<ScopeBar {...defaultProps} />)
 
@@ -78,6 +107,44 @@ describe('ScopeBar', () => {
       />,
     )
     expect(screen.getByText('Choose an employee')).toBeInTheDocument()
+
+    rerender(
+      <ScopeBar
+        {...defaultProps}
+        scope={{ kind: 'portfolio', portfolioId: null }}
+      />,
+    )
+    expect(screen.getByText('Choose a portfolio')).toBeInTheDocument()
+
+    rerender(
+      <ScopeBar
+        {...defaultProps}
+        scope={{ kind: 'program', programId: null }}
+      />,
+    )
+    expect(screen.getByText('Choose a program')).toBeInTheDocument()
+  })
+
+  it('picks a portfolio from its options', async () => {
+    // Arrange
+    render(
+      <ScopeBar
+        {...defaultProps}
+        scope={{ kind: 'portfolio', portfolioId: null }}
+      />,
+    )
+
+    // Act
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Choose a portfolio' }),
+    )
+    await userEvent.click(await screen.findByText('Customer Platform'))
+
+    // Assert
+    expect(defaultProps.onScopeChange).toHaveBeenCalledWith({
+      kind: 'portfolio',
+      portfolioId: 'port-1',
+    })
   })
 
   it('offers no Me option to an account without a linked employee', () => {
@@ -93,6 +160,21 @@ describe('ScopeBar', () => {
     // Assert
     expect(screen.queryByText('Me')).not.toBeInTheDocument()
     expect(screen.getByText('Person')).toBeInTheDocument()
+  })
+
+  it('shows role chips only for a person scope', () => {
+    // Arrange / Act
+    const { rerender } = render(<ScopeBar {...defaultProps} />)
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'Sponsor' })).toBeInTheDocument()
+
+    rerender(<ScopeBar {...defaultProps} scope={{ kind: 'all' }} />)
+    expect(
+      screen.queryByRole('button', { name: 'Sponsor' }),
+    ).not.toBeInTheDocument()
+    // Status chips stay in every scope
+    expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument()
   })
 
   it('toggles a role chip and clears roles with All', async () => {

@@ -1,10 +1,16 @@
 'use client'
 
-import { SearchOutlined } from '@ant-design/icons'
+import {
+  AppstoreOutlined,
+  MenuOutlined,
+  SearchOutlined,
+} from '@ant-design/icons'
 import { Flex, Input, Segmented, Select } from 'antd'
 import { FC } from 'react'
 import { GroupBy, SortBy } from './dashboard-model'
 import styles from '../projects-dashboard.module.css'
+
+export type DashboardView = 'list' | 'cards'
 
 export interface DashboardToolbarProps {
   groupBy: GroupBy
@@ -13,6 +19,8 @@ export interface DashboardToolbarProps {
   onSortByChange: (sortBy: SortBy) => void
   search: string
   onSearchChange: (search: string) => void
+  view: DashboardView
+  onViewChange: (view: DashboardView) => void
   shownCount: number
   totalCount: number
 }
@@ -31,6 +39,11 @@ const SORT_OPTIONS: { label: string; value: SortBy }[] = [
   { label: 'Score', value: 'score' },
 ]
 
+const VIEW_OPTIONS = [
+  { label: 'List', value: 'list', icon: <MenuOutlined /> },
+  { label: 'Cards', value: 'cards', icon: <AppstoreOutlined /> },
+]
+
 const DashboardToolbar: FC<DashboardToolbarProps> = ({
   groupBy,
   onGroupByChange,
@@ -38,6 +51,8 @@ const DashboardToolbar: FC<DashboardToolbarProps> = ({
   onSortByChange,
   search,
   onSearchChange,
+  view,
+  onViewChange,
   shownCount,
   totalCount,
 }) => (
@@ -77,6 +92,14 @@ const DashboardToolbar: FC<DashboardToolbarProps> = ({
         ? `${totalCount} ${totalCount === 1 ? 'project' : 'projects'}`
         : `${shownCount} of ${totalCount} shown`}
     </span>
+    <Segmented
+      className={styles.viewSwitch}
+      size="small"
+      options={VIEW_OPTIONS}
+      value={view}
+      onChange={(value) => onViewChange(value as DashboardView)}
+      aria-label="View"
+    />
   </Flex>
 )
 

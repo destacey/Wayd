@@ -30700,6 +30700,150 @@
         ]
       }
     },
+    "/api/organization/teams/{idOrCode}/allocation": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Report where a team's completed work went.",
+        "description": "Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.",
+        "operationId": "Teams_GetTeamAllocation",
+        "parameters": [
+          {
+            "name": "idOrCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "From",
+            "in": "query",
+            "description": "The first day of completed work to include (yyyy-MM-dd, UTC).",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "To",
+            "in": "query",
+            "description": "The last day of completed work to include (yyyy-MM-dd, UTC).",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "Dimension",
+            "in": "query",
+            "description": "What to group work by (default Portfolio).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AllocationDimension"
+                }
+              ]
+            },
+            "x-position": 4
+          },
+          {
+            "name": "Measure",
+            "in": "query",
+            "description": "How to weigh each work item (default Count).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AllocationMeasure"
+                }
+              ]
+            },
+            "x-position": 5
+          },
+          {
+            "name": "Unestimated",
+            "in": "query",
+            "description": "Story points only: what to do with unestimated items (default Exclude).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/UnestimatedHandling"
+                }
+              ]
+            },
+            "x-position": 6
+          },
+          {
+            "name": "ThemeCounting",
+            "in": "query",
+            "description": "Strategic theme only: how to credit a project with several themes (default SplitEvenly).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ThemeCounting"
+                }
+              ]
+            },
+            "x-position": 7
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAllocationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/teams/{idOrCode}/throughput-forecast": {
       "get": {
         "tags": [
@@ -32375,6 +32519,150 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{idOrCode}/allocation": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Report where the completed work of a team of teams, and every team beneath it, went.",
+        "description": "Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.",
+        "operationId": "TeamsOfTeams_GetAllocation",
+        "parameters": [
+          {
+            "name": "idOrCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "From",
+            "in": "query",
+            "description": "The first day of completed work to include (yyyy-MM-dd, UTC).",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "To",
+            "in": "query",
+            "description": "The last day of completed work to include (yyyy-MM-dd, UTC).",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "Dimension",
+            "in": "query",
+            "description": "What to group work by (default Portfolio).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AllocationDimension"
+                }
+              ]
+            },
+            "x-position": 4
+          },
+          {
+            "name": "Measure",
+            "in": "query",
+            "description": "How to weigh each work item (default Count).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AllocationMeasure"
+                }
+              ]
+            },
+            "x-position": 5
+          },
+          {
+            "name": "Unestimated",
+            "in": "query",
+            "description": "Story points only: what to do with unestimated items (default Exclude).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/UnestimatedHandling"
+                }
+              ]
+            },
+            "x-position": 6
+          },
+          {
+            "name": "ThemeCounting",
+            "in": "query",
+            "description": "Strategic theme only: how to credit a project with several themes (default SplitEvenly).",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ThemeCounting"
+                }
+              ]
+            },
+            "x-position": 7
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAllocationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -57869,6 +58157,485 @@
             }
           }
         }
+      },
+      "TeamAllocationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "team",
+          "from",
+          "to",
+          "summary",
+          "groups",
+          "teams",
+          "periods"
+        ],
+        "properties": {
+          "team": {
+            "$ref": "#/components/schemas/WorkTeamNavigationDto"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AllocationSummaryDto"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationGroupDto"
+            }
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationTeamRowDto"
+            }
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationPeriodDto"
+            }
+          }
+        }
+      },
+      "AllocationSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "itemsCompleted",
+          "itemsInPointSizedTeams",
+          "estimatedItems",
+          "storyPoints",
+          "filledItems",
+          "filledStoryPoints",
+          "teamsIncluded",
+          "excludedTeams",
+          "noProjectItems",
+          "noProjectShare"
+        ],
+        "properties": {
+          "itemsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemsInPointSizedTeams": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estimatedItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "storyPoints": {
+            "type": "number",
+            "format": "double"
+          },
+          "filledItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "filledStoryPoints": {
+            "type": "number",
+            "format": "double"
+          },
+          "teamsIncluded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "excludedTeams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationTeamReferenceDto"
+            }
+          },
+          "noProjectItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "noProjectShare": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AllocationTeamReferenceDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "AllocationGroupDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "projectKeys",
+          "programCount",
+          "items",
+          "storyPoints",
+          "filledStoryPoints",
+          "value",
+          "share"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AllocationGroupKind"
+          },
+          "recordId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "recordKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "portfolio": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "program": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "projectKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "programCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "storyPoints": {
+            "type": "number",
+            "format": "double"
+          },
+          "filledStoryPoints": {
+            "type": "number",
+            "format": "double"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "share": {
+            "type": "number",
+            "format": "double"
+          },
+          "noProjectValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "noProjectShare": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "largestContributor": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AllocationContributorDto"
+              }
+            ]
+          }
+        }
+      },
+      "AllocationGroupKind": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Record",
+          "NoProject",
+          "MissingLevel"
+        ],
+        "enum": [
+          "Record",
+          "NoProject",
+          "MissingLevel"
+        ]
+      },
+      "AllocationContributorDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teamId",
+          "code",
+          "name",
+          "value",
+          "items"
+        ],
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "items": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AllocationTeamRowDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teamId",
+          "code",
+          "name",
+          "isTeamOfTeams",
+          "level",
+          "excluded",
+          "items",
+          "storyPoints",
+          "value",
+          "cells"
+        ],
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isTeamOfTeams": {
+            "type": "boolean"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "excluded": {
+            "type": "boolean"
+          },
+          "excludedReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "storyPoints": {
+            "type": "number",
+            "format": "double"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationCellDto"
+            }
+          },
+          "noProjectShare": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "AllocationCellDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "value",
+          "share",
+          "items"
+        ],
+        "properties": {
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "share": {
+            "type": "number",
+            "format": "double"
+          },
+          "items": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AllocationPeriodDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start",
+          "end",
+          "items",
+          "value",
+          "values",
+          "shares",
+          "noProjectShare"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "shares": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "noProjectShare": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AllocationDimension": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Portfolio",
+          "Program",
+          "Project",
+          "StrategicTheme",
+          "WorkType"
+        ],
+        "enum": [
+          "Portfolio",
+          "Program",
+          "Project",
+          "StrategicTheme",
+          "WorkType"
+        ]
+      },
+      "AllocationMeasure": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Count",
+          "StoryPoints",
+          "TeamEffort"
+        ],
+        "enum": [
+          "Count",
+          "StoryPoints",
+          "TeamEffort"
+        ]
+      },
+      "UnestimatedHandling": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Exclude",
+          "TeamAverage"
+        ],
+        "enum": [
+          "Exclude",
+          "TeamAverage"
+        ]
+      },
+      "ThemeCounting": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "SplitEvenly",
+          "CountFully"
+        ],
+        "enum": [
+          "SplitEvenly",
+          "CountFully"
+        ]
       },
       "TeamThroughputForecastDto": {
         "type": "object",

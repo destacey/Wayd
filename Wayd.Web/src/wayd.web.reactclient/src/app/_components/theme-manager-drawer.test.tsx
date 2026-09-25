@@ -97,11 +97,35 @@ describe('ThemeManagerDrawer', () => {
     render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
 
     fireEvent.change(screen.getByLabelText('Theme'), {
-      target: { value: 'glass' },
+      target: { value: 'shadcn' },
     })
 
-    expect(setCurrentTheme).toHaveBeenCalledWith('glass')
+    expect(setCurrentTheme).toHaveBeenCalledWith('shadcn')
     expect(setUserThemeConfig).toHaveBeenCalledWith({ useCompactAlgorithm: true })
+  })
+
+  it('does not offer a deprecated theme to users who are not on it', () => {
+    // Arrange & Act
+    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+
+    // Assert
+    expect(screen.queryByRole('option', { name: 'Glass' })).not.toBeInTheDocument()
+  })
+
+  it('keeps a deprecated theme listed and selected for users still on it', () => {
+    // Arrange
+    ;(useTheme as jest.Mock).mockReturnValue({
+      ...baseThemeContext,
+      currentTheme: 'glass',
+      availableModes: ['light'],
+    })
+
+    // Act
+    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+
+    // Assert
+    expect(screen.getByRole('option', { name: 'Glass' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Theme')).toHaveValue('glass')
   })
 
   it('changes mode without resetting user overrides', () => {

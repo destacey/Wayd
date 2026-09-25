@@ -6,7 +6,10 @@ import { CheckOutlined } from '@ant-design/icons'
 import useTheme from '@/src/components/contexts/theme'
 import { ThemeId, ThemeMode } from '@/src/components/contexts/theme/types'
 import { ThemeConstants } from '@/src/config/theme/theme-constants'
-import { THEME_METADATA } from '@/src/config/theme/theme-registry'
+import {
+  THEME_METADATA,
+  ThemeMetadata,
+} from '@/src/config/theme/theme-registry'
 
 const { Text } = Typography
 
@@ -24,15 +27,19 @@ const PRESET_COLORS: { label: string; value: string }[] = [
   { label: 'Cyan', value: '#13c2c2' },
 ]
 
-const THEME_OPTIONS: { label: string; value: ThemeId }[] = (
-  Object.entries(THEME_METADATA) as [ThemeId, { label: string }][]
-)
-  .map(([value, { label }]) => ({ label, value }))
-  .sort(
-    (a, b) =>
-      Number(b.value === 'wayd') - Number(a.value === 'wayd') ||
-      a.label.localeCompare(b.label),
-  )
+// A deprecated theme stays listed only while it is the current one, so the
+// Select can still label it and the user can switch away.
+const getThemeOptions = (
+  currentTheme: ThemeId,
+): { label: string; value: ThemeId }[] =>
+  (Object.entries(THEME_METADATA) as [ThemeId, ThemeMetadata][])
+    .filter(([value, { deprecated }]) => !deprecated || value === currentTheme)
+    .map(([value, { label }]) => ({ label, value }))
+    .sort(
+      (a, b) =>
+        Number(b.value === 'wayd') - Number(a.value === 'wayd') ||
+        a.label.localeCompare(b.label),
+    )
 
 const MODE_LABELS: Record<ThemeMode, string> = {
   light: 'Light',
@@ -93,7 +100,7 @@ const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
           <Text strong>Theme</Text>
           <Select
             value={currentTheme}
-            options={THEME_OPTIONS}
+            options={getThemeOptions(currentTheme)}
             onChange={(v) => {
               setCurrentTheme(v as ThemeId)
               setUserThemeConfig(

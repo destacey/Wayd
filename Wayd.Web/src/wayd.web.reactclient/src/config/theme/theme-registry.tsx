@@ -21,6 +21,11 @@ export interface ThemeMetadata {
   label: string
   defaultMode: ThemeMode
   modes: ThemeMode[]
+  /**
+   * Still renders for anyone who has it selected, but is no longer offered to
+   * everyone else. Remove the theme once nobody can still be on it.
+   */
+  deprecated?: boolean
 }
 
 /**
@@ -36,7 +41,12 @@ export const THEME_METADATA: Record<ThemeId, ThemeMetadata> = {
   },
   cartoon: { label: 'Cartoon', defaultMode: 'light', modes: ['light'] },
   shadcn: { label: 'Shadcn', defaultMode: 'light', modes: ['light'] },
-  glass: { label: 'Glass', defaultMode: 'light', modes: ['light'] },
+  glass: {
+    label: 'Glass',
+    defaultMode: 'light',
+    modes: ['light'],
+    deprecated: true,
+  },
   geek: { label: 'Geek', defaultMode: 'dark', modes: ['dark'] },
   illustration: { label: 'Illustration', defaultMode: 'light', modes: ['light'] },
 }

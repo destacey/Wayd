@@ -1,22 +1,27 @@
 ---
 title: Projects Dashboard
-description: Triage the projects a person is involved in — health, overdue tasks, stages and end dates — grouped and filtered in one place.
+description: Triage projects by person, portfolio or program — health, overdue tasks, stages and end dates — grouped and filtered in one place.
 sidebar_position: 4
 audience: [user, agent]
 ---
 
 # Projects Dashboard
 
-The **Projects Dashboard** (**PPM > Projects Dashboard**) shows the [projects](./projects.mdx) a person is involved in and leads with what needs attention. It replaces the earlier My Projects dashboard; the old address forwards here.
+The **Projects Dashboard** (**PPM > Projects Dashboard**) shows a set of [projects](./projects.mdx) and leads with what needs attention. It replaces the earlier My Projects dashboard; the old address forwards here.
 
 ## Scope
 
-The scope decides whose projects the page shows:
+The scope decides which projects the page shows:
 
 - **Me** — projects where your linked employee holds a role. This is the default, and it is missing when your account has no employee record.
-- **Person** — projects for any employee, chosen from the picker. Use it to see what someone you lead is carrying. The chosen person is kept in the address bar, so the view can be shared as a link.
+- **Person** — projects for any employee, chosen from the picker. Use it to see what someone you lead is carrying.
+- **Portfolio** — every project in one [portfolio](./portfolios-programs.mdx#portfolios).
+- **Program** — every project in one [program](./portfolios-programs.mdx#programs).
+- **All projects** — everything you can see.
 
-Within the scope, the **Role** chips narrow the list to the roles the person holds (Sponsor, Owner, PM, Member, Task Assignee; all by default) and the **Status** chips narrow by project status (Approved and Active by default). **Reset** restores the defaults and **Refresh** reloads.
+The scope is kept in the address bar, so a view can be shared as a link.
+
+In the two person scopes, the **Role** chips narrow the list to the roles the person holds (Sponsor, Owner, PM, Member, Task Assignee; all by default). The **Status** chips narrow by project status in every scope (Approved and Active by default). **Reset** restores the defaults and **Refresh** reloads.
 
 ## Attention tiles
 
@@ -31,13 +36,17 @@ The row of tiles under the scope bar is a triage summary of the projects in scop
 | No health check | Open projects with no current health check, whether never reported or expired |
 | Ending in 30 days | Open projects whose planned end falls within the next 30 days |
 
-Task counts follow the same visibility rule as the project plan: on a project where the person holds a leadership role (Sponsor, Owner or PM) every task counts, otherwise only the tasks assigned to them.
+Task counts depend on the scope. For a person, they follow the same visibility rule as the project plan: on a project where the person holds a leadership role (Sponsor, Owner or PM) every task counts, otherwise only the tasks assigned to them. For a portfolio, program or all projects, every task on the plan counts.
 
-## The list
+## Breakdowns
 
-Projects are grouped by **Portfolio**, **Program**, **Health** or **Status**. Each group header shows its count and a one-line summary (unhealthy, at risk, overdue tasks), and collapses on click. Within a group the sort is **Health, then overdue** by default, or Name, End date or Score. The search box matches the project name or key.
+In the portfolio, program and all-projects scopes, a collapsible **Breakdowns** panel shows the projects in scope by status, by health and by strategic theme, the same charts as the portfolio and program overviews. It stays closed until you open it, and remembers the choice.
 
-Each row shows:
+## The list and cards
+
+Projects are grouped by **Portfolio**, **Program**, **Health** or **Status**. Each group header shows its count and a one-line summary (unhealthy, at risk, overdue tasks), and collapses on click. Within a group the sort is **Health, then overdue** by default, or Name, End date or Score. The search box matches the project name or key. The switch at the right of the toolbar shows the same groups as a **List** or as **Cards**.
+
+Each project shows:
 
 - Current health, with the health check details on hover
 - Key, name, and the portfolio and program underneath
@@ -47,6 +56,6 @@ Each row shows:
 - Sponsors, Owners and PMs as avatars
 - Planned end date, highlighted when it falls within the next 30 days
 - Current [score](../settings/scoring-models.mdx), when the project has been scored
-- The scoped person's roles on the project
+- In a person scope, that person's roles on the project
 
-Click a row to open the project's details in a drawer, with links to the full project page and its plan.
+Click a project to open its details in a drawer, with links to the full project page and its plan.

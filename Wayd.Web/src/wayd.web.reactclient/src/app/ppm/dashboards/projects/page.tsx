@@ -36,7 +36,7 @@ import {
   SortBy,
 } from './_components/dashboard-model'
 import ProjectsDashboardCards from './_components/projects-dashboard-cards'
-import ProjectsDashboardList from './_components/projects-dashboard-list'
+import ProjectsDashboardGrid from './_components/projects-dashboard-grid'
 import ProjectsDashboardTimeline from './_components/projects-dashboard-timeline'
 import ScopeBar from './_components/scope-bar'
 import { useScopedProjects } from './_components/use-scoped-projects'
@@ -129,12 +129,8 @@ const ProjectsDashboardPage: FC = () => {
     clearSelection()
   }
 
-  const Body =
-    view === 'Card'
-      ? ProjectsDashboardCards
-      : view === 'Timeline'
-        ? ProjectsDashboardTimeline
-        : ProjectsDashboardList
+  const GroupedBody =
+    view === 'Card' ? ProjectsDashboardCards : ProjectsDashboardTimeline
 
   return (
     <div className="page-gutters">
@@ -188,6 +184,7 @@ const ProjectsDashboardPage: FC = () => {
         onGroupByChange={setGroupBy}
         sortBy={sortBy}
         onSortByChange={setSortBy}
+        showSort={view !== 'List'}
         search={search}
         onSearchChange={setSearch}
         view={view}
@@ -196,16 +193,31 @@ const ProjectsDashboardPage: FC = () => {
         totalCount={inScope.length}
       />
       <div ref={listRef}>
-        <Body
-          groups={groups}
-          planSummaries={planSummaries}
-          employeeId={subjectEmployeeId}
-          selectedProjectKey={selectedProjectKey}
-          onSelectProject={setSelectedProjectKey}
-          isLoading={isLoading}
-          today={today}
-          height={isMobile ? undefined : listHeight}
-        />
+        {view === 'List' ? (
+          <ProjectsDashboardGrid
+            projects={shown}
+            groupBy={groupBy}
+            planSummaries={planSummaries}
+            employeeId={subjectEmployeeId}
+            selectedProjectKey={selectedProjectKey}
+            onSelectProject={setSelectedProjectKey}
+            isLoading={isLoading}
+            today={today}
+            height={isMobile ? undefined : listHeight}
+            onRefresh={refetch}
+          />
+        ) : (
+          <GroupedBody
+            groups={groups}
+            planSummaries={planSummaries}
+            employeeId={subjectEmployeeId}
+            selectedProjectKey={selectedProjectKey}
+            onSelectProject={setSelectedProjectKey}
+            isLoading={isLoading}
+            today={today}
+            height={isMobile ? undefined : listHeight}
+          />
+        )}
       </div>
       {selectedProjectKey && (
         <ProjectDrawer

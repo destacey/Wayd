@@ -116,7 +116,7 @@ jest.mock('./_components/breakdown-strip', () => {
   return MockStrip
 })
 
-jest.mock('./_components/projects-dashboard-list', () => {
+jest.mock('./_components/projects-dashboard-grid', () => {
   const MockList = ({ employeeId }: { employeeId: string | null }) => (
     <div data-testid="list">{employeeId ?? 'none'}</div>
   )

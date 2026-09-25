@@ -10,13 +10,13 @@ import { FC, useState } from 'react'
 import DashboardGroupHeader from './dashboard-group-header'
 import {
   collectLeadership,
+  formatEnd,
   getEmployeeRoles,
   isEndingSoon,
   PlanSummaries,
   ProjectGroup,
 } from './dashboard-model'
 import ProjectStatPills from './project-stat-pills'
-import { formatEnd } from './projects-dashboard-list'
 import TeamAvatars from './team-avatars'
 import styles from '../projects-dashboard.module.css'
 

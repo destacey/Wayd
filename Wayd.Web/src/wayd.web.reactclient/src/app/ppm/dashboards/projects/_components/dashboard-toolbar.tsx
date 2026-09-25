@@ -16,6 +16,8 @@ export interface DashboardToolbarProps {
   onGroupByChange: (groupBy: GroupBy) => void
   sortBy: SortBy
   onSortByChange: (sortBy: SortBy) => void
+  /** The List view sorts by its column headers, so the select is for the others. */
+  showSort: boolean
   search: string
   onSearchChange: (search: string) => void
   view: DashboardView
@@ -43,6 +45,7 @@ const DashboardToolbar: FC<DashboardToolbarProps> = ({
   onGroupByChange,
   sortBy,
   onSortByChange,
+  showSort,
   search,
   onSearchChange,
   view,
@@ -60,17 +63,19 @@ const DashboardToolbar: FC<DashboardToolbarProps> = ({
         onChange={(value) => onGroupByChange(value as GroupBy)}
       />
     </Flex>
-    <Flex align="center" gap={6}>
-      <span className={styles.scopeLabel}>Sort</span>
-      <Select
-        size="small"
-        options={SORT_OPTIONS}
-        value={sortBy}
-        onChange={onSortByChange}
-        style={{ width: 170 }}
-        aria-label="Sort projects"
-      />
-    </Flex>
+    {showSort && (
+      <Flex align="center" gap={6}>
+        <span className={styles.scopeLabel}>Sort</span>
+        <Select
+          size="small"
+          options={SORT_OPTIONS}
+          value={sortBy}
+          onChange={onSortByChange}
+          style={{ width: 170 }}
+          aria-label="Sort projects"
+        />
+      </Flex>
+    )}
     <Input
       className={styles.searchInput}
       size="small"

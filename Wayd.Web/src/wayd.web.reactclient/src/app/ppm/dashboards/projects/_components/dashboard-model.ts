@@ -152,7 +152,8 @@ export const NO_HEALTH_CHECK_LABEL = 'Not reported'
 export const healthName = (project: ProjectListDto): string =>
   project.healthCheck?.status.name ?? NO_HEALTH_CHECK_LABEL
 
-const healthRank = (project: ProjectListDto): number =>
+/** 0 for Unhealthy up to 3 for no current check: worst first when sorted. */
+export const healthRank = (project: ProjectListDto): number =>
   HEALTH_RANK[project.healthCheck?.status.name ?? ''] ?? 3
 
 const isClosed = (project: ProjectListDto) =>
@@ -245,13 +246,19 @@ export const matchesSearch = (project: ProjectListDto, needle: string) => {
   )
 }
 
-const STATUS_ORDER: Record<string, number> = {
+export const STATUS_ORDER: Record<string, number> = {
   Active: 0,
   Approved: 1,
   Proposed: 2,
   Completed: 3,
   Canceled: 4,
 }
+
+/** Active first, then the pipeline, then the closed states; unknown last. */
+export const statusRank = (name: string): number => STATUS_ORDER[name] ?? 99
+
+export const formatEnd = (end: Date | undefined) =>
+  end ? dayjs(end).format('MMM D, YYYY') : null
 
 const compareName = (a: ProjectListDto, b: ProjectListDto) => {
   const byName = caseInsensitiveCompare(a.name, b.name)

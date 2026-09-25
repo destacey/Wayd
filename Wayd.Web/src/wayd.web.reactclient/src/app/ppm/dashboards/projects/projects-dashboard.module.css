@@ -88,42 +88,12 @@
   white-space: nowrap;
 }
 
-/* Grouped list */
+/* Grouped list (cards) */
 .list {
   border: 1px solid var(--ant-color-border-secondary);
   border-radius: var(--ant-border-radius-lg);
   background: var(--ant-color-bg-container);
   overflow: auto;
-}
-
-.grid {
-  display: grid;
-  /* health | key | project | status | stages | tasks | team | end | roles */
-  grid-template-columns:
-    minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
-    minmax(140px, 1fr) 72px 92px minmax(80px, 0.6fr);
-  gap: 12px;
-  align-items: center;
-  padding: 8px 16px;
-  min-width: 1100px;
-}
-
-.header {
-  composes: grid;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--ant-color-fill-alter);
-  border-bottom: 1px solid var(--ant-color-border-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ant-color-text-secondary);
-}
-
-.headerNoRoles {
-  grid-template-columns:
-    minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
-    minmax(140px, 1fr) 72px 92px;
 }
 
 .groupHeader {
@@ -167,48 +137,10 @@
   transform: rotate(90deg);
 }
 
-.row {
-  composes: grid;
-  width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
-  background: var(--ant-color-bg-container);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.row:hover {
-  background: var(--ant-color-fill-alter);
-}
-
-.rowSelected,
-.rowSelected:hover {
-  background: var(--ant-color-primary-bg);
-}
-
-.rowNoRoles {
-  grid-template-columns:
-    minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
-    minmax(140px, 1fr) 72px 92px;
-}
-
-.cell {
-  min-width: 0;
-}
-
 .key {
   font-size: 12px;
   color: var(--ant-color-text-secondary);
   font-variant-numeric: tabular-nums;
-}
-
-.projectName {
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .projectSub {
@@ -219,22 +151,8 @@
   text-overflow: ellipsis;
 }
 
-.endDate {
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
 .endDateSoon {
   color: var(--ant-color-warning-text);
-}
-
-.roles {
-  font-size: 12px;
-  color: var(--ant-color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .muted {

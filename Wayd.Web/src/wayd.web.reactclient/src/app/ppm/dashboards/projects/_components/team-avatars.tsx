@@ -1,7 +1,7 @@
 'use client'
 
 import { Avatar } from 'antd'
-import { PersonPopover } from '@/src/components/common'
+import { PersonPopover, WaydTooltip } from '@/src/components/common'
 import { FC } from 'react'
 import { TeamMemberWithRoles } from './dashboard-model'
 
@@ -19,7 +19,8 @@ const TeamAvatars: FC<TeamAvatarsProps> = ({
   max = DEFAULT_MAX_AVATARS,
 }) => {
   const visible = members.slice(0, max)
-  const overflow = members.length - max
+  const hidden = members.slice(max)
+  const overflow = hidden.length
 
   return (
     <AvatarGroup size="small">
@@ -36,17 +37,25 @@ const TeamAvatars: FC<TeamAvatarsProps> = ({
         />
       ))}
       {overflow > 0 && (
-        <Avatar
-          size="small"
-          style={{
-            backgroundColor: 'var(--ant-color-fill-secondary)',
-            color: 'var(--ant-color-text-secondary)',
-            fontSize: 10,
-            fontWeight: 600,
-          }}
+        <WaydTooltip
+          title={hidden
+            .map(
+              ({ employee, roles }) => `${employee.name} (${roles.join(', ')})`,
+            )
+            .join(', ')}
         >
-          +{overflow}
-        </Avatar>
+          <Avatar
+            size="small"
+            style={{
+              backgroundColor: 'var(--ant-color-fill-secondary)',
+              color: 'var(--ant-color-text-secondary)',
+              fontSize: 10,
+              fontWeight: 600,
+            }}
+          >
+            +{overflow}
+          </Avatar>
+        </WaydTooltip>
       )}
     </AvatarGroup>
   )

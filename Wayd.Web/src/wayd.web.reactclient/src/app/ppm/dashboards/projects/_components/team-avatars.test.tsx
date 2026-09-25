@@ -47,7 +47,7 @@ describe('TeamAvatars', () => {
     ).toBeInTheDocument()
   })
 
-  it('collapses members beyond the limit into an overflow count', () => {
+  it('collapses members beyond the limit into an overflow count that names them on hover', async () => {
     // Arrange
     const members = [
       createMember('1', 'Alice Brown', ['Owner']),
@@ -62,5 +62,8 @@ describe('TeamAvatars', () => {
     // Assert
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.queryByText('DE')).not.toBeInTheDocument()
+
+    await userEvent.hover(screen.getByText('+1'))
+    expect(await screen.findByText('Di Eve (PM)')).toBeInTheDocument()
   })
 })

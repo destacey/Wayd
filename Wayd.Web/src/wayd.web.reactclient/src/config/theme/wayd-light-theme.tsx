@@ -42,7 +42,6 @@ export const useWaydLightTheme = (): AppThemeConfig =>
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',
-        subtleColor: 'rgba(255, 255, 255, 0.88)',
       },
       integrations: {
         antDesignChartsTheme: 'classic',

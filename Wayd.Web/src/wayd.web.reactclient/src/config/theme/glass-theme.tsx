@@ -100,6 +100,10 @@ const useStyles = createStyles(({ css, cssVar }) => {
   }
 })
 
+/**
+ * @deprecated No longer offered in the theme picker; kept only so users who
+ * already selected it keep a working theme. Marked in THEME_METADATA.
+ */
 const useGlassTheme = (): AppThemeConfig => {
   const { styles } = useStyles()
 
@@ -233,7 +237,6 @@ const useGlassTheme = (): AppThemeConfig => {
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',
-        subtleColor: 'rgba(255, 255, 255, 0.9)',
       },
       integrations: {
         antDesignChartsTheme: 'classic',

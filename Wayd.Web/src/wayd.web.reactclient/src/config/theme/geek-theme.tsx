@@ -181,7 +181,6 @@ const useGeekTheme = (): AppThemeConfig => {
       appBar: {
         backgroundColor: '#313131',
         color: '#39ff14',
-        subtleColor: '#9aff86',
       },
       integrations: {
         antDesignChartsTheme: 'classicDark',

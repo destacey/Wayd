@@ -8,7 +8,6 @@ export interface AppThemeConfig {
   appBar: {
     backgroundColor: string
     color: string
-    subtleColor?: string
   }
   integrations: {
     antDesignChartsTheme: 'classic' | 'classicDark'

@@ -8,6 +8,7 @@ import {
 } from '@/src/components/contexts/theme/types'
 import { AppThemeConfig } from './theme-preset'
 import { useWaydLightTheme } from './wayd-light-theme'
+import { useWaydMistTheme } from './wayd-mist-theme'
 import { useWaydDarkTheme } from './wayd-dark-theme'
 import { useWaydSlateTheme } from './wayd-slate-theme'
 import useCartoonTheme from './cartoon-theme'
@@ -20,6 +21,11 @@ export interface ThemeMetadata {
   label: string
   defaultMode: ThemeMode
   modes: ThemeMode[]
+  /**
+   * Still renders for anyone who has it selected, but is no longer offered to
+   * everyone else. Remove the theme once nobody can still be on it.
+   */
+  deprecated?: boolean
 }
 
 /**
@@ -28,10 +34,19 @@ export interface ThemeMetadata {
  * lists don't need the (style-generating) presets instantiated.
  */
 export const THEME_METADATA: Record<ThemeId, ThemeMetadata> = {
-  wayd: { label: 'Wayd', defaultMode: 'light', modes: ['light', 'dark', 'slate'] },
+  wayd: {
+    label: 'Wayd',
+    defaultMode: 'light',
+    modes: ['light', 'mist', 'slate', 'dark'],
+  },
   cartoon: { label: 'Cartoon', defaultMode: 'light', modes: ['light'] },
   shadcn: { label: 'Shadcn', defaultMode: 'light', modes: ['light'] },
-  glass: { label: 'Glass', defaultMode: 'light', modes: ['light'] },
+  glass: {
+    label: 'Glass',
+    defaultMode: 'light',
+    modes: ['light'],
+    deprecated: true,
+  },
   geek: { label: 'Geek', defaultMode: 'dark', modes: ['dark'] },
   illustration: { label: 'Illustration', defaultMode: 'light', modes: ['light'] },
 }
@@ -45,7 +60,17 @@ const isThemeId = (value: unknown): value is ThemeId =>
   typeof value === 'string' && Object.hasOwn(THEME_METADATA, value)
 
 const isThemeMode = (value: unknown): value is ThemeMode =>
-  value === 'light' || value === 'dark' || value === 'slate'
+  value === 'light' ||
+  value === 'mist' ||
+  value === 'dark' ||
+  value === 'slate'
+
+/**
+ * Whether a mode renders light-on-dark. Use this rather than comparing against
+ * `'light'` — `mist` is a light mode too.
+ */
+export const isDarkMode = (mode: ThemeMode): boolean =>
+  mode === 'dark' || mode === 'slate'
 
 /**
  * Coerce a persisted value into a valid selection. Handles the legacy flat
@@ -84,6 +109,7 @@ export const useThemeRegistry = (): Record<
   Partial<Record<ThemeMode, AppThemeConfig>>
 > => {
   const waydLight = useWaydLightTheme()
+  const waydMist = useWaydMistTheme()
   const waydDark = useWaydDarkTheme()
   const waydSlate = useWaydSlateTheme()
   const cartoon = useCartoonTheme()
@@ -94,7 +120,12 @@ export const useThemeRegistry = (): Record<
 
   return useMemo(
     () => ({
-      wayd: { light: waydLight, dark: waydDark, slate: waydSlate },
+      wayd: {
+        light: waydLight,
+        mist: waydMist,
+        dark: waydDark,
+        slate: waydSlate,
+      },
       cartoon: { light: cartoon },
       shadcn: { light: shadcn },
       glass: { light: glass },
@@ -103,6 +134,7 @@ export const useThemeRegistry = (): Record<
     }),
     [
       waydLight,
+      waydMist,
       waydDark,
       waydSlate,
       cartoon,

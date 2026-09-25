@@ -6,6 +6,7 @@ import '@uiw/react-markdown-preview/markdown.css'
 import { MarkdownEditorFooter, useMarkdownComponentsForMDEditor } from '.'
 import remarkGfm from 'remark-gfm'
 import useTheme from '../../contexts/theme'
+import { isDarkMode } from '@/src/config/theme/theme-registry'
 import { useEffect, useRef, useState } from 'react'
 import React from 'react'
 
@@ -47,7 +48,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(
     return (
       <>
         <div
-          data-color-mode={currentMode === 'light' ? 'light' : 'dark'}
+          data-color-mode={isDarkMode(currentMode) ? 'dark' : 'light'}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onClick={handleWrapperClick}
@@ -81,15 +82,22 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(
             }}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            style={{
-              padding: '4px',
-              fontSize: '14px',
-              backgroundColor: token.colorBgContainer,
-              color: token.colorText,
-              outline: 'none',
-              border: 'none',
-              boxShadow: 'none',
-            }}
+            style={
+              {
+                padding: '4px',
+                fontSize: '14px',
+                backgroundColor: token.colorBgContainer,
+                color: token.colorText,
+                outline: 'none',
+                border: 'none',
+                boxShadow: 'none',
+                // The toolbar paints from these vendor variables, which fall
+                // back to GitHub's fixed palette (#fff light, #0d1117 dark)
+                // rather than the theme's surfaces.
+                '--md-editor-background-color': token.colorBgContainer,
+                '--md-editor-box-shadow-color': token.colorBorderSecondary,
+              } as React.CSSProperties
+            }
           />
         </div>
         <MarkdownEditorFooter

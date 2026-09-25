@@ -232,7 +232,6 @@ const useShadcnTheme = (): AppThemeConfig => {
       appBar: {
         backgroundColor: '#fafafa',
         color: '#18181b',
-        subtleColor: '#525252',
       },
       integrations: {
         antDesignChartsTheme: 'classic',

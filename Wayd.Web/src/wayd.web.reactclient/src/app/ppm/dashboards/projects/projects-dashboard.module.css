@@ -73,6 +73,14 @@
   margin-bottom: 12px;
 }
 
+/* The qualifier after a tile's number, e.g. "across 3 projects". */
+.tileSuffix {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ant-color-text-secondary);
+}
+
 /* Toolbar */
 .toolbar {
   margin-bottom: 8px;

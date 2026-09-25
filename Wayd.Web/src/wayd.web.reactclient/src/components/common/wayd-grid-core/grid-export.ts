@@ -8,7 +8,9 @@ import { getOrderedVisibleLeafColumns } from './column-order'
 import type { RowData } from '@tanstack/react-table'
 
 /** Header text for a column: meta.exportHeader → string header → column id. */
-const resolveExportHeader = <T extends RowData>(column: Column<T, unknown>): string => {
+const resolveExportHeader = <T extends RowData>(
+  column: Column<T, unknown>,
+): string => {
   const { meta, header } = column.columnDef
   if (meta?.exportHeader) return meta.exportHeader
   if (typeof header === 'string') return header
@@ -51,7 +53,10 @@ const ancestorAtDepth = <T extends RowData>(
  * Column meta hooks: `enableExport: false` excludes a column, `exportHeader`
  * overrides the header text, and `exportFormatter` maps each value.
  */
-export function exportGridToCsv<T extends RowData>(table: Table<T>, csvFileName: string): void {
+export function exportGridToCsv<T extends RowData>(
+  table: Table<T>,
+  csvFileName: string,
+): void {
   const exportableColumns = getOrderedVisibleLeafColumns(table).filter(
     (column) => {
       const meta = column.columnDef.meta
@@ -85,16 +90,22 @@ export function exportGridToCsv<T extends RowData>(table: Table<T>, csvFileName:
     )
   }
 
-  const exportRows = table.getPreExpandedRowModel().flatRows.map((row) =>
-    exportableColumns.map((column) => {
-      const meta = column.columnDef.meta
-      const value = row.getValue(column.id)
-      if (meta?.exportFormatter) {
-        return meta.exportFormatter(value, row.original)
-      }
-      return value ?? ''
-    }),
-  )
+  // Every row regardless of expansion, minus group headings: a heading is a
+  // value the rows under it already carry, and its `original` is borrowed from
+  // its first row, so exporting it would duplicate that row.
+  const exportRows = table
+    .getPreExpandedRowModel()
+    .flatRows.filter((row) => !row.getIsGrouped())
+    .map((row) =>
+      exportableColumns.map((column) => {
+        const meta = column.columnDef.meta
+        const value = row.getValue(column.id)
+        if (meta?.exportFormatter) {
+          return meta.exportFormatter(value, row.original)
+        }
+        return value ?? ''
+      }),
+    )
 
   const csvBody = generateCsv(headers, exportRows)
   const csv =

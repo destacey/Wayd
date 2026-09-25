@@ -37,7 +37,7 @@ export interface GridRowClasses {
 
 /** The pinned class suffix (starting with a space) + inline style for a body
  *  cell, or empties when the column is unpinned / pinning classes not given. */
-const pinnedTdProps = <T extends RowData,>(
+const pinnedTdProps = <T extends RowData>(
   cell: Cell<T, unknown>,
   classes: GridRowClasses,
 ): { className: string; style?: React.CSSProperties } => {
@@ -52,7 +52,7 @@ const pinnedTdProps = <T extends RowData,>(
 
 /** The numeric-alignment class suffix (starting with a space) for a body
  *  cell, or '' when the column isn't numeric / no class was supplied. */
-const numericTdClass = <T extends RowData,>(
+const numericTdClass = <T extends RowData>(
   cell: Cell<T, unknown>,
   classes: GridRowClasses,
   numericColumnIds: ReadonlySet<string> | undefined,
@@ -141,7 +141,9 @@ const activationProps = ({
   }
 }
 
-export interface FlatGridRowProps<T extends RowData> extends RowActivationProps {
+export interface FlatGridRowProps<
+  T extends RowData,
+> extends RowActivationProps {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
@@ -199,8 +201,9 @@ export function FlatGridRow<T extends RowData>({
   )
 }
 
-export interface SortableFlatGridRowProps<T extends RowData>
-  extends FlatGridRowProps<T> {
+export interface SortableFlatGridRowProps<
+  T extends RowData,
+> extends FlatGridRowProps<T> {
   /** The row's data id (not TanStack's row.id) — the dnd-kit sortable id. */
   nodeId: string
   /** Whether this row is currently being dragged. */
@@ -343,5 +346,84 @@ export function TreeGridRow<T extends RowData>({
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
       <td aria-hidden="true" className={classes.td} />
     </GridSortableRow>
+  )
+}
+
+export interface GroupGridRowClasses {
+  tr: string
+  trGroup: string
+  td: string
+  /** The single spanning cell: toggle, indent and heading in one flex line. */
+  groupCell: string
+  groupToggle: string
+  groupToggleExpanded: string
+  groupLabel: string
+  groupCount: string
+}
+
+export interface GroupGridRowProps<T extends RowData> {
+  row: Row<T>
+  classes: GroupGridRowClasses
+  /** Column count the heading spans (visible leaf columns + the filler). */
+  colSpan: number
+  /** The heading content; the default is the value and a row count. */
+  header?: React.ReactNode
+}
+
+/** Pixels of indent per nesting level, so nested groups read as nested. */
+const GROUP_INDENT_PER_DEPTH = 20
+
+/**
+ * The GROUP form of the row-renderer seam: one cell spanning the grid that
+ * carries the expand toggle and the group heading. It is a heading, not a
+ * record, so it neither activates nor drags — the toggle is its only control.
+ */
+export function GroupGridRow<T extends RowData>({
+  row,
+  classes,
+  colSpan,
+  header,
+}: GroupGridRowProps<T>) {
+  const expanded = row.getIsExpanded()
+  const count = row.getLeafRows().length
+  const label = header ?? (
+    <>
+      <span className={classes.groupLabel}>
+        {String(row.groupingValue ?? '')}
+      </span>
+      <span className={classes.groupCount}>
+        {count} {count === 1 ? 'row' : 'rows'}
+      </span>
+    </>
+  )
+
+  return (
+    <tr className={`${classes.tr} ${classes.trGroup}`} data-group-row="true">
+      <td className={`${classes.td} ${classes.groupCell}`} colSpan={colSpan}>
+        <button
+          type="button"
+          className={`${classes.groupToggle}${expanded ? ` ${classes.groupToggleExpanded}` : ''}`}
+          style={{ marginLeft: row.depth * GROUP_INDENT_PER_DEPTH }}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse group' : 'Expand group'}
+          onClick={row.getToggleExpandedHandler()}
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
+        {label}
+      </td>
+    </tr>
   )
 }

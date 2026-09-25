@@ -578,6 +578,61 @@
   pointer-events: none;
 }
 
+/* ─── Row grouping (grouping) ───────────────────────────── */
+
+/*
+ * A group heading is one cell spanning the grid. It keeps the row height of
+ * a data row — the virtualizer estimates every row at the same height — and
+ * wins over the zebra band so the eye finds the section breaks.
+ */
+.trGroup .td,
+.trGroup:hover .td {
+  background-color: var(--ant-color-fill-alter);
+  border-top: 1px solid var(--ant-color-border-secondary);
+  font-weight: 600;
+}
+
+.groupCell {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+  max-width: none;
+}
+
+.groupToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ant-border-radius-sm);
+  background: transparent;
+  color: var(--ant-color-text-tertiary);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.groupToggle:hover {
+  background: var(--ant-color-fill-secondary);
+  color: var(--ant-color-text);
+}
+
+.groupToggleExpanded {
+  transform: rotate(90deg);
+}
+
+.groupLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupCount {
+  font-weight: 400;
+  color: var(--ant-color-text-secondary);
+}
+
 /* ─── Row activation (onRowActivate) ────────────────────── */
 
 .trActivatable {

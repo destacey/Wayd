@@ -1995,4 +1995,147 @@ describe('WaydGrid', () => {
       expect(document.querySelectorAll('tbody tr.trActivated')).toHaveLength(0)
     })
   })
+
+  describe('row grouping (grouping)', () => {
+    const groupRows = () =>
+      Array.from(document.querySelectorAll('tbody tr[data-group-row]'))
+
+    it('puts a heading over each distinct value and takes the grouped column out of the rows', () => {
+      // Arrange / Act
+      renderGrid({ grouping: ['type'] })
+
+      // Assert — one heading per type, in the column's sort order, each
+      // saying how many rows it holds
+      const headings = groupRows().map((tr) => tr.textContent)
+      expect(headings).toEqual(['System1 row', 'User2 rows'])
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual([
+        'planning-poker',
+        'roadmap',
+        'insights',
+      ])
+      // The value is the heading now, so the column has nothing left to say
+      expect(bodyCells('type')).toHaveLength(0)
+      expect(screen.queryByText('Type')).not.toBeInTheDocument()
+    })
+
+    it('collapses and expands a group from its toggle', () => {
+      // Arrange
+      renderGrid({ grouping: ['type'] })
+      const userToggle = within(groupRows()[1] as HTMLElement).getByRole(
+        'button',
+        { name: 'Collapse group' },
+      )
+
+      // Act
+      fireEvent.click(userToggle)
+
+      // Assert
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual([
+        'planning-poker',
+      ])
+      expect(groupRows()[1]).toHaveTextContent('User2 rows')
+
+      fireEvent.click(
+        within(groupRows()[1] as HTMLElement).getByRole('button', {
+          name: 'Expand group',
+        }),
+      )
+      expect(bodyCells('name')).toHaveLength(3)
+    })
+
+    it('can start with every group collapsed', () => {
+      // Arrange / Act
+      renderGrid({ grouping: ['type'], initialGroupsExpanded: false })
+
+      // Assert
+      expect(groupRows()).toHaveLength(2)
+      expect(bodyCells('name')).toHaveLength(0)
+    })
+
+    it('sorts within each group and keeps the groups in the grouped order', () => {
+      // Arrange / Act
+      renderGrid({
+        grouping: ['type'],
+        initialSorting: [{ id: 'name', desc: true }],
+      })
+
+      // Assert — System still first; User's rows now descend by name
+      expect(groupRows().map((tr) => tr.textContent)).toEqual([
+        'System1 row',
+        'User2 rows',
+      ])
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual([
+        'planning-poker',
+        'roadmap',
+        'insights',
+      ])
+    })
+
+    it('lets the caller write the heading from the group value and its rows', () => {
+      // Arrange
+      const renderGroupHeader = jest.fn(
+        ({ value, leafRows }: { value: unknown; leafRows: Flag[] }) =>
+          `${String(value)}: ${leafRows.map((f) => f.name).join(', ')}`,
+      )
+
+      // Act
+      renderGrid({ grouping: ['type'], renderGroupHeader })
+
+      // Assert
+      expect(groupRows()[1]).toHaveTextContent('User: roadmap, insights')
+      expect(renderGroupHeader).toHaveBeenCalledWith(
+        expect.objectContaining({ columnId: 'type', value: 'User', depth: 0 }),
+      )
+    })
+
+    it('activates data rows but never a heading', () => {
+      // Arrange
+      const onRowActivate = jest.fn()
+      renderGrid({ grouping: ['type'], onRowActivate })
+
+      // Act
+      fireEvent.click(bodyCells('name')[1])
+      fireEvent.click(groupRows()[0])
+
+      // Assert
+      expect(onRowActivate).toHaveBeenCalledTimes(1)
+      expect(onRowActivate).toHaveBeenCalledWith(DATA[1])
+      expect(groupRows()[0]).not.toHaveAttribute('role', 'button')
+    })
+
+    it('keeps headings out of the displayed rows and the CSV', () => {
+      // Arrange
+      mockDownloadCsv.mockClear()
+      const onDisplayedRowsChange = jest.fn()
+      const { container } = renderGrid({
+        grouping: ['type'],
+        onDisplayedRowsChange,
+      })
+
+      // Act
+      const exportBtn = container
+        .querySelector('[aria-label="download"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(exportBtn)
+
+      // Assert — three data rows, no heading rows, in either surface
+      const last = onDisplayedRowsChange.mock.calls.at(-1)![0] as Flag[]
+      expect(last).toHaveLength(3)
+      const csv = mockDownloadCsv.mock.calls[0][0] as string
+      expect(csv.split('\n')).toHaveLength(DATA.length + 1)
+    })
+
+    it('drops a group whose rows are all filtered out', () => {
+      // Arrange
+      renderGrid({ grouping: ['type'] })
+
+      // Act — quick search for a name only User rows have
+      fireEvent.change(screen.getByPlaceholderText(/search/i), {
+        target: { value: 'roadmap' },
+      })
+
+      // Assert
+      expect(groupRows().map((tr) => tr.textContent)).toEqual(['User1 row'])
+    })
+  })
 })

@@ -87,7 +87,7 @@ A Team of Teams shares the same core properties as a Team (name, code, dates) bu
 - It can also be a member of a parent Team of Teams
 - It provides rollup visibility across its descendant teams
 
-**Team of Teams** have a simplified detail page focused on hierarchy and risk management. They do not have backlogs, sprints, or delivery metrics — those belong to the leaf-level delivery teams.
+**Team of Teams** have a simplified detail page focused on hierarchy and risk management. They do not have backlogs or sprints — those belong to the leaf-level delivery teams — but their [Allocation](#allocation-report) report rolls up the completed work of every team beneath them.
 
 ### Operating Model
 
@@ -257,6 +257,12 @@ See [Cycle Time Report](../work-management/cycle-time-report.mdx) for calculatio
 Available from the **Reports** menu, the **Backlog Health** report grades the team's open backlog — runway, net flow, WIP load, stale and aging work, readiness gaps near the top of the backlog, carry-over, and work ranked above what it depends on — and lists the work items behind each problem.
 
 See [Backlog Health Report](../work-management/backlog-health-report.mdx) for each check, how it is graded, and how to change the thresholds.
+
+### Allocation (Report)
+
+Available from the **Reports** menu on both teams and teams of teams, the **Allocation** report shows where completed work went over a date range — by portfolio, program, project, strategic theme or work type — and how much of it was linked to no project. On a team of teams it covers every team beneath it, each counted toward the parent it had on the day the work was done.
+
+See [Allocation Report](../work-management/allocation-report.mdx) for what it counts, each measure, and how themes and unestimated work are handled.
 
 ## Functional Organization Chart
 

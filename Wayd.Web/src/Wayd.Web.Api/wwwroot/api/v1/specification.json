@@ -13694,6 +13694,7 @@
           "Projects"
         ],
         "summary": "Get a list of projects.",
+        "description": "A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.",
         "operationId": "Projects_GetProjects",
         "parameters": [
           {

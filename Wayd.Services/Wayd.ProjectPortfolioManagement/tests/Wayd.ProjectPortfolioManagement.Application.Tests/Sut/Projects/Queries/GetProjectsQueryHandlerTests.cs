@@ -106,11 +106,12 @@ public class GetProjectsQueryHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_EmployeeIdWithoutRoleFilter_ShouldNotFilterByEmployee()
+    public async Task Handle_EmployeeIdWithoutRoleFilter_ShouldListEverythingTheEmployeeIsInvolvedIn()
     {
-        // Arrange: the employee only narrows the list together with a role filter
+        // Arrange: naming an employee asks for their projects in any role, not for everyone's
         AddProject("Mine", new() { [ProjectRole.Manager] = [_employeeId] });
-        AddProject("Theirs", new() { [ProjectRole.Manager] = [_otherEmployeeId] });
+        var owned = AddProject("Theirs, owned", new() { [ProjectRole.Owner] = [_otherEmployeeId] });
+        var member = AddProject("Theirs, member", new() { [ProjectRole.Member] = [_otherEmployeeId] });
 
         // Act
         var result = await _handler.Handle(
@@ -118,7 +119,8 @@ public class GetProjectsQueryHandlerTests : IDisposable
             TestContext.Current.CancellationToken);
 
         // Assert
-        result.Should().HaveCount(2);
+        result.Should().NotBeNull();
+        result!.Select(p => p.Id).Should().BeEquivalentTo([owned.Id, member.Id]);
     }
 
     public void Dispose()

@@ -7,7 +7,8 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 /// <summary>
 /// Lists projects. <paramref name="RoleFilter"/> narrows the list to projects where the subject employee
 /// holds one of the roles; the subject is <paramref name="EmployeeId"/> when given, else the current
-/// principal's linked employee.
+/// principal's linked employee. An <paramref name="EmployeeId"/> without a role filter means every
+/// role: naming a person is asking for their projects, not for everyone's.
 /// </summary>
 public sealed record GetProjectsQuery(
     ProjectStatus[]? StatusFilter = null,
@@ -67,7 +68,11 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
             query = query.Where(pp => pp.ProgramId == programId);
         }
 
-        if (request.RoleFilter is { Length: > 0 })
+        var roleFilter = request.RoleFilter is { Length: > 0 }
+            ? request.RoleFilter
+            : request.EmployeeId.HasValue ? Enum.GetValues<ProjectMemberRole>() : null;
+
+        if (roleFilter is not null)
         {
             var employeeId = request.EmployeeId ?? await _currentPrincipal.GetEmployeeId(cancellationToken);
             if (!employeeId.HasValue)
@@ -75,12 +80,12 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
                 return [];
             }
 
-            var projectRoles = request.RoleFilter
+            var projectRoles = roleFilter
                 .Where(r => r != ProjectMemberRole.Assignee)
                 .Select(r => (ProjectRole)(int)r)
                 .ToArray();
 
-            var includeTaskAssignees = request.RoleFilter.Contains(ProjectMemberRole.Assignee);
+            var includeTaskAssignees = roleFilter.Contains(ProjectMemberRole.Assignee);
 
             if (projectRoles.Length > 0 && includeTaskAssignees)
             {

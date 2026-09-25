@@ -4,7 +4,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Projects_GetProjects', {
     name: 'Projects_GetProjects',
-    description: `Get a list of projects. A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId.`,
+    description: `Get a list of projects. A role filter narrows the list to projects where an employee holds one of the roles: the caller's linked employee by default, or the employee named by employeeId. An employeeId on its own lists every project that employee is involved in.`,
     inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"portfolioId":{"type":["string","null"],"format":"uuid"},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee."},"employeeId":{"type":["string","null"],"format":"uuid","description":"The employee the role filter applies to. Omit for the caller's own linked employee."}}},
     method: 'get',
     pathTemplate: '/api/ppm/projects',

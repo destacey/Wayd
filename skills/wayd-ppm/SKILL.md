@@ -151,7 +151,7 @@ For a **colleague**, you need their employee UUID, not their user UUID (`Users_G
 | Goal                   | Tool                       | Notes                                                                                                                                                                       |
 | ---------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Their open task counts | `Projects_GetTaskMetrics`  | The same counts, with `employeeId`. Where they lead a project every task counts, otherwise only their own tasks. Without `employeeId` it reports the caller, the same as the `My` tool. |
-| Their projects         | `Projects_GetProjects`     | `employeeId` with a `role` filter; `role: [1,2,3,4,5]` for everything they are involved in.                                                                                 |
+| Their projects         | `Projects_GetProjects`     | `employeeId` alone lists everything they are involved in; add a `role` filter to narrow it.                                                                                 |
 
 These return aggregate counts, not the projects or tasks themselves — follow up with `Projects_GetProjects` (with a `role` filter) when the user wants the actual list.
 

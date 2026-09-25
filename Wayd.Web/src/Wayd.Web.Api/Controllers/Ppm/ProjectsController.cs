@@ -36,7 +36,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a list of projects.", "")]
+    [OpenApiOperation("Get a list of projects.", "A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

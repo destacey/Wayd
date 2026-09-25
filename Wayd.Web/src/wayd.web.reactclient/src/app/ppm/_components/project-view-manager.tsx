@@ -1,11 +1,6 @@
 'use client'
 
-import {
-  AppstoreOutlined,
-  BuildOutlined,
-  MenuOutlined,
-} from '@ant-design/icons'
-import { Segmented, Spin } from 'antd'
+import { Spin } from 'antd'
 import { memo, useState } from 'react'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import dynamic from 'next/dynamic'
@@ -13,28 +8,14 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import ProjectsGrid from './projects-grid'
 import ProjectsCardView from './projects-card-view'
 import ProjectDrawer from './project-drawer'
+import PpmViewSelector, { PpmView } from './ppm-view-selector'
 
 const Timeline = dynamic(() => import('./projects-timeline'), {
   ssr: false,
   loading: () => <Spin />,
 })
 
-type ProjectView = 'Card' | 'List' | 'Timeline'
-
-const viewSelectorOptions = [
-  {
-    value: 'Card',
-    icon: <AppstoreOutlined title="Card view" />,
-  },
-  {
-    value: 'List',
-    icon: <MenuOutlined alt="List" title="List" />,
-  },
-  {
-    value: 'Timeline',
-    icon: <BuildOutlined alt="Timeline" title="Timeline" />,
-  },
-]
+type ProjectView = PpmView
 
 interface ProjectViewManagerProps {
   projects: ProjectListDto[]
@@ -49,7 +30,7 @@ interface ProjectViewManagerProps {
 }
 
 const ProjectViewManager = (props: ProjectViewManagerProps) => {
-  const [currentView, setCurrentView] = useState<string | number>(
+  const [currentView, setCurrentView] = useState<ProjectView>(
     props.defaultView ?? 'List',
   )
   const [selectedProjectKey, setSelectedProjectKey] = useState<string | null>(
@@ -70,8 +51,8 @@ const ProjectViewManager = (props: ProjectViewManagerProps) => {
   }
 
   const viewSelector = (
-    <Segmented
-      options={viewSelectorOptions}
+    <PpmViewSelector
+      views={['Card', 'List', 'Timeline']}
       value={currentView}
       onChange={setCurrentView}
     />

@@ -12,6 +12,12 @@ jest.unmock('dayjs')
 
 const captured: { props: Record<string, unknown> | null } = { props: null }
 
+jest.mock('@/src/app/ppm/projects/_components/project-health-check-tag', () => {
+  const MockTag = () => null
+  MockTag.displayName = 'MockProjectHealthCheckTag'
+  return MockTag
+})
+
 jest.mock('@/src/components/common/timeline', () => ({
   WaydTimeline: (props: Record<string, unknown>) => {
     captured.props = props
@@ -33,16 +39,14 @@ jest.mock('@/src/components/common/timeline', () => ({
   },
 }))
 
+// The lifecycle colours: processing → info, success, error, default → secondary.
 const token = {
+  colorInfo: 'blue',
   colorSuccess: 'green',
-  colorWarning: 'orange',
   colorError: 'red',
-  colorTextDisabled: 'grey',
-  colorPrimary: 'blue',
-  colorPrimaryBorder: 'lightblue',
-  colorFillSecondary: 'silver',
-  colorTextQuaternary: 'gainsboro',
-} as never
+  colorWarning: 'orange',
+  colorTextSecondary: 'grey',
+}
 
 const stage = (
   id: string,
@@ -131,15 +135,16 @@ describe('buildTimelineModel', () => {
     ])
   })
 
-  it('draws the project bar in health colour first, then each dated stage in status colour', () => {
+  it('draws the project bar first, then each dated stage, all in lifecycle status colours', () => {
     // Act
     const model = buildTimelineModel(groups, today, token)
 
     // Assert — the undated Close stage is left out, the project bar sorts first
     expect(model.items.map((i) => [i.id, i.groupId, i.color, i.order])).toEqual(
       [
-        ['project:id-P1', 'project:id-P1', 'red', -1],
-        ['stage:s1', 'project:id-P1', 'lightblue', 1],
+        // Active project → info; Completed stage → success; In Progress → info
+        ['project:id-P1', 'project:id-P1', 'blue', -1],
+        ['stage:s1', 'project:id-P1', 'green', 1],
         ['stage:s2', 'project:id-P1', 'blue', 2],
       ],
     )

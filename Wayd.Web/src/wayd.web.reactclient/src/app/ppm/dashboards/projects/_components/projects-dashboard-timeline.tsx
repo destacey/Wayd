@@ -7,7 +7,14 @@ import {
   type TimelineGroup,
   type TimelineItem,
 } from '@/src/components/common/timeline'
+import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
+import { LifecycleCategory } from '@/src/components/types'
 import { ProjectListDto, ProjectStageListDto } from '@/src/services/wayd-api'
+import {
+  getLifecycleCategoryColor,
+  getLifecycleCategoryColorFromStatus,
+} from '@/src/utils'
+import type { SemanticColorTokens } from '@/src/utils/color-helper'
 import { Flex, theme } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC } from 'react'
@@ -36,34 +43,25 @@ interface BarPayload {
   projectKey: string
 }
 
-type Token = ReturnType<typeof theme.useToken>['token']
+type Token = SemanticColorTokens
 
 const ms = (d: Date) => dayjs(d).valueOf()
 const fmt = (d: Date) => dayjs(d).format('MMM D, YYYY')
 
-const healthColor = (project: ProjectListDto, token: Token): string => {
-  switch (project.healthCheck?.status.name) {
-    case 'Healthy':
-      return token.colorSuccess
-    case 'At Risk':
-      return token.colorWarning
-    case 'Unhealthy':
-      return token.colorError
-    default:
-      return token.colorTextDisabled
-  }
-}
-
-const stageColor = (stage: ProjectStageListDto, token: Token): string => {
+/**
+ * A stage's status as a lifecycle category, so stage bars take the same
+ * colours as project bars here and on the portfolio timeline.
+ */
+const stageCategory = (stage: ProjectStageListDto): LifecycleCategory => {
   switch (stage.status.name) {
     case 'Completed':
-      return token.colorPrimaryBorder
+      return LifecycleCategory.Completed
     case 'In Progress':
-      return token.colorPrimary
+      return LifecycleCategory.Active
     case 'Canceled':
-      return token.colorTextQuaternary
+      return LifecycleCategory.Canceled
     default:
-      return token.colorFillSecondary
+      return LifecycleCategory.NotStarted
   }
 }
 
@@ -80,8 +78,9 @@ export interface TimelineModel {
 
 /**
  * One row per project under a heading row per dashboard group. A row holds
- * the project's own bar, coloured by health, and one bar per dated stage,
- * coloured by stage status. The timeline packs overlapping bars into lanes,
+ * the project's own bar and one bar per dated stage, both coloured by status
+ * the way the portfolio timeline colours its projects; health is the flag on
+ * the row label, not the bar. The timeline packs overlapping bars into lanes,
  * so two stages running at once sit one under the other rather than one
  * hiding the other; the project bar is pinned to the top lane.
  */
@@ -115,7 +114,7 @@ export const buildTimelineModel = (
       rows.push({
         id: rowId,
         parentId: groupRowId,
-        label: `${project.key} · ${project.name}`,
+        label: project.name,
         order: projectIndex,
         data: { kind: 'project', project },
       })
@@ -133,7 +132,7 @@ export const buildTimelineModel = (
           end,
           label: project.name,
           tooltip: `${project.key} · ${project.name}\n${healthName(project)} · ${project.status.name}\n${fmt(project.start)} – ${fmt(project.end)}`,
-          color: healthColor(project, token),
+          color: getLifecycleCategoryColorFromStatus(project.status, token),
           groupId: rowId,
           // The project's own span always heads its row; a stage that starts
           // before the project would otherwise take the top lane.
@@ -158,7 +157,7 @@ export const buildTimelineModel = (
           end,
           label: stage.name,
           tooltip: `${stage.name} · ${stage.status.name}${progress}\n${fmt(stage.start)} – ${fmt(stage.end)}`,
-          color: stageColor(stage, token),
+          color: getLifecycleCategoryColor(stageCategory(stage), token),
           groupId: rowId,
           order: stage.order,
           data: { projectKey: project.key },
@@ -192,7 +191,11 @@ const RowLabel: FC<GroupRenderProps<RowPayload>> = ({ group }) => {
   if (payload?.kind === 'project' && payload.project) {
     return (
       <span className={styles.timelineProjectLabel}>
-        <span className={styles.key}>{payload.project.key}</span>{' '}
+        <ProjectHealthCheckTag
+          healthCheck={payload.project.healthCheck}
+          projectId={payload.project.id}
+          variant="flag"
+        />{' '}
         {payload.project.name}
       </span>
     )
@@ -221,16 +224,23 @@ const Legend: FC<{ token: Token; undatedCount: number }> = ({
   )
   return (
     <Flex align="center" gap={16} wrap className={styles.timelineLegend}>
-      <span className={styles.scopeLabel}>Project</span>
-      {swatch(token.colorSuccess, 'Healthy')}
-      {swatch(token.colorWarning, 'At risk')}
-      {swatch(token.colorError, 'Unhealthy')}
-      {swatch(token.colorTextDisabled, 'Not reported')}
-      <span className={styles.scopeDivider} />
-      <span className={styles.scopeLabel}>Stage</span>
-      {swatch(token.colorPrimaryBorder, 'Completed')}
-      {swatch(token.colorPrimary, 'In progress')}
-      {swatch(token.colorFillSecondary, 'Not started')}
+      <span className={styles.scopeLabel}>Status</span>
+      {swatch(
+        getLifecycleCategoryColor(LifecycleCategory.NotStarted, token),
+        'Not started',
+      )}
+      {swatch(
+        getLifecycleCategoryColor(LifecycleCategory.Active, token),
+        'Active',
+      )}
+      {swatch(
+        getLifecycleCategoryColor(LifecycleCategory.Completed, token),
+        'Completed',
+      )}
+      {swatch(
+        getLifecycleCategoryColor(LifecycleCategory.Canceled, token),
+        'Canceled',
+      )}
       {undatedCount > 0 && (
         <span className={styles.groupMeta} style={{ marginLeft: 'auto' }}>
           {undatedCount} {undatedCount === 1 ? 'project has' : 'projects have'}{' '}

@@ -9,6 +9,7 @@ import {
 } from '@/src/components/common/timeline/render/svg/export-svg'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useTheme from '@/src/components/contexts/theme/use-theme'
+import { isDarkMode } from '@/src/config/theme/theme-registry'
 import {
   FileImageOutlined,
   FullscreenExitOutlined,
@@ -568,7 +569,7 @@ const DependencyMap = ({
             if (onOpenRecord && !record.isSubject) onOpenRecord(record)
             else if (record.href) router.push(record.href)
           }}
-          colorMode={currentMode === 'light' ? 'light' : 'dark'}
+          colorMode={isDarkMode(currentMode) ? 'dark' : 'light'}
           fitView
           // Capped at 1: a two-node map would otherwise be blown up to fill the canvas, which makes the
           // same record read as a different size on every page.

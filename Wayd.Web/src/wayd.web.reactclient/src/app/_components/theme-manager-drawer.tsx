@@ -36,6 +36,7 @@ const THEME_OPTIONS: { label: string; value: ThemeId }[] = (
 
 const MODE_LABELS: Record<ThemeMode, string> = {
   light: 'Light',
+  mist: 'Mist',
   dark: 'Dark',
   slate: 'Slate',
 }

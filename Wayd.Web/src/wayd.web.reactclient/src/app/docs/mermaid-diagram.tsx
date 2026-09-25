@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from 'react'
 import { Skeleton } from 'antd'
 import mermaid, { type MermaidConfig } from 'mermaid'
 import useTheme from '@/src/components/contexts/theme'
+import { isDarkMode } from '@/src/config/theme/theme-registry'
 
 // mermaid.render(id) starts by removing any element with that id, and the SVG
 // it returns carries the same id — so reusing an id deletes the diagram already
@@ -31,7 +32,7 @@ export default function MermaidDiagram({ chart }: MermaidDiagramProps) {
     securityLevel: 'strict',
     theme: 'base',
     themeVariables: {
-      darkMode: currentMode !== 'light',
+      darkMode: isDarkMode(currentMode),
       background: token.colorBgContainer,
       fontFamily: token.fontFamily,
       fontSize: `${token.fontSize}px`,

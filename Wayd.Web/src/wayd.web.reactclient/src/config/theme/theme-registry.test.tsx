@@ -1,7 +1,22 @@
 import {
   DEFAULT_THEME_SELECTION,
+  isDarkMode,
   normalizeThemeSelection,
 } from './theme-registry'
+
+describe('isDarkMode', () => {
+  it('treats light and mist as light modes', () => {
+    // Arrange & Act & Assert
+    expect(isDarkMode('light')).toBe(false)
+    expect(isDarkMode('mist')).toBe(false)
+  })
+
+  it('treats dark and slate as dark modes', () => {
+    // Arrange & Act & Assert
+    expect(isDarkMode('dark')).toBe(true)
+    expect(isDarkMode('slate')).toBe(true)
+  })
+})
 
 describe('normalizeThemeSelection', () => {
   it('maps a legacy mode name to the Wayd theme in that mode', () => {
@@ -26,6 +41,14 @@ describe('normalizeThemeSelection', () => {
 
     // Assert
     expect(selection).toEqual({ theme: 'wayd', mode: 'slate' })
+  })
+
+  it('keeps a stored mist selection for the Wayd theme', () => {
+    // Arrange & Act
+    const selection = normalizeThemeSelection({ theme: 'wayd', mode: 'mist' })
+
+    // Assert
+    expect(selection).toEqual({ theme: 'wayd', mode: 'mist' })
   })
 
   it('clamps an unsupported mode to the theme default', () => {

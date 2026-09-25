@@ -12,9 +12,9 @@ export type ThemeId =
 
 /**
  * A color-scheme variant of a theme. Every theme supports at least one mode;
- * `slate` is the Wayd theme's alternate dark mode.
+ * `mist` and `slate` are the Wayd theme's alternate light and dark modes.
  */
-export type ThemeMode = 'light' | 'dark' | 'slate'
+export type ThemeMode = 'light' | 'mist' | 'dark' | 'slate'
 
 /** The persisted theme selection (localStorage `appTheme` key). */
 export interface ThemeSelection {

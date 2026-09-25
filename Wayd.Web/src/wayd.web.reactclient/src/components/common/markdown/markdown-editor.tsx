@@ -6,6 +6,7 @@ import '@uiw/react-markdown-preview/markdown.css'
 import { MarkdownEditorFooter, useMarkdownComponentsForMDEditor } from '.'
 import remarkGfm from 'remark-gfm'
 import useTheme from '../../contexts/theme'
+import { isDarkMode } from '@/src/config/theme/theme-registry'
 import { useEffect, useRef, useState } from 'react'
 import React from 'react'
 
@@ -47,7 +48,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(
     return (
       <>
         <div
-          data-color-mode={currentMode === 'light' ? 'light' : 'dark'}
+          data-color-mode={isDarkMode(currentMode) ? 'dark' : 'light'}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onClick={handleWrapperClick}

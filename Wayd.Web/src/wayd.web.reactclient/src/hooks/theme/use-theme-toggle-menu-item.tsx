@@ -1,17 +1,24 @@
 'use client'
 
-import { HighlightFilled, HighlightOutlined, BgColorsOutlined } from '@ant-design/icons'
+import {
+  HighlightFilled,
+  HighlightOutlined,
+  BgColorsOutlined,
+  CloudOutlined,
+} from '@ant-design/icons'
 import useTheme from '../../components/contexts/theme'
 import { ThemeMode } from '../../components/contexts/theme/types'
 
 const ICONS: Record<ThemeMode, React.ReactNode> = {
   light: <HighlightOutlined />,
+  mist: <CloudOutlined />,
   dark: <HighlightFilled />,
   slate: <BgColorsOutlined />,
 }
 
 const LABELS: Record<ThemeMode, string> = {
   light: 'Mode: Light',
+  mist: 'Mode: Mist',
   dark: 'Mode: Dark',
   slate: 'Mode: Slate',
 }

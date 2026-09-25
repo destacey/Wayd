@@ -33,6 +33,10 @@ public static class AllocationCalculator
         var placed = new List<PlacedItem>(workItems.Count);
         foreach (var item in workItems)
         {
+            // Every placed item must land in a period, and the periods cover only the window.
+            if (item.DoneOn < from || item.DoneOn > to)
+                continue;
+
             // Work done while the team sat outside this hierarchy is not this hierarchy's work.
             var path = PathToRoot(item.TeamId, item.DoneOn, structure.RootId, parentEdges);
             if (path is null)

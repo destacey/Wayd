@@ -134,6 +134,27 @@ public sealed class AllocationCalculatorTests
     }
 
     [Fact]
+    public void Calculate_WorkDoneOutsideTheWindow_IsLeftOut()
+    {
+        // Arrange
+        var project = Project("ONE", PortfolioA);
+        List<AllocationWorkItem> items =
+        [
+            Item(Payments, project, doneOn: From.PlusDays(-1)),
+            Item(Payments, project, doneOn: From),
+            Item(Payments, project, doneOn: To),
+            Item(Payments, project, doneOn: To.PlusDays(1)),
+        ];
+
+        // Act
+        var result = Calculate(items);
+
+        // Assert
+        result.Summary.ItemsCompleted.Should().Be(2);
+        result.Periods.Sum(p => p.Items).Should().Be(2);
+    }
+
+    [Fact]
     public void Calculate_WorkDoneWhileOutsideTheHierarchy_IsLeftOut()
     {
         // Arrange

@@ -261,6 +261,25 @@ Providing `getSubRows` turns on **tree mode**: rows expand/collapse, and a filte
 
 These features are involved — read the JSDoc on `WaydGridProps` in [`types.ts`](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/wayd.web.reactclient/src/components/common/wayd-grid/types.ts) and follow an existing consumer (e.g. the project work-items tree grid) when wiring them.
 
+## Row grouping
+
+Providing `grouping` (column ids, outermost first) groups a **flat** grid: each distinct value of the column becomes a collapsible heading row spanning the grid, with the matching rows underneath. The grouped column leaves the row cells, since its value is now the heading. Filters and quick search apply to the rows before they are grouped, so a group with no match disappears; sorting applies within each group, and the groups themselves come out in the grouped column's order (give that column a `sortFn` when its values have an order of their own, such as a health scale). The Projects Dashboard is the reference consumer.
+
+```tsx
+<WaydGrid<ProjectListDto>
+  data={projects}
+  columns={columns}
+  grouping={['portfolio']}
+  renderGroupHeader={({ value, leafRows }) => `${value} · ${leafRows.length} projects`}
+  initialGroupsExpanded
+/>
+```
+
+- The default heading is the value and a row count; `renderGroupHeader` replaces it and receives the group's `leafRows` so the heading can say what they add up to.
+- Headings are not records: row activation, the displayed-rows surfaces (`onDisplayedRowsChange`, `getDisplayedRows`) and the CSV export see only the rows. Flat row reorder turns off while grouped, since the displayed order is no longer the data order.
+- Regrouping resets every group to `initialGroupsExpanded`, so a grid regrouped by another column opens fully rather than inheriting collapsed ids from the previous grouping.
+- Grouping is for flat grids; a tree (`getSubRows`) already has its hierarchy and ignores it.
+
 ## CSV export
 
 The toolbar export button downloads the **currently visible** columns (respecting hide/pinning/order) and the **filtered + sorted** rows, in display order. Grouped headers export as band rows above the leaf headers. Control it per column with `meta.enableExport`, `meta.exportHeader`, and `meta.exportFormatter`; name the file with the `csvFileName` prop.

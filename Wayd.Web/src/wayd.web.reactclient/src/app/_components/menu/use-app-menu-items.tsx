@@ -199,20 +199,15 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
       ]
     : []),
   restrictedMenuSection('PPM', 'ppm', undefined, menuIcons.ppm, [
-    // "My Projects" resolves the caller's own project roles, which are held by the employee record.
-    // An unlinked account has none, so the page would always be empty — omit it, along with the
-    // divider that would otherwise be left leading the section.
-    ...(options.hasLinkedEmployee
-      ? [
-          restrictedPermissionMenuItem(
-            'Permissions.Projects.View',
-            'My Projects',
-            'ppm.dashboards.my-projects',
-            '/ppm/dashboards/my-projects',
-          ),
-          { key: 'ppm-dashboards-divider', type: 'divider' as const },
-        ]
-      : []),
+    // Offered to unlinked accounts too: the dashboard's Person scope works without an employee
+    // record of one's own, and the page explains why the Me scope is missing.
+    restrictedPermissionMenuItem(
+      'Permissions.Projects.View',
+      'Projects Dashboard',
+      'ppm.dashboards.projects',
+      '/ppm/dashboards/projects',
+    ),
+    { key: 'ppm-dashboards-divider', type: 'divider' as const },
     restrictedPermissionMenuItem(
       'Permissions.ProjectPortfolios.View',
       'Portfolios',

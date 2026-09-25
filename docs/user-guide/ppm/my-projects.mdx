@@ -1,43 +1,67 @@
 ---
-title: My Projects Dashboard
-description: Personalized project overview with task metrics and stage tracking in Wayd.
+title: Projects Dashboard
+description: Triage projects by person, portfolio or program — health, overdue tasks, stages and end dates — grouped and filtered in one place.
 sidebar_position: 4
 audience: [user, agent]
 ---
 
-# My Projects Dashboard
+# Projects Dashboard
 
-The **My Projects** dashboard (**PPM > My Projects**) is a personalized view of [projects](./projects.mdx) where you have an assigned role. It provides a quick overview of your project portfolio with task metrics and stage progress.
+The **Projects Dashboard** (**PPM > Projects Dashboard**) shows a set of [projects](./projects.mdx) and leads with what needs attention. It replaces the earlier My Projects dashboard; the old address forwards here.
 
-## Filters
+## Scope
 
-- **Status** — Multi-select: Proposed, Approved, Active, Completed, Canceled (defaults to Approved and Active)
-- **Role** — Multi-select: Sponsor, Owner, PM, Member, Assignee (defaults to all)
-- **Reset** and **Refresh** buttons
+The scope decides which projects the page shows:
 
-## Two-Panel Layout
+- **Me** — projects where your linked employee holds a role. This is the default, and it is missing when your account has no employee record.
+- **Person** — projects for any employee, chosen from the picker. Use it to see what someone you lead is carrying.
+- **Portfolio** — every project in one [portfolio](./portfolios-programs.mdx#portfolios).
+- **Program** — every project in one [program](./portfolios-programs.mdx#programs).
+- **All projects** — everything you can see.
 
-### Left Panel — Portfolio Groups List
+The scope is kept in the address bar, so a view can be shared as a link.
 
-[Projects](./projects.mdx) are grouped by [portfolio](./portfolios-programs.mdx#portfolios), sorted by portfolio name then project status. Each project card shows:
-- Project key and name
-- Current health flag (when a health check exists)
-- Current [stage](./projects.mdx#project-stages) status
-- Project status
-- Sponsors and Owners (as avatars)
-- **Task metrics** (if you are a team member or leadership role):
-  - Total [tasks](./projects.mdx#project-tasks), Completed tasks, Overdue tasks, Tasks due this week
+In the two person scopes, the **Role** chips narrow the list to the roles the person holds (Sponsor, Owner, PM, Member, Task Assignee; all by default). The **Status** chips narrow by project status in every scope (Approved and Active by default). **Reset** restores the defaults and **Refresh** reloads.
 
-Click a project card to select it and view details in the right panel.
+## Attention tiles
 
-### Right Panel — Project Detail
+The row of tiles under the scope bar is a triage summary of the projects in scope. Click a tile to keep only those projects in the list below; click it again to clear.
 
-When a project is selected, shows:
-- Project header with key, name, status, [portfolio](./portfolios-programs.mdx#portfolios), [program](./portfolios-programs.mdx#programs), sponsors/owners, dates
-- **[Stage Timeline](./projects.mdx#project-stages)** — Step-based visualization of all stages with status indicators, date ranges, and progress percentages
-- **Task Summary** — Completion percentage and counts by status
-- **Project Plan (collapsed view)** — Hierarchical view organized by [stage](./projects.mdx#project-stages):
-  - Each stage shows as a collapsible section with status tag, progress bar, and counts (overdue, due this week, upcoming)
-  - Within each stage, [tasks](./projects.mdx#project-tasks) are listed with status icon, priority color dot, name, assignee avatars, due date, and status badge (Complete, Overdue, Due Today, Upcoming)
-  - Deliverables (grouping tasks) show progress bars with completion ratios
-  - The currently active stage is auto-expanded on load
+| Tile | Counts |
+|------|--------|
+| In scope | Every project matching the scope and filters |
+| Unhealthy | Projects whose current [health check](./projects.mdx#project-health-checks) is Unhealthy |
+| At risk | Projects whose current health check is At Risk |
+| Overdue tasks | Open [tasks](./projects.mdx#project-tasks) past their planned end, with how many projects they sit on |
+| No health check | Open projects with no current health check, whether never reported or expired |
+| Ending in 30 days | Open projects whose planned end falls within the next 30 days |
+
+Task counts depend on the scope. For a person, they follow the same visibility rule as the project plan: on a project where the person holds a leadership role (Sponsor, Owner or PM) every task counts, otherwise only the tasks assigned to them. For a portfolio, program or all projects, every task on the plan counts.
+
+## Breakdowns
+
+In the portfolio, program and all-projects scopes, a collapsible **Breakdowns** panel shows the projects in scope by status, by health and by strategic theme, the same charts as the portfolio and program overviews. It stays closed until you open it, and remembers the choice.
+
+## The list, cards and timeline
+
+Projects are grouped by **Portfolio**, **Program**, **Health** or **Status**. Each group header shows its count and a one-line summary (unhealthy, at risk, overdue tasks), and collapses on click. The search box matches the project name or key. The switch at the right of the toolbar shows the same groups as a **List**, as **Cards**, or on a **Timeline**.
+
+The list is a standard grid: sort by clicking a column header (worst health first, then most overdue tasks, by default), filter a column, choose and reorder columns, and export the rows to CSV. The grouped column becomes the headings and leaves the rows. Cards and the timeline take their order from the **Sort** choice instead: Health then overdue, Name, End date or Score.
+
+Each project shows:
+
+- Current health, with the health check details on hover
+- Key, name, and the portfolio and program underneath
+- Status
+- **Stages** — every [lifecycle stage](./projects.mdx#project-stages) as a step: completed, in progress, or not started. Several stages can be in progress at once; hover a step for its status and progress.
+- Open task counts: overdue and due this week, or the upcoming count when nothing is more urgent
+- Sponsors, Owners and PMs as avatars
+- Planned end date, highlighted when it falls within the next 30 days
+- On a card, the current [score](../settings/scoring-models.mdx) when the project has been scored
+- In a person scope, that person's roles on the project
+
+Click a project to open its details in a drawer, with links to the full project page and its plan. The plan icon on a row or card opens the project's Plan section directly, with one click.
+
+### Timeline
+
+The timeline draws one row per project under a heading per group. The row label carries the project's health flag. The project's own bar runs from its start to its end, and each [stage](./projects.mdx#project-stages) with planned dates is drawn on its own dates underneath; both are coloured by status the way the portfolio timeline colours its projects, and stages that overlap sit in separate lanes so both stay visible. A stage without dates is left out, and a project with no dates at all keeps an empty row; the legend under the chart says how many. Hover a bar for its dates and status, click one to open the project, and zoom with Ctrl and the mouse wheel or the toolbar.

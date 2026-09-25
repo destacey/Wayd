@@ -36,11 +36,11 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a list of projects.", "")]
+    [OpenApiOperation("Get a list of projects.", "A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<ProjectListDto>>> GetProjects([FromQuery] int[]? status, [FromQuery] Guid? portfolioId, [FromQuery] int[]? role, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<ProjectListDto>>> GetProjects([FromQuery] int[]? status, [FromQuery] Guid? portfolioId, [FromQuery] int[]? role, [FromQuery] Guid? employeeId, CancellationToken cancellationToken)
     {
         var filter = ParseStatusFilter(status);
         var roleFilter = ParseRoleFilter(role);
@@ -49,7 +49,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             ? new IdOrKey(portfolioId.Value)
             : null;
 
-        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey, RoleFilter: roleFilter), cancellationToken);
+        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey, RoleFilter: roleFilter, EmployeeId: employeeId), cancellationToken);
 
         return projects is not null
             ? Ok(projects)
@@ -75,12 +75,24 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get aggregated task metrics across the current user's projects.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<MyProjectsTaskMetricsDto>> GetMyProjectsTaskMetrics([FromQuery] int[]? status, [FromQuery] int[]? role, CancellationToken cancellationToken)
+    public async Task<ActionResult<ProjectsTaskMetricsDto>> GetMyProjectsTaskMetrics([FromQuery] int[]? status, [FromQuery] int[]? role, CancellationToken cancellationToken)
     {
         var statusFilter = ParseStatusFilter(status);
         var roleFilter = ParseRoleFilter(role);
 
-        return Ok(await _dispatcher.Send(new GetMyProjectsTaskMetricsQuery(StatusFilter: statusFilter, RoleFilter: roleFilter), cancellationToken));
+        return Ok(await _dispatcher.Send(new GetProjectsTaskMetricsQuery(StatusFilter: statusFilter, RoleFilter: roleFilter), cancellationToken));
+    }
+
+    [HttpGet("task-metrics")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
+    [OpenApiOperation("Get aggregated task metrics across the projects an employee is involved in.", "Defaults to the current user when no employee is given.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ProjectsTaskMetricsDto>> GetProjectsTaskMetrics([FromQuery] int[]? status, [FromQuery] int[]? role, [FromQuery] Guid? employeeId, CancellationToken cancellationToken)
+    {
+        var statusFilter = ParseStatusFilter(status);
+        var roleFilter = ParseRoleFilter(role);
+
+        return Ok(await _dispatcher.Send(new GetProjectsTaskMetricsQuery(StatusFilter: statusFilter, RoleFilter: roleFilter, EmployeeId: employeeId), cancellationToken));
     }
 
     [HttpGet("{idOrKey}")]
@@ -555,11 +567,11 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get plan summary metrics for multiple projects in a single request.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<Dictionary<Guid, ProjectPlanSummaryDto>>> GetProjectsPlanSummaries([FromQuery] Guid[] projectId, [FromQuery] int[]? role, CancellationToken cancellationToken)
+    public async Task<ActionResult<Dictionary<Guid, ProjectPlanSummaryDto>>> GetProjectsPlanSummaries([FromQuery] Guid[] projectId, [FromQuery] int[]? role, [FromQuery] Guid? employeeId, [FromQuery] bool allTasks, CancellationToken cancellationToken)
     {
         var roleFilter = ParseRoleFilter(role);
 
-        var summaries = await _dispatcher.Send(new GetProjectsPlanSummariesQuery(projectId, roleFilter), cancellationToken);
+        var summaries = await _dispatcher.Send(new GetProjectsPlanSummariesQuery(projectId, roleFilter, employeeId, allTasks), cancellationToken);
 
         return Ok(summaries);
     }

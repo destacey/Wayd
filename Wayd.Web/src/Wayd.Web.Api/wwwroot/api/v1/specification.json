@@ -13694,6 +13694,7 @@
           "Projects"
         ],
         "summary": "Get a list of projects.",
+        "description": "A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.",
         "operationId": "Projects_GetProjects",
         "parameters": [
           {
@@ -13736,6 +13737,17 @@
               }
             },
             "x-position": 3
+          },
+          {
+            "name": "employeeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 4
           }
         ],
         "responses": {
@@ -13914,7 +13926,77 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MyProjectsTaskMetricsDto"
+                  "$ref": "#/components/schemas/ProjectsTaskMetricsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/task-metrics": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get aggregated task metrics across the projects an employee is involved in.",
+        "description": "Defaults to the current user when no employee is given.",
+        "operationId": "Projects_GetProjectsTaskMetrics",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "x-position": 1
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "x-position": 2
+          },
+          {
+            "name": "employeeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectsTaskMetricsDto"
                 }
               }
             }
@@ -15490,6 +15572,25 @@
               }
             },
             "x-position": 2
+          },
+          {
+            "name": "employeeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
+          },
+          {
+            "name": "allTasks",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 4
           }
         ],
         "responses": {
@@ -46806,7 +46907,7 @@
           }
         }
       },
-      "MyProjectsTaskMetricsDto": {
+      "ProjectsTaskMetricsDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [

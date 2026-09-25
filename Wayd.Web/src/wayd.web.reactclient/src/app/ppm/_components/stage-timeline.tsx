@@ -80,7 +80,11 @@ function formatDateRange(start?: Date, end?: Date): string | null {
   return `Ends ${dayjs(end).format(format)}`
 }
 
-type DisplayMode = 'default' | 'small' | 'vertical'
+/**
+ * `compact` is dots and connectors only, one grid row tall; the stage name
+ * moves into the tooltip along with the details.
+ */
+type DisplayMode = 'default' | 'small' | 'compact' | 'vertical'
 
 function buildTooltip(
   stage: ProjectStageListDto,
@@ -92,12 +96,13 @@ function buildTooltip(
     .replace(/\b\w/g, (c) => c.toUpperCase())
 
   // default and vertical show details inline — tooltip is just the status
-  if (mode !== 'small') return statusLabel
+  if (mode !== 'small' && mode !== 'compact') return statusLabel
 
-  // small mode packs details into the tooltip
+  // small and compact pack details into the tooltip
   const dateRange = formatDateRange(stage.start, stage.end)
   return (
     <div>
+      {mode === 'compact' && <div>{stage.name}</div>}
       <div>{statusLabel}</div>
       {dateRange && <div>{dateRange}</div>}
       {stage.progress != null && <div>Progress: {stage.progress}%</div>}
@@ -106,8 +111,8 @@ function buildTooltip(
 }
 
 function buildContent(stage: ProjectStageListDto, mode: DisplayMode) {
-  // only small (horizontal) hides inline content
-  if (mode === 'small') return undefined
+  // only the horizontal small and compact modes hide inline content
+  if (mode === 'small' || mode === 'compact') return undefined
 
   const dateRange = formatDateRange(stage.start, stage.end)
   const hasContent = dateRange || stage.progress != null
@@ -140,7 +145,7 @@ function getDisplayMode(
 
 export interface StageTimelineProps {
   stages: ProjectStageListDto[]
-  displayMode?: 'default' | 'small'
+  displayMode?: 'default' | 'small' | 'compact'
 }
 
 const StageTimeline: FC<StageTimelineProps> = ({ stages, displayMode }) => {
@@ -174,13 +179,14 @@ const StageTimeline: FC<StageTimelineProps> = ({ stages, displayMode }) => {
     const status = mapStageStatus(stage.status?.name)
     const tooltip = buildTooltip(stage, status, mode)
     return {
-      title: (
-        <WaydTooltip title={tooltip}>
-          <span className={mode === 'small' ? styles.titleSmall : undefined}>
-            {stage.name}
-          </span>
-        </WaydTooltip>
-      ),
+      title:
+        mode === 'compact' ? undefined : (
+          <WaydTooltip title={tooltip}>
+            <span className={mode === 'small' ? styles.titleSmall : undefined}>
+              {stage.name}
+            </span>
+          </WaydTooltip>
+        ),
       content: buildContent(stage, mode),
       status: mapStepStatus(status),
       icon: getIcon(status, tooltip),
@@ -188,7 +194,10 @@ const StageTimeline: FC<StageTimelineProps> = ({ stages, displayMode }) => {
   })
 
   return (
-    <div ref={containerRef}>
+    <div
+      ref={containerRef}
+      className={mode === 'compact' ? styles.compact : undefined}
+    >
       <Steps
         items={items}
         size={stepsSize}

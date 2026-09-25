@@ -324,6 +324,36 @@ describe('StageTimeline', () => {
     expect(await screen.findByText('Progress: 45%')).toBeInTheDocument()
   })
 
+  // --- Compact mode ---
+
+  it('draws only the steps in compact mode and names the stage in the tooltip', async () => {
+    const stages = [
+      createStage({
+        name: 'Discovery',
+        order: 1,
+        status: { id: 2, name: 'In Progress' },
+        start: new Date('2026-01-15T12:00:00'),
+        end: new Date('2026-03-15T12:00:00'),
+        progress: 45,
+      }),
+    ]
+
+    const { container } = render(
+      <StageTimeline stages={stages} displayMode="compact" />,
+    )
+
+    expect(screen.queryByText('Discovery')).not.toBeInTheDocument()
+
+    // The tooltip hangs off the dot itself, not the icon slot around it.
+    await userEvent.hover(
+      container.querySelector('.ant-steps-item-icon > span')!,
+    )
+
+    expect(await screen.findByText('Discovery')).toBeInTheDocument()
+    expect(await screen.findByText('In Progress')).toBeInTheDocument()
+    expect(await screen.findByText('Progress: 45%')).toBeInTheDocument()
+  })
+
   // --- Tooltip in default mode ---
 
   it('shows tooltip with status only in default mode on hover', async () => {

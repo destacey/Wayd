@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { ProjectDetailsDto } from '@/src/services/wayd-api'
 import ProjectDrawer from './project-drawer'
 
@@ -13,10 +13,11 @@ jest.mock('next/link', () => {
 // Drawer is stubbed, so the facts markup under test stays real.
 jest.mock('antd', () => {
   const actual = jest.requireActual('antd')
-  const MockDrawer = ({ title, open, children }: any) =>
+  const MockDrawer = ({ title, extra, open, children }: any) =>
     open ? (
       <div>
         <div>{title}</div>
+        <div data-testid="drawer-extra">{extra}</div>
         {children}
       </div>
     ) : null
@@ -30,10 +31,22 @@ jest.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetProjectQuery: (...args: unknown[]) => mockProject(...args),
 }))
 
+const mockClaims = { granted: true }
+
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
-  default: () => ({ hasPermissionClaim: () => true }),
+  default: () => ({ hasPermissionClaim: () => mockClaims.granted }),
 }))
+
+jest.mock(
+  '@/src/app/ppm/projects/_components/create-project-health-check-form',
+  () => ({
+    __esModule: true,
+    default: ({ projectId }: { projectId: string }) => (
+      <div data-testid="health-check-form">{projectId}</div>
+    ),
+  }),
+)
 
 jest.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: jest.fn() }),
@@ -92,16 +105,46 @@ const renderDrawer = (overrides: Partial<ProjectDetailsDto> = {}) => {
   })
 
   return render(
-    <ProjectDrawer
-      projectKey="PRJ-1"
-      drawerOpen
-      onDrawerClose={jest.fn()}
-    />,
+    <ProjectDrawer projectKey="PRJ-1" drawerOpen onDrawerClose={jest.fn()} />,
   )
 }
 
 describe('ProjectDrawer', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockClaims.granted = true
+  })
+
+  it('offers a health check from the header to someone who can manage the project', () => {
+    // Arrange
+    renderDrawer({ canManageProject: true })
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Create Health Check' }))
+
+    // Assert — the form opens for this project
+    expect(screen.getByTestId('health-check-form')).toHaveTextContent(
+      baseProject.id,
+    )
+  })
+
+  it('withholds the health check button without leadership or the permission', () => {
+    // Arrange / Act — leadership missing
+    const { unmount } = renderDrawer({ canManageProject: false })
+
+    // Assert
+    expect(
+      screen.queryByRole('button', { name: 'Create Health Check' }),
+    ).not.toBeInTheDocument()
+
+    // Arrange / Act — leadership present, permission missing
+    unmount()
+    mockClaims.granted = false
+    renderDrawer({ canManageProject: true })
+    expect(
+      screen.queryByRole('button', { name: 'Create Health Check' }),
+    ).not.toBeInTheDocument()
+  })
 
   it('groups the facts the way the record page does', () => {
     // Arrange / Act
@@ -128,9 +171,10 @@ describe('ProjectDrawer', () => {
     renderDrawer()
 
     // Assert
-    expect(
-      screen.getByRole('link', { name: 'Core Platform' }),
-    ).toHaveAttribute('href', '/ppm/portfolios/7')
+    expect(screen.getByRole('link', { name: 'Core Platform' })).toHaveAttribute(
+      'href',
+      '/ppm/portfolios/7',
+    )
   })
 
   it('links each strategic initiative separately', () => {

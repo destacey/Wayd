@@ -44,3 +44,13 @@
   font-size: 10px;
   color: var(--ant-color-text-secondary);
 }
+
+/* Compact: dots and connectors only, so a grid row stays one line tall. The
+   step's empty title area still reserves height, so it is collapsed here. */
+.compact :global(.ant-steps-item-content) {
+  display: none;
+}
+
+.compact :global(.ant-steps) {
+  align-items: center;
+}

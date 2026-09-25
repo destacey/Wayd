@@ -115,7 +115,7 @@ Portfolio
 | Projects in a portfolio                 | `Portfolios_GetPortfolioProjects`                                                                                       |                                                                                              |
 | All programs (cross-portfolio)          | `Programs_GetPrograms`                                                                                                  |                                                                                              |
 | Projects in a program                   | `Programs_GetProgramProjects`                                                                                           |                                                                                              |
-| All projects (cross-portfolio)          | `Projects_GetProjects`                                                                                                  | Optional `role` filter: `1=Sponsor, 2=Owner, 3=Manager, 4=Member`                            |
+| All projects (cross-portfolio)          | `Projects_GetProjects`                                                                                                  | Optional `role` filter: `1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee`, applied to the caller or to `employeeId`                            |
 | Project details                         | `Projects_GetProject`                                                                                                   |                                                                                              |
 | Project status change history           | `Projects_GetStatusHistory`                                                                                             | Takes project `id` (**UUID only** — unlike most project endpoints, it does not accept a key) |
 | Everything that changed on a record     | `Portfolios_GetActivities` / `Programs_GetActivities` / `Projects_GetActivities` / `StrategicInitiatives_GetActivities` | Accept an ID or key. See [Activity history](#activity-history).                              |
@@ -137,20 +137,27 @@ Every change to a portfolio, program, project or strategic initiative is recorde
 
 Prefer `Projects_GetStatusHistory` when only status matters: it carries the reason a revert was made.
 
-### "What am I working on?"
+### "What am I working on?" and "what is she working on?"
 
-Two tools are scoped to the **caller's own** PAT — neither takes a user parameter, and neither can report on anyone else. Prefer them over listing and filtering every project.
+Two tools are scoped to the **caller's own** PAT and take no user parameter. Prefer them over listing and filtering every project.
 
 | Goal                            | Tool                                | Notes                                                                                                             |
 | ------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | My project involvement, by role | `Projects_GetMyProjectsSummary`     | Counts only: total, sponsor, owner, manager, member, assignee. Optional `status` filter.                          |
 | My open task counts             | `Projects_GetMyProjectsTaskMetrics` | Overdue, due this week (through Saturday), upcoming (next Sunday–Saturday). Optional `status` and `role` filters. |
 
-Both return aggregate counts, not the projects or tasks themselves — follow up with `Projects_GetProjects` (with a `role` filter) when the user wants the actual list.
+For a **colleague**, you need their employee UUID, not their user UUID (`Users_GetUsers` ids will not match). Take it from a project they are on — the role lists on `Projects_GetProject`, or `Projects_GetProjectTeam` — then:
+
+| Goal                   | Tool                       | Notes                                                                                                                                                                       |
+| ---------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Their open task counts | `Projects_GetTaskMetrics`  | The same counts, with `employeeId`. Where they lead a project every task counts, otherwise only their own tasks. Without `employeeId` it reports the caller, the same as the `My` tool. |
+| Their projects         | `Projects_GetProjects`     | `employeeId` alone lists everything they are involved in; add a `role` filter to narrow it.                                                                                 |
+
+These return aggregate counts, not the projects or tasks themselves — follow up with `Projects_GetProjects` (with a `role` filter) when the user wants the actual list.
 
 ### Plan metrics across many projects
 
-`Projects_GetProjectsPlanSummaries` returns plan summaries for a set of projects in one call, keyed by project ID. Pass `projectId` as an array of **UUIDs** (keys are not accepted). Use it instead of calling `Projects_GetProjectPlanSummary` once per project — surveying a portfolio otherwise costs one round trip per project.
+`Projects_GetProjectsPlanSummaries` returns plan summaries for a set of projects in one call, keyed by project ID. Pass `projectId` as an array of **UUIDs** (keys are not accepted). Use it instead of calling `Projects_GetProjectPlanSummary` once per project — surveying a portfolio otherwise costs one round trip per project. By default it counts the tasks the caller can see; pass `employeeId` for another person's view, or `allTasks: true` to count every task on the projects, which is what a portfolio or program summary wants.
 
 ### Exploring a project's plan and team
 

@@ -1,13 +1,12 @@
 'use client'
 
-import { BuildOutlined, MenuOutlined } from '@ant-design/icons'
-import Segmented, { SegmentedLabeledOption } from 'antd/es/segmented'
 import { Spin } from 'antd'
 import { memo, useState } from 'react'
 import { StrategicInitiativeListDto } from '@/src/services/wayd-api'
 import dynamic from 'next/dynamic'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { StrategicInitiativesGrid } from '.'
+import PpmViewSelector, { PpmView } from './ppm-view-selector'
 
 const Timeline = dynamic(() => import('./strategic-initiatives-timeline'), {
   ssr: false,
@@ -20,21 +19,10 @@ interface StrategicInitiativeViewManagerProps {
   refetch: () => void
 }
 
-const viewSelectorOptions: SegmentedLabeledOption[] = [
-  {
-    value: 'List',
-    icon: <MenuOutlined alt="List" title="List" />,
-  },
-  {
-    value: 'Timeline',
-    icon: <BuildOutlined alt="Timeline" title="Timeline" />,
-  },
-]
-
 const StrategicInitiativeViewManager = (
   props: StrategicInitiativeViewManagerProps,
 ) => {
-  const [currentView, setCurrentView] = useState<string | number>('List')
+  const [currentView, setCurrentView] = useState<PpmView>('List')
 
   const messageApi = useMessage()
 
@@ -44,11 +32,7 @@ const StrategicInitiativeViewManager = (
   }
 
   const viewSelector = (
-    <Segmented
-      options={viewSelectorOptions}
-      value={currentView}
-      onChange={setCurrentView}
-    />
+    <PpmViewSelector value={currentView} onChange={setCurrentView} />
   )
 
   return (

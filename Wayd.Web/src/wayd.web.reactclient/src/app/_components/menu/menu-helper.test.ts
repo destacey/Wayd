@@ -12,7 +12,7 @@ const testMenuItems: Item[] = [
     menuItem('Employees', 'org.employees', '/organizations/employees'),
   ]),
   menuItem('PPM', 'ppm', undefined, undefined, [
-    menuItem('My Projects', 'ppm.dashboards.my-projects', '/ppm/dashboards/my-projects'),
+    menuItem('Projects Dashboard', 'ppm.dashboards.projects', '/ppm/dashboards/projects'),
     menuItem('Portfolios', 'ppm.portfolios', '/ppm/portfolios'),
     menuItem('Projects', 'ppm.projects', '/ppm/projects'),
   ]),
@@ -32,7 +32,7 @@ describe('buildRouteKeyMap', () => {
   it('should include nested children', () => {
     const map = buildRouteKeyMap(testMenuItems)
 
-    expect(map.get('/ppm/dashboards/my-projects')).toBe('ppm.dashboards.my-projects')
+    expect(map.get('/ppm/dashboards/projects')).toBe('ppm.dashboards.projects')
     expect(map.get('/organizations/employees')).toBe('org.employees')
   })
 
@@ -78,10 +78,10 @@ describe('findMenuKeysByPathname', () => {
   })
 
   it('should use longest prefix match', () => {
-    // /ppm/dashboards/my-projects is more specific than /ppm
-    const result = findMenuKeysByPathname('/ppm/dashboards/my-projects/some-detail', routeKeyMap)
+    // /ppm/dashboards/projects is more specific than /ppm
+    const result = findMenuKeysByPathname('/ppm/dashboards/projects/some-detail', routeKeyMap)
 
-    expect(result.selectedKeys).toEqual(['ppm.dashboards.my-projects'])
+    expect(result.selectedKeys).toEqual(['ppm.dashboards.projects'])
     expect(result.openKeys).toEqual(['ppm'])
   })
 

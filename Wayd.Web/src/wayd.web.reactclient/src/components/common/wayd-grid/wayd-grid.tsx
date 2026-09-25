@@ -60,10 +60,7 @@ import {
 } from '../wayd-grid-core/filters'
 
 import { applySafeAccessor } from '../wayd-grid-core/column-accessors'
-import {
-  rowScaleFor,
-  virtualSpacers,
-} from '../wayd-grid-core/virtual-geometry'
+import { rowScaleFor, virtualSpacers } from '../wayd-grid-core/virtual-geometry'
 import {
   getOrderedVisibleLeafColumns,
   reconcileColumnOrder,
@@ -107,8 +104,10 @@ import {
 } from '../wayd-grid-core/grid-header-row'
 import {
   FlatGridRow,
+  GroupGridRow,
   SortableFlatGridRow,
   TreeGridRow,
+  type GroupGridRowClasses,
   type GridRowClasses,
   type TreeGridRowClasses,
 } from '../wayd-grid-core/grid-row'
@@ -129,7 +128,12 @@ import {
   useGridTable,
 } from '../wayd-grid-core/use-grid-table'
 import styles from './wayd-grid.module.css'
-import type { GridColumnContext, WaydGridHandle, WaydGridProps } from './types'
+import type {
+  GridColumnContext,
+  GroupHeaderContext,
+  WaydGridHandle,
+  WaydGridProps,
+} from './types'
 
 /** Stable empty set for columns with no expanded date-tree nodes yet. Never
  * mutated — toggles always copy before writing. */
@@ -268,6 +272,18 @@ const treeRowClasses: TreeGridRowClasses = {
   editableCell: styles.editableCell,
 }
 
+const groupRowClasses: GroupGridRowClasses = {
+  tr: styles.tr,
+  trGroup: styles.trGroup,
+  td: styles.td,
+  groupCell: styles.groupCell,
+  groupCellInner: styles.groupCellInner,
+  groupToggle: styles.groupToggle,
+  groupToggleExpanded: styles.groupToggleExpanded,
+  groupLabel: styles.groupLabel,
+  groupCount: styles.groupCount,
+}
+
 /**
  * Resolves a column's filter/data type. An explicit `meta.filterType`
  * (including one applied by a `columnType`) always wins; otherwise the type is
@@ -278,7 +294,7 @@ const treeRowClasses: TreeGridRowClasses = {
  * Empty/mixed data falls back to 'text'. Drives both the per-column filter UI
  * and numeric cell alignment, so the two never disagree.
  */
-const resolveColumnFilterType = <T extends RowData,>(
+const resolveColumnFilterType = <T extends RowData>(
   column: Column<T, unknown>,
 ): FilterType => {
   const meta = column.columnDef.meta
@@ -330,6 +346,9 @@ interface GridBodyProps<T extends RowData> {
   /** Column ids whose body cells right-align (numeric columns). */
   numericColumnIds: ReadonlySet<string>
   isTree: boolean
+  /** Row grouping is on; see WaydGridProps.grouping. */
+  isGrouped: boolean
+  renderGroupHeader?: (context: GroupHeaderContext<T>) => ReactNode
   flatDndEnabled: boolean
   isDragEnabled: boolean
   canEdit: boolean
@@ -371,6 +390,8 @@ function GridBody<T extends RowData>({
   visibleColumnCount,
   numericColumnIds,
   isTree,
+  isGrouped,
+  renderGroupHeader,
   flatDndEnabled,
   isDragEnabled,
   canEdit,
@@ -414,7 +435,9 @@ function GridBody<T extends RowData>({
   // by the estimate-based `virtualRow.start` would drift down the list. Measure
   // the real row height and scale the geometry handed to renderRow so bars sit on
   // their rows. Only active when a right pane is present; no effect otherwise.
-  const [measuredRowHeight, setMeasuredRowHeight] = useState<number | null>(null)
+  const [measuredRowHeight, setMeasuredRowHeight] = useState<number | null>(
+    null,
+  )
   useLayoutEffect(() => {
     if (!rightPane) return
     const viewport = bodyViewportRef.current
@@ -476,143 +499,162 @@ function GridBody<T extends RowData>({
       data-grid-body-viewport=""
     >
       <table className={styles.tableElement}>
-          {colGroup}
-          <tbody>
-            {!showStatusOverlay && (
-              <>
-                {/* Virtual offset spacers: real table rows standing in for the
+        {colGroup}
+        <tbody>
+          {!showStatusOverlay && (
+            <>
+              {/* Virtual offset spacers: real table rows standing in for the
                   unrendered rows above/below the window. Zero padding/border
                   so they add no width — header/body scrollWidth must match. */}
-                {spacerTop > 0 && (
-                  <tr aria-hidden="true">
-                    <td
-                      className={styles.virtualSpacer}
-                      colSpan={visibleColumnCount + 1}
-                      style={{ height: spacerTop }}
-                    />
-                  </tr>
-                )}
-                {virtualRows.map((virtualRow) => {
-                  const row = rows[virtualRow.index]
-                  // Zebra striping keys off the absolute display index so
-                  // stripes don't shift as the window moves.
-                  const index = virtualRow.index
+              {spacerTop > 0 && (
+                <tr aria-hidden="true">
+                  <td
+                    className={styles.virtualSpacer}
+                    colSpan={visibleColumnCount + 1}
+                    style={{ height: spacerTop }}
+                  />
+                </tr>
+              )}
+              {virtualRows.map((virtualRow) => {
+                const row = rows[virtualRow.index]
+                // Zebra striping keys off the absolute display index so
+                // stripes don't shift as the window moves.
+                const index = virtualRow.index
 
-                  if (isTree) {
-                    const nodeId = (row.original as { id: string }).id
-                    const isSelected = selectedRowId === nodeId
-                    const isRowDragging = draggedNodeId === nodeId
-                    const isDraftRow = nodeId.startsWith(draftPrefix)
-                    const rowElements = [
-                      <TreeGridRow
-                        key={row.id}
-                        row={row}
-                        index={index}
-                        classes={treeRowClasses}
-                        numericColumnIds={numericColumnIds}
-                        nodeId={nodeId}
-                        isSelected={isSelected}
-                        isDragging={isRowDragging}
-                        isDragEnabled={isDragEnabled && !isDraftRow}
-                        canEdit={canEdit}
-                        editableColumns={editableColumns}
-                        onRowClick={onRowClick}
-                        onCellClick={onCellClick}
-                      />,
-                    ]
+                if (isTree) {
+                  const nodeId = (row.original as { id: string }).id
+                  const isSelected = selectedRowId === nodeId
+                  const isRowDragging = draggedNodeId === nodeId
+                  const isDraftRow = nodeId.startsWith(draftPrefix)
+                  const rowElements = [
+                    <TreeGridRow
+                      key={row.id}
+                      row={row}
+                      index={index}
+                      classes={treeRowClasses}
+                      numericColumnIds={numericColumnIds}
+                      nodeId={nodeId}
+                      isSelected={isSelected}
+                      isDragging={isRowDragging}
+                      isDragEnabled={isDragEnabled && !isDraftRow}
+                      canEdit={canEdit}
+                      editableColumns={editableColumns}
+                      onRowClick={onRowClick}
+                      onCellClick={onCellClick}
+                    />,
+                  ]
 
-                    // The error band is an extra <tr> the virtualizer doesn't
-                    // model — its height is missing from the spacer math.
-                    // Accepted: it exists only while the selected row is
-                    // mounted (active inline editing), overscan absorbs the
-                    // offset, and the estimate-derived geometry snaps back the
-                    // moment the band unmounts. If it ever visibly drifts, the
-                    // fix is per-row measureElement, not restructuring.
-                    if (isSelected && Object.keys(fieldErrors).length > 0) {
-                      const errorItems = Object.entries(fieldErrors).map(
-                        ([field, error]) => (
-                          <div
-                            key={field}
-                            className={styles.validationErrorItem}
-                          >
-                            <span className={styles.validationErrorField}>
-                              {field}:
-                            </span>{' '}
-                            {error}
-                          </div>
-                        ),
-                      )
+                  // The error band is an extra <tr> the virtualizer doesn't
+                  // model — its height is missing from the spacer math.
+                  // Accepted: it exists only while the selected row is
+                  // mounted (active inline editing), overscan absorbs the
+                  // offset, and the estimate-derived geometry snaps back the
+                  // moment the band unmounts. If it ever visibly drifts, the
+                  // fix is per-row measureElement, not restructuring.
+                  if (isSelected && Object.keys(fieldErrors).length > 0) {
+                    const errorItems = Object.entries(fieldErrors).map(
+                      ([field, error]) => (
+                        <div key={field} className={styles.validationErrorItem}>
+                          <span className={styles.validationErrorField}>
+                            {field}:
+                          </span>{' '}
+                          {error}
+                        </div>
+                      ),
+                    )
 
-                      rowElements.push(
-                        <tr
-                          key={`${row.id}-errors`}
-                          className={`${styles.tr} ${styles.validationErrorRow}`}
+                    rowElements.push(
+                      <tr
+                        key={`${row.id}-errors`}
+                        className={`${styles.tr} ${styles.validationErrorRow}`}
+                      >
+                        <td
+                          colSpan={visibleColumnCount + 1}
+                          className={`${styles.td} ${styles.validationErrorCell}`}
                         >
-                          <td
-                            colSpan={visibleColumnCount + 1}
-                            className={`${styles.td} ${styles.validationErrorCell}`}
-                          >
-                            {errorItems}
-                          </td>
-                        </tr>,
-                      )
-                    }
-
-                    return rowElements
-                  }
-
-                  // Both flat forms take the same activation set, resolved
-                  // once so the plain and sortable rows cannot disagree.
-                  const activation = onRowActivate
-                    ? {
-                        onActivate: () => onRowActivate(row.original),
-                        isActivated: flatRowId(row) === activatedRowId,
-                        activateLabel: getRowActivateLabel?.(row.original),
-                      }
-                    : undefined
-
-                  if (flatDndEnabled) {
-                    const nodeId = flatRowId(row)
-                    return (
-                      <SortableFlatGridRow
-                        key={row.id}
-                        row={row}
-                        index={index}
-                        classes={rowClasses}
-                        numericColumnIds={numericColumnIds}
-                        nodeId={nodeId}
-                        isDragging={draggedNodeId === nodeId}
-                        isDragEnabled={isDragEnabled}
-                        {...activation}
-                      />
+                          {errorItems}
+                        </td>
+                      </tr>,
                     )
                   }
 
+                  return rowElements
+                }
+
+                // A group heading spans the grid and only expands or
+                // collapses; the rows under it are ordinary flat rows.
+                if (isGrouped && row.getIsGrouped()) {
+                  const columnId = row.groupingColumnId ?? ''
                   return (
-                    <FlatGridRow
+                    <GroupGridRow
+                      key={row.id}
+                      row={row}
+                      classes={groupRowClasses}
+                      colSpan={visibleColumnCount + 1}
+                      header={renderGroupHeader?.({
+                        columnId,
+                        value: row.groupingValue,
+                        leafRows: row
+                          .getLeafRows()
+                          .map((leaf) => leaf.original),
+                        depth: row.depth,
+                      })}
+                    />
+                  )
+                }
+
+                // Both flat forms take the same activation set, resolved
+                // once so the plain and sortable rows cannot disagree.
+                const activation = onRowActivate
+                  ? {
+                      onActivate: () => onRowActivate(row.original),
+                      isActivated: flatRowId(row) === activatedRowId,
+                      activateLabel: getRowActivateLabel?.(row.original),
+                    }
+                  : undefined
+
+                if (flatDndEnabled) {
+                  const nodeId = flatRowId(row)
+                  return (
+                    <SortableFlatGridRow
                       key={row.id}
                       row={row}
                       index={index}
                       classes={rowClasses}
                       numericColumnIds={numericColumnIds}
+                      nodeId={nodeId}
+                      isDragging={draggedNodeId === nodeId}
+                      isDragEnabled={isDragEnabled}
                       {...activation}
                     />
                   )
-                })}
-                {spacerBottom > 0 && (
-                  <tr aria-hidden="true">
-                    <td
-                      className={styles.virtualSpacer}
-                      colSpan={visibleColumnCount + 1}
-                      style={{ height: spacerBottom }}
-                    />
-                  </tr>
-                )}
-              </>
-            )}
-          </tbody>
-        </table>
-      </div>
+                }
+
+                return (
+                  <FlatGridRow
+                    key={row.id}
+                    row={row}
+                    index={index}
+                    classes={rowClasses}
+                    numericColumnIds={numericColumnIds}
+                    {...activation}
+                  />
+                )
+              })}
+              {spacerBottom > 0 && (
+                <tr aria-hidden="true">
+                  <td
+                    className={styles.virtualSpacer}
+                    colSpan={visibleColumnCount + 1}
+                    style={{ height: spacerBottom }}
+                  />
+                </tr>
+              )}
+            </>
+          )}
+        </tbody>
+      </table>
+    </div>
   )
 
   const statusOverlayEl = showStatusOverlay ? (
@@ -693,7 +735,10 @@ function GridBody<T extends RowData>({
   )
 }
 
-function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
+function WaydGridInner<T extends RowData>(
+  props: WaydGridProps<T>,
+  ref: Ref<WaydGridHandle>,
+) {
   // TanStack Table's instance mutates internally behind a stable identity, so
   // React Compiler memoization goes stale (sort icons, column sizes). Before
   // the table config moved into useGridTable, the direct useReactTable call
@@ -727,6 +772,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     activatedRowId,
     getRowActivateLabel,
     onRowReorder,
+    grouping,
+    renderGroupHeader,
+    initialGroupsExpanded = true,
     getSubRows,
     initialExpanded = true,
     enableDragAndDrop = false,
@@ -749,6 +797,8 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
   const data = dataProp ?? (EMPTY_DATA as T[])
 
   const isTree = !!getSubRows
+  // Grouping is a flat-mode arrangement: a tree already has its hierarchy.
+  const isGrouped = !isTree && !!grouping && grouping.length > 0
 
   // ─── Auto-height ─────────────────────────────────────────
   const [gridContainerRef, autoHeight] = useRemainingHeight()
@@ -1155,7 +1205,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
   // ─── Column context ──────────────────────────────────────
   // Tree drags reparent (onNodeMove); flat drags reorder (onRowReorder).
   const dragEnabledBase =
-    (isTree ? enableDragAndDrop && !!onNodeMove : !!onRowReorder) &&
+    (isTree
+      ? enableDragAndDrop && !!onNodeMove
+      : !isGrouped && !!onRowReorder) &&
     !isLoading &&
     !isEditing
 
@@ -1194,7 +1246,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
 
   const columns = useMemo(() => {
     const resolved =
-      typeof columnsProp === 'function' ? columnsProp(columnContext) : columnsProp
+      typeof columnsProp === 'function'
+        ? columnsProp(columnContext)
+        : columnsProp
     return withIdColumn(resolved, injectIdColumn) as typeof resolved
   }, [columnsProp, columnContext, injectIdColumn])
 
@@ -1444,12 +1498,37 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
             initialState: { expanded: initialExpanded ? (true as const) : {} },
           }
         : {}),
+      // Grouped mode: the grouped column leaves the row cells (its value is the
+      // heading), and groups start expanded. TanStack resets `expanded` to this
+      // initial state whenever the grouping changes, so a regrouped grid opens
+      // fully rather than inheriting the previous grouping's collapsed ids.
+      ...(isGrouped
+        ? {
+            groupedColumnMode: 'remove' as const,
+            initialState: {
+              expanded: initialGroupsExpanded ? (true as const) : {},
+            },
+          }
+        : {}),
       ...(onRowSelectionChange ? { onRowSelectionChange } : {}),
     },
     extraState: {
       columnVisibility,
       columnOrder: effectiveColumnOrder,
       ...(rowSelection ? { rowSelection } : {}),
+      // The grouped columns lead the sort so the groups themselves come out in
+      // the grouped column's order; the user's sort then applies within each
+      // group. Without this a group row sorts on aggregates it does not have
+      // and the groups keep whatever order the data arrived in.
+      ...(isGrouped
+        ? {
+            grouping,
+            sorting: [
+              ...grouping.map((id) => ({ id, desc: false })),
+              ...gridState.sorting.filter((s) => !grouping.includes(s.id)),
+            ],
+          }
+        : {}),
     },
   })
 
@@ -1459,7 +1538,10 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     table,
     selectedRowId,
     getDisplayedRows: () =>
-      table.getRowModel().rows.map((row: Row<T>) => row.original),
+      table
+        .getRowModel()
+        .rows.filter((row: Row<T>) => !row.getIsGrouped())
+        .map((row: Row<T>) => row.original),
   }))
 
   // ─── Header column-reorder DnD ───────────────────────────
@@ -1524,10 +1606,13 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
   // Displayed-rows callback: TanStack memoizes the row model, so `rows` only
   // changes identity when the data / filters / sorting actually change — the
   // effect fires exactly on displayed-set changes (plus once on mount).
+  // Group headings are not records: the displayed-rows surfaces report the
+  // data rows only, whatever the grid put between them.
+  const dataRows = isGrouped ? rows.filter((row) => !row.getIsGrouped()) : rows
   useEffect(() => {
-    onDisplayedRowsChange?.(rows.map((row) => row.original))
-  }, [rows, onDisplayedRowsChange])
-  const displayedRowCount = rows.length
+    onDisplayedRowsChange?.(dataRows.map((row) => row.original))
+  }, [dataRows, onDisplayedRowsChange])
+  const displayedRowCount = dataRows.length
   const totalRowCount = isTree
     ? countTreeNodes(data as unknown as TreeNode[]) + draftTasks.length
     : data.length
@@ -1881,7 +1966,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
 
   // ─── DnD wrapping ───────────────────────────────────────
   const treeDndEnabled = isTree && enableDragAndDrop && !!onNodeMove
-  const flatDndEnabled = !isTree && !!onRowReorder
+  // Grouped rows are displayed in group order, not data order, so there is
+  // nothing a drag could reorder.
+  const flatDndEnabled = !isTree && !isGrouped && !!onRowReorder
   const dndEnabled = treeDndEnabled || flatDndEnabled
   const isDragEnabled =
     dndEnabled && !isLoading && !isEditing && !hasActiveFilters
@@ -2167,10 +2254,7 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
             mirrored from the bar track. */}
         {hasRightPane && (
           <>
-            <div
-              className={styles.rightPaneDividerSpacer}
-              aria-hidden="true"
-            />
+            <div className={styles.rightPaneDividerSpacer} aria-hidden="true" />
             <div
               ref={rightPaneHeaderRef}
               className={styles.rightPaneHeader}
@@ -2197,6 +2281,8 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
         visibleColumnCount={visibleColumnCount}
         numericColumnIds={numericColumnIds}
         isTree={isTree}
+        isGrouped={isGrouped}
+        renderGroupHeader={renderGroupHeader}
         flatDndEnabled={flatDndEnabled}
         isDragEnabled={isDragEnabled}
         canEdit={canEdit}
@@ -2225,22 +2311,22 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
           is, so a toolbar — including its row count — would repeat that and
           compete with the page's own chrome. */}
       {!isSimple && (
-      <GridToolbar
-        displayedRowCount={displayedRowCount}
-        totalRowCount={totalRowCount}
-        searchValue={searchValue}
-        onSearchChange={onSearchChange}
-        onRefresh={onRefresh}
-        onClearFilters={onClearFilters}
-        hasActiveFilters={hasActiveFilters}
-        onExportCsv={includeExportButton ? onExportCsv : undefined}
-        isLoading={isLoading}
-        includeGlobalSearch={includeGlobalSearch}
-        leftSlot={resolvedLeftSlot}
-        helpContent={helpContent}
-        actionsSlot={actionsSlot}
-        rightSlot={rightSlot}
-      />
+        <GridToolbar
+          displayedRowCount={displayedRowCount}
+          totalRowCount={totalRowCount}
+          searchValue={searchValue}
+          onSearchChange={onSearchChange}
+          onRefresh={onRefresh}
+          onClearFilters={onClearFilters}
+          hasActiveFilters={hasActiveFilters}
+          onExportCsv={includeExportButton ? onExportCsv : undefined}
+          isLoading={isLoading}
+          includeGlobalSearch={includeGlobalSearch}
+          leftSlot={resolvedLeftSlot}
+          helpContent={helpContent}
+          actionsSlot={actionsSlot}
+          rightSlot={rightSlot}
+        />
       )}
 
       {dndEnabled ? (

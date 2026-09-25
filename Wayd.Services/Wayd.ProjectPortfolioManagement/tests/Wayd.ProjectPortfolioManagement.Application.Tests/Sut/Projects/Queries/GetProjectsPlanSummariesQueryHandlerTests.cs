@@ -334,6 +334,90 @@ public class GetProjectsPlanSummariesQueryHandlerTests : IDisposable
         result[project.Id].TotalLeafTasks.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Handle_EmployeeIdGiven_ShouldScopeToThatEmployeeInsteadOfThePrincipal()
+    {
+        // Arrange: the principal is PM on the project; the subject employee is only assigned to 1 of 3 overdue tasks
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
+
+        var tasks = project.WithTasks(3, (faker, _) =>
+        {
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(OverdueDateRange());
+        });
+        tasks[0].WithAssignees(_otherEmployeeId);
+        tasks[1].WithAssignees(_employeeId);
+        tasks[2].WithAssignees(_employeeId);
+
+        _dbContext.AddProject(project);
+        _dbContext.AddProjectTasks(tasks);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProjectsPlanSummariesQuery([project.Id], EmployeeId: _otherEmployeeId),
+            TestContext.Current.CancellationToken);
+
+        // Assert: the subject holds no leadership role, so only their own task counts
+        result.Should().ContainKey(project.Id);
+        result[project.Id].Overdue.Should().Be(1);
+        result[project.Id].TotalLeafTasks.Should().Be(1);
+        _currentPrincipalMock.Verify(p => p.GetEmployeeId(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_AllTasks_ShouldCountEveryTaskWithoutResolvingAnEmployee()
+    {
+        // Arrange: nobody involved is the principal, and the principal is not even linked
+        _currentPrincipalMock.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).Generate();
+
+        var tasks = project.WithTasks(3, (faker, _) =>
+        {
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(OverdueDateRange());
+        });
+        tasks[0].WithAssignees(_otherEmployeeId);
+
+        _dbContext.AddProject(project);
+        _dbContext.AddProjectTasks(tasks);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProjectsPlanSummariesQuery([project.Id], AllTasks: true),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainKey(project.Id);
+        result[project.Id].Overdue.Should().Be(3);
+        result[project.Id].TotalLeafTasks.Should().Be(3);
+        _currentPrincipalMock.Verify(p => p.GetEmployeeId(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ProjectWithOnlyCompletedTasks_ShouldStillReturnItsTotal()
+    {
+        // Arrange: the PM's project has two tasks, both done, so nothing is due
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
+
+        var tasks = project.WithTasks(2, (faker, _) =>
+        {
+            faker.WithStatus(TaskStatus.Completed).WithPlannedDateRange(OverdueDateRange());
+        });
+
+        _dbContext.AddProject(project);
+        _dbContext.AddProjectTasks(tasks);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProjectsPlanSummariesQuery([project.Id]),
+            TestContext.Current.CancellationToken);
+
+        // Assert: present, with the total and nothing due
+        result.Should().ContainKey(project.Id);
+        result[project.Id].TotalLeafTasks.Should().Be(2);
+        result[project.Id].Overdue.Should().Be(0);
+        result[project.Id].DueThisWeek.Should().Be(0);
+        result[project.Id].Upcoming.Should().Be(0);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

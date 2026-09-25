@@ -8,8 +8,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *
  * Uses a callback ref so it reacts immediately when the element mounts — even if
  * mounting is deferred behind a responsive breakpoint or async gate. Recalculates
- * automatically on window resize and when the nearest scrollable ancestor resizes
- * (which shifts the element's viewport position).
+ * automatically on window resize, when the nearest scrollable ancestor resizes,
+ * and when the element's parent resizes — the parent is sized by its content,
+ * so it changes whenever something above the element grows, shrinks or animates
+ * open, which shifts the element's viewport position while the scroll ancestor's
+ * own box stays the same.
  *
  * @param bottomOffset - Optional pixel padding to subtract from the bottom (e.g., for page margins). Defaults to 30.
  * @returns A tuple of `[callbackRef, height]`.
@@ -35,7 +38,11 @@ export function useRemainingHeight(
   const calculate = useCallback(() => {
     if (!elementRef.current) return
     const top = elementRef.current.getBoundingClientRect().top
-    setHeight(Math.max(300, window.innerHeight - top - bottomOffset))
+    // Whole pixels: a fractional top would hand the consumer a fractional
+    // height, and a table sized to 431.328px lays out no better than one at 431.
+    setHeight(
+      Math.max(300, Math.floor(window.innerHeight - top - bottomOffset)),
+    )
   }, [bottomOffset])
 
   // Recalculate on window resize
@@ -57,15 +64,24 @@ export function useRemainingHeight(
 
       // Calculate immediately now that the element is in the DOM
       const top = node.getBoundingClientRect().top
-      setHeight(Math.max(300, window.innerHeight - top - bottomOffset))
+      setHeight(
+        Math.max(300, Math.floor(window.innerHeight - top - bottomOffset)),
+      )
 
-      // Observe the nearest scrollable ancestor. When its content changes size
-      // (e.g. sibling components load data and grow), this element's viewport
-      // position shifts and we need to recalculate.
+      // Observe what moves this element: the nearest scrollable ancestor's box,
+      // and the element's own parent. A scroll container is often sized to the
+      // viewport, so content growing above the element never changes its box;
+      // the parent, sized by its content, changes on every frame of a section
+      // animating open or closed above, and the last callback lands once the
+      // layout has settled. Resizing the element itself in response changes the
+      // parent again, but the recalculation then reads the same top and the
+      // observer goes quiet.
       const scrollParent = findScrollParent(node)
-      if (scrollParent) {
+      const parent = node.parentElement
+      if (scrollParent || parent) {
         roRef.current = new ResizeObserver(calculate)
-        roRef.current.observe(scrollParent)
+        if (scrollParent) roRef.current.observe(scrollParent)
+        if (parent && parent !== scrollParent) roRef.current.observe(parent)
       }
     },
     [calculate, bottomOffset],

@@ -14,6 +14,18 @@ export type {
 } from '../wayd-grid-core/types'
 import type { RowData } from '@tanstack/react-table'
 
+/** What {@link WaydGridProps.renderGroupHeader} is handed for one group row. */
+export interface GroupHeaderContext<T extends RowData> {
+  /** The grouped column this header is a value of. */
+  columnId: string
+  /** The group's value, as the column's accessor returned it. */
+  value: unknown
+  /** Every data row under this heading, through any nested groups. */
+  leafRows: T[]
+  /** Nesting depth: 0 for the outermost grouping. */
+  depth: number
+}
+
 /**
  * Context passed to the `columns` and `leftSlot` function props.
  * Provides editing, DnD, and draft state so domain code can build columns
@@ -90,7 +102,11 @@ export interface WaydGridRightPane<T extends RowData> {
    * Content is absolutely positioned within the pane's scrolling track: place a
    * bar at `top` and center it vertically with `(height - barHeight) / 2`.
    */
-  renderRow: (ctx: { row: Row<T>; top: number; height: number }) => React.ReactNode
+  renderRow: (ctx: {
+    row: Row<T>
+    top: number
+    height: number
+  }) => React.ReactNode
   /**
    * Optional chart-wide layer rendered BEHIND all rows, spanning the full canvas
    * (e.g. vertical gridlines). Receives the total content height so it can fill
@@ -127,8 +143,7 @@ export interface WaydGridProps<T extends RowData> {
    * editing/DnD/draft context and returns columns.
    */
   columns:
-    | ColumnDef<T, any>[]
-    | ((context: GridColumnContext) => ColumnDef<T, any>[])
+    ColumnDef<T, any>[] | ((context: GridColumnContext) => ColumnDef<T, any>[])
   /**
    * Appends a hidden `Id` column when the rows carry an `id` and the columns
    * don't already define one, so a user can unhide it via Choose Columns and
@@ -144,9 +159,7 @@ export interface WaydGridProps<T extends RowData> {
    * Can be a ReactNode or a function receiving context (useful for Create
    * buttons that need `canCreateDraft` / `addDraftAtRoot`).
    */
-  leftSlot?:
-    | React.ReactNode
-    | ((context: GridColumnContext) => React.ReactNode)
+  leftSlot?: React.ReactNode | ((context: GridColumnContext) => React.ReactNode)
   /** Content rendered inside the help popover. */
   helpContent?: React.ReactNode
   /** Slot for actions rendered just before the export/help group (a divider
@@ -268,6 +281,27 @@ export interface WaydGridProps<T extends RowData> {
    * read `context.isDragEnabled` to render their drag handle accordingly.
    */
   onRowReorder?: (event: RowReorderEvent<T>) => void | Promise<void>
+
+  // -- Row grouping (flat mode; turned on by providing grouping) --
+  /**
+   * Column ids to group the rows by, outermost first. Each distinct value of
+   * the column becomes a collapsible header row spanning the grid, with the
+   * matching rows underneath; the grouped column itself leaves the row cells,
+   * since its value is now the heading. Sorting applies within each group and
+   * orders the groups by the grouped column's own sort. Filters and quick
+   * search apply to the rows, and a group with no match disappears.
+   *
+   * Flat mode only: a tree already has a hierarchy of its own. Turns off row
+   * reorder, since the displayed order is no longer the data order.
+   */
+  grouping?: string[]
+  /**
+   * What a group's header row says. Defaults to the group value and a row
+   * count; supply this to add what the rows underneath add up to.
+   */
+  renderGroupHeader?: (context: GroupHeaderContext<T>) => React.ReactNode
+  /** Whether every group starts expanded. On by default. */
+  initialGroupsExpanded?: boolean
 
   // -- Tree mode (turned on by providing getSubRows) --
   /** How to extract child rows. Presence of this prop enables tree mode. */

@@ -15,7 +15,7 @@ import {
   ProjectPlanSummaryDto,
   ProjectTeamMemberDto,
   MyProjectsSummaryDto,
-  MyProjectsTaskMetricsDto,
+  ProjectsTaskMetricsDto,
   ProjectStatusHistoryDto,
   ProjectStatus,
   PagedResponseOfActivityLogDto,
@@ -24,11 +24,25 @@ import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
 import { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
+import { chunk } from '@/src/utils'
+
+/**
+ * Project ids per plan-summaries request. The ids travel on the request line,
+ * and a scope of a few hundred projects would push it past what a reverse
+ * proxy accepts, so a large set goes as several requests merged into one
+ * result.
+ */
+const PLAN_SUMMARIES_CHUNK_SIZE = 50
 
 export interface GetProjectsRequest {
   status?: number[]
   portfolioId?: string
   role?: number[]
+  /**
+   * The employee the role filter applies to. Omitted, the server uses the
+   * signed-in user's linked employee.
+   */
+  employeeId?: string
 }
 
 /**
@@ -66,6 +80,7 @@ export const projectsApi = apiSlice.injectEndpoints({
             request?.status,
             request?.portfolioId,
             request?.role,
+            request?.employeeId,
           )
           return { data }
         } catch (error) {
@@ -539,14 +554,31 @@ export const projectsApi = apiSlice.injectEndpoints({
 
     getProjectsPlanSummaries: builder.query<
       Record<string, ProjectPlanSummaryDto>,
-      { projectIds: string[]; role?: number[] }
+      {
+        projectIds: string[]
+        role?: number[]
+        employeeId?: string
+        /** Count every task rather than the ones the employee can see. */
+        allTasks?: boolean
+      }
     >({
-      queryFn: async ({ projectIds, role }) => {
+      queryFn: async ({ projectIds, role, employeeId, allTasks }) => {
         try {
-          const data = await getProjectsClient().getProjectsPlanSummaries(
-            projectIds,
-            role,
+          const client = getProjectsClient()
+          const pages = await Promise.all(
+            chunk(projectIds, PLAN_SUMMARIES_CHUNK_SIZE).map((ids) =>
+              client.getProjectsPlanSummaries(
+                ids,
+                role,
+                employeeId,
+                allTasks ?? false,
+              ),
+            ),
           )
+          const data = Object.assign({}, ...pages) as Record<
+            string,
+            ProjectPlanSummaryDto
+          >
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -579,18 +611,16 @@ export const projectsApi = apiSlice.injectEndpoints({
       providesTags: () => [{ type: QueryTags.Project, id: 'MY_SUMMARY' }],
     }),
 
-    getMyProjectsTaskMetrics: builder.query<
-      MyProjectsTaskMetricsDto,
-      { status?: number[]; role?: number[] } | void
+    getProjectsTaskMetrics: builder.query<
+      ProjectsTaskMetricsDto,
+      { status?: number[]; role?: number[]; employeeId?: string } | void
     >({
       queryFn: async (request = undefined) => {
         try {
-          const status =
-            request && 'status' in request ? request.status : undefined
-          const role = request && 'role' in request ? request.role : undefined
-          const data = await getProjectsClient().getMyProjectsTaskMetrics(
-            status,
-            role,
+          const data = await getProjectsClient().getProjectsTaskMetrics(
+            request?.status,
+            request?.role,
+            request?.employeeId,
           )
           return { data }
         } catch (error) {
@@ -598,6 +628,9 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // Shares the "my" tag: every mutation that moves a task already
+      // invalidates it, and the metrics for another employee move on the
+      // same edits.
       providesTags: () => [{ type: QueryTags.Project, id: 'MY_TASK_METRICS' }],
     }),
 
@@ -679,7 +712,7 @@ export const {
   useGetProjectPlanSummaryQuery,
   useGetProjectsPlanSummariesQuery,
   useGetMyProjectsSummaryQuery,
-  useGetMyProjectsTaskMetricsQuery,
+  useGetProjectsTaskMetricsQuery,
   useGetProjectTeamQuery,
   useGetProjectStatusHistoryQuery,
   useGetProjectActivitiesQuery,

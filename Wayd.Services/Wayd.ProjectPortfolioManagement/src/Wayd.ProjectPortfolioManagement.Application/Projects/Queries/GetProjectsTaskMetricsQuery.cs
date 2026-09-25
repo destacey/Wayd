@@ -1,0 +1,151 @@
+﻿using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
+
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
+
+/// <summary>
+/// Returns aggregated task metrics across all projects the subject employee is involved in.
+/// Computes overdue, due this week, and upcoming counts from open tasks. The subject is
+/// <paramref name="EmployeeId"/> when given, else the current principal's linked employee.
+/// </summary>
+public sealed record GetProjectsTaskMetricsQuery(
+    ProjectStatus[]? StatusFilter = null,
+    ProjectMemberRole[]? RoleFilter = null,
+    Guid? EmployeeId = null) : IQuery<ProjectsTaskMetricsDto>;
+
+public sealed class GetProjectsTaskMetricsQueryHandler(
+    IProjectPortfolioManagementDbContext ppmDbContext,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider)
+    : IQueryHandler<GetProjectsTaskMetricsQuery, ProjectsTaskMetricsDto>
+{
+    private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+
+    public async Task<ProjectsTaskMetricsDto> Handle(GetProjectsTaskMetricsQuery request, CancellationToken cancellationToken)
+    {
+        // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
+        // linked mid-session would otherwise see nothing until they signed in again. Empty remains the
+        // honest answer for a genuinely unlinked account.
+        var employeeId = request.EmployeeId ?? await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (!employeeId.HasValue)
+        {
+            return new ProjectsTaskMetricsDto();
+        }
+
+        var eid = employeeId.Value;
+        var today = _dateTimeProvider.Today;
+
+        // Saturday = ISO day 6. NodaTime uses ISO: Monday=1 ... Sunday=7
+        var daysUntilSaturday = ((int)IsoDayOfWeek.Saturday - (int)today.DayOfWeek + 7) % 7;
+        var endOfThisWeek = today.PlusDays(daysUntilSaturday);
+        var endOfNextWeek = endOfThisWeek.PlusDays(7);
+
+        var openStatuses = new[] { Domain.Enums.TaskStatus.NotStarted, Domain.Enums.TaskStatus.InProgress };
+
+        // Filter to projects the user is involved in
+        IQueryable<Domain.Models.Project> projectQuery = _ppmDbContext.Projects;
+
+        if (request.StatusFilter is { Length: > 0 })
+        {
+            projectQuery = projectQuery.Where(p => request.StatusFilter.Contains(p.Status));
+        }
+
+        if (request.RoleFilter is { Length: > 0 })
+        {
+            var projectRoles = request.RoleFilter
+                .Where(r => r != ProjectMemberRole.Assignee)
+                .Select(r => (ProjectRole)(int)r)
+                .ToArray();
+
+            var includeTaskAssignees = request.RoleFilter.Contains(ProjectMemberRole.Assignee);
+
+            if (projectRoles.Length > 0 && includeTaskAssignees)
+            {
+                projectQuery = projectQuery.Where(p =>
+                    p.Roles.Any(r => r.EmployeeId == eid && projectRoles.Contains(r.Role))
+                    || p.Tasks.Any(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee)));
+            }
+            else if (projectRoles.Length > 0)
+            {
+                projectQuery = projectQuery.Where(p =>
+                    p.Roles.Any(r => r.EmployeeId == eid && projectRoles.Contains(r.Role)));
+            }
+            else if (includeTaskAssignees)
+            {
+                projectQuery = projectQuery.Where(p =>
+                    p.Tasks.Any(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee)));
+            }
+        }
+        else
+        {
+            // No role filter — include all projects user is involved in
+            projectQuery = projectQuery.Where(p =>
+                p.Roles.Any(r => r.EmployeeId == eid)
+                || p.Tasks.Any(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee)));
+        }
+
+        var projectIds = projectQuery.Select(p => p.Id);
+
+        var allLeadershipRoles = new[] { ProjectRole.Sponsor, ProjectRole.Owner, ProjectRole.Manager };
+
+        // When a role filter is active, only count leadership visibility for the filtered leadership roles.
+        // e.g., if filtered to "Task Assignee" only, no leadership roles apply — all tasks scoped to assignee.
+        var activeLeadershipRoles = request.RoleFilter is { Length: > 0 }
+            ? request.RoleFilter
+                .Where(r => r != ProjectMemberRole.Assignee && r != ProjectMemberRole.Member)
+                .Select(r => (ProjectRole)(int)r)
+                .ToArray()
+            : allLeadershipRoles;
+
+        // Open tasks with a planned end date across all matching projects.
+        // Parents count too: one carries its own end date and can be late on
+        // its own terms, and the plan grid's Schedule column labels it.
+        var openTasks = _ppmDbContext.ProjectTasks
+            .Where(t => projectIds.Contains(t.ProjectId))
+            .Where(t => openStatuses.Contains(t.Status))
+            .Where(t => t.PlannedDateRange != null && t.PlannedDateRange.End != null);
+
+        IQueryable<Domain.Models.ProjectTask> relevantTasks;
+
+        if (activeLeadershipRoles.Length > 0)
+        {
+            // Leadership projects: all tasks visible
+            var leadershipTasks = openTasks
+                .Where(t => t.Project.Roles.Any(r => r.EmployeeId == eid && activeLeadershipRoles.Contains(r.Role)));
+
+            // Non-leadership projects: only tasks assigned to the user
+            var assigneeTasks = openTasks
+                .Where(t => !t.Project.Roles.Any(r => r.EmployeeId == eid && activeLeadershipRoles.Contains(r.Role)))
+                .Where(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee));
+
+            // Concat is safe — the two sets are mutually exclusive (Any vs !Any on same predicate)
+            relevantTasks = leadershipTasks.Concat(assigneeTasks);
+        }
+        else
+        {
+            // No leadership roles in filter — only count tasks assigned to the user
+            relevantTasks = openTasks
+                .Where(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee));
+        }
+
+        var overdue = await relevantTasks
+            .CountAsync(t => t.PlannedDateRange!.End < today, cancellationToken);
+
+        var dueThisWeek = await relevantTasks
+            .CountAsync(t => t.PlannedDateRange!.End >= today
+                          && t.PlannedDateRange!.End <= endOfThisWeek, cancellationToken);
+
+        var upcoming = await relevantTasks
+            .CountAsync(t => t.PlannedDateRange!.End > endOfThisWeek
+                          && t.PlannedDateRange!.End <= endOfNextWeek, cancellationToken);
+
+        return new ProjectsTaskMetricsDto
+        {
+            Overdue = overdue,
+            DueThisWeek = dueThisWeek,
+            Upcoming = upcoming,
+        };
+    }
+}

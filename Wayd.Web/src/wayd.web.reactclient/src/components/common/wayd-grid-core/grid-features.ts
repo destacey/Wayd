@@ -1,6 +1,7 @@
 import {
   columnFacetingFeature,
   columnFilteringFeature,
+  columnGroupingFeature,
   columnOrderingFeature,
   columnPinningFeature,
   columnResizingFeature,
@@ -10,6 +11,7 @@ import {
   createFacetedRowModel,
   createFacetedUniqueValues,
   createFilteredRowModel,
+  createGroupedRowModel,
   createSortedRowModel,
   globalFilteringFeature,
   metaHelper,
@@ -34,9 +36,12 @@ import type { WaydGridColumnMeta } from './types'
  *
  * Registered deliberately:
  * - faceting powers the set-filter panels' distinct value lists
- * - expanding + its row model serve tree grids only, but the feature set is
- *   static (it cannot be conditioned on `isTree` without splitting the table
- *   instance), so it is always present
+ * - expanding + its row model serve tree grids and grouped grids, but the
+ *   feature set is static (it cannot be conditioned on `isTree` without
+ *   splitting the table instance), so it is always present
+ * - grouping + its row model serve flat grids that group rows by a column
+ *   (WaydGridProps.grouping); with an empty `grouping` state the grouped row
+ *   model passes the filtered rows straight through
  *
  * `columnMeta` is a type-only slot: v9 replaces v8's global `ColumnMeta`
  * declaration merging with per-feature-set typing, so `column.meta` is typed
@@ -47,6 +52,7 @@ import type { WaydGridColumnMeta } from './types'
 export const waydGridFeatures = tableFeatures({
   columnFacetingFeature,
   columnFilteringFeature,
+  columnGroupingFeature,
   columnOrderingFeature,
   columnPinningFeature,
   columnResizingFeature,
@@ -64,6 +70,9 @@ export const waydGridFeatures = tableFeatures({
   // infers as text.
   facetedUniqueValues: createFacetedUniqueValues(),
   filteredRowModel: createFilteredRowModel(),
+  // Sits between filtering and sorting, so filters apply to the rows before
+  // they are grouped and each group is sorted on its own.
+  groupedRowModel: createGroupedRowModel(),
   sortedRowModel: createSortedRowModel(),
   // v9 resolves a string `sortFn` against this registry instead of a global
   // list of built-ins, so an unregistered name is a compile error rather than

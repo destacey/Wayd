@@ -30119,7 +30119,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -30140,7 +30140,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get aggregated task metrics across the current user's projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<MyProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get aggregated task metrics across the projects an employee is involved in.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to the current user when no employee is given.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -30327,7 +30337,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get plan summary metrics for multiple projects in a single request.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -30405,7 +30415,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -30432,6 +30442,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (role != null)
                     {
                             foreach (var item_ in role) { urlBuilder_.Append(System.Uri.EscapeDataString("role")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (employeeId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("employeeId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(employeeId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -30681,7 +30695,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get aggregated task metrics across the current user's projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<MyProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -30732,7 +30746,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<MyProjectsTaskMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ProjectsTaskMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get aggregated task metrics across the projects an employee is involved in.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to the current user when no employee is given.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/task-metrics"
+                    urlBuilder_.Append("api/ppm/projects/task-metrics");
+                    urlBuilder_.Append('?');
+                    if (status != null)
+                    {
+                            foreach (var item_ in status) { urlBuilder_.Append(System.Uri.EscapeDataString("status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (role != null)
+                    {
+                            foreach (var item_ in role) { urlBuilder_.Append(System.Uri.EscapeDataString("role")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (employeeId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("employeeId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(employeeId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProjectsTaskMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -33114,7 +33218,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get plan summary metrics for multiple projects in a single request.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -33137,6 +33241,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (role != null)
                     {
                             foreach (var item_ in role) { urlBuilder_.Append(System.Uri.EscapeDataString("role")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (employeeId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("employeeId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(employeeId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (allTasks != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("allTasks")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(allTasks, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -84971,7 +85083,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class MyProjectsTaskMetricsDto
+    public partial class ProjectsTaskMetricsDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("overdue")]

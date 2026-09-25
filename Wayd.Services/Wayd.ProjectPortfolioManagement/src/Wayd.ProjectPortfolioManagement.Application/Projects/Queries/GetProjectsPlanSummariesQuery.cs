@@ -122,17 +122,21 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
             .ToListAsync(cancellationToken);
 
         var totalLeafMap = totalLeafCounts.ToDictionary(x => x.ProjectId, x => x.Count);
+        var dated = taskData.ToLookup(t => t.ProjectId);
 
-        return taskData
-            .GroupBy(t => t.ProjectId)
+        // Every project with a visible task gets a summary, including one whose
+        // tasks are all done or undated: its total is still a fact, and a
+        // missing entry would read as "no tasks" rather than "nothing due".
+        return totalLeafMap.Keys
+            .Union(dated.Select(g => g.Key))
             .ToDictionary(
-                g => g.Key,
-                g => new ProjectPlanSummaryDto
+                projectId => projectId,
+                projectId => new ProjectPlanSummaryDto
                 {
-                    Overdue = g.Count(t => t.EndDate < today),
-                    DueThisWeek = g.Count(t => t.EndDate >= today && t.EndDate <= endOfThisWeek),
-                    Upcoming = g.Count(t => t.EndDate > endOfThisWeek && t.EndDate <= endOfNextWeek),
-                    TotalLeafTasks = totalLeafMap.GetValueOrDefault(g.Key),
+                    Overdue = dated[projectId].Count(t => t.EndDate < today),
+                    DueThisWeek = dated[projectId].Count(t => t.EndDate >= today && t.EndDate <= endOfThisWeek),
+                    Upcoming = dated[projectId].Count(t => t.EndDate > endOfThisWeek && t.EndDate <= endOfNextWeek),
+                    TotalLeafTasks = totalLeafMap.GetValueOrDefault(projectId),
                 });
     }
 }

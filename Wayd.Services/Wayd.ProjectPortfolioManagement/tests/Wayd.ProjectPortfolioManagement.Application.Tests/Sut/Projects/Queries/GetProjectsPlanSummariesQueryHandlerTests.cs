@@ -391,6 +391,33 @@ public class GetProjectsPlanSummariesQueryHandlerTests : IDisposable
         _currentPrincipalMock.Verify(p => p.GetEmployeeId(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Handle_ProjectWithOnlyCompletedTasks_ShouldStillReturnItsTotal()
+    {
+        // Arrange: the PM's project has two tasks, both done, so nothing is due
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
+
+        var tasks = project.WithTasks(2, (faker, _) =>
+        {
+            faker.WithStatus(TaskStatus.Completed).WithPlannedDateRange(OverdueDateRange());
+        });
+
+        _dbContext.AddProject(project);
+        _dbContext.AddProjectTasks(tasks);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProjectsPlanSummariesQuery([project.Id]),
+            TestContext.Current.CancellationToken);
+
+        // Assert: present, with the total and nothing due
+        result.Should().ContainKey(project.Id);
+        result[project.Id].TotalLeafTasks.Should().Be(2);
+        result[project.Id].Overdue.Should().Be(0);
+        result[project.Id].DueThisWeek.Should().Be(0);
+        result[project.Id].Upcoming.Should().Be(0);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

@@ -18199,8 +18199,9 @@ export class ProjectsClient {
      * @param projectId (optional) 
      * @param role (optional) 
      * @param employeeId (optional) 
+     * @param allTasks (optional) 
      */
-    getProjectsPlanSummaries(projectId?: string[] | undefined, role?: number[] | null | undefined, employeeId?: string | null | undefined, cancelToken?: CancelToken): Promise<{ [key: string]: ProjectPlanSummaryDto; }> {
+    getProjectsPlanSummaries(projectId?: string[] | undefined, role?: number[] | null | undefined, employeeId?: string | null | undefined, allTasks?: boolean | undefined, cancelToken?: CancelToken): Promise<{ [key: string]: ProjectPlanSummaryDto; }> {
         let url_ = this.baseUrl + "/api/ppm/projects/plan-summaries?";
         if (projectId === null)
             throw new globalThis.Error("The parameter 'projectId' cannot be null.");
@@ -18210,6 +18211,10 @@ export class ProjectsClient {
             role && role.forEach(item => { url_ += "role=" + encodeURIComponent("" + item) + "&"; });
         if (employeeId !== undefined && employeeId !== null)
             url_ += "employeeId=" + encodeURIComponent("" + employeeId) + "&";
+        if (allTasks === null)
+            throw new globalThis.Error("The parameter 'allTasks' cannot be null.");
+        else if (allTasks !== undefined)
+            url_ += "allTasks=" + encodeURIComponent("" + allTasks) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {

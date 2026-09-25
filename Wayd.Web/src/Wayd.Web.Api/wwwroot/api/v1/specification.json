@@ -15582,6 +15582,14 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 3
+          },
+          {
+            "name": "allTasks",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 4
           }
         ],
         "responses": {

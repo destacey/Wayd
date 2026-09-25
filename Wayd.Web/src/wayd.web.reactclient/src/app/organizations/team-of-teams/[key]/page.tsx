@@ -1,6 +1,7 @@
 'use client'
 
-import { MenuProps } from 'antd'
+import { MenuProps, Spin } from 'antd'
+import dynamic from 'next/dynamic'
 import { createElement, use, useEffect, useState } from 'react'
 import RisksGrid, {
   RisksGridProps,
@@ -42,12 +43,21 @@ import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import { ItemType } from 'antd/es/menu/interface'
 import DeactivateTeamOfTeamsForm from '@/src/app/organizations/_components/deactivate-team-of-teams-form'
 
+const AllocationReport = dynamic(
+  () =>
+    import('@/src/components/common/work/allocation').then((mod) => ({
+      default: mod.AllocationReport,
+    })),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum TeamOfTeamsTabs {
   Overview = 'overview',
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
   Activities = 'activities',
+  Allocation = 'allocation',
 }
 
 const TeamOfTeamsDetailsPage = (props: {
@@ -210,6 +220,10 @@ const TeamOfTeamsDetailsPage = (props: {
         )
       case TeamOfTeamsTabs.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
+      case TeamOfTeamsTabs.Allocation:
+        return (
+          <AllocationReport teamType="team-of-teams" teamCode={team!.code} />
+        )
       default:
         return null
     }
@@ -225,6 +239,15 @@ const TeamOfTeamsDetailsPage = (props: {
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
     { id: TeamOfTeamsTabs.TeamMemberships, label: 'Team Memberships' },
     { id: TeamOfTeamsTabs.Activities, label: 'Activity' },
+  ]
+
+  const reports: RecordSection[] = [
+    {
+      id: TeamOfTeamsTabs.Allocation,
+      label: 'Allocation',
+      // The report renders its own title alongside its controls.
+      hideHeading: true,
+    },
   ]
 
   const onCreateTeamMembershipFormClosed = (wasSaved: boolean) => {
@@ -263,6 +286,7 @@ const TeamOfTeamsDetailsPage = (props: {
     <>
       <RecordLayout
         sections={sections}
+        reports={reports}
         defaultSection={TeamOfTeamsTabs.Overview}
         record={{
           name: teamName,

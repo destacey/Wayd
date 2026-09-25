@@ -1,0 +1,248 @@
+/* Scope bar */
+.scopeBar {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+}
+
+.scopeLabel {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ant-color-text-secondary);
+}
+
+.scopeDivider {
+  width: 1px;
+  height: 24px;
+  background: var(--ant-color-border-secondary);
+}
+
+.employeeSelect {
+  min-width: 240px;
+}
+
+.chipButton {
+  font-size: 12px;
+}
+
+/* Attention tiles */
+.attentionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.attentionTile {
+  flex: 1 1 0;
+  min-width: 150px;
+}
+
+/* Toolbar */
+.toolbar {
+  margin-bottom: 8px;
+}
+
+.searchInput {
+  width: 240px;
+}
+
+.shownCount {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Grouped list */
+.list {
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+  overflow: auto;
+}
+
+.grid {
+  display: grid;
+  /* health | key | project | status | stages | tasks | team | end | score | roles */
+  grid-template-columns:
+    minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
+    minmax(140px, 1fr) 72px 92px 56px minmax(80px, 0.6fr);
+  gap: 12px;
+  align-items: center;
+  padding: 8px 16px;
+  min-width: 1100px;
+}
+
+.header {
+  composes: grid;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ant-color-fill-alter);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ant-color-text-secondary);
+}
+
+.headerNoRoles {
+  grid-template-columns:
+    minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
+    minmax(140px, 1fr) 72px 92px 56px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 16px;
+  border: 0;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-fill-alter);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 1100px;
+}
+
+.groupHeader:hover {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.groupName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.groupMeta {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+
+.collapseIcon {
+  font-size: 10px;
+  color: var(--ant-color-text-tertiary);
+  transition: transform 0.2s;
+}
+
+.collapseIconExpanded {
+  transform: rotate(90deg);
+}
+
+.row {
+  composes: grid;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-bg-container);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--ant-color-fill-alter);
+}
+
+.rowSelected,
+.rowSelected:hover {
+  background: var(--ant-color-primary-bg);
+}
+
+.rowNoRoles {
+  grid-template-columns:
+    minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
+    minmax(140px, 1fr) 72px 92px 56px;
+}
+
+.cell {
+  min-width: 0;
+}
+
+.key {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.projectName {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projectSub {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.endDate {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.endDateSoon {
+  color: var(--ant-color-warning-text);
+}
+
+.score {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.roles {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.muted {
+  color: var(--ant-color-text-quaternary);
+}
+
+/* Task pills */
+.statPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 10px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.statPillOverdue {
+  color: var(--ant-color-error);
+  border-color: var(--ant-color-error-border);
+}
+
+.statPillDueThisWeek {
+  color: var(--ant-color-warning);
+  border-color: var(--ant-color-warning-border);
+}
+
+.statPillUpcoming {
+  color: var(--ant-color-text-secondary);
+  border-color: var(--ant-color-border);
+}
+
+.emptyState {
+  padding: 24px;
+}

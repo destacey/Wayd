@@ -2,12 +2,6 @@ import { render, screen } from '@testing-library/react'
 import ProjectStatPills from './project-stat-pills'
 import { ProjectPlanSummaryDto } from '@/src/services/wayd-api'
 
-global.ResizeObserver = class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-} as unknown as typeof ResizeObserver
-
 function createSummary(
   overrides?: Partial<ProjectPlanSummaryDto>,
 ): ProjectPlanSummaryDto {
@@ -22,44 +16,43 @@ function createSummary(
 
 describe('ProjectStatPills', () => {
   it('renders nothing when summary is undefined', () => {
+    // Arrange / Act
     const { container } = render(<ProjectStatPills />)
 
+    // Assert
     expect(container).toBeEmptyDOMElement()
   })
 
   it('renders nothing when all counts are 0', () => {
+    // Arrange / Act
     const { container } = render(<ProjectStatPills summary={createSummary()} />)
 
+    // Assert
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('renders overdue pill when overdue > 0', () => {
-    render(<ProjectStatPills summary={createSummary({ overdue: 3 })} />)
-
-    expect(screen.getByText('3 overdue')).toBeInTheDocument()
-  })
-
-  it('renders due this week pill when dueThisWeek > 0', () => {
-    render(<ProjectStatPills summary={createSummary({ dueThisWeek: 5 })} />)
-
-    expect(screen.getByText('5 this week')).toBeInTheDocument()
-  })
-
-  it('renders upcoming pill when upcoming > 0', () => {
-    render(<ProjectStatPills summary={createSummary({ upcoming: 2 })} />)
-
-    expect(screen.getByText('2 upcoming')).toBeInTheDocument()
-  })
-
-  it('renders all pills when all counts > 0', () => {
+  it('renders the overdue and due-this-week pills together', () => {
+    // Arrange / Act
     render(
       <ProjectStatPills
-        summary={createSummary({ overdue: 1, dueThisWeek: 2, upcoming: 3 })}
+        summary={createSummary({ overdue: 3, dueThisWeek: 5 })}
       />,
     )
 
-    expect(screen.getByText('1 overdue')).toBeInTheDocument()
-    expect(screen.getByText('2 this week')).toBeInTheDocument()
-    expect(screen.getByText('3 upcoming')).toBeInTheDocument()
+    // Assert
+    expect(screen.getByText('3 overdue')).toBeInTheDocument()
+    expect(screen.getByText('5 this week')).toBeInTheDocument()
+  })
+
+  it('shows the upcoming count only when nothing more urgent is on the row', () => {
+    // Arrange / Act
+    render(<ProjectStatPills summary={createSummary({ upcoming: 2 })} />)
+    const { container: busy } = render(
+      <ProjectStatPills summary={createSummary({ overdue: 1, upcoming: 3 })} />,
+    )
+
+    // Assert
+    expect(screen.getByText('2 upcoming')).toBeInTheDocument()
+    expect(busy).not.toHaveTextContent('3 upcoming')
   })
 })

@@ -73,7 +73,14 @@ describe('MyProjectsCard', () => {
 
   it('renders nothing when no projects', () => {
     mockQuery.mockReturnValue({
-      data: { totalCount: 0, sponsorCount: 0, ownerCount: 0, managerCount: 0, memberCount: 0, assigneeCount: 0 },
+      data: {
+        totalCount: 0,
+        sponsorCount: 0,
+        ownerCount: 0,
+        managerCount: 0,
+        memberCount: 0,
+        assigneeCount: 0,
+      },
       isLoading: false,
     })
 
@@ -92,7 +99,14 @@ describe('MyProjectsCard', () => {
 
   it('renders project count', () => {
     mockQuery.mockReturnValue({
-      data: { totalCount: 7, sponsorCount: 2, ownerCount: 1, managerCount: 2, memberCount: 1, assigneeCount: 1 },
+      data: {
+        totalCount: 7,
+        sponsorCount: 2,
+        ownerCount: 1,
+        managerCount: 2,
+        memberCount: 1,
+        assigneeCount: 1,
+      },
       isLoading: false,
     })
 
@@ -105,7 +119,14 @@ describe('MyProjectsCard', () => {
 
   it('renders singular "project" for count of 1', () => {
     mockQuery.mockReturnValue({
-      data: { totalCount: 1, sponsorCount: 0, ownerCount: 1, managerCount: 0, memberCount: 0, assigneeCount: 0 },
+      data: {
+        totalCount: 1,
+        sponsorCount: 0,
+        ownerCount: 1,
+        managerCount: 0,
+        memberCount: 0,
+        assigneeCount: 0,
+      },
       isLoading: false,
     })
 
@@ -116,7 +137,14 @@ describe('MyProjectsCard', () => {
 
   it('renders role chips only for roles with count > 0', () => {
     mockQuery.mockReturnValue({
-      data: { totalCount: 5, sponsorCount: 2, ownerCount: 0, managerCount: 3, memberCount: 0, assigneeCount: 0 },
+      data: {
+        totalCount: 5,
+        sponsorCount: 2,
+        ownerCount: 0,
+        managerCount: 3,
+        memberCount: 0,
+        assigneeCount: 0,
+      },
       isLoading: false,
     })
 
@@ -131,7 +159,14 @@ describe('MyProjectsCard', () => {
 
   it('renders Task Assignee chip when assigneeCount > 0', () => {
     mockQuery.mockReturnValue({
-      data: { totalCount: 1, sponsorCount: 0, ownerCount: 0, managerCount: 0, memberCount: 0, assigneeCount: 1 },
+      data: {
+        totalCount: 1,
+        sponsorCount: 0,
+        ownerCount: 0,
+        managerCount: 0,
+        memberCount: 0,
+        assigneeCount: 1,
+      },
       isLoading: false,
     })
 
@@ -142,7 +177,14 @@ describe('MyProjectsCard', () => {
 
   it('renders "View all" label', () => {
     mockQuery.mockReturnValue({
-      data: { totalCount: 1, sponsorCount: 0, ownerCount: 0, managerCount: 0, memberCount: 0, assigneeCount: 1 },
+      data: {
+        totalCount: 1,
+        sponsorCount: 0,
+        ownerCount: 0,
+        managerCount: 0,
+        memberCount: 0,
+        assigneeCount: 1,
+      },
       isLoading: false,
     })
 
@@ -153,7 +195,14 @@ describe('MyProjectsCard', () => {
 
   it('navigates to My Projects dashboard on click', async () => {
     mockQuery.mockReturnValue({
-      data: { totalCount: 1, sponsorCount: 0, ownerCount: 0, managerCount: 0, memberCount: 0, assigneeCount: 1 },
+      data: {
+        totalCount: 1,
+        sponsorCount: 0,
+        ownerCount: 0,
+        managerCount: 0,
+        memberCount: 0,
+        assigneeCount: 1,
+      },
       isLoading: false,
     })
 
@@ -161,7 +210,7 @@ describe('MyProjectsCard', () => {
 
     await userEvent.click(screen.getByText(/My Projects/i))
 
-    expect(mockPush).toHaveBeenCalledWith('/ppm/dashboards/my-projects')
+    expect(mockPush).toHaveBeenCalledWith('/ppm/dashboards/projects')
   })
 
   it('skips API call when user lacks permission', () => {

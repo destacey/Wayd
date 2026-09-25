@@ -15,7 +15,7 @@ import {
   ProjectPlanSummaryDto,
   ProjectTeamMemberDto,
   MyProjectsSummaryDto,
-  MyProjectsTaskMetricsDto,
+  ProjectsTaskMetricsDto,
   ProjectStatusHistoryDto,
   ProjectStatus,
   PagedResponseOfActivityLogDto,
@@ -29,6 +29,11 @@ export interface GetProjectsRequest {
   status?: number[]
   portfolioId?: string
   role?: number[]
+  /**
+   * The employee the role filter applies to. Omitted, the server uses the
+   * signed-in user's linked employee.
+   */
+  employeeId?: string
 }
 
 /**
@@ -66,6 +71,7 @@ export const projectsApi = apiSlice.injectEndpoints({
             request?.status,
             request?.portfolioId,
             request?.role,
+            request?.employeeId,
           )
           return { data }
         } catch (error) {
@@ -539,13 +545,14 @@ export const projectsApi = apiSlice.injectEndpoints({
 
     getProjectsPlanSummaries: builder.query<
       Record<string, ProjectPlanSummaryDto>,
-      { projectIds: string[]; role?: number[] }
+      { projectIds: string[]; role?: number[]; employeeId?: string }
     >({
-      queryFn: async ({ projectIds, role }) => {
+      queryFn: async ({ projectIds, role, employeeId }) => {
         try {
           const data = await getProjectsClient().getProjectsPlanSummaries(
             projectIds,
             role,
+            employeeId,
           )
           return { data }
         } catch (error) {
@@ -579,18 +586,16 @@ export const projectsApi = apiSlice.injectEndpoints({
       providesTags: () => [{ type: QueryTags.Project, id: 'MY_SUMMARY' }],
     }),
 
-    getMyProjectsTaskMetrics: builder.query<
-      MyProjectsTaskMetricsDto,
-      { status?: number[]; role?: number[] } | void
+    getProjectsTaskMetrics: builder.query<
+      ProjectsTaskMetricsDto,
+      { status?: number[]; role?: number[]; employeeId?: string } | void
     >({
       queryFn: async (request = undefined) => {
         try {
-          const status =
-            request && 'status' in request ? request.status : undefined
-          const role = request && 'role' in request ? request.role : undefined
-          const data = await getProjectsClient().getMyProjectsTaskMetrics(
-            status,
-            role,
+          const data = await getProjectsClient().getProjectsTaskMetrics(
+            request?.status,
+            request?.role,
+            request?.employeeId,
           )
           return { data }
         } catch (error) {
@@ -598,6 +603,9 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // Shares the "my" tag: every mutation that moves a task already
+      // invalidates it, and the metrics for another employee move on the
+      // same edits.
       providesTags: () => [{ type: QueryTags.Project, id: 'MY_TASK_METRICS' }],
     }),
 
@@ -679,7 +687,7 @@ export const {
   useGetProjectPlanSummaryQuery,
   useGetProjectsPlanSummariesQuery,
   useGetMyProjectsSummaryQuery,
-  useGetMyProjectsTaskMetricsQuery,
+  useGetProjectsTaskMetricsQuery,
   useGetProjectTeamQuery,
   useGetProjectStatusHistoryQuery,
   useGetProjectActivitiesQuery,

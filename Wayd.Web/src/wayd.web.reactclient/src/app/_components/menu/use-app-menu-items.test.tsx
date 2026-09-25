@@ -56,28 +56,20 @@ describe('useAppMenuItems', () => {
     mockClaims.held = null
   })
 
-  it('includes My Projects when the account is linked to an employee', () => {
+  it('includes the Projects Dashboard when the account is linked to an employee', () => {
     const { result } = renderHook(() => useAppMenuItems())
 
-    expect(keysOf(result.current.menuItems)).toContain('ppm.dashboards.my-projects')
+    expect(keysOf(result.current.menuItems)).toContain('ppm.dashboards.projects')
   })
 
-  it('omits My Projects when the account has no linked employee', () => {
-    // Project roles are held by the employee record, so the page would always be empty.
-    mockAuth.employeeId = null
-
-    const { result } = renderHook(() => useAppMenuItems())
-
-    expect(keysOf(result.current.menuItems)).not.toContain('ppm.dashboards.my-projects')
-  })
-
-  it('keeps the rest of the PPM section when My Projects is omitted', () => {
-    // Dropping the item must not take its sibling entries with it.
+  it('keeps the Projects Dashboard when the account has no linked employee', () => {
+    // The dashboard's Person scope works without an employee record of one's own.
     mockAuth.employeeId = null
 
     const { result } = renderHook(() => useAppMenuItems())
     const keys = keysOf(result.current.menuItems)
 
+    expect(keys).toContain('ppm.dashboards.projects')
     expect(keys).toContain('ppm.portfolios')
     expect(keys).toContain('ppm.projects')
   })

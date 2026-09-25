@@ -2,22 +2,21 @@
 
 import { ClearOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useGetProjectStatusOptionsQuery } from '@/src/store/features/ppm/projects-api'
-import { Button, Flex, Skeleton, theme } from 'antd'
+import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
+import { Button, Flex, Segmented, Skeleton, theme } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
+import { EmployeeSelect } from '@/src/components/common/organizations'
 import { FC, RefObject } from 'react'
 import { LifecycleCategory } from '@/src/components/types'
 import { getLifecycleCategoryStatusSurface } from '@/src/utils'
-import styles from '../my-projects-dashboard.module.css'
+import { DashboardScope, ROLE_OPTIONS } from './dashboard-model'
+import styles from '../projects-dashboard.module.css'
 
-const ROLE_OPTIONS = [
-  { label: 'Sponsor', value: 1 },
-  { label: 'Owner', value: 2 },
-  { label: 'PM', value: 3 },
-  { label: 'Member', value: 4 },
-  { label: 'Task Assignee', value: 5 },
-]
-
-export interface MyProjectsDashboardFilterBarProps {
+export interface ScopeBarProps {
+  scope: DashboardScope
+  onScopeChange: (scope: DashboardScope) => void
+  /** Hides the Me option — an unlinked account has no projects of its own. */
+  hasLinkedEmployee: boolean
   selectedRoles: number[]
   onRoleChange: (roles: number[]) => void
   selectedStatuses: number[]
@@ -27,7 +26,15 @@ export interface MyProjectsDashboardFilterBarProps {
   containerRef?: RefObject<HTMLDivElement | null>
 }
 
-const MyProjectsDashboardFilterBar: FC<MyProjectsDashboardFilterBarProps> = ({
+const toggle = (values: number[], value: number) =>
+  values.includes(value)
+    ? values.filter((v) => v !== value)
+    : [...values, value]
+
+const ScopeBar: FC<ScopeBarProps> = ({
+  scope,
+  onScopeChange,
+  hasLinkedEmployee,
   selectedRoles,
   onRoleChange,
   selectedStatuses,
@@ -37,35 +44,62 @@ const MyProjectsDashboardFilterBar: FC<MyProjectsDashboardFilterBarProps> = ({
   containerRef,
 }) => {
   const { data: statusOptions, isLoading } = useGetProjectStatusOptionsQuery()
+  const { data: employeeOptions } = useGetEmployeeOptionsQuery(false, {
+    skip: scope.kind !== 'person',
+  })
   const { token } = theme.useToken()
 
   if (isLoading) {
     return (
-      <div ref={containerRef} className={styles.filterBar}>
+      <div ref={containerRef} className={styles.scopeBar}>
         <Skeleton.Input active size="small" style={{ width: 300 }} />
       </div>
     )
   }
 
-  const toggleRole = (value: number) => {
-    const next = selectedRoles.includes(value)
-      ? selectedRoles.filter((r) => r !== value)
-      : [...selectedRoles, value]
-    onRoleChange(next)
-  }
-
-  const toggleStatus = (value: number) => {
-    const next = selectedStatuses.includes(value)
-      ? selectedStatuses.filter((s) => s !== value)
-      : [...selectedStatuses, value]
-    onStatusChange(next)
-  }
+  const scopeOptions = [
+    ...(hasLinkedEmployee ? [{ label: 'Me', value: 'me' }] : []),
+    { label: 'Person', value: 'person' },
+  ]
 
   return (
-    <div ref={containerRef} className={styles.filterBar}>
+    <div ref={containerRef} className={styles.scopeBar}>
       <Flex align="center" gap={16} wrap>
+        <Flex gap={8} align="center" wrap>
+          <span className={styles.scopeLabel}>Scope</span>
+          <Segmented
+            size="small"
+            options={scopeOptions}
+            value={scope.kind}
+            onChange={(value) =>
+              onScopeChange(
+                value === 'me'
+                  ? { kind: 'me' }
+                  : { kind: 'person', employeeId: null },
+              )
+            }
+          />
+          {scope.kind === 'person' && (
+            <div className={styles.employeeSelect}>
+              <EmployeeSelect
+                employees={employeeOptions ?? []}
+                placeholder="Choose an employee"
+                value={scope.employeeId ?? undefined}
+                onChange={(value) =>
+                  onScopeChange({
+                    kind: 'person',
+                    employeeId: typeof value === 'string' ? value : null,
+                  })
+                }
+              />
+            </div>
+          )}
+        </Flex>
+
+        <div className={styles.scopeDivider} />
+
         <Flex gap={2} wrap align="center">
-          <span className={styles.filterLabel}>My Role:</span>
+          <span className={styles.scopeLabel}>Role</span>
           <Button
             size="small"
             className={styles.chipButton}
@@ -90,7 +124,7 @@ const MyProjectsDashboardFilterBar: FC<MyProjectsDashboardFilterBarProps> = ({
                 // Roles carry no status color, so the dash alone separates the two
                 // states — the same cue the status buttons beside them use.
                 style={isSelected ? undefined : { borderStyle: 'dashed' }}
-                onClick={() => toggleRole(role.value)}
+                onClick={() => onRoleChange(toggle(selectedRoles, role.value))}
               >
                 {role.label}
               </Button>
@@ -98,8 +132,10 @@ const MyProjectsDashboardFilterBar: FC<MyProjectsDashboardFilterBarProps> = ({
           })}
         </Flex>
 
+        <div className={styles.scopeDivider} />
+
         <Flex gap={2} wrap align="center">
-          <span className={styles.filterLabel}>Status:</span>
+          <span className={styles.scopeLabel}>Status</span>
           {statusOptions?.map((status) => {
             const isSelected = selectedStatuses.includes(status.value)
             // Matches the PPM filter bar: a lit button wears the colors the status
@@ -134,7 +170,9 @@ const MyProjectsDashboardFilterBar: FC<MyProjectsDashboardFilterBarProps> = ({
                       : undefined
                     : { borderStyle: 'dashed' }
                 }
-                onClick={() => toggleStatus(status.value)}
+                onClick={() =>
+                  onStatusChange(toggle(selectedStatuses, status.value))
+                }
               >
                 {status.label}
               </Button>
@@ -142,7 +180,7 @@ const MyProjectsDashboardFilterBar: FC<MyProjectsDashboardFilterBarProps> = ({
           })}
         </Flex>
 
-        <Flex gap={2}>
+        <Flex gap={2} style={{ marginLeft: 'auto' }}>
           <WaydTooltip title="Refresh Data">
             <Button
               type="text"
@@ -167,4 +205,4 @@ const MyProjectsDashboardFilterBar: FC<MyProjectsDashboardFilterBarProps> = ({
   )
 }
 
-export default MyProjectsDashboardFilterBar
+export default ScopeBar

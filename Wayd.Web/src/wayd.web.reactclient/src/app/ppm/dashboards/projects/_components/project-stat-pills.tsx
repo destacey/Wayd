@@ -3,8 +3,12 @@
 import { ProjectPlanSummaryDto } from '@/src/services/wayd-api'
 import { Flex } from 'antd'
 import { FC } from 'react'
-import styles from '../my-projects-dashboard.module.css'
+import styles from '../projects-dashboard.module.css'
 
+/**
+ * Open-task counts for one project. Quiet when there is nothing to say, and
+ * the upcoming count only shows once nothing more urgent is on the row.
+ */
 const ProjectStatPills: FC<{ summary?: ProjectPlanSummaryDto }> = ({
   summary,
 }) => {
@@ -25,7 +29,7 @@ const ProjectStatPills: FC<{ summary?: ProjectPlanSummaryDto }> = ({
           {dueThisWeek} this week
         </span>
       )}
-      {upcoming > 0 && (
+      {overdue === 0 && dueThisWeek === 0 && upcoming > 0 && (
         <span className={`${styles.statPill} ${styles.statPillUpcoming}`}>
           {upcoming} upcoming
         </span>

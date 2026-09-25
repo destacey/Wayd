@@ -3,15 +3,23 @@
 import { Avatar } from 'antd'
 import { PersonPopover } from '@/src/components/common'
 import { FC } from 'react'
-import { TeamMemberWithRoles } from './project-card-helpers'
+import { TeamMemberWithRoles } from './dashboard-model'
 
 const { Group: AvatarGroup } = Avatar
 
-const MAX_AVATARS = 6
+const DEFAULT_MAX_AVATARS = 6
 
-const TeamAvatars: FC<{ members: TeamMemberWithRoles[] }> = ({ members }) => {
-  const visible = members.slice(0, MAX_AVATARS)
-  const overflow = members.length - MAX_AVATARS
+export interface TeamAvatarsProps {
+  members: TeamMemberWithRoles[]
+  max?: number
+}
+
+const TeamAvatars: FC<TeamAvatarsProps> = ({
+  members,
+  max = DEFAULT_MAX_AVATARS,
+}) => {
+  const visible = members.slice(0, max)
+  const overflow = members.length - max
 
   return (
     <AvatarGroup size="small">
@@ -45,4 +53,3 @@ const TeamAvatars: FC<{ members: TeamMemberWithRoles[] }> = ({ members }) => {
 }
 
 export default TeamAvatars
-

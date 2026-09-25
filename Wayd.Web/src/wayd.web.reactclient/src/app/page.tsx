@@ -5,7 +5,7 @@ import { useState } from 'react'
 import ActivePlanningIntervals from '@/src/components/common/planning/active-planning-intervals'
 import MyAssignedRisks from '@/src/components/common/planning/my-assigned-risks'
 import MyTeamSprints from '@/src/components/common/planning/my-team-sprints'
-import MyProjectsCard from './ppm/dashboards/my-projects/_components/my-projects-card'
+import MyProjectsCard from './ppm/dashboards/projects/_components/my-projects-card'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 
 const HomePage = () => {

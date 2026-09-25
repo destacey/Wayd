@@ -56,7 +56,7 @@ const MyProjectsCard: FC = () => {
     <Card
       size="small"
       hoverable
-      onClick={() => router.push('/ppm/dashboards/my-projects')}
+      onClick={() => router.push('/ppm/dashboards/projects')}
       style={{ cursor: 'pointer' }}
     >
       {isLoading ? (

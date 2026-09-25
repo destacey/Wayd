@@ -1,17 +1,15 @@
 'use client'
 
-import {
-  AppstoreOutlined,
-  BuildOutlined,
-  MenuOutlined,
-  SearchOutlined,
-} from '@ant-design/icons'
+import { SearchOutlined } from '@ant-design/icons'
+import PpmViewSelector, {
+  PpmView,
+} from '@/src/app/ppm/_components/ppm-view-selector'
 import { Flex, Input, Segmented, Select } from 'antd'
 import { FC } from 'react'
 import { GroupBy, SortBy } from './dashboard-model'
 import styles from '../projects-dashboard.module.css'
 
-export type DashboardView = 'list' | 'cards' | 'timeline'
+export type DashboardView = PpmView
 
 export interface DashboardToolbarProps {
   groupBy: GroupBy
@@ -38,13 +36,6 @@ const SORT_OPTIONS: { label: string; value: SortBy }[] = [
   { label: 'Name', value: 'name' },
   { label: 'End date', value: 'end' },
   { label: 'Score', value: 'score' },
-]
-
-// The same icon-only switch, in the same order, as the PPM view managers.
-const VIEW_OPTIONS = [
-  { value: 'cards', icon: <AppstoreOutlined title="Card view" /> },
-  { value: 'list', icon: <MenuOutlined title="List" /> },
-  { value: 'timeline', icon: <BuildOutlined title="Timeline" /> },
 ]
 
 const DashboardToolbar: FC<DashboardToolbarProps> = ({
@@ -95,13 +86,11 @@ const DashboardToolbar: FC<DashboardToolbarProps> = ({
         ? `${totalCount} ${totalCount === 1 ? 'project' : 'projects'}`
         : `${shownCount} of ${totalCount} shown`}
     </span>
-    <Segmented
+    <PpmViewSelector
       className={styles.viewSwitch}
-      size="small"
-      options={VIEW_OPTIONS}
+      views={['Card', 'List', 'Timeline']}
       value={view}
-      onChange={(value) => onViewChange(value as DashboardView)}
-      aria-label="View"
+      onChange={onViewChange}
     />
   </Flex>
 )

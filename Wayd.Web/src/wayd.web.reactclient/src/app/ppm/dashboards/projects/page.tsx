@@ -81,7 +81,7 @@ const ProjectsDashboardPage: FC = () => {
   )
   const [view, setView] = useLocalStorageState<DashboardView>(
     'projects-dashboard-view',
-    'list',
+    'List',
   )
   const [breakdownsExpanded, setBreakdownsExpanded] =
     useLocalStorageState<boolean>('projects-dashboard-breakdowns', false)
@@ -130,9 +130,9 @@ const ProjectsDashboardPage: FC = () => {
   }
 
   const Body =
-    view === 'cards'
+    view === 'Card'
       ? ProjectsDashboardCards
-      : view === 'timeline'
+      : view === 'Timeline'
         ? ProjectsDashboardTimeline
         : ProjectsDashboardList
 

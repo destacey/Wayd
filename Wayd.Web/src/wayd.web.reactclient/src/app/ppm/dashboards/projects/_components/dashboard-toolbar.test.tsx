@@ -15,7 +15,7 @@ const defaultProps = {
   onSortByChange: jest.fn(),
   search: '',
   onSearchChange: jest.fn(),
-  view: 'list' as const,
+  view: 'List' as const,
   onViewChange: jest.fn(),
   shownCount: 4,
   totalCount: 10,
@@ -45,10 +45,10 @@ describe('DashboardToolbar', () => {
 
     // Assert
     expect(defaultProps.onGroupByChange).toHaveBeenCalledWith('health')
-    expect(defaultProps.onViewChange).toHaveBeenCalledWith('cards')
+    expect(defaultProps.onViewChange).toHaveBeenCalledWith('Card')
 
     await userEvent.click(screen.getByTitle('Timeline'))
-    expect(defaultProps.onViewChange).toHaveBeenLastCalledWith('timeline')
+    expect(defaultProps.onViewChange).toHaveBeenLastCalledWith('Timeline')
   })
 
   it('reports search text as it is typed', async () => {

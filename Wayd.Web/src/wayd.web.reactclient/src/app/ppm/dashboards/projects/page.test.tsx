@@ -143,10 +143,10 @@ jest.mock('./_components/dashboard-toolbar', () => {
     onViewChange: (view: string) => void
   }) => (
     <>
-      <button type="button" onClick={() => onViewChange('cards')}>
+      <button type="button" onClick={() => onViewChange('Card')}>
         show cards
       </button>
-      <button type="button" onClick={() => onViewChange('timeline')}>
+      <button type="button" onClick={() => onViewChange('Timeline')}>
         show timeline
       </button>
     </>

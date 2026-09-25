@@ -73,12 +73,11 @@
   margin-bottom: 12px;
 }
 
-/* The qualifier after a tile's number, e.g. "across 3 projects". */
-.tileSuffix {
-  margin-left: 6px;
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--ant-color-text-secondary);
+/* Six tiles share the row evenly and wrap once they would fall below the
+   minimum; the card inside fills the wrapper's stretched height. */
+.attentionTile {
+  flex: 1 1 0;
+  min-width: 150px;
 }
 
 /* Toolbar */

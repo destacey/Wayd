@@ -1,6 +1,6 @@
 'use client'
 
-import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
+import { MetricCard } from '@/src/components/common/metrics'
 import useTheme from '@/src/components/contexts/theme'
 import { FC, RefObject } from 'react'
 import {
@@ -22,11 +22,8 @@ interface TileDef {
   filter: AttentionFilter
   title: string
   value: (c: AttentionCounts) => number
-  /**
-   * A qualifier shown inline after the number. Inline rather than a second
-   * line, so this tile stays the same height as the five beside it.
-   */
-  suffix?: (c: AttentionCounts) => string
+  /** A qualifier under the number, bottom right, as the other metric rows do. */
+  secondary?: (c: AttentionCounts) => string
   tooltip: string
   /** Colours the number once it is above zero. */
   alert?: 'error' | 'warning'
@@ -57,7 +54,7 @@ const TILES: TileDef[] = [
     filter: 'overdue',
     title: 'Overdue tasks',
     value: (c) => c.overdueTasks,
-    suffix: (c) =>
+    secondary: (c) =>
       c.overdueProjects === 0
         ? ''
         : `across ${c.overdueProjects} ${c.overdueProjects === 1 ? 'project' : 'projects'}`,
@@ -101,34 +98,31 @@ const AttentionTiles: FC<AttentionTilesProps> = ({
         const isActive = active === tile.filter && tile.filter !== 'all'
         const alertColor =
           tile.alert === 'error' ? token.colorError : token.colorWarning
-        const suffix = tile.suffix?.(counts)
         return (
-          <MetricCard
-            key={tile.filter}
-            title={tile.title}
-            value={value}
-            tooltip={tile.tooltip}
-            loading={isLoading}
-            suffix={
-              suffix ? (
-                <span className={styles.tileSuffix}>{suffix}</span>
-              ) : undefined
-            }
-            valueStyle={
-              tile.alert && value > 0 ? { color: alertColor } : undefined
-            }
-            cardStyle={{
-              // Six tiles share the row evenly, whatever their labels say.
-              ...METRIC_CARD_FLEX,
-              maxWidth: undefined,
-              borderColor: isActive ? token.colorPrimary : undefined,
-              boxShadow: isActive
-                ? `0 0 0 1px ${token.colorPrimary}`
-                : undefined,
-            }}
-            onClick={() => onChange(isActive ? 'all' : tile.filter)}
-            ariaLabel={`${tile.title}: ${value}${isActive ? ' (filtering)' : ''}`}
-          />
+          // Each card sits in a wrapper that the row stretches, the way a Col
+          // does in the other metric rows. The card's own height: 100% then
+          // fills that wrapper, so a tile with a second line under its number
+          // does not stand taller than the five beside it.
+          <div key={tile.filter} className={styles.attentionTile}>
+            <MetricCard
+              title={tile.title}
+              value={value}
+              tooltip={tile.tooltip}
+              loading={isLoading}
+              secondaryValue={tile.secondary?.(counts) || undefined}
+              valueStyle={
+                tile.alert && value > 0 ? { color: alertColor } : undefined
+              }
+              cardStyle={{
+                borderColor: isActive ? token.colorPrimary : undefined,
+                boxShadow: isActive
+                  ? `0 0 0 1px ${token.colorPrimary}`
+                  : undefined,
+              }}
+              onClick={() => onChange(isActive ? 'all' : tile.filter)}
+              ariaLabel={`${tile.title}: ${value}${isActive ? ' (filtering)' : ''}`}
+            />
+          </div>
         )
       })}
     </div>

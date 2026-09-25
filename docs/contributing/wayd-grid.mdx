@@ -276,7 +276,7 @@ Providing `grouping` (column ids, outermost first) groups a **flat** grid: each 
 ```
 
 - The default heading is the value and a row count; `renderGroupHeader` replaces it and receives the group's `leafRows` so the heading can say what they add up to.
-- Headings are not records: row activation, the displayed-rows surfaces (`onDisplayedRowsChange`, `getDisplayedRows`) and the CSV export see only the rows. Flat row reorder turns off while grouped, since the displayed order is no longer the data order.
+- Headings are not records: row activation, the displayed-rows surfaces (`onDisplayedRowsChange`, `getDisplayedRows`) and the CSV export see only the rows. The grouped column leads the CSV, so each exported row keeps the value its heading carried on screen. Flat row reorder turns off while grouped, since the displayed order is no longer the data order.
 - Regrouping resets every group to `initialGroupsExpanded`, so a grid regrouped by another column opens fully rather than inheriting collapsed ids from the previous grouping.
 - Grouping is for flat grids; a tree (`getSubRows`) already has its hierarchy and ignores it.
 

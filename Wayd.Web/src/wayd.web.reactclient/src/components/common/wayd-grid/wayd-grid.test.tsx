@@ -265,10 +265,7 @@ describe('WaydGrid', () => {
 
       // Act
       render(
-        <WaydGrid<Keyed>
-          data={[{ key: 1, name: 'Alpha' }]}
-          columns={cols}
-        />,
+        <WaydGrid<Keyed> data={[{ key: 1, name: 'Alpha' }]} columns={cols} />,
       )
 
       // Assert
@@ -611,8 +608,9 @@ describe('WaydGrid', () => {
       expect(
         header.querySelectorAll('[class*="anticon-arrow-up"]'),
       ).toHaveLength(1)
-      expect(container.querySelectorAll('[class*="anticon-arrow-down"]'))
-        .toHaveLength(0)
+      expect(
+        container.querySelectorAll('[class*="anticon-arrow-down"]'),
+      ).toHaveLength(0)
     })
 
     it('flips the indicator to descending on a second click', () => {
@@ -628,9 +626,9 @@ describe('WaydGrid', () => {
       expect(
         header.querySelectorAll('[class*="anticon-arrow-down"]'),
       ).toHaveLength(1)
-      expect(header.querySelectorAll('[class*="anticon-arrow-up"]')).toHaveLength(
-        0,
-      )
+      expect(
+        header.querySelectorAll('[class*="anticon-arrow-up"]'),
+      ).toHaveLength(0)
     })
 
     it('clears the indicator on the third click', () => {
@@ -644,7 +642,9 @@ describe('WaydGrid', () => {
       fireEvent.click(screen.getByText('Name'))
 
       // Assert
-      expect(header.querySelectorAll('[class*="anticon-arrow"]')).toHaveLength(0)
+      expect(header.querySelectorAll('[class*="anticon-arrow"]')).toHaveLength(
+        0,
+      )
     })
   })
 
@@ -1753,17 +1753,15 @@ describe('WaydGrid', () => {
 
     it('renders one bar per row via renderRow with its geometry', () => {
       // Arrange — a renderRow that emits a labeled marker carrying its top/height.
-      const renderRow = jest.fn(
-        ({ row, top, height }) => (
-          <div
-            data-testid={`bar-${(row.original as Flag).id}`}
-            data-top={top}
-            data-height={height}
-          >
-            {(row.original as Flag).name}
-          </div>
-        ),
-      )
+      const renderRow = jest.fn(({ row, top, height }) => (
+        <div
+          data-testid={`bar-${(row.original as Flag).id}`}
+          data-top={top}
+          data-height={height}
+        >
+          {(row.original as Flag).name}
+        </div>
+      ))
       // Act
       const { container } = renderGrid({
         rightPane: { renderRow, header: <div>Axis</div> },
@@ -1979,9 +1977,7 @@ describe('WaydGrid', () => {
       renderGrid({ onRowActivate: jest.fn(), activatedRowId: '2' })
 
       // Assert — the highlight is a class on exactly one row
-      const activated = document.querySelectorAll(
-        `tbody tr.${'trActivated'}`,
-      )
+      const activated = document.querySelectorAll(`tbody tr.${'trActivated'}`)
       expect(activated).toHaveLength(1)
       expect(activated[0]).toHaveTextContent('roadmap')
     })
@@ -2118,11 +2114,16 @@ describe('WaydGrid', () => {
         ?.closest('button') as HTMLButtonElement
       fireEvent.click(exportBtn)
 
-      // Assert — three data rows, no heading rows, in either surface
+      // Assert — three data rows, no heading rows, in either surface; the
+      // grouped column leads the CSV so each row keeps the value its heading
+      // carried on screen
       const last = onDisplayedRowsChange.mock.calls.at(-1)![0] as Flag[]
       expect(last).toHaveLength(3)
       const csv = mockDownloadCsv.mock.calls[0][0] as string
-      expect(csv.split('\n')).toHaveLength(DATA.length + 1)
+      const lines = csv.split('\n')
+      expect(lines).toHaveLength(DATA.length + 1)
+      expect(lines[0]).toBe('Type,Name,Enabled')
+      expect(lines[1]).toContain('System')
     })
 
     it('drops a group whose rows are all filtered out', () => {

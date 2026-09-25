@@ -57,14 +57,35 @@ export function exportGridToCsv<T extends RowData>(
   table: Table<T>,
   csvFileName: string,
 ): void {
-  const exportableColumns = getOrderedVisibleLeafColumns(table).filter(
-    (column) => {
-      const meta = column.columnDef.meta
-      if (meta?.enableExport === false) return false
-      // Only columns with an accessor produce a value worth exporting.
-      return column.accessorFn != null
-    },
-  )
+  const isExportable = (column: {
+    columnDef: { meta?: { enableExport?: boolean } }
+    accessorFn?: unknown
+  }) => {
+    if (column.columnDef.meta?.enableExport === false) return false
+    // Only columns with an accessor produce a value worth exporting.
+    return column.accessorFn != null
+  }
+
+  // A grouped column leaves the visible columns (its value is the heading on
+  // screen), but a spreadsheet has no headings, so it leads the export instead
+  // and every row carries its value.
+  // Read from the options rather than getState(): the headless harness the
+  // export tests build carries options but no state accessor.
+  const grouping: string[] = table.options.state?.grouping ?? []
+  const groupedColumns = grouping
+    .map((id) => table.getColumn(id) as Column<T, unknown> | undefined)
+    .filter(
+      (column): column is Column<T, unknown> =>
+        column != null && isExportable(column),
+    )
+  const groupedIds = new Set(groupedColumns.map((column) => column.id))
+
+  const exportableColumns = [
+    ...groupedColumns,
+    ...getOrderedVisibleLeafColumns(table).filter(
+      (column) => !groupedIds.has(column.id) && isExportable(column),
+    ),
+  ]
 
   const headers = exportableColumns.map(resolveExportHeader)
 

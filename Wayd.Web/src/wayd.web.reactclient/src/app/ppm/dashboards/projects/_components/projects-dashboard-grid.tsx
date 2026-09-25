@@ -32,6 +32,7 @@ import {
   summarizeGroup,
 } from './dashboard-model'
 import GroupBySelect from './group-by-select'
+import ProjectPlanLink from './project-plan-link'
 import ProjectStatPills from './project-stat-pills'
 import TeamAvatars from './team-avatars'
 import styles from '../projects-dashboard.module.css'
@@ -201,6 +202,16 @@ const buildColumns = (
         </span>
       )
     },
+  },
+  {
+    // One click to the plan, without opening the drawer or the project first.
+    id: 'plan',
+    header: 'Plan',
+    size: 60,
+    enableSorting: false,
+    enableColumnFilter: false,
+    meta: { enableExport: false, align: 'right' },
+    cell: ({ row }) => <ProjectPlanLink project={row.original} />,
   },
   {
     id: 'role',

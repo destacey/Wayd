@@ -16,6 +16,7 @@ import {
   PlanSummaries,
   ProjectGroup,
 } from './dashboard-model'
+import ProjectPlanLink from './project-plan-link'
 import ProjectStatPills from './project-stat-pills'
 import TeamAvatars from './team-avatars'
 import styles from '../projects-dashboard.module.css'
@@ -115,10 +116,15 @@ const ProjectCard: FC<CardProps> = ({
               {end ?? '—'}
             </span>
           </span>
-          <span>
-            Score{' '}
-            {project.currentScore ? project.currentScore.value.toFixed(1) : '—'}
-          </span>
+          <Flex align="center" gap={8}>
+            <span>
+              Score{' '}
+              {project.currentScore
+                ? project.currentScore.value.toFixed(1)
+                : '—'}
+            </span>
+            <ProjectPlanLink project={project} />
+          </Flex>
         </Flex>
       </Flex>
     </Card>

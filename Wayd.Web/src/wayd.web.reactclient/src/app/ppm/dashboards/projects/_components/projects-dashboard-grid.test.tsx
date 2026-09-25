@@ -62,6 +62,7 @@ const projects = [
     key: 'P1',
     name: 'Alpha',
     projectManagers: [me],
+    projectLifecycle: { id: 'lc', key: 1, name: 'Standard' },
     healthCheck: { id: 'hc', status: { id: 3, name: 'Unhealthy' } },
     stages: [
       {
@@ -166,6 +167,19 @@ describe('ProjectsDashboardGrid', () => {
     fireEvent.click(screen.getByTitle('Timeline'))
     expect(props.onViewChange).toHaveBeenCalledWith('Timeline')
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
+  })
+
+  it('links straight to the plan of a project that has a lifecycle', () => {
+    // Arrange / Act
+    render(<ProjectsDashboardGrid {...props} />)
+
+    // Assert — Alpha has a lifecycle, Beta does not
+    expect(
+      screen.getByRole('link', { name: 'Open plan for P1' }),
+    ).toHaveAttribute('href', '/ppm/projects/P1?section=plan')
+    expect(
+      screen.queryByRole('link', { name: 'Open plan for P2' }),
+    ).not.toBeInTheDocument()
   })
 
   it('opens a project when its row is activated', () => {

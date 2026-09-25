@@ -68,6 +68,7 @@ const groups: ProjectGroup[] = [
         key: 'P1',
         name: 'Project Alpha',
         projectManagers: [me],
+        projectLifecycle: { id: 'lc', key: 1, name: 'Standard' },
         healthCheck: { id: 'hc', status: { id: 3, name: 'Unhealthy' } },
         stages: [
           {
@@ -129,6 +130,22 @@ describe('ProjectsDashboardCards', () => {
 
     // Assert
     expect(defaultProps.onSelectProject).toHaveBeenCalledWith('P2')
+  })
+
+  it('links to the plan without also opening the drawer', async () => {
+    // Arrange
+    render(<ProjectsDashboardCards {...defaultProps} />)
+    const link = screen.getByRole('link', { name: 'Open plan for P1' })
+
+    // Act
+    await userEvent.click(link)
+
+    // Assert
+    expect(link).toHaveAttribute('href', '/ppm/projects/P1?section=plan')
+    expect(defaultProps.onSelectProject).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole('link', { name: 'Open plan for P2' }),
+    ).not.toBeInTheDocument()
   })
 
   it('leaves roles off the card when there is no scoped employee', () => {

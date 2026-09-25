@@ -1,9 +1,9 @@
 ﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 
 /// <summary>
-/// Aggregated task metrics across all of the current user's projects.
+/// Aggregated task metrics across the projects an employee is involved in.
 /// </summary>
-public sealed record MyProjectsTaskMetricsDto
+public sealed record ProjectsTaskMetricsDto
 {
     /// <summary>
     /// Open tasks past their planned end date.

@@ -4,7 +4,17 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
-public sealed record GetProjectsQuery(ProjectStatus[]? StatusFilter = null, IdOrKey? PortfolioIdOrKey = null, IdOrKey? ProgramIdOrKey = null, ProjectMemberRole[]? RoleFilter = null) : IQuery<List<ProjectListDto>?>;
+/// <summary>
+/// Lists projects. <paramref name="RoleFilter"/> narrows the list to projects where the subject employee
+/// holds one of the roles; the subject is <paramref name="EmployeeId"/> when given, else the current
+/// principal's linked employee.
+/// </summary>
+public sealed record GetProjectsQuery(
+    ProjectStatus[]? StatusFilter = null,
+    IdOrKey? PortfolioIdOrKey = null,
+    IdOrKey? ProgramIdOrKey = null,
+    ProjectMemberRole[]? RoleFilter = null,
+    Guid? EmployeeId = null) : IQuery<List<ProjectListDto>?>;
 
 public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext, ICurrentPrincipal currentPrincipal, IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetProjectsQuery, List<ProjectListDto>?>
@@ -59,7 +69,7 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
 
         if (request.RoleFilter is { Length: > 0 })
         {
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+            var employeeId = request.EmployeeId ?? await _currentPrincipal.GetEmployeeId(cancellationToken);
             if (!employeeId.HasValue)
             {
                 return [];

@@ -4,30 +4,34 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 /// <summary>
-/// Returns aggregated task metrics across all projects the current user is involved in.
-/// Computes overdue, due this week, and upcoming counts from open tasks.
+/// Returns aggregated task metrics across all projects the subject employee is involved in.
+/// Computes overdue, due this week, and upcoming counts from open tasks. The subject is
+/// <paramref name="EmployeeId"/> when given, else the current principal's linked employee.
 /// </summary>
-public sealed record GetMyProjectsTaskMetricsQuery(ProjectStatus[]? StatusFilter = null, ProjectMemberRole[]? RoleFilter = null) : IQuery<MyProjectsTaskMetricsDto>;
+public sealed record GetProjectsTaskMetricsQuery(
+    ProjectStatus[]? StatusFilter = null,
+    ProjectMemberRole[]? RoleFilter = null,
+    Guid? EmployeeId = null) : IQuery<ProjectsTaskMetricsDto>;
 
-public sealed class GetMyProjectsTaskMetricsQueryHandler(
+public sealed class GetProjectsTaskMetricsQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider)
-    : IQueryHandler<GetMyProjectsTaskMetricsQuery, MyProjectsTaskMetricsDto>
+    : IQueryHandler<GetProjectsTaskMetricsQuery, ProjectsTaskMetricsDto>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<MyProjectsTaskMetricsDto> Handle(GetMyProjectsTaskMetricsQuery request, CancellationToken cancellationToken)
+    public async Task<ProjectsTaskMetricsDto> Handle(GetProjectsTaskMetricsQuery request, CancellationToken cancellationToken)
     {
         // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
         // linked mid-session would otherwise see nothing until they signed in again. Empty remains the
         // honest answer for a genuinely unlinked account.
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var employeeId = request.EmployeeId ?? await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (!employeeId.HasValue)
         {
-            return new MyProjectsTaskMetricsDto();
+            return new ProjectsTaskMetricsDto();
         }
 
         var eid = employeeId.Value;
@@ -137,7 +141,7 @@ public sealed class GetMyProjectsTaskMetricsQueryHandler(
             .CountAsync(t => t.PlannedDateRange!.End > endOfThisWeek
                           && t.PlannedDateRange!.End <= endOfNextWeek, cancellationToken);
 
-        return new MyProjectsTaskMetricsDto
+        return new ProjectsTaskMetricsDto
         {
             Overdue = overdue,
             DueThisWeek = dueThisWeek,

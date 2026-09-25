@@ -6,13 +6,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 /// <summary>
 /// Returns plan summary metrics for multiple projects in a single query.
 /// Applies the same per-project leadership vs. assignee visibility rules
-/// as <see cref="GetMyProjectsTaskMetricsQuery"/>: when the user holds a
+/// as <see cref="GetProjectsTaskMetricsQuery"/>: when the subject employee holds a
 /// selected leadership role on a project, all tasks are visible; otherwise,
-/// only tasks assigned to the user are counted.
+/// only tasks assigned to them are counted. The subject is <paramref name="EmployeeId"/>
+/// when given, else the current principal's linked employee.
 /// </summary>
 public sealed record GetProjectsPlanSummariesQuery(
     Guid[] ProjectIds,
-    ProjectMemberRole[]? RoleFilter = null) : IQuery<Dictionary<Guid, ProjectPlanSummaryDto>>;
+    ProjectMemberRole[]? RoleFilter = null,
+    Guid? EmployeeId = null) : IQuery<Dictionary<Guid, ProjectPlanSummaryDto>>;
 
 public sealed class GetProjectsPlanSummariesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
@@ -36,7 +38,7 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
         // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
         // linked mid-session would otherwise see nothing until they signed in again. Empty remains the
         // honest answer for a genuinely unlinked account.
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var employeeId = request.EmployeeId ?? await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (!employeeId.HasValue)
         {
             return [];

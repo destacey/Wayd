@@ -13,19 +13,19 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries;
 
-public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
+public class GetProjectsTaskMetricsQueryHandlerTests : IDisposable
 {
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
     private readonly Mock<ICurrentPrincipal> _currentPrincipalMock;
     private readonly TestingDateTimeProvider _dateTimeProvider;
-    private readonly GetMyProjectsTaskMetricsQueryHandler _handler;
+    private readonly GetProjectsTaskMetricsQueryHandler _handler;
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly Guid _otherEmployeeId = Guid.NewGuid();
 
     // Use a Wednesday so we have clear week boundaries
     private static readonly LocalDate Today = new(2026, 3, 18); // Wednesday
 
-    public GetMyProjectsTaskMetricsQueryHandlerTests()
+    public GetProjectsTaskMetricsQueryHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
         _currentPrincipalMock = new Mock<ICurrentPrincipal>();
@@ -35,7 +35,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         var clock = new FakeClock(instant);
         _dateTimeProvider = new TestingDateTimeProvider(clock);
 
-        _handler = new GetMyProjectsTaskMetricsQueryHandler(_dbContext, _currentPrincipalMock.Object, _dateTimeProvider);
+        _handler = new GetProjectsTaskMetricsQueryHandler(_dbContext, _currentPrincipalMock.Object, _dateTimeProvider);
     }
 
     #region Helpers
@@ -77,7 +77,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasks);
 
         // Act
-        var result = await _handler.Handle(new GetMyProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
 
         // Assert: PM should see ALL overdue tasks on the project, not just their own
         result.Overdue.Should().Be(2);
@@ -102,7 +102,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasks);
 
         // Act
-        var result = await _handler.Handle(new GetMyProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
 
         // Assert: user is only a task assignee (no project role), should only see their 1 task
         result.Overdue.Should().Be(1);
@@ -126,7 +126,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasks);
 
         // Act
-        var result = await _handler.Handle(new GetMyProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
 
         // Assert: PM sees all tasks, the task they're assigned to should not be double-counted
         result.Overdue.Should().Be(2);
@@ -166,7 +166,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasksB);
 
         // Act
-        var result = await _handler.Handle(new GetMyProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
 
         // Assert:
         // Project A (PM): all 3 tasks counted
@@ -193,7 +193,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasks);
 
         // Act
-        var result = await _handler.Handle(new GetMyProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
 
         // Assert: Member should only see their assigned tasks, not all tasks on the project
         result.Overdue.Should().Be(1);
@@ -216,7 +216,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasks);
 
         // Act
-        var result = await _handler.Handle(new GetMyProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         result.Overdue.Should().Be(1);
@@ -239,7 +239,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasks);
 
         // Act
-        var result = await _handler.Handle(new GetMyProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetProjectsTaskMetricsQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         result.Upcoming.Should().Be(1);
@@ -266,7 +266,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
 
         // Act — filtered to Task Assignee role only
         var result = await _handler.Handle(
-            new GetMyProjectsTaskMetricsQuery(RoleFilter: [ProjectMemberRole.Assignee]),
+            new GetProjectsTaskMetricsQuery(RoleFilter: [ProjectMemberRole.Assignee]),
             TestContext.Current.CancellationToken);
 
         // Assert: even though user is Owner, filter says Assignee only — count only assigned tasks
@@ -294,7 +294,7 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
 
         // Act — filtered to Owner + Task Assignee
         var result = await _handler.Handle(
-            new GetMyProjectsTaskMetricsQuery(RoleFilter: [ProjectMemberRole.Owner, ProjectMemberRole.Assignee]),
+            new GetProjectsTaskMetricsQuery(RoleFilter: [ProjectMemberRole.Owner, ProjectMemberRole.Assignee]),
             TestContext.Current.CancellationToken);
 
         // Assert: Owner is leadership — all tasks counted
@@ -334,12 +334,40 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
 
         // Act
         var result = await _handler.Handle(
-            new GetMyProjectsTaskMetricsQuery(),
+            new GetProjectsTaskMetricsQuery(),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.Overdue.Should().Be(1);
         result.DueThisWeek.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_EmployeeIdGiven_ShouldCountForThatEmployeeInsteadOfThePrincipal()
+    {
+        // Arrange: the principal is PM on the project; the subject employee is only assigned to 1 of 3 overdue tasks
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
+
+        var overdueDates = OverdueDateRange();
+        var tasks = project.WithTasks(3, (faker, _) =>
+        {
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
+        });
+        tasks[0].WithAssignees(_otherEmployeeId);
+        tasks[1].WithAssignees(_employeeId);
+        tasks[2].WithAssignees(_employeeId);
+
+        _dbContext.AddProject(project);
+        _dbContext.AddProjectTasks(tasks);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProjectsTaskMetricsQuery(EmployeeId: _otherEmployeeId),
+            TestContext.Current.CancellationToken);
+
+        // Assert: the subject holds no leadership role, so only their own task counts
+        result.Overdue.Should().Be(1);
+        _currentPrincipalMock.Verify(p => p.GetEmployeeId(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     public void Dispose()

@@ -34907,6 +34907,99 @@ export class TeamsClient {
     }
 
     /**
+     * Report where a team's completed work went.
+     * @param from (optional) The first day of completed work to include (yyyy-MM-dd, UTC).
+     * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
+     * @param dimension (optional) What to group work by (default Portfolio).
+     * @param measure (optional) How to weigh each work item (default Count).
+     * @param unestimated (optional) Story points only: what to do with unestimated items (default Exclude).
+     * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
+     */
+    getTeamAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/allocation?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent("" + to) + "&";
+        if (dimension !== undefined && dimension !== null)
+            url_ += "Dimension=" + encodeURIComponent("" + dimension) + "&";
+        if (measure !== undefined && measure !== null)
+            url_ += "Measure=" + encodeURIComponent("" + measure) + "&";
+        if (unestimated !== undefined && unestimated !== null)
+            url_ += "Unestimated=" + encodeURIComponent("" + unestimated) + "&";
+        if (themeCounting !== undefined && themeCounting !== null)
+            url_ += "ThemeCounting=" + encodeURIComponent("" + themeCounting) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeamAllocation(_response);
+        });
+    }
+
+    protected processGetTeamAllocation(response: AxiosResponse): Promise<TeamAllocationDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamAllocationDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamAllocationDto>(null as any);
+    }
+
+    /**
      * Forecast how many backlog work items a team will finish by a date.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
@@ -36709,6 +36802,99 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Report where the completed work of a team of teams, and every team beneath it, went.
+     * @param from (optional) The first day of completed work to include (yyyy-MM-dd, UTC).
+     * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
+     * @param dimension (optional) What to group work by (default Portfolio).
+     * @param measure (optional) How to weigh each work item (default Count).
+     * @param unestimated (optional) Story points only: what to do with unestimated items (default Exclude).
+     * @param themeCounting (optional) Strategic theme only: how to credit a project with several themes (default SplitEvenly).
+     */
+    getAllocation(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, dimension?: AllocationDimension | null | undefined, measure?: AllocationMeasure | null | undefined, unestimated?: UnestimatedHandling | null | undefined, themeCounting?: ThemeCounting | null | undefined, cancelToken?: CancelToken): Promise<TeamAllocationDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{idOrCode}/allocation?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent("" + to) + "&";
+        if (dimension !== undefined && dimension !== null)
+            url_ += "Dimension=" + encodeURIComponent("" + dimension) + "&";
+        if (measure !== undefined && measure !== null)
+            url_ += "Measure=" + encodeURIComponent("" + measure) + "&";
+        if (unestimated !== undefined && unestimated !== null)
+            url_ += "Unestimated=" + encodeURIComponent("" + unestimated) + "&";
+        if (themeCounting !== undefined && themeCounting !== null)
+            url_ += "ThemeCounting=" + encodeURIComponent("" + themeCounting) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAllocation(_response);
+        });
+    }
+
+    protected processGetAllocation(response: AxiosResponse): Promise<TeamAllocationDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamAllocationDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamAllocationDto>(null as any);
     }
 
     /**
@@ -48592,6 +48778,125 @@ export interface BacklogHealthWorkItemDto {
     externalViewWorkItemUrl?: string | undefined;
     rank: number;
     flags: SimpleNavigationDto[];
+}
+
+export interface TeamAllocationDto {
+    team: WorkTeamNavigationDto;
+    from: Date;
+    to: Date;
+    summary: AllocationSummaryDto;
+    groups: AllocationGroupDto[];
+    teams: AllocationTeamRowDto[];
+    periods: AllocationPeriodDto[];
+}
+
+export interface AllocationSummaryDto {
+    itemsCompleted: number;
+    itemsInPointSizedTeams: number;
+    estimatedItems: number;
+    storyPoints: number;
+    filledItems: number;
+    filledStoryPoints: number;
+    teamsIncluded: number;
+    excludedTeams: AllocationTeamReferenceDto[];
+    noProjectItems: number;
+    noProjectShare: number;
+}
+
+export interface AllocationTeamReferenceDto {
+    id: string;
+    code: string;
+    name: string;
+}
+
+export interface AllocationGroupDto {
+    id: string;
+    kind: AllocationGroupKind;
+    recordId?: string | undefined;
+    recordKey?: string | undefined;
+    name: string;
+    portfolio?: NavigationDto | undefined;
+    program?: NavigationDto | undefined;
+    projectKeys: string[];
+    programCount: number;
+    items: number;
+    storyPoints: number;
+    filledStoryPoints: number;
+    value: number;
+    share: number;
+    noProjectValue?: number | undefined;
+    noProjectShare?: number | undefined;
+    largestContributor?: AllocationContributorDto | undefined;
+}
+
+export enum AllocationGroupKind {
+    Record = "Record",
+    NoProject = "NoProject",
+    MissingLevel = "MissingLevel",
+}
+
+export interface AllocationContributorDto {
+    teamId: string;
+    code: string;
+    name: string;
+    value: number;
+    items: number;
+}
+
+export interface AllocationTeamRowDto {
+    teamId: string;
+    code: string;
+    name: string;
+    isTeamOfTeams: boolean;
+    parentId?: string | undefined;
+    level: number;
+    excluded: boolean;
+    excludedReason?: string | undefined;
+    items: number;
+    storyPoints: number;
+    value: number;
+    cells: AllocationCellDto[];
+    noProjectShare?: number | undefined;
+}
+
+export interface AllocationCellDto {
+    value: number;
+    share: number;
+    items: number;
+}
+
+export interface AllocationPeriodDto {
+    start: Date;
+    end: Date;
+    items: number;
+    value: number;
+    values: number[];
+    shares: number[];
+    noProjectShare: number;
+}
+
+export enum AllocationDimension {
+    Portfolio = "Portfolio",
+    Program = "Program",
+    Project = "Project",
+    StrategicTheme = "StrategicTheme",
+    WorkType = "WorkType",
+}
+
+export enum AllocationMeasure {
+    Count = "Count",
+    StoryPoints = "StoryPoints",
+    TeamEffort = "TeamEffort",
+}
+
+export enum UnestimatedHandling {
+    Exclude = "Exclude",
+    TeamAverage = "TeamAverage",
+}
+
+export enum ThemeCounting {
+    SplitEvenly = "SplitEvenly",
+    CountFully = "CountFully",
 }
 
 export interface TeamThroughputForecastDto {

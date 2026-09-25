@@ -15,16 +15,16 @@ Wayd provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io)
 
 The MCP server exposes 150+ tools across Wayd's core modules:
 
-| Module | Capabilities |
-|--------|-------------|
-| **[PPM](../user-guide/ppm/index.mdx)** | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, status history, and activity history. Get critical path. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
-| **[Strategic Initiatives](../user-guide/ppm/strategic-initiatives.mdx)** | List/view initiatives, their statuses, activity history, and the projects delivering them. Review KPIs, checkpoints, and the checkpoint plan with health and trend. Record and remove KPI measurements. Change initiative status. |
-| **[Planning](../user-guide/planning/index.mdx)** | List/view planning intervals, iterations, objectives, risks, and the activity history of intervals and objectives. Get PI predictability and health reports. Review and log objective health checks. View calendars. |
-| **[Roadmaps](../user-guide/planning/roadmaps.mdx)** | List/view roadmaps and their items (activities, milestones, timeboxes). |
-| **[Story Maps](../user-guide/planning/story-maps.mdx)** | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links. |
-| **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. Review a team's activity history. Grade a team's backlog health. |
-| **[Delivery Forecasting](../user-guide/work-management/delivery-forecasting.mdx)** | Forecast when a work item, PI objective, or project will be done, and how many backlog work items a team finishes by a date. |
-| **[Imports](../user-guide/settings/imports.mdx)** | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run. |
+| Module                                                                             | Capabilities                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[PPM](../user-guide/ppm/index.mdx)**                                             | List/view portfolios, programs, projects, stages, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, status history, and activity history. Get critical path. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
+| **[Strategic Initiatives](../user-guide/ppm/strategic-initiatives.mdx)**           | List/view initiatives, their statuses, activity history, and the projects delivering them. Review KPIs, checkpoints, and the checkpoint plan with health and trend. Record and remove KPI measurements. Change initiative status.                                                                                                                                                                         |
+| **[Planning](../user-guide/planning/index.mdx)**                                   | List/view planning intervals, iterations, objectives, risks, and the activity history of intervals and objectives. Get PI predictability and health reports. Review and log objective health checks. View calendars.                                                                                                                                                                                      |
+| **[Roadmaps](../user-guide/planning/roadmaps.mdx)**                                | List/view roadmaps and their items (activities, milestones, timeboxes).                                                                                                                                                                                                                                                                                                                                   |
+| **[Story Maps](../user-guide/planning/story-maps.mdx)**                            | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links.                                                                                                                          |
+| **[Organizations](../user-guide/organizations/index.mdx)**                         | List/view teams and users. Review a team's activity history. Grade a team's backlog health.                                                                                                                                                                                                                                                                                                               |
+| **[Delivery Forecasting](../user-guide/work-management/delivery-forecasting.mdx)** | Forecast when a work item, PI objective, or project will be done, and how many backlog work items a team finishes by a date.                                                                                                                                                                                                                                                                              |
+| **[Imports](../user-guide/settings/imports.mdx)**                                  | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run.                                                                                                                                                                                                                                                       |
 
 ## Prerequisites
 
@@ -43,16 +43,16 @@ Add the following to your Claude Desktop configuration file:
 
 ```json
 {
-  "mcpServers": {
-    "wayd": {
-      "command": "npx",
-      "args": ["-y", "@wayd/mcp"],
-      "env": {
-        "WAYD_API_BASE_URL": "https://your-wayd-instance.com",
-        "WAYD_API_KEY": "your-personal-access-token"
-      }
+    "mcpServers": {
+        "wayd": {
+            "command": "npx",
+            "args": ["-y", "@wayd/mcp"],
+            "env": {
+                "WAYD_API_BASE_URL": "https://your-wayd-instance.com",
+                "WAYD_API_KEY": "your-personal-access-token"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -62,16 +62,16 @@ Add a `.mcp.json` file to your project root:
 
 ```json
 {
-  "mcpServers": {
-    "wayd": {
-      "command": "npx",
-      "args": ["-y", "@wayd/mcp"],
-      "env": {
-        "WAYD_API_BASE_URL": "https://your-wayd-instance.com",
-        "WAYD_API_KEY": "your-personal-access-token"
-      }
+    "mcpServers": {
+        "wayd": {
+            "command": "npx",
+            "args": ["-y", "@wayd/mcp"],
+            "env": {
+                "WAYD_API_BASE_URL": "https://your-wayd-instance.com",
+                "WAYD_API_KEY": "your-personal-access-token"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -88,30 +88,33 @@ Add to your `.vscode/mcp.json` or workspace settings:
 
 ```json
 {
-  "inputs": [
-    {
-      "id": "waydBaseUrl",
-      "description": "Wayd API base URL",
-      "type": "promptString"
-    },
-    {
-      "id": "waydApiKey",
-      "description": "Wayd API key (Personal Access Token)",
-      "type": "promptString",
-      "password": true
+    "inputs": [
+        {
+            "id": "waydBaseUrl",
+            "description": "Wayd API base URL",
+            "type": "promptString"
+        },
+        {
+            "id": "waydApiKey",
+            "description": "Wayd API key (Personal Access Token)",
+            "type": "promptString",
+            "password": true
+        }
+    ],
+    "servers": {
+        "wayd": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@wayd/mcp",
+                "--base-url",
+                "${input:waydBaseUrl}",
+                "--api-key",
+                "${input:waydApiKey}"
+            ]
+        }
     }
-  ],
-  "servers": {
-    "wayd": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y", "@wayd/mcp",
-        "--base-url", "${input:waydBaseUrl}",
-        "--api-key", "${input:waydApiKey}"
-      ]
-    }
-  }
 }
 ```
 
@@ -119,10 +122,10 @@ Add to your `.vscode/mcp.json` or workspace settings:
 
 The MCP server accepts configuration via environment variables or CLI arguments:
 
-| Environment Variable | CLI Argument | Description |
-|---------------------|-------------|-------------|
-| `WAYD_API_BASE_URL` | `--base-url` | The base URL of your Wayd API instance |
-| `WAYD_API_KEY` | `--api-key` | Your [Personal Access Token](./your-profile.mdx#personal-access-tokens) |
+| Environment Variable | CLI Argument | Description                                                             |
+| -------------------- | ------------ | ----------------------------------------------------------------------- |
+| `WAYD_API_BASE_URL`  | `--base-url` | The base URL of your Wayd API instance                                  |
+| `WAYD_API_KEY`       | `--api-key`  | Your [Personal Access Token](./your-profile.mdx#personal-access-tokens) |
 
 CLI arguments take precedence over environment variables.
 
@@ -136,7 +139,7 @@ For Claude Code users, nine pre-built skills provide guided workflows:
 - **`/wayd-delivery`** — Releases, versions, release packages, deployments, environments, and delivery metrics
 - **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
 - **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
-- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, and delivery forecasts
+- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, delivery forecasts, and team allocation reports
 - **`/wayd-users`** — User lookup and resolving names to UUIDs for assignees and project roles
 - **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
 
@@ -152,171 +155,171 @@ Most records expose an **activity history**: every recorded change, newest first
 
 ### Project Portfolio Management
 
-| Tool | Description |
-|------|-------------|
-| `Portfolios_GetPortfolios` | List portfolios with optional status filter |
-| `Portfolios_GetPortfolio` | Get portfolio details by ID or key |
-| `Portfolios_GetPortfolioPrograms` | List programs in a portfolio |
-| `Portfolios_GetPortfolioProjects` | List projects in a portfolio |
-| `Programs_GetPrograms` | List programs with status/portfolio filters |
-| `Programs_GetProgram` | Get program details |
-| `Programs_GetProgramProjects` | List projects in a program |
-| `Projects_GetProjects` | List projects with status/portfolio/role filters, for you or another employee |
-| `Projects_GetProject` | Get project details |
-| `Projects_GetProjectTeam` | Get team members with roles |
-| `Projects_GetProjectStages` | Get all project stages |
-| `Projects_GetProjectStage` | Get one project stage |
-| `Projects_GetProjectPlanTree` | Get full plan as a hierarchical tree (WBS) |
-| `Projects_GetProjectPlanSummary` | Get plan metrics (overdue, due this week, totals) |
-| `Projects_GetStatusHistory` | Get a project's status change history |
-| `Portfolios_GetActivities` / `Programs_GetActivities` / `Projects_GetActivities` | Every recorded change to a portfolio, program, or project, newest first |
-| `Projects_GetMyProjectsSummary` | Your own project involvement, counted by role |
-| `Projects_GetMyProjectsTaskMetrics` | Your open task counts (overdue, due this week, upcoming) |
+| Tool                                                                                       | Description                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Portfolios_GetPortfolios`                                                                 | List portfolios with optional status filter                                                                                                                 |
+| `Portfolios_GetPortfolio`                                                                  | Get portfolio details by ID or key                                                                                                                          |
+| `Portfolios_GetPortfolioPrograms`                                                          | List programs in a portfolio                                                                                                                                |
+| `Portfolios_GetPortfolioProjects`                                                          | List projects in a portfolio                                                                                                                                |
+| `Programs_GetPrograms`                                                                     | List programs with status/portfolio filters                                                                                                                 |
+| `Programs_GetProgram`                                                                      | Get program details                                                                                                                                         |
+| `Programs_GetProgramProjects`                                                              | List projects in a program                                                                                                                                  |
+| `Projects_GetProjects`                                                                     | List projects with status/portfolio/role filters, for you or another employee                                                                                                            |
+| `Projects_GetProject`                                                                      | Get project details                                                                                                                                         |
+| `Projects_GetProjectTeam`                                                                  | Get team members with roles                                                                                                                                 |
+| `Projects_GetProjectStages`                                                                | Get all project stages                                                                                                                                      |
+| `Projects_GetProjectStage`                                                                 | Get one project stage                                                                                                                                       |
+| `Projects_GetProjectPlanTree`                                                              | Get full plan as a hierarchical tree (WBS)                                                                                                                  |
+| `Projects_GetProjectPlanSummary`                                                           | Get plan metrics (overdue, due this week, totals)                                                                                                           |
+| `Projects_GetStatusHistory`                                                                | Get a project's status change history                                                                                                                       |
+| `Portfolios_GetActivities` / `Programs_GetActivities` / `Projects_GetActivities`           | Every recorded change to a portfolio, program, or project, newest first                                                                                     |
+| `Projects_GetMyProjectsSummary`                                                            | Your own project involvement, counted by role                                                                                                               |
+| `Projects_GetMyProjectsTaskMetrics`                                                        | Your open task counts (overdue, due this week, upcoming)                                                                                                    |
 | `Projects_GetTaskMetrics` | Open task counts for you or, with `employeeId`, for a colleague |
-| `Projects_GetProjectsPlanSummaries` | Plan metrics for many projects in one call |
-| `Projects_GetProjectHealthChecks` | Get the health check history for a project |
-| `Projects_GetProjectHealthCheck` | Get a specific project health check by ID |
-| `Projects_CreateProjectHealthCheck` | Log a new health check (Healthy / AtRisk / Unhealthy) on a project |
-| `Projects_UpdateProjectHealthCheck` / `Projects_DeleteProjectHealthCheck` | Correct or remove a recorded health check |
-| `Projects_GetScoringContext` / `Projects_GetScores` / `Projects_GetScore` | Review a project's scoring model and score history |
-| `Portfolios_GetRankingScoreboard` | Score breakdown behind a portfolio's ranking board |
-| `Portfolios_Create` / `Portfolios_Update` | Create and update portfolios |
-| `Programs_Create` / `Programs_Update` | Create and update programs |
-| `Projects_Create` / `Projects_Update` | Create and update projects |
-| `Projects_ChangeProgram` / `Projects_ChangeKey` | Move a project between programs, or change its key |
-| `Portfolios_Activate` / `Portfolios_Close` / `Portfolios_Archive` | Change portfolio status |
-| `Programs_Activate` / `Programs_Complete` / `Programs_Cancel` | Change program status |
-| `Projects_Approve` / `Projects_Activate` / `Projects_Complete` / `Projects_Cancel` | Change project status |
-| `Projects_RevertStatus` | Move a project backwards to an earlier status — reopening a completed one, or returning an active one to approved |
-| `Projects_GetWorkItems` | Get the work items linked to a project |
-| `Projects_GetForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a project's work items will be done, and the chance of finishing by its planned end |
-| `ProjectLifecycles_GetProjectLifecycles` | List lifecycles with state filter |
-| `ProjectLifecycles_GetProjectLifecycle` | Get lifecycle details |
-| `ExpenditureCategories_GetOptions` | Resolve the expenditure category needed to create a project |
-| `Portfolios_GetPortfolioOptions` | Lightweight portfolio list (id and name) for lookups |
-| `Portfolios_GetPortfolioStatuses` / `Programs_GetProgramStatuses` / `Projects_GetStatuses` | Resolve the status values each record accepts |
+| `Projects_GetProjectsPlanSummaries`                                                        | Plan metrics for many projects in one call                                                                                                                  |
+| `Projects_GetProjectHealthChecks`                                                          | Get the health check history for a project                                                                                                                  |
+| `Projects_GetProjectHealthCheck`                                                           | Get a specific project health check by ID                                                                                                                   |
+| `Projects_CreateProjectHealthCheck`                                                        | Log a new health check (Healthy / AtRisk / Unhealthy) on a project                                                                                          |
+| `Projects_UpdateProjectHealthCheck` / `Projects_DeleteProjectHealthCheck`                  | Correct or remove a recorded health check                                                                                                                   |
+| `Projects_GetScoringContext` / `Projects_GetScores` / `Projects_GetScore`                  | Review a project's scoring model and score history                                                                                                          |
+| `Portfolios_GetRankingScoreboard`                                                          | Score breakdown behind a portfolio's ranking board                                                                                                          |
+| `Portfolios_Create` / `Portfolios_Update`                                                  | Create and update portfolios                                                                                                                                |
+| `Programs_Create` / `Programs_Update`                                                      | Create and update programs                                                                                                                                  |
+| `Projects_Create` / `Projects_Update`                                                      | Create and update projects                                                                                                                                  |
+| `Projects_ChangeProgram` / `Projects_ChangeKey`                                            | Move a project between programs, or change its key                                                                                                          |
+| `Portfolios_Activate` / `Portfolios_Close` / `Portfolios_Archive`                          | Change portfolio status                                                                                                                                     |
+| `Programs_Activate` / `Programs_Complete` / `Programs_Cancel`                              | Change program status                                                                                                                                       |
+| `Projects_Approve` / `Projects_Activate` / `Projects_Complete` / `Projects_Cancel`         | Change project status                                                                                                                                       |
+| `Projects_RevertStatus`                                                                    | Move a project backwards to an earlier status — reopening a completed one, or returning an active one to approved                                           |
+| `Projects_GetWorkItems`                                                                    | Get the work items linked to a project                                                                                                                      |
+| `Projects_GetForecast`                                                                     | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a project's work items will be done, and the chance of finishing by its planned end |
+| `ProjectLifecycles_GetProjectLifecycles`                                                   | List lifecycles with state filter                                                                                                                           |
+| `ProjectLifecycles_GetProjectLifecycle`                                                    | Get lifecycle details                                                                                                                                       |
+| `ExpenditureCategories_GetOptions`                                                         | Resolve the expenditure category needed to create a project                                                                                                 |
+| `Portfolios_GetPortfolioOptions`                                                           | Lightweight portfolio list (id and name) for lookups                                                                                                        |
+| `Portfolios_GetPortfolioStatuses` / `Programs_GetProgramStatuses` / `Projects_GetStatuses` | Resolve the status values each record accepts                                                                                                               |
 
 ### Strategic Initiatives
 
-| Tool | Description |
-|------|-------------|
-| `StrategicInitiatives_GetStrategicInitiatives` | List initiatives with status/portfolio filters |
-| `StrategicInitiatives_GetStrategicInitiative` | Get initiative details |
-| `StrategicInitiatives_GetStatuses` | Resolve initiative status values |
-| `StrategicInitiatives_GetActivities` | Every recorded change to an initiative, including its KPIs and measurements |
-| `StrategicInitiatives_GetProjects` | Projects delivering an initiative |
-| `Portfolios_GetPortfolioStrategicInitiatives` | Initiatives in a portfolio |
-| `StrategicInitiatives_GetKpis` / `StrategicInitiatives_GetKpi` | Review an initiative's KPIs |
-| `StrategicInitiatives_GetKpiCheckpoints` | A KPI's dated targets |
-| `StrategicInitiatives_GetKpiCheckpointPlan` | Checkpoints with measurements, health, and trend |
-| `StrategicInitiatives_GetKpiMeasurements` | A KPI's measurement history |
-| `StrategicInitiatives_AddKpiMeasurement` / `StrategicInitiatives_RemoveKpiMeasurement` | Record or remove a KPI measurement |
-| `StrategicInitiatives_Approve` / `StrategicInitiatives_Activate` / `StrategicInitiatives_Complete` / `StrategicInitiatives_Cancel` | Change initiative status |
+| Tool                                                                                                                               | Description                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `StrategicInitiatives_GetStrategicInitiatives`                                                                                     | List initiatives with status/portfolio filters                              |
+| `StrategicInitiatives_GetStrategicInitiative`                                                                                      | Get initiative details                                                      |
+| `StrategicInitiatives_GetStatuses`                                                                                                 | Resolve initiative status values                                            |
+| `StrategicInitiatives_GetActivities`                                                                                               | Every recorded change to an initiative, including its KPIs and measurements |
+| `StrategicInitiatives_GetProjects`                                                                                                 | Projects delivering an initiative                                           |
+| `Portfolios_GetPortfolioStrategicInitiatives`                                                                                      | Initiatives in a portfolio                                                  |
+| `StrategicInitiatives_GetKpis` / `StrategicInitiatives_GetKpi`                                                                     | Review an initiative's KPIs                                                 |
+| `StrategicInitiatives_GetKpiCheckpoints`                                                                                           | A KPI's dated targets                                                       |
+| `StrategicInitiatives_GetKpiCheckpointPlan`                                                                                        | Checkpoints with measurements, health, and trend                            |
+| `StrategicInitiatives_GetKpiMeasurements`                                                                                          | A KPI's measurement history                                                 |
+| `StrategicInitiatives_AddKpiMeasurement` / `StrategicInitiatives_RemoveKpiMeasurement`                                             | Record or remove a KPI measurement                                          |
+| `StrategicInitiatives_Approve` / `StrategicInitiatives_Activate` / `StrategicInitiatives_Complete` / `StrategicInitiatives_Cancel` | Change initiative status                                                    |
 
 ### Tasks
 
-| Tool | Description |
-|------|-------------|
-| `Tasks_GetProjectTasks` | List tasks with status/parent filters |
-| `Tasks_GetProjectTask` | Get task details |
-| `Tasks_GetCriticalPath` | Get critical path task IDs |
-| `Tasks_CreateProjectTask` | Create a new task or milestone |
-| `Tasks_UpdateProjectTask` | Update task fields |
-| `Tasks_DeleteProjectTask` | Delete a task |
-| `Tasks_AddTaskDependency` | Add finish-to-start dependency |
-| `Tasks_RemoveTaskDependency` | Remove a dependency |
+| Tool                                                                       | Description                                                  |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `Tasks_GetProjectTasks`                                                    | List tasks with status/parent filters                        |
+| `Tasks_GetProjectTask`                                                     | Get task details                                             |
+| `Tasks_GetCriticalPath`                                                    | Get critical path task IDs                                   |
+| `Tasks_CreateProjectTask`                                                  | Create a new task or milestone                               |
+| `Tasks_UpdateProjectTask`                                                  | Update task fields                                           |
+| `Tasks_DeleteProjectTask`                                                  | Delete a task                                                |
+| `Tasks_AddTaskDependency`                                                  | Add finish-to-start dependency                               |
+| `Tasks_RemoveTaskDependency`                                               | Remove a dependency                                          |
 | `Tasks_GetTaskTypes` / `Tasks_GetTaskStatuses` / `Tasks_GetTaskPriorities` | Resolve the type, status, and priority values a task accepts |
 
 ### Planning
 
-| Tool | Description |
-|------|-------------|
-| `PlanningIntervals_GetList` | List all planning intervals |
-| `PlanningIntervals_GetPlanningInterval` | Get PI details |
-| `PlanningIntervals_GetActivities` / `PlanningIntervals_GetObjectiveActivities` | Every recorded change to a PI, or to one of its objectives |
-| `PlanningIntervals_GetCalendar` | Get PI calendar |
-| `PlanningIntervals_GetPredictability` | Get predictability scores |
-| `PlanningIntervals_GetTeams` | Get teams in a PI |
-| `PlanningIntervals_GetIterations` | Get iterations |
-| `PlanningIntervals_GetIteration` | Get one iteration |
-| `PlanningIntervals_GetObjectives` | Get team objectives |
-| `PlanningIntervals_GetObjective` | Get one objective |
-| `PlanningIntervals_GetRisks` | Get risks |
-| `PlanningIntervals_GetObjectivesHealthReport` | Get health report for all objectives in a PI |
-| `PlanningIntervals_GetObjectiveHealthChecks` | Get the health check history for a PI objective |
-| `PlanningIntervals_GetObjectiveHealthCheck` | Get a specific PI objective health check by ID |
-| `PlanningIntervals_CreateObjectiveHealthCheck` | Log a new health check (1=Healthy, 2=AtRisk, 3=Unhealthy) on a PI objective |
-| `PlanningIntervals_GetTeamPredictability` | Predictability for one team in a PI |
-| `PlanningIntervals_GetIterationCategories` | Resolve iteration category values |
-| `PlanningIntervals_GetIterationSprints` | Sprints within an iteration |
-| `PlanningIntervals_GetIterationMetrics` | Iteration metrics |
-| `PlanningIntervals_GetIterationBacklog` | An iteration's backlog |
-| `PlanningIntervals_GetObjectiveStatuses` | Resolve objective status values |
-| `PlanningIntervals_GetObjectiveWorkItems` / `PlanningIntervals_GetObjectiveWorkItemMetrics` | Work items behind an objective, and their metrics |
-| `PlanningIntervals_GetObjectiveForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when an objective's work items will be done, and the chance of finishing by its target date |
-| `Roadmaps_GetRoadmaps` | List all roadmaps |
-| `Roadmaps_GetRoadmap` | Get roadmap details |
-| `Roadmaps_GetItems` | Get all roadmap items |
-| `Roadmaps_GetItem` | Get roadmap item details |
-| `Roadmaps_GetActivities` | Get roadmap activities |
-| `Roadmaps_GetVisibilityOptions` | Resolve roadmap visibility values |
+| Tool                                                                                        | Description                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PlanningIntervals_GetList`                                                                 | List all planning intervals                                                                                                                                    |
+| `PlanningIntervals_GetPlanningInterval`                                                     | Get PI details                                                                                                                                                 |
+| `PlanningIntervals_GetActivities` / `PlanningIntervals_GetObjectiveActivities`              | Every recorded change to a PI, or to one of its objectives                                                                                                     |
+| `PlanningIntervals_GetCalendar`                                                             | Get PI calendar                                                                                                                                                |
+| `PlanningIntervals_GetPredictability`                                                       | Get predictability scores                                                                                                                                      |
+| `PlanningIntervals_GetTeams`                                                                | Get teams in a PI                                                                                                                                              |
+| `PlanningIntervals_GetIterations`                                                           | Get iterations                                                                                                                                                 |
+| `PlanningIntervals_GetIteration`                                                            | Get one iteration                                                                                                                                              |
+| `PlanningIntervals_GetObjectives`                                                           | Get team objectives                                                                                                                                            |
+| `PlanningIntervals_GetObjective`                                                            | Get one objective                                                                                                                                              |
+| `PlanningIntervals_GetRisks`                                                                | Get risks                                                                                                                                                      |
+| `PlanningIntervals_GetObjectivesHealthReport`                                               | Get health report for all objectives in a PI                                                                                                                   |
+| `PlanningIntervals_GetObjectiveHealthChecks`                                                | Get the health check history for a PI objective                                                                                                                |
+| `PlanningIntervals_GetObjectiveHealthCheck`                                                 | Get a specific PI objective health check by ID                                                                                                                 |
+| `PlanningIntervals_CreateObjectiveHealthCheck`                                              | Log a new health check (1=Healthy, 2=AtRisk, 3=Unhealthy) on a PI objective                                                                                    |
+| `PlanningIntervals_GetTeamPredictability`                                                   | Predictability for one team in a PI                                                                                                                            |
+| `PlanningIntervals_GetIterationCategories`                                                  | Resolve iteration category values                                                                                                                              |
+| `PlanningIntervals_GetIterationSprints`                                                     | Sprints within an iteration                                                                                                                                    |
+| `PlanningIntervals_GetIterationMetrics`                                                     | Iteration metrics                                                                                                                                              |
+| `PlanningIntervals_GetIterationBacklog`                                                     | An iteration's backlog                                                                                                                                         |
+| `PlanningIntervals_GetObjectiveStatuses`                                                    | Resolve objective status values                                                                                                                                |
+| `PlanningIntervals_GetObjectiveWorkItems` / `PlanningIntervals_GetObjectiveWorkItemMetrics` | Work items behind an objective, and their metrics                                                                                                              |
+| `PlanningIntervals_GetObjectiveForecast`                                                    | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when an objective's work items will be done, and the chance of finishing by its target date |
+| `Roadmaps_GetRoadmaps`                                                                      | List all roadmaps                                                                                                                                              |
+| `Roadmaps_GetRoadmap`                                                                       | Get roadmap details                                                                                                                                            |
+| `Roadmaps_GetItems`                                                                         | Get all roadmap items                                                                                                                                          |
+| `Roadmaps_GetItem`                                                                          | Get roadmap item details                                                                                                                                       |
+| `Roadmaps_GetActivities`                                                                    | Get roadmap activities                                                                                                                                         |
+| `Roadmaps_GetVisibilityOptions`                                                             | Resolve roadmap visibility values                                                                                                                              |
 
 ### Story Maps
 
-| Tool | Description |
-|------|-------------|
-| `StoryMaps_GetStoryMaps` | List story maps (optionally including archived) |
-| `StoryMaps_GetStoryMap` | Get a full story map — goals, steps, tasks, swim lanes, personas |
-| `StoryMaps_CreateStoryMap` | Create a story map |
-| `StoryMaps_UpdateStoryMap` | Update a map's name and description |
-| `StoryMaps_ChangeStoryMapOwner` | Change the map's owner |
-| `StoryMaps_ArchiveStoryMap` | Archive a story map |
-| `StoryMaps_DeleteStoryMap` | Permanently delete a story map |
-| `StoryMaps_AddGoal` | Add a goal (created with one step) |
-| `StoryMaps_RenameGoal` / `StoryMaps_ReorderGoal` / `StoryMaps_DeleteGoal` | Manage goals |
-| `StoryMaps_AddStep` | Add a step to a goal |
-| `StoryMaps_RenameStep` / `StoryMaps_ReorderStep` / `StoryMaps_MoveStep` / `StoryMaps_DeleteStep` | Manage steps |
-| `StoryMaps_AddTask` | Add a task to a step (defaults to the default swim lane) |
-| `StoryMaps_UpdateTask` / `StoryMaps_MoveTask` / `StoryMaps_DeleteTask` | Manage tasks |
-| `StoryMaps_AddChecklistItem` / `StoryMaps_RenameChecklistItem` / `StoryMaps_SetChecklistItemChecked` / `StoryMaps_RemoveChecklistItem` | Manage a task's checklist |
-| `StoryMaps_PromoteChecklistItem` | Promote a checklist item into a task |
-| `StoryMaps_LinkWorkItem` / `StoryMaps_UnlinkWorkItem` | Link/unlink a task to a work item |
-| `StoryMaps_AddSwimLane` / `StoryMaps_RenameSwimLane` / `StoryMaps_SetSwimLaneDates` / `StoryMaps_ReorderSwimLane` / `StoryMaps_RemoveSwimLane` | Manage swim lanes |
-| `StoryMaps_AddPersona` / `StoryMaps_UpdatePersona` / `StoryMaps_ReorderPersona` / `StoryMaps_DeletePersona` | Manage personas |
-| `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` | Set persona tags on a node |
+| Tool                                                                                                                                           | Description                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `StoryMaps_GetStoryMaps`                                                                                                                       | List story maps (optionally including archived)                  |
+| `StoryMaps_GetStoryMap`                                                                                                                        | Get a full story map — goals, steps, tasks, swim lanes, personas |
+| `StoryMaps_CreateStoryMap`                                                                                                                     | Create a story map                                               |
+| `StoryMaps_UpdateStoryMap`                                                                                                                     | Update a map's name and description                              |
+| `StoryMaps_ChangeStoryMapOwner`                                                                                                                | Change the map's owner                                           |
+| `StoryMaps_ArchiveStoryMap`                                                                                                                    | Archive a story map                                              |
+| `StoryMaps_DeleteStoryMap`                                                                                                                     | Permanently delete a story map                                   |
+| `StoryMaps_AddGoal`                                                                                                                            | Add a goal (created with one step)                               |
+| `StoryMaps_RenameGoal` / `StoryMaps_ReorderGoal` / `StoryMaps_DeleteGoal`                                                                      | Manage goals                                                     |
+| `StoryMaps_AddStep`                                                                                                                            | Add a step to a goal                                             |
+| `StoryMaps_RenameStep` / `StoryMaps_ReorderStep` / `StoryMaps_MoveStep` / `StoryMaps_DeleteStep`                                               | Manage steps                                                     |
+| `StoryMaps_AddTask`                                                                                                                            | Add a task to a step (defaults to the default swim lane)         |
+| `StoryMaps_UpdateTask` / `StoryMaps_MoveTask` / `StoryMaps_DeleteTask`                                                                         | Manage tasks                                                     |
+| `StoryMaps_AddChecklistItem` / `StoryMaps_RenameChecklistItem` / `StoryMaps_SetChecklistItemChecked` / `StoryMaps_RemoveChecklistItem`         | Manage a task's checklist                                        |
+| `StoryMaps_PromoteChecklistItem`                                                                                                               | Promote a checklist item into a task                             |
+| `StoryMaps_LinkWorkItem` / `StoryMaps_UnlinkWorkItem`                                                                                          | Link/unlink a task to a work item                                |
+| `StoryMaps_AddSwimLane` / `StoryMaps_RenameSwimLane` / `StoryMaps_SetSwimLaneDates` / `StoryMaps_ReorderSwimLane` / `StoryMaps_RemoveSwimLane` | Manage swim lanes                                                |
+| `StoryMaps_AddPersona` / `StoryMaps_UpdatePersona` / `StoryMaps_ReorderPersona` / `StoryMaps_DeletePersona`                                    | Manage personas                                                  |
+| `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas`                                                        | Set persona tags on a node                                       |
 
 ### Product Catalog
 
 The catalog is one typed tree of what your organization owns — products, platforms, services, and tools. A product's **type** carries the flag that decides whether versions can be cut against it, which is why a product line usually holds no versions of its own.
 
-| Tool | Description |
-|------|-------------|
-| `Products_GetProducts` | List products, filtered by parent, type, status category, or tags |
-| `Products_GetProduct` | Get product details |
-| `Products_GetStatusHistory` | A product's status change history |
-| `Products_GetActivities` | Every recorded change to a product |
-| `Products_GetStatusOptions` | Resolve the status values a product accepts |
-| `Products_Create` / `Products_Update` | Create a product, or change its name and description |
-| `Products_Retype` | Change a product's type |
-| `Products_Reparent` | Move a product beneath a different parent |
-| `Products_ChangeStatus` | Change a product's status |
-| `Products_LinkExternally` | Link a product to an external system |
-| `Products_Tag` / `Products_Untag` | Apply or remove a tag |
-| `Products_GetDependencies` | What a product depends on and what depends on it, rolled up across everything beneath it |
-| `Products_AddDependency` / `Products_UpdateDependency` | Record that a product depends on another, or reword what it is for |
-| `Products_ChangeDependencyTerms` | Change a dependency's strength or interaction styles — ends it and opens a new one |
-| `Products_EndDependency` / `Products_RemoveDependency` | Record that a dependency stopped (kept), or delete one recorded by mistake |
-| `Products_Delete` | Permanently delete a product |
-| `ProductTypes_GetProductTypes` | List the types a product can be, and whether each allows versions |
-| `ProductTypes_Create` / `ProductTypes_Update` / `ProductTypes_Delete` | Manage product types |
-| `ProductTypes_SetActive` | Take a type out of use, or put it back |
-| `ProductTagCategories_GetProductTagCategories` | List the tag axes and their tags |
-| `ProductTagCategories_Create` / `ProductTagCategories_Update` / `ProductTagCategories_Delete` | Manage tag axes |
-| `ProductTagCategories_SetActive` | Take an axis out of use, or put it back |
-| `ProductTagCategories_Reorder` | Reorder the axes — the list must name every one exactly once |
-| `ProductTagCategories_AddTag` / `ProductTagCategories_RenameTag` | Manage the tags on an axis |
-| `ProductTagCategories_SetTagActive` | Take a single tag out of use, or put it back |
-| `ProductTagCategories_DeleteTag` | Permanently delete a tag no product carries |
+| Tool                                                                                          | Description                                                                              |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `Products_GetProducts`                                                                        | List products, filtered by parent, type, status category, or tags                        |
+| `Products_GetProduct`                                                                         | Get product details                                                                      |
+| `Products_GetStatusHistory`                                                                   | A product's status change history                                                        |
+| `Products_GetActivities`                                                                      | Every recorded change to a product                                                       |
+| `Products_GetStatusOptions`                                                                   | Resolve the status values a product accepts                                              |
+| `Products_Create` / `Products_Update`                                                         | Create a product, or change its name and description                                     |
+| `Products_Retype`                                                                             | Change a product's type                                                                  |
+| `Products_Reparent`                                                                           | Move a product beneath a different parent                                                |
+| `Products_ChangeStatus`                                                                       | Change a product's status                                                                |
+| `Products_LinkExternally`                                                                     | Link a product to an external system                                                     |
+| `Products_Tag` / `Products_Untag`                                                             | Apply or remove a tag                                                                    |
+| `Products_GetDependencies`                                                                    | What a product depends on and what depends on it, rolled up across everything beneath it |
+| `Products_AddDependency` / `Products_UpdateDependency`                                        | Record that a product depends on another, or reword what it is for                       |
+| `Products_ChangeDependencyTerms`                                                              | Change a dependency's strength or interaction styles — ends it and opens a new one       |
+| `Products_EndDependency` / `Products_RemoveDependency`                                        | Record that a dependency stopped (kept), or delete one recorded by mistake               |
+| `Products_Delete`                                                                             | Permanently delete a product                                                             |
+| `ProductTypes_GetProductTypes`                                                                | List the types a product can be, and whether each allows versions                        |
+| `ProductTypes_Create` / `ProductTypes_Update` / `ProductTypes_Delete`                         | Manage product types                                                                     |
+| `ProductTypes_SetActive`                                                                      | Take a type out of use, or put it back                                                   |
+| `ProductTagCategories_GetProductTagCategories`                                                | List the tag axes and their tags                                                         |
+| `ProductTagCategories_Create` / `ProductTagCategories_Update` / `ProductTagCategories_Delete` | Manage tag axes                                                                          |
+| `ProductTagCategories_SetActive`                                                              | Take an axis out of use, or put it back                                                  |
+| `ProductTagCategories_Reorder`                                                                | Reorder the axes — the list must name every one exactly once                             |
+| `ProductTagCategories_AddTag` / `ProductTagCategories_RenameTag`                              | Manage the tags on an axis                                                               |
+| `ProductTagCategories_SetTagActive`                                                           | Take a single tag out of use, or put it back                                             |
+| `ProductTagCategories_DeleteTag`                                                              | Permanently delete a tag no product carries                                              |
 
 Dependencies are **rolled up**: a product line's list includes its services' links to anything outside it. Strength has no default — hard if the product stops working without the other, soft if it only degrades — and a dependency that stopped should be **ended, not removed**, so the record of when it held survives.
 
@@ -326,84 +329,87 @@ Three behaviours worth knowing. Tagging an axis that only allows one value **sil
 
 Where the catalog records what exists, delivery records what shipped. The word "release" means three different things in most organizations, and Wayd keeps them apart: a **release** is what was announced to customers (`Wayd 2026.07`), a **version** is one artifact that was built (`Wayd API 4.12.0`), a **package** is what moved through environments together (`WAYD-2026.07`), and a **deployment** is one of those reaching one environment.
 
-| Tool | Description |
-|------|-------------|
-| `Releases_GetReleases` / `Releases_GetRelease` | List releases, or get one |
-| `Releases_GetStatusHistory` | A release's status change history |
-| `Releases_GetActivities` | Every recorded change to a release |
-| `Releases_Plan` / `Releases_Update` | Plan a release, or update its details |
-| `Releases_SetContents` | Set what the release announces — its versions and packages together |
-| `Releases_MarkReleased` | Announce a release |
-| `Releases_Withdraw` / `Releases_Revert` | Withdraw a release, or revert it to an earlier state |
-| `Releases_Delete` | Permanently delete a release; the versions and packages it listed are kept |
-| `Releases_CorrectDates` / `Releases_MoveTargetDate` | Correct recorded dates, or move the target |
-| `Versions_GetVersions` / `Versions_GetVersion` | List versions, or get one |
-| `Versions_GetStatusHistory` | A version's status change history |
-| `Versions_GetActivities` | Every recorded change to a version |
-| `Versions_Plan` / `Versions_Update` | Plan a version, or update its details |
-| `Versions_Cut` | Cut the version — the artifact now exists |
-| `Versions_MarkReleased` | Mark a version released |
-| `Versions_Withdraw` / `Versions_Revert` | Withdraw a version, or revert it |
-| `Versions_Delete` | Permanently delete a version and every deployment of it |
-| `Versions_CorrectDates` / `Versions_MoveTargetDate` | Correct recorded dates, or move the target |
-| `ReleasePackages_GetReleasePackages` / `ReleasePackages_GetReleasePackage` | List packages, or get one |
-| `ReleasePackages_GetStatusHistory` | A package's status change history |
-| `ReleasePackages_GetActivities` | Every recorded change to a package |
-| `ReleasePackages_Assemble` | Assemble a package |
-| `ReleasePackages_SetManifest` | Replace what the package contains |
-| `ReleasePackages_MarkReleased` / `ReleasePackages_Withdraw` | Mark a package released, or withdraw it |
-| `ReleasePackages_Delete` | Permanently delete a package, its manifest and every deployment of it |
-| `Deployments_GetDeployments` / `Deployments_GetDeployment` | List deployments, or get one |
-| `Deployments_GetStatusHistory` | A deployment's status change history |
-| `Deployments_GetActivities` | When a deployment started and how it ended |
-| `Deployments_Start` | Record a deployment starting — of a version or a package, never both |
-| `Deployments_Succeed` / `Deployments_Fail` / `Deployments_RollBack` | Record how a deployment ended |
-| `Deployments_Delete` | Permanently delete a deployment and its status history |
-| `DeploymentEnvironments_GetDeploymentEnvironments` | List environments, by active state or category |
-| `DeploymentEnvironments_Create` / `DeploymentEnvironments_Update` | Define or edit an environment |
-| `DeploymentEnvironments_SetActive` | Retire an environment, or reinstate it |
-| `DeploymentEnvironments_Delete` | Permanently delete an environment and every deployment into it |
-| `DeploymentEnvironments_GetRollout` | What is running in each environment now, in rollout order |
-| `DeliveryMetrics_GetDeliveryMetrics` | Deployment frequency and change failure rate over a window |
-| `DeliveryOverview_GetDeliveryOverview` | Version activity over a window — release frequency and cut-to-released time, for a product and everything beneath it |
-| `DeliveryOverview_GetRecentDeliveryEvents` | What has happened to versions and packages lately |
+| Tool                                                                       | Description                                                                                                          |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `Releases_GetReleases` / `Releases_GetRelease`                             | List releases, or get one                                                                                            |
+| `Releases_GetStatusHistory`                                                | A release's status change history                                                                                    |
+| `Releases_GetActivities`                                                   | Every recorded change to a release                                                                                   |
+| `Releases_Plan` / `Releases_Update`                                        | Plan a release, or update its details                                                                                |
+| `Releases_SetContents`                                                     | Set what the release announces — its versions and packages together                                                  |
+| `Releases_MarkReleased`                                                    | Announce a release                                                                                                   |
+| `Releases_Withdraw` / `Releases_Revert`                                    | Withdraw a release, or revert it to an earlier state                                                                 |
+| `Releases_Delete`                                                          | Permanently delete a release; the versions and packages it listed are kept                                           |
+| `Releases_CorrectDates` / `Releases_MoveTargetDate`                        | Correct recorded dates, or move the target                                                                           |
+| `Versions_GetVersions` / `Versions_GetVersion`                             | List versions, or get one                                                                                            |
+| `Versions_GetStatusHistory`                                                | A version's status change history                                                                                    |
+| `Versions_GetActivities`                                                   | Every recorded change to a version                                                                                   |
+| `Versions_Plan` / `Versions_Update`                                        | Plan a version, or update its details                                                                                |
+| `Versions_Cut`                                                             | Cut the version — the artifact now exists                                                                            |
+| `Versions_MarkReleased`                                                    | Mark a version released                                                                                              |
+| `Versions_Withdraw` / `Versions_Revert`                                    | Withdraw a version, or revert it                                                                                     |
+| `Versions_Delete`                                                          | Permanently delete a version and every deployment of it                                                              |
+| `Versions_CorrectDates` / `Versions_MoveTargetDate`                        | Correct recorded dates, or move the target                                                                           |
+| `ReleasePackages_GetReleasePackages` / `ReleasePackages_GetReleasePackage` | List packages, or get one                                                                                            |
+| `ReleasePackages_GetStatusHistory`                                         | A package's status change history                                                                                    |
+| `ReleasePackages_GetActivities`                                            | Every recorded change to a package                                                                                   |
+| `ReleasePackages_Assemble`                                                 | Assemble a package                                                                                                   |
+| `ReleasePackages_SetManifest`                                              | Replace what the package contains                                                                                    |
+| `ReleasePackages_MarkReleased` / `ReleasePackages_Withdraw`                | Mark a package released, or withdraw it                                                                              |
+| `ReleasePackages_Delete`                                                   | Permanently delete a package, its manifest and every deployment of it                                                |
+| `Deployments_GetDeployments` / `Deployments_GetDeployment`                 | List deployments, or get one                                                                                         |
+| `Deployments_GetStatusHistory`                                             | A deployment's status change history                                                                                 |
+| `Deployments_GetActivities`                                                | When a deployment started and how it ended                                                                           |
+| `Deployments_Start`                                                        | Record a deployment starting — of a version or a package, never both                                                 |
+| `Deployments_Succeed` / `Deployments_Fail` / `Deployments_RollBack`        | Record how a deployment ended                                                                                        |
+| `Deployments_Delete`                                                       | Permanently delete a deployment and its status history                                                               |
+| `DeploymentEnvironments_GetDeploymentEnvironments`                         | List environments, by active state or category                                                                       |
+| `DeploymentEnvironments_Create` / `DeploymentEnvironments_Update`          | Define or edit an environment                                                                                        |
+| `DeploymentEnvironments_SetActive`                                         | Retire an environment, or reinstate it                                                                               |
+| `DeploymentEnvironments_Delete`                                            | Permanently delete an environment and every deployment into it                                                       |
+| `DeploymentEnvironments_GetRollout`                                        | What is running in each environment now, in rollout order                                                            |
+| `DeliveryMetrics_GetDeliveryMetrics`                                       | Deployment frequency and change failure rate over a window                                                           |
+| `DeliveryOverview_GetDeliveryOverview`                                     | Version activity over a window — release frequency and cut-to-released time, for a product and everything beneath it |
+| `DeliveryOverview_GetRecentDeliveryEvents`                                 | What has happened to versions and packages lately                                                                    |
 
 **Contents and manifests replace as a set.** `Releases_SetContents` and `ReleasePackages_SetManifest` overwrite what was there, so send the full list including anything that should stay.
 
 Environments are **retired rather than deleted**, because historical deployments still point at them — deleting one takes every deployment into it along. Every production-scoped measure counts on an environment's **category**, not its name — pipeline names vary too much (`prod`, `prd`, `live`) to reason about. Reclassifying an environment changes where future deployments count and leaves past ones alone.
 
-`DeliveryMetrics_GetDeliveryMetrics` returns an `unavailable` list naming what it couldn't compute and why; read it rather than treating a missing measure as zero. Change failure rate is a **proxy** — a pipeline run that failed before production is a failure that was *prevented*, while a real change failure succeeded and then broke something, which the pipeline can't know.
+`DeliveryMetrics_GetDeliveryMetrics` returns an `unavailable` list naming what it couldn't compute and why; read it rather than treating a missing measure as zero. Change failure rate is a **proxy** — a pipeline run that failed before production is a failure that was _prevented_, while a real change failure succeeded and then broke something, which the pipeline can't know.
 
 `DeploymentEnvironments_GetRollout` reports the latest deployment of each product that **succeeded and wasn't rolled back**, so a failed attempt leaves its predecessor listed as running — and flags that a later attempt failed. `DeliveryOverview_GetDeliveryOverview` measures versions rather than deployments, so it answers how often you ship even where pipelines aren't recorded in Wayd.
 
 ### Organization
 
-| Tool | Description |
-|------|-------------|
-| `Teams_GetTeams` | List teams with optional inactive filter |
-| `Teams_GetTeam` | Get team details |
-| `Teams_GetActivities` | Every recorded change to a team |
-| `Teams_GetBacklogHealth` | Grade a team's backlog and list the work items each check flagged, with optional what-if thresholds |
-| `Teams_GetThroughputForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) how many backlog work items a team finishes by a date, and which work item that reaches |
+| Tool                             | Description                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Teams_GetTeams`                 | List teams with optional inactive filter                                                                                                                        |
+| `Teams_GetTeam`                  | Get team details                                                                                                                                                |
+| `Teams_GetActivities`            | Every recorded change to a team                                                                                                                                 |
+| `Teams_GetBacklogHealth`         | Grade a team's backlog and list the work items each check flagged, with optional what-if thresholds                                                             |
+| `Teams_GetThroughputForecast`    | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) how many backlog work items a team finishes by a date, and which work item that reaches      |
+| `Teams_GetTeamAllocation`        | [Allocation report](../user-guide/work-management/allocation-report.mdx) showing where a team's completed work went over a date range                           |
+| `TeamsOfTeams_GetList`           | List teams of teams with optional inactive filter                                                                                                               |
+| `TeamsOfTeams_GetAllocation`     | [Allocation report](../user-guide/work-management/allocation-report.mdx) rolling up completed work across a team of teams hierarchy                             |
 | `Workspaces_GetWorkItemForecast` | [Forecast](../user-guide/work-management/delivery-forecasting.mdx) when a work item will be done, from its team's throughput, backlog position and predecessors |
-| `Users_GetUsers` | List all users |
-| `Users_GetUser` | Get user details |
+| `Users_GetUsers`                 | List all users                                                                                                                                                  |
+| `Users_GetUser`                  | Get user details                                                                                                                                                |
 
 ### Imports
 
 Every CSV file submitted to Wayd becomes a run with an outcome for each row — whether it was submitted from [Settings → Imports](../user-guide/settings/imports.mdx) or straight to the API — so these tools can follow and control either. You see the kinds of import you are allowed to submit.
 
-| Tool | Description |
-|------|-------------|
-| `Imports_GetDefinitions` | The kinds of import you may see, with their row limits and whether you may submit them |
-| `Imports_GetFileFormat` | The columns a kind of import's CSV files must carry, and the values each accepts |
-| `Imports_Preflight` | Check a CSV file against your data without importing anything |
-| `Imports_GetList` | Import runs, newest first, filtered by status, kind, submitter, or submission group |
-| `Imports_GetById` | One run's status and counts |
-| `Imports_GetRows` | A run's row outcomes, with the reason each rejected row was refused |
-| `Imports_Cancel` | Stop a run that is still going — rows already applied stay applied |
+| Tool                                     | Description                                                                            |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| `Imports_GetDefinitions`                 | The kinds of import you may see, with their row limits and whether you may submit them |
+| `Imports_GetFileFormat`                  | The columns a kind of import's CSV files must carry, and the values each accepts       |
+| `Imports_Preflight`                      | Check a CSV file against your data without importing anything                          |
+| `Imports_GetList`                        | Import runs, newest first, filtered by status, kind, submitter, or submission group    |
+| `Imports_GetById`                        | One run's status and counts                                                            |
+| `Imports_GetRows`                        | A run's row outcomes, with the reason each rejected row was refused                    |
+| `Imports_Cancel`                         | Stop a run that is still going — rows already applied stay applied                     |
 | `Imports_Resume` / `Imports_RetryFailed` | Queue a finished run again for the rows it never reached, or for its rejected rows too |
-| `Imports_Apply` | Import the rows a preflight checked |
+| `Imports_Apply`                          | Import the rows a preflight checked                                                    |
 
 Your assistant can't import a file in one step. It first runs a **preflight**, which checks every row the way a real import would and creates nothing, then shows you what would be imported and what would be refused. Only then can it import those rows with `Imports_Apply`, which asks for confirmation. A preflight reports what would have happened when it ran; each row is checked again when it is imported.
 

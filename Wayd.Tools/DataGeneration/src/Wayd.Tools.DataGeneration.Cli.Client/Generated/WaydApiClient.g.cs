@@ -60969,6 +60969,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report where a team's completed work went.
+        /// </summary>
+        /// <remarks>
+        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// </remarks>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="dimension">What to group work by (default Portfolio).</param>
+        /// <param name="measure">How to weigh each work item (default Count).</param>
+        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Forecast how many backlog work items a team will finish by a date.
         /// </summary>
         /// <remarks>
@@ -62720,6 +62736,149 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamBacklogHealthDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Report where a team's completed work went.
+        /// </summary>
+        /// <remarks>
+        /// Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// </remarks>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="dimension">What to group work by (default Portfolio).</param>
+        /// <param name="measure">How to weigh each work item (default Count).</param>
+        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetTeamAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrCode == null)
+                throw new System.ArgumentNullException("idOrCode");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{idOrCode}/allocation"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/allocation");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("From")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("To")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (dimension != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Dimension")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(dimension, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (measure != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Measure")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(measure, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (unestimated != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Unestimated")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(unestimated, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (themeCounting != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ThemeCounting")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(themeCounting, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamAllocationDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -65065,6 +65224,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report where the completed work of a team of teams, and every team beneath it, went.
+        /// </summary>
+        /// <remarks>
+        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// </remarks>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="dimension">What to group work by (default Portfolio).</param>
+        /// <param name="measure">How to weigh each work item (default Count).</param>
+        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Deactivate a team of teams.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65645,6 +65820,149 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Report where the completed work of a team of teams, and every team beneath it, went.
+        /// </summary>
+        /// <remarks>
+        /// Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.
+        /// </remarks>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="dimension">What to group work by (default Portfolio).</param>
+        /// <param name="measure">How to weigh each work item (default Count).</param>
+        /// <param name="unestimated">Story points only: what to do with unestimated items (default Exclude).</param>
+        /// <param name="themeCounting">Strategic theme only: how to credit a project with several themes (default SplitEvenly).</param>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamAllocationDto> GetAllocationAsync(string idOrCode, string? from = null, string? to = null, AllocationDimension? dimension = null, AllocationMeasure? measure = null, UnestimatedHandling? unestimated = null, ThemeCounting? themeCounting = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrCode == null)
+                throw new System.ArgumentNullException("idOrCode");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{idOrCode}/allocation"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/allocation");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("From")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("To")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (dimension != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Dimension")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(dimension, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (measure != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Measure")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(measure, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (unestimated != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("Unestimated")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(unestimated, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (themeCounting != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ThemeCounting")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(themeCounting, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamAllocationDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -93211,6 +93529,355 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("flags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SimpleNavigationDto> Flags { get; set; } = new System.Collections.ObjectModel.Collection<SimpleNavigationDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamAllocationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkTeamNavigationDto Team { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public AllocationSummaryDto Summary { get; set; } = new AllocationSummaryDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("groups")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<AllocationGroupDto> Groups { get; set; } = new System.Collections.ObjectModel.Collection<AllocationGroupDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<AllocationTeamRowDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<AllocationTeamRowDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<AllocationPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<AllocationPeriodDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllocationSummaryDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("itemsCompleted")]
+        public int ItemsCompleted { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("itemsInPointSizedTeams")]
+        public int ItemsInPointSizedTeams { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("estimatedItems")]
+        public int EstimatedItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
+        public double StoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("filledItems")]
+        public int FilledItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("filledStoryPoints")]
+        public double FilledStoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("teamsIncluded")]
+        public int TeamsIncluded { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("excludedTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<AllocationTeamReferenceDto> ExcludedTeams { get; set; } = new System.Collections.ObjectModel.Collection<AllocationTeamReferenceDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("noProjectItems")]
+        public int NoProjectItems { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
+        public double NoProjectShare { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllocationTeamReferenceDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Code { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllocationGroupDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AllocationGroupKind>))]
+        public AllocationGroupKind Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recordId")]
+        public System.Guid? RecordId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recordKey")]
+        public string? RecordKey { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("portfolio")]
+        public NavigationDto? Portfolio { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("program")]
+        public NavigationDto? Program { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("projectKeys")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> ProjectKeys { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("programCount")]
+        public int ProgramCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public double Items { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
+        public double StoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("filledStoryPoints")]
+        public double FilledStoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public double Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("share")]
+        public double Share { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("noProjectValue")]
+        public double? NoProjectValue { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
+        public double? NoProjectShare { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("largestContributor")]
+        public AllocationContributorDto? LargestContributor { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum AllocationGroupKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Record")]
+        Record = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NoProject")]
+        NoProject = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"MissingLevel")]
+        MissingLevel = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllocationContributorDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid TeamId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Code { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public double Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public double Items { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllocationTeamRowDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid TeamId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Code { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isTeamOfTeams")]
+        public bool IsTeamOfTeams { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("parentId")]
+        public System.Guid? ParentId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("level")]
+        public int Level { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("excluded")]
+        public bool Excluded { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("excludedReason")]
+        public string? ExcludedReason { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public int Items { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
+        public double StoryPoints { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public double Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("cells")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<AllocationCellDto> Cells { get; set; } = new System.Collections.ObjectModel.Collection<AllocationCellDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
+        public double? NoProjectShare { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllocationCellDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public double Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("share")]
+        public double Share { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public double Items { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllocationPeriodDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public int Items { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public double Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("values")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<double> Values { get; set; } = new System.Collections.ObjectModel.Collection<double>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("shares")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<double> Shares { get; set; } = new System.Collections.ObjectModel.Collection<double>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("noProjectShare")]
+        public double NoProjectShare { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum AllocationDimension
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Portfolio")]
+        Portfolio = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Program")]
+        Program = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Project")]
+        Project = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StrategicTheme")]
+        StrategicTheme = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"WorkType")]
+        WorkType = 4,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum AllocationMeasure
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Count")]
+        Count = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StoryPoints")]
+        StoryPoints = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"TeamEffort")]
+        TeamEffort = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum UnestimatedHandling
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Exclude")]
+        Exclude = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"TeamAverage")]
+        TeamAverage = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ThemeCounting
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"SplitEvenly")]
+        SplitEvenly = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"CountFully")]
+        CountFully = 1,
 
     }
 

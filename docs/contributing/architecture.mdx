@@ -215,6 +215,22 @@ and fail cleanly rather than let the save fault: `PlanningInterval.ManageTeams(t
 `PlanningTeam` first and report that the team "may still be syncing" instead of an FK violation. A new caller
 of `ManageTeams`, or any new FK to a copy, needs the same guard.
 
+#### Reading another domain at query time
+
+A copy is worth keeping when a domain writes against the concept or reads it on every request. A report
+that only needs another domain's data now and then asks the owner instead, through a request in
+`Common.Application/Requests` that the owning module handles. The team allocation report
+(`GetTeamAllocationQuery`, Work) does this twice:
+
+- `GetTeamStructureQuery` (Organization) returns a team and every team beneath it over a date range as
+  **dated membership edges** plus each team's sizing periods, not one resolved tree — a team can change
+  parents inside the window, and work belongs to the parent it had on the day it was done.
+- `GetProjectClassificationsQuery` (PPM) returns each project's portfolio, program and **effective themes**
+  (the project's own, or its program's when it has none).
+
+Keep the calculation out of the handler: `AllocationCalculator` is a pure function over those results and
+the queried work items, so its rules are unit tested without a context or a dispatcher.
+
 ### Domain events and the activity log
 
 Every domain event drained by `SaveChanges` is captured in the activity log, and events follow one set of

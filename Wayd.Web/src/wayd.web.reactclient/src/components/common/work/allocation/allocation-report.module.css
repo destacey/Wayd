@@ -1,0 +1,175 @@
+.shareBar {
+  display: flex;
+  gap: 2px;
+  height: 36px;
+  border-radius: var(--ant-border-radius);
+  overflow: hidden;
+}
+
+.shareSegment {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.shareSegmentLabel {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  min-width: 0;
+  font-size: var(--ant-font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  font-size: var(--ant-font-size-sm);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.meter {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--ant-color-fill-tertiary);
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.heatCell {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--ant-border-radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.heatValue {
+  font-weight: 600;
+}
+
+.heatItems {
+  font-size: var(--ant-font-size-sm);
+  opacity: 0.8;
+}
+
+/* Five steps of the primary color for a group's share of a row; strong steps switch to light text. */
+.heat0 {
+  background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
+}
+
+.heat1 {
+  background: color-mix(in srgb, var(--ant-color-primary) 18%, transparent);
+}
+
+.heat2 {
+  background: color-mix(in srgb, var(--ant-color-primary) 36%, transparent);
+}
+
+.heat3 {
+  background: color-mix(in srgb, var(--ant-color-primary) 62%, transparent);
+  color: var(--ant-color-text-light-solid);
+}
+
+.heat4 {
+  background: var(--ant-color-primary);
+  color: var(--ant-color-text-light-solid);
+}
+
+/* The same steps in the warning color, so no-project work stands apart from the groups. */
+.gap0 {
+  background: color-mix(in srgb, var(--ant-color-warning) 8%, transparent);
+}
+
+.gap1 {
+  background: color-mix(in srgb, var(--ant-color-warning) 22%, transparent);
+}
+
+.gap2 {
+  background: color-mix(in srgb, var(--ant-color-warning) 42%, transparent);
+}
+
+.gap3 {
+  background: color-mix(in srgb, var(--ant-color-warning) 70%, transparent);
+}
+
+.gap4 {
+  background: var(--ant-color-warning);
+}
+
+.columns {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.columnStack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  height: 280px;
+  border-radius: var(--ant-border-radius-sm);
+  overflow: hidden;
+  background: var(--ant-color-fill-quaternary);
+}
+
+.columnSegment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  font-size: var(--ant-font-size-sm);
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.columnLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--ant-font-size-sm);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 280px;
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text-tertiary);
+  text-align: right;
+}

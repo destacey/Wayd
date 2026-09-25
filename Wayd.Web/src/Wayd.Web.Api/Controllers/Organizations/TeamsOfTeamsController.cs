@@ -15,6 +15,7 @@ using Wayd.Web.Api.Models.Organizations.TeamOfTeams;
 using Wayd.Web.Api.Models.Organizations.Teams;
 using Wayd.Web.Api.Models.Organizations.TeamsOfTeams;
 using Wayd.Web.Api.Models.Planning.Risks;
+using Wayd.Work.Application.WorkTeams.Dtos;
 
 namespace Wayd.Web.Api.Controllers.Organizations;
 
@@ -69,6 +70,30 @@ public class TeamsOfTeamsController : ControllerBase
         return result.Value is not null
             ? Ok(result.Value)
             : NotFound();
+    }
+
+    [HttpGet("{idOrCode}/allocation")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [OpenApiOperation("Report where the completed work of a team of teams, and every team beneath it, went.", "Groups the Requirement-tier work items completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamAllocationDto>> GetAllocation(
+        string idOrCode,
+        [FromQuery] GetTeamAllocationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!request.TryToQuery(idOrCode, out var query, out var error))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(error!, HttpContext));
+
+        var result = await _dispatcher.Send(query!, cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
     }
 
     [HttpPost]

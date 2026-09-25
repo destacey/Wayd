@@ -374,6 +374,30 @@ public class TeamsController(
                 : NotFound();
     }
 
+    [HttpGet("{idOrCode}/allocation")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [OpenApiOperation("Report where a team's completed work went.", "Groups the Requirement-tier work items the team completed from the from date to the to date (yyyy-MM-dd, inclusive, UTC) by portfolio, program, project, strategic theme or work type. Measures: Count, StoryPoints (point-sized teams only; unestimated items excluded or filled from the team average) or TeamEffort. Work with no project is its own group.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamAllocationDto>> GetTeamAllocation(
+        string idOrCode,
+        [FromQuery] GetTeamAllocationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!request.TryToQuery(idOrCode, out var query, out var error))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(error!, HttpContext));
+
+        var result = await _dispatcher.Send(query!, cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
+    }
+
     [HttpGet("{idOrCode}/throughput-forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]

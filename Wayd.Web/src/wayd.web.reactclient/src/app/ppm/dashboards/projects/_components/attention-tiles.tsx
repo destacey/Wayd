@@ -1,6 +1,6 @@
 'use client'
 
-import { MetricCard } from '@/src/components/common/metrics'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import useTheme from '@/src/components/contexts/theme'
 import { FC, RefObject } from 'react'
 import {
@@ -109,6 +109,9 @@ const AttentionTiles: FC<AttentionTilesProps> = ({
               tile.alert && value > 0 ? { color: alertColor } : undefined
             }
             cardStyle={{
+              // Six tiles share the row evenly, whatever their labels say.
+              ...METRIC_CARD_FLEX,
+              maxWidth: undefined,
               borderColor: isActive ? token.colorPrimary : undefined,
               boxShadow: isActive
                 ? `0 0 0 1px ${token.colorPrimary}`

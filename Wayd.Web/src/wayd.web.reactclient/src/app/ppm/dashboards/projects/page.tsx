@@ -96,6 +96,7 @@ const ProjectsDashboardPage: FC = () => {
     projects,
     planSummaries,
     isLoading,
+    isSummariesLoading,
     error,
     refetch,
     subjectEmployeeId,
@@ -170,7 +171,8 @@ const ProjectsDashboardPage: FC = () => {
           setAttention(filter)
           clearSelection()
         }}
-        isLoading={isLoading}
+        // The overdue tile is built from the task counts, so the row waits for both.
+        isLoading={isLoading || isSummariesLoading}
       />
       {/* Breakdowns describe a population; a person's handful of projects is not one. */}
       {!isPersonScope(scope) && (

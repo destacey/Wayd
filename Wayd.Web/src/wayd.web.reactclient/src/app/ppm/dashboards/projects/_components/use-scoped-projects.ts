@@ -19,6 +19,8 @@ export interface ScopedProjectsResult {
   projects: ProjectListDto[] | undefined
   planSummaries: PlanSummaries
   isLoading: boolean
+  /** The task counts are still on their way, so any tile built from them is not yet true. */
+  isSummariesLoading: boolean
   error: unknown
   refetch: () => void
   /** The employee whose roles the list shows; null outside a person scope. */
@@ -97,10 +99,21 @@ export const useScopedProjects = (
     { skip: projectIds.length === 0 },
   )
 
+  // "Loading" means no data for the current arguments yet. RTK's isLoading
+  // covers only a hook's first request; switching scope or filters changes
+  // the arguments, and data goes undefined while isLoading stays false, which
+  // would render zero tiles and an empty list instead of skeletons.
+  const awaiting = (q: {
+    data?: unknown
+    isLoading: boolean
+    isFetching: boolean
+  }) => q.data === undefined && (q.isLoading || q.isFetching)
+
   return {
     projects: ready ? active.data : undefined,
     planSummaries: summaries.data ?? {},
-    isLoading: ready && active.isLoading,
+    isLoading: ready && awaiting(active),
+    isSummariesLoading: projectIds.length > 0 && awaiting(summaries),
     error: active.error,
     refetch: active.refetch,
     subjectEmployeeId:

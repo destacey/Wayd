@@ -73,11 +73,6 @@
   margin-bottom: 12px;
 }
 
-.attentionTile {
-  flex: 1 1 0;
-  min-width: 150px;
-}
-
 /* Toolbar */
 .toolbar {
   margin-bottom: 8px;
@@ -103,10 +98,10 @@
 
 .grid {
   display: grid;
-  /* health | key | project | status | stages | tasks | team | end | score | roles */
+  /* health | key | project | status | stages | tasks | team | end | roles */
   grid-template-columns:
     minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
-    minmax(140px, 1fr) 72px 92px 56px minmax(80px, 0.6fr);
+    minmax(140px, 1fr) 72px 92px minmax(80px, 0.6fr);
   gap: 12px;
   align-items: center;
   padding: 8px 16px;
@@ -128,7 +123,7 @@
 .headerNoRoles {
   grid-template-columns:
     minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
-    minmax(140px, 1fr) 72px 92px 56px;
+    minmax(140px, 1fr) 72px 92px;
 }
 
 .groupHeader {
@@ -196,7 +191,7 @@
 .rowNoRoles {
   grid-template-columns:
     minmax(96px, 0.6fr) 72px minmax(180px, 2fr) 96px minmax(200px, 1.4fr)
-    minmax(140px, 1fr) 72px 92px 56px;
+    minmax(140px, 1fr) 72px 92px;
 }
 
 .cell {
@@ -232,11 +227,6 @@
 
 .endDateSoon {
   color: var(--ant-color-warning-text);
-}
-
-.score {
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
 }
 
 .roles {

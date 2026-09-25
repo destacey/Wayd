@@ -19,11 +19,13 @@ import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useGetProjectQuery } from '@/src/store/features/ppm/projects-api'
 import { getDrawerWidthPixels, isApiError } from '@/src/utils'
-import { Divider, Drawer, Flex } from 'antd'
+import { Button, Divider, Drawer, Flex } from 'antd'
 import dayjs from 'dayjs'
 import { WaydTooltip } from '@/src/components/common'
 import { projectHelpText } from '../projects/_components/project-help-text'
+import CreateProjectHealthCheckForm from '../projects/_components/create-project-health-check-form'
 import ProjectHealthCheckTag from '../projects/_components/project-health-check-tag'
+import { canActOnPpmRecord } from './ppm-authorization'
 import ProjectScoreCard from '../projects/_components/scoring/project-score-card'
 import RecordRoleList from '@/src/app/ppm/_components/record-role-list'
 import Link from 'next/link'
@@ -41,12 +43,20 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
   onDrawerClose,
 }: ProjectDrawerProps) => {
   const [size, setSize] = useState(() => getDrawerWidthPixels())
+  const [openCreateHealthCheckForm, setOpenCreateHealthCheckForm] =
+    useState(false)
   const messageApi = useMessage()
 
   const { data: projectData, isLoading, error } = useGetProjectQuery(projectKey)
 
   const { hasPermissionClaim } = useAuth()
   const canViewProject = hasPermissionClaim('Permissions.Projects.View')
+  // Same gate as the project page: the permission alone cannot record a health
+  // check, the server's leadership flag has to agree.
+  const canManageProject = canActOnPpmRecord(
+    hasPermissionClaim('Permissions.Projects.Update'),
+    projectData?.canManageProject,
+  )
 
   useEffect(() => {
     if (!canViewProject) {
@@ -91,6 +101,18 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
   return (
     <Drawer
       title={projectData?.name ?? 'Project Details'}
+      // Recording health is the recurring action on a live project, so it is
+      // reachable from the drawer without opening the project page.
+      extra={
+        canManageProject && (
+          <Button
+            size="small"
+            onClick={() => setOpenCreateHealthCheckForm(true)}
+          >
+            Create Health Check
+          </Button>
+        )
+      }
       placement="right"
       onClose={onDrawerClose}
       open={drawerOpen}
@@ -218,9 +240,7 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
           </>
         )}
 
-        {hasNarrative && (
-          <Divider size="small" style={{ margin: 0 }} />
-        )}
+        {hasNarrative && <Divider size="small" style={{ margin: 0 }} />}
 
         <Flex vertical gap={10}>
           {projectData?.description && (
@@ -278,9 +298,15 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
           </>
         )}
       </Flex>
+      {openCreateHealthCheckForm && projectData && (
+        <CreateProjectHealthCheckForm
+          projectId={projectData.id}
+          onFormCreate={() => setOpenCreateHealthCheckForm(false)}
+          onFormCancel={() => setOpenCreateHealthCheckForm(false)}
+        />
+      )}
     </Drawer>
   )
 }
 
 export default ProjectDrawer
-

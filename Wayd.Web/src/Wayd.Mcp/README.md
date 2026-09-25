@@ -12,10 +12,10 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for the
 
 The server requires two values: the base URL of your Wayd instance and an API key. These can be supplied as **environment variables** or **CLI arguments** — CLI arguments take priority if both are provided.
 
-| | Environment variable | CLI argument |
-|---|---|---|
-| Base URL | `WAYD_API_BASE_URL` | `--base-url` |
-| API key | `WAYD_API_KEY` | `--api-key` |
+|          | Environment variable | CLI argument |
+| -------- | -------------------- | ------------ |
+| Base URL | `WAYD_API_BASE_URL`  | `--base-url` |
+| API key  | `WAYD_API_KEY`       | `--api-key`  |
 
 ## Installation
 
@@ -62,9 +62,12 @@ CLI args enable the `inputs` pattern, which prompts for values at connection tim
       "type": "stdio",
       "command": "npx",
       "args": [
-        "-y", "@wayd/mcp",
-        "--base-url", "${input:waydBaseUrl}",
-        "--api-key",  "${input:waydApiKey}"
+        "-y",
+        "@wayd/mcp",
+        "--base-url",
+        "${input:waydBaseUrl}",
+        "--api-key",
+        "${input:waydApiKey}"
       ]
     }
   }
@@ -135,17 +138,17 @@ Skills are prompt files that guide Claude on how to efficiently use the Wayd MCP
 
 Nine self-contained skills are available:
 
-| Skill | Trigger |
-| --- | --- |
-| `wayd-ppm` | Portfolios, programs, projects — lookup, plans, health checks, task management |
-| `wayd-delivery` | Releases, versions, packages, deployments — what was announced, built, shipped together, and deployed where |
-| `wayd-products` | The product catalog — the typed tree, dependencies, types, tags, environments, what is running where, and delivery measures |
-| `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
-| `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
-| `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
-| `wayd-teams` | Team lookup — resolve a team name to an ID; grade a team's backlog health; forecast work items, objectives, projects and team throughput |
-| `wayd-users` | User lookup — resolve a user name to a UUID for assignees and project roles |
-| `wayd-imports` | CSV imports — write a file in the right format, preflight it, import the rows it checked, and follow or re-run import runs |
+| Skill             | Trigger                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `wayd-ppm`        | Portfolios, programs, projects — lookup, plans, health checks, task management                                                 |
+| `wayd-delivery`   | Releases, versions, packages, deployments — what was announced, built, shipped together, and deployed where                    |
+| `wayd-products`   | The product catalog — the typed tree, dependencies, types, tags, environments, what is running where, and delivery measures    |
+| `wayd-pi`         | Planning intervals, iterations, objectives, health reports, risks                                                              |
+| `wayd-roadmaps`   | Roadmap exploration — activities, timeboxes, milestones                                                                        |
+| `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas                                             |
+| `wayd-teams`      | Team lookup — resolve a team name to an ID; grade backlog health; forecast delivery; team and team of teams allocation reports |
+| `wayd-users`      | User lookup — resolve a user name to a UUID for assignees and project roles                                                    |
+| `wayd-imports`    | CSV imports — write a file in the right format, preflight it, import the rows it checked, and follow or re-run import runs     |
 
 ### Installing the skills
 
@@ -178,68 +181,68 @@ Records that raise domain events expose an **activity history** — every record
 
 ### Project Portfolio Management
 
-| Category | Operations |
-| --- | --- |
-| **Portfolios** | List, get details, get activity history, get programs, get projects, get strategic initiatives, get ranking scoreboard. Create, update. Status: activate, close, archive |
-| **Strategic Initiatives** | List, get details, get activity history, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel |
-| **Programs** | List, get details, get activity history, get projects. Create, update. Status: activate, complete, cancel |
-| **Project Lifecycles** | List (with state filter), get details |
-| **Expenditure Categories** | Get options (for project create/update) |
-| **Projects** | List (with role filter), get details, get activity history, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check, forecast completion. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
-| **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
+| Category                   | Operations                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Portfolios**             | List, get details, get activity history, get programs, get projects, get strategic initiatives, get ranking scoreboard. Create, update. Status: activate, close, archive                                                                                                                                                                                                                                                                                                                                    |
+| **Strategic Initiatives**  | List, get details, get activity history, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel                                                                                                                                                                                                                                                              |
+| **Programs**               | List, get details, get activity history, get projects. Create, update. Status: activate, complete, cancel                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Project Lifecycles**     | List (with state filter), get details                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Expenditure Categories** | Get options (for project create/update)                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Projects**               | List (with role filter), get details, get activity history, get status history, get my involvement summary, get my task metrics, get team, get stages, get stage details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check, forecast completion. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
+| **Tasks**                  | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ### Planning
 
-| Category | Operations |
-| --- | --- |
+| Category               | Operations                                                                                                                                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Planning Intervals** | List, get details, activity history, calendar, predictability, teams, iterations, objectives, objective activity history, risks, objective health check history, get/create objective health check, objective forecast |
-| **Roadmaps** | List, get details, get items and activities |
-| **Story Maps** | List, get full map. Create, update, archive, delete maps. Manage goals, steps, tasks, checklists, swim lanes, personas, and work item links |
+| **Roadmaps**           | List, get details, get items and activities                                                                                                                                                                            |
+| **Story Maps**         | List, get full map. Create, update, archive, delete maps. Manage goals, steps, tasks, checklists, swim lanes, personas, and work item links                                                                            |
 
 ### Product Catalog
 
-| Category | Operations |
-| --- | --- |
-| **Products** | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options, get dependencies (rolled up, both directions). Create, update, retype, reparent, change status, link externally, tag, untag, delete. Dependencies: add, reword, change terms (strength and interaction styles), end, remove |
-| **Product Types** | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it |
-| **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate, delete the tags themselves |
-| **Deployment Environments** | List (by active state or category), get what is running in each (rollout), create, update, retire or reinstate, delete |
-| **Delivery Metrics** | Get the deployment measures over a window |
-| **Delivery Overview** | Get version activity over a window (release frequency, cut-to-released), get recent version and package events |
+| Category                    | Operations                                                                                                                                                                                                                                                                                                                                               |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Products**                | List (by parent, type, status category, or tags), get details, get activity history, get status history, get status options, get dependencies (rolled up, both directions). Create, update, retype, reparent, change status, link externally, tag, untag, delete. Dependencies: add, reword, change terms (strength and interaction styles), end, remove |
+| **Product Types**           | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it                                                                                                                                                                                                                 |
+| **Product Tag Categories**  | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate, delete the tags themselves                                                                                                                                            |
+| **Deployment Environments** | List (by active state or category), get what is running in each (rollout), create, update, retire or reinstate, delete                                                                                                                                                                                                                                   |
+| **Delivery Metrics**        | Get the deployment measures over a window                                                                                                                                                                                                                                                                                                                |
+| **Delivery Overview**       | Get version activity over a window (release frequency, cut-to-released), get recent version and package events                                                                                                                                                                                                                                           |
 
 The catalog is one typed tree, and a product's type carries the flag that decides whether versions can be cut against it. Type, parent and status each have their own tool rather than being fields on the update, because each carries a rule the domain enforces. Two behaviours the `wayd-products` skill covers: tagging a single-value axis **silently replaces** the existing tag rather than refusing, and deleting a product is a **hard delete**, refused while anything depends on it.
 
-Types and tag categories are administrator-managed configuration, and two rules run through all of it. **Seeded system records cannot be modified or deleted** — but they *can* be deactivated, so an organization can hide a type it does not use without the seeder recreating it. And **nothing in use can be deleted**; deactivation is the answer there too, stopping new use while leaving existing records resolvable. Two sharp edges: a category's `allowsMany` is **fixed at creation**, and `ProductTypes_Update` **requires `isReleasable`**, so a rename that resends the wrong value silently changes whether versions can be cut against every product of that type.
+Types and tag categories are administrator-managed configuration, and two rules run through all of it. **Seeded system records cannot be modified or deleted** — but they _can_ be deactivated, so an organization can hide a type it does not use without the seeder recreating it. And **nothing in use can be deleted**; deactivation is the answer there too, stopping new use while leaving existing records resolvable. Two sharp edges: a category's `allowsMany` is **fixed at creation**, and `ProductTypes_Update` **requires `isReleasable`**, so a rename that resends the wrong value silently changes whether versions can be cut against every product of that type.
 
 ### Product Delivery
 
 Four records that are deliberately kept apart: a **release** is what was announced to customers (`Wayd 2026.09`), a **version** is one artifact that was built (`Wayd API 4.12.0`), a **package** is what moved through environments together (`WAYD-2026.09.1`), and a **deployment** is one of those reaching one environment.
 
-| Category | Operations |
-| --- | --- |
-| **Releases** | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert. Delete |
-| **Versions** | List (by product or status category), get details, get activity history, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert. Delete |
-| **Release Packages** | List (by status category, containing product, or containing version), get details, get activity history, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw. Delete |
-| **Deployments** | List (by version, package, environment, environment category, or start date), get details, get activity history, get status history. Start. Outcome: succeed, fail, roll back. Delete |
+| Category             | Operations                                                                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Releases**         | List (by product, status category, or containing version), get details, get activity history, get status history. Plan, update, set contents, correct dates, move target date. Status: announce, withdraw, revert. Delete |
+| **Versions**         | List (by product or status category), get details, get activity history, get status history. Plan, update, correct dates, move target date. Status: cut, mark released, withdraw, revert. Delete                          |
+| **Release Packages** | List (by status category, containing product, or containing version), get details, get activity history, get status history. Assemble with manifest, replace manifest. Status: mark released, withdraw. Delete            |
+| **Deployments**      | List (by version, package, environment, environment category, or start date), get details, get activity history, get status history. Start. Outcome: succeed, fail, roll back. Delete                                     |
 
 Two rules the tools enforce and the `wayd-delivery` skill explains: a version shipping inside one of a release's packages cannot also be carried directly on that release, and a release cannot be announced while anything it carries has not shipped. `Releases_SetContents` and `ReleasePackages_SetManifest` are **whole-set replacements** — read the record first and send back everything it should end up with.
 
 ### Organization
 
-| Category | Operations |
-| --- | --- |
-| **Teams** | List, get details, get activity history, grade backlog health, forecast throughput by a date |
-| **Work Items** | Forecast when a work item will be done |
-| **Users** | List, get details |
+| Category       | Operations                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| **Teams**      | List, get details, get activity history, grade backlog health, forecast throughput by a date |
+| **Work Items** | Forecast when a work item will be done                                                       |
+| **Users**      | List, get details                                                                            |
 
 Forecasts require the `delivery-forecasting` feature flag and return 404 when it is off. They are Monte Carlo simulations of each team's recent throughput, reported as dates (or counts) at 50/70/85/95% confidence; the `wayd-teams` skill explains how to read them.
 
 ### Imports
 
-| Category | Operations |
-| --- | --- |
-| **Import files** | Get a kind of import's file format (columns, required cells, accepted values). Preflight a CSV file |
-| **Import runs** | List import types, list runs (by status, type, submitter, or submission group), get a run, get its row outcomes. Stop, resume, retry rejected rows, apply a preflight |
+| Category         | Operations                                                                                                                                                            |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Import files** | Get a kind of import's file format (columns, required cells, accepted values). Preflight a CSV file                                                                   |
+| **Import runs**  | List import types, list runs (by status, type, submitter, or submission group), get a run, get its row outcomes. Stop, resume, retry rejected rows, apply a preflight |
 
 Every CSV file submitted to Wayd becomes a run, whether it came from Settings → Imports or an API call, so these tools follow and control either.
 

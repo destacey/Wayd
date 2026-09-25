@@ -28,7 +28,11 @@ const THEME_OPTIONS: { label: string; value: ThemeId }[] = (
   Object.entries(THEME_METADATA) as [ThemeId, { label: string }][]
 )
   .map(([value, { label }]) => ({ label, value }))
-  .sort((a, b) => a.label.localeCompare(b.label))
+  .sort(
+    (a, b) =>
+      Number(b.value === 'wayd') - Number(a.value === 'wayd') ||
+      a.label.localeCompare(b.label),
+  )
 
 const MODE_LABELS: Record<ThemeMode, string> = {
   light: 'Light',

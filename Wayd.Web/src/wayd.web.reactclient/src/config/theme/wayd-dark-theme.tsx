@@ -64,7 +64,6 @@ export const useWaydDarkTheme = (): AppThemeConfig =>
       appBar: {
         backgroundColor: '#101216',
         color: '#ffffff',
-        subtleColor: 'rgba(255, 255, 255, 0.88)',
       },
       integrations: {
         antDesignChartsTheme: 'classicDark',

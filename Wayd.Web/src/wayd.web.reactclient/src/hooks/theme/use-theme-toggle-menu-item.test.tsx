@@ -39,7 +39,6 @@ const mockThemeContext: ThemeContextType = {
   appBar: {
     backgroundColor: '#1890ff',
     color: '#ffffff',
-    subtleColor: 'rgba(255,255,255,0.88)',
   },
   allowsPrimaryOverride: true,
   token: mockToken as any,

@@ -200,9 +200,9 @@ const AppHeader: FC = React.memo(() => {
             aria-label="Search (Ctrl+K)"
             className={styles.searchTrigger}
           >
-            <Text style={{ color: appBar.subtleColor ?? appBar.color }}>
-              Search...
-            </Text>
+            {/* The trigger is a default Button, so it paints colorBgContainer
+                — app-bar colors land on the button, not the bar. */}
+            <Text type="secondary">Search...</Text>
             <Flex gap={4} className={styles.searchTriggerKbdGroup}>
               <Tooltip title="Search app data">
                 <kbd className={styles.searchTriggerKbd}>Ctrl+K</kbd>

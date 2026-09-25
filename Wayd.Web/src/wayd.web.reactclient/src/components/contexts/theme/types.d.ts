@@ -36,7 +36,6 @@ export interface ThemeContextType {
   appBar: {
     backgroundColor: string
     color: string
-    subtleColor?: string
   }
   allowsPrimaryOverride: boolean
   token: GlobalToken

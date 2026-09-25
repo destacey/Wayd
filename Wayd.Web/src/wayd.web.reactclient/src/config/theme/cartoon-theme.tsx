@@ -136,7 +136,6 @@ const useCartoonTheme = () => {
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',
-        subtleColor: 'rgba(255, 255, 255, 0.9)',
       },
       integrations: {
         antDesignChartsTheme: 'classic',

@@ -9,12 +9,16 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 /// as <see cref="GetProjectsTaskMetricsQuery"/>: when the subject employee holds a
 /// selected leadership role on a project, all tasks are visible; otherwise,
 /// only tasks assigned to them are counted. The subject is <paramref name="EmployeeId"/>
-/// when given, else the current principal's linked employee.
+/// when given, else the current principal's linked employee. <paramref name="AllTasks"/>
+/// drops the visibility rule and counts every task on the projects, for a view of a
+/// portfolio or program rather than of a person; reading them needs only the same
+/// permission as the plan itself.
 /// </summary>
 public sealed record GetProjectsPlanSummariesQuery(
     Guid[] ProjectIds,
     ProjectMemberRole[]? RoleFilter = null,
-    Guid? EmployeeId = null) : IQuery<Dictionary<Guid, ProjectPlanSummaryDto>>;
+    Guid? EmployeeId = null,
+    bool AllTasks = false) : IQuery<Dictionary<Guid, ProjectPlanSummaryDto>>;
 
 public sealed class GetProjectsPlanSummariesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
@@ -38,13 +42,16 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
         // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
         // linked mid-session would otherwise see nothing until they signed in again. Empty remains the
         // honest answer for a genuinely unlinked account.
-        var employeeId = request.EmployeeId ?? await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (!employeeId.HasValue)
+        Guid? employeeId = null;
+        if (!request.AllTasks)
         {
-            return [];
+            employeeId = request.EmployeeId ?? await _currentPrincipal.GetEmployeeId(cancellationToken);
+            if (!employeeId.HasValue)
+            {
+                return [];
+            }
         }
 
-        var eid = employeeId.Value;
         var today = _dateTimeProvider.Today;
 
         var daysUntilSaturday = ((int)IsoDayOfWeek.Saturday - (int)today.DayOfWeek + 7) % 7;
@@ -67,8 +74,13 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
         // Apply role-based visibility
         IQueryable<Domain.Models.ProjectTask> visibleTasks;
 
-        if (activeLeadershipRoles.Length > 0)
+        if (request.AllTasks)
         {
+            visibleTasks = allTasks;
+        }
+        else if (activeLeadershipRoles.Length > 0)
+        {
+            var eid = employeeId!.Value;
             var leadershipTasks = allTasks
                 .Where(t => t.Project.Roles.Any(r => r.EmployeeId == eid && activeLeadershipRoles.Contains(r.Role)));
 
@@ -80,6 +92,7 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
         }
         else
         {
+            var eid = employeeId!.Value;
             visibleTasks = allTasks
                 .Where(t => t.Roles.Any(r => r.EmployeeId == eid && r.Role == TaskRole.Assignee));
         }

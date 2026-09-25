@@ -567,11 +567,11 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get plan summary metrics for multiple projects in a single request.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<Dictionary<Guid, ProjectPlanSummaryDto>>> GetProjectsPlanSummaries([FromQuery] Guid[] projectId, [FromQuery] int[]? role, [FromQuery] Guid? employeeId, CancellationToken cancellationToken)
+    public async Task<ActionResult<Dictionary<Guid, ProjectPlanSummaryDto>>> GetProjectsPlanSummaries([FromQuery] Guid[] projectId, [FromQuery] int[]? role, [FromQuery] Guid? employeeId, [FromQuery] bool allTasks, CancellationToken cancellationToken)
     {
         var roleFilter = ParseRoleFilter(role);
 
-        var summaries = await _dispatcher.Send(new GetProjectsPlanSummariesQuery(projectId, roleFilter, employeeId), cancellationToken);
+        var summaries = await _dispatcher.Send(new GetProjectsPlanSummariesQuery(projectId, roleFilter, employeeId, allTasks), cancellationToken);
 
         return Ok(summaries);
     }

@@ -83,8 +83,7 @@ export interface TimelineModel {
  * the project's own bar, coloured by health, and one bar per dated stage,
  * coloured by stage status. The timeline packs overlapping bars into lanes,
  * so two stages running at once sit one under the other rather than one
- * hiding the other; the project bar starts first and sorts first, so it
- * takes the top lane.
+ * hiding the other; the project bar is pinned to the top lane.
  */
 export const buildTimelineModel = (
   groups: ProjectGroup[],
@@ -136,8 +135,9 @@ export const buildTimelineModel = (
           tooltip: `${project.key} · ${project.name}\n${healthName(project)} · ${project.status.name}\n${fmt(project.start)} – ${fmt(project.end)}`,
           color: healthColor(project, token),
           groupId: rowId,
-          // Sorts ahead of any stage starting the same day, so the project bar
-          // takes the top lane of its row.
+          // The project's own span always heads its row; a stage that starts
+          // before the project would otherwise take the top lane.
+          pinToTop: true,
           order: -1,
           data: { projectKey: project.key },
         })

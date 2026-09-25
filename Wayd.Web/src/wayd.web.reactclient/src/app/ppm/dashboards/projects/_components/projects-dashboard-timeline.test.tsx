@@ -144,6 +144,8 @@ describe('buildTimelineModel', () => {
       ],
     )
     expect(model.items[2].tooltip).toContain('In Progress · 40%')
+    expect(model.items[0].pinToTop).toBe(true)
+    expect(model.items[1].pinToTop).toBeUndefined()
   })
 
   it('counts projects with nothing to draw and bounds the axis by the data', () => {

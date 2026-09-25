@@ -136,6 +136,46 @@ describe('useRemainingHeight', () => {
     expect(result.current[1]).toBe(650) // 800 - 100 - 50
   })
 
+  it('recalculates when the parent resizes, as content above the element animates', () => {
+    // Arrange — the element sits in a content-sized parent; its top moves as
+    // a section above it opens, without the scroll ancestor's box changing
+    setWindowHeight(1000)
+    const parent = document.createElement('div')
+    const el = createMockElement(100)
+    parent.appendChild(el)
+
+    const { result } = renderHook(() => useRemainingHeight())
+    act(() => {
+      result.current[0](el)
+    })
+    expect(result.current[1]).toBe(850)
+
+    // Act — the section finishes opening: the element now starts lower, and the
+    // parent's resize is what reports it
+    el.getBoundingClientRect = () => ({ top: 400 }) as unknown as DOMRect
+    act(() => {
+      MockResizeObserver.instances.at(-1)!.callback([], {} as ResizeObserver)
+    })
+
+    // Assert
+    expect(result.current[1]).toBe(550) // 1000 - 400 - 50
+  })
+
+  it('rounds a fractional position down to whole pixels', () => {
+    // Arrange
+    setWindowHeight(1000)
+    const el = createMockElement(200.672)
+
+    // Act
+    const { result } = renderHook(() => useRemainingHeight())
+    act(() => {
+      result.current[0](el)
+    })
+
+    // Assert — 1000 - 200.672 - 50 = 749.328, floored
+    expect(result.current[1]).toBe(749)
+  })
+
   it('cleans up resize listener on unmount', () => {
     const removeSpy = jest.spyOn(window, 'removeEventListener')
 

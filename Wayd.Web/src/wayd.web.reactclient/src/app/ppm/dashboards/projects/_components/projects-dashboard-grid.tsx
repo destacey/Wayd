@@ -194,6 +194,15 @@ const buildColumns = (
     ),
   },
   {
+    id: 'start',
+    accessorKey: 'start',
+    header: 'Start',
+    size: 120,
+    // Off until chosen: the dashboard is about where projects are heading,
+    // and the column chooser brings it back for anyone who wants it.
+    meta: { columnType: 'dateOnly', hiddenByDefault: true },
+  },
+  {
     id: 'end',
     accessorKey: 'end',
     header: 'End',

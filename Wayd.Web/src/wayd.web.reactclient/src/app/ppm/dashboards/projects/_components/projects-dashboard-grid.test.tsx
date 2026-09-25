@@ -182,6 +182,15 @@ describe('ProjectsDashboardGrid', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('keeps Start out of the default columns but in the chooser', () => {
+    // Arrange / Act
+    render(<ProjectsDashboardGrid {...props} />)
+
+    // Assert — no Start cells rendered; End still is
+    expect(cells('start')).toHaveLength(0)
+    expect(cells('end')).toHaveLength(3)
+  })
+
   it('opens a project when its row is activated', () => {
     // Arrange
     render(<ProjectsDashboardGrid {...props} />)

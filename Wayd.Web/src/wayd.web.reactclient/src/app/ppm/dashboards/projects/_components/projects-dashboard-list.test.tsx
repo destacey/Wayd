@@ -132,7 +132,7 @@ describe('ProjectsDashboardList', () => {
     expect(within(row).getByTestId('stages')).toHaveTextContent('Design,Build')
     expect(row).toHaveTextContent('2 overdue')
     expect(row).toHaveTextContent('Oct 5, 2026')
-    expect(row).toHaveTextContent('72.5')
+    expect(row).not.toHaveTextContent('72.5')
     expect(row).toHaveTextContent('PM')
 
     const quiet = screen.getByRole('button', { name: 'P2 Project Beta' })

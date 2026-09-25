@@ -109,13 +109,6 @@ const ProjectRow: FC<RowProps> = ({
       >
         {formatEnd(project.end) ?? <span className={styles.muted}>—</span>}
       </span>
-      <span className={`${styles.cell} ${styles.score}`}>
-        {project.currentScore ? (
-          project.currentScore.value.toFixed(1)
-        ) : (
-          <span className={styles.muted}>—</span>
-        )}
-      </span>
       {employeeId && (
         <span className={`${styles.cell} ${styles.roles}`}>
           {roles.length > 0 ? roles.join(' · ') : 'Task Assignee'}
@@ -203,7 +196,6 @@ const ProjectsDashboardList: FC<ProjectsDashboardListProps> = ({
         <span>Tasks</span>
         <span>Team</span>
         <span>End</span>
-        <span>Score</span>
         {employeeId && <span>Role</span>}
       </div>
       {groups.map((group) => (

@@ -86,6 +86,9 @@ const projects = [
 const props = {
   projects,
   groupBy: 'portfolio' as const,
+  onGroupByChange: jest.fn(),
+  view: 'List' as const,
+  onViewChange: jest.fn(),
   planSummaries: {
     'id-P1': { overdue: 2, dueThisWeek: 0, upcoming: 0, totalLeafTasks: 4 },
   },
@@ -150,6 +153,19 @@ describe('ProjectsDashboardGrid', () => {
 
     rerender(<ProjectsDashboardGrid {...props} employeeId={null} />)
     expect(cells('role')).toHaveLength(0)
+  })
+
+  it('carries Group by and the view switch in the grid toolbar', () => {
+    // Arrange / Act
+    render(<ProjectsDashboardGrid {...props} />)
+
+    // Assert
+    // The column header says Health too; the segmented option carries a title.
+    fireEvent.click(screen.getByTitle('Health'))
+    expect(props.onGroupByChange).toHaveBeenCalledWith('health')
+    fireEvent.click(screen.getByTitle('Timeline'))
+    expect(props.onViewChange).toHaveBeenCalledWith('Timeline')
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
   })
 
   it('opens a project when its row is activated', () => {

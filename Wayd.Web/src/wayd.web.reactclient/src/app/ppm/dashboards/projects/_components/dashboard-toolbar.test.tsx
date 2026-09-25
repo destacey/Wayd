@@ -13,7 +13,6 @@ const defaultProps = {
   onGroupByChange: jest.fn(),
   sortBy: 'attention' as const,
   onSortByChange: jest.fn(),
-  showSort: true,
   search: '',
   onSearchChange: jest.fn(),
   view: 'List' as const,

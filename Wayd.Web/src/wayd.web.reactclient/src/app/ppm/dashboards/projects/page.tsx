@@ -112,10 +112,13 @@ const ProjectsDashboardPage: FC = () => {
   const today = dayjs()
   const inScope = projects ?? []
   const counts = computeAttention(inScope, planSummaries, today)
-  const shown = inScope.filter(
-    (p) =>
-      matchesAttention(p, attention, planSummaries, today) &&
-      matchesSearch(p, debouncedSearch),
+  // The grid searches for itself; the dashboard's search box narrows only the
+  // cards and the timeline.
+  const attentionFiltered = inScope.filter((p) =>
+    matchesAttention(p, attention, planSummaries, today),
+  )
+  const shown = attentionFiltered.filter((p) =>
+    matchesSearch(p, debouncedSearch),
   )
   const groups = groupProjects(shown, groupBy, sortBy, planSummaries)
 
@@ -179,24 +182,32 @@ const ProjectsDashboardPage: FC = () => {
           onExpandedChange={setBreakdownsExpanded}
         />
       )}
-      <DashboardToolbar
-        groupBy={groupBy}
-        onGroupByChange={setGroupBy}
-        sortBy={sortBy}
-        onSortByChange={setSortBy}
-        showSort={view !== 'List'}
-        search={search}
-        onSearchChange={setSearch}
-        view={view}
-        onViewChange={setView}
-        shownCount={shown.length}
-        totalCount={inScope.length}
-      />
+      {/* The grid brings its own toolbar (search, count, export, columns), so
+          the List view puts Group by and the view switch in it rather than
+          stacking a second bar above. Cards and the timeline have no toolbar of
+          their own, so they keep this one, search included. */}
+      {view !== 'List' && (
+        <DashboardToolbar
+          groupBy={groupBy}
+          onGroupByChange={setGroupBy}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          search={search}
+          onSearchChange={setSearch}
+          view={view}
+          onViewChange={setView}
+          shownCount={shown.length}
+          totalCount={inScope.length}
+        />
+      )}
       <div ref={listRef}>
         {view === 'List' ? (
           <ProjectsDashboardGrid
-            projects={shown}
+            projects={attentionFiltered}
             groupBy={groupBy}
+            onGroupByChange={setGroupBy}
+            view={view}
+            onViewChange={setView}
             planSummaries={planSummaries}
             employeeId={subjectEmployeeId}
             selectedProjectKey={selectedProjectKey}

@@ -117,11 +117,22 @@ jest.mock('./_components/breakdown-strip', () => {
 })
 
 jest.mock('./_components/projects-dashboard-grid', () => {
-  const MockList = ({ employeeId }: { employeeId: string | null }) => (
-    <div data-testid="list">{employeeId ?? 'none'}</div>
+  const MockGrid = ({
+    employeeId,
+    onViewChange,
+  }: {
+    employeeId: string | null
+    onViewChange: (view: string) => void
+  }) => (
+    <div data-testid="list">
+      {employeeId ?? 'none'}
+      <button type="button" onClick={() => onViewChange('Card')}>
+        show cards
+      </button>
+    </div>
   )
-  MockList.displayName = 'MockProjectsDashboardList'
-  return MockList
+  MockGrid.displayName = 'MockProjectsDashboardGrid'
+  return MockGrid
 })
 
 jest.mock('./_components/projects-dashboard-timeline', () => {
@@ -143,9 +154,7 @@ jest.mock('./_components/dashboard-toolbar', () => {
     onViewChange: (view: string) => void
   }) => (
     <>
-      <button type="button" onClick={() => onViewChange('Card')}>
-        show cards
-      </button>
+      <span data-testid="toolbar" />
       <button type="button" onClick={() => onViewChange('Timeline')}>
         show timeline
       </button>
@@ -321,10 +330,14 @@ describe('ProjectsDashboardPage', () => {
     render(<ProjectsDashboardPage />)
 
     // Act
+    // The List view carries the switch in the grid's toolbar and shows no
+    // dashboard toolbar of its own; the other views bring the toolbar back.
+    expect(screen.queryByTestId('toolbar')).not.toBeInTheDocument()
     await userEvent.click(screen.getByText('show cards'))
 
     // Assert
     expect(screen.getByTestId('cards')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar')).toBeInTheDocument()
     expect(screen.queryByTestId('list')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByText('show timeline'))

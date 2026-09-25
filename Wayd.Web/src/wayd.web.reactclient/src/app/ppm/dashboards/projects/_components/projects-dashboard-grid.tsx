@@ -9,6 +9,9 @@ import {
   type GroupHeaderContext,
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef, Row } from '@/src/components/common/wayd-grid-core'
+import PpmViewSelector, {
+  PpmView,
+} from '@/src/app/ppm/_components/ppm-view-selector'
 import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import { ProjectListDto } from '@/src/services/wayd-api'
@@ -28,6 +31,7 @@ import {
   statusRank,
   summarizeGroup,
 } from './dashboard-model'
+import GroupBySelect from './group-by-select'
 import ProjectStatPills from './project-stat-pills'
 import TeamAvatars from './team-avatars'
 import styles from '../projects-dashboard.module.css'
@@ -35,6 +39,9 @@ import styles from '../projects-dashboard.module.css'
 export interface ProjectsDashboardGridProps {
   projects: ProjectListDto[]
   groupBy: GroupBy
+  onGroupByChange: (groupBy: GroupBy) => void
+  view: PpmView
+  onViewChange: (view: PpmView) => void
   planSummaries: PlanSummaries
   /** Whose roles the Role column shows. Null drops the column. */
   employeeId: string | null
@@ -210,12 +217,17 @@ const buildColumns = (
 
 /**
  * The List view: a WaydGrid of the projects in scope, grouped by the Group
- * by choice. Sorting, filtering, the column chooser and CSV export are the
- * grid's own; clicking a row opens the project drawer.
+ * by choice. The grid's toolbar is the view's only toolbar: Group by sits in
+ * its left slot and the view switch in its right, with the grid's own search,
+ * sorting, filtering, column chooser and CSV export between. Clicking a row
+ * opens the project drawer.
  */
 const ProjectsDashboardGrid: FC<ProjectsDashboardGridProps> = ({
   projects,
   groupBy,
+  onGroupByChange,
+  view,
+  onViewChange,
   planSummaries,
   employeeId,
   selectedProjectKey,
@@ -254,8 +266,14 @@ const ProjectsDashboardGrid: FC<ProjectsDashboardGridProps> = ({
       activatedRowId={selectedProjectKey}
       getRowActivateLabel={(project) => `${project.key} ${project.name}`}
       onRefresh={onRefresh}
-      // The dashboard's own search box already narrows the projects.
-      includeGlobalSearch={false}
+      leftSlot={<GroupBySelect value={groupBy} onChange={onGroupByChange} />}
+      rightSlot={
+        <PpmViewSelector
+          views={['Card', 'List', 'Timeline']}
+          value={view}
+          onChange={onViewChange}
+        />
+      }
       height={height}
       persistStateKey="projects-dashboard"
       csvFileName="projects-dashboard"

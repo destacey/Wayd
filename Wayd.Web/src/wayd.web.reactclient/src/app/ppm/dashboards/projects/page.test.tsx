@@ -124,6 +124,12 @@ jest.mock('./_components/projects-dashboard-list', () => {
   return MockList
 })
 
+jest.mock('./_components/projects-dashboard-timeline', () => {
+  const MockTimeline = () => <div data-testid="timeline" />
+  MockTimeline.displayName = 'MockProjectsDashboardTimeline'
+  return MockTimeline
+})
+
 jest.mock('./_components/projects-dashboard-cards', () => {
   const MockCards = () => <div data-testid="cards" />
   MockCards.displayName = 'MockProjectsDashboardCards'
@@ -136,9 +142,14 @@ jest.mock('./_components/dashboard-toolbar', () => {
   }: {
     onViewChange: (view: string) => void
   }) => (
-    <button type="button" onClick={() => onViewChange('cards')}>
-      show cards
-    </button>
+    <>
+      <button type="button" onClick={() => onViewChange('cards')}>
+        show cards
+      </button>
+      <button type="button" onClick={() => onViewChange('timeline')}>
+        show timeline
+      </button>
+    </>
   )
   MockToolbar.displayName = 'MockDashboardToolbar'
   return MockToolbar
@@ -315,5 +326,9 @@ describe('ProjectsDashboardPage', () => {
     // Assert
     expect(screen.getByTestId('cards')).toBeInTheDocument()
     expect(screen.queryByTestId('list')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('show timeline'))
+    expect(screen.getByTestId('timeline')).toBeInTheDocument()
+    expect(screen.queryByTestId('cards')).not.toBeInTheDocument()
   })
 })

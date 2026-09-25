@@ -37,6 +37,7 @@ import {
 } from './_components/dashboard-model'
 import ProjectsDashboardCards from './_components/projects-dashboard-cards'
 import ProjectsDashboardList from './_components/projects-dashboard-list'
+import ProjectsDashboardTimeline from './_components/projects-dashboard-timeline'
 import ScopeBar from './_components/scope-bar'
 import { useScopedProjects } from './_components/use-scoped-projects'
 
@@ -127,7 +128,12 @@ const ProjectsDashboardPage: FC = () => {
     clearSelection()
   }
 
-  const Body = view === 'cards' ? ProjectsDashboardCards : ProjectsDashboardList
+  const Body =
+    view === 'cards'
+      ? ProjectsDashboardCards
+      : view === 'timeline'
+        ? ProjectsDashboardTimeline
+        : ProjectsDashboardList
 
   return (
     <div className="page-gutters">

@@ -282,3 +282,24 @@
 .emptyState {
   padding: 24px;
 }
+
+/* Timeline view */
+.timelineGroupLabel {
+  font-weight: 600;
+}
+
+.timelineProjectLabel {
+  font-size: 12px;
+}
+
+.timelineLegend {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+
+.legendSwatch {
+  display: inline-block;
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+}

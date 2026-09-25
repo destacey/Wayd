@@ -2,6 +2,7 @@
 
 import {
   AppstoreOutlined,
+  BarsOutlined,
   MenuOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
@@ -10,7 +11,7 @@ import { FC } from 'react'
 import { GroupBy, SortBy } from './dashboard-model'
 import styles from '../projects-dashboard.module.css'
 
-export type DashboardView = 'list' | 'cards'
+export type DashboardView = 'list' | 'cards' | 'timeline'
 
 export interface DashboardToolbarProps {
   groupBy: GroupBy
@@ -42,6 +43,7 @@ const SORT_OPTIONS: { label: string; value: SortBy }[] = [
 const VIEW_OPTIONS = [
   { label: 'List', value: 'list', icon: <MenuOutlined /> },
   { label: 'Cards', value: 'cards', icon: <AppstoreOutlined /> },
+  { label: 'Timeline', value: 'timeline', icon: <BarsOutlined /> },
 ]
 
 const DashboardToolbar: FC<DashboardToolbarProps> = ({

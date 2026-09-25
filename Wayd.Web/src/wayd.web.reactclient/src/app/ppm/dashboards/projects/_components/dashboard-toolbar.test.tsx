@@ -46,6 +46,9 @@ describe('DashboardToolbar', () => {
     // Assert
     expect(defaultProps.onGroupByChange).toHaveBeenCalledWith('health')
     expect(defaultProps.onViewChange).toHaveBeenCalledWith('cards')
+
+    await userEvent.click(screen.getByText('Timeline'))
+    expect(defaultProps.onViewChange).toHaveBeenLastCalledWith('timeline')
   })
 
   it('reports search text as it is typed', async () => {

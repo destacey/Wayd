@@ -92,6 +92,10 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Work Item Revision** | An audit trail entry: revision number, who, when, and field-level changes (old/new values). |
 | **Work Item Hierarchy** | Parent-child relationship. Only Portfolio tier types can be parents. Parent must be higher level than child. |
 | **Backlog** | A team's unified view of all assigned work items across all workspaces. Visible in the team's Backlog section. |
+| **Allocation** | Where a team's (or a team of teams' and every descendant team's) completed Requirement-tier work went over a date range, grouped by portfolio, program, project, strategic theme or work type. A team's work rolls up to the parent it had on the day each item was done. |
+| **No Project** | Completed work where neither the item nor its parents link to a project. Its own group in every allocation dimension except work type, where it is shown as a portion of each type. Distinct from **No program** / **No theme**, which is work on a project that lacks that level. |
+| **Estimate Coverage** | The share of completed items from story-point-sized teams that carry an estimate above zero. Shown on the allocation report when measuring story points. |
+| **Share of Team Effort** | An allocation measure: each team's split measured in its own sizing (story points, or items for count-sized teams), then teams combined by their share of completed items, so story points are never added across teams. |
 
 ## Project Portfolio Management
 
@@ -129,6 +133,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Vision** | The desired future state of the organization. Only ONE can be Active at any time. States: Proposed → Active (start date) → Archived (end date). Archived visions cannot overlap in dates. |
 | **Strategy** | The approach for achieving the vision. States: Draft → Active → Completed → Archived. Independent of visions. |
 | **Strategic Theme** | A high-level organizational priority guiding investment decisions. States: Proposed → Active → Archived. Only Proposed deletable. Cross-domain: tags Projects, Programs, Strategic Initiatives in PPM. |
+| **Effective Themes** | A project's own strategic themes when it has any, otherwise its program's. The two sets replace each other, never combine. Used wherever a project's work is attributed to themes. |
 
 ## Status Workflows
 

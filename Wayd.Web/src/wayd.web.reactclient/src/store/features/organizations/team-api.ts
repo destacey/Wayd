@@ -30,7 +30,12 @@ import { BaseOptionType } from 'antd/es/select'
 import {
   BacklogHealthThresholds,
   DependencyDto,
+  AllocationDimension,
+  AllocationMeasure,
+  TeamAllocationDto,
   TeamBacklogHealthDto,
+  ThemeCounting,
+  UnestimatedHandling,
   WorkItemBacklogItemDto,
 } from '@/src/services/wayd-api'
 import { OptionModel } from '@/src/components/types'
@@ -40,6 +45,20 @@ export interface GetTeamBacklogHealthRequest {
   lookbackDays?: number
   /** Omitted thresholds take the API's defaults. */
   thresholds?: Partial<BacklogHealthThresholds>
+}
+
+export interface GetTeamAllocationRequest {
+  /** Teams of teams are served by their own endpoint, which rolls up every team beneath them. */
+  teamType: 'team' | 'team-of-teams'
+  teamIdOrCode: string
+  /** yyyy-MM-dd, inclusive. */
+  from: string
+  /** yyyy-MM-dd, inclusive. */
+  to: string
+  dimension: AllocationDimension
+  measure: AllocationMeasure
+  unestimated: UnestimatedHandling
+  themeCounting: ThemeCounting
 }
 
 export const teamApi = apiSlice.injectEndpoints({
@@ -181,6 +200,38 @@ export const teamApi = apiSlice.injectEndpoints({
       providesTags: (result, error, arg) => [
         QueryTags.TeamBacklog,
         { type: QueryTags.TeamBacklog, id: arg },
+      ],
+    }),
+
+    getTeamAllocation: builder.query<
+      TeamAllocationDto,
+      GetTeamAllocationRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          const args = [
+            request.teamIdOrCode,
+            request.from,
+            request.to,
+            request.dimension,
+            request.measure,
+            request.unestimated,
+            request.themeCounting,
+          ] as const
+          const data =
+            request.teamType === 'team-of-teams'
+              ? await getTeamsOfTeamsClient().getAllocation(...args)
+              : await getTeamsClient().getTeamAllocation(...args)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Built from synced work items, so it goes stale whenever the backlog does.
+      providesTags: (result, error, arg) => [
+        QueryTags.TeamBacklog,
+        { type: QueryTags.TeamBacklog, id: arg.teamIdOrCode },
       ],
     }),
 
@@ -926,6 +977,7 @@ export const {
   useGetTeamOptionsQuery,
   useGetTeamBacklogQuery,
   useGetTeamBacklogHealthQuery,
+  useGetTeamAllocationQuery,
   useGetTeamWorkItemsQuery,
   useGetTeamDependenciesQuery,
   useGetTeamSprintsQuery,

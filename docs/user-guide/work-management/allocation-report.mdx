@@ -1,0 +1,118 @@
+---
+title: Allocation Report
+description: Where a team's or a team of teams' completed work went, by portfolio, program, project, strategic theme or work type.
+sidebar_position: 6
+audience: [user, agent]
+---
+
+# Allocation Report
+
+The **Allocation Report** shows where a team's completed work went over a date range: which portfolios, programs, projects and strategic themes it served, and how much of it was linked to no project at all. It is available from the **Reports** menu on a team's detail page and on a team of teams' detail page.
+
+On a **team of teams** the report covers every team beneath it: its child teams, their children, and so on down the hierarchy.
+
+## What Counts
+
+The report counts **Requirement-tier** work items, such as User Stories and Bugs, whose status category became **Done** within the date range. Dates are whole days in UTC, and both ends of the range are included. A range can be at most 366 days: a full year, with room for a leap day.
+
+- **Removed** work items never count, even though they also carry a done date.
+- **Portfolio-tier** items such as Epics and Features are not counted, so a feature is never counted on top of the stories beneath it.
+
+### Which Team the Work Belongs To
+
+A work item belongs to its team. On a team of teams, the item counts toward whichever parent its team had **on the day the item was done**. A team that moved from one team of teams to another during the range contributes to both, each for the part of the range it spent there. Work a team completed before it joined the hierarchy, or after it left, is not counted.
+
+In the **By Team** view, a team that moved is listed under the parent it had last in the range.
+
+### Which Project the Work Belongs To
+
+A work item belongs to its own project, or to the project it inherits from its parent. The project's portfolio and program come from the project.
+
+## Allocate By
+
+Choose what the report groups completed work by. One choice drives every view.
+
+| Dimension | Groups | Gap Groups |
+|-----------|--------|------------|
+| **Portfolio** | Each project's portfolio | No project |
+| **Program** | Each project's program | No program, No project |
+| **Project** | Each project | No project |
+| **Strategic theme** | Each project's effective themes | No theme, No project |
+| **Work type** | Each work type, such as User Story or Bug | None; see below |
+
+### No Project and Missing Levels
+
+**No project** holds work where neither the item nor its parents link to a project. It appears in every dimension except work type, always as the last group and always with the same total, and it is drawn hatched so it stands apart from the groups. Much of this work is legitimate, such as support and keep-the-lights-on work, but a large share is a sign that work is being done outside the portfolio.
+
+**No program** and **No theme** hold work that *is* linked to a project, where the project has no program or no theme. They are kept separate from No project, so that group always means the same thing.
+
+**Work type** has no No project group. Instead, the part of each work type with no project is hatched in the bar, shown in a **No Project** column in the table, and shown for each team and each period in the other views.
+
+### Strategic Themes
+
+A project's **effective themes** are its own themes when it has any, and otherwise its program's. A project's own themes replace its program's rather than adding to them, so its work is never split across themes from both levels.
+
+When a project has several effective themes, choose how its work is credited:
+
+- **Split evenly** (the default) divides the work evenly between the themes, so the dimension adds up to 100% like the others.
+- **Count fully in each** credits the whole of the work to every theme. It answers "how much work touched this theme?", but shares then add up to more than 100%, so the report draws separate bars rather than one stacked bar.
+
+## Measures
+
+A team's **sizing method** decides how its work can be measured, not its methodology: a Kanban team that sizes in story points is treated like a Scrum team. A team's operating model can change over time, so each work item uses the operating model in effect on the day it was done.
+
+| Measure | How Each Work Item Counts | Teams Included |
+|---------|---------------------------|----------------|
+| **Count** | As one | Every team |
+| **Story Points** | By its estimate | Only teams that size in story points |
+| **Share of Team Effort** | By its part of its own team's work | Every team; teams of teams only |
+
+### Story Points
+
+Story points are only counted for teams that size in story points. Teams that size by count are left out, listed on the **Teams Included** card and marked **Excluded** in the By Team view.
+
+Items with no estimate, or an estimate of zero, are handled by the **Unestimated items** setting:
+
+- **Exclude** (the default) leaves them out.
+- **Use team average** gives each one the average estimate of the same team's estimated items **of the same work type** in the date range, or the team's average across all types when it estimated nothing of that type. The average is per team because story points are relative to the team that assigned them, and per work type because bugs and tasks are often left unpointed and a story average would inflate them. Filled-in points are always labelled, for example "+33 filled in".
+
+The **Estimated** card shows how many of the items from point-sized teams carried an estimate. Low coverage is worth knowing in its own right, and a filled-in average is only as good as the estimates it is taken from.
+
+### Share of Team Effort
+
+Adding story points across teams mixes scales: 8 points on one team is not 8 points on another. **Share of Team Effort** avoids that. Each team's split is measured in its own sizing, story points or items for teams that size by count, and teams are then combined in proportion to how many items each completed. Every team counts, whatever its sizing method.
+
+Only the **percentages** avoid mixing scales. The **Story Points** card and the **Story Points** columns in the tables are still plain totals summed across teams, shown for reference.
+
+A team that sizes in story points but estimated nothing in the range is measured by items instead, so its work still counts.
+
+This measure is offered only on a team of teams. On a single team there is nothing to combine, so it would repeat Story Points or Count. Hover over the **Measure** switch in the report for a short description of each.
+
+## Views
+
+### Breakdown
+
+A bar showing each group's share of the measured total, followed by a table with each group's items, story points and share. Portfolio, program, project and theme names link to their pages. On a team of teams, **Largest Contributor** names the team that completed the most work in each group.
+
+### By Team
+
+Available on a team of teams. Each row is a team in the hierarchy, and each cell is that team's share of its own work that went to the group, shaded by size. Team of teams rows roll up every team beneath them. No project cells are shaded in a warning color.
+
+### Over Time
+
+Columns showing each group's share of each period, and a table comparing the first period with work in it to the last. Periods are calendar weeks for ranges up to a month, two weeks for ranges up to six months, and calendar months beyond that. Calendar periods are used rather than iterations because the teams in a team of teams may run different iteration cadences.
+
+## Headline Cards
+
+| Card | What It Shows |
+|------|---------------|
+| **Work Items Completed** | Completed work items counted by the report |
+| **Story Points** | Estimated story points, plus filled-in points when using the team average |
+| **Estimated** | Story Points only: the share of items from point-sized teams that carried an estimate |
+| **Teams Included** | Teams that completed work in the range; with story points, how many of them size in points |
+| **Linked to a Project** | The share of the measured total linked to a project |
+| **No Project** | The share of the measured total with no project |
+
+## Permissions
+
+Viewing the report requires permission to view work items.

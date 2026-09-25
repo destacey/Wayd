@@ -592,11 +592,17 @@
   font-weight: 600;
 }
 
+/* .td caps every cell at max-width: 0 so text truncates within its column;
+   the heading spans the grid, so it must not be capped. */
 .groupCell {
+  max-width: none;
+}
+
+.groupCellInner {
   display: flex;
   align-items: center;
   gap: var(--ant-margin-xs);
-  max-width: none;
+  min-width: 0;
 }
 
 .groupToggle {

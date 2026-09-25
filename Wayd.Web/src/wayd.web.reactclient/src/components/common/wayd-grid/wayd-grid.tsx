@@ -277,6 +277,7 @@ const groupRowClasses: GroupGridRowClasses = {
   trGroup: styles.trGroup,
   td: styles.td,
   groupCell: styles.groupCell,
+  groupCellInner: styles.groupCellInner,
   groupToggle: styles.groupToggle,
   groupToggleExpanded: styles.groupToggleExpanded,
   groupLabel: styles.groupLabel,

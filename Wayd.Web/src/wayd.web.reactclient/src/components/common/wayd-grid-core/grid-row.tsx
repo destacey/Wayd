@@ -353,8 +353,10 @@ export interface GroupGridRowClasses {
   tr: string
   trGroup: string
   td: string
-  /** The single spanning cell: toggle, indent and heading in one flex line. */
+  /** The single spanning cell. Stays a table cell, or its colSpan is lost. */
   groupCell: string
+  /** The flex line inside it: toggle, indent and heading. */
+  groupCellInner: string
   groupToggle: string
   groupToggleExpanded: string
   groupLabel: string
@@ -400,29 +402,33 @@ export function GroupGridRow<T extends RowData>({
   return (
     <tr className={`${classes.tr} ${classes.trGroup}`} data-group-row="true">
       <td className={`${classes.td} ${classes.groupCell}`} colSpan={colSpan}>
-        <button
-          type="button"
-          className={`${classes.groupToggle}${expanded ? ` ${classes.groupToggleExpanded}` : ''}`}
-          style={{ marginLeft: row.depth * GROUP_INDENT_PER_DEPTH }}
-          aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse group' : 'Expand group'}
-          onClick={row.getToggleExpandedHandler()}
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+        {/* The flex line is a child: a `display: flex` td is no longer a table
+            cell, so its colSpan is ignored and it shrinks to the first column. */}
+        <div className={classes.groupCellInner}>
+          <button
+            type="button"
+            className={`${classes.groupToggle}${expanded ? ` ${classes.groupToggleExpanded}` : ''}`}
+            style={{ marginLeft: row.depth * GROUP_INDENT_PER_DEPTH }}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Collapse group' : 'Expand group'}
+            onClick={row.getToggleExpandedHandler()}
           >
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </button>
-        {label}
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
+          {label}
+        </div>
       </td>
     </tr>
   )

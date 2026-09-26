@@ -8,6 +8,7 @@ using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.Settings;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Links;
 using Wayd.Links.Models;
@@ -58,6 +59,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<User> WaydUsers => Set<User>();
     public DbSet<UserIdentity> UserIdentities => Set<UserIdentity>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
+    public DbSet<SystemSettingsSection> SystemSettingsSections => Set<SystemSettingsSection>();
 
     #endregion Common
 

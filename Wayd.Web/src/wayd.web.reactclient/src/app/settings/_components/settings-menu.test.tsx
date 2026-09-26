@@ -120,6 +120,14 @@ describe('SettingsMenu', () => {
       expect(screen.getByText('Connections')).toBeInTheDocument()
     })
 
+    it('puts the scheduling settings under System', () => {
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.getByText('Scheduling')).toBeInTheDocument()
+    })
+
     it('hides Planning when the planning poker flag is off', () => {
       // Arrange — the group holds only estimation scales, so the flag takes
       // the whole group with it.

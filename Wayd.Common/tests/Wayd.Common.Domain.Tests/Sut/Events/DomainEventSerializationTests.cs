@@ -15,6 +15,7 @@ using Wayd.Common.Domain.Events.Planning.Risks;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.Scoring;
+using Wayd.Common.Domain.Events.Settings;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
@@ -26,6 +27,7 @@ using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Settings;
 using Wayd.Common.Models;
 
 namespace Wayd.Common.Domain.Tests.Sut.Events;
@@ -143,6 +145,32 @@ public sealed class DomainEventSerializationTests
         roundTripped.Name.Should().Be(original.Name);
         roundTripped.Description.Should().BeNull();
         roundTripped.Previous.Should().Be(original.Previous);
+    }
+
+    [Fact]
+    public void SystemSettingsSectionValuesChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — JsonElement members, which must come back as the objects they were, not as strings.
+        var original = new SystemSettingsSectionValuesChangedEvent(
+            Guid.NewGuid(),
+            "scheduling",
+            SettingsScope.System,
+            1,
+            JsonSerializer.SerializeToElement(new { defaultTimeZone = "UTC", defaultCommitmentGraceDays = 1 }),
+            JsonSerializer.SerializeToElement(new { defaultTimeZone = "Europe/London", defaultCommitmentGraceDays = 2 }),
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 9, 26, 12, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Key.Should().Be("scheduling");
+        roundTripped.Scope.Should().Be(SettingsScope.System);
+        roundTripped.SchemaVersion.Should().Be(1);
+        roundTripped.Previous.GetProperty("defaultTimeZone").GetString().Should().Be("UTC");
+        roundTripped.Current.GetProperty("defaultTimeZone").GetString().Should().Be("Europe/London");
+        roundTripped.Current.GetProperty("defaultCommitmentGraceDays").GetInt32().Should().Be(2);
     }
 
     [Fact]

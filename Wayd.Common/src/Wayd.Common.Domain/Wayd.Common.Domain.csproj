@@ -5,6 +5,7 @@
         <PackageReference Include="FluentValidation" />
         <PackageReference Include="NCalc.Core" />
         <PackageReference Include="NodaTime" />
+        <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
     </ItemGroup>
 
     <ItemGroup>

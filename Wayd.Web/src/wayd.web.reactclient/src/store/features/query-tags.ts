@@ -6,6 +6,7 @@ export enum QueryTags {
   BackgroundJobServer = 'Admin.BackgroundJobServer',
   RecurringJob = 'Admin.RecurringJob',
   FeatureFlag = 'Admin.FeatureFlag',
+  SystemSettings = 'Admin.SystemSettings',
   MessagingCounts = 'Admin.MessagingCounts',
   DeadLetterMessage = 'Admin.DeadLetterMessage',
   ImportProcess = 'Admin.ImportProcess',
@@ -36,6 +37,7 @@ export enum QueryTags {
   HealthChecksStatusOptions = 'Common.HealthChecks.StatusOptions',
   ScoringModel = 'Common.ScoringModel',
   StatusWorkflow = 'Common.StatusWorkflow',
+  TimeZone = 'Common.TimeZone',
   StatusHistory = 'Common.StatusHistory',
   WorkflowAssignment = 'Common.WorkflowAssignment',
 

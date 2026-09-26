@@ -222,6 +222,15 @@ Microsoft.FeatureManagement — defined in code, stored in database, managed via
 4. Gate menus: pass flag state into menu builder functions
 5. Deploy — seeder creates flag as disabled; admin enables via UI
 
+### System Settings
+
+Org-wide runtime settings are typed sections (`ISettingsSection<TSelf>` records in `Wayd.Common.Domain/Settings/`),
+one JSON row per section in `App.SystemSettings`. Property initializers are the defaults and a missing value
+reads as its default, so adding a setting needs no migration — but **section keys and property names can never
+be renamed** (a rename silently reverts the stored value). Read through `ISettings<TSection>`; write through
+`ISystemSettingsStore.Save`, which runs the section's validator and records the change in the Activity log. See
+[configuration.mdx](docs/contributing/configuration.mdx#system-settings).
+
 ### OpenAPI Client Generation
 
 NSwag generates TypeScript client from API's OpenAPI spec on Debug build. Config in `nswag.json`. Generated client in `wayd.web.reactclient/src/services/wayd-api.ts`.

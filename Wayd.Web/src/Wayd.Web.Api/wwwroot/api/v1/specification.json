@@ -110,6 +110,35 @@
         ]
       }
     },
+    "/api/time-zones": {
+      "get": {
+        "tags": [
+          "TimeZones"
+        ],
+        "summary": "Get the IANA time zones that can be chosen.",
+        "operationId": "TimeZones_GetTimeZones",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TimeZoneDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -38921,6 +38950,129 @@
         ]
       }
     },
+    "/api/admin/settings/scheduling": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the scheduling settings.",
+        "operationId": "SystemSettings_GetSchedulingSettings",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Update the scheduling settings.",
+        "operationId": "SystemSettings_UpdateSchedulingSettings",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSchedulingSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/scheduling/activities": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the scheduling settings' change history.",
+        "operationId": "SystemSettings_GetSchedulingSettingsActivities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/workflow-assignments": {
       "get": {
         "tags": [
@@ -39221,6 +39373,22 @@
           "instance": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "TimeZoneDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "currentOffset"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "currentOffset": {
+            "type": "string"
           }
         }
       },
@@ -63088,6 +63256,46 @@
               "nullable": false,
               "example": "00000000-0000-0000-0000-000000000000"
             }
+          }
+        }
+      },
+      "SchedulingSettingsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "defaultTimeZone",
+          "defaultCommitmentGraceDays"
+        ],
+        "properties": {
+          "defaultTimeZone": {
+            "type": "string"
+          },
+          "defaultCommitmentGraceDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateSchedulingSettingsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "defaultTimeZone",
+          "defaultCommitmentGraceDays"
+        ],
+        "properties": {
+          "defaultTimeZone": {
+            "type": "string",
+            "description": "The IANA time zone id new team operating models start with.",
+            "minLength": 1,
+            "nullable": false
+          },
+          "defaultCommitmentGraceDays": {
+            "type": "integer",
+            "description": "Days after a sprint's planned start that its commitment is taken when the team does not start it.",
+            "format": "int32",
+            "maximum": 14.0,
+            "minimum": 0.0
           }
         }
       },

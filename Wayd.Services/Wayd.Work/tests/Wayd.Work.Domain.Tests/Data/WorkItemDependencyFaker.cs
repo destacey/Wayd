@@ -54,14 +54,14 @@ public static class WorkItemDependencyFakerExtensions
         return faker;
     }
 
-    public static WorkItemDependencyFaker WithSourcePlannedOn(this WorkItemDependencyFaker faker, Instant? sourcePlannedOn)
+    public static WorkItemDependencyFaker WithSourcePlannedOn(this WorkItemDependencyFaker faker, LocalDate? sourcePlannedOn)
     {
         faker.RuleFor(x => x.SourcePlannedOn, sourcePlannedOn);
 
         return faker;
     }
 
-    public static WorkItemDependencyFaker WithTargetPlannedOn(this WorkItemDependencyFaker faker, Instant? targetPlannedOn)
+    public static WorkItemDependencyFaker WithTargetPlannedOn(this WorkItemDependencyFaker faker, LocalDate? targetPlannedOn)
     {
         faker.RuleFor(x => x.TargetPlannedOn, targetPlannedOn);
 

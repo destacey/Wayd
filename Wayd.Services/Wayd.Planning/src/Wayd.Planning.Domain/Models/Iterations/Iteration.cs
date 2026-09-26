@@ -112,7 +112,7 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
 
         var newDateRange = DateRange;
         if (newDateRange != previousDateRange)
-            AddKeyedDomainEvent(() => new IterationDateRangeChangedEvent(Id, Key, previousDateRange, newDateRange, actor, timestamp));
+            AddKeyedDomainEvent(() => new IterationDateRangeChangedEventV2(Id, Key, previousDateRange, newDateRange, actor, timestamp));
 
         var newState = State;
         if (newState != previousState)
@@ -178,7 +178,7 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
         var createdDateRange = iteration.DateRange;
         var createdTeamId = iteration.TeamId;
 
-        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEvent(
+        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEventV2(
             iteration.Id,
             iteration.Key,
             createdName,

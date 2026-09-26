@@ -19,8 +19,8 @@ public class WorkIterationFaker : PrivateConstructorFaker<WorkIteration>
         RuleFor(x => x.State, f => IterationState.Future);
         RuleFor(x => x.DateRange, f =>
         {
-            var startDate = f.Date.Future().ToUniversalTime().ToInstant();
-            var endDate = startDate.Plus(Duration.FromDays(14));
+            var startDate = LocalDate.FromDateTime(f.Date.Future());
+            var endDate = startDate.PlusDays(13);
             return new IterationDateRange(startDate, endDate);
         });
         RuleFor(x => x.TeamId, f => teamId ?? f.Random.Guid());
@@ -79,16 +79,16 @@ public static class WorkIterationFakerExtensions
     }
 
     /// <summary>
-    /// Creates a sprint with a specific end date. The start date is calculated as 14 days before the end date.
+    /// Creates a two-week sprint whose last day is <paramref name="endDate"/>.
     /// </summary>
     /// <param name="faker">The WorkIterationFaker instance</param>
-    /// <param name="endDate">The end date for the sprint</param>
+    /// <param name="endDate">The last day of the sprint</param>
     /// <param name="state">Optional state for the sprint (defaults to Active)</param>
     /// <param name="type">Optional type for the iteration (defaults to Sprint)</param>
     /// <returns>The configured faker</returns>
-    public static WorkIterationFaker WithEndDate(this WorkIterationFaker faker, Instant endDate, IterationState state = IterationState.Active, IterationType type = IterationType.Sprint)
+    public static WorkIterationFaker WithEndDate(this WorkIterationFaker faker, LocalDate endDate, IterationState state = IterationState.Active, IterationType type = IterationType.Sprint)
     {
-        var startDate = endDate.Minus(Duration.FromDays(14));
+        var startDate = endDate.PlusDays(-13);
         var dateRange = new IterationDateRange(startDate, endDate);
 
         faker.RuleFor(x => x.Type, type);

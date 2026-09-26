@@ -52,8 +52,9 @@ internal static class IterationDtoExtensions
             Path = iteration.Path,
         };
 
-        Instant? start = iteration.StartDate.HasValue ? Instant.FromDateTimeUtc(iteration.StartDate.Value) : null;
-        Instant? end = iteration.EndDate.HasValue ? Instant.FromDateTimeUtc(iteration.EndDate.Value) : null;
+        // Azure DevOps stores an iteration's dates as calendar days, sent as midnight UTC.
+        LocalDate? start = iteration.StartDate.HasValue ? Instant.FromDateTimeUtc(iteration.StartDate.Value).InUtc().Date : null;
+        LocalDate? end = iteration.EndDate.HasValue ? Instant.FromDateTimeUtc(iteration.EndDate.Value).InUtc().Date : null;
 
         // Azure DevOps iterations are sprints only if they do not have child iterations and they have start and end dates
         var type = !iteration.HasChildren && start.HasValue && end.HasValue

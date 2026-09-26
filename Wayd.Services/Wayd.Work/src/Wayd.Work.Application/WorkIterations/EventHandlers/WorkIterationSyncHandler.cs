@@ -1,6 +1,9 @@
 using Wayd.Common.Application.Requests.Planning.Iterations;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events.Planning.Iterations;
+using Wayd.Common.Domain.Interfaces.Planning.Iterations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkIterations.EventHandlers;
@@ -21,15 +24,9 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, IDisp
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<WorkIterationSyncHandler> _logger = logger;
 
-    public async Task Handle(IterationCreatedEvent @event, CancellationToken cancellationToken)
+    public async Task Handle(IterationCreatedEventV2 @event, CancellationToken cancellationToken)
     {
-        if (await _workDbContext.WorkIterations.AnyAsync(x => x.Id == @event.Id, cancellationToken))
-        {
-            _logger.LogInformation("Work {SystemActionType} for a new Iteration skipped: Iteration {IterationId} already has a copy.", SystemActionType.ServiceDataReplication, @event.Id);
-            return;
-        }
-
-        await CreateFromSource(@event.Id, @event.Timestamp, cancellationToken);
+        await Create(@event.Id, @event.Timestamp, cancellationToken);
     }
 
     public async Task Handle(IterationDetailsUpdatedEvent @event, CancellationToken cancellationToken)
@@ -37,7 +34,7 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, IDisp
         await Apply(@event.Id, @event.Timestamp, i => i.ApplyDetails(@event.Name, @event.Type, EventActor.System, @event.Timestamp), "details", cancellationToken);
     }
 
-    public async Task Handle(IterationDateRangeChangedEvent @event, CancellationToken cancellationToken)
+    public async Task Handle(IterationDateRangeChangedEventV2 @event, CancellationToken cancellationToken)
     {
         await Apply(@event.Id, @event.Timestamp, i => i.ApplyDateRange(@event.DateRange, EventActor.System, @event.Timestamp), "date range", cancellationToken);
     }
@@ -52,14 +49,25 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, IDisp
         await Apply(@event.Id, @event.Timestamp, i => i.ApplyTeam(@event.TeamId, EventActor.System, @event.Timestamp), "team", cancellationToken);
     }
 
-    // Nothing raises the superseded type, but an envelope written as it before the switch can still be
-    // waiting in the durable outbox; without this it would dead-letter rather than update the copy.
+    // Nothing raises the superseded types below, but an envelope written as one before the switch can still be
+    // waiting in the durable outbox; without these it would dead-letter rather than update the copy.
 #pragma warning disable CS0618
-    public async Task Handle(IterationUpdatedEvent @event, CancellationToken cancellationToken)
-#pragma warning restore CS0618
+    public async Task Handle(IterationCreatedEvent @event, CancellationToken cancellationToken)
     {
-        await Apply(@event.Id, @event.Timestamp, i => i.ApplyRecord(@event, EventActor.System, @event.Timestamp), "record", cancellationToken);
+        await Create(@event.Id, @event.Timestamp, cancellationToken);
     }
+
+    public async Task Handle(IterationDateRangeChangedEvent @event, CancellationToken cancellationToken)
+    {
+        await Apply(@event.Id, @event.Timestamp, i => i.ApplyDateRange(@event.DateRange.ToIterationDateRange(), EventActor.System, @event.Timestamp), "date range", cancellationToken);
+    }
+
+    public async Task Handle(IterationUpdatedEvent @event, CancellationToken cancellationToken)
+    {
+        var record = new SupersededRecord(@event.Id, @event.Key, @event.Name, @event.Type, @event.State, @event.DateRange.ToIterationDateRange(), @event.TeamId);
+        await Apply(@event.Id, @event.Timestamp, i => i.ApplyRecord(record, EventActor.System, @event.Timestamp), "record", cancellationToken);
+    }
+#pragma warning restore CS0618
 
     public async Task Handle(IterationDeletedEvent @event, CancellationToken cancellationToken)
     {
@@ -75,6 +83,17 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, IDisp
         await _workDbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} deleted action.", SystemActionType.ServiceDataReplication, @event.Id);
+    }
+
+    private async Task Create(Guid iterationId, Instant timestamp, CancellationToken cancellationToken)
+    {
+        if (await _workDbContext.WorkIterations.AnyAsync(x => x.Id == iterationId, cancellationToken))
+        {
+            _logger.LogInformation("Work {SystemActionType} for a new Iteration skipped: Iteration {IterationId} already has a copy.", SystemActionType.ServiceDataReplication, iterationId);
+            return;
+        }
+
+        await CreateFromSource(iterationId, timestamp, cancellationToken);
     }
 
     private async Task Apply(Guid iterationId, Instant timestamp, Func<WorkIteration, bool> apply, string change, CancellationToken cancellationToken)
@@ -111,4 +130,6 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, IDisp
 
         _logger.LogInformation("Successful Work {SystemActionType} creating Iteration {IterationId} from its source.", SystemActionType.ServiceDataReplication, iterationId);
     }
+
+    private sealed record SupersededRecord(Guid Id, int Key, string Name, IterationType Type, IterationState State, IterationDateRange DateRange, Guid? TeamId) : ISimpleIteration;
 }

@@ -55,15 +55,17 @@ public static class DurableEventRoutes
 #pragma warning restore CS0618
 
         // Planning Iteration → Work WorkIteration.
-        typeof(IterationCreatedEvent),
+        typeof(IterationCreatedEventV2),
         typeof(IterationDetailsUpdatedEvent),
-        typeof(IterationDateRangeChangedEvent),
+        typeof(IterationDateRangeChangedEventV2),
         typeof(IterationStateChangedEvent),
         typeof(IterationTeamChangedEvent),
         typeof(IterationDeletedEvent),
 
-        // Superseded by the four events above; routed durably for envelopes written before the switch.
+        // Superseded by the events above; routed durably for envelopes written before the switch.
 #pragma warning disable CS0618
+        typeof(IterationCreatedEvent),
+        typeof(IterationDateRangeChangedEvent),
         typeof(IterationUpdatedEvent),
 #pragma warning restore CS0618
 

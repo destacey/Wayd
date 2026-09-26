@@ -101,7 +101,7 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
     private async Task<Guid> SeedSprint(Guid teamId, IterationState state)
     {
         var key = Random.Shared.Next(100_000, 999_999);
-        var range = new IterationDateRange(Instant.FromUtc(2026, 9, 1, 0, 0), Instant.FromUtc(2026, 9, 14, 0, 0));
+        var range = new IterationDateRange(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 14));
         var sprint = new WorkIteration(
             new SourceIteration(Guid.NewGuid(), key, $"Sprint {key}", IterationType.Sprint, state, range, teamId),
             _now);

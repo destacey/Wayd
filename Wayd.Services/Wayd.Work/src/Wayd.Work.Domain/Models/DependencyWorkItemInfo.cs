@@ -9,7 +9,8 @@ public sealed record DependencyWorkItemInfo
 {
     public Guid WorkItemId { get; set; }
     public WorkStatusCategory StatusCategory { get; set; }
-    public Instant? PlannedOn { get; set; }
+    /// <summary>The last planned day of the work item's sprint, when it is in one.</summary>
+    public LocalDate? PlannedOn { get; set; }
 
     /// <summary>
     /// Expression for projecting a WorkItem to DependencyWorkItemInfo in EF Core queries.
@@ -26,11 +27,11 @@ public sealed record DependencyWorkItemInfo
 
     public static DependencyWorkItemInfo Create(WorkItem workItem, Instant? now = null)
     {
-        Instant? plannedOn = null;
+        LocalDate? plannedOn = null;
         if (workItem.Iteration != null
             && workItem.Iteration.Type == IterationType.Sprint
             && workItem.Iteration.State != IterationState.Completed
-            && (!now.HasValue || workItem.Iteration.DateRange.End > now.Value))
+            && (!now.HasValue || workItem.Iteration.DateRange.End >= now.Value.InUtc().Date))
         {
             plannedOn = workItem.Iteration.DateRange.End;
         }

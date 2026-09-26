@@ -41,8 +41,8 @@ public class WorkIterationTests
     public void ApplyDateRange_WhenTheRangeMoves_RaisesEventCarryingBothEnds()
     {
         // Arrange
-        var before = new IterationDateRange(Instant.FromUtc(2026, 4, 1, 0, 0), Instant.FromUtc(2026, 4, 14, 0, 0));
-        var after = new IterationDateRange(Instant.FromUtc(2026, 4, 1, 0, 0), Instant.FromUtc(2026, 4, 21, 0, 0));
+        var before = new IterationDateRange(new LocalDate(2026, 4, 1), new LocalDate(2026, 4, 14));
+        var after = new IterationDateRange(new LocalDate(2026, 4, 1), new LocalDate(2026, 4, 21));
         var iteration = new WorkIteration(new WorkIterationFaker().WithDateRange(before).Generate(), Created);
 
         // Act
@@ -51,7 +51,7 @@ public class WorkIterationTests
         // Assert
         applied.Should().BeTrue();
         iteration.DateRange.Should().Be(after);
-        var raised = iteration.DomainEvents.OfType<WorkIterationDateRangeChangedEvent>().Should().ContainSingle().Subject;
+        var raised = iteration.DomainEvents.OfType<WorkIterationDateRangeChangedEventV2>().Should().ContainSingle().Subject;
         raised.PreviousDateRange.Should().Be(before);
         raised.DateRange.Should().Be(after);
     }

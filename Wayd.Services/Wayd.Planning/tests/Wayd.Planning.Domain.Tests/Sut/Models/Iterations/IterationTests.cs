@@ -64,13 +64,13 @@ public class IterationTests
         // Arrange
         var iteration = _faker.Generate();
         var previous = iteration.DateRange;
-        var moved = new IterationDateRange(previous.Start, previous.EffectiveEnd.Plus(Duration.FromDays(7)));
+        var moved = new IterationDateRange(previous.Start, previous.EffectiveEnd.PlusDays(7));
 
         // Act
         iteration.Update(iteration.Name, iteration.Type, iteration.State, moved, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        var raised = iteration.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IterationDateRangeChangedEvent>().Subject;
+        var raised = iteration.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IterationDateRangeChangedEventV2>().Subject;
         raised.PreviousDateRange.Should().Be(previous);
         raised.DateRange.Should().Be(moved);
     }
@@ -97,7 +97,7 @@ public class IterationTests
     {
         // Arrange
         var iteration = _faker.AsFuture().Generate();
-        var moved = new IterationDateRange(iteration.DateRange.Start, iteration.DateRange.EffectiveEnd.Plus(Duration.FromDays(7)));
+        var moved = new IterationDateRange(iteration.DateRange.Start, iteration.DateRange.EffectiveEnd.PlusDays(7));
         var type = iteration.Type == IterationType.Sprint ? IterationType.Iteration : IterationType.Sprint;
 
         // Act
@@ -106,7 +106,7 @@ public class IterationTests
         // Assert
         iteration.DomainEvents.Select(e => e.GetType()).Should().Equal(
             typeof(IterationDetailsUpdatedEvent),
-            typeof(IterationDateRangeChangedEvent),
+            typeof(IterationDateRangeChangedEventV2),
             typeof(IterationStateChangedEvent),
             typeof(IterationTeamChangedEvent));
     }
@@ -144,7 +144,7 @@ public class IterationTests
     public void Update_BeforeTheFirstSave_WaitsForTheKey()
     {
         // Arrange
-        var range = new IterationDateRange(_dateTimeProvider.Now, _dateTimeProvider.Now.Plus(Duration.FromDays(14)));
+        var range = new IterationDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(13));
         var iteration = Iteration.Create("Sprint 1", IterationType.Sprint, IterationState.Future, range, null,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, _dateTimeProvider.Now);
 
@@ -154,7 +154,7 @@ public class IterationTests
         // Assert
         iteration.DomainEvents.Should().BeEmpty();
         iteration.ExecutePostPersistenceActions();
-        iteration.DomainEvents.OfType<IterationCreatedEvent>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1");
+        iteration.DomainEvents.OfType<IterationCreatedEventV2>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1");
         iteration.DomainEvents.OfType<IterationDetailsUpdatedEvent>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1a");
     }
 }

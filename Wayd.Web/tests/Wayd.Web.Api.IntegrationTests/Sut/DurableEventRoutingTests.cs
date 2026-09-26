@@ -109,7 +109,7 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         Type[] durableEventTypes =
         [
             typeof(ProjectCreatedEvent),
-            typeof(IterationCreatedEvent),
+            typeof(IterationCreatedEventV2),
             typeof(StrategicThemeCreatedEvent),
             typeof(IntegrationStateChangedEvent<Guid>),
             typeof(TeamCreatedEvent),
@@ -146,7 +146,7 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         Type[] durableEventTypes =
         [
             typeof(ProjectCreatedEvent),
-            typeof(IterationCreatedEvent),
+            typeof(IterationCreatedEventV2),
             typeof(StrategicThemeCreatedEvent),
             typeof(IntegrationStateChangedEvent<Guid>),
             typeof(TeamCreatedEvent),

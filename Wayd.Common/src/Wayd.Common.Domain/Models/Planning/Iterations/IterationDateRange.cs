@@ -4,9 +4,13 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Models.Planning.Iterations;
 
-public sealed class IterationDateRange : ValueObject, IDateRange<Instant?>
+/// <summary>
+/// An iteration's planned dates: calendar days, with <see cref="End"/> the last day of the iteration rather
+/// than the moment after it. No zone is implied; a consumer that needs instants applies one.
+/// </summary>
+public sealed class IterationDateRange : ValueObject, IDateRange<LocalDate?>
 {
-    public IterationDateRange(Instant? start, Instant? end)
+    public IterationDateRange(LocalDate? start, LocalDate? end)
     {
         Start = start;
         End = end;
@@ -18,46 +22,43 @@ public sealed class IterationDateRange : ValueObject, IDateRange<Instant?>
     }
 
     /// <summary>
-    /// Gets the start date and time, if available.
+    /// Gets the first planned day, if available.
     /// </summary>
-    public Instant? Start { get; private set; }
+    public LocalDate? Start { get; private set; }
 
     /// <summary>
-    /// Gets the end date and time, if available.
+    /// Gets the last planned day, if available. The iteration includes the whole of this day.
     /// </summary>
-    public Instant? End { get; private set; }
+    public LocalDate? End { get; private set; }
 
     /// <summary>
-    /// Gets the effective start date and time. If <see cref="Start"/> is null, this will return <see cref="Instant.MinValue"/>.
+    /// Gets the effective start date. If <see cref="Start"/> is null, this will return <see cref="LocalDate.MinIsoValue"/>.
     /// </summary>
-    public Instant EffectiveStart => Start ?? Instant.MinValue;
+    public LocalDate EffectiveStart => Start ?? LocalDate.MinIsoValue;
 
     /// <summary>
-    /// Gets the effective end date and time. If <see cref="Start"/> is null, this will return <see cref="Instant.MaxValue"/>.
+    /// Gets the effective end date. If <see cref="End"/> is null, this will return <see cref="LocalDate.MaxIsoValue"/>.
     /// </summary>
-    public Instant EffectiveEnd => End ?? Instant.MaxValue;
+    public LocalDate EffectiveEnd => End ?? LocalDate.MaxIsoValue;
 
     /// <summary>
-    /// Gets the number of days in the range.
+    /// Gets the number of days in the range, counting both the first and the last day.
     /// </summary>
-    public int Days => (EffectiveEnd - EffectiveStart).Days + 1;
+    public int Days => Period.DaysBetween(EffectiveStart, EffectiveEnd) + 1;
 
     /// <summary>
-    /// Determines whether the range includes the specified value.
+    /// Determines whether the range includes the specified date.
     /// </summary>
-    /// <param name="value">If null, it is treated as <see cref="Instant.MinValue"/>.</param>
-    /// <returns></returns>
-    public bool Includes(Instant? value)
+    /// <param name="value">If null, it is treated as <see cref="LocalDate.MinIsoValue"/>.</param>
+    public bool Includes(LocalDate? value)
     {
-        value ??= Instant.MinValue;
-        return EffectiveStart <= value && value <= EffectiveEnd;
+        var date = value ?? LocalDate.MinIsoValue;
+        return EffectiveStart <= date && date <= EffectiveEnd;
     }
 
     /// <summary>
     /// Determines whether the range includes the specified range.
     /// </summary>
-    /// <param name="range"></param>
-    /// <returns></returns>
     public bool Includes(IterationDateRange range)
     {
         return EffectiveStart <= range.EffectiveStart && range.EffectiveEnd <= EffectiveEnd;
@@ -66,56 +67,35 @@ public sealed class IterationDateRange : ValueObject, IDateRange<Instant?>
     /// <summary>
     /// Determines whether the range overlaps the specified range.
     /// </summary>
-    /// <param name="range"></param>
-    /// <returns></returns>
     public bool Overlaps(IterationDateRange range)
     {
-        return Includes(range)
-            || range.Includes(this)
-            || range.EffectiveStart <= EffectiveStart && EffectiveStart <= range.EffectiveEnd && range.EffectiveEnd <= EffectiveEnd
-            || EffectiveStart <= range.EffectiveStart && range.EffectiveStart <= EffectiveEnd && EffectiveEnd <= range.EffectiveEnd;
+        return EffectiveStart <= range.EffectiveEnd && range.EffectiveStart <= EffectiveEnd;
     }
 
     /// <summary>
-    /// Determines whether [is past on] [the specified date].
+    /// Whether the last planned day is before <paramref name="date"/>.
     /// </summary>
-    /// <param name="date">The date.</param>
-    /// <returns>
-    ///   <c>true</c> if [is past on] [the specified date]; otherwise, <c>false</c>.
-    /// </returns>
-    public bool IsPastOn(Instant date)
+    public bool IsPastOn(LocalDate date)
     {
         return EffectiveEnd < date;
     }
 
     /// <summary>
-    /// Determines whether [is active on] [the specified date].
+    /// Whether <paramref name="date"/> is one of the planned days.
     /// </summary>
-    /// <param name="date">The date.</param>
-    /// <returns>
-    ///   <c>true</c> if [is active on] [the specified date]; otherwise, <c>false</c>.
-    /// </returns>
-    public bool IsActiveOn(Instant date)
+    public bool IsActiveOn(LocalDate date)
     {
         return Includes(date);
     }
 
     /// <summary>
-    /// Determines whether [is future on] [the specified date].
+    /// Whether the first planned day is after <paramref name="date"/>.
     /// </summary>
-    /// <param name="date">The date.</param>
-    /// <returns>
-    ///   <c>true</c> if [is future on] [the specified date]; otherwise, <c>false</c>.
-    /// </returns>
-    public bool IsFutureOn(Instant date)
+    public bool IsFutureOn(LocalDate date)
     {
         return date < EffectiveStart;
     }
 
-    /// <summary>
-    /// Gets the equality components.
-    /// </summary>
-    /// <returns></returns>
     protected override IEnumerable<IComparable> GetEqualityComponents()
     {
         yield return EffectiveStart;
@@ -125,9 +105,8 @@ public sealed class IterationDateRange : ValueObject, IDateRange<Instant?>
     /// <summary>
     /// Creates a new instance of the <see cref="IterationDateRange"/> class with the specified start and end dates.
     /// </summary>
-    /// <param name="start">The optional start date of the iteration. Can be <see langword="null"/> to indicate no start date.</param>
-    /// <param name="end">The optional end date of the iteration. Can be <see langword="null"/> to indicate no end date.</param>
-    /// <returns>A new <see cref="IterationDateRange"/> instance initialized with the specified start and end dates.</returns>
-    public static IterationDateRange Create(Instant? start, Instant? end)
+    /// <param name="start">The first planned day, or <see langword="null"/> when there is none.</param>
+    /// <param name="end">The last planned day, or <see langword="null"/> when there is none.</param>
+    public static IterationDateRange Create(LocalDate? start, LocalDate? end)
         => new(start, end);
 }

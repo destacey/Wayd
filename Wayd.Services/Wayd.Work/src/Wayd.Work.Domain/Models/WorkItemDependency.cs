@@ -9,7 +9,7 @@ public sealed class WorkItemDependency : WorkItemLink
 {
     private WorkItemDependency() : base() { }
 
-    private WorkItemDependency(Guid sourceId, WorkStatusCategory sourceStatusCategory, Instant? sourcePlannedDate, Guid targetId, WorkStatusCategory targetStatusCategory, Instant? targetPlannedDate, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment, Instant now)
+    private WorkItemDependency(Guid sourceId, WorkStatusCategory sourceStatusCategory, LocalDate? sourcePlannedDate, Guid targetId, WorkStatusCategory targetStatusCategory, LocalDate? targetPlannedDate, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment, Instant now)
     : base(sourceId, targetId, WorkItemLinkType.Dependency, createdOn, createdById, removedOn, removedById, comment)
     {
         // assign inputs to properties first (important for state calculation)
@@ -25,11 +25,11 @@ public sealed class WorkItemDependency : WorkItemLink
 
     public WorkStatusCategory SourceStatusCategory { get; set; }
 
-    public Instant? SourcePlannedOn { get; set; }
+    public LocalDate? SourcePlannedOn { get; set; }
 
     public WorkStatusCategory TargetStatusCategory { get; set; }
 
-    public Instant? TargetPlannedOn { get; set; }
+    public LocalDate? TargetPlannedOn { get; set; }
 
     public DependencyState State { get; private set; }
 
@@ -179,9 +179,10 @@ public sealed class WorkItemDependency : WorkItemLink
             return;
         }
 
-        // Treat past-or-equal planned dates as unplanned
-        var predecessor = (SourcePlannedOn.HasValue && SourcePlannedOn.Value <= now) ? null : SourcePlannedOn;
-        var successor = (TargetPlannedOn.HasValue && TargetPlannedOn.Value <= now) ? null : TargetPlannedOn;
+        // A planned date before today (UTC) counts as unplanned. It is a sprint's last day, so that day still counts.
+        var today = now.InUtc().Date;
+        var predecessor = (SourcePlannedOn.HasValue && SourcePlannedOn.Value < today) ? null : SourcePlannedOn;
+        var successor = (TargetPlannedOn.HasValue && TargetPlannedOn.Value < today) ? null : TargetPlannedOn;
 
         // neither side planned -> at risk
         if (predecessor == null && successor == null)

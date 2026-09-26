@@ -32,7 +32,7 @@ const SprintDetails: FC<SprintDetailsProps> = ({
       <TimelineProgress
         start={sprint.start}
         end={sprint.end}
-        dateFormat="MMM D, YYYY h:mm A"
+        dateFormat="MMM D, YYYY"
       />
       {showMetrics && (
         <SprintMetrics

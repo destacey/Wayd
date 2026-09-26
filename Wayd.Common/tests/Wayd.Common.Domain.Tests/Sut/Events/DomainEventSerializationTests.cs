@@ -252,18 +252,18 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
-    public void IterationCreatedEvent_RoundTripsThroughDurableSerializer()
+    public void IterationCreatedEventV2_RoundTripsThroughDurableSerializer()
     {
         // Arrange — an ISimpleIteration aggregate-constructor event (fixed with a [JsonConstructor]) whose
-        // IterationDateRange value object carries nullable NodaTime Instants.
-        var original = new IterationCreatedEvent(
+        // IterationDateRange value object carries nullable NodaTime LocalDates.
+        var original = new IterationCreatedEventV2(
             iteration: new SimpleIterationStub(
                 Guid.NewGuid(),
                 7,
                 "Sprint 7",
                 IterationType.Iteration,
                 IterationState.Active,
-                new IterationDateRange(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0)),
+                new IterationDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14)),
                 Guid.NewGuid()),
             EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
@@ -754,14 +754,14 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
-    public void IterationDateRangeChangedEvent_RoundTripsBothEnds()
+    public void IterationDateRangeChangedEventV2_RoundTripsBothEnds()
     {
-        // Arrange — an open-ended range on one side, so a null Instant inside the value object is covered.
-        var original = new IterationDateRangeChangedEvent(
+        // Arrange — an open-ended range on one side, so a null date inside the value object is covered.
+        var original = new IterationDateRangeChangedEventV2(
             Guid.NewGuid(),
             7,
-            new IterationDateRange(Instant.FromUtc(2026, 1, 1, 0, 0), null),
-            new IterationDateRange(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0)),
+            new IterationDateRange(new LocalDate(2026, 1, 1), null),
+            new IterationDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14)),
             EventActor.System,
             Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
@@ -773,6 +773,185 @@ public sealed class DomainEventSerializationTests
         roundTripped.PreviousDateRange.Should().Be(original.PreviousDateRange);
         roundTripped.PreviousDateRange.End.Should().BeNull();
         roundTripped.DateRange.Should().Be(original.DateRange);
+    }
+
+    [Fact]
+    public void WorkIterationDateRangeChangedEventV2_RoundTripsBothEnds()
+    {
+        // Arrange
+        var original = new WorkIterationDateRangeChangedEventV2(
+            Guid.NewGuid(),
+            7,
+            new IterationDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14)),
+            new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 16)),
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.PreviousDateRange.Should().Be(original.PreviousDateRange);
+        roundTripped.DateRange.Should().Be(original.DateRange);
+        roundTripped.EventVersion.Should().Be("2.0");
+    }
+
+    // The first generation serialized every public getter of the old value object, so its payloads carry
+    // EffectiveStart, EffectiveEnd and Days beside the instants. They must still bind.
+    private const string IterationDateRangeV1Json =
+        """{ "Start": "2026-01-05T00:00:00Z", "End": "2026-01-16T00:00:00Z", "EffectiveStart": "2026-01-05T00:00:00Z", "EffectiveEnd": "2026-01-16T00:00:00Z", "Days": 12 }""";
+
+    [Fact]
+    public void IterationCreatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange
+        var payload = $$"""
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 7,
+              "Name": "Sprint 7",
+              "Type": 2,
+              "State": 2,
+              "DateRange": {{IterationDateRangeV1Json}},
+              "TeamId": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<IterationCreatedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Key.Should().Be(7);
+        restored.DateRange.Start.Should().Be(Instant.FromUtc(2026, 1, 5, 0, 0));
+        restored.DateRange.ToIterationDateRange().Should().Be(new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 16)));
+        restored.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void IterationDateRangeChangedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange
+        var payload = $$"""
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 7,
+              "PreviousDateRange": { "Start": "2026-01-01T00:00:00Z", "End": null, "EffectiveStart": "2026-01-01T00:00:00Z", "EffectiveEnd": "9999-12-31T23:59:59.999999999Z", "Days": 2916000 },
+              "DateRange": {{IterationDateRangeV1Json}},
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<IterationDateRangeChangedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.PreviousDateRange.End.Should().BeNull();
+        restored.PreviousDateRange.ToIterationDateRange().Should().Be(new IterationDateRange(new LocalDate(2026, 1, 1), null));
+        restored.DateRange.End.Should().Be(Instant.FromUtc(2026, 1, 16, 0, 0));
+    }
+
+    [Fact]
+    public void WorkIterationDateRangeChangedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange
+        var payload = $$"""
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 7,
+              "PreviousDateRange": {{IterationDateRangeV1Json}},
+              "DateRange": {{IterationDateRangeV1Json}},
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<WorkIterationDateRangeChangedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.DateRange.Start.Should().Be(Instant.FromUtc(2026, 1, 5, 0, 0));
+        restored.DateRange.End.Should().Be(Instant.FromUtc(2026, 1, 16, 0, 0));
+    }
+
+    [Fact]
+    public void IterationBaselinedEventV2_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new IterationBaselinedEventV2(
+            Guid.NewGuid(),
+            7,
+            "Sprint 7",
+            IterationType.Sprint,
+            IterationState.Completed,
+            new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 16)),
+            Guid.NewGuid(),
+            recordCreatedOn: Instant.FromUtc(2025, 12, 20, 8, 0),
+            recordCreatedById: null,
+            timestamp: Instant.FromUtc(2026, 9, 7, 12, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.EventId.Should().Be(original.EventId);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.State.Should().Be(original.State);
+        roundTripped.DateRange.Should().Be(original.DateRange);
+        roundTripped.TeamId.Should().Be(original.TeamId);
+        roundTripped.RecordCreatedOn.Should().Be(original.RecordCreatedOn);
+        roundTripped.EventVersion.Should().Be("2.0");
+    }
+
+    [Fact]
+    public void IterationBaselinedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange
+        var payload = $$"""
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000001",
+              "Key": 7,
+              "Name": "Sprint 7",
+              "Type": 2,
+              "State": 3,
+              "DateRange": {{IterationDateRangeV1Json}},
+              "TeamId": "019f2a10-0000-7000-8000-000000000002",
+              "RecordCreatedOn": "2025-12-20T08:00:00Z",
+              "RecordCreatedById": null,
+              "Timestamp": "2026-09-07T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000003",
+              "Actor": { "Kind": 0, "UserId": null, "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+        var restored = JsonSerializer.Deserialize<IterationBaselinedEvent>(payload, Options);
+#pragma warning restore CS0618
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.Name.Should().Be("Sprint 7");
+        restored.DateRange.End.Should().Be(Instant.FromUtc(2026, 1, 16, 0, 0));
+        restored.RecordCreatedOn.Should().Be(Instant.FromUtc(2025, 12, 20, 8, 0));
     }
 
     [Fact]

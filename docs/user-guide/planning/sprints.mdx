@@ -15,11 +15,13 @@ Every sprint has:
 - **Name** — Sprint identifier
 - **Type** — Sprint or Iteration
 - **State** — Future, Active, or Completed
-- **Date Range** — Start and end dates
+- **Date Range** — The first and last planned days, as calendar dates. The sprint includes the whole of its last day
 - **Team** — The owning [team](../organizations/index.mdx#teams) (optional)
 - **Ownership** — Owned (by Wayd) or Managed (from external system like Azure DevOps)
 
 Managed sprints may have **External Metadata** such as the Azure DevOps iteration path.
+
+A sprint is **Future** until its first planned day, **Active** from its first planned day through the end of its last, and **Completed** after that. Days are counted in UTC, and the state is updated each time sprints sync.
 
 Sprints are [mapped to PI iterations](./planning-intervals.mdx#sprint-mapping) to connect team delivery cadence to the broader planning schedule.
 

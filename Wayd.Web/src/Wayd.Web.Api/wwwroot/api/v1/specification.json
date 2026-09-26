@@ -51739,11 +51739,11 @@
           },
           "start": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "end": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "team": {
             "$ref": "#/components/schemas/PlanningTeamNavigationDto"
@@ -52063,11 +52063,11 @@
           },
           "start": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "end": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "team": {
             "$ref": "#/components/schemas/NavigationDto"
@@ -54891,11 +54891,11 @@
           },
           "start": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "end": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "team": {
             "$ref": "#/components/schemas/PlanningTeamNavigationDto"

@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using NodaTime;
 
@@ -12,15 +11,8 @@ public sealed record WorkIterationUpdatedEvent : DomainEvent<WorkIterationUpdate
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
-    public WorkIterationUpdatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
-        : this(iteration.Id, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
-    {
-    }
-
-    // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
-    // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
-    public WorkIterationUpdatedEvent(Guid id, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
+    public WorkIterationUpdatedEvent(Guid id, string name, IterationType type, IterationState state, IterationDateRangeV1 dateRange, Guid? teamId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
         Id = id;
@@ -36,7 +28,7 @@ public sealed record WorkIterationUpdatedEvent : DomainEvent<WorkIterationUpdate
     public string Name { get; }
     public IterationType Type { get; }
     public IterationState State { get; }
-    public IterationDateRange DateRange { get; }
+    public IterationDateRangeV1 DateRange { get; }
     public Guid? TeamId { get; }
 
     [JsonIgnore]

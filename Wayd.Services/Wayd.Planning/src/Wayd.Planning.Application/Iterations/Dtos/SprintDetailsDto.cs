@@ -24,14 +24,14 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public required SimpleNavigationDto State { get; set; }
 
     /// <summary>
-    /// The sprint start date.
+    /// The first planned day of the sprint.
     /// </summary>
-    public Instant Start { get; set; }
+    public LocalDate Start { get; set; }
 
     /// <summary>
-    /// The sprint end date.
+    /// The last planned day of the sprint, included in it.
     /// </summary>
-    public Instant End { get; set; }
+    public LocalDate End { get; set; }
 
     public required PlanningTeamNavigationDto Team { get; set; }
 

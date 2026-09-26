@@ -6,17 +6,9 @@ import { RecordFactsGroup } from '@/src/components/common/record'
 import { SprintDetailsDto } from '@/src/services/wayd-api'
 import { Divider, Flex } from 'antd'
 import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
 import Link from 'next/link'
 
-dayjs.extend(utc)
-
-/**
- * Sprint boundaries are UTC calendar dates. Formatting them in local time
- * shifts them a day for anyone behind UTC — the convention the sprints grid
- * documents.
- */
-const formatDate = (value: Date) => dayjs.utc(value).format('MMM D, YYYY')
+const formatDate = (value: Date) => dayjs(value).format('MMM D, YYYY')
 
 export interface SprintFactsProps {
   sprint: SprintDetailsDto
@@ -30,7 +22,7 @@ export interface SprintFactsProps {
  */
 const SprintFacts = ({ sprint }: SprintFactsProps) => {
   // Inclusive of both endpoints: a Mon-Fri sprint is five days, not four.
-  const days = dayjs.utc(sprint.end).diff(dayjs.utc(sprint.start), 'day') + 1
+  const days = dayjs(sprint.end).diff(dayjs(sprint.start), 'day') + 1
 
   return (
     <>

@@ -121,7 +121,7 @@ public sealed class SplitWorkIterationWatermarksTests(SqlServerDbContextFixture 
     private async Task<WorkIteration> SeedIteration()
     {
         var key = Random.Shared.Next(100_000, 999_999);
-        var range = new IterationDateRange(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0));
+        var range = new IterationDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14));
         var iteration = new WorkIteration(
             new SourceIteration(Guid.NewGuid(), key, "Sprint 1", IterationType.Sprint, IterationState.Active, range, null),
             Created);

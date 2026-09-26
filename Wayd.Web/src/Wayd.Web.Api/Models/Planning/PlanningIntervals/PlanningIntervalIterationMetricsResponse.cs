@@ -49,8 +49,8 @@ public sealed record SprintMetricsSummary
     public int SprintKey { get; init; }
     public required string SprintName { get; init; }
     public required SimpleNavigationDto State { get; init; }
-    public Instant Start { get; init; }
-    public Instant End { get; init; }
+    public LocalDate Start { get; init; }
+    public LocalDate End { get; init; }
     public required NavigationDto Team { get; init; }
 
     // Metrics

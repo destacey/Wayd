@@ -1,4 +1,6 @@
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Domain.Enums;
 using NodaTime;
@@ -47,13 +49,15 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ICurrentUser _currentUser;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings;
     private readonly ILogger<CreateTeamCommandHandler> _logger;
 
-    public CreateTeamCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<CreateTeamCommandHandler> logger)
+    public CreateTeamCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ISettings<SchedulingSettings> schedulingSettings, ILogger<CreateTeamCommandHandler> logger)
     {
         _organizationDbContext = organizationDbContext;
         _dateTimeProvider = dateTimeProvider;
         _currentUser = currentUser;
+        _schedulingSettings = schedulingSettings;
         _logger = logger;
     }
 
@@ -61,6 +65,8 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
     {
         try
         {
+            var scheduling = await _schedulingSettings.Get(cancellationToken);
+
             // Create team with default operating model (Kanban + Count)
             var team = Team.Create(
                 request.Name,
@@ -69,6 +75,8 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
                 request.ActiveDate,
                 Methodology.Kanban,
                 SizingMethod.Count,
+                scheduling.DefaultTimeZone,
+                scheduling.DefaultCommitmentGraceDays,
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
 

@@ -46,6 +46,18 @@ public sealed record TeamOperatingModelDetailsDto : IMapFrom<TeamOperatingModel>
     public SizingMethod SizingMethod { get; set; }
 
     /// <summary>
+    /// The IANA id of the time zone the team's days are counted in.
+    /// </summary>
+    [Required]
+    public required string TimeZone { get; set; }
+
+    /// <summary>
+    /// How many days after a sprint's planned start its commitment is taken, when the team does not start it.
+    /// </summary>
+    [Required]
+    public int CommitmentGraceDays { get; set; }
+
+    /// <summary>
     /// Indicates whether this operating model is current (has no end date).
     /// </summary>
     [Required]

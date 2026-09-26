@@ -44258,14 +44258,20 @@
         "type": "object",
         "description": "Records that a package shipped.",
         "additionalProperties": false,
-        "required": [
-          "releasedAt"
-        ],
         "properties": {
           "releasedAt": {
             "type": "string",
-            "description": "The moment it shipped. Supplied rather than taken from the clock, because shipping is often\nrecorded after the fact.",
-            "format": "date-time"
+            "description": "The moment it shipped. Supplied rather than taken from the clock, because shipping is often\nrecorded after the fact. Required unless the deprecated ReleasedDate is sent instead.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "The day it shipped, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
+            "nullable": true
           }
         }
       },
@@ -44282,6 +44288,14 @@
           "releasedAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "The released day, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
             "nullable": true
           }
         }
@@ -44987,6 +45001,22 @@
             "description": "The corrected released moment. May be added or changed, but not cleared on a version that has\none — emptying it would leave the status contradicting the record. Use the revert action to\nrecord that a version did not ship.",
             "format": "date-time",
             "nullable": true
+          },
+          "cutDate": {
+            "type": "string",
+            "description": "The cut day, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use CutAt. Removed in a future release.",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "The released day, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
+            "nullable": true
           }
         }
       },
@@ -44994,14 +45024,20 @@
         "type": "object",
         "description": "Freezes scope and marks a version ready to ship.",
         "additionalProperties": false,
-        "required": [
-          "cutAt"
-        ],
         "properties": {
           "cutAt": {
             "type": "string",
-            "description": "The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the\nclock, because cutting is often recorded after the fact.",
-            "format": "date-time"
+            "description": "The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the\nclock, because cutting is often recorded after the fact. Required unless the deprecated\nCutDate is sent instead.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cutDate": {
+            "type": "string",
+            "description": "The day it was cut, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use CutAt. Removed in a future release.",
+            "nullable": true
           }
         }
       },
@@ -45009,14 +45045,20 @@
         "type": "object",
         "description": "Records that a version shipped.",
         "additionalProperties": false,
-        "required": [
-          "releasedAt"
-        ],
         "properties": {
           "releasedAt": {
             "type": "string",
-            "description": "The moment it shipped. This is what orders a version history, so it is supplied rather than\ntaken from the clock.",
-            "format": "date-time"
+            "description": "The moment it shipped. This is what orders a version history, so it is supplied rather than\ntaken from the clock. Required unless the deprecated ReleasedDate is sent instead.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "The day it shipped, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
+            "nullable": true
           }
         }
       },

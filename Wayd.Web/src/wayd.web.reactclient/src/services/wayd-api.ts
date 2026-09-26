@@ -45624,14 +45624,18 @@ export interface SetReleasePackageManifestRequest {
 /** Records that a package shipped. */
 export interface MarkReleasePackageReleasedRequest {
     /** The moment it shipped. Supplied rather than taken from the clock, because shipping is often
-recorded after the fact. */
-    releasedAt: Date;
+recorded after the fact. Required unless the deprecated ReleasedDate is sent instead. */
+    releasedAt?: Date | undefined;
+    /** The day it shipped, read as 12:00 in the organization's default time zone. */
+    releasedDate?: Date | undefined;
 }
 
 /** Corrects a package's recorded target date and released moment. */
 export interface CorrectReleasePackageDatesRequest {
     targetDate?: Date | undefined;
     releasedAt?: Date | undefined;
+    /** The released day, read as 12:00 in the organization's default time zone. */
+    releasedDate?: Date | undefined;
 }
 
 /** Pulls a package after it was assembled. The package is kept — deployments may reference it. */
@@ -45853,20 +45857,29 @@ correction rather than a lifecycle step. */
 one — emptying it would leave the status contradicting the record. Use the revert action to
 record that a version did not ship. */
     releasedAt?: Date | undefined;
+    /** The cut day, read as 12:00 in the organization's default time zone. */
+    cutDate?: Date | undefined;
+    /** The released day, read as 12:00 in the organization's default time zone. */
+    releasedDate?: Date | undefined;
 }
 
 /** Freezes scope and marks a version ready to ship. */
 export interface CutVersionRequest {
     /** The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the
-clock, because cutting is often recorded after the fact. */
-    cutAt: Date;
+clock, because cutting is often recorded after the fact. Required unless the deprecated
+CutDate is sent instead. */
+    cutAt?: Date | undefined;
+    /** The day it was cut, read as 12:00 in the organization's default time zone. */
+    cutDate?: Date | undefined;
 }
 
 /** Records that a version shipped. */
 export interface MarkVersionReleasedRequest {
     /** The moment it shipped. This is what orders a version history, so it is supplied rather than
-taken from the clock. */
-    releasedAt: Date;
+taken from the clock. Required unless the deprecated ReleasedDate is sent instead. */
+    releasedAt?: Date | undefined;
+    /** The day it shipped, read as 12:00 in the organization's default time zone. */
+    releasedDate?: Date | undefined;
 }
 
 /** Pulls a version after it was cut. The version is kept — deployments may reference it. */

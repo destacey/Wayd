@@ -259,6 +259,25 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id}/dates")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
+    [OpenApiOperation(
+        "Correct a package's recorded target and released dates.",
+        "Fixes dates entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released date can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> CorrectDates(
+        Guid id, [FromBody] CorrectReleasePackageDatesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new CorrectReleasePackageDatesCommand(id, request.TargetDate, request.ReleasedDate),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Delivery)]
     [OpenApiOperation("Delete a release package.", "Permanent: also deletes its manifest, status history and every deployment of it. Refused while any release lists it. The versions it names are kept.")]

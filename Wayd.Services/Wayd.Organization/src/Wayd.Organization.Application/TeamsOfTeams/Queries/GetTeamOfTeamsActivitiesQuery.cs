@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
 
 namespace Wayd.Organization.Application.TeamsOfTeams.Queries;
@@ -52,6 +53,38 @@ public sealed class GetTeamOfTeamsActivitiesQueryHandler(
             pageSize: request.PageSize,
             cancellationToken: cancellationToken);
 
-        return Result.Success<PagedResponse<ActivityLogDto>?>(activities);
+        return Result.Success<PagedResponse<ActivityLogDto>?>(await ResolveRaisedOn(activities, cancellationToken));
+    }
+
+    /// <summary>
+    /// Names the child team or team of teams each related entry was raised on, so the section can say
+    /// where it came from.
+    /// </summary>
+    private async Task<PagedResponse<ActivityLogDto>> ResolveRaisedOn(
+        PagedResponse<ActivityLogDto> activities, CancellationToken cancellationToken)
+    {
+        var teamIds = activities.Items
+            .Where(a => a.IsRelated && a.AggregateType == "Team")
+            .Select(a => a.AggregateId)
+            .Distinct()
+            .ToList();
+
+        if (teamIds.Count == 0)
+        {
+            return activities;
+        }
+
+        var teams = await _organizationDbContext.BaseTeams
+            .Where(t => teamIds.Contains(t.Id))
+            .Select(t => new { t.Id, t.Key, t.Name })
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+
+        return activities with
+        {
+            Items = [.. activities.Items.Select(a =>
+                a.IsRelated && a.AggregateType == "Team" && teams.TryGetValue(a.AggregateId, out var team)
+                    ? a with { RaisedOn = NavigationDto.Create(team.Id, team.Key, team.Name) }
+                    : a)],
+        };
     }
 }

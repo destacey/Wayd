@@ -46,8 +46,9 @@ public sealed class VersionCsvRow
     public required string Number { get; init; }
     public string? Name { get; init; }
     public DateOnly? TargetDate { get; init; }
-    public DateOnly? CutDate { get; init; }
-    public DateOnly? ReleasedDate { get; init; }
+    /// <summary>Instants as text, like the deployment timestamps: see <see cref="DeploymentCsvRow.Timestamp"/>.</summary>
+    public string? CutAt { get; init; }
+    public string? ReleasedAt { get; init; }
     public long? Sequence { get; init; }
     public string? Notes { get; init; }
 }
@@ -59,7 +60,9 @@ public sealed class ReleasePackageCsvRow
     public required string Version { get; init; }
     public string? Name { get; init; }
     public DateOnly? TargetDate { get; init; }
-    public DateOnly? ReleasedDate { get; init; }
+
+    /// <summary>An instant as text, like the deployment timestamps: see <see cref="DeploymentCsvRow.Timestamp"/>.</summary>
+    public string? ReleasedAt { get; init; }
 }
 
 /// <summary>One manifest line, pointing back at its package row by that row's ImportId.</summary>

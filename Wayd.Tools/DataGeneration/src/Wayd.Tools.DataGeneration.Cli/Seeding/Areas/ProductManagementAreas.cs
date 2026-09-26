@@ -160,8 +160,8 @@ public sealed class VersionsArea() : ProductManagementSeedArea(
             ProductId = context.Id(ProductManagementArea.Products, v.ProductName),
             Number = v.Number,
             TargetDate = v.TargetDate,
-            CutDate = v.CutDate,
-            ReleasedDate = v.ReleasedDate,
+            CutAt = v.CutAt is { } cutAt ? DeploymentCsvRow.Timestamp(cutAt) : null,
+            ReleasedAt = v.ReleasedAt is { } releasedAt ? DeploymentCsvRow.Timestamp(releasedAt) : null,
             Notes = v.Notes,
         }).ToList();
 
@@ -202,7 +202,7 @@ public sealed class ReleasePackagesArea() : ProductManagementSeedArea(
             Version = p.Version,
             Name = p.Name,
             TargetDate = p.TargetDate,
-            ReleasedDate = p.ReleasedDate,
+            ReleasedAt = p.ReleasedAt is { } releasedAt ? DeploymentCsvRow.Timestamp(releasedAt) : null,
         }).ToList();
 
         var batches = Batch(context, rows, r => r.ImportId);

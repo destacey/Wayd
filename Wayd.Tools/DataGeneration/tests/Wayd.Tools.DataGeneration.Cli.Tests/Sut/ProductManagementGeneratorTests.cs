@@ -278,6 +278,62 @@ public class ProductManagementGeneratorTests
     }
 
     [Fact]
+    public void Generate_RecordsAPackageAsShippedWhenItsProductionDeploymentCompleted()
+    {
+        // Arrange — the released moment is what a CI/CD system would report for the pipeline run that
+        // shipped the package, so it must be a completion that production actually recorded
+        var data = Generate(new ProductManagementOptions { PackagedArtFraction = 1 });
+        var production = data.Environments.Where(e => e.Category == "Production").Select(e => e.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var completions = data.Deployments
+            .Where(d => d.PackageVersion != null && production.Contains(d.EnvironmentName) && d.Outcome != "Failed")
+            .ToLookup(d => d.PackageVersion!, d => d.CompletedAt, StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var shipped = data.ReleasePackages.Where(p => p.ReleasedDate is not null).ToList();
+
+        // Assert
+        shipped.Should().NotBeEmpty();
+        shipped.Should().OnlyContain(p => p.ReleasedAt != null && completions[p.Version].Contains(p.ReleasedAt));
+        data.ReleasePackages.Where(p => p.ReleasedDate is null).Should().OnlyContain(p => p.ReleasedAt == null);
+    }
+
+    [Fact]
+    public void Generate_RecordsAVersionAsShippedWhenProductionReceivedIt()
+    {
+        // Arrange — a version deployed on its own ships when its first production deployment completed;
+        // the import records that moment, so it must be one production actually recorded
+        var data = _default;
+        var production = data.Environments.Where(e => e.Category == "Production").Select(e => e.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var firstCompletion = data.Deployments
+            .Where(d => d.VersionHandle != null && production.Contains(d.EnvironmentName) && d.Outcome is not null && d.Outcome != "Failed")
+            .GroupBy(d => d.VersionHandle!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Min(d => d.CompletedAt), StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var deployed = data.Versions.Where(v => firstCompletion.ContainsKey(v.Handle)).ToList();
+
+        // Assert
+        deployed.Should().NotBeEmpty();
+        deployed.Should().OnlyContain(v => v.ReleasedAt == firstCompletion[v.Handle]);
+    }
+
+    [Fact]
+    public void Generate_GivesEveryCutAndReleasedVersionItsMoments_InOrder()
+    {
+        // Arrange — the import refuses a released moment before the cut moment
+        var data = _default;
+
+        // Act
+        var versions = data.Versions;
+
+        // Assert
+        versions.Should().OnlyContain(v => (v.CutDate == null) == (v.CutAt == null));
+        versions.Should().OnlyContain(v => (v.ReleasedDate == null) == (v.ReleasedAt == null));
+        versions.Should().OnlyContain(v => v.CutAt == null || DateOnly.FromDateTime(v.CutAt.Value.UtcDateTime) == v.CutDate);
+        versions.Should().OnlyContain(v => v.CutAt == null || v.ReleasedAt == null || v.ReleasedAt >= v.CutAt);
+    }
+
+    [Fact]
     public void Generate_FailsProductionAtRoughlyTheRequestedRate()
     {
         // Arrange — the rate the delivery metrics page reports: failed and rolled back over every finished

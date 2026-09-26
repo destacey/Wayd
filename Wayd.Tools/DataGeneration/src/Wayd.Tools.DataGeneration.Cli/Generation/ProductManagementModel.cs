@@ -28,6 +28,15 @@ public sealed class VersionModel
     public DateOnly? ReleasedDate { get; init; }
     public string? Notes { get; init; }
 
+    /// <summary>The moment it was cut, on <see cref="CutDate"/>. What the import records.</summary>
+    public DateTimeOffset? CutAt { get; set; }
+
+    /// <summary>
+    /// The moment it shipped, on <see cref="ReleasedDate"/>: when production received it, directly or inside
+    /// its package. What the import records.
+    /// </summary>
+    public DateTimeOffset? ReleasedAt { get; set; }
+
     /// <summary>A version number is unique only within its product, so the handle carries both.</summary>
     public string Handle => HandleFor(ProductName, Number);
 
@@ -40,7 +49,15 @@ public sealed class ReleasePackageModel
     public required string Version { get; init; }
     public string? Name { get; init; }
     public DateOnly? TargetDate { get; init; }
+
+    /// <summary>The day it shipped, which places it in a release's period.</summary>
     public DateOnly? ReleasedDate { get; init; }
+
+    /// <summary>
+    /// The moment it shipped: when its production deployment completed. Set once that deployment is
+    /// generated; this is what the import records.
+    /// </summary>
+    public DateTimeOffset? ReleasedAt { get; set; }
 }
 
 /// <summary>One manifest line of the package named by <see cref="PackageVersion"/>.</summary>

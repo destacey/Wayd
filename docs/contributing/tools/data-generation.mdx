@@ -535,8 +535,8 @@ the connection is in the names: a component is named for the team that owns it a
   point at.
 - **Versions** — each component ships on its own cadence (`--version-interval-days` for a service; web
   apps about 1.4×, mobile 2×, libraries and tools 3× or more). Every team works at its own tempo, and teams
-  speed up across the history. A version released before today has a target, cut and released date (a
-  quarter of them slipped a few days); one cut but not released is **Ready**; ones up to 90 days ahead are
+  speed up across the history. A version released before today has a target date and cut and released
+  moments (a quarter of them slipped a few days); one cut but not released is **Ready**; ones up to 90 days ahead are
   **Planned**. Nothing ships in a weekend or the year-end change freeze.
 - **Deployments** — every shipped service or web-app version walks its line's environments, promoting the
   same build from dev to production, and production receives it on the day the version was released. A
@@ -582,7 +582,7 @@ the connection is in the names: a component is named for the team that owns it a
 What that is for is the [delivery metrics](../../user-guide/product-management/delivery.mdx#delivery-metrics)
 page: deployment frequency climbs toward today and change failure rate falls, rather than both sitting flat.
 Wayd does not compute lead time yet, but the data already carries what it would read — every production
-deployment follows its version's cut date.
+deployment follows its version's cut.
 
 :::note The feature flag
 Product Management is seeded **disabled**, and every one of its endpoints — the imports included — answers

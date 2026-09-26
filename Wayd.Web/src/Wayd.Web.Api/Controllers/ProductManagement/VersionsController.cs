@@ -1,4 +1,7 @@
 using CsvHelper;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
+using Wayd.Web.Api.Models.ProductManagement;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Microsoft.FeatureManagement.Mvc;
@@ -28,10 +31,12 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-public class VersionsController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
+public class VersionsController(IDispatcher dispatcher, ICsvService csvService, ISettings<SchedulingSettings> schedulingSettings, ILogger<VersionsController> logger) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ILogger<VersionsController> _logger = logger;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
@@ -213,8 +218,11 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     public async Task<ActionResult> CorrectDates(
         Guid id, [FromBody] CorrectVersionDatesRequest request, CancellationToken cancellationToken)
     {
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Correct version dates", cancellationToken);
+
         var result = await _dispatcher.Send(
-            new CorrectVersionDatesCommand(id, request.TargetDate, request.CutAt, request.ReleasedAt),
+            new CorrectVersionDatesCommand(id, request.TargetDate, request.ResolveCutAt(zone), request.ResolveReleasedAt(zone)),
             cancellationToken);
 
         return result.IsSuccess
@@ -230,7 +238,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     public async Task<ActionResult> Cut(
         Guid id, [FromBody] CutVersionRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new CutVersionCommand(id, request.CutAt), cancellationToken);
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Cut version", cancellationToken);
+
+        var result = await _dispatcher.Send(new CutVersionCommand(id, request.ResolveCutAt(zone)), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -249,8 +260,11 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     public async Task<ActionResult> MarkReleased(
         Guid id, [FromBody] MarkVersionReleasedRequest request, CancellationToken cancellationToken)
     {
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Mark version released", cancellationToken);
+
         var result = await _dispatcher.Send(
-            new MarkVersionReleasedCommand(id, request.ReleasedAt), cancellationToken);
+            new MarkVersionReleasedCommand(id, request.ResolveReleasedAt(zone)), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

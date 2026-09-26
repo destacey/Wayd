@@ -29,4 +29,34 @@ public sealed record CorrectVersionDatesRequest
     /// record that a version did not ship.
     /// </summary>
     public Instant? ReleasedAt { get; set; }
+
+    /// <summary>The cut day, read as 12:00 in the organization's default time zone.</summary>
+    [Obsolete("Use CutAt. Removed in a future release.")]
+    public LocalDate? CutDate { get; set; }
+
+    /// <summary>The released day, read as 12:00 in the organization's default time zone.</summary>
+    [Obsolete("Use ReleasedAt. Removed in a future release.")]
+    public LocalDate? ReleasedDate { get; set; }
+
+#pragma warning disable CS0618 // Reading the deprecated fields is how they keep working.
+    public bool UsesLegacyDates() => CutDate is not null || ReleasedDate is not null;
+
+    public Instant? ResolveCutAt(DateTimeZone zone) => CutAt ?? LegacyDeliveryDates.ToInstant(CutDate, zone);
+
+    public Instant? ResolveReleasedAt(DateTimeZone zone) => ReleasedAt ?? LegacyDeliveryDates.ToInstant(ReleasedDate, zone);
+#pragma warning restore CS0618
+}
+
+public sealed class CorrectVersionDatesRequestValidator : CustomValidator<CorrectVersionDatesRequest>
+{
+    public CorrectVersionDatesRequestValidator()
+    {
+#pragma warning disable CS0618
+        RuleFor(r => r)
+            .Must(r => r.CutAt is null || r.CutDate is null)
+                .WithMessage("Send CutAt or the deprecated CutDate, not both.")
+            .Must(r => r.ReleasedAt is null || r.ReleasedDate is null)
+                .WithMessage("Send ReleasedAt or the deprecated ReleasedDate, not both.");
+#pragma warning restore CS0618
+    }
 }

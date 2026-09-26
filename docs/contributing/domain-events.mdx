@@ -155,6 +155,9 @@ will catch for you.
 
 - [ ] Nothing to register for the activity log; capture is automatic, and the entry records the category
   the type declares.
+- [ ] It is raised on the aggregate and never published directly: only the `SaveChanges` drain depends on
+  `IEventPublisher`. *`CqrsPatternTests`.* See
+  [An aggregate that is not a BaseEntity](#an-aggregate-that-is-not-a-baseentity) for users and roles.
 - [ ] Where the fact concerns another record too, the event implements `IRelatedAggregateEvent`, computed
   from payload ids and marked `[JsonIgnore]`, and a migration backfills the entries already written. The
   related record's query handler resolves `RaisedOn`. See
@@ -356,6 +359,19 @@ A change that is deliberately not history goes on `UneventedMutators` with its r
 accounts for its writes another way on `SetBasedWriteMigrations`. Both lists fail on an entry that no longer
 excuses anything. The method check is "raises somewhere", not "raises on every path": a method that raises in
 one branch and changes state unevented in another passes, so it is a floor, not a proof.
+
+### An aggregate that is not a BaseEntity
+
+`ApplicationUser` and `ApplicationRole` derive from ASP.NET Identity's `IdentityUser` and `IdentityRole`, so they
+implement `IEntity` themselves, and the drain collects their events like any other entity's. Their changes are
+saved by `UserManager` and `RoleManager`, which save through the same context, so an event raised before a
+manager call is drained by that call's save.
+
+A manager call can fail without saving: `UpdateAsync` returns a failed `IdentityResult` when validation rejects
+the user, before it reaches the database. The caller then clears the events it raised. Left on the entity, they
+would be recorded by the next save in the scope, as though the change had happened. A flow that spans several
+manager calls, such as replacing a user's roles, runs them in one unit of work and raises its event before the
+last call, so the change and its record commit together or not at all.
 
 ### A change carries both ends
 

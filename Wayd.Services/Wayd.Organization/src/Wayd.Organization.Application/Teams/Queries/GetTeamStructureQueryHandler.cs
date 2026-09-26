@@ -1,5 +1,5 @@
 using Wayd.Common.Application.Requests.Organization;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Organization.Application.Teams.Queries;
 

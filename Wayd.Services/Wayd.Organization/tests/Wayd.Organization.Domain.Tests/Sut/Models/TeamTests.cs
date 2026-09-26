@@ -1,7 +1,8 @@
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Models.Organizations;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Tests.Data;
+using Wayd.Common.Models;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.TestData;
 using Wayd.Tests.Shared;
@@ -17,6 +18,7 @@ public class TeamTests
     private readonly TeamFaker _teamFaker;
     private readonly TeamOfTeamsFaker _teamOfTeamsFaker;
     private readonly TeamOperatingModelFaker _operatingModelFaker;
+    private readonly EmployeeFaker _employeeFaker;
 
     public TeamTests()
     {
@@ -24,6 +26,7 @@ public class TeamTests
         _teamFaker = new();
         _teamOfTeamsFaker = new();
         _operatingModelFaker = new TeamOperatingModelFaker();
+        _employeeFaker = new();
     }
 
     #region Create
@@ -111,7 +114,7 @@ public class TeamTests
 
         // Assert
         sut.DomainEvents.Should().BeEmpty();
-        sut.PostPersistenceActions.Should().HaveCount(2);
+        sut.PostPersistenceActions.Should().HaveCount(3);
     }
 
     [Fact]
@@ -418,7 +421,7 @@ public class TeamTests
         var teamOfTeams = _teamOfTeamsFaker.Generate();
         LocalDate start = team.ActiveDate.PlusDays(5);
         MembershipDateRange dateRange = new(start, null);
-        team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(10);
         var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
@@ -442,7 +445,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(10);
         var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
@@ -466,7 +469,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var args = TeamDeactivatableArgs.Create(end.Value, EventActor.System, _dateTimeProvider.Now);
 
@@ -488,7 +491,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(100);
         var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
@@ -518,7 +521,7 @@ public class TeamTests
         MembershipDateRange dateRange = new(start, end);
 
         // Act
-        var result = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var result = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -540,7 +543,7 @@ public class TeamTests
         MembershipDateRange dateRange = new(start, end);
 
         // Act
-        var result = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var result = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -569,7 +572,7 @@ public class TeamTests
         var expectedErrorMessage = $"Memberships can not be added to inactive teams. {team.Name} is inactive.";
 
         // Act
-        var result = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var result = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -591,7 +594,7 @@ public class TeamTests
         var expectedErrorMessage = $"Memberships can not be added to inactive teams. {teamOfTeams.Name} is inactive.";
 
         // Act
-        var result = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var result = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -608,7 +611,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(10);
         LocalDate end = start.PlusDays(100);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -620,7 +623,7 @@ public class TeamTests
         MembershipDateRange updatedDateRange = new(updatedStart, updatedEnd);
 
         // Act
-        var result = team.UpdateTeamMembership(membership.Id, updatedDateRange, _dateTimeProvider.Now);
+        var result = team.UpdateTeamMembership(membership.Id, updatedDateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -640,7 +643,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(10);
         LocalDate end = start.PlusDays(100);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -654,7 +657,7 @@ public class TeamTests
         team.SetPrivate(m => m.IsActive, false);
 
         // Act
-        var result = team.UpdateTeamMembership(membership.Id, updatedDateRange, _dateTimeProvider.Now);
+        var result = team.UpdateTeamMembership(membership.Id, updatedDateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -672,7 +675,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(10);
         LocalDate end = start.PlusDays(100);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -686,7 +689,7 @@ public class TeamTests
         teamOfTeams.SetPrivate(m => m.IsActive, false);
 
         // Act
-        var result = team.UpdateTeamMembership(membership.Id, updatedDateRange, _dateTimeProvider.Now);
+        var result = team.UpdateTeamMembership(membership.Id, updatedDateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -704,7 +707,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(10);
         LocalDate end = start.PlusDays(100);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -712,7 +715,7 @@ public class TeamTests
         membership.SetPrivate(m => m.Target, teamOfTeams);
 
         // Act
-        var result = team.RemoveTeamMembership(membership.Id);
+        var result = team.RemoveTeamMembership(membership.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -728,7 +731,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(10);
         LocalDate end = start.PlusDays(100);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -738,7 +741,7 @@ public class TeamTests
         team.SetPrivate(m => m.IsActive, false);
 
         // Act
-        var result = team.RemoveTeamMembership(membership.Id);
+        var result = team.RemoveTeamMembership(membership.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -754,7 +757,7 @@ public class TeamTests
         LocalDate start = team.ActiveDate.PlusDays(10);
         LocalDate end = start.PlusDays(100);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
+        var createresult = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -764,15 +767,308 @@ public class TeamTests
         teamOfTeams.SetPrivate(m => m.IsActive, false);
 
         // Act
-        var result = team.RemoveTeamMembership(membership.Id);
+        var result = team.RemoveTeamMembership(membership.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         team.ParentMemberships.Count.Should().Be(1);
     }
 
+    [Fact]
+    public void AddTeamMembership_RaisesEventNamingTheParent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var teamOfTeams = _teamOfTeamsFaker.Generate();
+        var start = team.ActiveDate.PlusDays(10);
+
+        // Act
+        team.AddTeamMembership(teamOfTeams, new MembershipDateRange(start, null), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = team.DomainEvents.OfType<TeamMembershipAddedEvent>().Should().ContainSingle().Subject;
+        raised.Id.Should().Be(team.Id);
+        raised.Key.Should().Be(team.Key);
+        raised.ParentTeamId.Should().Be(teamOfTeams.Id);
+        raised.DateRange.Should().Be(new FlexibleDateRange(start, null));
+        raised.RelatedAggregates.Should().Equal(new AggregateReference("Team", teamOfTeams.Id));
+    }
+
+    [Fact]
+    public void AddTeamMembership_WhenItFails_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var teamOfTeams = _teamOfTeamsFaker.Generate();
+        var dateRange = new MembershipDateRange(team.ActiveDate.PlusDays(10), null);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateTeamMembership_WhenDatesChange_RaisesEventCarryingBothEnds()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var teamOfTeams = _teamOfTeamsFaker.Generate();
+        var start = team.ActiveDate.PlusDays(10);
+        var end = start.PlusDays(100);
+        var membership = team.AddTeamMembership(teamOfTeams, new MembershipDateRange(start, null), EventActor.System, _dateTimeProvider.Now).Value;
+        membership.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        team.UpdateTeamMembership(membership.Id, new MembershipDateRange(start, end), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = team.DomainEvents.OfType<TeamMembershipDatesChangedEvent>().Should().ContainSingle().Subject;
+        raised.ParentTeamId.Should().Be(teamOfTeams.Id);
+        raised.DateRange.Should().Be(new FlexibleDateRange(start, end));
+        raised.PreviousDateRange.Should().Be(new FlexibleDateRange(start, null));
+        raised.RelatedAggregates.Should().Equal(new AggregateReference("Team", teamOfTeams.Id));
+    }
+
+    [Fact]
+    public void UpdateTeamMembership_WhenDatesAreUnchanged_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var teamOfTeams = _teamOfTeamsFaker.Generate();
+        var start = team.ActiveDate.PlusDays(10);
+        var membership = team.AddTeamMembership(teamOfTeams, new MembershipDateRange(start, null), EventActor.System, _dateTimeProvider.Now).Value;
+        membership.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.UpdateTeamMembership(membership.Id, new MembershipDateRange(start, null), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveTeamMembership_RaisesEventCarryingTheRemovedDates()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var teamOfTeams = _teamOfTeamsFaker.Generate();
+        var start = team.ActiveDate.PlusDays(10);
+        var end = start.PlusDays(100);
+        var membership = team.AddTeamMembership(teamOfTeams, new MembershipDateRange(start, end), EventActor.System, _dateTimeProvider.Now).Value;
+        membership.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        team.RemoveTeamMembership(membership.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = team.DomainEvents.OfType<TeamMembershipRemovedEvent>().Should().ContainSingle().Subject;
+        raised.ParentTeamId.Should().Be(teamOfTeams.Id);
+        raised.DateRange.Should().Be(new FlexibleDateRange(start, end));
+        raised.RelatedAggregates.Should().Equal(new AggregateReference("Team", teamOfTeams.Id));
+    }
 
     #endregion Memberships
+
+
+    #region Members
+
+    [Fact]
+    public void AddMember_WhenNotYetAMember_RaisesAddedWithEveryRole()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        Guid[] roleIds = [Guid.NewGuid(), Guid.NewGuid()];
+
+        // Act
+        var result = team.AddMember(employee, roleIds, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamMemberAddedEvent>().Subject;
+        raised.Id.Should().Be(team.Id);
+        raised.Key.Should().Be(team.Key);
+        raised.EmployeeId.Should().Be(employee.Id);
+        raised.RoleIds.Should().BeEquivalentTo(roleIds);
+    }
+
+    [Fact]
+    public void AddMember_WhenAlreadyAMemberInAnotherRole_RaisesRolesChanged()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        var existingRoleId = Guid.NewGuid();
+        var newRoleId = Guid.NewGuid();
+        team.AddMember(employee, [existingRoleId], EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        team.AddMember(employee, [newRoleId], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamMemberRolesChangedEvent>().Subject;
+        raised.EmployeeId.Should().Be(employee.Id);
+        raised.AddedRoleIds.Should().Equal(newRoleId);
+        raised.RemovedRoleIds.Should().BeEmpty();
+        raised.RoleIds.Should().BeEquivalentTo([existingRoleId, newRoleId]);
+    }
+
+    [Fact]
+    public void AddMember_WhenItFails_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        var roleId = Guid.NewGuid();
+        team.AddMember(employee, [roleId], EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.AddMember(employee, [roleId], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddMember_WithARoleRepeated_AddsItOnce()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        var roleId = Guid.NewGuid();
+
+        // Act
+        var result = team.AddMember(employee, [roleId, roleId], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.Members.Should().ContainSingle(m => m.EmployeeId == employee.Id && m.RoleId == roleId);
+        team.DomainEvents.OfType<TeamMemberAddedEvent>().Should().ContainSingle().Which.RoleIds.Should().Equal(roleId);
+    }
+
+    [Fact]
+    public void AddMember_WithNoRoles_FailsAndRaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+
+        // Act
+        var result = team.AddMember(employee, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("At least one role must be specified.");
+        team.Members.Should().BeEmpty();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddMember_BeforeTheFirstSave_WaitsForTheKey()
+    {
+        // Arrange
+        var fakeTeam = _teamFaker.Generate();
+        var team = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var employee = _employeeFaker.Generate();
+
+        // Act
+        team.AddMember(employee, [Guid.NewGuid()], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        team.DomainEvents.Should().BeEmpty();
+        team.SetPrivate(t => t.Key, 42);
+        team.ExecutePostPersistenceActions();
+        team.DomainEvents.OfType<TeamMemberAddedEvent>().Should().ContainSingle().Which.Key.Should().Be(42);
+    }
+
+    [Fact]
+    public void UpdateMemberRoles_WhenRolesChange_RaisesRolesChangedCarryingBothEnds()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        var keptRoleId = Guid.NewGuid();
+        var droppedRoleId = Guid.NewGuid();
+        var addedRoleId = Guid.NewGuid();
+        team.AddMember(employee, [keptRoleId, droppedRoleId], EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.UpdateMemberRoles(employee, [keptRoleId, addedRoleId], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamMemberRolesChangedEvent>().Subject;
+        raised.AddedRoleIds.Should().Equal(addedRoleId);
+        raised.RemovedRoleIds.Should().Equal(droppedRoleId);
+        raised.RoleIds.Should().BeEquivalentTo([keptRoleId, addedRoleId]);
+    }
+
+    [Fact]
+    public void UpdateMemberRoles_WhenRolesAreUnchanged_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        Guid[] roleIds = [Guid.NewGuid(), Guid.NewGuid()];
+        team.AddMember(employee, roleIds, EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.UpdateMemberRoles(employee, [roleIds[1], roleIds[0]], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveMember_RaisesRemovedWithTheRolesHeld()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        Guid[] roleIds = [Guid.NewGuid(), Guid.NewGuid()];
+        team.AddMember(employee, roleIds, EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.RemoveMember(employee.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamMemberRemovedEvent>().Subject;
+        raised.EmployeeId.Should().Be(employee.Id);
+        raised.RoleIds.Should().BeEquivalentTo(roleIds);
+    }
+
+    [Fact]
+    public void RemoveMember_WhenNotAMember_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+
+        // Act
+        var result = team.RemoveMember(Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Members
 
 
     #region OperatingModels
@@ -795,7 +1091,7 @@ public class TeamTests
         var team = _teamFaker.WithOperatingModel(operatingModelFaker, teamActiveDate).Generate();
 
         // Act - Create second operating model
-        var setResult = team.SetOperatingModel(secondStartDate, methodology2, sizingMethod2, "UTC", 1);
+        var setResult = team.SetOperatingModel(secondStartDate, methodology2, sizingMethod2, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         setResult.IsSuccess.Should().BeTrue();
@@ -831,7 +1127,7 @@ public class TeamTests
         var secondStartDate = team.ActiveDate.PlusMonths(-1); // Before first
 
         // Act - Try to create second operating model with earlier start date
-        var result = team.SetOperatingModel(secondStartDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1);
+        var result = team.SetOperatingModel(secondStartDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -860,8 +1156,8 @@ public class TeamTests
         var team = _teamFaker.WithOperatingModel(operatingModelFaker, date1).Generate();
 
         // Act - Create additional operating models over time
-        var result2 = team.SetOperatingModel(date2, methodology2, sizingMethod2, "UTC", 1);
-        var result3 = team.SetOperatingModel(date3, methodology3, sizingMethod3, "UTC", 1);
+        var result2 = team.SetOperatingModel(date2, methodology2, sizingMethod2, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var result3 = team.SetOperatingModel(date3, methodology3, sizingMethod3, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result2.IsSuccess.Should().BeTrue();
@@ -896,7 +1192,7 @@ public class TeamTests
         var operatingModel = team.OperatingModels.First();
 
         // Act
-        var result = team.RemoveOperatingModel(operatingModel.Id);
+        var result = team.RemoveOperatingModel(operatingModel.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -916,7 +1212,7 @@ public class TeamTests
         var nonExistentId = Guid.NewGuid();
 
         // Act
-        var result = team.RemoveOperatingModel(nonExistentId);
+        var result = team.RemoveOperatingModel(nonExistentId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -931,8 +1227,8 @@ public class TeamTests
         var date1 = new LocalDate(2023, 1, 1);
         var date2 = new LocalDate(2024, 1, 1);
 
-        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
-        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1);
+        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Set unique IDs for the models (simulating what EF Core would do)
         var model1Id = Guid.NewGuid();
@@ -941,7 +1237,7 @@ public class TeamTests
         result2.Value.SetPrivate(m => m.Id, model2Id);
 
         // Act
-        var removeResult = team.RemoveOperatingModel(model2Id);
+        var removeResult = team.RemoveOperatingModel(model2Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         removeResult.IsSuccess.Should().BeTrue();
@@ -965,9 +1261,9 @@ public class TeamTests
         var date2 = new LocalDate(2023, 7, 1);
         var date3 = new LocalDate(2024, 1, 1);
 
-        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
-        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1);
-        var result3 = team.SetOperatingModel(date3, Methodology.Scrum, SizingMethod.Count, "UTC", 1);
+        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var result3 = team.SetOperatingModel(date3, Methodology.Scrum, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Set unique IDs for the models (simulating what EF Core would do)
         var model1Id = Guid.NewGuid();
@@ -978,7 +1274,7 @@ public class TeamTests
         result3.Value.SetPrivate(m => m.Id, model3Id);
 
         // Act
-        var removeResult = team.RemoveOperatingModel(model3Id);
+        var removeResult = team.RemoveOperatingModel(model3Id, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         removeResult.IsSuccess.Should().BeTrue();
@@ -1000,6 +1296,164 @@ public class TeamTests
         firstModel.IsCurrent.Should().BeFalse();
         firstModel.DateRange.Start.Should().Be(date1);
         firstModel.DateRange.End.Should().Be(date2.PlusDays(-1));
+    }
+
+    [Fact]
+    public void Create_RaisesTheFirstOperatingModelAfterTheTeam()
+    {
+        // Arrange
+        var fakeTeam = _teamFaker.Generate();
+
+        // Act
+        var team = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "America/Chicago", 2, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        team.DomainEvents.Should().BeEmpty();
+        team.SetPrivate(t => t.Key, 42);
+        team.ExecutePostPersistenceActions();
+        team.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(TeamCreatedEvent), typeof(TeamOperatingModelSetEvent));
+        var raised = team.DomainEvents.OfType<TeamOperatingModelSetEvent>().Single();
+        raised.Key.Should().Be(42);
+        raised.Period.Should().Be(new FlexibleDateRange(fakeTeam.ActiveDate, null));
+        raised.Settings.Should().Be(new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Count, "America/Chicago", 2));
+        raised.SupersededPeriod.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetOperatingModel_WhenACurrentModelExists_RaisesEventCarryingTheModelItEnded()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var date2 = new LocalDate(2024, 1, 1);
+        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "Europe/London", 3, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamOperatingModelSetEvent>().Subject;
+        raised.Id.Should().Be(team.Id);
+        raised.Key.Should().Be(team.Key);
+        raised.Period.Should().Be(new FlexibleDateRange(date2, null));
+        raised.Settings.Should().Be(new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Count, "Europe/London", 3));
+        raised.SupersededPeriod.Should().Be(new FlexibleDateRange(date1, date2.PlusDays(-1)));
+    }
+
+    [Fact]
+    public void SetOperatingModel_WhenItFails_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.SetOperatingModel(date1, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CorrectOperatingModel_WhenChanged_RaisesEventCarryingBothEnds()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var date2 = new LocalDate(2024, 1, 1);
+        var first = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now).Value;
+        team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        first.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.CorrectOperatingModel(first.Id, Methodology.Scrum, SizingMethod.Count, "America/Denver", 2, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        first.TimeZone.Should().Be("America/Denver");
+        var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamOperatingModelCorrectedEvent>().Subject;
+        raised.Period.Should().Be(new FlexibleDateRange(date1, date2.PlusDays(-1)));
+        raised.Settings.Should().Be(new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Count, "America/Denver", 2));
+        raised.Previous.Should().Be(new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1));
+    }
+
+    [Fact]
+    public void CorrectOperatingModel_WhenNothingChanged_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now).Value;
+        model.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.CorrectOperatingModel(model.Id, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CorrectOperatingModel_WithAnInvalidTimeZone_FailsAndRaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now).Value;
+        model.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.CorrectOperatingModel(model.Id, Methodology.Kanban, SizingMethod.StoryPoints, "Not/AZone", 1, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        model.Methodology.Should().Be(Methodology.Scrum);
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveOperatingModel_RaisesEventCarryingTheReinstatedModel()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var date2 = new LocalDate(2024, 1, 1);
+        team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
+        var second = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "Europe/London", 3, EventActor.System, _dateTimeProvider.Now).Value;
+        second.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        team.RemoveOperatingModel(second.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = team.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamOperatingModelRemovedEvent>().Subject;
+        raised.Period.Should().Be(new FlexibleDateRange(date2, null));
+        raised.Settings.Should().Be(new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Count, "Europe/London", 3));
+        raised.ReinstatedPeriod.Should().Be(new FlexibleDateRange(date1, null));
+    }
+
+    [Fact]
+    public void RemoveOperatingModel_WhenItFails_RaisesNoEvent()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var model = team.SetOperatingModel(new LocalDate(2023, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now).Value;
+        model.SetPrivate(m => m.Id, Guid.NewGuid());
+        team.ClearDomainEvents();
+
+        // Act
+        var result = team.RemoveOperatingModel(model.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        team.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

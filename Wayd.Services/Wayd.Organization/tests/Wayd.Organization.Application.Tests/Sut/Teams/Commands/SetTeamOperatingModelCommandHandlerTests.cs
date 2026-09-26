@@ -1,9 +1,14 @@
 using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.TestData;
 using Moq;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Identity;
+using Wayd.Tests.Shared;
 using NodaTime;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Commands;
@@ -13,6 +18,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
     private readonly TeamFaker _teamFaker;
     private readonly FakeOrganizationDbContext _dbContext;
     private readonly SetTeamOperatingModelCommandHandler _handler;
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
     private readonly Mock<ILogger<SetTeamOperatingModelCommandHandler>> _mockLogger;
 
     public SetTeamOperatingModelCommandHandlerTests()
@@ -21,8 +27,13 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
         _dbContext = new FakeOrganizationDbContext();
         _mockLogger = new Mock<ILogger<SetTeamOperatingModelCommandHandler>>();
 
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
         _handler = new SetTeamOperatingModelCommandHandler(
             _dbContext,
+            _dateTimeProvider,
+            currentUser.Object,
             _mockLogger.Object);
     }
 
@@ -117,7 +128,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2023, 1, 1);
-        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
         initialResult.IsSuccess.Should().BeTrue();
         var initialModel = initialResult.Value;
 
@@ -161,7 +172,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Try to create a model with earlier start date
         var earlierStartDate = new LocalDate(2023, 12, 31);
@@ -191,7 +202,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Try to create a model with same start date
         var command = new SetTeamOperatingModelCommand(

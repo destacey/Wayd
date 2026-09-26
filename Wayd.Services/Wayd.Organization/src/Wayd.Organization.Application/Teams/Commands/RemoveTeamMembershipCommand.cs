@@ -22,12 +22,14 @@ public sealed class RemoveTeamMembershipCommandHandler : ICommandHandler<RemoveT
 
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<RemoveTeamMembershipCommandHandler> _logger;
 
-    public RemoveTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ILogger<RemoveTeamMembershipCommandHandler> logger)
+    public RemoveTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<RemoveTeamMembershipCommandHandler> logger)
     {
         _organizationDbContext = organizationDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -41,12 +43,16 @@ public sealed class RemoveTeamMembershipCommandHandler : ICommandHandler<RemoveT
                 .AsNoTracking() // needed until the EF Core bug below is fixed
                 .SingleAsync(t => t.Id == request.TeamId);
 
-            var result = team.RemoveTeamMembership(request.TeamMembershipId);
+            var result = team.RemoveTeamMembership(request.TeamMembershipId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("{RequestName}: failed to remove Team Membership {TeamMembershipId} for Team {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);
                 return result;
             }
+
+            // The team was loaded untracked, and SaveChanges drains events only from tracked entities, so track
+            // it or the removal leaves no activity. Entry().State tracks that one entity, not its graph.
+            _organizationDbContext.Entry(team).State = EntityState.Unchanged;
 
             /// Cleans up deleted team memberships.  This is needed because of a bug in EF Core 7.x.
             _organizationDbContext.Entry(result.Value).State = EntityState.Deleted;

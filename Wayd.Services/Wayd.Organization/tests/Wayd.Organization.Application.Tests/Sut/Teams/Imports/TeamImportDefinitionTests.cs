@@ -148,8 +148,8 @@ public sealed class TeamImportDefinitionTests : IDisposable
         // Arrange — a unique index, so this used to surface as a constraint violation when the batch saved
         var existing = Team.Create(
             "Existing", new TeamCode("PAY"), null, new LocalDate(2024, 1, 1),
-            Wayd.Organization.Domain.Enums.Methodology.Kanban,
-            Wayd.Organization.Domain.Enums.SizingMethod.Count, "UTC", 1,
+            Methodology.Kanban,
+            SizingMethod.Count, "UTC", 1,
             Wayd.Common.Domain.Events.EventActor.System, Instant.FromUtc(2024, 1, 1, 0, 0));
         _dbContext.AddTeam(existing);
 

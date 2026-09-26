@@ -2,7 +2,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.Models.Organizations;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using NodaTime;
 using Wayd.Common.Domain.Events;
 

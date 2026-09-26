@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.TestData;
 using Wayd.Tests.Shared;
 using Moq;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Identity;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Commands;
 
@@ -26,8 +28,13 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UpdateTeamOperatingModelCommandHandler>>();
         _dateTimeProvider = new TestingDateTimeProvider(DateTime.UtcNow);
 
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
         _handler = new UpdateTeamOperatingModelCommandHandler(
             _dbContext,
+            _dateTimeProvider,
+            currentUser.Object,
             _mockLogger.Object);
     }
 

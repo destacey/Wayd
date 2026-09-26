@@ -16,6 +16,8 @@ public sealed class UpdateTeamMemberCommandValidator : CustomValidator<UpdateTea
 public sealed class UpdateTeamMemberCommandHandler(
     IOrganizationDbContext organizationDbContext,
     IWaydDbContext waydDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<UpdateTeamMemberCommandHandler> logger)
     : ICommandHandler<UpdateTeamMemberCommand>
 {
@@ -23,6 +25,8 @@ public sealed class UpdateTeamMemberCommandHandler(
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateTeamMemberCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateTeamMemberCommand request, CancellationToken cancellationToken)
@@ -46,7 +50,7 @@ public sealed class UpdateTeamMemberCommandHandler(
                 return Result.Failure("Employee not found.");
             }
 
-            var result = team.UpdateMemberRoles(employee, request.RoleIds);
+            var result = team.UpdateMemberRoles(employee, request.RoleIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Error updating roles for employee {EmployeeId} on team {TeamId}. Error: {Error}", request.EmployeeId, request.TeamId, result.Error);

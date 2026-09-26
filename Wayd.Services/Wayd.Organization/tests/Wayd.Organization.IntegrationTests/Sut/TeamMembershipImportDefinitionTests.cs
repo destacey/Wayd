@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Domain.Enums.Imports;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.Organizations;
@@ -50,7 +50,10 @@ public sealed class TeamMembershipImportDefinitionTests
         dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
         dateTimeProvider.SetupGet(d => d.Today).Returns(SqlServerDbContextFixture.FixedNow.InUtc().Date);
 
-        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, new ImportPayloadSerializer());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+
+        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
     }
 
     /// <summary>

@@ -4,7 +4,6 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Infrastructure.Persistence.Converters;
-using Wayd.Organization.Domain.Enums;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 

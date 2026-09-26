@@ -1,5 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using NodaTime;
 
 namespace Wayd.Organization.Domain.Models;
@@ -10,7 +10,7 @@ namespace Wayd.Organization.Domain.Models;
 /// </summary>
 /// <remarks>
 /// A team that changes how it works opens a new model, so history before the change keeps the old values;
-/// <see cref="Update"/> edits a model in place and so corrects its whole period.
+/// <see cref="Team.CorrectOperatingModel"/> edits a model in place and so corrects its whole period.
 /// </remarks>
 public sealed class TeamOperatingModel : BaseAuditableEntity
 {
@@ -54,7 +54,7 @@ public sealed class TeamOperatingModel : BaseAuditableEntity
     /// <param name="timeZone">The IANA id of the team's time zone.</param>
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
     /// <returns>A result indicating success or failure.</returns>
-    public Result Update(Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays)
+    internal Result Update(Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays)
     {
         var scheduleResult = ValidateSchedule(timeZone, commitmentGraceDays);
         if (scheduleResult.IsFailure)

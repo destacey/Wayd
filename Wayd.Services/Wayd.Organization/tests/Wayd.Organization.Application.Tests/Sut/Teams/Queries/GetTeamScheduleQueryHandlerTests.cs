@@ -2,7 +2,8 @@ using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Events;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.TestData;
 
@@ -12,6 +13,7 @@ public class GetTeamScheduleQueryHandlerTests : IDisposable
 {
     private static readonly LocalDate FirstStart = new(2024, 1, 1);
     private static readonly LocalDate MoveDate = new(2024, 7, 1);
+    private static readonly Instant Timestamp = Instant.FromUtc(2024, 1, 1, 0, 0);
 
     private readonly FakeOrganizationDbContext _dbContext = new();
     private readonly GetTeamScheduleQueryHandler _handler;
@@ -27,8 +29,8 @@ public class GetTeamScheduleQueryHandlerTests : IDisposable
     private Team TeamThatMoved()
     {
         var team = _teamFaker.Generate();
-        team.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(FirstStart, Methodology.Scrum, SizingMethod.StoryPoints, "America/New_York", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(MoveDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
         _dbContext.AddTeam(team);
         return team;
     }
@@ -67,7 +69,7 @@ public class GetTeamScheduleQueryHandlerTests : IDisposable
         // Arrange
         var team = TeamThatMoved();
         var original = team.OperatingModels.Single(m => m.DateRange.Start == FirstStart);
-        original.Update(original.Methodology, original.SizingMethod, "America/Denver", 1).IsSuccess.Should().BeTrue();
+        team.CorrectOperatingModel(original.Id, original.Methodology, original.SizingMethod, "America/Denver", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamScheduleQuery(team.Id, FirstStart), TestContext.Current.CancellationToken);

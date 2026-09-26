@@ -1,0 +1,40 @@
+using System.Text.Json.Serialization;
+using NodaTime;
+using Wayd.Common.Models;
+
+namespace Wayd.Common.Domain.Events.Organization;
+
+/// <summary>
+/// A team's or team of teams' membership in a parent team of teams was removed.
+/// </summary>
+public sealed record TeamMembershipRemovedEvent : DomainEvent<TeamMembershipRemovedEvent>, IDomainEventDescriptor, IRelatedAggregateEvent
+{
+    public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
+
+    public TeamMembershipRemovedEvent(Guid id, int key, Guid parentTeamId, FlexibleDateRange dateRange, EventActor actor, Instant timestamp)
+        : base(actor, "1.0")
+    {
+        Id = id;
+        Key = key;
+        ParentTeamId = parentTeamId;
+        DateRange = dateRange;
+
+        Timestamp = timestamp;
+    }
+
+    public Guid Id { get; }
+    public int Key { get; }
+    public Guid ParentTeamId { get; }
+
+    /// <summary>The days the membership held until it was removed.</summary>
+    public FlexibleDateRange DateRange { get; }
+
+    [JsonIgnore]
+    public string AggregateType => "Team";
+    [JsonIgnore]
+    public Guid AggregateId => Id;
+
+    /// <summary>The parent team of teams, whose Activity shows it losing a child.</summary>
+    [JsonIgnore]
+    public IReadOnlyCollection<AggregateReference> RelatedAggregates => [new(AggregateType, ParentTeamId)];
+}

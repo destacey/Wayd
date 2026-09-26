@@ -5,7 +5,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Queries;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
 
@@ -53,9 +53,9 @@ public sealed class GetFunctionalOrganizationChartQueryHandlerTests
             await seedContext.TeamOfTeams.AddRangeAsync([valueStream, art], cancellationToken);
             await seedContext.Teams.AddRangeAsync([team, past], cancellationToken);
 
-            art.AddTeamMembership(valueStream, new MembershipDateRange(MembershipStart, null), now).IsSuccess.Should().BeTrue();
-            team.AddTeamMembership(art, new MembershipDateRange(MembershipStart, null), now).IsSuccess.Should().BeTrue();
-            past.AddTeamMembership(art, new MembershipDateRange(MembershipStart, asOf.PlusDays(-1)), now).IsSuccess.Should().BeTrue();
+            art.AddTeamMembership(valueStream, new MembershipDateRange(MembershipStart, null), EventActor.System, now).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(MembershipStart, null), EventActor.System, now).IsSuccess.Should().BeTrue();
+            past.AddTeamMembership(art, new MembershipDateRange(MembershipStart, asOf.PlusDays(-1)), EventActor.System, now).IsSuccess.Should().BeTrue();
 
             await seedContext.SaveChangesAsync(cancellationToken);
         }

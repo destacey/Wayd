@@ -1,5 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Identity;
+using Wayd.Tests.Shared;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -13,6 +19,7 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
     private readonly EmployeeFaker _employeeFaker;
     private readonly FakeOrganizationDbContext _dbContext;
     private readonly UpdateTeamMemberCommandHandler _handler;
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
 
     public UpdateTeamMemberCommandHandlerTests()
     {
@@ -20,9 +27,14 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
         _employeeFaker = new EmployeeFaker();
         _dbContext = new FakeOrganizationDbContext();
 
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
         _handler = new UpdateTeamMemberCommandHandler(
             _dbContext,
             _dbContext,
+            _dateTimeProvider,
+            currentUser.Object,
             new Mock<ILogger<UpdateTeamMemberCommandHandler>>().Object);
     }
 
@@ -37,7 +49,7 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
-        team.AddMember(employee, roleId1);
+        team.AddMember(employee, [roleId1], EventActor.System, _dateTimeProvider.Now);
 
         var command = new UpdateTeamMemberCommand(team.Id, employee.Id, [roleId1, roleId2]);
 
@@ -63,8 +75,8 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
-        team.AddMember(employee, roleId1);
-        team.AddMember(employee, roleId2);
+        team.AddMember(employee, [roleId1], EventActor.System, _dateTimeProvider.Now);
+        team.AddMember(employee, [roleId2], EventActor.System, _dateTimeProvider.Now);
 
         var command = new UpdateTeamMemberCommand(team.Id, employee.Id, [roleId1]);
 

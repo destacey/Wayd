@@ -49,7 +49,9 @@ const SUPPORTED_KEYWORDS = new Set([
 
 /** `format` values mapped to their Zod 4 constructors. */
 const STRING_FORMATS: Record<string, string> = {
-    uuid: 'z.uuid()',
+    // Not z.uuid(): it enforces the RFC 9562 variant nibble, and the sequential
+    // GUIDs EF Core generates for Wayd ids (…-1e77-08de…) fail it.
+    uuid: 'z.guid()',
     date: 'z.iso.date()',
     'date-time': 'z.iso.datetime({ offset: true })',
 };

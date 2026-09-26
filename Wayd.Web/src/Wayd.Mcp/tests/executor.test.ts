@@ -189,6 +189,18 @@ describe('generated zod schemas', () => {
     assert.equal(valid.success, true, 'a well-formed uuid was rejected');
     assert.equal(notAUuid.success, false, 'a malformed uuid was accepted');
   });
+
+  test('accept the sequential GUIDs Wayd generates, which are not RFC 9562 UUIDs', () => {
+    // Arrange — EF Core's sequential GUIDs put 1e77 where RFC 9562 requires a variant nibble of 8-b
+    const schema = zodSchemas.get('Projects_GetProjectHealthChecks');
+    assert.ok(schema, 'expected a schema for Projects_GetProjectHealthChecks');
+
+    // Act
+    const result = schema.safeParse({ id: 'd54bede6-4b6c-4edc-1e77-08de4e00456e' });
+
+    // Assert
+    assert.equal(result.success, true, 'a Wayd-generated id was rejected before reaching the API');
+  });
 });
 
 describe('executeApiTool', () => {

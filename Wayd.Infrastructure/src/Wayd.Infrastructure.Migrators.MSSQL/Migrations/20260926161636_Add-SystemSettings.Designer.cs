@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260926153804_Add-SystemSettings")]
+    [Migration("20260926161636_Add-SystemSettings")]
     partial class AddSystemSettings
     {
         /// <inheritdoc />
@@ -2297,11 +2297,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.IsRequired();
 
                             b1.Property<DateTime?>("End")
-                                .HasColumnType("datetime2")
+                                .HasColumnType("date")
                                 .HasColumnName("End");
 
                             b1.Property<DateTime?>("Start")
-                                .HasColumnType("datetime2")
+                                .HasColumnType("date")
                                 .HasColumnName("Start");
                         });
 
@@ -6265,11 +6265,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.IsRequired();
 
                             b1.Property<DateTime?>("End")
-                                .HasColumnType("datetime2")
+                                .HasColumnType("date")
                                 .HasColumnName("End");
 
                             b1.Property<DateTime?>("Start")
-                                .HasColumnType("datetime2")
+                                .HasColumnType("date")
                                 .HasColumnName("Start");
                         });
 
@@ -7192,7 +7192,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("SourcePlannedOn")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("date");
 
                     b.Property<int>("SourceStatusCategory")
                         .HasColumnType("int");
@@ -7201,7 +7201,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("TargetPlannedOn")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("date");
 
                     b.Property<int>("TargetStatusCategory")
                         .HasColumnType("int");

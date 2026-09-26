@@ -29,6 +29,7 @@ import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import { DeploymentsGrid } from '../../deployments/_components'
+import CorrectReleasePackageDatesForm from '../_components/correct-release-package-dates-form'
 import MarkReleasePackageReleasedForm from '../_components/mark-release-package-released-form'
 import { releasePackageActionAvailability } from '../_components/release-package-actions'
 import SetReleasePackageManifestForm from '../_components/set-release-package-manifest-form'
@@ -52,6 +53,7 @@ const ReleasePackageDetailsPage = (props: {
 
   const [isManifestOpen, setIsManifestOpen] = useState<boolean>(false)
   const [isReleaseOpen, setIsReleaseOpen] = useState<boolean>(false)
+  const [isCorrectDatesOpen, setIsCorrectDatesOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
 
@@ -150,19 +152,27 @@ const ReleasePackageDetailsPage = (props: {
   const canEditManifest = canUpdatePackage && available.canEditManifest
   const canRelease = canUpdatePackage && available.canRelease
   const canWithdraw = canUpdatePackage && available.canWithdraw
+  const canCorrectDates = canUpdatePackage && available.canCorrectDates
 
   const actionsMenuItems: MenuProps['items'] = (() => {
     const groups: ItemType[][] = []
 
+    const edits: ItemType[] = []
     if (canEditManifest) {
-      groups.push([
-        {
-          key: 'edit-manifest',
-          label: 'Edit Manifest',
-          onClick: () => setIsManifestOpen(true),
-        },
-      ])
+      edits.push({
+        key: 'edit-manifest',
+        label: 'Edit Manifest',
+        onClick: () => setIsManifestOpen(true),
+      })
     }
+    if (canCorrectDates) {
+      edits.push({
+        key: 'correct-dates',
+        label: 'Correct Dates',
+        onClick: () => setIsCorrectDatesOpen(true),
+      })
+    }
+    groups.push(edits)
 
     // The lifecycle moves: each records something that happened to the package.
     const lifecycle: ItemType[] = []
@@ -302,6 +312,16 @@ const ReleasePackageDetailsPage = (props: {
             refetch()
           }}
           onFormCancel={() => setIsReleaseOpen(false)}
+        />
+      )}
+      {isCorrectDatesOpen && (
+        <CorrectReleasePackageDatesForm
+          releasePackage={releasePackage}
+          onFormComplete={() => {
+            setIsCorrectDatesOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsCorrectDatesOpen(false)}
         />
       )}
       {isWithdrawOpen && (

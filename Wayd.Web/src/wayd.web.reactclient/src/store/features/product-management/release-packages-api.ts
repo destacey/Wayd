@@ -2,6 +2,7 @@ import { getReleasePackagesClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   AssembleReleasePackageRequest,
+  CorrectReleasePackageDatesRequest,
   MarkReleasePackageReleasedRequest,
   ObjectIdAndKey,
   ReleasePackageDto,
@@ -160,6 +161,33 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) =>
         packageTags(arg.id, arg.cacheKey),
     }),
+    /**
+     * Corrects recorded dates without moving the package's status.
+     *
+     * Invalidates the package but not its status history, which a correction leaves untouched.
+     */
+    correctReleasePackageDates: builder.mutation<
+      void,
+      { id: string; request: CorrectReleasePackageDatesRequest }
+    >({
+      queryFn: async ({ id, request }) => {
+        try {
+          const data = await getReleasePackagesClient().correctDates(
+            id,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ReleasePackage, id: 'LIST' },
+        { type: QueryTags.ReleasePackage, id: arg.id },
+        { type: QueryTags.ActivityLog, id: arg.id },
+      ],
+    }),
     withdrawReleasePackage: builder.mutation<
       void,
       { id: string; cacheKey: number; request: WithdrawReleasePackageRequest }
@@ -182,25 +210,23 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
      * are invalidated with it. Only lists: invalidating the deleted package's own tags refetches its
      * page, still mounted until the redirect lands, and every one of those queries 404s.
      */
-    deleteReleasePackage: builder.mutation<void, string>(
-      {
-        queryFn: async (id) => {
-          try {
-            const data = await getReleasePackagesClient().delete(id)
-            return { data }
-          } catch (error) {
-            console.error('API Error:', error)
-            return { error }
-          }
-        },
-        invalidatesTags: () => [
-          { type: QueryTags.ReleasePackage, id: 'LIST' },
-          { type: QueryTags.Deployment, id: 'LIST' },
-          { type: QueryTags.Release, id: 'LIST' },
-          { type: QueryTags.DeliveryMetrics, id: 'LIST' },
-        ],
+    deleteReleasePackage: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getReleasePackagesClient().delete(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
       },
-    ),
+      invalidatesTags: () => [
+        { type: QueryTags.ReleasePackage, id: 'LIST' },
+        { type: QueryTags.Deployment, id: 'LIST' },
+        { type: QueryTags.Release, id: 'LIST' },
+        { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+      ],
+    }),
 
     getReleasePackageActivities: builder.query<
       PagedResponseOfActivityLogDto,
@@ -233,6 +259,7 @@ export const {
   useAssembleReleasePackageMutation,
   useSetReleasePackageManifestMutation,
   useMarkReleasePackageReleasedMutation,
+  useCorrectReleasePackageDatesMutation,
   useWithdrawReleasePackageMutation,
   useDeleteReleasePackageMutation,
   useGetReleasePackageActivitiesQuery,

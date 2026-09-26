@@ -458,6 +458,19 @@ mistake; see [Can I delete any of this?](#can-i-delete-any-of-this).
 
 A completion cannot predate the start, and a rollback cannot predate the completion.
 
+**A success in production marks what shipped as released.** When a production deployment succeeds, a
+version it carried that has no released moment yet is marked **Released** at the deployment's
+completion, just as Mark Released would. A package deployment does the same for the package and for
+every version that **changed** in it. Its carried-forward components shipped earlier.
+
+- A released moment already recorded is never replaced, whether someone entered it or an earlier
+  deployment filled it in. Wayd cannot tell the two apart, so when importing history, import
+  deployments oldest first, or fix a moment afterwards with [Correct Dates](#correcting-dates).
+- A withdrawn version or package is left alone, and so is one cut after the deployment completed.
+
+A deployment that is later rolled back still shipped first, so it counts too. Deployments outside
+production never mark anything released.
+
 :::note What a rolled-back deployment counts as
 A rollback still counts toward **deployment frequency** — it reached production, which is what that
 measures — and counts against **change failure rate**. The two measures deliberately disagree about

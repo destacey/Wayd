@@ -573,7 +573,7 @@ VersionId XOR PackageId is validated in three places and answered with a 422 —
 
 EnvironmentCategory is FROZEN on the deployment as it stood when the deployment ran; it is never resolved through the environment on read. A deployment's category can therefore legitimately differ from its environment's category today. Reclassifying an environment changes what FUTURE deployments count as and rewrites nothing.
 
-A deployment is never edited. Once started it is only ever completed: Succeed/Fail while IsComplete is false, and RollBack only from Succeeded (a failed deployment never reached its environment, so there is nothing to revert). A completion cannot predate the start; a rollback cannot predate the completion.
+A deployment is never edited. Once started it is only ever completed: Succeed/Fail while IsComplete is false, and RollBack only from Succeeded (a failed deployment never reached its environment, so there is nothing to revert). A completion cannot predate the start; a rollback cannot predate the completion. A PRODUCTION success also records the release of what shipped, through the ordinary MarkReleased: an unreleased version it carried, or for a package the package and each CHANGED component version (carried-forward ones shipped earlier), becomes Released at the deployment's completion — imported rows that succeeded or were rolled back included, since a rollback shipped first. A released moment already set is never replaced (a filled one is indistinguishable from an entered one), withdrawn records are skipped, and a record cut after the completion is left for the aggregate to refuse.
 
 ### Deployment Environments
 

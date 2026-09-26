@@ -63,7 +63,7 @@ const SprintCard: FC<SprintCardProps> = ({
   const formatDateRange = () => {
     const start = dayjs(sprint.start)
     const end = dayjs(sprint.end)
-    return `${start.format('MMM D, YYYY h:mm A')} - ${end.format('MMM D, YYYY h:mm A')}`
+    return `${start.format('MMM D, YYYY')} - ${end.format('MMM D, YYYY')}`
   }
 
   const isFuture = sprint.state.id === IterationState.Future

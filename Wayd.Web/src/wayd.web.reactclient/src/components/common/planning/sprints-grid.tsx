@@ -7,11 +7,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { SprintListDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '../wayd-grid-core'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
 import { FC, useMemo } from 'react'
-
-dayjs.extend(utc)
 
 export interface SprintsGridProps {
   sprints: SprintListDto[]
@@ -22,15 +18,6 @@ export interface SprintsGridProps {
   /** Column layout persistence key for the hosting page (see WaydGridProps). */
   persistStateKey?: string
 }
-
-/**
- * Sprint start/end are stored as UTC calendar dates; formatting them with the
- * local-timezone `dateOnly` column type would shift them by a day. Render via
- * `dayjs.utc` so the calendar date is preserved. The raw value still flows to
- * the date filter/sort via `meta.columnType: 'dateOnly'`.
- */
-const formatUtcCalendarDate = (value: unknown) =>
-  value ? dayjs.utc(value as Date).format('MMM D, YYYY') : ''
 
 const defaultSorting = [{ id: 'start', desc: true }]
 
@@ -76,7 +63,6 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         header: 'Start',
         size: 150,
         meta: { columnType: 'dateOnly' },
-        cell: ({ getValue }) => formatUtcCalendarDate(getValue()),
       },
       {
         id: 'end',
@@ -84,7 +70,6 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         header: 'End',
         size: 150,
         meta: { columnType: 'dateOnly' },
-        cell: ({ getValue }) => formatUtcCalendarDate(getValue()),
       },
     ],
     [props.hideTeam],

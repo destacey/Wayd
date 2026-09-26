@@ -8580,6 +8580,62 @@
         ]
       }
     },
+    "/api/product-management/release-packages/{id}/dates": {
+      "put": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Correct a package's recorded target and released dates.",
+        "description": "Fixes dates entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released date can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.",
+        "operationId": "ReleasePackages_CorrectDates",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectReleasePackageDatesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/{id}": {
       "delete": {
         "tags": [
@@ -44200,6 +44256,23 @@
             "type": "string",
             "description": "The date it shipped. Supplied rather than taken from the clock, because shipping is often\nrecorded after the fact.",
             "format": "date"
+          }
+        }
+      },
+      "CorrectReleasePackageDatesRequest": {
+        "type": "object",
+        "description": "Corrects a package's recorded target and released dates.",
+        "additionalProperties": false,
+        "properties": {
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
           }
         }
       },

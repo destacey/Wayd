@@ -8,11 +8,15 @@ import { ReleasePackageDto, StatusCategory } from '@/src/services/wayd-api'
  * The manifest closes on release: once a package has shipped, what was in the box is a matter of
  * record, and the domain refuses an amendment. Withdrawal closes it too — a pulled package is kept
  * because deployments may reference it, not so it can be rewritten.
+ *
+ * Correcting dates stays open after release — a date recorded wrongly is exactly what it is for — and
+ * closes only on withdrawal.
  */
 export interface ReleasePackageActionAvailability {
   canEditManifest: boolean
   canRelease: boolean
   canWithdraw: boolean
+  canCorrectDates: boolean
 }
 
 export const releasePackageActionAvailability = (
@@ -24,7 +28,10 @@ export const releasePackageActionAvailability = (
   return {
     canEditManifest: !isReleased && !isWithdrawn,
     canRelease:
-      !isReleased && !isWithdrawn && (releasePackage.components?.length ?? 0) > 0,
+      !isReleased &&
+      !isWithdrawn &&
+      (releasePackage.components?.length ?? 0) > 0,
     canWithdraw: !isWithdrawn,
+    canCorrectDates: !isWithdrawn,
   }
 }

@@ -6,6 +6,8 @@ export { default as SetReleasePackageManifestForm } from './set-release-package-
 export type { SetReleasePackageManifestFormProps } from './set-release-package-manifest-form'
 export { default as MarkReleasePackageReleasedForm } from './mark-release-package-released-form'
 export type { MarkReleasePackageReleasedFormProps } from './mark-release-package-released-form'
+export { default as CorrectReleasePackageDatesForm } from './correct-release-package-dates-form'
+export type { CorrectReleasePackageDatesFormProps } from './correct-release-package-dates-form'
 export { default as WithdrawReleasePackageForm } from './withdraw-release-package-form'
 export type { WithdrawReleasePackageFormProps } from './withdraw-release-package-form'
 export { default as DeleteReleasePackageForm } from './delete-release-package-form'

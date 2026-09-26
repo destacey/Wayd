@@ -281,6 +281,142 @@ public sealed class ReleasePackageTests
 
     #endregion MarkReleased
 
+    #region CorrectDates
+
+    [Fact]
+    public void CorrectDates_ShouldChangeDatesWithoutMovingStatus()
+    {
+        // Arrange
+        var sut = _faker
+            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithStatusCategory(StatusCategory.Done)
+            .Generate();
+        var statusBefore = sut.StatusId;
+
+        // Act
+        var result = sut.CorrectDates(
+            new LocalDate(2026, 9, 15), new LocalDate(2026, 9, 17), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // A correction says what was written down was wrong, not that the package moved.
+        result.IsSuccess.Should().BeTrue();
+        sut.TargetDate.Should().Be(new LocalDate(2026, 9, 15));
+        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 17));
+        sut.StatusId.Should().Be(statusBefore);
+        sut.StatusCategory.Should().Be(StatusCategory.Done);
+        sut.StatusTransitions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldCarryBothEndsOfEachChange()
+    {
+        // Arrange
+        var sut = _faker
+            .WithTargetDate(new LocalDate(2026, 9, 16))
+            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithStatusCategory(StatusCategory.Done)
+            .Generate();
+
+        // Act
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 17), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var raised = sut.DomainEvents.OfType<PackageDatesCorrectedEvent>().Should().ContainSingle().Subject;
+        raised.Id.Should().Be(sut.Id);
+        raised.Version.Should().Be(sut.Version);
+        raised.FromTargetDate.Should().Be(new LocalDate(2026, 9, 16));
+        raised.ToTargetDate.Should().BeNull();
+        raised.FromReleasedDate.Should().Be(new LocalDate(2026, 9, 18));
+        raised.ToReleasedDate.Should().Be(new LocalDate(2026, 9, 17));
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldCorrectTheTargetDate_WhenNotYetReleased()
+    {
+        // Arrange
+        var sut = _faker.WithTargetDate(new LocalDate(2026, 9, 16)).Generate();
+
+        // Act
+        var result = sut.CorrectDates(new LocalDate(2026, 9, 23), null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.TargetDate.Should().Be(new LocalDate(2026, 9, 23));
+        sut.ReleasedDate.Should().BeNull();
+        sut.DomainEvents.Should().ContainSingle(e => e is PackageDatesCorrectedEvent);
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldSucceedWithoutRaisingAnEvent_WhenNothingChanged()
+    {
+        // Arrange
+        var sut = _faker
+            .WithTargetDate(new LocalDate(2026, 9, 16))
+            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithStatusCategory(StatusCategory.Done)
+            .Generate();
+
+        // Act
+        var result = sut.CorrectDates(
+            new LocalDate(2026, 9, 16), new LocalDate(2026, 9, 18), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().NotContain(e => e is PackageDatesCorrectedEvent);
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldFail_WhenClearingTheReleasedDate()
+    {
+        // Arrange
+        var sut = _faker
+            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithStatusCategory(StatusCategory.Done)
+            .Generate();
+
+        // Act
+        var result = sut.CorrectDates(null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // Clearing it would unlock the manifest of a package that already shipped.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A released package cannot have its released date removed.");
+        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 18));
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldFail_WhenAddingAReleasedDateToAnUnreleasedPackage()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 18), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // A released date alone would lock the manifest and block MarkReleased while the status stays put.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Mark the package released instead");
+        sut.ReleasedDate.Should().BeNull();
+    }
+
+    [Fact]
+    public void CorrectDates_ShouldFail_WhenWithdrawn()
+    {
+        // Arrange
+        var sut = _faker.WithReleasedDate(new LocalDate(2026, 9, 18)).AsWithdrawn().Generate();
+
+        // Act
+        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 17), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A withdrawn package cannot have its dates corrected.");
+    }
+
+    #endregion CorrectDates
+
     #region Withdraw
 
     [Fact]

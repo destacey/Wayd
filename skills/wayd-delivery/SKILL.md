@@ -142,9 +142,16 @@ Both end an assertion, and choosing wrongly writes a history that misleads whoev
 Recording a mistake as a withdrawal leaves the append-only history asserting that somebody pulled
 something nobody ever shipped, and a later reader has no way to tell.
 
-**Correcting dates is a third thing.** `Releases_CorrectDates` and `Versions_CorrectDates` say a date
-was written down wrongly. The status does not move and the history is untouched — which is why they
-exist separately from the actions that assert a record moved.
+**Correcting dates is a third thing.** `Releases_CorrectDates`, `Versions_CorrectDates` and
+`ReleasePackages_CorrectDates` say a date was written down wrongly. The status does not move and the
+history is untouched — which is why they exist separately from the actions that assert a record moved.
+A package's released date can only be corrected once it has been released; it cannot be added through
+a correction, because the released date is what closes the manifest.
+
+Dates are calendar dates with no time and no offset, so the time-zone conversion happens when you write
+them and nothing downstream can redo it. When deriving one from a UTC timestamp — a deployment's
+completion time, say — convert it to the organization's local date first: a late-evening US deploy
+lands after midnight UTC and would otherwise be recorded a day late.
 
 ---
 

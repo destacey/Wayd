@@ -61,7 +61,23 @@ describe('releasePackageActionAvailability', () => {
       canEditManifest: true,
       canRelease: true,
       canWithdraw: true,
+      canCorrectDates: true,
     })
+  })
+
+  it('still offers correcting dates after release', () => {
+    // Arrange / Act
+    const available = releasePackageActionAvailability(released())
+
+    // Assert — a date recorded wrongly at release is what the correction exists for.
+    expect(available.canCorrectDates).toBe(true)
+  })
+
+  it('refuses correcting the dates of a withdrawn package', () => {
+    // Arrange / Act / Assert
+    expect(releasePackageActionAvailability(withdrawn()).canCorrectDates).toBe(
+      false,
+    )
   })
 
   it('closes the manifest once the package has shipped', () => {

@@ -118,6 +118,18 @@ export const definitions: [string, McpToolDefinition][] = [
     annotations: { title: 'Mark a package released', ...requiresConfirmation },
   }],
 
+  ['ReleasePackages_CorrectDates', {
+    name: 'ReleasePackages_CorrectDates',
+    description: `Fix a package's target or released date that was recorded wrongly. The status does not move and the status history is left untouched — that is the point of having this separate from ReleasePackages_MarkReleased, which asserts the package shipped and refuses to run twice. **Both dates are sent, so an omitted target date is cleared.** The released date can be changed on a released package but **cannot be cleared**, and **cannot be added to a package that has not been released** — use ReleasePackages_MarkReleased for that. Dates are calendar dates with no time zone: convert a UTC deployment timestamp to the local date it happened on before sending it. Refused on a withdrawn package.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"targetDate":{"type":"string","format":"date","description":"When the package was aimed at. Format YYYY-MM-DD. Omit to clear it."},"releasedDate":{"type":"string","format":"date","description":"When it shipped. Format YYYY-MM-DD. Required once the package is released; omit it on one that is not."}},"required":[]}},"required":["id","requestBody"]},
+    method: 'put',
+    pathTemplate: '/api/product-management/release-packages/{id}/dates',
+    executionParameters: [{"name":"id","in":"path"}],
+    requestBodyContentType: 'application/json',
+    securityRequirements: [{"ApiKey":[]}],
+    annotations: { title: 'Correct package dates', ...requiresConfirmation },
+  }],
+
   ['ReleasePackages_Withdraw', {
     name: 'ReleasePackages_Withdraw',
     description: `Pull a package. Terminal, and it closes the manifest. A released package can still be withdrawn; a withdrawn one cannot be released. Withdrawing keeps the package and every deployment of it — prefer it to \`ReleasePackages_Delete\`.`,

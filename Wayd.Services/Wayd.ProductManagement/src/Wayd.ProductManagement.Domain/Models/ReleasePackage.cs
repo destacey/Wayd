@@ -175,6 +175,53 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Corrects the recorded target and released dates without moving the package's status.
+    /// </summary>
+    /// <remarks>
+    /// The released date can be changed but neither added nor cleared: a recorded released date is what
+    /// marks the package as shipped — it locks the manifest and makes <see cref="MarkReleased"/> refuse —
+    /// so adding one here would ship the package without its status following, and clearing one would
+    /// unlock a manifest that already went out. <see cref="MarkReleased"/> records the first one.
+    /// </remarks>
+    public Result CorrectDates(
+        LocalDate? targetDate,
+        LocalDate? releasedDate,
+        EventActor actor,
+        Instant timestamp)
+    {
+        if (StatusCategory == StatusCategory.Removed)
+        {
+            return Result.Failure("A withdrawn package cannot have its dates corrected.");
+        }
+
+        if (releasedDate is null && ReleasedDate is not null)
+        {
+            return Result.Failure("A released package cannot have its released date removed.");
+        }
+
+        if (releasedDate is not null && ReleasedDate is null)
+        {
+            return Result.Failure(
+                "A package that has not been released cannot be given a released date. Mark the package released instead.");
+        }
+
+        if (targetDate == TargetDate && releasedDate == ReleasedDate)
+        {
+            return Result.Success();
+        }
+
+        var fromTargetDate = TargetDate;
+        var fromReleasedDate = ReleasedDate;
+        TargetDate = targetDate;
+        ReleasedDate = releasedDate;
+
+        AddDomainEvent(new PackageDatesCorrectedEvent(
+            Id, Key, Version, fromTargetDate, targetDate, fromReleasedDate, releasedDate, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Pulls the package after it was assembled.
     /// </summary>
     public Result Withdraw(string? reason, StatusRef withdrawnStatus, EventActor actor, Instant timestamp)

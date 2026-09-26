@@ -1,6 +1,6 @@
 'use client'
 
-import { Form, Modal, Radio, Spin } from 'antd'
+import { Form, InputNumber, Modal, Radio, Spin } from 'antd'
 import { useEffect } from 'react'
 import {
   Methodology,
@@ -14,6 +14,10 @@ import {
 } from '@/src/store/features/organizations/team-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import {
+  MAX_COMMITMENT_GRACE_DAYS,
+  TimeZoneSelect,
+} from '@/src/components/common/scheduling'
 
 const { Item: FormItem } = Form
 const { Group: RadioGroup } = Radio
@@ -28,6 +32,8 @@ export interface EditTeamOperatingModelFormProps {
 interface EditTeamOperatingModelFormValues {
   methodology: Methodology
   sizingMethod: SizingMethod
+  timeZone: string
+  commitmentGraceDays: number
 }
 
 const methodologyOptions = [
@@ -46,6 +52,8 @@ const mapToRequestValues = (
   return {
     methodology: values.methodology,
     sizingMethod: values.sizingMethod,
+    timeZone: values.timeZone,
+    commitmentGraceDays: values.commitmentGraceDays,
   } as UpdateTeamOperatingModelRequest
 }
 
@@ -105,6 +113,8 @@ const EditTeamOperatingModelForm = ({
       form.setFieldsValue({
         methodology: operatingModel.methodology,
         sizingMethod: operatingModel.sizingMethod,
+        timeZone: operatingModel.timeZone,
+        commitmentGraceDays: operatingModel.commitmentGraceDays,
       })
     }
   }, [operatingModel, isLoading, isFetching, form])
@@ -150,6 +160,32 @@ const EditTeamOperatingModelForm = ({
               options={sizingMethodOptions}
               optionType="button"
               buttonStyle="solid"
+            />
+          </FormItem>
+          <FormItem
+            name="timeZone"
+            label="Time Zone"
+            extra="Corrects the zone for this model's whole period, including past sprints. If the team moved, set a new operating model instead."
+            rules={[{ required: true, message: 'Time zone is required' }]}
+          >
+            <TimeZoneSelect aria-label="Time Zone" />
+          </FormItem>
+          <FormItem
+            name="commitmentGraceDays"
+            label="Commitment Grace Period (days)"
+            extra="How long after a sprint's planned start its commitment is taken when the team does not start it. 1 is the end of the first planned day."
+            rules={[
+              {
+                required: true,
+                message: 'Commitment grace period is required',
+              },
+            ]}
+          >
+            <InputNumber
+              min={0}
+              max={MAX_COMMITMENT_GRACE_DAYS}
+              precision={0}
+              aria-label="Commitment Grace Period (days)"
             />
           </FormItem>
         </Form>

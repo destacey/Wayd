@@ -16,6 +16,7 @@ import {
   UpdateTeamOperatingModelRequest,
   TeamOperatingModelDetailsDto,
   PagedResponseOfActivityLogDto,
+  SchedulingSettingsDto,
 } from './../../../services/wayd-api'
 import {
   CreateTeamFormValues,
@@ -631,6 +632,20 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     // TEAM OPERATING MODELS
+    getTeamOperatingModelDefaults: builder.query<SchedulingSettingsDto, void>({
+      queryFn: async () => {
+        try {
+          const data = await getTeamsClient().getOperatingModelDefaults()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The scheduling settings' tag, so saving them refreshes the defaults.
+      providesTags: [{ type: QueryTags.SystemSettings, id: 'scheduling' }],
+    }),
+
     getTeamOperatingModel: builder.query<
       TeamOperatingModelDetailsDto | null,
       { teamId: string; operatingModelId: string }
@@ -993,6 +1008,7 @@ export const {
   useGetTeamRisksQuery,
   useGetTeamOfTeamsRisksQuery,
   // Operating Models
+  useGetTeamOperatingModelDefaultsQuery,
   useGetTeamOperatingModelQuery,
   useGetTeamOperatingModelAsOfQuery,
   useGetTeamOperatingModelsQuery,

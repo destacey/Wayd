@@ -6,9 +6,10 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { toFormErrors } from '@/src/utils'
 import { SchedulingSettingsDto, TimeZoneDto } from '@/src/services/wayd-api'
 import { useUpdateSchedulingSettingsMutation } from '@/src/store/features/admin/system-settings-api'
-
-// The server's bound (SchedulingSettingsValidator.MaxCommitmentGraceDays), which rejects anything past it.
-export const MAX_COMMITMENT_GRACE_DAYS = 14
+import {
+  MAX_COMMITMENT_GRACE_DAYS,
+  timeZoneLabel,
+} from '@/src/components/common/scheduling'
 
 interface SchedulingSettingsFormValues {
   defaultTimeZone: string
@@ -21,9 +22,6 @@ export interface SchedulingSettingsFormProps {
   isLoading: boolean
   canUpdate: boolean
 }
-
-export const timeZoneLabel = (zone: TimeZoneDto) =>
-  `(UTC${zone.currentOffset}) ${zone.id}`
 
 const SchedulingSettingsForm = ({
   settings,

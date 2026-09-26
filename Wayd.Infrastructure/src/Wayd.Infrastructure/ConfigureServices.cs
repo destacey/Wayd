@@ -21,6 +21,7 @@ using Wayd.Infrastructure.OpenTelemetry;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Infrastructure.SignalR;
 using Wayd.Infrastructure.StatusWorkflows;
+using Wayd.Infrastructure.SystemSettings;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.ProductManagement.Domain;
@@ -149,6 +150,7 @@ public static class ConfigureServices
             })
             .AddExceptionMiddleware()
             .AddWaydFeatureManagement()
+            .AddSystemSettings()
             .AddOpenApiDocumentation(config)
             .AddPersistence(config)
             .AddRequestLogging(config)

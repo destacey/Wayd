@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Mono.Cecil;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Organization.Domain.Models;
 using Wayd.Planning.Domain.Models;
@@ -45,6 +46,7 @@ public partial class EventCoverageTests
         // Common
         typeof(ScoringModel),
         typeof(StatusWorkflow),
+        typeof(SystemSettingsSection),
         typeof(WorkflowAssignment),
 
         // Organization

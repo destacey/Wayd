@@ -273,6 +273,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Identity.IUserIdentityStore>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Users.IUserService>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Roles.IRoleService>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.SystemSettings.ISystemSettingsStore>();
 
         // The DbContext facades are allow-listed for CORRECTNESS, like AmbientUserId below, not opaqueness.
         // Codegen used to inline-construct them, and it constructed one PER INTERFACE: a handler taking two of

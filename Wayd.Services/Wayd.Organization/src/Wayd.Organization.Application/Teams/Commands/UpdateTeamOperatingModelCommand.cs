@@ -1,4 +1,5 @@
-﻿using Wayd.Organization.Domain.Enums;
+﻿using Wayd.Common.Application.SystemSettings.Scheduling;
+using Wayd.Organization.Domain.Enums;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
@@ -6,7 +7,9 @@ public sealed record UpdateTeamOperatingModelCommand(
     Guid TeamId,
     Guid OperatingModelId,
     Methodology Methodology,
-    SizingMethod SizingMethod) : ICommand;
+    SizingMethod SizingMethod,
+    string TimeZone,
+    int CommitmentGraceDays) : ICommand;
 
 public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<UpdateTeamOperatingModelCommand>
 {
@@ -25,6 +28,13 @@ public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<U
 
         RuleFor(c => c.SizingMethod)
             .IsInEnum();
+
+        RuleFor(c => c.TimeZone)
+            .NotEmpty()
+            .IsIanaTimeZone();
+
+        RuleFor(c => c.CommitmentGraceDays)
+            .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
     }
 }
 
@@ -60,7 +70,7 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
                 return Result.Failure($"Operating model with Id {request.OperatingModelId} for Team {request.TeamId} not found.");
             }
 
-            var updateResult = operatingModel.Update(request.Methodology, request.SizingMethod);
+            var updateResult = operatingModel.Update(request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays);
             if (updateResult.IsFailure)
             {
                 _logger.LogError("Failed to update operating model {OperatingModelId}. Error: {Error}",

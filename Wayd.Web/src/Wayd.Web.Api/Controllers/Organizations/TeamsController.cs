@@ -4,6 +4,8 @@ using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.SystemSettings.Scheduling.Dtos;
+using Wayd.Common.Application.SystemSettings.Scheduling.Queries;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Organization.Application.Models;
@@ -638,6 +640,17 @@ public class TeamsController(
         var operatingModels = await _dispatcher.Send(new GetTeamOperatingModelsForTeamsQuery(teamIds, localDate), cancellationToken);
 
         return Ok(operatingModels);
+    }
+
+    [HttpGet("operating-models/defaults")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [OpenApiOperation("Get the system defaults a new operating model is pre-filled with.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<SchedulingSettingsDto>> GetOperatingModelDefaults(CancellationToken cancellationToken)
+    {
+        var settings = await _dispatcher.Send(new GetSchedulingSettingsQuery(), cancellationToken);
+
+        return Ok(settings);
     }
 
     [HttpGet("{id}/has-ever-been-scrum")]

@@ -38,7 +38,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             startDate,
             Methodology.Scrum,
-            SizingMethod.StoryPoints);
+            SizingMethod.StoryPoints,
+            "America/Chicago",
+            2);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -49,6 +51,8 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
         team.OperatingModels.Should().HaveCount(1);
         team.OperatingModels.First().Methodology.Should().Be(Methodology.Scrum);
         team.OperatingModels.First().SizingMethod.Should().Be(SizingMethod.StoryPoints);
+        team.OperatingModels.First().TimeZone.Should().Be("America/Chicago");
+        team.OperatingModels.First().CommitmentGraceDays.Should().Be(2);
         team.OperatingModels.First().DateRange.Start.Should().Be(startDate);
         team.OperatingModels.First().IsCurrent.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
@@ -66,7 +70,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             startDate,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -88,7 +94,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             nonExistentTeamId,
             new LocalDate(2024, 1, 1),
             Methodology.Scrum,
-            SizingMethod.StoryPoints);
+            SizingMethod.StoryPoints,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -109,7 +117,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2023, 1, 1);
-        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints);
+        var initialResult = team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
         initialResult.IsSuccess.Should().BeTrue();
         var initialModel = initialResult.Value;
 
@@ -119,7 +127,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             newStartDate,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -151,7 +161,7 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
 
         // Try to create a model with earlier start date
         var earlierStartDate = new LocalDate(2023, 12, 31);
@@ -159,7 +169,9 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             earlierStartDate,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -179,14 +191,16 @@ public class SetTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create initial operating model
         var initialStartDate = new LocalDate(2024, 1, 1);
-        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints);
+        team.SetOperatingModel(initialStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
 
         // Try to create a model with same start date
         var command = new SetTeamOperatingModelCommand(
             team.Id,
             initialStartDate,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);

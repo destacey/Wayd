@@ -5,11 +5,13 @@ using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -33,7 +35,9 @@ public sealed class TeamImportDefinitionTests : IDisposable
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
 
         _definition = new TeamImportDefinition(
-            _dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
+            _dbContext, clock, currentUser.Object,
+            Mock.Of<ISettings<SchedulingSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new SchedulingSettings())),
+            new ImportPayloadSerializer());
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -145,7 +149,7 @@ public sealed class TeamImportDefinitionTests : IDisposable
         var existing = Team.Create(
             "Existing", new TeamCode("PAY"), null, new LocalDate(2024, 1, 1),
             Wayd.Organization.Domain.Enums.Methodology.Kanban,
-            Wayd.Organization.Domain.Enums.SizingMethod.Count,
+            Wayd.Organization.Domain.Enums.SizingMethod.Count, "UTC", 1,
             Wayd.Common.Domain.Events.EventActor.System, Instant.FromUtc(2024, 1, 1, 0, 0));
         _dbContext.AddTeam(existing);
 

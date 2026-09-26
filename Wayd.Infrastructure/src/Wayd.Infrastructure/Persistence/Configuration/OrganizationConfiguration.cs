@@ -206,6 +206,14 @@ public class TeamOperatingModelConfig : IEntityTypeConfiguration<TeamOperatingMo
             .HasColumnType("varchar")
             .HasMaxLength(32);
 
+        builder.Property(m => m.TimeZone)
+            .IsRequired()
+            .HasColumnType("varchar")
+            .HasMaxLength(64);
+
+        builder.Property(m => m.CommitmentGraceDays)
+            .IsRequired();
+
         // Value Object
         builder.ComplexProperty(m => m.DateRange, options =>
         {

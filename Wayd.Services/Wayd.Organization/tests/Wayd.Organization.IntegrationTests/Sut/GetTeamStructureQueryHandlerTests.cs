@@ -39,8 +39,8 @@ public sealed class GetTeamStructureQueryHandlerTests(SqlServerDbContextFixture 
             var actor = EventActor.System;
 
             var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, actor, now);
-            var team = Team.Create("Cards", new TeamCode("TEAM"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, actor, now);
-            var former = Team.Create("Wallets", new TeamCode("FORMER"), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, actor, now);
+            var team = Team.Create("Cards", new TeamCode("TEAM"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, actor, now);
+            var former = Team.Create("Wallets", new TeamCode("FORMER"), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, actor, now);
 
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddRangeAsync([team, former], cancellationToken);

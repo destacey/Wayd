@@ -97,7 +97,7 @@ public partial class EventCoverageTests
         ["StatusTrackedEntity.SwitchWorkflow(StatusRemap, EventActor, Instant, String)"] = "Gap: #896.",
         ["DeploymentEnvironment.Update(String, Int32)"] = "Gap: #897.",
         ["DeploymentEnvironment.Activate()"] = "Gap: #897.",
-        ["Team.SetOperatingModel(LocalDate, Methodology, SizingMethod)"] = "Gap: #813.",
+        ["Team.SetOperatingModel(LocalDate, Methodology, SizingMethod, String, Int32)"] = "Gap: #813.",
         ["Team.RemoveOperatingModel(Guid)"] = "Gap: #813.",
         ["BaseTeam.AddMember(Employee, IReadOnlyList<Guid>)"] = "Gap: #813.",
         ["BaseTeam.AddMember(Employee, Guid)"] = "Gap: #813.",

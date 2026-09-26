@@ -37,7 +37,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
         // Arrange
         var operatingModelFaker = _operatingModelFaker
             .WithMethodology(Methodology.Scrum)
-            .WithSizingMethod(SizingMethod.StoryPoints);
+            .WithSizingMethod(SizingMethod.StoryPoints)
+            .WithTimeZone("America/New_York")
+            .WithCommitmentGraceDays(1);
 
         var team = _teamFaker.WithOperatingModel(operatingModelFaker).Generate();
         var operatingModel = team.OperatingModels.First();
@@ -48,7 +50,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             operatingModel.Id,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "America/Chicago",
+            2);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -57,6 +61,8 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         operatingModel.Methodology.Should().Be(Methodology.Kanban);
         operatingModel.SizingMethod.Should().Be(SizingMethod.Count);
+        operatingModel.TimeZone.Should().Be("America/Chicago");
+        operatingModel.CommitmentGraceDays.Should().Be(2);
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -77,7 +83,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             operatingModel.Id,
             Methodology.Kanban,
-            SizingMethod.StoryPoints);
+            SizingMethod.StoryPoints,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -106,7 +114,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             operatingModel.Id,
             Methodology.Scrum,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -135,7 +145,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             operatingModel.Id,
             Methodology.Scrum,
-            SizingMethod.StoryPoints);
+            SizingMethod.StoryPoints,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -158,7 +170,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             nonExistentTeamId,
             operatingModelId,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -187,7 +201,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             nonExistentOperatingModelId,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -225,7 +241,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             differentTeam.Id,
             operatingModel.Id,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -261,7 +279,9 @@ public class UpdateTeamOperatingModelCommandHandlerTests : IDisposable
             team.Id,
             targetModel.Id,
             Methodology.Kanban,
-            SizingMethod.Count);
+            SizingMethod.Count,
+            "UTC",
+            1);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);

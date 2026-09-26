@@ -172,6 +172,17 @@ const TeamOperatingModelsGrid = ({
         meta: { filterType: 'set' },
       },
       {
+        id: 'timeZone',
+        accessorKey: 'timeZone',
+        header: 'Time Zone',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'commitmentGraceDays',
+        accessorKey: 'commitmentGraceDays',
+        header: 'Grace Days',
+      },
+      {
         id: 'isCurrent',
         accessorFn: (row) => (row.isCurrent ? 'Current' : 'Historical'),
         header: 'Status',

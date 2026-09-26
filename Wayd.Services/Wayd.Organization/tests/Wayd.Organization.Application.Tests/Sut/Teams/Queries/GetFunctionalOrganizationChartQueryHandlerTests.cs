@@ -236,7 +236,7 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
     private Team AddTeam(string name, string code, LocalDate? activeDate = null)
     {
         var team = Team.Create(name, new TeamCode(code), null, activeDate ?? LastYear,
-            Methodology.Kanban, SizingMethod.Count, EventActor.System, Now);
+            Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, Now);
         _dbContext.AddTeam(team);
         return team;
     }

@@ -32,7 +32,7 @@ const assembled = () => releasePackage()
 
 const released = () =>
   releasePackage({
-    releasedDate: '2026-04-02' as unknown as Date,
+    releasedAt: '2026-04-02T12:00:00Z' as unknown as Date,
     status: {
       id: 's',
       name: 'Released',

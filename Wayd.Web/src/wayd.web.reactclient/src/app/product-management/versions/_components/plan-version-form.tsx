@@ -31,14 +31,14 @@ interface PlanVersionFormValues {
   version: string
   name?: string
   targetDate?: Dayjs
-  cutDate?: Dayjs
-  releasedDate?: Dayjs
+  cutAt?: Dayjs
+  releasedAt?: Dayjs
 }
 
 /**
  * Records a version against a releasable product.
  *
- * Not every version is planned before it ships: one entered after the fact carries the dates it
+ * Not every version is planned before it ships: one entered after the fact carries the moments it
  * already has. Supplying them walks the same endpoints a person would use later, so the status and
  * the history land as though the steps were taken in order.
  *
@@ -80,38 +80,43 @@ const PlanVersionForm = ({
           //
           // The version exists from here on, so a failure below is reported against it by key rather
           // than as a failure to create — retrying the whole form would make a second version.
-          if (values.cutDate) {
+          if (values.cutAt) {
             const cut = await cutVersion({
               id,
               cacheKey: key,
-              request: { id, cutDate: values.cutDate.format('YYYY-MM-DD') } as unknown as CutVersionRequest,
+              request: {
+                id,
+                cutAt: values.cutAt.toDate(),
+              } as unknown as CutVersionRequest,
             })
             if (cut.error) {
               messageApi.error(
-                `Version ${key} was created, but recording the cut date failed. Set it from the version.`,
+                `Version ${key} was created, but recording the cut failed. Set it from the version.`,
               )
               return true
             }
           }
 
-          if (values.releasedDate) {
+          if (values.releasedAt) {
             const released = await markReleased({
               id,
               cacheKey: key,
               request: {
                 id,
-                releasedDate: values.releasedDate.format('YYYY-MM-DD'),
+                releasedAt: values.releasedAt.toDate(),
               } as unknown as MarkVersionReleasedRequest,
             })
             if (released.error) {
               messageApi.error(
-                `Version ${key} was created, but recording the released date failed. Set it from the version.`,
+                `Version ${key} was created, but recording the release failed. Set it from the version.`,
               )
               return true
             }
           }
 
-          messageApi.success(`Version created successfully. Version key: ${key}`)
+          messageApi.success(
+            `Version created successfully. Version key: ${key}`,
+          )
           return true
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
@@ -134,7 +139,7 @@ const PlanVersionForm = ({
       permission: 'Permissions.Delivery.Create',
     })
 
-  const cutDate = Form.useWatch('cutDate', form)
+  const cutAt: Dayjs | undefined = Form.useWatch('cutAt', form)
 
   return (
     <Modal
@@ -153,7 +158,9 @@ const PlanVersionForm = ({
         size="small"
         layout="vertical"
         name="plan-version-form"
-        initialValues={defaultProductId ? { productId: defaultProductId } : undefined}
+        initialValues={
+          defaultProductId ? { productId: defaultProductId } : undefined
+        }
       >
         <Item
           label="Product"
@@ -177,7 +184,9 @@ const PlanVersionForm = ({
         <Item
           label="Name"
           name="name"
-          rules={[{ max: 128, message: 'Name cannot be longer than 128 characters' }]}
+          rules={[
+            { max: 128, message: 'Name cannot be longer than 128 characters' },
+          ]}
         >
           <Input />
         </Item>
@@ -185,22 +194,36 @@ const PlanVersionForm = ({
           <DatePicker style={{ width: '100%' }} />
         </Item>
         <Item
-          label="Cut Date"
-          name="cutDate"
+          label="Cut At"
+          name="cutAt"
           extra="Leave empty if this version has not been cut yet."
         >
-          <DatePicker style={{ width: '100%' }} />
+          <DatePicker showTime style={{ width: '100%' }} />
         </Item>
         <Item
-          label="Released Date"
-          name="releasedDate"
+          label="Released At"
+          name="releasedAt"
           extra="Leave empty if this version has not shipped yet."
+          dependencies={['cutAt']}
+          // The aggregate refuses a release before the cut; the picker only disables whole days.
+          rules={[
+            {
+              validator: (_, value: Dayjs | undefined) =>
+                !value || !cutAt || !value.isBefore(cutAt)
+                  ? Promise.resolve()
+                  : Promise.reject(
+                      new Error(
+                        'A version cannot be released before it was cut',
+                      ),
+                    ),
+            },
+          ]}
         >
           <DatePicker
+            showTime
             style={{ width: '100%' }}
-            // The aggregate refuses a released date before the cut date.
             disabledDate={
-              cutDate ? (current) => current.isBefore(cutDate, 'day') : undefined
+              cutAt ? (current) => current.isBefore(cutAt, 'day') : undefined
             }
           />
         </Item>

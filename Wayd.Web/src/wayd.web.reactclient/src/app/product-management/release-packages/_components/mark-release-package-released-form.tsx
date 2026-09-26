@@ -9,7 +9,7 @@ import {
 import { useMarkReleasePackageReleasedMutation } from '@/src/store/features/product-management/release-packages-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
-import { Dayjs } from 'dayjs'
+import dayjs, { Dayjs } from 'dayjs'
 
 const { Item } = Form
 
@@ -20,13 +20,13 @@ export interface MarkReleasePackageReleasedFormProps {
 }
 
 interface MarkReleasePackageReleasedFormValues {
-  releasedDate: Dayjs
+  releasedAt: Dayjs
 }
 
 /**
  * Records that a package shipped.
  *
- * The date is supplied rather than taken from the clock, because shipping is usually recorded after
+ * The moment defaults to now but can be changed, because shipping is usually recorded after
  * the fact. Releasing closes the manifest — the domain refuses an amendment afterwards.
  */
 const MarkReleasePackageReleasedForm = ({
@@ -43,7 +43,7 @@ const MarkReleasePackageReleasedForm = ({
       onSubmit: async (values: MarkReleasePackageReleasedFormValues, form) => {
         try {
           const request = {
-            releasedDate: values.releasedDate.format('YYYY-MM-DD'),
+            releasedAt: values.releasedAt.toDate(),
           } as unknown as MarkReleasePackageReleasedRequest
 
           const response = await markReleased({
@@ -95,12 +95,13 @@ const MarkReleasePackageReleasedForm = ({
         name="mark-release-package-released-form"
       >
         <Item
-          label="Released Date"
-          name="releasedDate"
-          rules={[{ required: true, message: 'Released date is required' }]}
+          label="Released At"
+          name="releasedAt"
+          initialValue={dayjs()}
+          rules={[{ required: true, message: 'Released at is required' }]}
           extra={`The manifest for ${releasePackage.version} closes once this is recorded.`}
         >
-          <DatePicker style={{ width: '100%' }} />
+          <DatePicker showTime style={{ width: '100%' }} />
         </Item>
       </Form>
     </Modal>

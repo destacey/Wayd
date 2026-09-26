@@ -43,15 +43,15 @@ const withdrawn = () =>
     },
   })
 
-const carriedVersion = (releasedDate?: string) => ({
+const carriedVersion = (releasedAt?: string) => ({
   version: { id: 'v1', key: 5, name: '1.2.0' },
   product: { id: 'p1', key: 6, name: '@wayd/mcp' },
-  releasedDate: releasedDate as unknown as Date | undefined,
+  releasedAt: releasedAt as unknown as Date | undefined,
 })
 
-const shippedPackage = (releasedDate?: string) => ({
+const shippedPackage = (releasedAt?: string) => ({
   package: { id: 'pk1', key: 7, name: 'WAYD-2026.09.1' },
-  releasedDate: releasedDate as unknown as Date | undefined,
+  releasedAt: releasedAt as unknown as Date | undefined,
 })
 
 describe('releaseActionAvailability', () => {
@@ -138,8 +138,8 @@ describe('outstandingContents', () => {
   it('finds nothing when every entry has shipped', () => {
     // Arrange
     const sut = release({
-      versions: [carriedVersion('2026-04-05')],
-      packages: [shippedPackage('2026-04-01')],
+      versions: [carriedVersion('2026-04-05T12:00:00Z')],
+      packages: [shippedPackage('2026-04-01T12:00:00Z')],
     } as Partial<ReleaseDto>)
 
     // Act
@@ -152,7 +152,7 @@ describe('outstandingContents', () => {
   it('names the entries that have not shipped, by route', () => {
     // Arrange
     const sut = release({
-      versions: [carriedVersion(), carriedVersion('2026-04-05')],
+      versions: [carriedVersion(), carriedVersion('2026-04-05T12:00:00Z')],
       packages: [shippedPackage()],
     } as Partial<ReleaseDto>)
 

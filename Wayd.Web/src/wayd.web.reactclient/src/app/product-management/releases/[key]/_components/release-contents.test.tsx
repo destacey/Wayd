@@ -18,7 +18,7 @@ const withContents = () =>
     packages: [
       {
         package: { id: 'pk1', key: 12, name: 'WAYD-2026.09.1' },
-        releasedDate: '2026-09-01' as unknown as Date,
+        releasedAt: '2026-09-01T12:00:00Z' as unknown as Date,
       },
     ],
     versions: [

@@ -28,7 +28,8 @@ export const releaseActionAvailability = (
   release: ReleaseDto,
 ): ReleaseActionAvailability => {
   const isWithdrawn = release.status.category === StatusCategory.Removed
-  const isTerminal = release.status.category === StatusCategory.Done || isWithdrawn
+  const isTerminal =
+    release.status.category === StatusCategory.Done || isWithdrawn
   const isAnnounced = !!release.releasedDate
 
   return {
@@ -57,9 +58,11 @@ export interface OutstandingContents {
   total: number
 }
 
-export const outstandingContents = (release: ReleaseDto): OutstandingContents => {
+export const outstandingContents = (
+  release: ReleaseDto,
+): OutstandingContents => {
   const versions = (release.versions ?? [])
-    .filter((entry) => !entry.releasedDate)
+    .filter((entry) => !entry.releasedAt)
     .map((entry) => ({
       id: entry.version.id,
       // The product qualifies the number, which says little on its own: 4.8.2 and 2026.04 are
@@ -70,7 +73,7 @@ export const outstandingContents = (release: ReleaseDto): OutstandingContents =>
     }))
 
   const packages = (release.packages ?? [])
-    .filter((entry) => !entry.releasedDate)
+    .filter((entry) => !entry.releasedAt)
     .map((entry) => ({ id: entry.package.id, label: entry.package.name }))
 
   return { versions, packages, total: versions.length + packages.length }

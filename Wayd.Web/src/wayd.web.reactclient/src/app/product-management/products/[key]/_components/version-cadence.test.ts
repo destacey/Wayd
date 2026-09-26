@@ -16,13 +16,13 @@ const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
   }) as VersionDto
 
 const daysAgo = (days: number) =>
-  dayjs().subtract(days, 'day').format('YYYY-MM-DD') as unknown as Date
+  dayjs().subtract(days, 'day').toISOString() as unknown as Date
 
 describe('countReleasedWithin', () => {
   it('counts a version shipped inside the window', () => {
     // Arrange / Act
     const count = countReleasedWithin(
-      [version({ releasedDate: daysAgo(10) })],
+      [version({ releasedAt: daysAgo(10) })],
       90,
     )
 
@@ -33,7 +33,7 @@ describe('countReleasedWithin', () => {
   it('excludes a version shipped before the window', () => {
     // Arrange / Act
     const count = countReleasedWithin(
-      [version({ releasedDate: daysAgo(120) })],
+      [version({ releasedAt: daysAgo(120) })],
       90,
     )
 
@@ -44,7 +44,7 @@ describe('countReleasedWithin', () => {
   it('includes a version shipped exactly at the window edge', () => {
     // Arrange / Act — ninety days means the last ninety days, not eighty-nine.
     const count = countReleasedWithin(
-      [version({ releasedDate: daysAgo(90) })],
+      [version({ releasedAt: daysAgo(90) })],
       90,
     )
 
@@ -56,9 +56,9 @@ describe('countReleasedWithin', () => {
     // Arrange — planned and cut are both real states that carry no released date, and cadence
     // measures what reached people rather than what was intended to.
     const versions = [
-      version({ releasedDate: undefined }),
-      version({ cutDate: daysAgo(5), releasedDate: undefined }),
-      version({ releasedDate: daysAgo(5) }),
+      version({ releasedAt: undefined }),
+      version({ cutAt: daysAgo(5), releasedAt: undefined }),
+      version({ releasedAt: daysAgo(5) }),
     ]
 
     // Act

@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { VersionDto, RevertVersionReleaseRequest } from '@/src/services/wayd-api'
+import {
+  VersionDto,
+  RevertVersionReleaseRequest,
+} from '@/src/services/wayd-api'
 import { useRevertVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, Flex, Form, Input, Modal } from 'antd'
@@ -42,9 +45,15 @@ const RevertVersionForm = ({
     useModalForm<RevertVersionFormValues>({
       onSubmit: async (values: RevertVersionFormValues, form) => {
         try {
-          const request = { reason: values.reason } as RevertVersionReleaseRequest
+          const request = {
+            reason: values.reason,
+          } as RevertVersionReleaseRequest
 
-          const response = await revertVersion({ id: version.id, cacheKey: version.key, request })
+          const response = await revertVersion({
+            id: version.id,
+            cacheKey: version.key,
+            request,
+          })
           if (response.error) throw response.error
 
           messageApi.success('Version reverted.')
@@ -88,7 +97,7 @@ const RevertVersionForm = ({
           showIcon
           title="For a version that was marked shipped by mistake."
           description={`${version.number} goes back to ${
-            version.cutDate ? 'Ready' : 'its initial status'
+            version.cutAt ? 'Ready' : 'its initial status'
           } and its released date is cleared. If it did ship and was then pulled, withdraw it instead.`}
         />
         <Form
@@ -102,7 +111,10 @@ const RevertVersionForm = ({
             name="reason"
             rules={[
               { required: true, message: 'Reason is required' },
-              { max: 1024, message: 'Reason cannot be longer than 1024 characters' },
+              {
+                max: 1024,
+                message: 'Reason cannot be longer than 1024 characters',
+              },
             ]}
             // Required, unlike a withdrawal's optional reason: this contradicts something the status
             // history already asserts, so the record has to say why.

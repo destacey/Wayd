@@ -18,24 +18,25 @@ export interface CorrectVersionDatesFormProps {
 
 interface CorrectVersionDatesFormValues {
   targetDate?: Dayjs
-  cutDate?: Dayjs
-  releasedDate?: Dayjs
+  cutAt?: Dayjs
+  releasedAt?: Dayjs
 }
 
 /**
- * Fixes a version's recorded target, cut and released dates.
+ * Fixes a version's recorded target date and cut and released moments.
  *
  * Separate from Cut and Mark Released, which assert the version moved and refuse to run twice. This
- * says only that a date was written down wrongly, so the status stays where it is — the alternative
+ * says only that a value was written down wrongly, so the status stays where it is — the alternative
  * was to withdraw the version and version it again, which writes two status changes that never
  * happened.
  *
- * Every date is offered whether or not the version has one, because a missing date is as likely to be
- * the error as a wrong one — a version can be marked released without ever being cut, so the cut date
- * is often filled in afterwards. Clearing the target or cut date is allowed for the same reason.
+ * Every value is offered whether or not the version has one, because a missing value is as likely to
+ * be the error as a wrong one — a version can be marked released without ever being cut, so the cut
+ * moment is often filled in afterwards. Clearing the target date or cut moment is allowed for the same
+ * reason.
  *
- * The released date is the exception: it can be corrected but not emptied here, because a released
- * record with no released date contradicts its own status. Reverting is the action for that.
+ * The released moment is the exception: it can be corrected but not emptied here, because a released
+ * record with no released moment contradicts its own status. Reverting is the action for that.
  */
 const CorrectVersionDatesForm = ({
   version,
@@ -50,12 +51,12 @@ const CorrectVersionDatesForm = ({
     useModalForm<CorrectVersionDatesFormValues>({
       onSubmit: async (values: CorrectVersionDatesFormValues, form) => {
         try {
-          // Every date is sent, so one left empty is cleared rather than left alone.
+          // Every value is sent, so one left empty is cleared rather than left alone.
           const request = {
             id: version.id,
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
-            cutDate: values.cutDate?.format('YYYY-MM-DD'),
-            releasedDate: values.releasedDate?.format('YYYY-MM-DD'),
+            cutAt: values.cutAt?.toDate(),
+            releasedAt: values.releasedAt?.toDate(),
           } as unknown as CorrectVersionDatesRequest
 
           const response = await correctVersionDates({
@@ -87,7 +88,7 @@ const CorrectVersionDatesForm = ({
       permission: 'Permissions.Delivery.Update',
     })
 
-  const cutDate = Form.useWatch('cutDate', form)
+  const cutAt: Dayjs | undefined = Form.useWatch('cutAt', form)
 
   return (
     <Modal
@@ -114,10 +115,12 @@ const CorrectVersionDatesForm = ({
           layout="vertical"
           name="correct-version-dates-form"
           initialValues={{
-            targetDate: version.targetDate ? dayjs(version.targetDate) : undefined,
-            cutDate: version.cutDate ? dayjs(version.cutDate) : undefined,
-            releasedDate: version.releasedDate
-              ? dayjs(version.releasedDate)
+            targetDate: version.targetDate
+              ? dayjs(version.targetDate)
+              : undefined,
+            cutAt: version.cutAt ? dayjs(version.cutAt) : undefined,
+            releasedAt: version.releasedAt
+              ? dayjs(version.releasedAt)
               : undefined,
           }}
         >
@@ -129,36 +132,46 @@ const CorrectVersionDatesForm = ({
             <DatePicker style={{ width: '100%' }} />
           </Item>
           <Item
-            label="Cut Date"
-            name="cutDate"
+            label="Cut At"
+            name="cutAt"
             extra="A version can ship without ever being cut, so this may be filled in afterwards."
           >
-            <DatePicker style={{ width: '100%' }} />
+            <DatePicker showTime style={{ width: '100%' }} />
           </Item>
           <Item
-            label="Released Date"
-            name="releasedDate"
-            // Required only once the version has one: the aggregate refuses to clear a released
-            // date, because the status would then contradict the dates.
-            rules={
-              version.releasedDate
+            label="Released At"
+            name="releasedAt"
+            dependencies={['cutAt']}
+            rules={[
+              // Required only once the version has one: the aggregate refuses to clear a released
+              // moment, because the status would then contradict the record.
+              ...(version.releasedAt
                 ? [
                     {
                       required: true,
                       message:
-                        'A released version keeps its released date. Revert the version instead.',
+                        'A released version keeps its released moment. Revert the version instead.',
                     },
                   ]
-                : undefined
-            }
+                : []),
+              // The aggregate refuses a release before the cut; the picker only disables whole days.
+              {
+                validator: (_, value: Dayjs | undefined) =>
+                  !value || !cutAt || !value.isBefore(cutAt)
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error(
+                          'A version cannot be released before it was cut',
+                        ),
+                      ),
+              },
+            ]}
           >
             <DatePicker
+              showTime
               style={{ width: '100%' }}
-              // The aggregate refuses a released date before the cut date.
               disabledDate={
-                cutDate
-                  ? (current) => current.isBefore(cutDate, 'day')
-                  : undefined
+                cutAt ? (current) => current.isBefore(cutAt, 'day') : undefined
               }
             />
           </Item>

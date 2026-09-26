@@ -19,7 +19,7 @@ internal sealed class SystemSettingsStore(
 {
     // A save clears only this instance's cache, so another API instance serves the old values for at most
     // this long.
-    private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(5);
 
     private readonly WaydDbContext _dbContext = dbContext;
     private readonly IMemoryCache _cache = cache;
@@ -40,7 +40,7 @@ internal sealed class SystemSettingsStore(
 
         var values = SystemSettingsSection.Read<TSection>(stored);
 
-        _cache.Set(CacheKey<TSection>(), values, CacheExpiration);
+        _cache.Set(CacheKey<TSection>(), values, _cacheExpiration);
 
         return values;
     }

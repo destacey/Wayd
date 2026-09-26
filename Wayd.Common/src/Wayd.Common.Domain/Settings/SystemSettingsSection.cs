@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NodaTime;
+using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events.Settings;
 
@@ -16,13 +17,15 @@ namespace Wayd.Common.Domain.Settings;
 public sealed class SystemSettingsSection : BaseAuditableEntity<Guid>
 {
     // Changing this gives every section a new id, orphaning its row and its activity history.
-    private static readonly Guid IdNamespace = new("0d6f3b8e-2c41-4a7e-b5d9-8e1f7a3c6b24");
+    private static readonly Guid _idNamespace = new("0d6f3b8e-2c41-4a7e-b5d9-8e1f7a3c6b24");
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    // Without the NodaTime converters a LocalTime or Period would serialize as an object of its fields and
+    // then fail to deserialize, so a section using one could save but never be read back.
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() },
-    };
+    }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
 
     private SystemSettingsSection() { }
 
@@ -47,7 +50,7 @@ public sealed class SystemSettingsSection : BaseAuditableEntity<Guid>
     public int SchemaVersion { get; private set; }
 
     public static Guid IdFor(SettingsScope scope, string key) =>
-        NameBasedUuid.Create(IdNamespace, $"{scope}:{key}");
+        NameBasedUuid.Create(_idNamespace, $"{scope}:{key}");
 
     public static Guid IdFor<TSection>(SettingsScope scope = SettingsScope.System)
         where TSection : class, ISettingsSection<TSection>, new() =>
@@ -66,7 +69,7 @@ public sealed class SystemSettingsSection : BaseAuditableEntity<Guid>
         if (stored.Key != TSection.Key)
             throw new InvalidOperationException($"Section '{stored.Key}' cannot be read as '{TSection.Key}'.");
 
-        return JsonSerializer.Deserialize<TSection>(stored.Value, JsonOptions) ?? new TSection();
+        return JsonSerializer.Deserialize<TSection>(stored.Value, _jsonOptions) ?? new TSection();
     }
 
     /// <summary>
@@ -93,8 +96,8 @@ public sealed class SystemSettingsSection : BaseAuditableEntity<Guid>
         var before = Read<TSection>(this);
 
         // A round trip compares what would be read back, not what the caller passed.
-        var value = JsonSerializer.Serialize(values, JsonOptions);
-        var after = JsonSerializer.Deserialize<TSection>(value, JsonOptions) ?? new TSection();
+        var value = JsonSerializer.Serialize(values, _jsonOptions);
+        var after = JsonSerializer.Deserialize<TSection>(value, _jsonOptions) ?? new TSection();
 
         if (EqualityComparer<TSection>.Default.Equals(before, after))
             return false;
@@ -107,8 +110,8 @@ public sealed class SystemSettingsSection : BaseAuditableEntity<Guid>
             Key,
             Scope,
             SchemaVersion,
-            JsonSerializer.SerializeToElement(before, JsonOptions),
-            JsonSerializer.SerializeToElement(after, JsonOptions),
+            JsonSerializer.SerializeToElement(before, _jsonOptions),
+            JsonSerializer.SerializeToElement(after, _jsonOptions),
             actor,
             timestamp));
 

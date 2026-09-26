@@ -31,6 +31,14 @@ public sealed class SystemSettingsSectionTests
         public static string Key => "other";
     }
 
+    private sealed record WorkingHoursSettings : ISettingsSection<WorkingHoursSettings>
+    {
+        public static string Key => "working-hours";
+
+        public LocalTime DayStarts { get; init; } = new(9, 0);
+        public IsoDayOfWeek FirstDayOfWeek { get; init; } = IsoDayOfWeek.Monday;
+    }
+
     #region Read
 
     [Fact]
@@ -201,6 +209,24 @@ public sealed class SystemSettingsSectionTests
         // Assert
         first.Should().Be(second);
         first.Should().NotBe(other);
+    }
+
+    [Fact]
+    public void NodaTimeValues_AreStoredAsIsoTextAndReadBack()
+    {
+        // Arrange
+        var values = new WorkingHoursSettings { DayStarts = new LocalTime(8, 30), FirstDayOfWeek = IsoDayOfWeek.Sunday };
+
+        // Act
+        var section = SystemSettingsSection.Create(values, Actor, Timestamp)!;
+        var changedAgain = section.Change(values, Actor, Timestamp);
+
+        // Assert
+        SystemSettingsSection.Read<WorkingHoursSettings>(section).Should().Be(values);
+        changedAgain.Should().BeFalse();
+        using var document = JsonDocument.Parse(section.Value);
+        document.RootElement.GetProperty("dayStarts").GetString().Should().Be("08:30:00");
+        document.RootElement.GetProperty("firstDayOfWeek").GetString().Should().Be("Sunday");
     }
 
     [Fact]

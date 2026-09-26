@@ -16,7 +16,7 @@ public sealed record GetTimeZonesQuery : IQuery<List<TimeZoneDto>>;
 public sealed class GetTimeZonesQueryHandler(IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetTimeZonesQuery, List<TimeZoneDto>>
 {
-    private static readonly OffsetPattern OffsetFormat = OffsetPattern.CreateWithInvariantCulture("+HH:mm");
+    private static readonly OffsetPattern _offsetFormat = OffsetPattern.CreateWithInvariantCulture("+HH:mm");
 
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -25,6 +25,8 @@ public sealed class GetTimeZonesQueryHandler(IDateTimeProvider dateTimeProvider)
         var now = _dateTimeProvider.Now;
         var source = TzdbDateTimeZoneSource.Default;
 
+        // Zone locations are the tz database's zone.tab: zones tied to a country, which leaves out UTC. UTC is
+        // the settings default and a real Tzdb id, so without it the picker could not show or restore it.
         var ids = (source.ZoneLocations ?? [])
             .Select(l => l.ZoneId)
             .Append("UTC")
@@ -35,7 +37,7 @@ public sealed class GetTimeZonesQueryHandler(IDateTimeProvider dateTimeProvider)
             .Select(id => new TimeZoneDto
             {
                 Id = id,
-                CurrentOffset = OffsetFormat.Format(DateTimeZoneProviders.Tzdb[id].GetUtcOffset(now)),
+                CurrentOffset = _offsetFormat.Format(DateTimeZoneProviders.Tzdb[id].GetUtcOffset(now)),
             })
             .ToList();
 

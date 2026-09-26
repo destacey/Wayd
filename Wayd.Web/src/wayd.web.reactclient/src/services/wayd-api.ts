@@ -6209,15 +6209,16 @@ export class DeliveryOverviewClient {
 
     /**
      * Get version activity over a window.
-     * @param from (optional) An instant rather than a date, though the window is a date range and the versions it counts
-    carry dates. The generated client types every date parameter as a JavaScript Date and
-    sends toISOString(), which no LocalDate binder accepts — so a date-typed
-    parameter here is unreachable from the client that calls it. Truncated to its UTC date below,
-    matching how the other windowed endpoints take their bounds.
-     * @param to (optional) 
+     * @param from (optional) Any instant on the window's first day, read as a day in timeZone. An instant
+    rather than a date because the generated client types every date parameter as a JavaScript
+    Date and sends toISOString(), which no LocalDate binder accepts. The caller
+    sends the start of its local day, which lands on that day in its own zone.
+     * @param to (optional) Any instant on the window's last day, which is inclusive.
      * @param productId (optional) 
+     * @param timeZone (optional) The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
+    to UTC.
      */
-    getDeliveryOverview(from?: Date | undefined, to?: Date | undefined, productId?: string | null | undefined, cancelToken?: CancelToken): Promise<DeliveryOverviewDto> {
+    getDeliveryOverview(from?: Date | undefined, to?: Date | undefined, productId?: string | null | undefined, timeZone?: string | null | undefined, cancelToken?: CancelToken): Promise<DeliveryOverviewDto> {
         let url_ = this.baseUrl + "/api/product-management/delivery-overview?";
         if (from === null)
             throw new globalThis.Error("The parameter 'from' cannot be null.");
@@ -6229,6 +6230,8 @@ export class DeliveryOverviewClient {
             url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
         if (productId !== undefined && productId !== null)
             url_ += "productId=" + encodeURIComponent("" + productId) + "&";
+        if (timeZone !== undefined && timeZone !== null)
+            url_ += "timeZone=" + encodeURIComponent("" + timeZone) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -10565,7 +10568,7 @@ export class ReleasePackagesClient {
     }
 
     /**
-     * Correct a package's recorded target and released dates.
+     * Correct a package's recorded target date and released moment.
      */
     correctDates(id: string, request: CorrectReleasePackageDatesRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/dates";
@@ -12290,7 +12293,7 @@ export class VersionsClient {
     }
 
     /**
-     * Correct a version's recorded target, cut and released dates.
+     * Correct a version's recorded target date and cut and released moments.
      */
     correctDates(id: string, request: CorrectVersionDatesRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/product-management/versions/{id}/dates";
@@ -44980,7 +44983,7 @@ export interface RecentDeliveryEventDto {
     statusName: string;
     alias: ProductStatusAlias;
     changedOn: Date;
-    releasedDate?: Date | undefined;
+    releasedAt?: Date | undefined;
     componentCount?: number | undefined;
 }
 
@@ -45164,7 +45167,7 @@ one version are two deployments. Free text, never parsed. */
     startedAt?: Date | undefined;
 }
 
-/** A single CSV row for the deployment import. Exactly one of VersionId and PackageId is set, both by id. The environment is named, because names are unique. A build number is never resolved to a version: the row says which version it deployed and carries the build as its ArtifactId. There is no status column. A row with no Outcome is still in flight; one with an outcome is walked through the same transitions a person would record, with the real timestamps supplied here. A rollback is recorded as a success first, so it needs both the time it completed and the time it was reverted. Timestamps are instants, and each must carry its offset — 2026-03-01T14:30:00Z or 2026-03-01T09:30:00-05:00. A value with no offset is refused rather than read in the server's zone, which would shift every historical deployment by whatever that zone happens to be. */
+/** A single CSV row for the deployment import. Exactly one of VersionId and PackageId is set, both by id. The environment is named, because names are unique. A build number is never resolved to a version: the row says which version it deployed and carries the build as its ArtifactId. There is no status column. A row with no Outcome is still in flight; one with an outcome is walked through the same transitions a person would record, with the real timestamps supplied here. A rollback is recorded as a success first, so it needs both the time it completed and the time it was reverted. Timestamps are instants, and each must carry its offset (see OffsetTimestamp). */
 export interface ImportDeploymentRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
 reported against it. Falls back to the row's position when the column is absent, so a
@@ -45542,7 +45545,7 @@ export interface ReleasePackageDto {
     version: string;
     name?: string | undefined;
     targetDate?: Date | undefined;
-    releasedDate?: Date | undefined;
+    releasedAt?: Date | undefined;
     status: StatusNavigationDto;
     components: ReleasePackageComponentDto[];
 }
@@ -45595,8 +45598,9 @@ Falls back to the row's position when the column is absent. */
     name?: string | undefined;
     /** When the package is expected to ship. */
     targetDate?: Date | undefined;
-    /** When the package shipped. Supplying it makes the package Released. */
-    releasedDate?: Date | undefined;
+    /** When the package shipped, with its offset — copy the completion time of the pipeline run that
+shipped it as-is. Supplying it makes the package Released. */
+    releasedAt?: string | undefined;
 }
 
 /** A single CSV row for the manifest file: one component of one package. */
@@ -45619,15 +45623,15 @@ export interface SetReleasePackageManifestRequest {
 
 /** Records that a package shipped. */
 export interface MarkReleasePackageReleasedRequest {
-    /** The date it shipped. Supplied rather than taken from the clock, because shipping is often
+    /** The moment it shipped. Supplied rather than taken from the clock, because shipping is often
 recorded after the fact. */
-    releasedDate: Date;
+    releasedAt: Date;
 }
 
-/** Corrects a package's recorded target and released dates. */
+/** Corrects a package's recorded target date and released moment. */
 export interface CorrectReleasePackageDatesRequest {
     targetDate?: Date | undefined;
-    releasedDate?: Date | undefined;
+    releasedAt?: Date | undefined;
 }
 
 /** Pulls a package after it was assembled. The package is kept — deployments may reference it. */
@@ -45654,12 +45658,12 @@ export interface ReleaseDto {
 export interface ReleaseVersionDto {
     version: NavigationDto;
     product?: NavigationDto | undefined;
-    releasedDate?: Date | undefined;
+    releasedAt?: Date | undefined;
 }
 
 export interface ReleasePackageSummaryDto {
     package: NavigationDto;
-    releasedDate?: Date | undefined;
+    releasedAt?: Date | undefined;
 }
 
 /** Plans a release — drafts an announcement, before it carries anything. */
@@ -45774,8 +45778,8 @@ export interface VersionDto {
     notes?: string | undefined;
     sequence?: number | undefined;
     targetDate?: Date | undefined;
-    cutDate?: Date | undefined;
-    releasedDate?: Date | undefined;
+    cutAt?: Date | undefined;
+    releasedAt?: Date | undefined;
     status: StatusNavigationDto;
 }
 
@@ -45793,7 +45797,7 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
     sequence?: number | undefined;
 }
 
-/** A single CSV row for the version import. The product is referenced by id, and a version is identified by that product together with its Number — version strings are free text and only meaningful within one product, so two products may each hold a 1.0.0. There is no status column: the dates decide where the version ends up. A row with no dates is planned, a CutDate makes it ready, and a ReleasedDate makes it released. A released date without a cut date is legitimate — a version recorded after the fact often has no record of when scope froze. */
+/** A single CSV row for the version import. The product is referenced by id, and a version is identified by that product together with its Number — version strings are free text and only meaningful within one product, so two products may each hold a 1.0.0. There is no status column: the moments decide where the version ends up. A row with neither is planned, a CutAt makes it ready, and a ReleasedAt makes it released. A released moment without a cut moment is legitimate — a version recorded after the fact often has no record of when scope froze. Both moments are instants and must carry their offset (see OffsetTimestamp): copy the CI/CD timestamps as-is. */
 export interface ImportVersionRequest {
     /** The caller's own key for this row, unique within the file (case-insensitively). Results are
 reported against it. Falls back to the row's position when the column is absent, so a
@@ -45806,10 +45810,10 @@ hand-authored file still works. */
     name?: string | undefined;
     /** When the version is expected to ship. */
     targetDate?: Date | undefined;
-    /** When scope froze. Supplying it makes the version Ready. */
-    cutDate?: Date | undefined;
-    /** When it shipped. Supplying it makes the version Released. */
-    releasedDate?: Date | undefined;
+    /** When scope froze — the build or tag — with its offset. Supplying it makes the version Ready. */
+    cutAt?: string | undefined;
+    /** When it shipped, with its offset. Supplying it makes the version Released. */
+    releasedAt?: string | undefined;
     /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
     /** Engineering notes for this version. */
@@ -45836,33 +45840,33 @@ export interface MoveVersionTargetDateRequest {
     targetDate?: Date | undefined;
 }
 
-/** Corrects a version's recorded target, cut and released dates. */
+/** Corrects a version's recorded target date and cut and released moments. */
 export interface CorrectVersionDatesRequest {
     /** The corrected target date, or null to clear it. A target date is a statement of intent that was
 written down; correcting or removing it changes no lifecycle state. */
     targetDate?: Date | undefined;
-    /** The corrected cut date, or null to clear it. May be added to a version that was never cut: a
-version can be marked released without being cut, so a cut date discovered later is a
+    /** The corrected cut moment, or null to clear it. May be added to a version that was never cut: a
+version can be marked released without being cut, so a cut moment discovered later is a
 correction rather than a lifecycle step. */
-    cutDate?: Date | undefined;
-    /** The corrected released date. May be added or changed, but not cleared on a version that has
-one — emptying it would leave the status contradicting the dates. Use the revert action to
+    cutAt?: Date | undefined;
+    /** The corrected released moment. May be added or changed, but not cleared on a version that has
+one — emptying it would leave the status contradicting the record. Use the revert action to
 record that a version did not ship. */
-    releasedDate?: Date | undefined;
+    releasedAt?: Date | undefined;
 }
 
 /** Freezes scope and marks a version ready to ship. */
 export interface CutVersionRequest {
-    /** The date scope was frozen. Supplied rather than taken from the clock, because cutting is often
-recorded after the fact. */
-    cutDate: Date;
+    /** The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the
+clock, because cutting is often recorded after the fact. */
+    cutAt: Date;
 }
 
 /** Records that a version shipped. */
 export interface MarkVersionReleasedRequest {
-    /** The date it shipped. This is what orders a version history, so it is supplied rather than taken
-from the clock. */
-    releasedDate: Date;
+    /** The moment it shipped. This is what orders a version history, so it is supplied rather than
+taken from the clock. */
+    releasedAt: Date;
 }
 
 /** Pulls a version after it was cut. The version is kept — deployments may reference it. */

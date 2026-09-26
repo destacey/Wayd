@@ -1332,11 +1332,11 @@ export const importTemplates = {
             description: 'When the package is expected to ship.',
           },
           {
-            name: 'ReleasedDate',
-            type: 'date',
+            name: 'ReleasedAt',
+            type: 'text',
             required: false,
             description:
-              'When the package shipped. Supplying it makes the package Released.',
+              'When the package shipped, with its offset — copy the completion time of the pipeline run that shipped it as-is. Supplying it makes the package Released.',
           },
         ],
       },
@@ -1482,7 +1482,7 @@ export const importTemplates = {
   'product-management.versions': {
     module: 'product-management',
     description:
-      'Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.',
+      'Each row is planned against its product by id and walked to the state its moments describe: neither leaves it planned, a cut moment makes it ready, a released moment makes it released. Moments are ISO-8601 timestamps with an offset.',
     files: [
       {
         field: 'file',
@@ -1523,18 +1523,18 @@ export const importTemplates = {
             description: 'When the version is expected to ship.',
           },
           {
-            name: 'CutDate',
-            type: 'date',
+            name: 'CutAt',
+            type: 'text',
             required: false,
             description:
-              'When scope froze. Supplying it makes the version Ready.',
+              'When scope froze — the build or tag — with its offset. Supplying it makes the version Ready.',
           },
           {
-            name: 'ReleasedDate',
-            type: 'date',
+            name: 'ReleasedAt',
+            type: 'text',
             required: false,
             description:
-              'When it shipped. Supplying it makes the version Released.',
+              'When it shipped, with its offset. Supplying it makes the version Released.',
           },
           {
             name: 'Sequence',

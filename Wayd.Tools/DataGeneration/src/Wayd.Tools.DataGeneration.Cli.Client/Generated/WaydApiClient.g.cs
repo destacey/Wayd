@@ -12050,22 +12050,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get version activity over a window.
         /// </summary>
         /// <remarks>
-        /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency.
+        /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency. Versions are released at moments, so the window and the daily buckets are days in timeZone (default UTC).
         /// </remarks>
-        /// <param name="from">An instant rather than a date, though the window is a date range and the versions it counts
-        /// <br/>carry dates. The generated client types every date parameter as a JavaScript Date and
-        /// <br/>sends toISOString(), which no LocalDate binder accepts — so a date-typed
-        /// <br/>parameter here is unreachable from the client that calls it. Truncated to its UTC date below,
-        /// <br/>matching how the other windowed endpoints take their bounds.</param>
+        /// <param name="from">Any instant on the window's first day, read as a day in timeZone. An instant
+        /// <br/>rather than a date because the generated client types every date parameter as a JavaScript
+        /// <br/>Date and sends toISOString(), which no LocalDate binder accepts. The caller
+        /// <br/>sends the start of its local day, which lands on that day in its own zone.</param>
+        /// <param name="to">Any instant on the window's last day, which is inclusive.</param>
+        /// <param name="timeZone">The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
+        /// <br/>to UTC.</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<DeliveryOverviewDto> GetDeliveryOverviewAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<DeliveryOverviewDto> GetDeliveryOverviewAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, string? timeZone = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Get what has happened to versions and packages lately.
         /// </summary>
         /// <remarks>
-        /// Read from status transitions rather than the records' own dates, which carry no time of day and say the state a record is in rather than the moment it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
+        /// Read from status transitions rather than the records' own moments, which say the state a record is in rather than when it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecentDeliveryEventDto>> GetRecentDeliveryEventsAsync(int? take = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -12125,15 +12127,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get version activity over a window.
         /// </summary>
         /// <remarks>
-        /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency.
+        /// Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency. Versions are released at moments, so the window and the daily buckets are days in timeZone (default UTC).
         /// </remarks>
-        /// <param name="from">An instant rather than a date, though the window is a date range and the versions it counts
-        /// <br/>carry dates. The generated client types every date parameter as a JavaScript Date and
-        /// <br/>sends toISOString(), which no LocalDate binder accepts — so a date-typed
-        /// <br/>parameter here is unreachable from the client that calls it. Truncated to its UTC date below,
-        /// <br/>matching how the other windowed endpoints take their bounds.</param>
+        /// <param name="from">Any instant on the window's first day, read as a day in timeZone. An instant
+        /// <br/>rather than a date because the generated client types every date parameter as a JavaScript
+        /// <br/>Date and sends toISOString(), which no LocalDate binder accepts. The caller
+        /// <br/>sends the start of its local day, which lands on that day in its own zone.</param>
+        /// <param name="to">Any instant on the window's last day, which is inclusive.</param>
+        /// <param name="timeZone">The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
+        /// <br/>to UTC.</param>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<DeliveryOverviewDto> GetDeliveryOverviewAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<DeliveryOverviewDto> GetDeliveryOverviewAsync(System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, System.Guid? productId = null, string? timeZone = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -12160,6 +12164,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (productId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("productId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(productId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (timeZone != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("timeZone")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(timeZone, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -12230,7 +12238,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get what has happened to versions and packages lately.
         /// </summary>
         /// <remarks>
-        /// Read from status transitions rather than the records' own dates, which carry no time of day and say the state a record is in rather than the moment it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
+        /// Read from status transitions rather than the records' own moments, which say the state a record is in rather than when it changed. Scoping to a product covers its subtree and excludes packages, which span several products.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecentDeliveryEventDto>> GetRecentDeliveryEventsAsync(int? take = null, System.Guid? productId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -19161,6 +19169,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Correct a package's recorded target date and released moment.
+        /// </summary>
+        /// <remarks>
+        /// Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleasePackageDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Delete a release package.
         /// </summary>
         /// <remarks>
@@ -19988,6 +20006,98 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("api/product-management/release-packages/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/release");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Correct a package's recorded target date and released moment.
+        /// </summary>
+        /// <remarks>
+        /// Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleasePackageDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/release-packages/{id}/dates"
+                    urlBuilder_.Append("api/product-management/release-packages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/dates");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -22036,7 +22146,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of versions.
         /// </summary>
         /// <remarks>
-        /// Ordered by released date then sequence — never by version, which is free text.
+        /// Ordered by released moment then sequence — never by version, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22083,7 +22193,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
-        /// Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
+        /// Each row is planned against its product by id and walked to the state its moments describe: neither leaves it planned, a cut moment makes it ready, a released moment makes it released. Moments are ISO-8601 timestamps with an offset.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22093,7 +22203,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a version.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates are not here — each carries a rule of its own, so they move through their own actions.
+        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates and moments are not here — each carries a rule of its own, so they move through their own actions.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22117,10 +22227,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a version's recorded target, cut and released dates.
+        /// Correct a version's recorded target date and cut and released moments.
         /// </summary>
         /// <remarks>
-        /// Fixes dates entered wrongly without changing the version's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the version instead.
+        /// Fixes values entered wrongly without changing the version's status. All three are sent, so an omitted value is cleared. The released moment cannot be cleared — revert the version instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectVersionDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22160,7 +22270,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Revert a version recorded as shipped.
         /// </summary>
         /// <remarks>
-        /// For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a version which really shipped.
+        /// For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released moment. Not a withdrawal — that pulls a version which really shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertVersionReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -22220,7 +22330,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of versions.
         /// </summary>
         /// <remarks>
-        /// Ordered by released date then sequence — never by version, which is free text.
+        /// Ordered by released moment then sequence — never by version, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22698,7 +22808,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
-        /// Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.
+        /// Each row is planned against its product by id and walked to the state its moments describe: neither leaves it planned, a cut moment makes it ready, a released moment makes it released. Moments are ISO-8601 timestamps with an offset.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -22829,7 +22939,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a version.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates are not here — each carries a rule of its own, so they move through their own actions.
+        /// A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates and moments are not here — each carries a rule of its own, so they move through their own actions.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateVersionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23100,10 +23210,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a version's recorded target, cut and released dates.
+        /// Correct a version's recorded target date and cut and released moments.
         /// </summary>
         /// <remarks>
-        /// Fixes dates entered wrongly without changing the version's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the version instead.
+        /// Fixes values entered wrongly without changing the version's status. All three are sent, so an omitted value is cleared. The released moment cannot be cleared — revert the version instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectVersionDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -23471,7 +23581,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Revert a version recorded as shipped.
         /// </summary>
         /// <remarks>
-        /// For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a version which really shipped.
+        /// For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released moment. Not a withdrawal — that pulls a version which really shipped.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertVersionReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -81662,9 +81772,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ChangedOn { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("componentCount")]
         public int? ComponentCount { get; set; } = default!;
@@ -82212,9 +82321,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     /// <br/>outcome is walked through the same transitions a person would record, with the real timestamps
     /// <br/>supplied here. A rollback is recorded as a success first, so it needs both the time it completed
     /// <br/>and the time it was reverted.
-    /// <br/>Timestamps are instants, and each must carry its offset — 2026-03-01T14:30:00Z or
-    /// <br/>2026-03-01T09:30:00-05:00. A value with no offset is refused rather than read in the
-    /// <br/>server's zone, which would shift every historical deployment by whatever that zone happens to be.
+    /// <br/>Timestamps are instants, and each must carry its offset (see OffsetTimestamp).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportDeploymentRequest
@@ -83315,9 +83422,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -83477,11 +83583,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
         /// <summary>
-        /// When the package shipped. Supplying it makes the package Released.
+        /// When the package shipped, with its offset — copy the completion time of the pipeline run that
+        /// <br/>shipped it as-is. Supplying it makes the package Released.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public string? ReleasedAt { get; set; } = default!;
 
     }
 
@@ -83547,13 +83653,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The date it shipped. Supplied rather than taken from the clock, because shipping is often
+        /// The moment it shipped. Supplied rather than taken from the clock, because shipping is often
         /// <br/>recorded after the fact.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset ReleasedAt { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Corrects a package's recorded target date and released moment.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CorrectReleasePackageDatesRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset ReleasedDate { get; set; } = default!;
+        public System.DateTimeOffset? TargetDate { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
     }
 
@@ -83633,9 +83754,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("product")]
         public NavigationDto? Product { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
     }
 
@@ -83647,9 +83767,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Package { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
     }
 
@@ -83984,13 +84103,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? CutDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("cutAt")]
+        public System.DateTimeOffset? CutAt { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -84045,10 +84162,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     /// <br/>The product is referenced by id, and a version is identified by that product together with its
     /// <br/>Number — version strings are free text and only meaningful within one product, so two
     /// <br/>products may each hold a 1.0.0.
-    /// <br/>There is no status column: the dates decide where the version ends up. A row with no dates is
-    /// <br/>planned, a CutDate makes it ready, and a ReleasedDate makes it
-    /// <br/>released. A released date without a cut date is legitimate — a version recorded after the fact
+    /// <br/>There is no status column: the moments decide where the version ends up. A row with neither is
+    /// <br/>planned, a CutAt makes it ready, and a ReleasedAt makes it
+    /// <br/>released. A released moment without a cut moment is legitimate — a version recorded after the fact
     /// <br/>often has no record of when scope froze.
+    /// <br/>Both moments are instants and must carry their offset (see OffsetTimestamp): copy the
+    /// <br/>CI/CD timestamps as-is.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ImportVersionRequest
@@ -84089,18 +84208,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
         /// <summary>
-        /// When scope froze. Supplying it makes the version Ready.
+        /// When scope froze — the build or tag — with its offset. Supplying it makes the version Ready.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? CutDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("cutAt")]
+        public string? CutAt { get; set; } = default!;
 
         /// <summary>
-        /// When it shipped. Supplying it makes the version Released.
+        /// When it shipped, with its offset. Supplying it makes the version Released.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public string? ReleasedAt { get; set; } = default!;
 
         /// <summary>
         /// A manual ordering override, for the rare case where chronology misleads.
@@ -84177,7 +84294,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Corrects a version's recorded target, cut and released dates.
+    /// Corrects a version's recorded target date and cut and released moments.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CorrectVersionDatesRequest
@@ -84192,22 +84309,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? TargetDate { get; set; } = default!;
 
         /// <summary>
-        /// The corrected cut date, or null to clear it. May be added to a version that was never cut: a
-        /// <br/>version can be marked released without being cut, so a cut date discovered later is a
+        /// The corrected cut moment, or null to clear it. May be added to a version that was never cut: a
+        /// <br/>version can be marked released without being cut, so a cut moment discovered later is a
         /// <br/>correction rather than a lifecycle step.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? CutDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("cutAt")]
+        public System.DateTimeOffset? CutAt { get; set; } = default!;
 
         /// <summary>
-        /// The corrected released date. May be added or changed, but not cleared on a version that has
-        /// <br/>one — emptying it would leave the status contradicting the dates. Use the revert action to
+        /// The corrected released moment. May be added or changed, but not cleared on a version that has
+        /// <br/>one — emptying it would leave the status contradicting the record. Use the revert action to
         /// <br/>record that a version did not ship.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
     }
 
@@ -84219,13 +84334,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The date scope was frozen. Supplied rather than taken from the clock, because cutting is often
-        /// <br/>recorded after the fact.
+        /// The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the
+        /// <br/>clock, because cutting is often recorded after the fact.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
+        [System.Text.Json.Serialization.JsonPropertyName("cutAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset CutDate { get; set; } = default!;
+        public System.DateTimeOffset CutAt { get; set; } = default!;
 
     }
 
@@ -84237,13 +84351,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The date it shipped. This is what orders a version history, so it is supplied rather than taken
-        /// <br/>from the clock.
+        /// The moment it shipped. This is what orders a version history, so it is supplied rather than
+        /// <br/>taken from the clock.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
-        public System.DateTimeOffset ReleasedDate { get; set; } = default!;
+        public System.DateTimeOffset ReleasedAt { get; set; } = default!;
 
     }
 

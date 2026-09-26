@@ -188,6 +188,12 @@ or `RollBack` is recorded, none can be called again. Note that **failure and rol
 a failure never arrived, while a rollback arrived and had to be undone. Change failure rate counts the
 second kind.
 
+**A production success releases what it shipped.** Succeeding a production deployment, or importing one
+that succeeded or was rolled back, marks an unreleased version — or a package and the versions that
+changed in it — Released at the deployment's completion. So where deployments are recorded, you do not
+also need `Versions_MarkReleased` or `ReleasePackages_MarkReleased`. A released moment already set is never
+replaced; import history oldest first, or use `CorrectDates` afterwards.
+
 ---
 
 ## Typical flows

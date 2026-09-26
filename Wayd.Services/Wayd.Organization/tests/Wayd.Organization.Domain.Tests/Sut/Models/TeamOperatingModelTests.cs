@@ -18,7 +18,7 @@ public class TeamOperatingModelTests
         var sizingMethod = SizingMethod.StoryPoints;
 
         // ACT
-        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod);
+        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, "UTC", 1);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -42,7 +42,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, currentModel);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -68,7 +68,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, currentModel);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -88,7 +88,7 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, currentModel);
 
         // ASSERT
         result.IsFailure.Should().BeTrue();
@@ -110,13 +110,73 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, currentModel);
+        var result = TeamOperatingModel.Create(newStartDate, methodology, sizingMethod, "UTC", 1, currentModel);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
 
         // Closed model should remain unchanged
         currentModel.DateRange.End.Should().Be(currentEndDate);
+    }
+
+    [Fact]
+    public void Create_StoresTimeZoneAndCommitmentGraceDays()
+    {
+        // ARRANGE
+        var startDate = new LocalDate(2024, 1, 1);
+
+        // ACT
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "America/Chicago", 2);
+
+        // ASSERT
+        result.IsSuccess.Should().BeTrue();
+        result.Value.TimeZone.Should().Be("America/Chicago");
+        result.Value.CommitmentGraceDays.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Not/AZone")]
+    [InlineData("Eastern Standard Time")]
+    public void Create_WithUnknownTimeZone_ReturnsFailure(string timeZone)
+    {
+        // ARRANGE
+        var startDate = new LocalDate(2024, 1, 1);
+
+        // ACT
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, timeZone, 1);
+
+        // ASSERT
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not a valid IANA time zone");
+    }
+
+    [Fact]
+    public void Create_WithNegativeCommitmentGraceDays_ReturnsFailure()
+    {
+        // ARRANGE
+        var startDate = new LocalDate(2024, 1, 1);
+
+        // ACT
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", -1);
+
+        // ASSERT
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The commitment grace period cannot be negative.");
+    }
+
+    [Fact]
+    public void Create_WithInvalidSchedule_LeavesCurrentModelOpen()
+    {
+        // ARRANGE
+        var currentModel = new TeamOperatingModelFaker(new LocalDate(2023, 1, 1)).Generate();
+
+        // ACT
+        var result = TeamOperatingModel.Create(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "Not/AZone", 1, currentModel);
+
+        // ASSERT
+        result.IsFailure.Should().BeTrue();
+        currentModel.IsCurrent.Should().BeTrue();
     }
 
     #endregion Create
@@ -136,7 +196,7 @@ public class TeamOperatingModelTests
         var newSizingMethod = SizingMethod.Count;
 
         // ACT
-        var result = model.Update(newMethodology, newSizingMethod);
+        var result = model.Update(newMethodology, newSizingMethod, "UTC", 1);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
@@ -157,12 +217,62 @@ public class TeamOperatingModelTests
             .Generate();
 
         // ACT
-        var result = model.Update(methodology, sizingMethod);
+        var result = model.Update(methodology, sizingMethod, "UTC", 1);
 
         // ASSERT
         result.IsSuccess.Should().BeTrue();
         model.Methodology.Should().Be(methodology);
         model.SizingMethod.Should().Be(sizingMethod);
+    }
+
+    [Fact]
+    public void Update_CorrectsTimeZoneAndCommitmentGraceDays()
+    {
+        // ARRANGE
+        var model = new TeamOperatingModelFaker()
+            .WithTimeZone("America/New_York")
+            .WithCommitmentGraceDays(1)
+            .Generate();
+
+        // ACT
+        var result = model.Update(model.Methodology, model.SizingMethod, "America/Chicago", 0);
+
+        // ASSERT
+        result.IsSuccess.Should().BeTrue();
+        model.TimeZone.Should().Be("America/Chicago");
+        model.CommitmentGraceDays.Should().Be(0);
+    }
+
+    [Fact]
+    public void Update_WithUnknownTimeZone_ReturnsFailureAndChangesNothing()
+    {
+        // ARRANGE
+        var model = new TeamOperatingModelFaker()
+            .WithMethodology(Methodology.Scrum)
+            .WithTimeZone("America/New_York")
+            .Generate();
+
+        // ACT
+        var result = model.Update(Methodology.Kanban, model.SizingMethod, "Not/AZone", 1);
+
+        // ASSERT
+        result.IsFailure.Should().BeTrue();
+        model.Methodology.Should().Be(Methodology.Scrum);
+        model.TimeZone.Should().Be("America/New_York");
+    }
+
+    [Fact]
+    public void Update_WithNegativeCommitmentGraceDays_ReturnsFailure()
+    {
+        // ARRANGE
+        var model = new TeamOperatingModelFaker().WithCommitmentGraceDays(1).Generate();
+
+        // ACT
+        var result = model.Update(model.Methodology, model.SizingMethod, "UTC", -1);
+
+        // ASSERT
+        result.IsFailure.Should().BeTrue();
+        model.CommitmentGraceDays.Should().Be(1);
     }
 
     #endregion Update
@@ -245,7 +355,9 @@ public class TeamOperatingModelTests
         var result1 = TeamOperatingModel.Create(
             model1StartDate,
             Methodology.Scrum,
-            SizingMethod.StoryPoints);
+            SizingMethod.StoryPoints,
+            "UTC",
+            1);
 
         result1.IsSuccess.Should().BeTrue();
         var model1 = result1.Value;
@@ -256,6 +368,8 @@ public class TeamOperatingModelTests
             model2StartDate,
             Methodology.Kanban,
             SizingMethod.Count,
+            "UTC",
+            1,
             model1);
 
         result2.IsSuccess.Should().BeTrue();
@@ -267,6 +381,8 @@ public class TeamOperatingModelTests
             model3StartDate,
             Methodology.Scrum,
             SizingMethod.StoryPoints,
+            "UTC",
+            1,
             model2);
 
         result3.IsSuccess.Should().BeTrue();
@@ -298,13 +414,15 @@ public class TeamOperatingModelTests
         var result = TeamOperatingModel.Create(
             startDate,
             Methodology.Scrum,
-            SizingMethod.StoryPoints);
+            SizingMethod.StoryPoints,
+            "UTC",
+            1);
 
         result.IsSuccess.Should().BeTrue();
         var model = result.Value;
 
         // ACT - Update the operating model
-        var updateResult = model.Update(Methodology.Kanban, SizingMethod.Count);
+        var updateResult = model.Update(Methodology.Kanban, SizingMethod.Count, "UTC", 1);
 
         // ASSERT
         updateResult.IsSuccess.Should().BeTrue();

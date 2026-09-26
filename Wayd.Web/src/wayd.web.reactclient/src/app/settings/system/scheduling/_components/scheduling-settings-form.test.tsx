@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SchedulingSettingsDto, TimeZoneDto } from '@/src/services/wayd-api'
 import SchedulingSettingsForm, {
   SchedulingSettingsFormProps,
-  timeZoneLabel,
 } from './scheduling-settings-form'
 
 const mockUpdate = jest.fn()
@@ -122,13 +121,5 @@ describe('SchedulingSettingsForm', () => {
       screen.queryByRole('button', { name: 'Save' }),
     ).not.toBeInTheDocument()
     expect(graceDaysInput()).toBeDisabled()
-  })
-
-  it('labels a zone with its current offset', () => {
-    // Act
-    const label = timeZoneLabel({ id: 'Asia/Kolkata', currentOffset: '+05:30' })
-
-    // Assert
-    expect(label).toBe('(UTC+05:30) Asia/Kolkata')
   })
 })

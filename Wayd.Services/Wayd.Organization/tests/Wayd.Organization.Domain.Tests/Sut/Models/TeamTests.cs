@@ -37,7 +37,7 @@ public class TeamTests
         var sizingMethod = SizingMethod.StoryPoints;
 
         // Act
-        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, methodology, sizingMethod, EventActor.System, _dateTimeProvider.Now);
+        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, methodology, sizingMethod, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.Type.Should().Be(TeamType.Team);
@@ -84,7 +84,7 @@ public class TeamTests
         // Arrange — what the team import does for an already-retired row: create the team active, the
         // only way the domain allows, then deactivate it, all before one save
         var fakeTeam = _teamFaker.Generate();
-        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
         var inactiveDate = fakeTeam.ActiveDate.PlusDays(30);
 
         // Act
@@ -103,7 +103,7 @@ public class TeamTests
     {
         // Arrange — a new team has no Key until the save assigns one
         var fakeTeam = _teamFaker.Generate();
-        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
         var inactiveDate = fakeTeam.ActiveDate.PlusDays(30);
 
         // Act
@@ -140,7 +140,7 @@ public class TeamTests
         string? name = null;
 
         // Act
-        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Value cannot be null. (Parameter 'Name')");
@@ -155,7 +155,7 @@ public class TeamTests
         var fakeTeam = _teamFaker.Generate();
 
         // Act
-        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Required input Name was empty. (Parameter 'Name')");
@@ -169,7 +169,7 @@ public class TeamTests
         TeamCode code = null!;
 
         // Act
-        Action action = () => Team.Create(fakeTeam.Name, code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        Action action = () => Team.Create(fakeTeam.Name, code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Value cannot be null. (Parameter 'Code')");
@@ -185,7 +185,7 @@ public class TeamTests
         var fakeTeam = _teamFaker.Generate();
 
         // Act
-        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.Description.Should().BeNull();
@@ -795,7 +795,7 @@ public class TeamTests
         var team = _teamFaker.WithOperatingModel(operatingModelFaker, teamActiveDate).Generate();
 
         // Act - Create second operating model
-        var setResult = team.SetOperatingModel(secondStartDate, methodology2, sizingMethod2);
+        var setResult = team.SetOperatingModel(secondStartDate, methodology2, sizingMethod2, "UTC", 1);
 
         // Assert
         setResult.IsSuccess.Should().BeTrue();
@@ -831,7 +831,7 @@ public class TeamTests
         var secondStartDate = team.ActiveDate.PlusMonths(-1); // Before first
 
         // Act - Try to create second operating model with earlier start date
-        var result = team.SetOperatingModel(secondStartDate, Methodology.Scrum, SizingMethod.Count);
+        var result = team.SetOperatingModel(secondStartDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -860,8 +860,8 @@ public class TeamTests
         var team = _teamFaker.WithOperatingModel(operatingModelFaker, date1).Generate();
 
         // Act - Create additional operating models over time
-        var result2 = team.SetOperatingModel(date2, methodology2, sizingMethod2);
-        var result3 = team.SetOperatingModel(date3, methodology3, sizingMethod3);
+        var result2 = team.SetOperatingModel(date2, methodology2, sizingMethod2, "UTC", 1);
+        var result3 = team.SetOperatingModel(date3, methodology3, sizingMethod3, "UTC", 1);
 
         // Assert
         result2.IsSuccess.Should().BeTrue();
@@ -931,8 +931,8 @@ public class TeamTests
         var date1 = new LocalDate(2023, 1, 1);
         var date2 = new LocalDate(2024, 1, 1);
 
-        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints);
-        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count);
+        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1);
 
         // Set unique IDs for the models (simulating what EF Core would do)
         var model1Id = Guid.NewGuid();
@@ -965,9 +965,9 @@ public class TeamTests
         var date2 = new LocalDate(2023, 7, 1);
         var date3 = new LocalDate(2024, 1, 1);
 
-        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints);
-        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count);
-        var result3 = team.SetOperatingModel(date3, Methodology.Scrum, SizingMethod.Count);
+        var result1 = team.SetOperatingModel(date1, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        var result2 = team.SetOperatingModel(date2, Methodology.Kanban, SizingMethod.Count, "UTC", 1);
+        var result3 = team.SetOperatingModel(date3, Methodology.Scrum, SizingMethod.Count, "UTC", 1);
 
         // Set unique IDs for the models (simulating what EF Core would do)
         var model1Id = Guid.NewGuid();
@@ -1007,7 +1007,7 @@ public class TeamTests
     {
         // Arrange & Act
         var fakeTeam = _teamFaker.Generate();
-        var team = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
+        var team = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         team.OperatingModels.Should().NotBeNull();

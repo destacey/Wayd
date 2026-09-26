@@ -122,6 +122,8 @@ describe('SprintCard', () => {
     start: new Date('2024-01-01'),
     methodology: Methodology.Scrum,
     sizingMethod: SizingMethod.StoryPoints,
+    timeZone: 'UTC',
+    commitmentGraceDays: 1,
     isCurrent: true,
   }
 
@@ -131,6 +133,8 @@ describe('SprintCard', () => {
     start: new Date('2024-01-01'),
     methodology: Methodology.Kanban,
     sizingMethod: SizingMethod.Count,
+    timeZone: 'UTC',
+    commitmentGraceDays: 1,
     isCurrent: true,
   }
 

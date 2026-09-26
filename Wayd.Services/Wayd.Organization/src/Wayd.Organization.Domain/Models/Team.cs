@@ -127,12 +127,14 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="startDate">The start date for the new operating model.</param>
     /// <param name="methodology">The methodology the team uses.</param>
     /// <param name="sizingMethod">The sizing method the team uses.</param>
+    /// <param name="timeZone">The IANA id of the team's time zone.</param>
+    /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
     /// <returns>A result containing the new operating model or an error.</returns>
-    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod)
+    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays)
     {
         var currentModel = _operatingModels.SingleOrDefault(m => m.IsCurrent);
 
-        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, currentModel);
+        var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, timeZone, commitmentGraceDays, currentModel);
 
         if (result.IsSuccess)
         {
@@ -189,10 +191,12 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="activeDate">The active date.</param>
     /// <param name="methodology">The initial methodology for the team's operating model.</param>
     /// <param name="sizingMethod">The initial sizing method for the team's operating model.</param>
+    /// <param name="timeZone">The IANA id of the initial operating model's time zone.</param>
+    /// <param name="commitmentGraceDays">The initial operating model's commitment grace period in days.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns>The new team.</returns>
-    public static Team Create(string name, TeamCode code, string? description, LocalDate activeDate, Methodology methodology, SizingMethod sizingMethod, EventActor actor, Instant timestamp)
+    public static Team Create(string name, TeamCode code, string? description, LocalDate activeDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, EventActor actor, Instant timestamp)
     {
         var team = new Team(name, code, description, activeDate);
 
@@ -222,7 +226,9 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
                 timestamp))
         );
 
-        team.SetOperatingModel(activeDate, methodology, sizingMethod);
+        var operatingModel = team.SetOperatingModel(activeDate, methodology, sizingMethod, timeZone, commitmentGraceDays);
+        if (operatingModel.IsFailure)
+            throw new ArgumentException(operatingModel.Error);
 
         return team;
     }

@@ -1073,7 +1073,7 @@ internal partial class UserService
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
-                user.ClearDomainEvents();
+                DiscardRejectedUpdate(user);
                 _logger.LogError("Error updating employeeId on user {UserId}: {Errors}", user.Id, result.Errors.Select(e => e.Description));
             }
         }
@@ -1126,12 +1126,23 @@ internal partial class UserService
             }
             else
             {
-                user.ClearDomainEvents();
+                DiscardRejectedUpdate(user);
                 _logger.LogError("Error updating user {UserId}: {Errors}", user.Id, result.Errors.Select(e => e.Description));
             }
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Drops a user whose update the manager rejected from a loop that goes on to update others. The rejected
+    /// values stay on the tracked entity, and the next user's save writes every tracked change: without the
+    /// validation the manager just refused, and, after a concurrency failure, failing that user's save too.
+    /// </summary>
+    private void DiscardRejectedUpdate(ApplicationUser user)
+    {
+        user.ClearDomainEvents();
+        _db.Entry(user).State = EntityState.Detached;
     }
 
     /// <summary>

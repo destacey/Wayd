@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Database, authentication, security headers, and environment configuration for Wayd.
+description: Database, authentication, security headers, system settings, and environment configuration for Wayd.
 sidebar_position: 6
 audience: [developer, operator]
 ---
@@ -505,6 +505,58 @@ Row caps, chunk size, retry count, stall grace periods and the retention window 
 configuration — see [Settings → Imports → Limits and rules](../user-guide/settings/imports.mdx#limits-and-rules)
 for the values. The two maintenance jobs (`import-stall-recovery`, `import-retention-sweep`) are scheduled
 on first start and can be re-timed under **Settings → Background Jobs**.
+
+## System settings
+
+Organization-wide settings that administrators change at runtime live in the database, not in configuration
+files, and are edited under **Settings → System**. Each is part of a **section**: a record in code, stored as
+one JSON row in `App.SystemSettings`. There is no table per setting and no column per setting.
+
+```csharp
+public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
+{
+    public static string Key => "scheduling";
+
+    public string DefaultTimeZone { get; init; } = "UTC";
+    public int DefaultCommitmentGraceDays { get; init; } = 1;
+}
+```
+
+**The property initializers are the defaults, and a missing value reads as its default.** A section never
+saved has no row; a row written before a property existed does not carry it. Either way the reader gets the
+code default, so adding a setting is adding a property with a valid default — no migration. A section with
+no row keeps following its code defaults as they change, and saving the defaults unchanged does not create
+one. Once saved, the stored values hold.
+
+**Section keys and property names are permanent.** They are the stored JSON's keys, so renaming either
+orphans the saved value and silently reverts it to the default. `ISettingsSection.SchemaVersion` is recorded
+with the row for the rare change a fallback to defaults cannot absorb; bump it and transform the older rows
+when reading them. Properties must be value-comparable (no collections), because a save that changes nothing
+is detected by record equality.
+
+**Reading.** Depend on `ISettings<TSection>` and call `Get`. Modules depend on the section record, never on
+keys or JSON. Reads are cached in memory for five minutes; a save clears the entry on the instance that made
+it, so another API instance serves the old values for at most that long.
+
+**Writing.** Call `ISystemSettingsStore.Save` with the whole section and an `EventActor`. It:
+
+- validates with every `IValidator<TSection>` registered — give each section a FluentValidation validator,
+  which is where rules that span two of its fields go;
+- does nothing when the values are those already in effect;
+- saves under a row version, so a second save that read the section before the first committed fails
+  rather than overwriting it;
+- raises `SystemSettingsSectionValuesChangedEvent`, whose `Previous` and `Current` carry every value in
+  effect before and after, defaults included. The Activity log records it under the aggregate type
+  `SystemSettingsSection`, with an id derived from the scope and key (`SystemSettingsSection.IdFor<T>()`),
+  so a section's history can be read before its row exists.
+
+`Scope` is always `System` today. It is there so per-organization or per-tenant overrides can be added
+without reshaping the table.
+
+**Adding a section:** add the record next to `SchedulingSettings` in `Wayd.Common.Domain/Settings/`, its
+validator in `Wayd.Common.Application/SystemSettings/`, a query, command and activities query that go through
+the store, endpoints on `SystemSettingsController` guarded by `SystemSettings.View`/`.Update`, and a page under
+**Settings → System**.
 
 ## Environment Variables
 

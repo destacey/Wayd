@@ -186,6 +186,21 @@ Feature flags gate both backend API endpoints and frontend UI elements. When a f
 - UI pages and menu items are hidden
 - Related functionality is completely inaccessible
 
+## System Settings
+
+System settings are organization-wide defaults. Until an administrator saves a section, every value in it is the default Wayd ships with. Viewing them requires `Permissions.SystemSettings.View`, and changing them requires `Permissions.SystemSettings.Update`.
+
+### Scheduling
+
+Navigate to **Settings > System > Scheduling** to set:
+
+- **Default time zone** — the time zone new team operating models start with (default UTC). Only IANA time zones are accepted, such as `America/Chicago` or `Europe/London`; the list shows each zone's current offset from UTC.
+- **Default commitment grace period (days)** — how long after a sprint's planned start its commitment is taken when the team does not start the sprint itself (default 1, the end of the first planned day; 0 to 14).
+
+These are defaults only. They pre-fill new team operating models, and changing them does not change any existing team.
+
+Every change is recorded in the page's **Activity** section, with who made it and the values before and after.
+
 ## Organization Settings
 
 ### Team Member Roles

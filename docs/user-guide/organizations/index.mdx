@@ -99,8 +99,12 @@ Each team has an **Operating Model** that defines how it works. The operating mo
 - **Sizing Method** — How the team estimates work:
   - **Story Points** — Relative sizing using story points
   - **Count** — Simple item count (each item = 1)
+- **Time Zone** — The IANA time zone the team's sprint days are counted in, such as `America/Chicago`
+- **Commitment Grace Period** — How many days after a sprint's planned start its commitment is taken when the team does not start the sprint itself (1 is the end of the first planned day)
 
-Operating models have an effective date range, creating a history. When a team changes its methodology (e.g., moving from Kanban to Scrum), a new operating model is added and the previous one is automatically closed the day before the new one starts.
+Operating models have an effective date range, creating a history. When a team changes how it works (e.g., moving from Kanban to Scrum, or relocating to another time zone), a new operating model is added and the previous one is automatically closed the day before the new one starts.
+
+A sprint uses the time zone and grace period of the operating model in effect on its planned start date, for the whole sprint. So a team that moves keeps its old zone for sprints planned before the move, while editing a model corrects every sprint in that model's period. New models are pre-filled from the [scheduling settings](../settings/index.mdx), which never change an existing team.
 
 The operating model affects what the team sees in the UI:
 - **Scrum teams** see a **Sprints** section and an **Active Sprint** indicator on their detail page
@@ -242,6 +246,7 @@ Listed under **Reports** at the bottom of the section rail, this shows the full 
 - Start and End dates
 - Methodology (Scrum or Kanban)
 - Sizing Method (Story Points or Count)
+- Time Zone and Grace Days
 - Status (Current or Historical)
 
 Only the current operating model can be edited or deleted (and deletion is only possible if there are multiple models — a team must always have at least one).
@@ -297,7 +302,7 @@ Wayd renders a **Functional Organization Chart** that visualizes the complete te
 2. Click **Create Team**
 3. Enter a **Name**, **Code**, and **Active Date**
 4. Optionally add a **Description** (supports Markdown)
-5. The team is created with a default operating model
+5. The team is created with a default operating model (Kanban and Count, with the time zone and grace period from the scheduling settings)
 
 ### Creating a Team of Teams
 
@@ -319,12 +324,14 @@ To add a team to a Team of Teams:
 
 1. Navigate to the team's detail page
 2. From the page actions menu, choose **Operating Model > Set Operating Model**
-3. Select the new **Methodology** and **Sizing Method**
+3. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone** and **Commitment Grace Period** (pre-filled from the scheduling settings)
 4. Set the **Start Date** — the previous model will automatically close the day before
 
-To update the current model without creating a new one:
+To correct the current model without creating a new one:
 1. From the page actions menu, choose **Operating Model > Update Operating Model**
-2. Change the **Methodology** or **Sizing Method**
+2. Change the **Methodology**, **Sizing Method**, **Time Zone** or **Commitment Grace Period**
+
+A correction applies to the model's whole period, including past sprints. If the team actually moved to another time zone, set a new operating model from the move date instead.
 
 ### Deactivating a Team
 

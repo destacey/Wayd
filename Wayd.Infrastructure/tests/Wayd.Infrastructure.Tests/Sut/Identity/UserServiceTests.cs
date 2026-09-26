@@ -1311,6 +1311,8 @@ public class UserServiceTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _mockUserManager.Verify(x => x.ChangePasswordAsync(user, "OldPass123!", "NewPass456!"), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserPasswordChangedEvent>()
+            .Which.Actor.Should().Be(EventActor.User("current-user-id"));
     }
 
     [Fact]
@@ -1372,6 +1374,7 @@ public class UserServiceTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Incorrect password.");
+        RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
     }
 
     [Fact]
@@ -1401,9 +1404,10 @@ public class UserServiceTests
         var user = CreateUser(loginProvider: LoginProviders.Wayd);
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        var flagSetBeforeTheSave = false;
         _mockUserManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", "NewPass456!"))
+            .Callback(() => flagSetBeforeTheSave = user.MustChangePassword)
             .ReturnsAsync(IdentityResult.Success);
-        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
         _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
 
         var command = new ResetPasswordCommand("user-1", "NewPass456!");
@@ -1414,8 +1418,11 @@ public class UserServiceTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        user.MustChangePassword.Should().BeTrue();
-        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+        flagSetBeforeTheSave.Should().BeTrue("the reset's own save writes the flag");
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        var reset = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserPasswordResetEvent>().Subject;
+        reset.ClearedLockout.Should().BeFalse();
+        reset.Actor.Should().Be(EventActor.User("current-user-id"));
     }
 
     [Fact]
@@ -1425,12 +1432,11 @@ public class UserServiceTests
         var user = CreateUser(loginProvider: LoginProviders.Wayd);
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(10);
+        user.AccessFailedCount = 5;
         _mockUserManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", "NewPass456!"))
             .ReturnsAsync(IdentityResult.Success);
-        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
         _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(true);
-        _mockUserManager.Setup(x => x.SetLockoutEndDateAsync(user, null)).ReturnsAsync(IdentityResult.Success);
-        _mockUserManager.Setup(x => x.ResetAccessFailedCountAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var command = new ResetPasswordCommand("user-1", "NewPass456!");
         var sut = CreateSut();
@@ -1440,8 +1446,10 @@ public class UserServiceTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _mockUserManager.Verify(x => x.SetLockoutEndDateAsync(user, null), Times.Once);
-        _mockUserManager.Verify(x => x.ResetAccessFailedCountAsync(user), Times.Once);
+        user.LockoutEnd.Should().BeNull();
+        user.AccessFailedCount.Should().Be(0);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserPasswordResetEvent>()
+            .Which.ClearedLockout.Should().BeTrue();
     }
 
     [Fact]
@@ -1451,9 +1459,9 @@ public class UserServiceTests
         var user = CreateUser(loginProvider: LoginProviders.Wayd);
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        user.AccessFailedCount = 2;
         _mockUserManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", "NewPass456!"))
             .ReturnsAsync(IdentityResult.Success);
-        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
         _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
 
         var command = new ResetPasswordCommand("user-1", "NewPass456!");
@@ -1464,8 +1472,9 @@ public class UserServiceTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _mockUserManager.Verify(x => x.SetLockoutEndDateAsync(It.IsAny<ApplicationUser>(), It.IsAny<DateTimeOffset?>()), Times.Never);
-        _mockUserManager.Verify(x => x.ResetAccessFailedCountAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        user.AccessFailedCount.Should().Be(2);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserPasswordResetEvent>()
+            .Which.ClearedLockout.Should().BeFalse();
     }
 
     [Fact]
@@ -3133,9 +3142,10 @@ public class UserServiceTests
         // Arrange
         var user = CreateUser(loginProvider: LoginProviders.Wayd);
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(10);
+        user.AccessFailedCount = 5;
         _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(true);
-        _mockUserManager.Setup(x => x.SetLockoutEndDateAsync(user, null)).ReturnsAsync(IdentityResult.Success);
-        _mockUserManager.Setup(x => x.ResetAccessFailedCountAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
 
@@ -3144,8 +3154,10 @@ public class UserServiceTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _mockUserManager.Verify(x => x.SetLockoutEndDateAsync(user, null), Times.Once);
-        _mockUserManager.Verify(x => x.ResetAccessFailedCountAsync(user), Times.Once);
+        user.LockoutEnd.Should().BeNull();
+        user.AccessFailedCount.Should().Be(0);
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserUnlockedEvent>();
     }
 
     [Fact]
@@ -3164,7 +3176,8 @@ public class UserServiceTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not currently locked out");
-        _mockUserManager.Verify(x => x.SetLockoutEndDateAsync(It.IsAny<ApplicationUser>(), It.IsAny<DateTimeOffset?>()), Times.Never);
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        RaisedEvents(user).Should().BeEmpty();
     }
 
     [Fact]

@@ -951,9 +951,11 @@ internal partial class UserService
             return Result.Failure("Password change is only available for local accounts.");
         }
 
+        user.RecordPasswordChange(CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword);
         if (!result.Succeeded)
         {
+            user.ClearDomainEvents();
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             _logger.LogWarning("Password change failed for user {UserId}: {Errors}", userId, errors);
             return Result.Failure(errors);
@@ -983,22 +985,23 @@ internal partial class UserService
             return Result.Failure("Password reset is only available for local accounts.");
         }
 
+        var wasLockedOut = await _userManager.IsLockedOutAsync(user);
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+        // Applied before the reset so its save writes them with the new hash and the event.
+        user.ResetPassword(endLockout: wasLockedOut, CurrentActor(), _dateTimeProvider.Now);
+
         var result = await _userManager.ResetPasswordAsync(user, token, command.NewPassword);
         if (!result.Succeeded)
         {
+            user.ClearDomainEvents();
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             _logger.LogWarning("Password reset failed for user {UserId}: {Errors}", command.UserId, errors);
             return Result.Failure(errors);
         }
 
-        user.MustChangePassword = true;
-        await _userManager.UpdateAsync(user);
-
-        if (await _userManager.IsLockedOutAsync(user))
+        if (wasLockedOut)
         {
-            await _userManager.SetLockoutEndDateAsync(user, null);
-            await _userManager.ResetAccessFailedCountAsync(user);
             _logger.LogInformation("Lockout cleared for user {UserId} during password reset.", command.UserId);
         }
 
@@ -1020,8 +1023,10 @@ internal partial class UserService
             return Result.Failure("User is not currently locked out.");
         }
 
-        await _userManager.SetLockoutEndDateAsync(user, null);
-        await _userManager.ResetAccessFailedCountAsync(user);
+        user.Unlock(CurrentActor(), _dateTimeProvider.Now);
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return Failed(user, result, "unlock the user");
 
         _logger.LogInformation("User {UserId} unlocked by admin.", userId);
         return Result.Success();

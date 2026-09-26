@@ -204,6 +204,49 @@ public class ApplicationUser : IdentityUser, IEntity
         AddDomainEvent(new ApplicationUserConvertedToLocalAccountEvent(Id, from, actor, timestamp));
     }
 
+    /// <summary>
+    /// Records the user changing their own password, which <see cref="UserManager{TUser}"/> writes as the hash.
+    /// </summary>
+    public void RecordPasswordChange(EventActor actor, Instant timestamp) =>
+        AddDomainEvent(new ApplicationUserPasswordChangedEvent(Id, actor, timestamp));
+
+    /// <summary>
+    /// Readies the user for the password an administrator is setting, which <see cref="UserManager{TUser}"/>
+    /// writes as the hash in the same save: the user must change it at their next sign-in, and a lockout ends.
+    /// </summary>
+    public void ResetPassword(bool endLockout, EventActor actor, Instant timestamp)
+    {
+        MustChangePassword = true;
+
+        if (endLockout)
+        {
+            LockoutEnd = null;
+            AccessFailedCount = 0;
+        }
+
+        AddDomainEvent(new ApplicationUserPasswordResetEvent(Id, endLockout, actor, timestamp));
+    }
+
+    public void Unlock(EventActor actor, Instant timestamp)
+    {
+        LockoutEnd = null;
+        AccessFailedCount = 0;
+
+        AddDomainEvent(new ApplicationUserUnlockedEvent(Id, actor, timestamp));
+    }
+
+    /// <summary>
+    /// Records a lockout that <see cref="SignInManager{TUser}"/> has already applied and saved after a failed
+    /// sign-in. Raises nothing when the user is not locked out.
+    /// </summary>
+    public void RecordLockout(EventActor actor, Instant timestamp)
+    {
+        if (LockoutEnd is not { } lockoutEnd)
+            return;
+
+        AddDomainEvent(new ApplicationUserLockedOutEvent(Id, Instant.FromDateTimeOffset(lockoutEnd), actor, timestamp));
+    }
+
     IReadOnlyCollection<DomainEvent> IEntity.DomainEvents => _domainEvents.AsReadOnly();
 
     IReadOnlyCollection<Action> IEntity.PostPersistenceActions => _postPersistenceActions.AsReadOnly();

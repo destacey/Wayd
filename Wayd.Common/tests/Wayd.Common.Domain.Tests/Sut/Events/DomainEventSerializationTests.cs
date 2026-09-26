@@ -86,6 +86,24 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void ApplicationUserLockedOutEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — an Instant in the payload, beside the one every event carries.
+        var original = new ApplicationUserLockedOutEvent(
+            Guid.NewGuid().ToString(),
+            Instant.FromUtc(2026, 1, 15, 9, 45, 0),
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.UserId.Should().Be(original.UserId);
+        roundTripped.LockedUntil.Should().Be(original.LockedUntil);
+    }
+
+    [Fact]
     public void ApplicationUserRolesChangedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange — string arrays bound through the constructor, one of them empty.

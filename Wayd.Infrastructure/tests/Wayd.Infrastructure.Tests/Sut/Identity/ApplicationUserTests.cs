@@ -207,6 +207,54 @@ public sealed class ApplicationUserTests
     }
 
     [Fact]
+    public void ResetPassword_ShouldEndTheLockout_WhenAskedTo()
+    {
+        // Arrange
+        var user = CreateUser();
+        user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(10);
+        user.AccessFailedCount = 5;
+
+        // Act
+        user.ResetPassword(endLockout: true, Actor, Now);
+
+        // Assert
+        user.MustChangePassword.Should().BeTrue();
+        user.LockoutEnd.Should().BeNull();
+        user.AccessFailedCount.Should().Be(0);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserPasswordResetEvent>()
+            .Which.ClearedLockout.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RecordLockout_ShouldCarryWhenTheLockoutEnds()
+    {
+        // Arrange
+        var user = CreateUser();
+        var lockoutEnd = new DateTimeOffset(2026, 9, 25, 12, 15, 0, TimeSpan.Zero);
+        user.LockoutEnd = lockoutEnd;
+
+        // Act
+        user.RecordLockout(EventActor.System, Now);
+
+        // Assert
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserLockedOutEvent>()
+            .Which.LockedUntil.Should().Be(Instant.FromDateTimeOffset(lockoutEnd));
+    }
+
+    [Fact]
+    public void RecordLockout_ShouldRaiseNothing_WhenNotLockedOut()
+    {
+        // Arrange
+        var user = CreateUser();
+
+        // Act
+        user.RecordLockout(EventActor.System, Now);
+
+        // Assert
+        RaisedEvents(user).Should().BeEmpty();
+    }
+
+    [Fact]
     public void ConvertToLocalAccount_ShouldRecordTheCanceledMigrationFirst_WhenOneIsStaged()
     {
         // Arrange

@@ -9,7 +9,10 @@ using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Identity.Tokens;
 using Wayd.Common.Application.Identity.Users;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Interfaces;
 using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Auth.Oidc;
 using Wayd.Infrastructure.Identity;
@@ -257,6 +260,50 @@ public class TokenServiceTests
         // Assert
         await act.Should().ThrowAsync<UnauthorizedException>()
             .WithMessage("*locked*");
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldRecordTheLockout_WhenThisAttemptTriggersIt()
+    {
+        // Arrange - the sign-in manager applies the lockout and saves it; the service records it.
+        var user = CreateLocalUser();
+        var lockoutEnd = DateTimeOffset.UtcNow.AddMinutes(15);
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "wrong", true))
+            .Callback(() => user.LockoutEnd = lockoutEnd)
+            .ReturnsAsync(SignInResult.LockedOut);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        var act = () => _sut.GetTokenAsync(new LoginCommand("testuser", "wrong"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage("*locked*");
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+        var lockedOut = ((IEntity)user).DomainEvents.Should().ContainSingle().Which.Should().BeOfType<ApplicationUserLockedOutEvent>().Subject;
+        lockedOut.LockedUntil.Should().Be(Instant.FromDateTimeOffset(lockoutEnd));
+        lockedOut.Actor.Should().Be(EventActor.System);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldNotRecordTheLockoutAgain_WhenAlreadyLockedOut()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(15);
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(true);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Password123!", true))
+            .ReturnsAsync(SignInResult.LockedOut);
+
+        // Act
+        var act = () => _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage("*locked*");
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        ((IEntity)user).DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

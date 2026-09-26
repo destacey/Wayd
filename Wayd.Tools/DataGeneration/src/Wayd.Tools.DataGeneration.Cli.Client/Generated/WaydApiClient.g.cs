@@ -30118,6 +30118,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of projects.
         /// </summary>
+        /// <remarks>
+        /// A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -30414,6 +30417,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of projects.
         /// </summary>
+        /// <remarks>
+        /// A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {

@@ -14,7 +14,7 @@ import { emit, type JsonSchema } from '../scripts/json-schema-to-zod.js';
 describe('emit', () => {
   test('maps string formats to Zod 4 top-level validators', () => {
     // Arrange & Act & Assert
-    assert.equal(emit({ type: 'string', format: 'uuid' }), 'z.uuid()');
+    assert.equal(emit({ type: 'string', format: 'uuid' }), 'z.guid()');
     assert.equal(emit({ type: 'string', format: 'date' }), 'z.iso.date()');
     assert.equal(
       emit({ type: 'string', format: 'date-time' }),
@@ -117,7 +117,7 @@ describe('emit', () => {
     const result = emit(schema);
 
     // Assert
-    assert.equal(result, 'z.object({ "body": z.object({ "id": z.uuid() }) })');
+    assert.equal(result, 'z.object({ "body": z.object({ "id": z.guid() }) })');
   });
 
   describe('guards', () => {

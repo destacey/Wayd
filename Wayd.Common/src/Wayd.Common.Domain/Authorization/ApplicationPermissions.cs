@@ -112,6 +112,8 @@ public static class ApplicationResource
     public const string HealthChecks = nameof(HealthChecks);
 
     public const string FeatureFlags = nameof(FeatureFlags);
+
+    public const string SystemSettings = nameof(SystemSettings);
 }
 
 public static class ApplicationPermissions
@@ -135,6 +137,9 @@ public static class ApplicationPermissions
         new("Create Feature Flags", ApplicationAction.Create, ApplicationResource.FeatureFlags, ApplicationCategory),
         new("Update Feature Flags", ApplicationAction.Update, ApplicationResource.FeatureFlags, ApplicationCategory),
         new("Delete Feature Flags", ApplicationAction.Delete, ApplicationResource.FeatureFlags, ApplicationCategory),
+
+        new("View System Settings", ApplicationAction.View, ApplicationResource.SystemSettings, ApplicationCategory),
+        new("Update System Settings", ApplicationAction.Update, ApplicationResource.SystemSettings, ApplicationCategory),
     ];
 
     private const string BackgroundJobsCategory = "Background Jobs";

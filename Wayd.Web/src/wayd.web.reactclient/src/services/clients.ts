@@ -52,6 +52,8 @@ import {
   ConnectionsClient,
   AzureDevOpsConnectionsClient,
   FeatureFlagsClient,
+  SystemSettingsClient,
+  TimeZonesClient,
   ImportsClient,
   MessagingClient,
   PersonalAccessTokensClient,
@@ -518,6 +520,11 @@ export const getWorkTypeTiersClient = () =>
 // FEATURE MANAGEMENT
 export const getFeatureFlagsClient = () =>
   new FeatureFlagsClient('', axiosClient)
+
+// SYSTEM SETTINGS
+export const getSystemSettingsClient = () =>
+  new SystemSettingsClient('', axiosClient)
+export const getTimeZonesClient = () => new TimeZonesClient('', axiosClient)
 
 // USER MANAGEMENT
 export const getOidcProvidersClient = () =>

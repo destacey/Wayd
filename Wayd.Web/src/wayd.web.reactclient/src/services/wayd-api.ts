@@ -36055,6 +36055,57 @@ export class TeamsClient {
     }
 
     /**
+     * Get the system defaults a new operating model is pre-filled with.
+     */
+    getOperatingModelDefaults( cancelToken?: CancelToken): Promise<SchedulingSettingsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/operating-models/defaults";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetOperatingModelDefaults(_response);
+        });
+    }
+
+    protected processGetOperatingModelDefaults(response: AxiosResponse): Promise<SchedulingSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SchedulingSettingsDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SchedulingSettingsDto>(null as any);
+    }
+
+    /**
      * Check if a team has ever used the Scrum methodology.
      */
     hasEverBeenScrum(id: string, cancelToken?: CancelToken): Promise<boolean> {
@@ -49205,7 +49256,14 @@ export interface TeamOperatingModelDetailsDto {
     end?: Date | undefined;
     methodology: Methodology;
     sizingMethod: SizingMethod;
+    timeZone: string;
+    commitmentGraceDays: number;
     isCurrent: boolean;
+}
+
+export interface SchedulingSettingsDto {
+    defaultTimeZone: string;
+    defaultCommitmentGraceDays: number;
 }
 
 export interface SetTeamOperatingModelRequest {
@@ -49215,6 +49273,10 @@ export interface SetTeamOperatingModelRequest {
     methodology: Methodology;
     /** The sizing method the team uses (e.g., StoryPoints, Count). */
     sizingMethod: SizingMethod;
+    /** The IANA id of the time zone the team's days are counted in. */
+    timeZone: string;
+    /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
+    commitmentGraceDays: number;
 }
 
 export interface UpdateTeamOperatingModelRequest {
@@ -49222,6 +49284,10 @@ export interface UpdateTeamOperatingModelRequest {
     methodology: Methodology;
     /** The sizing method the team uses (e.g., StoryPoints, Count). */
     sizingMethod: SizingMethod;
+    /** The IANA id of the time zone the team's days are counted in. */
+    timeZone: string;
+    /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
+    commitmentGraceDays: number;
 }
 
 export interface FunctionalOrganizationChartDto {
@@ -50348,11 +50414,6 @@ export interface ReclassifyWorkflowStatusRequest {
 export interface ReorderWorkflowStatusesRequest {
     /** Every status of the workflow, in the order wanted. A partial list is refused. */
     orderedStatusIds: string[];
-}
-
-export interface SchedulingSettingsDto {
-    defaultTimeZone: string;
-    defaultCommitmentGraceDays: number;
 }
 
 export interface UpdateSchedulingSettingsRequest {

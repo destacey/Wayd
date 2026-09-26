@@ -4,11 +4,13 @@ using Moq;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Organization.IntegrationTests.Infrastructure;
@@ -46,7 +48,9 @@ public sealed class TeamImportDefinitionTests
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
 
         return new TeamImportDefinition(
-            context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
+            context, dateTimeProvider.Object, currentUser.Object,
+            Mock.Of<ISettings<SchedulingSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new SchedulingSettings())),
+            new ImportPayloadSerializer());
     }
 
     private static ImportProcessRow[] Rows(

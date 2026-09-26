@@ -1,4 +1,5 @@
-﻿using Wayd.Organization.Domain.Enums;
+﻿using Wayd.Common.Application.SystemSettings.Scheduling;
+using Wayd.Organization.Domain.Enums;
 using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
@@ -7,7 +8,9 @@ public sealed record SetTeamOperatingModelCommand(
     Guid TeamId,
     LocalDate StartDate,
     Methodology Methodology,
-    SizingMethod SizingMethod) : ICommand<Guid>;
+    SizingMethod SizingMethod,
+    string TimeZone,
+    int CommitmentGraceDays) : ICommand<Guid>;
 
 public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetTeamOperatingModelCommand>
 {
@@ -26,6 +29,13 @@ public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetT
 
         RuleFor(c => c.SizingMethod)
             .IsInEnum();
+
+        RuleFor(c => c.TimeZone)
+            .NotEmpty()
+            .IsIanaTimeZone();
+
+        RuleFor(c => c.CommitmentGraceDays)
+            .InclusiveBetween(0, SchedulingSettingsValidator.MaxCommitmentGraceDays);
     }
 }
 
@@ -51,7 +61,7 @@ public sealed class SetTeamOperatingModelCommandHandler(
                 return Result.Failure<Guid>($"Team with Id {request.TeamId} not found.");
             }
 
-            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod);
+            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",

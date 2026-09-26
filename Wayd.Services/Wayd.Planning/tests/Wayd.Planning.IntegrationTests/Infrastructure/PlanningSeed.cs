@@ -24,7 +24,7 @@ internal static class PlanningSeed
     {
         var code = "T" + Guid.NewGuid().ToString("N").ToUpperInvariant()[..8];
         var team = Organization.Domain.Models.Team.Create($"Atlas {code}", new TeamCode(code), null, new LocalDate(2024, 1, 2),
-            Methodology.Scrum, SizingMethod.StoryPoints, EventActor.System, SqlServerDbContextFixture.FixedNow);
+            Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, SqlServerDbContextFixture.FixedNow);
         context.Teams.Add(team);
         await context.SaveChangesAsync(ct);
 

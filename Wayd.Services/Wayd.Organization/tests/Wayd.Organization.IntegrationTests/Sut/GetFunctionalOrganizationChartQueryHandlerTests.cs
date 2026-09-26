@@ -47,8 +47,8 @@ public sealed class GetFunctionalOrganizationChartQueryHandlerTests
 
             var valueStream = TeamOfTeams.Create("Payments VS", new TeamCode("VS"), null, ActiveDate, actor, now);
             var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, actor, now);
-            var team = Team.Create("Cards", new TeamCode("TEAM"), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, actor, now);
-            var past = Team.Create("Wallets", new TeamCode("PAST"), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, actor, now);
+            var team = Team.Create("Cards", new TeamCode("TEAM"), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, actor, now);
+            var past = Team.Create("Wallets", new TeamCode("PAST"), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, actor, now);
 
             await seedContext.TeamOfTeams.AddRangeAsync([valueStream, art], cancellationToken);
             await seedContext.Teams.AddRangeAsync([team, past], cancellationToken);

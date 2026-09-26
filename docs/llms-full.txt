@@ -25,9 +25,9 @@ Teams are the fundamental organizational unit. Properties:
 - Name (up to 128 chars), Code (2-10 uppercase alphanumeric, unique), Description
 - Active Date, Inactive Date (optional)
 - Type: Team or TeamOfTeams
-- Operating Model: Methodology (Scrum/Kanban) + Sizing Method (Story Points/Count)
+- Operating Model: Methodology (Scrum/Kanban) + Sizing Method (Story Points/Count) + Time Zone (IANA id) + Commitment Grace Days
 
-Operating models have date ranges creating a history. New model auto-closes previous one. Teams must always have at least one operating model.
+Operating models have date ranges creating a history. New model auto-closes previous one (a move); editing a model in place is a correction of its whole period. A sprint takes its time zone and grace period from the model in effect on its planned start date (`GetTeamScheduleQuery`). Teams must always have at least one operating model.
 
 ### Teams of Teams
 

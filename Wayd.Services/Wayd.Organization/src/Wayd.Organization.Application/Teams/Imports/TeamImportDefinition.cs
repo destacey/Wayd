@@ -3,11 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.Persistence;
 using Wayd.Organization.Domain.Enums;
 using Wayd.Organization.Domain.Models;
@@ -26,6 +28,7 @@ public sealed class TeamImportDefinition(
     IOrganizationDbContext organizationDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ISettings<SchedulingSettings> schedulingSettings,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportTeamDto>(serializer)
 {
     public const string ImportKey = "teams";
@@ -33,6 +36,7 @@ public sealed class TeamImportDefinition(
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Teams";
@@ -65,6 +69,8 @@ public sealed class TeamImportDefinition(
         // One import run is one actor: the events say "the import", not "this person edited every row by
         // hand", while still recording who set it running.
         var actor = EventActor.Import(_currentUser.GetUserId());
+
+        var scheduling = await _schedulingSettings.Get(cancellationToken);
 
         // Compare against TeamCode instances, never t.Code.Value: Code is a value converter, so the
         // property translates but a member of it does not.
@@ -115,7 +121,9 @@ public sealed class TeamImportDefinition(
                 // Match the single-create default operating model (Kanban + Count).
                 var plainTeam = Team.Create(
                     data.Name, data.Code, data.Description, data.ActiveDate,
-                    Methodology.Kanban, SizingMethod.Count, actor, timestamp);
+                    Methodology.Kanban, SizingMethod.Count,
+                    scheduling.DefaultTimeZone, scheduling.DefaultCommitmentGraceDays,
+                    actor, timestamp);
 
                 await _organizationDbContext.Teams.AddAsync(plainTeam, cancellationToken);
                 team = plainTeam;

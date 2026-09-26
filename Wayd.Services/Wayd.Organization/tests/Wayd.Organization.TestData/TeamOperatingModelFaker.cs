@@ -15,6 +15,8 @@ public class TeamOperatingModelFaker : PrivateConstructorFaker<TeamOperatingMode
         RuleFor(x => x.DateRange, f => new OperatingModelDateRange(startDate.Value, null));
         RuleFor(x => x.Methodology, f => f.PickRandom<Methodology>());
         RuleFor(x => x.SizingMethod, f => f.PickRandom<SizingMethod>());
+        RuleFor(x => x.TimeZone, f => f.PickRandom("UTC", "America/New_York", "Europe/London", "Asia/Tokyo"));
+        RuleFor(x => x.CommitmentGraceDays, f => f.Random.Int(0, 3));
     }
 }
 
@@ -47,6 +49,18 @@ public static class TeamOperatingModelFakerExtensions
     public static TeamOperatingModelFaker WithSizingMethod(this TeamOperatingModelFaker faker, SizingMethod sizingMethod)
     {
         faker.RuleFor(x => x.SizingMethod, sizingMethod);
+        return faker;
+    }
+
+    public static TeamOperatingModelFaker WithTimeZone(this TeamOperatingModelFaker faker, string timeZone)
+    {
+        faker.RuleFor(x => x.TimeZone, timeZone);
+        return faker;
+    }
+
+    public static TeamOperatingModelFaker WithCommitmentGraceDays(this TeamOperatingModelFaker faker, int commitmentGraceDays)
+    {
+        faker.RuleFor(x => x.CommitmentGraceDays, commitmentGraceDays);
         return faker;
     }
 

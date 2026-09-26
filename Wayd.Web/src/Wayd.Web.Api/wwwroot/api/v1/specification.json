@@ -31980,6 +31980,32 @@
         ]
       }
     },
+    "/api/organization/teams/operating-models/defaults": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get the system defaults a new operating model is pre-filled with.",
+        "operationId": "Teams_GetOperatingModelDefaults",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/teams/{id}/has-ever-been-scrum": {
       "get": {
         "tags": [
@@ -59079,6 +59105,8 @@
           "start",
           "methodology",
           "sizingMethod",
+          "timeZone",
+          "commitmentGraceDays",
           "isCurrent"
         ],
         "properties": {
@@ -59111,8 +59139,33 @@
           "sizingMethod": {
             "$ref": "#/components/schemas/SizingMethod"
           },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commitmentGraceDays": {
+            "type": "integer",
+            "format": "int32"
+          },
           "isCurrent": {
             "type": "boolean"
+          }
+        }
+      },
+      "SchedulingSettingsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "defaultTimeZone",
+          "defaultCommitmentGraceDays"
+        ],
+        "properties": {
+          "defaultTimeZone": {
+            "type": "string"
+          },
+          "defaultCommitmentGraceDays": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -59122,7 +59175,9 @@
         "required": [
           "startDate",
           "methodology",
-          "sizingMethod"
+          "sizingMethod",
+          "timeZone",
+          "commitmentGraceDays"
         ],
         "properties": {
           "startDate": {
@@ -59147,6 +59202,19 @@
                 "$ref": "#/components/schemas/SizingMethod"
               }
             ]
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA id of the time zone the team's days are counted in.",
+            "minLength": 1,
+            "nullable": false
+          },
+          "commitmentGraceDays": {
+            "type": "integer",
+            "description": "Days after a sprint's planned start that its commitment is taken when the team does not start it.",
+            "format": "int32",
+            "maximum": 14.0,
+            "minimum": 0.0
           }
         }
       },
@@ -59155,7 +59223,9 @@
         "additionalProperties": false,
         "required": [
           "methodology",
-          "sizingMethod"
+          "sizingMethod",
+          "timeZone",
+          "commitmentGraceDays"
         ],
         "properties": {
           "methodology": {
@@ -59173,6 +59243,19 @@
                 "$ref": "#/components/schemas/SizingMethod"
               }
             ]
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA id of the time zone the team's days are counted in.",
+            "minLength": 1,
+            "nullable": false
+          },
+          "commitmentGraceDays": {
+            "type": "integer",
+            "description": "Days after a sprint's planned start that its commitment is taken when the team does not start it.",
+            "format": "int32",
+            "maximum": 14.0,
+            "minimum": 0.0
           }
         }
       },
@@ -63256,23 +63339,6 @@
               "nullable": false,
               "example": "00000000-0000-0000-0000-000000000000"
             }
-          }
-        }
-      },
-      "SchedulingSettingsDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "defaultTimeZone",
-          "defaultCommitmentGraceDays"
-        ],
-        "properties": {
-          "defaultTimeZone": {
-            "type": "string"
-          },
-          "defaultCommitmentGraceDays": {
-            "type": "integer",
-            "format": "int32"
           }
         }
       },

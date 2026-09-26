@@ -1,13 +1,21 @@
 'use client'
 
-import { DatePicker, Form, Modal, Radio } from 'antd'
+import { DatePicker, Form, InputNumber, Modal, Radio } from 'antd'
+import { useEffect } from 'react'
 import {
   Methodology,
   SetTeamOperatingModelRequest,
   SizingMethod,
 } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { useSetTeamOperatingModelMutation } from '@/src/store/features/organizations/team-api'
+import {
+  useGetTeamOperatingModelDefaultsQuery,
+  useSetTeamOperatingModelMutation,
+} from '@/src/store/features/organizations/team-api'
+import {
+  MAX_COMMITMENT_GRACE_DAYS,
+  TimeZoneSelect,
+} from '@/src/components/common/scheduling'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
@@ -25,6 +33,8 @@ interface SetTeamOperatingModelFormValues {
   startDate: Dayjs
   methodology: Methodology
   sizingMethod: SizingMethod
+  timeZone: string
+  commitmentGraceDays: number
 }
 
 const methodologyOptions = [
@@ -44,6 +54,8 @@ const mapToRequestValues = (
     startDate: values.startDate?.format('YYYY-MM-DD'),
     methodology: values.methodology,
     sizingMethod: values.sizingMethod,
+    timeZone: values.timeZone,
+    commitmentGraceDays: values.commitmentGraceDays,
   } as unknown as SetTeamOperatingModelRequest
 }
 
@@ -54,6 +66,7 @@ const SetTeamOperatingModelForm = ({
 }: SetTeamOperatingModelFormProps) => {
   const messageApi = useMessage()
 
+  const { data: defaults } = useGetTeamOperatingModelDefaultsQuery()
   const [setOperatingModel] = useSetTeamOperatingModelMutation()
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
@@ -85,6 +98,20 @@ const SetTeamOperatingModelForm = ({
         'An unexpected error occurred while setting the operating model.',
       permission: 'Permissions.Teams.Update',
     })
+
+  // Pre-fill only what the user has not already chosen.
+  useEffect(() => {
+    if (!defaults) return
+    if (!form.isFieldTouched('timeZone')) {
+      form.setFieldValue('timeZone', defaults.defaultTimeZone)
+    }
+    if (!form.isFieldTouched('commitmentGraceDays')) {
+      form.setFieldValue(
+        'commitmentGraceDays',
+        defaults.defaultCommitmentGraceDays,
+      )
+    }
+  }, [defaults, form])
 
   return (
     <Modal
@@ -131,6 +158,29 @@ const SetTeamOperatingModelForm = ({
             options={sizingMethodOptions}
             optionType="button"
             buttonStyle="solid"
+          />
+        </FormItem>
+        <FormItem
+          name="timeZone"
+          label="Time Zone"
+          extra="The zone the team's sprint days are counted in. Sprints planned before this model's start keep the previous model's zone."
+          rules={[{ required: true, message: 'Time zone is required' }]}
+        >
+          <TimeZoneSelect aria-label="Time Zone" />
+        </FormItem>
+        <FormItem
+          name="commitmentGraceDays"
+          label="Commitment Grace Period (days)"
+          extra="How long after a sprint's planned start its commitment is taken when the team does not start it. 1 is the end of the first planned day."
+          rules={[
+            { required: true, message: 'Commitment grace period is required' },
+          ]}
+        >
+          <InputNumber
+            min={0}
+            max={MAX_COMMITMENT_GRACE_DAYS}
+            precision={0}
+            aria-label="Commitment Grace Period (days)"
           />
         </FormItem>
       </Form>

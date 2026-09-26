@@ -23,7 +23,7 @@ internal static class OrganizationSeeder
             description: null,
             activeDate: SqlServerDbContextFixture.FixedNow.InUtc().Date,
             Methodology.Kanban,
-            SizingMethod.Count,
+            SizingMethod.Count, "UTC", 1,
             EventActor.System,
             SqlServerDbContextFixture.FixedNow);
 

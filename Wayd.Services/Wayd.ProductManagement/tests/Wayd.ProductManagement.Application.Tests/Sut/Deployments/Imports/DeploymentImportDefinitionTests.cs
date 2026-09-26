@@ -69,6 +69,16 @@ public sealed class DeploymentImportDefinitionTests
         Resolve(ProductStatusAlias.Failed, _failed);
         Resolve(ProductStatusAlias.RolledBack, _rolledBack);
 
+        // What a production deployment moves an unreleased version or package to.
+        _statusResolver
+            .Setup(r => r.ForAlias(ProductWorkflowOwners.Version.Key, null, (int)ProductStatusAlias.Released, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new StatusRef(
+                Guid.CreateVersion7(), Guid.CreateVersion7(), "Released", StatusCategory.Done, (int)ProductStatusAlias.Released)));
+        _statusResolver
+            .Setup(r => r.ForAlias(ProductWorkflowOwners.ReleasePackage.Key, null, (int)ProductStatusAlias.Released, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new StatusRef(
+                Guid.CreateVersion7(), Guid.CreateVersion7(), "Released", StatusCategory.Done, (int)ProductStatusAlias.Released)));
+
         _definition = new DeploymentImportDefinition(
             _dbContext,
             _statusResolver.Object,
@@ -114,13 +124,13 @@ public sealed class DeploymentImportDefinitionTests
         return version;
     }
 
-    private ReleasePackage SeedPackage()
+    private ReleasePackage SeedPackage(Guid? componentVersionId = null)
     {
         var status = new StatusRef(
             Guid.CreateVersion7(), Guid.CreateVersion7(), "Assembled", StatusCategory.Active, StatusWorkflow.NoAlias);
         var package = ReleasePackage.Create(
             "WAYD-2026.09", null, null,
-            [(Guid.CreateVersion7(), null, "4.10.0", ManifestEntryKind.Changed)],
+            [(Guid.CreateVersion7(), componentVersionId, "4.10.0", ManifestEntryKind.Changed)],
             status, EventActor.System, Now).Value;
         _dbContext.AddReleasePackage(package);
 
@@ -214,6 +224,86 @@ public sealed class DeploymentImportDefinitionTests
         var deployment = _dbContext.Deployments.Single();
         deployment.StatusId.Should().Be(_succeeded.Id);
         deployment.CompletedAt.Should().Be(Completed);
+    }
+
+    [Fact]
+    public async Task CreateDeployments_ReleasesTheVersionAtTheMomentProductionReceivedIt()
+    {
+        // Arrange
+        SeedEnvironment();
+        var version = SeedVersion();
+
+        // Act
+        await Run(Row(version.Id, outcome: ImportDeploymentOutcome.Succeeded, completedAt: Completed));
+
+        // Assert
+        version.ReleasedAt.Should().Be(Completed);
+        version.StatusCategory.Should().Be(StatusCategory.Done);
+    }
+
+    [Fact]
+    public async Task CreateDeployments_ReleasesARolledBackVersionAtItsCompletionNotItsRevert()
+    {
+        // Arrange — it reached production before it was undone, so it shipped
+        SeedEnvironment();
+        var version = SeedVersion();
+
+        // Act
+        await Run(Row(
+            version.Id, outcome: ImportDeploymentOutcome.RolledBack, completedAt: Completed, rolledBackAt: RolledBack));
+
+        // Assert
+        version.ReleasedAt.Should().Be(Completed);
+    }
+
+    [Fact]
+    public async Task CreateDeployments_KeepsTheFirstReleasedMomentWhenAVersionReachesProductionTwice()
+    {
+        // Arrange — a filled moment cannot be told from an entered one, so a later row never replaces it
+        SeedEnvironment();
+        var version = SeedVersion();
+        var later = Completed.Plus(Duration.FromDays(2));
+
+        // Act
+        await Run(
+            Row(version.Id, outcome: ImportDeploymentOutcome.Succeeded, completedAt: Completed),
+            Row(version.Id, outcome: ImportDeploymentOutcome.Succeeded, completedAt: later));
+
+        // Assert
+        version.ReleasedAt.Should().Be(Completed);
+    }
+
+    [Fact]
+    public async Task CreateDeployments_DoesNotReleaseFromAFailedOrNonProductionRow()
+    {
+        // Arrange
+        SeedEnvironment();
+        SeedEnvironment("Staging", EnvironmentCategory.Staging);
+        var version = SeedVersion();
+
+        // Act
+        await Run(
+            Row(version.Id, outcome: ImportDeploymentOutcome.Failed, completedAt: Completed),
+            Row(version.Id, environmentName: "Staging", outcome: ImportDeploymentOutcome.Succeeded, completedAt: Completed));
+
+        // Assert
+        version.ReleasedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateDeployments_ReleasesAPackageAndTheVersionsThatChangedInIt()
+    {
+        // Arrange
+        SeedEnvironment();
+        var version = SeedVersion();
+        var package = SeedPackage(componentVersionId: version.Id);
+
+        // Act
+        await Run(Row(packageId: package.Id, outcome: ImportDeploymentOutcome.Succeeded, completedAt: Completed));
+
+        // Assert
+        package.ReleasedAt.Should().Be(Completed);
+        version.ReleasedAt.Should().Be(Completed);
     }
 
     [Fact]

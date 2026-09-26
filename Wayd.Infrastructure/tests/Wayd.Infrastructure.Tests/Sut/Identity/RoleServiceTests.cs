@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.Roles;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Authorization;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Interfaces;
 using Wayd.Infrastructure.Identity;
 using Wayd.Tests.Shared;
 using NotFoundException = Wayd.Common.Application.Exceptions.NotFoundException;
@@ -18,7 +20,6 @@ public class RoleServiceTests
     private readonly Mock<RoleManager<ApplicationRole>> _mockRoleManager;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IOidcProviderDefaultRoleChecker> _mockDefaultRoleChecker;
-    private readonly Mock<IEventPublisher> _mockEvents;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
     private readonly Mock<ILogger<RoleService>> _mockLogger;
     private readonly TestingDateTimeProvider _dateTimeProvider;
@@ -34,7 +35,6 @@ public class RoleServiceTests
             userStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _mockDefaultRoleChecker = new Mock<IOidcProviderDefaultRoleChecker>();
-        _mockEvents = new Mock<IEventPublisher>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockLogger = new Mock<ILogger<RoleService>>();
         _dateTimeProvider = new TestingDateTimeProvider(DateTime.UtcNow);
@@ -48,10 +48,11 @@ public class RoleServiceTests
             null!, // WaydDbContext - not used by Create/Delete methods
             _mockDefaultRoleChecker.Object,
             _mockCurrentUser.Object,
-            _mockEvents.Object,
             _dateTimeProvider,
             _mockLogger.Object);
     }
+
+    private static IReadOnlyCollection<DomainEvent> RaisedEvents(IEntity entity) => entity.DomainEvents;
 
     #region CreateOrUpdate - Create
 
@@ -60,8 +61,10 @@ public class RoleServiceTests
     {
         // Arrange
         var command = new CreateOrUpdateRoleCommand(null, "NewRole", "A new role");
+        ApplicationRole? created = null;
         _mockRoleManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationRole>()))
+            .Callback<ApplicationRole>(r => created = r)
             .ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -73,7 +76,8 @@ public class RoleServiceTests
         result.Should().NotBeNullOrWhiteSpace();
         _mockRoleManager.Verify(x => x.CreateAsync(It.Is<ApplicationRole>(r =>
             r.Name == "NewRole" && r.Description == "A new role")), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationRoleCreatedEvent>()), Times.Once);
+        RaisedEvents(created!).Should().ContainSingle().Which.Should().BeOfType<ApplicationRoleCreatedEvent>()
+            .Which.RoleName.Should().Be("NewRole");
     }
 
     [Fact]
@@ -81,8 +85,10 @@ public class RoleServiceTests
     {
         // Arrange
         var command = new CreateOrUpdateRoleCommand(null, "NewRole", null);
+        ApplicationRole? created = null;
         _mockRoleManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationRole>()))
+            .Callback<ApplicationRole>(r => created = r)
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Failed" }));
 
         var sut = CreateSut();
@@ -92,6 +98,7 @@ public class RoleServiceTests
 
         // Assert
         await act.Should().ThrowAsync<InternalServerException>();
+        RaisedEvents(created!).Should().BeEmpty("nothing was saved, so nothing may be recorded");
     }
 
     [Fact]
@@ -140,7 +147,31 @@ public class RoleServiceTests
         existingRole.Name.Should().Be("UpdatedName");
         existingRole.Description.Should().Be("Updated description");
         _mockRoleManager.Verify(x => x.UpdateAsync(existingRole), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationRoleUpdatedEvent>()), Times.Once);
+        var updated = RaisedEvents(existingRole).Should().ContainSingle().Which.Should().BeOfType<ApplicationRoleDetailsUpdatedEvent>().Subject;
+        updated.Name.Should().Be("UpdatedName");
+        updated.Description.Should().Be("Updated description");
+        updated.Previous.Should().Be(new ApplicationRoleDetails("OldName", "Old description"));
+    }
+
+    [Fact]
+    public async Task CreateOrUpdate_ShouldThrowAndRecordNothing_WhenUpdateFails()
+    {
+        // Arrange
+        var existingRole = new ApplicationRole("OldName", "Old description");
+        var command = new CreateOrUpdateRoleCommand("role-1", "UpdatedName", null);
+
+        _mockRoleManager.Setup(x => x.FindByIdAsync("role-1")).ReturnsAsync(existingRole);
+        _mockRoleManager.Setup(x => x.UpdateAsync(existingRole))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Failed" }));
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.CreateOrUpdate(command);
+
+        // Assert
+        await act.Should().ThrowAsync<InternalServerException>();
+        RaisedEvents(existingRole).Should().BeEmpty("nothing was saved, so nothing may be recorded");
     }
 
     [Fact]
@@ -201,7 +232,31 @@ public class RoleServiceTests
         // Assert
         result.Should().Contain("CustomRole").And.Contain("Deleted");
         _mockRoleManager.Verify(x => x.DeleteAsync(role), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationRoleDeletedEvent>()), Times.Once);
+        var deleted = RaisedEvents(role).Should().ContainSingle().Which.Should().BeOfType<ApplicationRoleDeletedEventV2>().Subject;
+        deleted.RoleId.Should().Be("role-1");
+        deleted.Name.Should().Be("CustomRole");
+    }
+
+    [Fact]
+    public async Task Delete_ShouldThrowAndRecordNothing_WhenDeleteFails()
+    {
+        // Arrange
+        var role = new ApplicationRole("CustomRole") { Id = "role-1" };
+        _mockRoleManager.Setup(x => x.FindByIdAsync("role-1")).ReturnsAsync(role);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync("CustomRole")).ReturnsAsync([]);
+        _mockRoleManager.Setup(x => x.DeleteAsync(role))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Concurrency failure." }));
+        _mockDefaultRoleChecker.Setup(x => x.CountProvidersUsingRole("role-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.Delete("role-1");
+
+        // Assert
+        await act.Should().ThrowAsync<InternalServerException>();
+        RaisedEvents(role).Should().BeEmpty("nothing was saved, so nothing may be recorded");
     }
 
     [Fact]

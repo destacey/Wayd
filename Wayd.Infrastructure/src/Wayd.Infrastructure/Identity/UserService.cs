@@ -14,7 +14,6 @@ internal partial class UserService(
     UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager,
     WaydDbContext db,
-    IEventPublisher events,
     IDispatcher dispatcher,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
@@ -26,7 +25,6 @@ internal partial class UserService(
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly WaydDbContext _db = db;
-    private readonly IEventPublisher _events = events;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -135,9 +133,10 @@ internal partial class UserService(
         if (user.IsActive)
             return Result.Failure("User is already active.");
 
-        user.IsActive = true;
-        await _userManager.UpdateAsync(user);
-        await _events.PublishAsync(new ApplicationUserActivatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+        user.Activate(CurrentActor(), _dateTimeProvider.Now);
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return Failed(user, result, "activate the user");
 
         _logger.LogInformation("User {UserId} activated.", command.UserId);
         return Result.Success();
@@ -155,9 +154,10 @@ internal partial class UserService(
         if (command.UserId == _currentUser.GetUserId())
             return Result.Failure("You cannot deactivate your own account.");
 
-        user.IsActive = false;
-        await _userManager.UpdateAsync(user);
-        await _events.PublishAsync(new ApplicationUserDeactivatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+        user.Deactivate(CurrentActor(), _dateTimeProvider.Now);
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return Failed(user, result, "deactivate the user");
 
         _logger.LogInformation("User {UserId} deactivated.", command.UserId);
         return Result.Success();
@@ -177,17 +177,10 @@ internal partial class UserService(
             return Result.Success();
         }
 
-        user.PendingMigrationTenantId = null;
-        user.PendingMigrationStagedAt = null;
+        user.CancelTenantMigration(CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            _logger.LogError("Failed to cancel tenant migration for user {UserId}: {Errors}", user.Id, errors);
-            return Result.Failure(errors);
-        }
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+            return Failed(user, result, "cancel the tenant migration");
 
         _logger.LogInformation("Tenant migration canceled for user {UserId}.", user.Id);
         return Result.Success();
@@ -211,17 +204,10 @@ internal partial class UserService(
         if (tenant.IsFailure)
             return Result.Failure(tenant.Error);
 
-        user.PendingMigrationTenantId = tenant.Value;
-        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
+        user.StageTenantMigration(tenant.Value, CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            _logger.LogError("Failed to stage the sign-in tenant for user {UserId}: {Errors}", user.Id, errors);
-            return Result.Failure(errors);
-        }
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+            return Failed(user, result, "stage the sign-in tenant");
 
         _logger.LogInformation("Sign-in tenant {TenantId} staged for user {UserId}.", tenant.Value, user.Id);
         return Result.Success();
@@ -262,6 +248,7 @@ internal partial class UserService(
 
         var staged = new List<string>();
         var skipped = new List<SkippedUser>();
+        var actor = CurrentActor();
         var now = _dateTimeProvider.Now;
 
         // One transaction for the whole batch: either every qualifying user is staged
@@ -294,11 +281,12 @@ internal partial class UserService(
                     continue;
                 }
 
-                user.PendingMigrationTenantId = command.TargetTenantId;
-                user.PendingMigrationStagedAt = now;
+                user.StageTenantMigration(command.TargetTenantId, actor, now);
                 var updateResult = await _userManager.UpdateAsync(user);
                 if (!updateResult.Succeeded)
                 {
+                    user.ClearDomainEvents();
+
                     // Throw to roll the whole batch back — a partial stage is worse than none.
                     var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
                     throw new InternalServerException(
@@ -308,12 +296,6 @@ internal partial class UserService(
                 staged.Add(userId);
             }
         }, cancellationToken);
-
-        // Publish after commit so subscribers don't react to a rolled-back batch.
-        foreach (var userId in staged)
-        {
-            await _events.PublishAsync(new ApplicationUserUpdatedEvent(userId, EventActor.User(_currentUser.GetUserId()), now));
-        }
 
         _logger.LogInformation(
             "Bulk tenant migration staged for provider {ProviderId}: {StagedCount} staged, {SkippedCount} skipped (source {SourceTenant} → target {TargetTenant}).",
@@ -426,16 +408,10 @@ internal partial class UserService(
             return Result.Failure("User has no active identity to migrate.");
 
         // Last-write-wins semantics match the tenant migration pattern.
-        user.PendingMigrationProviderId = command.TargetProviderId;
+        user.StageProviderMigration(command.TargetProviderId, CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            _logger.LogError("Failed to stage provider migration for user {UserId}: {Errors}", user.Id, errors);
-            return Result.Failure(errors);
-        }
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+            return Failed(user, result, "stage the provider migration");
 
         _logger.LogInformation(
             "Provider migration staged for user {UserId}: target provider {ProviderId}.",
@@ -455,16 +431,10 @@ internal partial class UserService(
             return Result.Success();
         }
 
-        user.PendingMigrationProviderId = null;
+        user.CancelProviderMigration(CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            _logger.LogError("Failed to cancel provider migration for user {UserId}: {Errors}", user.Id, errors);
-            return Result.Failure(errors);
-        }
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+            return Failed(user, result, "cancel the provider migration");
 
         _logger.LogInformation("Provider migration canceled for user {UserId}.", userId);
         return Result.Success();
@@ -523,24 +493,38 @@ internal partial class UserService(
                     $"Failed to set password for user {user.Id} during local conversion: {errors}");
             }
 
-            user.LoginProvider = LoginProviders.Wayd;
-            user.MustChangePassword = true;
-            user.PendingMigrationProviderId = null;
+            user.ConvertToLocalAccount(CurrentActor(), _dateTimeProvider.Now);
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
             {
+                user.ClearDomainEvents();
                 var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
                 throw new InternalServerException(
                     $"Failed to update user {user.Id} during local conversion: {errors}");
             }
         }, cancellationToken);
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
-
         _logger.LogInformation(
             "User {UserId} converted from {Provider} to a local account.",
             user.Id, user.LoginProvider);
         return Result.Success();
+    }
+
+    // First-run setup creates the first account before anyone can sign in, so there is no user to attribute it to.
+    private EventActor CurrentActor() =>
+        _currentUser.GetUserId() is { Length: > 0 } userId ? EventActor.User(userId) : EventActor.Anonymous;
+
+    /// <summary>
+    /// Fails a change whose <see cref="UserManager{TUser}"/> call did not save. The events raised for it describe
+    /// a change that never happened, and left on the user the next save in the scope would record them.
+    /// </summary>
+    private Result Failed(ApplicationUser user, IdentityResult result, string operation)
+    {
+        user.ClearDomainEvents();
+
+        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+        _logger.LogError("Failed to {Operation} for user {UserId}: {Errors}", operation, user.Id, errors);
+        return Result.Failure(errors);
     }
 
     public async Task<List<UserIdentityDto>> GetIdentityHistory(string userId, CancellationToken cancellationToken)

@@ -52,9 +52,15 @@ internal class TokenService(
             throw new UnauthorizedException("Invalid credentials.");
         }
 
+        var wasLockedOut = await _userManager.IsLockedOutAsync(user);
         var signInResult = await _signInManager.CheckPasswordSignInAsync(user, command.Password, lockoutOnFailure: true);
         if (signInResult.IsLockedOut)
         {
+            if (!wasLockedOut)
+            {
+                await RecordLockout(user);
+            }
+
             _logger.LogWarning("Login failed: user {UserName} is locked out.", command.UserName);
             throw new UnauthorizedException("Account is locked due to multiple failed login attempts. Please try again later.");
         }
@@ -75,6 +81,26 @@ internal class TokenService(
         await EnsureActiveIdentityAsync(user, LoginProviders.Wayd, command.UserName, cancellationToken);
 
         return await GenerateTokensAndUpdateUser(user, cancellationToken);
+    }
+
+    /// <summary>
+    /// Records the lockout this attempt triggered. The sign-in manager has already saved it, so this save carries
+    /// only the event; a failure is logged rather than thrown, since the caller is refused either way.
+    /// </summary>
+    private async Task RecordLockout(ApplicationUser user)
+    {
+        if (user.LockoutEnd is null)
+            return;
+
+        user.RecordLockout(EventActor.System, _dateTimeProvider.Now);
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            user.ClearDomainEvents();
+            _logger.LogError("Failed to record the lockout of user {UserId}: {Errors}",
+                user.Id, string.Join(", ", result.Errors.Select(e => e.Description)));
+        }
     }
 
     public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenCommand command, CancellationToken cancellationToken)

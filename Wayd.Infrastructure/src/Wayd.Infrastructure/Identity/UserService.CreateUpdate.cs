@@ -90,20 +90,29 @@ internal partial class UserService
 
         if (isFirstUser)
         {
-            await _userManager.AddToRoleAsync(user, ApplicationRoles.Admin);
-            await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now, true));
+            await AddSignInRole(user, ApplicationRoles.Admin);
         }
         else
         {
             var roles = await _userManager.GetRolesAsync(user);
             if (roles is null || !roles.Any())
             {
-                await _userManager.AddToRoleAsync(user, await ResolveDefaultRoleName(policy));
-                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now, true));
+                await AddSignInRole(user, await ResolveDefaultRoleName(policy));
             }
         }
 
         return (user.Id, user.EmployeeId?.ToString());
+    }
+
+    private async Task AddSignInRole(ApplicationUser user, string roleName)
+    {
+        var roleIdsByName = await GetRoleIdsByName(CancellationToken.None);
+        var result = await AddToRoleRecorded(user, roleName, roleIdsByName, EventActor.System);
+        if (!result.Succeeded)
+        {
+            _logger.LogError("Failed to add user {UserId} to role {RoleName} at sign-in: {Errors}",
+                user.Id, roleName, string.Join(", ", result.Errors.Select(e => e.Description)));
+        }
     }
 
     /// <summary>
@@ -323,11 +332,12 @@ internal partial class UserService
                 LinkedAt = _dateTimeProvider.Now,
             }, ct);
 
-            candidate.PendingMigrationTenantId = null;
-            candidate.PendingMigrationStagedAt = null;
+            candidate.CompleteTenantMigration(tenantId, EventActor.System, _dateTimeProvider.Now);
             var updateResult = await _userManager.UpdateAsync(candidate);
             if (!updateResult.Succeeded)
             {
+                candidate.ClearDomainEvents();
+
                 // Throw so ExecuteInTransaction rolls back — the deactivate + insert
                 // above must not commit if we couldn't clear the flag.
                 var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
@@ -339,8 +349,6 @@ internal partial class UserService
         _logger.LogInformation(
             "Tenant migration completed for user {UserId}: rebound to tenant {TenantId} (subject {ObjectId}).",
             candidate.Id, tenantId, objectId);
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         return candidate;
     }
@@ -460,11 +468,11 @@ internal partial class UserService
                 LinkedAt = now,
             }, ct);
 
-            candidate.LoginProvider = providerName;
-            candidate.PendingMigrationProviderId = null;
+            candidate.CompleteProviderMigration(providerName, EventActor.System, now);
             var updateResult = await _userManager.UpdateAsync(candidate);
             if (!updateResult.Succeeded)
             {
+                candidate.ClearDomainEvents();
                 var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
                 throw new InternalServerException(
                     $"Failed to apply pending provider migration for user {candidate.Id}: {errors}");
@@ -477,8 +485,6 @@ internal partial class UserService
             "Provider migration completed for user {UserId}: rebound to provider {Provider} (subject {Subject}). " +
             "LocalPasswordCleared={LocalPasswordCleared}.",
             candidate.Id, providerName, subject, localPasswordCleared);
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         return candidate;
     }
@@ -678,15 +684,15 @@ internal partial class UserService
             EmployeeId = employeeId,
             LoginProvider = LoginProviders.MicrosoftEntraId,
         };
+        user.RecordCreation(EventActor.System, _dateTimeProvider.Now);
         var result = await _userManager.CreateAsync(user);
 
         if (!result.Succeeded)
         {
+            user.ClearDomainEvents();
             _logger.LogError("Error creating user from principal: {Errors}", result.Errors.Select(e => e.Description));
             throw new InternalServerException("Validation Errors Occurred.");
         }
-
-        await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now));
 
         await EnsureEntraIdentityRowAsync(user, principalTenantId, principalObjectId);
 
@@ -766,9 +772,18 @@ internal partial class UserService
             PhoneNumber = command.PhoneNumber,
             LoginProvider = command.LoginProvider,
             MustChangePassword = command.LoginProvider == LoginProviders.Wayd && command.MustChangePassword,
-            PendingMigrationTenantId = firstSignInTenantId,
-            PendingMigrationStagedAt = firstSignInTenantId is null ? null : _dateTimeProvider.Now,
         };
+
+        var actor = CurrentActor();
+        var now = _dateTimeProvider.Now;
+
+        user.RecordCreation(actor, now);
+        if (firstSignInTenantId is not null)
+        {
+            user.StageTenantMigration(firstSignInTenantId, actor, now);
+        }
+
+        var roleIdsByName = await GetRoleIdsByName(cancellationToken);
 
         // User creation, role assignment, and the Wayd identity row must land
         // together. Partial failure — user exists with no active Wayd identity —
@@ -786,14 +801,20 @@ internal partial class UserService
 
                 if (!result.Succeeded)
                 {
+                    user.ClearDomainEvents();
+
                     // Throw to force rollback. Outer catch swallows this sentinel;
                     // `result` carries the validation errors back to the caller.
                     throw new UserCreationRollbackException();
                 }
 
+                user.RecordRolesChange([], RoleIds(command.RoleNames, roleIdsByName), actor, now);
+
                 result = await _userManager.AddToRolesAsync(user, command.RoleNames);
                 if (!result.Succeeded)
                 {
+                    user.ClearDomainEvents();
+
                     // Same rollback contract as the create failure above: throw the
                     // sentinel so the transaction unwinds and the user isn't left
                     // persisted without roles. `result` carries the errors back.
@@ -834,9 +855,6 @@ internal partial class UserService
             _logger.LogError("Error creating user: {Errors}", errors);
             return Result.Failure<string>(errors);
         }
-
-        // Publish after commit so subscribers don't see events for rolled-back users.
-        await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now));
 
         _logger.LogInformation("User {UserId} created successfully.", user.Id);
         return Result.Success(user.Id);
@@ -884,9 +902,20 @@ internal partial class UserService
             throw new NotFoundException("User Not Found.");
         }
 
-        user.FirstName = command.FirstName;
-        user.LastName = command.LastName;
-        user.PhoneNumber = command.PhoneNumber;
+        var actor = CurrentActor();
+        var now = _dateTimeProvider.Now;
+
+        // An address that differs only in case is kept as stored.
+        var emailChanged = !string.Equals(user.Email, command.Email, StringComparison.OrdinalIgnoreCase);
+
+        user.UpdateDetails(command.FirstName, command.LastName, emailChanged ? command.Email : user.Email, command.PhoneNumber, actor, now);
+
+        if (emailChanged)
+        {
+            user.NormalizedEmail = command.Email.ToUpperInvariant();
+            user.UserName = command.Email;
+            user.NormalizedUserName = command.Email.ToUpperInvariant();
+        }
 
         // The employee link is resolved by email elsewhere (GetEmployeeIdByEmail on registration,
         // UpdateMissingEmployeeIds, SyncUsersFromEmployeeRecords); only the admin user-edit path
@@ -894,32 +923,18 @@ internal partial class UserService
         // existing link on every self-service profile save — see UpdateUserCommand.ManageEmployeeLink.
         if (command.ManageEmployeeLink)
         {
-            user.EmployeeId = command.EmployeeId;
+            user.ChangeEmployeeLink(command.EmployeeId, actor, now);
         }
-
-        if (!string.Equals(user.Email, command.Email, StringComparison.OrdinalIgnoreCase))
-        {
-            user.Email = command.Email;
-            user.NormalizedEmail = command.Email.ToUpperInvariant();
-            user.UserName = command.Email;
-            user.NormalizedUserName = command.Email.ToUpperInvariant();
-        }
-
-        string? phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-        if (command.PhoneNumber != phoneNumber)
-            await _userManager.SetPhoneNumberAsync(user, command.PhoneNumber);
 
         var result = await _userManager.UpdateAsync(user);
-
-        await _signInManager.RefreshSignInAsync(user);
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
-
         if (!result.Succeeded)
         {
+            user.ClearDomainEvents();
             _logger.LogError("Error updating user: {Errors}", result.Errors.Select(e => e.Description));
             throw new InternalServerException("Update profile failed");
         }
+
+        await _signInManager.RefreshSignInAsync(user);
     }
 
     public async Task<Result> ChangePasswordAsync(string userId, ChangePasswordCommand command)
@@ -936,9 +951,11 @@ internal partial class UserService
             return Result.Failure("Password change is only available for local accounts.");
         }
 
+        user.RecordPasswordChange(CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword);
         if (!result.Succeeded)
         {
+            user.ClearDomainEvents();
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             _logger.LogWarning("Password change failed for user {UserId}: {Errors}", userId, errors);
             return Result.Failure(errors);
@@ -968,22 +985,23 @@ internal partial class UserService
             return Result.Failure("Password reset is only available for local accounts.");
         }
 
+        var wasLockedOut = await _userManager.IsLockedOutAsync(user);
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+        // Applied before the reset so its save writes them with the new hash and the event.
+        user.ResetPassword(endLockout: wasLockedOut, CurrentActor(), _dateTimeProvider.Now);
+
         var result = await _userManager.ResetPasswordAsync(user, token, command.NewPassword);
         if (!result.Succeeded)
         {
+            user.ClearDomainEvents();
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             _logger.LogWarning("Password reset failed for user {UserId}: {Errors}", command.UserId, errors);
             return Result.Failure(errors);
         }
 
-        user.MustChangePassword = true;
-        await _userManager.UpdateAsync(user);
-
-        if (await _userManager.IsLockedOutAsync(user))
+        if (wasLockedOut)
         {
-            await _userManager.SetLockoutEndDateAsync(user, null);
-            await _userManager.ResetAccessFailedCountAsync(user);
             _logger.LogInformation("Lockout cleared for user {UserId} during password reset.", command.UserId);
         }
 
@@ -1005,8 +1023,10 @@ internal partial class UserService
             return Result.Failure("User is not currently locked out.");
         }
 
-        await _userManager.SetLockoutEndDateAsync(user, null);
-        await _userManager.ResetAccessFailedCountAsync(user);
+        user.Unlock(CurrentActor(), _dateTimeProvider.Now);
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return Failed(user, result, "unlock the user");
 
         _logger.LogInformation("User {UserId} unlocked by admin.", userId);
         return Result.Success();
@@ -1038,6 +1058,8 @@ internal partial class UserService
             .Select(u => u.EmployeeId!.Value)
             .ToHashSetAsync(cancellationToken);
 
+        var actor = SyncActor();
+
         foreach (var user in users)
         {
             if (string.IsNullOrEmpty(user.Email)) continue;
@@ -1052,14 +1074,11 @@ internal partial class UserService
                 continue;
             }
 
-            user.EmployeeId = employeeId;
+            user.ChangeEmployeeLink(employeeId, actor, _dateTimeProvider.Now);
             var result = await _userManager.UpdateAsync(user);
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
-            }
-            else
-            {
+                DiscardRejectedUpdate(user);
                 _logger.LogError("Error updating employeeId on user {UserId}: {Errors}", user.Id, result.Errors.Select(e => e.Description));
             }
         }
@@ -1085,6 +1104,8 @@ internal partial class UserService
             .GroupBy(e => e.Email.Value, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
 
+        var actor = SyncActor();
+
         foreach (var user in users)
         {
             if (string.IsNullOrEmpty(user.Email)) continue;
@@ -1096,24 +1117,46 @@ internal partial class UserService
                 continue;
             }
 
-            user.FirstName = employee.Name.FirstName;
-            user.LastName = employee.Name.LastName;
-            user.Email = employee.Email;
-            user.IsActive = employee.IsActive;
+            var now = _dateTimeProvider.Now;
+            user.UpdateDetails(employee.Name.FirstName, employee.Name.LastName, employee.Email, user.PhoneNumber, actor, now);
+            if (employee.IsActive)
+                user.Activate(actor, now);
+            else
+                user.Deactivate(actor, now);
 
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
                 _logger.LogInformation("User {UserId} updated.", user.Id);
-                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
             }
             else
             {
+                DiscardRejectedUpdate(user);
                 _logger.LogError("Error updating user {UserId}: {Errors}", user.Id, result.Errors.Select(e => e.Description));
             }
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Drops a user whose update the manager rejected from a loop that goes on to update others. The rejected
+    /// values stay on the tracked entity, and the next user's save writes every tracked change: without the
+    /// validation the manager just refused, and, after a concurrency failure, failing that user's save too.
+    /// </summary>
+    private void DiscardRejectedUpdate(ApplicationUser user)
+    {
+        user.ClearDomainEvents();
+        _db.Entry(user).State = EntityState.Detached;
+    }
+
+    /// <summary>
+    /// The people sync, attributed to whoever started it; a scheduled run runs as the system and is started by nobody.
+    /// </summary>
+    private EventActor SyncActor()
+    {
+        var userId = _currentUser.GetUserId();
+        return EventActor.Sync(string.IsNullOrEmpty(userId) || userId == SystemIdentity.UserId ? null : userId);
     }
 
     private async Task<Guid?> GetEmployeeIdByEmail(string email)

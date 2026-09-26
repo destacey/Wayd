@@ -518,6 +518,41 @@ public class CqrsPatternTests
             string.Join(", ", offenders.FailingTypeNames ?? []));
     }
 
+    [Fact]
+    public void OnlyTheSaveDrain_ShouldDependOnIEventPublisher()
+    {
+        // Arrange - A domain event is raised on its aggregate and published by the SaveChanges drain, which
+        // records it in the activity log and delivers it only once the save it describes has committed. One
+        // published directly skips both: it is never recorded, and it reaches subscribers whether or not the
+        // save happens.
+        var allAssemblies = AssemblyHelper.GetApplicationAssemblies()
+            .Concat(AssemblyHelper.GetInfrastructureAssemblies())
+            .Distinct()
+            .ToArray();
+
+        var allowed = new[]
+        {
+            "EventPublisher",  // IEventPublisher implementation
+            "BaseDbContext",   // the drain
+            "WaydDbContext",   // passes it to BaseDbContext's constructor
+        };
+
+        // Act
+        var offenders = Types.InAssemblies(allAssemblies)
+            .That()
+            .AreClasses()
+            .And()
+            .DoNotHaveName(allowed)
+            .Should()
+            .NotHaveDependencyOn("Wayd.Common.Application.Events.IEventPublisher")
+            .GetResult();
+
+        // Assert
+        offenders.IsSuccessful.Should().BeTrue(
+            "Raise domain events on the aggregate for SaveChanges to drain rather than publishing them. Violating types: {0}",
+            string.Join(", ", offenders.FailingTypeNames ?? []));
+    }
+
     #endregion
 
     #region Helper Methods

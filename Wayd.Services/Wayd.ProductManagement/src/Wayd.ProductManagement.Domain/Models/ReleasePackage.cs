@@ -59,8 +59,14 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
     /// <summary>When the package is expected to ship.</summary>
     public LocalDate? TargetDate { get; private set; }
 
-    /// <summary>When the package shipped.</summary>
-    public LocalDate? ReleasedDate { get; private set; }
+    /// <summary>
+    /// When the package shipped — the moment the pipeline run that shipped it completed.
+    /// </summary>
+    /// <remarks>
+    /// An instant, not a date: the source system records a moment, and only the viewer's zone decides which
+    /// calendar day it fell on. <see cref="TargetDate"/> stays a date because it is a plan.
+    /// </remarks>
+    public Instant? ReleasedAt { get; private set; }
 
     /// <summary>
     /// Every component version this package shipped — changed and carried forward alike.
@@ -92,7 +98,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
         // Once shipped, the manifest is the record of what went out rather than a plan. Rewriting it
         // would claim a set of versions that never shipped together — the exact failure the
         // whole-manifest rule above exists to prevent.
-        if (ReleasedDate is not null)
+        if (ReleasedAt is not null)
         {
             return Result.Failure("A released package's manifest cannot be amended.");
         }
@@ -147,11 +153,11 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
     /// <summary>
     /// Records that the package shipped.
     /// </summary>
-    public Result MarkReleased(LocalDate releasedDate, StatusRef releasedStatus, EventActor actor, Instant timestamp)
+    public Result MarkReleased(Instant releasedAt, StatusRef releasedStatus, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(releasedStatus, nameof(releasedStatus));
 
-        if (ReleasedDate is not null)
+        if (ReleasedAt is not null)
         {
             return Result.Failure("This package has already been released.");
         }
@@ -166,26 +172,26 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A package cannot be released with an empty manifest.");
         }
 
-        ReleasedDate = releasedDate;
+        ReleasedAt = releasedAt;
         ApplyStatus(releasedStatus, actor, timestamp);
 
-        AddDomainEvent(new PackageReleasedEvent(Id, Key, Version, releasedDate, _components.Count, StatusId, actor, timestamp));
+        AddDomainEvent(new PackageReleasedEventV2(Id, Key, Version, releasedAt, _components.Count, StatusId, actor, timestamp));
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Corrects the recorded target and released dates without moving the package's status.
+    /// Corrects the recorded target date and released moment without moving the package's status.
     /// </summary>
     /// <remarks>
-    /// The released date can be changed but neither added nor cleared: a recorded released date is what
-    /// marks the package as shipped — it locks the manifest and makes <see cref="MarkReleased"/> refuse —
-    /// so adding one here would ship the package without its status following, and clearing one would
-    /// unlock a manifest that already went out. <see cref="MarkReleased"/> records the first one.
+    /// The released moment can be changed but neither added nor cleared: a recorded one is what marks the
+    /// package as shipped — it locks the manifest and makes <see cref="MarkReleased"/> refuse — so adding
+    /// one here would ship the package without its status following, and clearing one would unlock a
+    /// manifest that already went out. <see cref="MarkReleased"/> records the first one.
     /// </remarks>
     public Result CorrectDates(
         LocalDate? targetDate,
-        LocalDate? releasedDate,
+        Instant? releasedAt,
         EventActor actor,
         Instant timestamp)
     {
@@ -194,29 +200,29 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A withdrawn package cannot have its dates corrected.");
         }
 
-        if (releasedDate is null && ReleasedDate is not null)
+        if (releasedAt is null && ReleasedAt is not null)
         {
-            return Result.Failure("A released package cannot have its released date removed.");
+            return Result.Failure("A released package cannot have its released moment removed.");
         }
 
-        if (releasedDate is not null && ReleasedDate is null)
+        if (releasedAt is not null && ReleasedAt is null)
         {
             return Result.Failure(
-                "A package that has not been released cannot be given a released date. Mark the package released instead.");
+                "A package that has not been released cannot be given a released moment. Mark the package released instead.");
         }
 
-        if (targetDate == TargetDate && releasedDate == ReleasedDate)
+        if (targetDate == TargetDate && releasedAt == ReleasedAt)
         {
             return Result.Success();
         }
 
         var fromTargetDate = TargetDate;
-        var fromReleasedDate = ReleasedDate;
+        var fromReleasedAt = ReleasedAt;
         TargetDate = targetDate;
-        ReleasedDate = releasedDate;
+        ReleasedAt = releasedAt;
 
-        AddDomainEvent(new PackageDatesCorrectedEvent(
-            Id, Key, Version, fromTargetDate, targetDate, fromReleasedDate, releasedDate, actor, timestamp));
+        AddDomainEvent(new PackageDatesCorrectedEventV2(
+            Id, Key, Version, fromTargetDate, targetDate, fromReleasedAt, releasedAt, actor, timestamp));
 
         return Result.Success();
     }

@@ -6,8 +6,8 @@
 public sealed record CutVersionRequest
 {
     /// <summary>
-    /// The date scope was frozen. Supplied rather than taken from the clock, because cutting is often
-    /// recorded after the fact.
+    /// The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the
+    /// clock, because cutting is often recorded after the fact.
     /// </summary>
-    public LocalDate CutDate { get; set; }
+    public Instant CutAt { get; set; }
 }

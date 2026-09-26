@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wayd.Infrastructure.Persistence.Context;
 
@@ -12,9 +13,11 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    partial class WaydDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260926204406_Store-ReleasePackage-ReleasedAt-As-Instant")]
+    partial class StoreReleasePackageReleasedAtAsInstant
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4278,8 +4281,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CutAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime?>("CutDate")
+                        .HasColumnType("date");
 
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
@@ -4303,8 +4306,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("ReleasedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime?>("ReleasedDate")
+                        .HasColumnType("date");
 
                     b.Property<long?>("Sequence")
                         .HasColumnType("bigint");
@@ -4356,9 +4359,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("ProductId", "Number");
 
-                    b.HasIndex("ProductId", "ReleasedAt");
+                    b.HasIndex("ProductId", "ReleasedDate");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProductId", "ReleasedAt"), new[] { "Id", "Key", "Number", "Name", "Sequence", "StatusCategory" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProductId", "ReleasedDate"), new[] { "Id", "Key", "Number", "Name", "Sequence", "StatusCategory" });
 
                     b.ToTable("Versions", "Delivery");
                 });

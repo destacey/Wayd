@@ -240,7 +240,7 @@ public sealed class ReleaseImportDefinition(
         {
             return Result.Failure(
                 $"Release '{data.Version}' is marked as released but carries content that has not shipped: {Quote(unshipped)}. "
-                + "Import those with a released date first, or leave this release's ReleasedDate empty.");
+                + "Import those with their ReleasedAt first, or leave this release's ReleasedDate empty.");
         }
 
         var result = release.MarkReleased(
@@ -346,15 +346,15 @@ public sealed class ReleaseImportDefinition(
             : await _productManagementDbContext.Versions
                 .AsNoTracking()
                 .Where(v => wantedVersionIds.Contains(v.Id))
-                .Select(v => new { v.Id, v.Number, v.ReleasedDate })
+                .Select(v => new { v.Id, v.Number, v.ReleasedAt })
                 .ToListAsync(cancellationToken);
 
         return new ResolvedContents(
             packages.ToDictionary(
                 p => p.Id,
                 p => (IReadOnlyList<Guid>)[.. p.Components.Where(c => c.VersionId is not null).Select(c => c.VersionId!.Value)]),
-            [.. versions.Where(v => v.ReleasedDate is not null).Select(v => v.Id)],
-            [.. packages.Where(p => p.ReleasedDate is not null).Select(p => p.Id)],
+            [.. versions.Where(v => v.ReleasedAt is not null).Select(v => v.Id)],
+            [.. packages.Where(p => p.ReleasedAt is not null).Select(p => p.Id)],
             versions.ToDictionary(v => v.Id, v => v.Number),
             packages.ToDictionary(p => p.Id, p => p.Version));
     }

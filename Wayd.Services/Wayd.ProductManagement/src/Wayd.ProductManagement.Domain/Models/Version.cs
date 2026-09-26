@@ -63,7 +63,7 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     /// <remarks>
     /// <strong>Free text, never parsed.</strong> Nothing may compare, sort, or extract meaning from this
-    /// string; ordering comes from <see cref="ReleasedDate"/>, then <see cref="Sequence"/>.
+    /// string; ordering comes from <see cref="ReleasedAt"/>, then <see cref="Sequence"/>.
     /// <para>
     /// Named <c>Number</c> rather than <c>Version</c> because C# forbids a member matching its type's
     /// name. It is still a version string, not a number, and is never parsed as one.
@@ -94,19 +94,23 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     public long? Sequence { get; private set; }
 
     /// <summary>
-    /// When the version is expected to ship.
+    /// When the version is expected to ship. A date, because it is a plan rather than something that happened.
     /// </summary>
     public LocalDate? TargetDate { get; private set; }
 
     /// <summary>
-    /// When scope was frozen. Set by <see cref="Cut"/>.
+    /// When scope was frozen — the build or tag that cut it. Set by <see cref="Cut"/>.
     /// </summary>
-    public LocalDate? CutDate { get; private set; }
+    public Instant? CutAt { get; private set; }
 
     /// <summary>
     /// When it actually shipped. Set by <see cref="MarkReleased"/>; the basis for release frequency.
     /// </summary>
-    public LocalDate? ReleasedDate { get; private set; }
+    /// <remarks>
+    /// Moments rather than dates, like <see cref="CutAt"/>: the source system records an instant, and only the
+    /// viewer's zone decides which calendar day it fell on.
+    /// </remarks>
+    public Instant? ReleasedAt { get; private set; }
 
     /// <summary>
     /// Engineering notes for this version, authored by hand or generated — <c>Bumped Npgsql to 9.0.2</c>.
@@ -180,11 +184,11 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     /// Cutting is an artifact act and lives only here. A <see cref="Release"/> is announced, never cut —
     /// there is nothing to freeze scope on, because its scope is whichever versions it carries.
     /// </remarks>
-    public Result Cut(LocalDate cutDate, StatusRef readyStatus, string productName, EventActor actor, Instant timestamp)
+    public Result Cut(Instant cutAt, StatusRef readyStatus, string productName, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(readyStatus, nameof(readyStatus));
 
-        if (CutDate is not null)
+        if (CutAt is not null)
         {
             return Result.Failure("This version has already been cut.");
         }
@@ -194,10 +198,10 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A released or withdrawn version cannot be cut.");
         }
 
-        CutDate = cutDate;
+        CutAt = cutAt;
         ApplyStatus(readyStatus, actor, timestamp);
 
-        AddDomainEvent(new VersionCutEvent(Id, Key, ProductId, productName, Number, cutDate, StatusId, actor, timestamp));
+        AddDomainEvent(new VersionCutEventV2(Id, Key, ProductId, productName, Number, cutAt, StatusId, actor, timestamp));
 
         return Result.Success();
     }
@@ -208,11 +212,11 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     /// <param name="releasedStatus">
     /// The workflow status aliased <see cref="ProductStatusAlias.Released"/>, resolved by the caller.
     /// </param>
-    public Result MarkReleased(LocalDate releasedDate, StatusRef releasedStatus, string productName, EventActor actor, Instant timestamp)
+    public Result MarkReleased(Instant releasedAt, StatusRef releasedStatus, string productName, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(releasedStatus, nameof(releasedStatus));
 
-        if (ReleasedDate is not null)
+        if (ReleasedAt is not null)
         {
             return Result.Failure("This version has already been released.");
         }
@@ -222,15 +226,15 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A withdrawn version cannot be released.");
         }
 
-        if (CutDate is not null && releasedDate < CutDate)
+        if (CutAt is not null && releasedAt < CutAt)
         {
-            return Result.Failure("The released date cannot be before the cut date.");
+            return Result.Failure("A version cannot be released before it was cut.");
         }
 
-        ReleasedDate = releasedDate;
+        ReleasedAt = releasedAt;
         ApplyStatus(releasedStatus, actor, timestamp);
 
-        AddDomainEvent(new VersionReleasedEvent(Id, Key, ProductId, productName, Number, releasedDate, StatusId, actor, timestamp));
+        AddDomainEvent(new VersionReleasedEventV2(Id, Key, ProductId, productName, Number, releasedAt, StatusId, actor, timestamp));
 
         return Result.Success();
     }
@@ -248,7 +252,7 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     /// append-only history asserting a withdrawal nobody performed, which is exactly what a reader
     /// later relies on being true.
     /// <para>
-    /// The released date goes with the status, because the two are one fact. A reason is required:
+    /// The released moment goes with the status, because the two are one fact. A reason is required:
     /// unlike a date correction, this contradicts something the history already asserts, so the record
     /// has to say why.
     /// </para>
@@ -257,7 +261,7 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     {
         Guard.Against.Null(toStatus, nameof(toStatus));
 
-        if (ReleasedDate is null)
+        if (ReleasedAt is null)
         {
             return Result.Failure("This version has not been released, so there is nothing to revert.");
         }
@@ -272,37 +276,37 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A reason is required to revert a version.");
         }
 
-        var fromReleasedDate = ReleasedDate;
-        ReleasedDate = null;
+        var fromReleasedAt = ReleasedAt;
+        ReleasedAt = null;
         ApplyStatus(toStatus, actor, timestamp, reason);
 
-        AddDomainEvent(new VersionRevertedEvent(
-            Id, Key, ProductId, productName, Number, fromReleasedDate.Value, reason.Trim(), StatusId, actor, timestamp));
+        AddDomainEvent(new VersionRevertedEventV2(
+            Id, Key, ProductId, productName, Number, fromReleasedAt.Value, reason.Trim(), StatusId, actor, timestamp));
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Corrects the recorded target, cut and released dates without moving the version's status.
+    /// Corrects the recorded target date and cut and released moments without moving the version's status.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <see cref="Cut"/> and <see cref="MarkReleased"/> assert that something happened, so each sets a
-    /// date and applies a status together and refuses to run twice. Neither can fix a date entered
-    /// wrongly. Without this, the only route to a corrected released date is to withdraw the version
+    /// moment and applies a status together and refuses to run twice. Neither can fix a value entered
+    /// wrongly. Without this, the only route to a corrected released moment is to withdraw the version
     /// and release it again, which writes two status transitions that never happened into an
     /// append-only history.
     /// </para>
     /// <para>
     /// A correction says what was written down was wrong, not that the version moved, so status is
-    /// left alone. Dates may be added as well as changed: a version can be marked released without
-    /// ever being cut — historical import depends on it — so a cut date discovered later is a
+    /// left alone. Values may be added as well as changed: a version can be marked released without
+    /// ever being cut — historical import depends on it — so a cut moment discovered later is a
     /// correction, not a lifecycle step.
     /// </para>
     /// <para>
-    /// The target and cut dates may also be cleared, because each is only a record of something
-    /// written down. The released date is the exception: emptying it on a released record would leave
-    /// the status contradicting the dates. Recording that a version did not in fact ship is
+    /// The target date and cut moment may also be cleared, because each is only a record of something
+    /// written down. The released moment is the exception: emptying it on a released record would leave
+    /// the status contradicting the record. Recording that a version did not in fact ship is
     /// <see cref="RevertRelease"/>'s job, which moves the status to match.
     /// </para>
     /// <para>
@@ -311,8 +315,8 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
     /// </remarks>
     public Result CorrectDates(
         LocalDate? targetDate,
-        LocalDate? cutDate,
-        LocalDate? releasedDate,
+        Instant? cutAt,
+        Instant? releasedAt,
         string productName,
         EventActor actor,
         Instant timestamp)
@@ -322,32 +326,32 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A withdrawn version cannot have its dates corrected.");
         }
 
-        if (releasedDate is null && ReleasedDate is not null)
+        if (releasedAt is null && ReleasedAt is not null)
         {
             return Result.Failure(
-                "A released version cannot have its released date removed. Revert the version instead.");
+                "A released version cannot have its released moment removed. Revert the version instead.");
         }
 
-        if (cutDate is not null && releasedDate is not null && releasedDate < cutDate)
+        if (cutAt is not null && releasedAt is not null && releasedAt < cutAt)
         {
-            return Result.Failure("The released date cannot be before the cut date.");
+            return Result.Failure("A version cannot be released before it was cut.");
         }
 
-        if (targetDate == TargetDate && cutDate == CutDate && releasedDate == ReleasedDate)
+        if (targetDate == TargetDate && cutAt == CutAt && releasedAt == ReleasedAt)
         {
             return Result.Success();
         }
 
         var fromTargetDate = TargetDate;
-        var fromCutDate = CutDate;
-        var fromReleasedDate = ReleasedDate;
+        var fromCutAt = CutAt;
+        var fromReleasedAt = ReleasedAt;
         TargetDate = targetDate;
-        CutDate = cutDate;
-        ReleasedDate = releasedDate;
+        CutAt = cutAt;
+        ReleasedAt = releasedAt;
 
-        AddDomainEvent(new VersionDatesCorrectedEvent(
+        AddDomainEvent(new VersionDatesCorrectedEventV2(
             Id, Key, ProductId, productName, Number,
-            fromTargetDate, targetDate, fromCutDate, cutDate, fromReleasedDate, releasedDate, actor, timestamp));
+            fromTargetDate, targetDate, fromCutAt, cutAt, fromReleasedAt, releasedAt, actor, timestamp));
 
         return Result.Success();
     }

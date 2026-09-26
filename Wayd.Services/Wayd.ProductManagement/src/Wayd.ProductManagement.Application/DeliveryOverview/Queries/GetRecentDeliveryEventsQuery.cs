@@ -144,7 +144,7 @@ public sealed class GetRecentDeliveryEventsQueryHandler(
                 StatusName = e.transition.ToStatusName,
                 Alias = (ProductStatusAlias)e.transition.ToAlias,
                 ChangedOn = e.transition.ChangedOn,
-                ReleasedDate = e.version.ReleasedDate,
+                ReleasedAt = e.version.ReleasedAt,
             })
             .ToListAsync(cancellationToken);
     }
@@ -167,7 +167,7 @@ public sealed class GetRecentDeliveryEventsQueryHandler(
                 StatusName = transition.ToStatusName,
                 Alias = (ProductStatusAlias)transition.ToAlias,
                 ChangedOn = transition.ChangedOn,
-                ReleasedDate = package.ReleasedDate,
+                ReleasedAt = package.ReleasedAt,
                 ComponentCount = _productManagementDbContext.ReleasePackageComponents
                     .Count(c => c.PackageId == package.Id),
             })

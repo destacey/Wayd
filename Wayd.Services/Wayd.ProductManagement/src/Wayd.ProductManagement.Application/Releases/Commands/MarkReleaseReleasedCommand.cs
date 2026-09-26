@@ -77,11 +77,11 @@ public sealed class MarkReleaseReleasedCommandHandler(
 
             var hasUnreleasedVersion = versionIds.Count > 0
                 && await _productManagementDbContext.Versions
-                    .AnyAsync(v => versionIds.Contains(v.Id) && v.ReleasedDate == null, cancellationToken);
+                    .AnyAsync(v => versionIds.Contains(v.Id) && v.ReleasedAt == null, cancellationToken);
 
             var hasUnreleasedPackage = packageIds.Count > 0
                 && await _productManagementDbContext.ReleasePackages
-                    .AnyAsync(p => packageIds.Contains(p.Id) && p.ReleasedDate == null, cancellationToken);
+                    .AnyAsync(p => packageIds.Contains(p.Id) && p.ReleasedAt == null, cancellationToken);
 
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 

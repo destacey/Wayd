@@ -11,39 +11,39 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// pulled; this says the shipment never happened and the record was wrong. A consumer counting
 /// shipments must subtract this one rather than treat it as a shipment that was later reversed.
 /// <para>
-/// Carries the released date that was cleared, because the correction is only legible against the
+/// Carries the released moment that was cleared, because the correction is only legible against the
 /// value it replaced.
 /// </para>
 /// <para>
-/// Frozen at its published shape and never raised; <see cref="VersionRevertedEventV2"/> replaced it. Kept so every payload
-/// written as this type still deserializes into it, so neither its name nor its members may change.
+/// Supersedes <see cref="VersionRevertedEvent"/>, whose <c>FromReleasedDate</c> held only a calendar date. A new
+/// type rather than a new version, because retyping a member breaks every consumer written against the
+/// old shape.
 /// </para>
 /// </remarks>
-[Obsolete("Superseded by VersionRevertedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record VersionRevertedEvent : DomainEvent<VersionRevertedEvent>, IDomainEventDescriptor, IProductManagementEvent
+public sealed record VersionRevertedEventV2 : DomainEvent<VersionRevertedEventV2>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
 
     [JsonConstructor]
-    public VersionRevertedEvent(
+    public VersionRevertedEventV2(
         Guid id,
         int key,
         Guid productId,
         string productName,
         string number,
-        LocalDate fromReleasedDate,
+        Instant fromReleasedAt,
         string reason,
         Guid statusId,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "2.0")
     {
         Id = id;
         Key = key;
         ProductId = productId;
         ProductName = productName;
         Number = number;
-        FromReleasedDate = fromReleasedDate;
+        FromReleasedAt = fromReleasedAt;
         Reason = reason;
         StatusId = statusId;
 
@@ -56,8 +56,8 @@ public sealed record VersionRevertedEvent : DomainEvent<VersionRevertedEvent>, I
     public string ProductName { get; }
     public string Number { get; }
 
-    /// <summary>The released date that was cleared by the revert.</summary>
-    public LocalDate FromReleasedDate { get; }
+    /// <summary>The released moment that was cleared by the revert.</summary>
+    public Instant FromReleasedAt { get; }
 
     /// <summary>Why the version was reverted. Required — this contradicts what the history asserts.</summary>
     public string Reason { get; }

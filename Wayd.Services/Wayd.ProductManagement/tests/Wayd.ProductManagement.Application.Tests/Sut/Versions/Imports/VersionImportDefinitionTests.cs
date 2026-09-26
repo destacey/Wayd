@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -108,11 +108,11 @@ public sealed class VersionImportDefinitionTests
         string number = "1.0.0",
         string? name = null,
         LocalDate? targetDate = null,
-        LocalDate? cutDate = null,
-        LocalDate? releasedDate = null,
+        Instant? cutAt = null,
+        Instant? releasedAt = null,
         long? sequence = null,
         string? notes = null) =>
-        new(productId, number, name, targetDate, cutDate, releasedDate, sequence, notes);
+        new(productId, number, name, targetDate, cutAt, releasedAt, sequence, notes);
 
     [Fact]
     public void Definition_AppliesProductByProduct()
@@ -167,28 +167,28 @@ public sealed class VersionImportDefinitionTests
 
         var version = _dbContext.Versions.Single();
         version.StatusId.Should().Be(_planned.Id);
-        version.CutDate.Should().BeNull();
-        version.ReleasedDate.Should().BeNull();
+        version.CutAt.Should().BeNull();
+        version.ReleasedAt.Should().BeNull();
         outcome.CreatedEntityId.Should().Be(version.Id);
     }
 
     [Fact]
-    public async Task CreateVersions_MakesARowWithACutDateReady()
+    public async Task CreateVersions_MakesARowWithACutMomentReady()
     {
         // Arrange
         var product = SeedProduct();
-        var cutDate = new LocalDate(2026, 3, 1);
+        var cutAt = Instant.FromUtc(2026, 3, 1, 15, 0);
 
         // Act
-        var result = await Run(Row(product.Id, cutDate: cutDate));
+        var result = await Run(Row(product.Id, cutAt: cutAt));
 
         // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();
 
         var version = _dbContext.Versions.Single();
         version.StatusId.Should().Be(_ready.Id);
-        version.CutDate.Should().Be(cutDate);
-        version.ReleasedDate.Should().BeNull();
+        version.CutAt.Should().Be(cutAt);
+        version.ReleasedAt.Should().BeNull();
     }
 
     [Fact]
@@ -196,39 +196,39 @@ public sealed class VersionImportDefinitionTests
     {
         // Arrange
         var product = SeedProduct();
-        var cutDate = new LocalDate(2026, 3, 1);
-        var releasedDate = new LocalDate(2026, 3, 15);
+        var cutAt = Instant.FromUtc(2026, 3, 1, 15, 0);
+        var releasedAt = Instant.FromUtc(2026, 3, 16, 2, 30);
 
         // Act
-        var result = await Run(Row(product.Id, cutDate: cutDate, releasedDate: releasedDate));
+        var result = await Run(Row(product.Id, cutAt: cutAt, releasedAt: releasedAt));
 
         // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();
 
         var version = _dbContext.Versions.Single();
         version.StatusId.Should().Be(_released.Id);
-        version.CutDate.Should().Be(cutDate);
-        version.ReleasedDate.Should().Be(releasedDate);
+        version.CutAt.Should().Be(cutAt);
+        version.ReleasedAt.Should().Be(releasedAt);
     }
 
     [Fact]
-    public async Task CreateVersions_ReleasesARowThatHasNoCutDate()
+    public async Task CreateVersions_ReleasesARowThatHasNoCutMoment()
     {
         // Arrange — cutting is not a prerequisite for shipping, which is what makes a historical backfill
         // possible: a version recorded after the fact rarely says when scope froze
         var product = SeedProduct();
-        var releasedDate = new LocalDate(2026, 3, 15);
+        var releasedAt = Instant.FromUtc(2026, 3, 16, 2, 30);
 
         // Act
-        var result = await Run(Row(product.Id, releasedDate: releasedDate));
+        var result = await Run(Row(product.Id, releasedAt: releasedAt));
 
         // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();
 
         var version = _dbContext.Versions.Single();
         version.StatusId.Should().Be(_released.Id);
-        version.CutDate.Should().BeNull();
-        version.ReleasedDate.Should().Be(releasedDate);
+        version.CutAt.Should().BeNull();
+        version.ReleasedAt.Should().Be(releasedAt);
     }
 
     [Fact]
@@ -240,7 +240,7 @@ public sealed class VersionImportDefinitionTests
 
         // Act
         var result = await Run(
-            Row(product.Id, cutDate: new LocalDate(2026, 3, 1), releasedDate: new LocalDate(2026, 3, 15)));
+            Row(product.Id, cutAt: Instant.FromUtc(2026, 3, 1, 15, 0), releasedAt: Instant.FromUtc(2026, 3, 16, 2, 30)));
 
         // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();

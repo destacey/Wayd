@@ -73,9 +73,9 @@ public sealed record ReleaseDto
                     .Select(product => NavigationDto.Create(product.Id, product.Key, product.Name))
                     .FirstOrDefault())
                 .FirstOrDefault())
-            .Map(dto => dto.ReleasedDate, rv => dbContext.Versions
+            .Map(dto => dto.ReleasedAt, rv => dbContext.Versions
                 .Where(version => version.Id == rv.VersionId)
-                .Select(version => version.ReleasedDate)
+                .Select(version => version.ReleasedAt)
                 .FirstOrDefault());
 
         config.NewConfig<ReleasePackageInclusion, ReleasePackageSummaryDto>()
@@ -83,9 +83,9 @@ public sealed record ReleaseDto
                 .Where(package => package.Id == rp.PackageId)
                 .Select(package => NavigationDto.Create(package.Id, package.Key, package.Version))
                 .FirstOrDefault())
-            .Map(dto => dto.ReleasedDate, rp => dbContext.ReleasePackages
+            .Map(dto => dto.ReleasedAt, rp => dbContext.ReleasePackages
                 .Where(package => package.Id == rp.PackageId)
-                .Select(package => package.ReleasedDate)
+                .Select(package => package.ReleasedAt)
                 .FirstOrDefault());
 
         config.NewConfig<Release, ReleaseDto>()
@@ -123,7 +123,7 @@ public sealed record ReleaseVersionDto
     /// Carried here so a reader can see at a glance which contents are still outstanding — the same
     /// fact the release's own <c>MarkReleased</c> refuses on.
     /// </remarks>
-    public LocalDate? ReleasedDate { get; init; }
+    public Instant? ReleasedAt { get; init; }
 }
 
 /// <summary>One package a release shipped.</summary>
@@ -133,5 +133,5 @@ public sealed record ReleasePackageSummaryDto
     public NavigationDto Package { get; init; } = default!;
 
     /// <summary>When that package shipped, or <c>null</c> while it has not.</summary>
-    public LocalDate? ReleasedDate { get; init; }
+    public Instant? ReleasedAt { get; init; }
 }

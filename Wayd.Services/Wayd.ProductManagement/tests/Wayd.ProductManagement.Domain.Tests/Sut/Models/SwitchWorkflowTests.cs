@@ -107,7 +107,7 @@ public sealed class SwitchWorkflowTests
         replacement.AddStatus("Pulled", null, StatusCategory.Removed, (int)ProductStatusAlias.Withdrawn, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         var sut = VersionOn(old);
-        sut.Cut(new LocalDate(2026, 9, 1),
+        sut.Cut(Instant.FromUtc(2026, 9, 1, 12, 0),
             StatusRef.From(old.Statuses.Single(s => s.Name == "Ready")),
             ProductName, EventActor.System, _dateTimeProvider.Now);
 

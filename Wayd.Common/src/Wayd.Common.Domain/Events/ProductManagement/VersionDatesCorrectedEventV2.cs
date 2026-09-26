@@ -4,24 +4,24 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A version's recorded target, cut or released date was corrected.
+/// A version's recorded target date, cut moment or released moment was corrected.
 /// </summary>
 /// <remarks>
-/// Distinct from <see cref="VersionCutEvent"/> and <see cref="VersionReleasedEvent"/>, which say the
+/// Distinct from <see cref="VersionCutEventV2"/> and <see cref="VersionReleasedEventV2"/>, which say the
 /// version moved. This says only that what was written down was wrong, so it carries both ends: the
 /// value that was replaced is the whole point of recording the correction.
 /// <para>
-/// Frozen at its published shape and never raised; <see cref="VersionDatesCorrectedEventV2"/> replaced it. Kept so every payload
-/// written as this type still deserializes into it, so neither its name nor its members may change.
+/// Supersedes <see cref="VersionDatesCorrectedEvent"/>, whose cut and released ends were calendar dates.
+/// A new type rather than a new version, because retyping a member breaks every consumer written against
+/// the old shape.
 /// </para>
 /// </remarks>
-[Obsolete("Superseded by VersionDatesCorrectedEventV2. Kept only to deserialize payloads already written as this type.")]
-public sealed record VersionDatesCorrectedEvent : DomainEvent<VersionDatesCorrectedEvent>, IDomainEventDescriptor, IProductManagementEvent
+public sealed record VersionDatesCorrectedEventV2 : DomainEvent<VersionDatesCorrectedEventV2>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;
 
     [JsonConstructor]
-    public VersionDatesCorrectedEvent(
+    public VersionDatesCorrectedEventV2(
         Guid id,
         int key,
         Guid productId,
@@ -29,13 +29,13 @@ public sealed record VersionDatesCorrectedEvent : DomainEvent<VersionDatesCorrec
         string number,
         LocalDate? fromTargetDate,
         LocalDate? toTargetDate,
-        LocalDate? fromCutDate,
-        LocalDate? toCutDate,
-        LocalDate? fromReleasedDate,
-        LocalDate? toReleasedDate,
+        Instant? fromCutAt,
+        Instant? toCutAt,
+        Instant? fromReleasedAt,
+        Instant? toReleasedAt,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "2.0")
     {
         Id = id;
         Key = key;
@@ -44,10 +44,10 @@ public sealed record VersionDatesCorrectedEvent : DomainEvent<VersionDatesCorrec
         Number = number;
         FromTargetDate = fromTargetDate;
         ToTargetDate = toTargetDate;
-        FromCutDate = fromCutDate;
-        ToCutDate = toCutDate;
-        FromReleasedDate = fromReleasedDate;
-        ToReleasedDate = toReleasedDate;
+        FromCutAt = fromCutAt;
+        ToCutAt = toCutAt;
+        FromReleasedAt = fromReleasedAt;
+        ToReleasedAt = toReleasedAt;
 
         Timestamp = timestamp;
     }
@@ -59,10 +59,10 @@ public sealed record VersionDatesCorrectedEvent : DomainEvent<VersionDatesCorrec
     public string Number { get; }
     public LocalDate? FromTargetDate { get; }
     public LocalDate? ToTargetDate { get; }
-    public LocalDate? FromCutDate { get; }
-    public LocalDate? ToCutDate { get; }
-    public LocalDate? FromReleasedDate { get; }
-    public LocalDate? ToReleasedDate { get; }
+    public Instant? FromCutAt { get; }
+    public Instant? ToCutAt { get; }
+    public Instant? FromReleasedAt { get; }
+    public Instant? ToReleasedAt { get; }
 
     [JsonIgnore]
     public string AggregateType => "Version";

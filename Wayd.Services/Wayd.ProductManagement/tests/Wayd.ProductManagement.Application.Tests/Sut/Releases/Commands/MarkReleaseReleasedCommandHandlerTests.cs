@@ -87,7 +87,7 @@ public sealed class MarkReleaseReleasedCommandHandlerTests : ProductCommandTestB
         var product = SeedProduct();
         var version = SeedVersion(product.Id);
         version.MarkReleased(
-            new LocalDate(2026, 7, 20),
+            Instant.FromUtc(2026, 7, 20, 12, 0),
             Status("Released", StatusCategory.Done, ProductStatusAlias.Released),
             product.Name,
             Wayd.Common.Domain.Events.EventActor.System,

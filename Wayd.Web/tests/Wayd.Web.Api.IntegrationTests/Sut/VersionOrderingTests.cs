@@ -44,7 +44,7 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
     }
 
     private static async Task<Guid> SeedVersion(
-        IDispatcher dispatcher, Guid productId, string version, long? sequence, LocalDate? released)
+        IDispatcher dispatcher, Guid productId, string version, long? sequence, Instant? released)
     {
         var planned = await dispatcher.Send(
             new PlanVersionCommand(productId, version, null, null, sequence),
@@ -63,16 +63,16 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task GetVersions_ForOneProduct_OrdersBySequenceWithinTheSameReleasedDate()
+    public async Task GetVersions_ForOneProduct_OrdersBySequenceWithinTheSameReleasedMoment()
     {
-        // Arrange — two versions of one product shipped the same day, so the date cannot separate them
+        // Arrange — two versions of one product shipped at the same moment, so it cannot separate them
         // and only the sequence can.
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
 
         var productId = await SeedProduct(dispatcher, dbContext);
-        var shipped = new LocalDate(2026, 4, 20);
+        var shipped = Instant.FromUtc(2026, 4, 20, 14, 0);
 
         var lower = await SeedVersion(dispatcher, productId, "4.8.1", 10, shipped);
         var higher = await SeedVersion(dispatcher, productId, "4.8.2", 20, shipped);
@@ -88,16 +88,16 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
     [Fact]
     public async Task GetVersions_AcrossProducts_IgnoresSequence()
     {
-        // Arrange — one version per product, shipped the same day, sequenced so that honouring the
-        // sequence would invert the order a date-only sort produces. A sequence set to order one
-        // product's versions must not move another product's version that happens to share a date.
+        // Arrange — one version per product, shipped at the same moment, sequenced so that honouring the
+        // sequence would invert the order a moment-only sort produces. A sequence set to order one
+        // product's versions must not move another product's version that happens to share a moment.
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
 
         var firstProduct = await SeedProduct(dispatcher, dbContext);
         var secondProduct = await SeedProduct(dispatcher, dbContext);
-        var shipped = new LocalDate(2026, 4, 21);
+        var shipped = Instant.FromUtc(2026, 4, 21, 14, 0);
 
         var lowSequence = await SeedVersion(dispatcher, firstProduct, "1.0", 10, shipped);
         var highSequence = await SeedVersion(dispatcher, secondProduct, "2026.04", 99, shipped);
@@ -110,13 +110,13 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
         // of a number that only means something within its own product.
         var ours = versions.Where(r => r.Id == lowSequence || r.Id == highSequence).ToList();
         Assert.Equal(2, ours.Count);
-        Assert.All(ours, r => Assert.Equal(shipped, r.ReleasedDate));
+        Assert.All(ours, r => Assert.Equal(shipped, r.ReleasedAt));
     }
 
     [Fact]
     public async Task GetVersions_PutsUnreleasedFirst()
     {
-        // Arrange — a planned version has no date to sort on, and belongs at the top rather than the
+        // Arrange — a planned version has no moment to sort on, and belongs at the top rather than the
         // bottom: what is coming matters more than what already shipped.
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
@@ -125,7 +125,7 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
         var productId = await SeedProduct(dispatcher, dbContext);
 
         var shippedVersion = await SeedVersion(
-            dispatcher, productId, "1.0", null, new LocalDate(2026, 4, 20));
+            dispatcher, productId, "1.0", null, Instant.FromUtc(2026, 4, 20, 12, 0));
         var plannedVersion = await SeedVersion(dispatcher, productId, "2.0", null, null);
 
         // Act
@@ -149,7 +149,7 @@ public sealed class VersionOrderingTests(WaydSqlServerApiFactory factory)
         var trackingContext = scope.ServiceProvider.GetRequiredService<WaydDbContext>();
 
         var productId = await SeedProduct(dispatcher, dbContext);
-        await SeedVersion(dispatcher, productId, "3.0", null, new LocalDate(2026, 4, 22));
+        await SeedVersion(dispatcher, productId, "3.0", null, Instant.FromUtc(2026, 4, 22, 12, 0));
 
         // The seeding above tracked entities of its own; only what the query adds is in question.
         trackingContext.ChangeTracker.Clear();

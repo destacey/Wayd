@@ -41,12 +41,12 @@ public sealed class MarkReleasePackageReleasedCommandHandlerTests : ProductComma
 
         // Act
         var result = await sut.Handle(
-            new MarkReleasePackageReleasedCommand(package.Id, new LocalDate(2026, 6, 2)),
+            new MarkReleasePackageReleasedCommand(package.Id, Instant.FromUtc(2026, 6, 3, 1, 45)),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        package.ReleasedDate.Should().Be(new LocalDate(2026, 6, 2));
+        package.ReleasedAt.Should().Be(Instant.FromUtc(2026, 6, 3, 1, 45));
         package.StatusCategory.Should().Be(StatusCategory.Done);
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -59,7 +59,7 @@ public sealed class MarkReleasePackageReleasedCommandHandlerTests : ProductComma
 
         // Act
         var result = await sut.Handle(
-            new MarkReleasePackageReleasedCommand(Guid.CreateVersion7(), new LocalDate(2026, 6, 2)),
+            new MarkReleasePackageReleasedCommand(Guid.CreateVersion7(), Instant.FromUtc(2026, 6, 3, 1, 45)),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -80,7 +80,7 @@ public sealed class MarkReleasePackageReleasedCommandHandlerTests : ProductComma
 
         // Act
         var result = await sut.Handle(
-            new MarkReleasePackageReleasedCommand(package.Id, new LocalDate(2026, 6, 2)),
+            new MarkReleasePackageReleasedCommand(package.Id, Instant.FromUtc(2026, 6, 3, 1, 45)),
             TestContext.Current.CancellationToken);
 
         // Assert

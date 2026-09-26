@@ -252,7 +252,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
         Guid id, [FromBody] MarkReleasePackageReleasedRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(
-            new MarkReleasePackageReleasedCommand(id, request.ReleasedDate), cancellationToken);
+            new MarkReleasePackageReleasedCommand(id, request.ReleasedAt), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -262,15 +262,15 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Correct a package's recorded target and released dates.",
-        "Fixes dates entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released date can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.")]
+        "Correct a package's recorded target date and released moment.",
+        "Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
         Guid id, [FromBody] CorrectReleasePackageDatesRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(
-            new CorrectReleasePackageDatesCommand(id, request.TargetDate, request.ReleasedDate),
+            new CorrectReleasePackageDatesCommand(id, request.TargetDate, request.ReleasedAt),
             cancellationToken);
 
         return result.IsSuccess

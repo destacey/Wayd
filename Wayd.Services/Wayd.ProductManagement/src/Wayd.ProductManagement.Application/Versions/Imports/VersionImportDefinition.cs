@@ -23,7 +23,7 @@ namespace Wayd.ProductManagement.Application.Versions.Imports;
 /// </summary>
 /// <remarks>
 /// There is no status column. A version's status follows from what happened to it: a row with no dates is
-/// planned, a cut date makes it ready, and a released date makes it released. Replaying the transitions
+/// planned, a cut moment makes it ready, and a released moment makes it released. Replaying the transitions
 /// rather than assigning a status is what gives an imported version the same status history a hand-entered
 /// one would have.
 /// <para>
@@ -171,16 +171,16 @@ public sealed class VersionImportDefinition(
         EventActor actor,
         Instant timestamp)
     {
-        if (data.CutDate is not null)
+        if (data.CutAt is not null)
         {
-            var cut = version.Cut(data.CutDate.Value, statuses.Ready, productName, actor, timestamp);
+            var cut = version.Cut(data.CutAt.Value, statuses.Ready, productName, actor, timestamp);
             if (cut.IsFailure)
                 return Result.Failure($"Could not cut version '{data.Number}' for product '{productName}': {cut.Error}");
         }
 
-        if (data.ReleasedDate is not null)
+        if (data.ReleasedAt is not null)
         {
-            var released = version.MarkReleased(data.ReleasedDate.Value, statuses.Released, productName, actor, timestamp);
+            var released = version.MarkReleased(data.ReleasedAt.Value, statuses.Released, productName, actor, timestamp);
             if (released.IsFailure)
                 return Result.Failure($"Could not release version '{data.Number}' for product '{productName}': {released.Error}");
         }

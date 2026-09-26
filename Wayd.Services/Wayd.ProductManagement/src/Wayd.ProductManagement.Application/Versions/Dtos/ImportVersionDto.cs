@@ -9,10 +9,10 @@ namespace Wayd.ProductManagement.Application.Versions.Dtos;
 /// no unique index — two products may share one.
 /// </para>
 /// <para>
-/// The dates decide where the version ends up, which is why there is no status column. A row with
-/// neither date is planned, one with a cut date is ready, and one with a released date has shipped —
+/// The moments decide where the version ends up, which is why there is no status column. A row with
+/// neither is planned, one with a cut moment is ready, and one with a released moment has shipped —
 /// the same three steps a person walks through by hand, replayed in order so the status history
-/// matches. A released date without a cut date is legitimate and deliberately supported: a version
+/// matches. A released moment without a cut moment is legitimate and deliberately supported: a version
 /// recorded after the fact often has no record of when scope froze.
 /// </para>
 /// </summary>
@@ -21,8 +21,8 @@ public sealed record ImportVersionDto(
     string Number,
     string? Name,
     LocalDate? TargetDate,
-    LocalDate? CutDate,
-    LocalDate? ReleasedDate,
+    Instant? CutAt,
+    Instant? ReleasedAt,
     long? Sequence,
     string? Notes);
 
@@ -43,8 +43,8 @@ public sealed class ImportVersionDtoValidator : AbstractValidator<ImportVersionD
             .MaximumLength(128);
 
         // The one ordering rule the domain keeps: a version cannot ship before it was cut.
-        RuleFor(v => v.ReleasedDate)
-            .Must((row, released) => released is null || row.CutDate is null || released >= row.CutDate)
-                .WithMessage("The released date cannot be before the cut date.");
+        RuleFor(v => v.ReleasedAt)
+            .Must((row, released) => released is null || row.CutAt is null || released >= row.CutAt)
+                .WithMessage("A version cannot be released before it was cut.");
     }
 }

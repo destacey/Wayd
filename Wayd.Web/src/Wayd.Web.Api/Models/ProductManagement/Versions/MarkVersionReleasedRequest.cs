@@ -6,8 +6,8 @@
 public sealed record MarkVersionReleasedRequest
 {
     /// <summary>
-    /// The date it shipped. This is what orders a version history, so it is supplied rather than taken
-    /// from the clock.
+    /// The moment it shipped. This is what orders a version history, so it is supplied rather than
+    /// taken from the clock.
     /// </summary>
-    public LocalDate ReleasedDate { get; set; }
+    public Instant ReleasedAt { get; set; }
 }

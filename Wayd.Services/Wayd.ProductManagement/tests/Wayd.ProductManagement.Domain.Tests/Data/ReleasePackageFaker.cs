@@ -14,7 +14,7 @@ public sealed class ReleasePackageFaker : PrivateConstructorFaker<ReleasePackage
         RuleFor(x => x.Version, f => $"{f.Date.Past().Year}.{f.Random.Int(1, 52):00}");
         RuleFor(x => x.Name, f => null);
         RuleFor(x => x.TargetDate, f => null);
-        RuleFor(x => x.ReleasedDate, f => null);
+        RuleFor(x => x.ReleasedAt, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
         // A real record always has one: ApplyStatus sets it from the StatusRef it is given,
         // and building the outgoing side of a transition needs it.
@@ -61,9 +61,9 @@ public static class ReleasePackageFakerExtensions
         return faker;
     }
 
-    public static ReleasePackageFaker WithReleasedDate(this ReleasePackageFaker faker, LocalDate? releasedDate)
+    public static ReleasePackageFaker WithReleasedAt(this ReleasePackageFaker faker, Instant? releasedAt)
     {
-        faker.RuleFor(x => x.ReleasedDate, releasedDate);
+        faker.RuleFor(x => x.ReleasedAt, releasedAt);
 
         return faker;
     }

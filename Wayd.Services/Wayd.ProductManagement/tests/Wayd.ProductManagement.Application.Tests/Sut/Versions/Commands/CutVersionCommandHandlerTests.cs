@@ -44,11 +44,11 @@ public sealed class CutVersionCommandHandlerTests : ProductCommandTestBase
 
         // Act
         var result = await sut.Handle(
-            new CutVersionCommand(version.Id, new LocalDate(2026, 5, 1)), TestContext.Current.CancellationToken);
+            new CutVersionCommand(version.Id, Instant.FromUtc(2026, 5, 1, 12, 0)), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        version.CutDate.Should().Be(new LocalDate(2026, 5, 1));
+        version.CutAt.Should().Be(Instant.FromUtc(2026, 5, 1, 12, 0));
         version.StatusId.Should().Be(_ready.StatusId);
     }
 
@@ -62,7 +62,7 @@ public sealed class CutVersionCommandHandlerTests : ProductCommandTestBase
 
         // Act
         await sut.Handle(
-            new CutVersionCommand(version.Id, new LocalDate(2026, 5, 1)), TestContext.Current.CancellationToken);
+            new CutVersionCommand(version.Id, Instant.FromUtc(2026, 5, 1, 12, 0)), TestContext.Current.CancellationToken);
 
         // Assert
         // Asking for the meaning rather than a fixed id is what lets an organization rename or reorder
@@ -80,17 +80,17 @@ public sealed class CutVersionCommandHandlerTests : ProductCommandTestBase
         var product = SeedProduct();
         var version = SeedVersion(product.Id);
         var sut = CreateSut();
-        await sut.Handle(new CutVersionCommand(version.Id, new LocalDate(2026, 5, 1)), TestContext.Current.CancellationToken);
+        await sut.Handle(new CutVersionCommand(version.Id, Instant.FromUtc(2026, 5, 1, 12, 0)), TestContext.Current.CancellationToken);
 
         // Act
         var result = await sut.Handle(
-            new CutVersionCommand(version.Id, new LocalDate(2026, 6, 1)), TestContext.Current.CancellationToken);
+            new CutVersionCommand(version.Id, Instant.FromUtc(2026, 6, 1, 12, 0)), TestContext.Current.CancellationToken);
 
         // Assert
         // Cutting freezes scope, so doing it twice would silently move the line.
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This version has already been cut.");
-        version.CutDate.Should().Be(new LocalDate(2026, 5, 1));
+        version.CutAt.Should().Be(Instant.FromUtc(2026, 5, 1, 12, 0));
     }
 
     [Fact]
@@ -108,12 +108,12 @@ public sealed class CutVersionCommandHandlerTests : ProductCommandTestBase
 
         // Act
         var result = await sut.Handle(
-            new CutVersionCommand(version.Id, new LocalDate(2026, 5, 1)), TestContext.Current.CancellationToken);
+            new CutVersionCommand(version.Id, Instant.FromUtc(2026, 5, 1, 12, 0)), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("'Custom' has no status for Ready.");
-        version.CutDate.Should().BeNull();
+        version.CutAt.Should().BeNull();
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public sealed class CutVersionCommandHandlerTests : ProductCommandTestBase
 
         // Act
         var result = await sut.Handle(
-            new CutVersionCommand(Guid.CreateVersion7(), new LocalDate(2026, 5, 1)),
+            new CutVersionCommand(Guid.CreateVersion7(), Instant.FromUtc(2026, 5, 1, 12, 0)),
             TestContext.Current.CancellationToken);
 
         // Assert

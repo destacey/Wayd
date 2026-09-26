@@ -18,13 +18,13 @@ public sealed class CorrectReleasePackageDatesCommandHandlerTests : ProductComma
         new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, Logger<CorrectReleasePackageDatesCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
-    public async Task Handle_ShouldCorrectTheReleasedDate_WithoutMovingTheStatus()
+    public async Task Handle_ShouldCorrectTheReleasedMoment_WithoutMovingTheStatus()
     {
         // Arrange
         var product = SeedProduct();
         var package = SeedReleasePackage(product.Id);
         package.MarkReleased(
-            new LocalDate(2026, 9, 18), Status("Released", StatusCategory.Done, ProductStatusAlias.Released), EventActor.System, Now);
+            Instant.FromUtc(2026, 9, 18, 2, 30), Status("Released", StatusCategory.Done, ProductStatusAlias.Released), EventActor.System, Now);
         package.ClearDomainEvents();
         var statusBefore = package.StatusId;
         var transitionsBefore = package.StatusTransitions.Count;
@@ -32,20 +32,20 @@ public sealed class CorrectReleasePackageDatesCommandHandlerTests : ProductComma
 
         // Act
         var result = await sut.Handle(
-            new CorrectReleasePackageDatesCommand(package.Id, null, new LocalDate(2026, 9, 17)),
+            new CorrectReleasePackageDatesCommand(package.Id, null, Instant.FromUtc(2026, 9, 17, 2, 30)),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        package.ReleasedDate.Should().Be(new LocalDate(2026, 9, 17));
+        package.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 17, 2, 30));
         package.StatusId.Should().Be(statusBefore);
         package.StatusTransitions.Should().HaveCount(transitionsBefore);
-        package.DomainEvents.Should().ContainSingle(e => e is PackageDatesCorrectedEvent);
+        package.DomainEvents.Should().ContainSingle(e => e is PackageDatesCorrectedEventV2);
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenAddingAReleasedDateToAnUnreleasedPackage()
+    public async Task Handle_ShouldFail_WhenAddingAReleasedMomentToAnUnreleasedPackage()
     {
         // Arrange
         var product = SeedProduct();
@@ -54,12 +54,12 @@ public sealed class CorrectReleasePackageDatesCommandHandlerTests : ProductComma
 
         // Act
         var result = await sut.Handle(
-            new CorrectReleasePackageDatesCommand(package.Id, null, new LocalDate(2026, 9, 17)),
+            new CorrectReleasePackageDatesCommand(package.Id, null, Instant.FromUtc(2026, 9, 17, 2, 30)),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        package.ReleasedDate.Should().BeNull();
+        package.ReleasedAt.Should().BeNull();
         package.DomainEvents.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }

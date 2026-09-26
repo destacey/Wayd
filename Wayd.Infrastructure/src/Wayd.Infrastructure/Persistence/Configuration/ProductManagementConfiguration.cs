@@ -244,7 +244,7 @@ public class VersionConfiguration : IEntityTypeConfiguration<Version>
         builder.HasKey(v => v.Id);
         builder.HasAlternateKey(v => v.Key);
 
-        builder.HasIndex(v => new { v.ProductId, v.ReleasedDate })
+        builder.HasIndex(v => new { v.ProductId, v.ReleasedAt })
             .IncludeProperties(v => new { v.Id, v.Key, v.Number, v.Name, v.Sequence, v.StatusCategory });
 
         // Deliberately NOT unique: duplicate version numbers within a product warn rather than block,
@@ -262,8 +262,8 @@ public class VersionConfiguration : IEntityTypeConfiguration<Version>
         builder.Property(v => v.Name).HasMaxLength(256);
         builder.Property(v => v.Sequence);
         builder.Property(v => v.TargetDate);
-        builder.Property(v => v.CutDate);
-        builder.Property(v => v.ReleasedDate);
+        builder.Property(v => v.CutAt);
+        builder.Property(v => v.ReleasedAt);
         builder.Property(v => v.Notes).HasMaxLength(4000);
 
         builder.Property(v => v.StatusId).IsRequired();
@@ -423,7 +423,7 @@ public class ReleasePackageConfiguration : IEntityTypeConfiguration<ReleasePacka
         builder.HasKey(p => p.Id);
         builder.HasAlternateKey(p => p.Key);
 
-        builder.HasIndex(p => p.ReleasedDate)
+        builder.HasIndex(p => p.ReleasedAt)
             .IncludeProperties(p => new { p.Id, p.Key, p.Version, p.Name, p.StatusCategory });
 
         builder.Property(p => p.Id).ValueGeneratedNever();
@@ -432,7 +432,7 @@ public class ReleasePackageConfiguration : IEntityTypeConfiguration<ReleasePacka
         builder.Property(p => p.Version).IsRequired().HasMaxLength(128);
         builder.Property(p => p.Name).HasMaxLength(256);
         builder.Property(p => p.TargetDate);
-        builder.Property(p => p.ReleasedDate);
+        builder.Property(p => p.ReleasedAt);
 
         builder.Property(p => p.StatusId).IsRequired();
         builder.Property(p => p.StatusWorkflowId).IsRequired();

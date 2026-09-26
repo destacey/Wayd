@@ -10,7 +10,7 @@ namespace Wayd.ProductManagement.Application.Versions.Queries;
 /// Versions, newest first.
 /// </summary>
 /// <remarks>
-/// Ordered by released date then sequence, with undated (planned) versions first — never by version,
+/// Ordered by released moment then sequence, with unreleased (planned) versions first — never by version,
 /// which is free text.
 /// </remarks>
 public sealed record GetVersionsQuery(
@@ -39,13 +39,13 @@ public sealed class GetVersionsQueryHandler(IProductManagementDbContext productM
 
         var ordered = versions
             .ProjectToType<VersionDto>()
-            .OrderByDescending(r => r.ReleasedDate == null)
-            .ThenByDescending(r => r.ReleasedDate);
+            .OrderByDescending(r => r.ReleasedAt == null)
+            .ThenByDescending(r => r.ReleasedAt);
 
         // Sequence orders one product's versions against each other and means nothing across
         // products — 4.8.2 of one has no position relative to 2026.04 of another beyond the date they
         // shipped. Applying it to a mixed list would let an ordering set for one product move a
-        // second product's version that happens to share a released date.
+        // second product's version that happens to share a released moment.
         return await (query.ProductId is not null
                 ? ordered.ThenByDescending(r => r.Sequence)
                 : ordered)

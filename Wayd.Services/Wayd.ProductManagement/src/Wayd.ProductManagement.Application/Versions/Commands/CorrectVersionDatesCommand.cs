@@ -1,16 +1,16 @@
 ﻿namespace Wayd.ProductManagement.Application.Versions.Commands;
 
 /// <summary>
-/// Corrects a version's recorded target, cut and released dates.
+/// Corrects a version's recorded target date and cut and released moments.
 /// </summary>
 /// <remarks>
 /// Separate from cutting and releasing, which assert that the version moved and so refuse to run
-/// twice. This asserts only that a date was written down wrongly, and leaves the status alone — the
+/// twice. This asserts only that a value was written down wrongly, and leaves the status alone — the
 /// alternative was to withdraw a version and version it again, which writes two status transitions
 /// that never happened.
 /// <para>
-/// Every date is sent, so an omitted one clears it. The target and cut dates may be added, changed or
-/// cleared freely; the released date may be added or changed but not cleared, because emptying it
+/// Every value is sent, so an omitted one clears it. The target date and cut moment may be added, changed
+/// or cleared freely; the released moment may be added or changed but not cleared, because emptying it
 /// would leave a released record contradicting its own status —
 /// <c>RevertVersionReleaseCommand</c> is the action for that.
 /// </para>
@@ -18,8 +18,8 @@
 public sealed record CorrectVersionDatesCommand(
     Guid Id,
     LocalDate? TargetDate,
-    LocalDate? CutDate,
-    LocalDate? ReleasedDate)
+    Instant? CutAt,
+    Instant? ReleasedAt)
     : ICommand, IRequireLinkedEmployee;
 
 public sealed class CorrectVersionDatesCommandValidator : AbstractValidator<CorrectVersionDatesCommand>
@@ -71,8 +71,8 @@ public sealed class CorrectVersionDatesCommandHandler(
 
             var result = version.CorrectDates(
                 request.TargetDate,
-                request.CutDate,
-                request.ReleasedDate,
+                request.CutAt,
+                request.ReleasedAt,
                 productName,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);

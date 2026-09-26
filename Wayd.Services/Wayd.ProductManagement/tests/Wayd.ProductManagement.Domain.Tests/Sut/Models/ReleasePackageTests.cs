@@ -118,7 +118,7 @@ public sealed class ReleasePackageTests
         var sut = ReleasePackage.Create("2026.35", null, null, Manifest(changed: 2, carriedForward: 3), proposed, EventActor.System, _dateTimeProvider.Now).Value;
 
         // Act
-        sut.MarkReleased(new LocalDate(2026, 8, 31), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
+        sut.MarkReleased(Instant.FromUtc(2026, 9, 1, 2, 30), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
         sut.ExecutePostPersistenceActions();
 
         // Assert
@@ -231,7 +231,7 @@ public sealed class ReleasePackageTests
         var components = Manifest(changed: 2, carriedForward: 1)
             .Select(c => new ReleasePackageComponent(Guid.CreateVersion7(), c.ProductId, c.ReleaseId, c.Version, c.Kind));
         var sut = _faker.WithComponents(components).Generate();
-        sut.MarkReleased(new LocalDate(2026, 8, 28), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
+        sut.MarkReleased(Instant.FromUtc(2026, 8, 29, 2, 30), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = sut.SetManifest(Manifest(changed: 1, carriedForward: 0), EventActor.System, _dateTimeProvider.Now);
@@ -246,21 +246,22 @@ public sealed class ReleasePackageTests
     #region MarkReleased
 
     [Fact]
-    public void MarkReleased_ShouldRecordTheShipDate()
+    public void MarkReleased_ShouldRecordTheShipMoment()
     {
         // Arrange
         var components = Manifest(changed: 2, carriedForward: 1)
             .Select(c => new ReleasePackageComponent(Guid.CreateVersion7(), c.ProductId, c.ReleaseId, c.Version, c.Kind));
         var sut = _faker.WithComponents(components).Generate();
-        var releasedDate = new LocalDate(2026, 8, 28);
+        var releasedAt = Instant.FromUtc(2026, 8, 29, 2, 30);
 
         // Act
-        var result = sut.MarkReleased(releasedDate, StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.MarkReleased(releasedAt, StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.ReleasedDate.Should().Be(releasedDate);
-        sut.DomainEvents.Should().ContainSingle(e => e is PackageReleasedEvent);
+        sut.ReleasedAt.Should().Be(releasedAt);
+        sut.DomainEvents.OfType<PackageReleasedEventV2>().Should().ContainSingle()
+            .Which.ReleasedAt.Should().Be(releasedAt);
     }
 
     [Fact]
@@ -272,7 +273,7 @@ public sealed class ReleasePackageTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.MarkReleased(new LocalDate(2026, 8, 28), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.MarkReleased(Instant.FromUtc(2026, 8, 29, 2, 30), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -288,20 +289,20 @@ public sealed class ReleasePackageTests
     {
         // Arrange
         var sut = _faker
-            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithReleasedAt(Instant.FromUtc(2026, 9, 18, 2, 30))
             .WithStatusCategory(StatusCategory.Done)
             .Generate();
         var statusBefore = sut.StatusId;
 
         // Act
         var result = sut.CorrectDates(
-            new LocalDate(2026, 9, 15), new LocalDate(2026, 9, 17), EventActor.System, _dateTimeProvider.Now);
+            new LocalDate(2026, 9, 15), Instant.FromUtc(2026, 9, 17, 2, 30), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // A correction says what was written down was wrong, not that the package moved.
         result.IsSuccess.Should().BeTrue();
         sut.TargetDate.Should().Be(new LocalDate(2026, 9, 15));
-        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 17));
+        sut.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 17, 2, 30));
         sut.StatusId.Should().Be(statusBefore);
         sut.StatusCategory.Should().Be(StatusCategory.Done);
         sut.StatusTransitions.Should().BeEmpty();
@@ -313,22 +314,22 @@ public sealed class ReleasePackageTests
         // Arrange
         var sut = _faker
             .WithTargetDate(new LocalDate(2026, 9, 16))
-            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithReleasedAt(Instant.FromUtc(2026, 9, 18, 2, 30))
             .WithStatusCategory(StatusCategory.Done)
             .Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 17), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 17, 2, 30), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var raised = sut.DomainEvents.OfType<PackageDatesCorrectedEvent>().Should().ContainSingle().Subject;
+        var raised = sut.DomainEvents.OfType<PackageDatesCorrectedEventV2>().Should().ContainSingle().Subject;
         raised.Id.Should().Be(sut.Id);
         raised.Version.Should().Be(sut.Version);
         raised.FromTargetDate.Should().Be(new LocalDate(2026, 9, 16));
         raised.ToTargetDate.Should().BeNull();
-        raised.FromReleasedDate.Should().Be(new LocalDate(2026, 9, 18));
-        raised.ToReleasedDate.Should().Be(new LocalDate(2026, 9, 17));
+        raised.FromReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 18, 2, 30));
+        raised.ToReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 17, 2, 30));
     }
 
     [Fact]
@@ -343,8 +344,8 @@ public sealed class ReleasePackageTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.TargetDate.Should().Be(new LocalDate(2026, 9, 23));
-        sut.ReleasedDate.Should().BeNull();
-        sut.DomainEvents.Should().ContainSingle(e => e is PackageDatesCorrectedEvent);
+        sut.ReleasedAt.Should().BeNull();
+        sut.DomainEvents.Should().ContainSingle(e => e is PackageDatesCorrectedEventV2);
     }
 
     [Fact]
@@ -353,25 +354,25 @@ public sealed class ReleasePackageTests
         // Arrange
         var sut = _faker
             .WithTargetDate(new LocalDate(2026, 9, 16))
-            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithReleasedAt(Instant.FromUtc(2026, 9, 18, 2, 30))
             .WithStatusCategory(StatusCategory.Done)
             .Generate();
 
         // Act
         var result = sut.CorrectDates(
-            new LocalDate(2026, 9, 16), new LocalDate(2026, 9, 18), EventActor.System, _dateTimeProvider.Now);
+            new LocalDate(2026, 9, 16), Instant.FromUtc(2026, 9, 18, 2, 30), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.DomainEvents.Should().NotContain(e => e is PackageDatesCorrectedEvent);
+        sut.DomainEvents.Should().NotContain(e => e is PackageDatesCorrectedEventV2);
     }
 
     [Fact]
-    public void CorrectDates_ShouldFail_WhenClearingTheReleasedDate()
+    public void CorrectDates_ShouldFail_WhenClearingTheReleasedMoment()
     {
         // Arrange
         var sut = _faker
-            .WithReleasedDate(new LocalDate(2026, 9, 18))
+            .WithReleasedAt(Instant.FromUtc(2026, 9, 18, 2, 30))
             .WithStatusCategory(StatusCategory.Done)
             .Generate();
 
@@ -381,34 +382,34 @@ public sealed class ReleasePackageTests
         // Assert
         // Clearing it would unlock the manifest of a package that already shipped.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A released package cannot have its released date removed.");
-        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 18));
+        result.Error.Should().Be("A released package cannot have its released moment removed.");
+        sut.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 18, 2, 30));
     }
 
     [Fact]
-    public void CorrectDates_ShouldFail_WhenAddingAReleasedDateToAnUnreleasedPackage()
+    public void CorrectDates_ShouldFail_WhenAddingAReleasedMomentToAnUnreleasedPackage()
     {
         // Arrange
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 18), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 18, 2, 30), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        // A released date alone would lock the manifest and block MarkReleased while the status stays put.
+        // A released moment alone would lock the manifest and block MarkReleased while the status stays put.
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Mark the package released instead");
-        sut.ReleasedDate.Should().BeNull();
+        sut.ReleasedAt.Should().BeNull();
     }
 
     [Fact]
     public void CorrectDates_ShouldFail_WhenWithdrawn()
     {
         // Arrange
-        var sut = _faker.WithReleasedDate(new LocalDate(2026, 9, 18)).AsWithdrawn().Generate();
+        var sut = _faker.WithReleasedAt(Instant.FromUtc(2026, 9, 18, 2, 30)).AsWithdrawn().Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 17), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 17, 2, 30), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

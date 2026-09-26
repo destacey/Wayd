@@ -9,15 +9,15 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Dtos;
 /// there is nothing else to qualify it with, and its version is its only identifying field.
 /// </para>
 /// <para>
-/// Like a version, the dates decide where it ends up: a row with no released date is assembled, and
-/// one with a released date has shipped. A package is never "cut", so there is no middle step.
+/// Like a version, the dates decide where it ends up: a row with no released moment is assembled, and
+/// one with a released moment has shipped. A package is never "cut", so there is no middle step.
 /// </para>
 /// </summary>
 public sealed record ImportReleasePackageDto(
     string Version,
     string? Name,
     LocalDate? TargetDate,
-    LocalDate? ReleasedDate,
+    Instant? ReleasedAt,
     IReadOnlyList<ImportReleasePackageComponentDto> Components);
 
 /// <summary>

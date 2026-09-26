@@ -2,7 +2,6 @@
 using FluentAssertions;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Application.Dispatching;
-using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Infrastructure.Common.Services;
@@ -47,7 +46,6 @@ public class ServiceLayeringTests
         typeof(IDateTimeProvider),
         typeof(IUserService),
         typeof(ICurrentUser),
-        typeof(IEventPublisher),
     ];
 
     /// <summary>

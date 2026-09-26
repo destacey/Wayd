@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -52,24 +53,36 @@ internal partial class UserService
             }
         }
 
-        var result = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
-        if (!result.Succeeded)
+        var roleIdsByName = await GetRoleIdsByName(cancellationToken);
+
+        // The manager saves the removals and the additions separately; one transaction keeps a failed addition
+        // from leaving the removals, and the event recording both, committed on their own.
+        await _userIdentityStore.ExecuteInTransaction(async ct =>
         {
-            _logger.LogError("Failed to remove roles from user.");
-            throw new InternalServerException("Failed to remove roles from user.");
-        }
+            var result = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            if (!result.Succeeded)
+            {
+                _logger.LogError("Failed to remove roles from user.");
+                throw new InternalServerException("Failed to remove roles from user.");
+            }
 
-        // ADD ROLES
-        var rolesToAdd = command.RoleNames.Except(userCurrentRoles);
+            // Raised before the additions so their save records it.
+            user.RecordRolesChange(
+                RoleIds(userCurrentRoles, roleIdsByName),
+                RoleIds(command.RoleNames, roleIdsByName),
+                CurrentActor(),
+                _dateTimeProvider.Now);
 
-        result = await _userManager.AddToRolesAsync(user, rolesToAdd);
-        if (!result.Succeeded)
-        {
-            _logger.LogError("Failed to add roles to user.");
-            throw new InternalServerException("Failed to add roles to user.");
-        }
+            var rolesToAdd = command.RoleNames.Except(userCurrentRoles);
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now, true));
+            result = await _userManager.AddToRolesAsync(user, rolesToAdd);
+            if (!result.Succeeded)
+            {
+                user.ClearDomainEvents();
+                _logger.LogError("Failed to add roles to user.");
+                throw new InternalServerException("Failed to add roles to user.");
+            }
+        }, cancellationToken);
 
         return Result.Success();
     }
@@ -83,7 +96,7 @@ internal partial class UserService
             return Result.Failure("Role not found.");
 
         var roleName = role.Name!;
-        var usersUpdated = new List<string>();
+        var roleIdsByName = await GetRoleIdsByName(cancellationToken);
 
         // ADD USERS TO ROLE (first, so admin swap scenarios work correctly)
         foreach (var userId in command.UserIdsToAdd)
@@ -98,14 +111,12 @@ internal partial class UserService
             if (await _userManager.IsInRoleAsync(user, roleName))
                 continue;
 
-            var result = await _userManager.AddToRoleAsync(user, roleName);
+            var result = await AddToRoleRecorded(user, roleName, roleIdsByName, CurrentActor());
             if (!result.Succeeded)
             {
                 _logger.LogError("Failed to add user {UserId} to role {RoleName}.", userId, roleName);
                 return Result.Failure($"Failed to add user {userId} to role {roleName}.");
             }
-
-            usersUpdated.Add(user.Id);
         }
 
         // REMOVE USERS FROM ROLE
@@ -134,23 +145,66 @@ internal partial class UserService
                 if (!await _userManager.IsInRoleAsync(user, roleName))
                     continue;
 
+                var currentRoles = await _userManager.GetRolesAsync(user);
+                user.RecordRolesChange(
+                    RoleIds(currentRoles, roleIdsByName),
+                    RoleIds(currentRoles.Where(r => r != roleName), roleIdsByName),
+                    CurrentActor(),
+                    _dateTimeProvider.Now);
+
                 var result = await _userManager.RemoveFromRoleAsync(user, roleName);
                 if (!result.Succeeded)
                 {
+                    user.ClearDomainEvents();
                     _logger.LogError("Failed to remove user {UserId} from role {RoleName}.", userId, roleName);
                     return Result.Failure($"Failed to remove user {userId} from role {roleName}.");
                 }
-
-                usersUpdated.Add(user.Id);
             }
-        }
-
-        // PUBLISH EVENTS
-        foreach (var userId in usersUpdated)
-        {
-            await _events.PublishAsync(new ApplicationUserUpdatedEvent(userId, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now, true));
         }
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Adds the user to a role and records the change, raised before the manager's save so that save drains it.
+    /// A failed add clears it, since nothing was saved.
+    /// </summary>
+    private async Task<IdentityResult> AddToRoleRecorded(
+        ApplicationUser user, string roleName, IReadOnlyDictionary<string, string> roleIdsByName, EventActor actor)
+    {
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        user.RecordRolesChange(
+            RoleIds(currentRoles, roleIdsByName),
+            RoleIds(currentRoles.Append(roleName), roleIdsByName),
+            actor,
+            _dateTimeProvider.Now);
+
+        var result = await _userManager.AddToRoleAsync(user, roleName);
+        if (!result.Succeeded)
+        {
+            user.ClearDomainEvents();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Role ids keyed by role name. The manager works in names, and a role change records ids because a role can
+    /// be renamed.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, string>> GetRoleIdsByName(CancellationToken cancellationToken)
+    {
+        var roles = await _roleManager.Roles
+            .Select(r => new { r.Id, r.Name })
+            .ToListAsync(cancellationToken);
+
+        return roles.ToDictionary(r => r.Name!, r => r.Id, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <remarks>
+    /// A name with no role is left out rather than thrown on: the manager call that follows rejects it, and the
+    /// change is then discarded along with the event.
+    /// </remarks>
+    private static IEnumerable<string> RoleIds(IEnumerable<string> roleNames, IReadOnlyDictionary<string, string> roleIdsByName) =>
+        roleNames.Select(name => roleIdsByName.GetValueOrDefault(name)).OfType<string>();
 }

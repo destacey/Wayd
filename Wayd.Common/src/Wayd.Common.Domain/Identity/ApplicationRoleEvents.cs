@@ -1,9 +1,10 @@
-﻿using NodaTime;
+﻿using System.Text.Json.Serialization;
+using NodaTime;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.Common.Domain.Identity;
 
-public abstract record ApplicationRoleEvent<TSelf> : DomainEvent<TSelf>
+public abstract record ApplicationRoleEvent<TSelf> : DomainEvent<TSelf>, IAggregateEvent
     where TSelf : ApplicationRoleEvent<TSelf>, IDomainEventDescriptor
 {
     public string RoleId { get; set; } = default!;
@@ -11,6 +12,11 @@ public abstract record ApplicationRoleEvent<TSelf> : DomainEvent<TSelf>
     protected ApplicationRoleEvent(string roleId, string roleName, EventActor actor, Instant timestamp)
         : base(actor, "1.0") =>
         (RoleId, RoleName, Timestamp) = (roleId, roleName, timestamp);
+
+    [JsonIgnore]
+    public string AggregateType => "ApplicationRole";
+    [JsonIgnore]
+    public Guid AggregateId => Guid.Parse(RoleId);
 }
 
 public record ApplicationRoleCreatedEvent : ApplicationRoleEvent<ApplicationRoleCreatedEvent>, IDomainEventDescriptor
@@ -23,6 +29,7 @@ public record ApplicationRoleCreatedEvent : ApplicationRoleEvent<ApplicationRole
     }
 }
 
+[Obsolete("Superseded by ApplicationRoleDetailsUpdatedEvent and ApplicationRolePermissionsChangedEvent. Kept only to deserialize payloads already written as this type.")]
 public record ApplicationRoleUpdatedEvent : ApplicationRoleEvent<ApplicationRoleUpdatedEvent>, IDomainEventDescriptor
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
@@ -34,6 +41,7 @@ public record ApplicationRoleUpdatedEvent : ApplicationRoleEvent<ApplicationRole
         PermissionsUpdated = permissionsUpdated;
 }
 
+[Obsolete("Superseded by ApplicationRoleDeletedEventV2. Kept only to deserialize payloads already written as this type.")]
 public record ApplicationRoleDeletedEvent : ApplicationRoleEvent<ApplicationRoleDeletedEvent>, IDomainEventDescriptor
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Removed;

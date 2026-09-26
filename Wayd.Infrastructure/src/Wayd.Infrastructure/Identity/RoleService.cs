@@ -4,6 +4,7 @@ using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Domain.Events.Identity;
 
 namespace Wayd.Infrastructure.Identity;
 
@@ -13,7 +14,6 @@ internal class RoleService(
     WaydDbContext db,
     IOidcProviderDefaultRoleChecker defaultRoleChecker,
     ICurrentUser currentUser,
-    IEventPublisher events,
     IDateTimeProvider dateTimeProvider,
     ILogger<RoleService> logger) : IRoleService
 {
@@ -22,7 +22,6 @@ internal class RoleService(
     private readonly WaydDbContext _db = db;
     private readonly IOidcProviderDefaultRoleChecker _defaultRoleChecker = defaultRoleChecker;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly IEventPublisher _events = events;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RoleService> _logger = logger;
 
@@ -69,18 +68,18 @@ internal class RoleService(
 
             // Create a new role.
             var role = new ApplicationRole(request.Name, request.Description);
+            role.RecordCreation(CurrentActor(), _dateTimeProvider.Now);
             var result = await _roleManager.CreateAsync(role);
 
             if (!result.Succeeded)
             {
+                role.ClearDomainEvents();
                 _logger.LogWarning("Role create failed for {RoleName}: {Errors}",
                     request.Name, string.Join("; ", result.Errors.Select(e => e.Description)));
                 HandleValidationErrors(result);
 
                 throw new InternalServerException("Register role failed");
             }
-
-            await _events.PublishAsync(new ApplicationRoleCreatedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
             _logger.LogInformation("Role {RoleName} ({RoleId}) created by user {UserId}.", role.Name, role.Id, _currentUser.GetUserId());
 
@@ -105,19 +104,18 @@ internal class RoleService(
                 throw new ConflictException(string.Format("Not allowed to modify {0} Role.", role.Name));
             }
 
-            role.Update(request.Name, request.Description);
+            role.Update(request.Name, request.Description, CurrentActor(), _dateTimeProvider.Now);
             var result = await _roleManager.UpdateAsync(role);
 
             if (!result.Succeeded)
             {
+                role.ClearDomainEvents();
                 _logger.LogWarning("Role update failed for {RoleId}: {Errors}",
                     role.Id, string.Join("; ", result.Errors.Select(e => e.Description)));
                 HandleValidationErrors(result);
 
                 throw new InternalServerException("Update role failed");
             }
-
-            await _events.PublishAsync(new ApplicationRoleUpdatedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
             _logger.LogInformation("Role {RoleName} ({RoleId}) updated by user {UserId}.", role.Name, role.Id, _currentUser.GetUserId());
 
@@ -148,45 +146,38 @@ internal class RoleService(
         //    request.Permissions.RemoveAll(u => u.StartsWith("Permissions.Root."));
         //}
 
-        var currentClaims = await _roleManager.GetClaimsAsync(role);
+        var requested = request.Permissions
+            .Where(p => !string.IsNullOrEmpty(p))
+            .ToHashSet();
 
-        // Remove permissions that were previously selected
-        var removed = 0;
-        foreach (var claim in currentClaims.Where(c => !request.Permissions.Any(p => p == c.Value)))
+        var currentClaims = await _db.RoleClaims
+            .Where(c => c.RoleId == role.Id)
+            .ToListAsync(cancellationToken);
+        var currentValues = currentClaims.Select(c => c.ClaimValue!).ToHashSet();
+
+        var toRemove = currentClaims.Where(c => !requested.Contains(c.ClaimValue!)).ToList();
+        var toAdd = requested.Where(p => !currentValues.Contains(p)).ToList();
+
+        _db.RoleClaims.RemoveRange(toRemove);
+        _db.RoleClaims.AddRange(toAdd.Select(permission => new ApplicationRoleClaim
         {
-            var removeResult = await _roleManager.RemoveClaimAsync(role, claim);
-            if (!removeResult.Succeeded)
-            {
-                _logger.LogWarning("Role permissions update failed removing claim {Permission} from {RoleId}: {Errors}",
-                    claim.Value, role.Id, string.Join("; ", removeResult.Errors.Select(e => e.Description)));
-                return Result.Failure("Update permissions failed.");
-            }
+            RoleId = role.Id,
+            ClaimType = ApplicationClaims.Permission,
+            ClaimValue = permission,
+            CreatedBy = _currentUser.GetUserId()
+        }));
 
-            removed++;
-        }
+        role.RecordPermissionsChange(
+            currentClaims.Where(c => c.ClaimType == ApplicationClaims.Permission).Select(c => c.ClaimValue!),
+            requested,
+            CurrentActor(),
+            _dateTimeProvider.Now);
 
-        // Add all permissions that were not previously selected
-        var added = 0;
-        foreach (string permission in request.Permissions.Where(c => !currentClaims.Any(p => p.Value == c)))
-        {
-            if (!string.IsNullOrEmpty(permission))
-            {
-                _db.RoleClaims.Add(new ApplicationRoleClaim
-                {
-                    RoleId = role.Id,
-                    ClaimType = ApplicationClaims.Permission,
-                    ClaimValue = permission,
-                    CreatedBy = _currentUser.GetUserId()
-                });
-                await _db.SaveChangesAsync(cancellationToken);
-                added++;
-            }
-        }
-
-        await _events.PublishAsync(new ApplicationRoleUpdatedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now, true));
+        // One save, so the claims and the event recording them commit together.
+        await _db.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Role {RoleName} ({RoleId}) permissions updated by user {UserId}: {Added} added, {Removed} removed.",
-            role.Name, role.Id, _currentUser.GetUserId(), added, removed);
+            role.Name, role.Id, _currentUser.GetUserId(), toAdd.Count, toRemove.Count);
 
         return Result.Success();
     }
@@ -231,14 +222,25 @@ internal class RoleService(
                 role.Name, dependentProviders));
         }
 
-        await _roleManager.DeleteAsync(role);
+        role.RecordDeletion(CurrentActor(), _dateTimeProvider.Now);
+        var result = await _roleManager.DeleteAsync(role);
 
-        await _events.PublishAsync(new ApplicationRoleDeletedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
+        if (!result.Succeeded)
+        {
+            role.ClearDomainEvents();
+            _logger.LogWarning("Role delete failed for {RoleId}: {Errors}",
+                role.Id, string.Join("; ", result.Errors.Select(e => e.Description)));
+
+            throw new InternalServerException("Delete role failed");
+        }
 
         _logger.LogInformation("Role {RoleName} ({RoleId}) deleted by user {UserId}.", role.Name, role.Id, _currentUser.GetUserId());
 
         return string.Format("Role {0} Deleted.", role.Name);
     }
+
+    private EventActor CurrentActor() =>
+        _currentUser.GetUserId() is { Length: > 0 } userId ? EventActor.User(userId) : EventActor.Anonymous;
 
     /// <summary>Handles specific validation errors if they exist.</summary>
     /// <param name="result">The result.</param>

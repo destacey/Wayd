@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
@@ -82,6 +83,48 @@ public sealed class DomainEventSerializationTests
         roundTripped.InactiveDate.Should().Be(original.InactiveDate);
         roundTripped.IsActive.Should().Be(original.IsActive);
         roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void ApplicationUserRolesChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — string arrays bound through the constructor, one of them empty.
+        var original = new ApplicationUserRolesChangedEvent(
+            Guid.NewGuid().ToString(),
+            ["role-c"],
+            [],
+            ["role-a", "role-c"],
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Added.Should().Equal(original.Added);
+        roundTripped.Removed.Should().BeEmpty();
+        roundTripped.Roles.Should().Equal(original.Roles);
+    }
+
+    [Fact]
+    public void ApplicationRoleDetailsUpdatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — a nested record whose own members can be null.
+        var original = new ApplicationRoleDetailsUpdatedEvent(
+            Guid.NewGuid().ToString(),
+            "Lead Planner",
+            null,
+            new ApplicationRoleDetails("Planner", "Plans things"),
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Description.Should().BeNull();
+        roundTripped.Previous.Should().Be(original.Previous);
     }
 
     [Fact]

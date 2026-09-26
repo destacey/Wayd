@@ -3,14 +3,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Logging;
-using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Authorization;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Interfaces;
 using Wayd.Infrastructure.Identity;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
@@ -23,7 +25,6 @@ public class UserServiceTests
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<SignInManager<ApplicationUser>> _mockSignInManager;
     private readonly Mock<RoleManager<ApplicationRole>> _mockRoleManager;
-    private readonly Mock<IEventPublisher> _mockEvents;
     private readonly Mock<ILogger<UserService>> _mockLogger;
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly Mock<IDispatcher> _mockDispatcher;
@@ -51,7 +52,6 @@ public class UserServiceTests
         _mockRoleManager = new Mock<RoleManager<ApplicationRole>>(
             roleStore.Object, null!, null!, null!, null!);
 
-        _mockEvents = new Mock<IEventPublisher>();
         _mockLogger = new Mock<ILogger<UserService>>();
         _dateTimeProvider = new TestingDateTimeProvider(DateTime.UtcNow);
         _mockDispatcher = new Mock<IDispatcher>();
@@ -65,7 +65,20 @@ public class UserServiceTests
         _mockUserIdentityStore
             .Setup(s => s.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
             .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
+
+        _mockRoleManager.Setup(x => x.Roles).Returns(new[]
+        {
+            new ApplicationRole(ApplicationRoles.Admin) { Id = AdminRoleId },
+            new ApplicationRole("Basic") { Id = BasicRoleId },
+            new ApplicationRole("Contributor") { Id = ContributorRoleId },
+        }.AsQueryable().BuildMockDbSet().Object);
     }
+
+    private const string AdminRoleId = "role-admin";
+    private const string BasicRoleId = "role-basic";
+    private const string ContributorRoleId = "role-contributor";
+
+    private static IReadOnlyCollection<DomainEvent> RaisedEvents(IEntity entity) => entity.DomainEvents;
 
     private UserService CreateSut()
     {
@@ -75,7 +88,6 @@ public class UserServiceTests
             _mockUserManager.Object,
             _mockRoleManager.Object,
             null!, // WaydDbContext - not used by these methods
-            _mockEvents.Object,
             _mockDispatcher.Object,
             _dateTimeProvider,
             _mockCurrentUser.Object,
@@ -114,8 +126,10 @@ public class UserServiceTests
             RoleNames = ["Contributor"],
         };
 
+        ApplicationUser? created = null;
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
+            .Callback<ApplicationUser, string>((u, _) => created = u)
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager
             .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
@@ -139,7 +153,85 @@ public class UserServiceTests
             u.IsActive), "Password123!"), Times.Once);
         _mockUserManager.Verify(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(),
             It.Is<IEnumerable<string>>(r => r.SequenceEqual(new[] { "Contributor" }))), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserCreatedEvent>()), Times.Once);
+
+        var events = RaisedEvents(created!);
+        events.Should().HaveCount(2);
+        events.First().Should().BeOfType<ApplicationUserCreatedEvent>()
+            .Which.Actor.Should().Be(EventActor.User("current-user-id"));
+        var roles = events.Last().Should().BeOfType<ApplicationUserRolesChangedEvent>().Subject;
+        roles.Added.Should().Equal(ContributorRoleId);
+        roles.Removed.Should().BeEmpty();
+        roles.Roles.Should().Equal(ContributorRoleId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldAttributeTheCreationToAnAnonymousCaller_WhenNoOneIsSignedIn()
+    {
+        // Arrange - first-run setup creates the first admin before any account exists.
+        _mockCurrentUser.Setup(x => x.GetUserId()).Returns(string.Empty);
+        var command = new CreateUserCommand
+        {
+            FirstName = "First",
+            LastName = "Admin",
+            Email = "admin@example.com",
+            LoginProvider = LoginProviders.Wayd,
+            Password = "Password123!",
+            RoleNames = [],
+        };
+
+        ApplicationUser? created = null;
+        _mockUserManager
+            .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
+            .Callback<ApplicationUser, string>((u, _) => created = u)
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.CreateAsync(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        RaisedEvents(created!).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserCreatedEvent>()
+            .Which.Actor.Should().Be(EventActor.Anonymous);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRecordTheStagedFirstSignInTenant_WhenEntraIdUser()
+    {
+        // Arrange
+        var command = new CreateUserCommand
+        {
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            LoginProvider = LoginProviders.MicrosoftEntraId,
+            RoleNames = ["Contributor"],
+        };
+
+        ArrangeEntraProvider("tenant-1");
+        ApplicationUser? created = null;
+        _mockUserManager
+            .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
+            .Callback<ApplicationUser>(u => created = u)
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.CreateAsync(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        created!.PendingMigrationTenantId.Should().Be("tenant-1");
+        created.PendingMigrationStagedAt.Should().Be(_dateTimeProvider.Now);
+        var staged = RaisedEvents(created).OfType<ApplicationUserTenantMigrationStagedEvent>().Should().ContainSingle().Subject;
+        staged.TargetTenantId.Should().Be("tenant-1");
+        staged.PreviousTargetTenantId.Should().BeNull();
     }
 
     [Fact]
@@ -189,8 +281,10 @@ public class UserServiceTests
             Password = "Password123!",
         };
 
+        ApplicationUser? created = null;
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
+            .Callback<ApplicationUser, string>((u, _) => created = u)
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Duplicate username." }));
 
         var sut = CreateSut();
@@ -202,7 +296,7 @@ public class UserServiceTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Duplicate username.");
         _mockUserManager.Verify(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()), Times.Never);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserCreatedEvent>()), Times.Never);
+        RaisedEvents(created!).Should().BeEmpty("nothing was saved, so nothing may be recorded");
     }
 
     [Fact]
@@ -220,8 +314,10 @@ public class UserServiceTests
             RoleNames = ["Contributor"],
         };
 
+        ApplicationUser? created = null;
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
+            .Callback<ApplicationUser, string>((u, _) => created = u)
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager
             .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
@@ -236,7 +332,7 @@ public class UserServiceTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Role assignment failed.");
         _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserCreatedEvent>()), Times.Never);
+        RaisedEvents(created!).OfType<ApplicationUserRolesChangedEvent>().Should().BeEmpty("the role assignment was not saved");
     }
 
     [Fact]
@@ -610,8 +706,6 @@ public class UserServiceTests
         var command = new UpdateUserCommand { Id = "user-1", FirstName = "Updated", LastName = "Name", Email = "updated@example.com", PhoneNumber = "555-1234" };
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
-        _mockUserManager.Setup(x => x.SetPhoneNumberAsync(user, "555-1234")).ReturnsAsync(IdentityResult.Success);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -628,7 +722,7 @@ public class UserServiceTests
         user.NormalizedUserName.Should().Be("UPDATED@EXAMPLE.COM");
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
         _mockSignInManager.Verify(x => x.RefreshSignInAsync(user), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserDetailsUpdatedEvent>();
     }
 
     [Fact]
@@ -648,14 +742,13 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_ShouldNotSetPhone_WhenPhoneNumberUnchanged()
+    public async Task UpdateAsync_ShouldRaiseNothing_WhenNothingChanged()
     {
-        // Arrange
+        // Arrange — the form sends every field on every save; an email differing only in case is kept as stored.
         var user = CreateUser();
-        var command = new UpdateUserCommand { Id = "user-1", FirstName = "Test", LastName = "User", Email = "test@example.com", PhoneNumber = "555-1234" };
+        var command = new UpdateUserCommand { Id = "user-1", FirstName = "Test", LastName = "User", Email = "TEST@example.com" };
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync("555-1234");
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -664,7 +757,8 @@ public class UserServiceTests
         await sut.UpdateAsync(command, "user-1");
 
         // Assert
-        _mockUserManager.Verify(x => x.SetPhoneNumberAsync(user, It.IsAny<string>()), Times.Never);
+        user.Email.Should().Be("test@example.com");
+        RaisedEvents(user).Should().BeEmpty();
     }
 
     [Fact]
@@ -675,7 +769,6 @@ public class UserServiceTests
         var command = new UpdateUserCommand { Id = "user-1", FirstName = "Test", LastName = "User", Email = "test@example.com" };
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
         _mockUserManager.Setup(x => x.UpdateAsync(user))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Update failed." }));
 
@@ -686,6 +779,8 @@ public class UserServiceTests
 
         // Assert
         await act.Should().ThrowAsync<InternalServerException>();
+        RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
+        _mockSignInManager.Verify(x => x.RefreshSignInAsync(It.IsAny<ApplicationUser>()), Times.Never);
     }
 
     [Fact]
@@ -699,7 +794,6 @@ public class UserServiceTests
         var command = new UpdateUserCommand { Id = "user-1", FirstName = "Test", LastName = "User", Email = "test@example.com" };
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -728,7 +822,6 @@ public class UserServiceTests
         };
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -738,6 +831,9 @@ public class UserServiceTests
 
         // Assert
         user.EmployeeId.Should().Be(employeeId);
+        var linked = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserEmployeeLinkChangedEvent>().Subject;
+        linked.PreviousEmployeeId.Should().BeNull();
+        linked.EmployeeId.Should().Be(employeeId);
     }
 
     [Fact]
@@ -757,7 +853,6 @@ public class UserServiceTests
         };
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -917,7 +1012,28 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         user.IsActive.Should().BeTrue();
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserActivatedEvent>()), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserActivatedEvent>();
+    }
+
+    [Fact]
+    public async Task ActivateUserAsync_ShouldFailAndRecordNothing_WhenUpdateFails()
+    {
+        // Arrange
+        var user = CreateUser();
+        user.IsActive = false;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Concurrency failure." }));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ActivateUserAsync(new ActivateUserCommand("user-1"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Concurrency failure.");
+        RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
     }
 
     [Fact]
@@ -978,7 +1094,7 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         user.IsActive.Should().BeFalse();
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserDeactivatedEvent>()), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserDeactivatedEvent>();
     }
 
     [Fact]
@@ -1000,7 +1116,7 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         adminUser.IsActive.Should().BeFalse();
         _mockUserManager.Verify(x => x.UpdateAsync(adminUser), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserDeactivatedEvent>()), Times.Once);
+        RaisedEvents(adminUser).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserDeactivatedEvent>();
     }
 
     [Fact]
@@ -1085,7 +1201,55 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         _mockUserManager.Verify(x => x.RemoveFromRolesAsync(user, It.Is<IEnumerable<string>>(r => r.Contains("Basic"))), Times.Once);
         _mockUserManager.Verify(x => x.AddToRolesAsync(user, It.Is<IEnumerable<string>>(r => r.Contains("Admin"))), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+        var changed = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserRolesChangedEvent>().Subject;
+        changed.Added.Should().Equal(AdminRoleId);
+        changed.Removed.Should().Equal(BasicRoleId);
+        changed.Roles.Should().Equal(AdminRoleId);
+    }
+
+    [Fact]
+    public async Task AssignRolesAsync_ShouldRaiseNothing_WhenRolesAreUnchanged()
+    {
+        // Arrange
+        var user = CreateUser();
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(["Basic"]);
+        _mockUserManager.Setup(x => x.RemoveFromRolesAsync(user, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.AddToRolesAsync(user, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.AssignRolesAsync(new AssignUserRolesCommand("user-1", ["Basic"]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        RaisedEvents(user).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task AssignRolesAsync_ShouldRollBackAndRecordNothing_WhenAddingRolesFails()
+    {
+        // Arrange
+        var user = CreateUser();
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(["Basic"]);
+        _mockUserManager.Setup(x => x.RemoveFromRolesAsync(user, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.AddToRolesAsync(user, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Role assignment failed." }));
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.AssignRolesAsync(new AssignUserRolesCommand("user-1", ["Admin"]), TestContext.Current.CancellationToken);
+
+        // Assert — the throw is what rolls the removals back with the transaction.
+        await act.Should().ThrowAsync<InternalServerException>();
+        _mockUserIdentityStore.Verify(s => s.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
+        RaisedEvents(user).Should().BeEmpty("the additions were not saved, so the change may not be recorded");
     }
 
     [Fact]
@@ -1393,7 +1557,9 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         user.PendingMigrationTenantId.Should().Be(tenantId);
         user.PendingMigrationStagedAt.Should().Be(_dateTimeProvider.Now);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+        var staged = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserTenantMigrationStagedEvent>().Subject;
+        staged.TargetTenantId.Should().Be(tenantId);
+        staged.PreviousTargetTenantId.Should().BeNull();
     }
 
     [Fact]
@@ -1414,6 +1580,8 @@ public class UserServiceTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         user.PendingMigrationTenantId.Should().Be(tenantB);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserTenantMigrationStagedEvent>()
+            .Which.PreviousTargetTenantId.Should().Be(tenantA);
     }
 
     [Fact]
@@ -1497,7 +1665,8 @@ public class UserServiceTests
     {
         // Arrange
         var user = CreateUser();
-        user.PendingMigrationTenantId = Guid.NewGuid().ToString();
+        var stagedTenant = Guid.NewGuid().ToString();
+        user.PendingMigrationTenantId = stagedTenant;
         user.PendingMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
@@ -1514,7 +1683,8 @@ public class UserServiceTests
         // StagedAt moves together with the tenant flag — both clear on cancel.
         user.PendingMigrationStagedAt.Should().BeNull();
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserTenantMigrationCanceledEvent>()
+            .Which.TargetTenantId.Should().Be(stagedTenant);
     }
 
     [Fact]
@@ -1534,7 +1704,7 @@ public class UserServiceTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Never);
+        RaisedEvents(user).Should().BeEmpty();
     }
 
     [Fact]
@@ -1604,6 +1774,9 @@ public class UserServiceTests
         user.PendingMigrationTenantId.Should().BeNull();
         // StagedAt moves together with the tenant flag — both clear on a completed rebind.
         user.PendingMigrationStagedAt.Should().BeNull();
+        var completed = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserTenantMigrationCompletedEvent>().Subject;
+        completed.TenantId.Should().Be(newTenantId);
+        completed.Actor.Should().Be(EventActor.System);
 
         _mockUserIdentityStore.Verify(s => s.DeactivateAllActive(
             user.Id,
@@ -1754,6 +1927,7 @@ public class UserServiceTests
 
         await act.Should().ThrowAsync<InternalServerException>()
             .WithMessage("*Failed to clear pending migration flag*Concurrency failure*");
+        RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
 
         captured.Should().NotBeNull("the transaction lambda must throw so ExecuteInTransaction rolls back");
         _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -2452,7 +2626,11 @@ public class UserServiceTests
         _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.FindByNameAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
         _mockUserManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
-        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(IdentityResult.Success);
+        ApplicationUser? created = null;
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
+            .Callback<ApplicationUser>(u => created = u)
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.GetRolesAsync(It.IsAny<ApplicationUser>())).ReturnsAsync([]);
         _mockUserManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
         _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((UserIdentity?)null);
@@ -2476,6 +2654,11 @@ public class UserServiceTests
         _mockUserManager.Verify(x => x.CreateAsync(It.Is<ApplicationUser>(
             u => u.LoginProvider == LoginProviders.MicrosoftEntraId)), Times.Once);
         _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Admin), Times.Once);
+
+        var events = RaisedEvents(created!);
+        events.Should().HaveCount(2);
+        events.First().Should().BeOfType<ApplicationUserCreatedEvent>().Which.Actor.Should().Be(EventActor.System);
+        events.Last().Should().BeOfType<ApplicationUserRolesChangedEvent>().Which.Added.Should().Equal(AdminRoleId);
     }
 
     #endregion
@@ -2504,7 +2687,9 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         user.PendingMigrationProviderId.Should().Be(targetProvider);
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+        var staged = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserProviderMigrationStagedEvent>().Subject;
+        staged.TargetProvider.Should().Be(targetProvider);
+        staged.PreviousTargetProvider.Should().BeNull();
     }
 
     [Fact]
@@ -2554,6 +2739,8 @@ public class UserServiceTests
 
         result.IsSuccess.Should().BeTrue();
         user.PendingMigrationProviderId.Should().Be(secondProvider);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserProviderMigrationStagedEvent>()
+            .Which.PreviousTargetProvider.Should().Be(firstProvider);
     }
 
     [Fact]
@@ -2646,7 +2833,8 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         user.PendingMigrationProviderId.Should().BeNull();
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserProviderMigrationCanceledEvent>()
+            .Which.TargetProvider.Should().Be("Acme-Okta");
     }
 
     [Fact]
@@ -2663,7 +2851,7 @@ public class UserServiceTests
 
         result.IsSuccess.Should().BeTrue();
         _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Never);
+        RaisedEvents(user).Should().BeEmpty();
     }
 
     [Fact]
@@ -2704,6 +2892,9 @@ public class UserServiceTests
         result!.Id.Should().Be(user.Id);
         user.LoginProvider.Should().Be(targetProvider);
         user.PendingMigrationProviderId.Should().BeNull();
+        var completed = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserProviderMigrationCompletedEvent>().Subject;
+        completed.FromProvider.Should().Be(LoginProviders.MicrosoftEntraId);
+        completed.ToProvider.Should().Be(targetProvider);
 
         _mockUserIdentityStore.Verify(s => s.DeactivateAllActive(
             user.Id, It.IsAny<NodaTime.Instant>(), UserIdentityUnlinkReasons.ProviderRelinked,
@@ -2783,6 +2974,7 @@ public class UserServiceTests
 
         await act.Should().ThrowAsync<InternalServerException>()
             .WithMessage("*Failed to apply pending provider migration*Concurrency failure*");
+        RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
 
         captured.Should().NotBeNull("the transaction lambda must throw to trigger rollback");
         _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -2827,7 +3019,8 @@ public class UserServiceTests
                 ui.IsActive),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserConvertedToLocalAccountEvent>()
+            .Which.FromProvider.Should().Be(LoginProviders.MicrosoftEntraId);
     }
 
     [Fact]
@@ -2850,6 +3043,9 @@ public class UserServiceTests
 
         result.IsSuccess.Should().BeTrue();
         user.PendingMigrationProviderId.Should().BeNull();
+        RaisedEvents(user).Select(e => e.GetType()).Should().Equal(
+            typeof(ApplicationUserProviderMigrationCanceledEvent),
+            typeof(ApplicationUserConvertedToLocalAccountEvent));
     }
 
     [Fact]

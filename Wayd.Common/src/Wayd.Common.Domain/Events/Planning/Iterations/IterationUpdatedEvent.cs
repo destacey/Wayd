@@ -1,26 +1,18 @@
 using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Planning.Iterations;
 
 [Obsolete("Superseded by IterationDetailsUpdatedEvent, IterationDateRangeChangedEvent, IterationStateChangedEvent and IterationTeamChangedEvent. Kept only to deserialize payloads already written as this type.")]
-public sealed record IterationUpdatedEvent : DomainEvent<IterationUpdatedEvent>, IDomainEventDescriptor, ISimpleIteration, IAggregateEvent
+public sealed record IterationUpdatedEvent : DomainEvent<IterationUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
-    public IterationUpdatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
-        : this(iteration.Id, iteration.Key, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
-    {
-    }
-
-    // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
-    // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
-    public IterationUpdatedEvent(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
+    public IterationUpdatedEvent(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRangeV1 dateRange, Guid? teamId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
         Id = id;
@@ -39,7 +31,7 @@ public sealed record IterationUpdatedEvent : DomainEvent<IterationUpdatedEvent>,
     public string Name { get; }
     public IterationType Type { get; }
     public IterationState State { get; }
-    public IterationDateRange DateRange { get; }
+    public IterationDateRangeV1 DateRange { get; }
     public Guid? TeamId { get; }
 
     [JsonIgnore]

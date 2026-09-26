@@ -27,7 +27,7 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     private static readonly Instant FirstEdit = Created.Plus(Duration.FromMinutes(5));
     private static readonly Instant SecondEdit = Created.Plus(Duration.FromMinutes(10));
     private static readonly IterationDateRange Range =
-        new(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0));
+        new(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14));
 
     private readonly FakeWorkDbContext _workDbContext = new();
     private readonly Mock<IDispatcher> _dispatcher = new();
@@ -139,15 +139,50 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     {
         // Arrange
         var id = Guid.CreateVersion7();
-        var moved = new IterationDateRange(Range.Start, Instant.FromUtc(2026, 1, 21, 0, 0));
+        var moved = new IterationDateRange(Range.Start, new LocalDate(2026, 1, 21));
         _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate(), Created));
 
         // Act
-        await _handler.Handle(new IterationDateRangeChangedEvent(id, 1, Range, moved, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationDateRangeChangedEventV2(id, 1, Range, moved, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
         _workDbContext.WorkIterations.Single(i => i.Id == id).DateRange.Should().Be(moved);
         _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+#pragma warning disable CS0618 // the retired types are exactly what is under test
+    [Fact]
+    public async Task Handle_SupersededDateRangeChanged_AppliesTheUtcDateOfEachInstant()
+    {
+        // Arrange — an envelope written as the superseded type before the switch, still in the outbox.
+        var id = Guid.CreateVersion7();
+        _workDbContext.AddWorkIteration(new WorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate(), Created));
+        var previous = new IterationDateRangeV1(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0));
+        var moved = new IterationDateRangeV1(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 21, 0, 0));
+
+        // Act
+        await _handler.Handle(new IterationDateRangeChangedEvent(id, 1, previous, moved, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        _workDbContext.WorkIterations.Single(i => i.Id == id).DateRange.Should().Be(new IterationDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 21)));
+        _workDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_SupersededCreated_WhenNoCopyExists_CreatesItFromTheSource()
+    {
+        // Arrange
+        var source = new WorkIterationFaker().WithName("Sprint 1").WithDateRange(Range).Generate();
+        SourceReturns(source);
+
+        // Act
+        await _handler.Handle(new IterationCreatedEvent(source.Id, 1, "Sprint 1", IterationType.Iteration, IterationState.Active,
+            new IterationDateRangeV1(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0)), null, EventActor.System, Created),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var copy = _workDbContext.WorkIterations.Should().ContainSingle(i => i.Id == source.Id).Subject;
+        copy.DateRange.Should().Be(Range);
     }
 
     [Fact]
@@ -165,6 +200,7 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
         _workDbContext.WorkIterations.Single(i => i.Id == id).TeamId.Should().Be(teamId);
         _workDbContext.SaveChangesCallCount.Should().Be(1);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public async Task Handle_SupersededUpdated_AppliesEveryGroupItCarries()
@@ -175,13 +211,15 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
 
         // Act
 #pragma warning disable CS0618 // the retired type is exactly what is under test
-        await _handler.Handle(new IterationUpdatedEvent(id, 1, "New Name", IterationType.Iteration, IterationState.Active, Range, null, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationUpdatedEvent(id, 1, "New Name", IterationType.Iteration, IterationState.Active,
+            new IterationDateRangeV1(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 28, 0, 0)), null, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
 #pragma warning restore CS0618
 
         // Assert
         var copy = _workDbContext.WorkIterations.Single(i => i.Id == id);
         copy.Name.Should().Be("New Name");
         copy.State.Should().Be(IterationState.Active);
+        copy.DateRange.End.Should().Be(new LocalDate(2026, 1, 28));
         _workDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -247,7 +285,7 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
             .Setup(d => d.Send(It.IsAny<GetSimpleIterationQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(iteration);
 
-    private static IterationCreatedEvent CreatedEvent(Guid id) =>
+    private static IterationCreatedEventV2 CreatedEvent(Guid id) =>
         new(
             id: id,
             key: 1,

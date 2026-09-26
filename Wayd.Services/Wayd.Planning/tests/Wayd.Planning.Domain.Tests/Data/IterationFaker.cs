@@ -12,9 +12,9 @@ public sealed class IterationFaker : PrivateConstructorFaker<Iteration>
 {
     public IterationFaker()
     {
-        var now = SystemClock.Instance.GetCurrentInstant();
-        var start = now.Minus(Duration.FromDays(7));
-        var end = now.Plus(Duration.FromDays(7));
+        var today = SystemClock.Instance.GetCurrentInstant().InUtc().Date;
+        var start = today.PlusDays(-7);
+        var end = today.PlusDays(7);
 
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));

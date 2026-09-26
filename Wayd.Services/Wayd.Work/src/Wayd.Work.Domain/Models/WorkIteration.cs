@@ -183,7 +183,7 @@ public sealed class WorkIteration : BaseEntity<Guid>, ISimpleIteration, IHasIdAn
             return false;
 
         DateRange = dateRange;
-        AddDomainEvent(new WorkIterationDateRangeChangedEvent(Id, Key, previous, DateRange, actor, timestamp));
+        AddDomainEvent(new WorkIterationDateRangeChangedEventV2(Id, Key, previous, DateRange, actor, timestamp));
         return true;
     }
 

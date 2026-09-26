@@ -93,7 +93,6 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         <TimelineProgress
           start={sprintData.start}
           end={sprintData.end}
-          dateFormat="MMM D - h:mm A"
           variant="borderless"
           size="small"
           style={{ width: '100%' }}

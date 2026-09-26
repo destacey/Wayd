@@ -88635,10 +88635,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("team")]
@@ -88882,10 +88884,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("team")]
@@ -90928,10 +90932,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset Start { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("team")]

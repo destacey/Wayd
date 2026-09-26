@@ -8,9 +8,14 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// Tracking began for an iteration that existed before <see cref="IterationCreatedEvent"/> was recorded. Carries
 /// that event's payload, describing the iteration as it stood at <see cref="DomainEvent.Timestamp"/>.
 /// </summary>
+/// <remarks>
+/// Frozen at its published shape; <see cref="IterationBaselinedEventV2"/> replaced it alongside the creation
+/// event. Kept so every payload written as this type still deserializes into it.
+/// </remarks>
+[Obsolete("Superseded by IterationBaselinedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record IterationBaselinedEvent : BaselineEvent<IterationBaselinedEvent, IterationCreatedEvent>
 {
-    public IterationBaselinedEvent(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
+    public IterationBaselinedEvent(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRangeV1 dateRange, Guid? teamId, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
         : base("Iteration", id, recordCreatedOn, recordCreatedById, timestamp, "1.0")
     {
         Id = id;
@@ -27,6 +32,6 @@ public sealed record IterationBaselinedEvent : BaselineEvent<IterationBaselinedE
     public string Name { get; }
     public IterationType Type { get; }
     public IterationState State { get; }
-    public IterationDateRange DateRange { get; }
+    public IterationDateRangeV1 DateRange { get; }
     public Guid? TeamId { get; }
 }

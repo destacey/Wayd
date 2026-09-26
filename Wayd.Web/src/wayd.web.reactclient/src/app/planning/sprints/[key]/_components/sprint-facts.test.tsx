@@ -7,20 +7,22 @@ jest.mock('@/src/components/common/links/links-card', () => {
   return LinksCard
 })
 
+// The generated client types dates as Date, but the payload is never
+// revived: a planned date arrives as the calendar-date string the API sends.
 const sprint = {
   id: 'sprint-1',
   key: 21439,
   name: '26.3.2',
   state: { id: '2', name: 'Active' },
-  start: new Date('2026-08-17'),
-  end: new Date('2026-08-30'),
+  start: '2026-08-17',
+  end: '2026-08-30',
   team: { id: 't1', key: 14, name: 'Core Services', type: 'Team' },
 } as any
 
 describe('SprintFacts', () => {
   it('renders the boundaries as the calendar dates they are', () => {
-    // Arrange / Act — stored as UTC, so formatting locally would shift them a
-    // day earlier for anyone behind UTC.
+    // Arrange / Act — a calendar date has no zone, so no browser zone may
+    // shift it.
     render(<SprintFacts sprint={sprint} />)
 
     // Assert
@@ -40,7 +42,7 @@ describe('SprintFacts', () => {
     // Arrange / Act
     render(
       <SprintFacts
-        sprint={{ ...sprint, start: new Date('2026-08-17'), end: new Date('2026-08-17') }}
+        sprint={{ ...sprint, start: '2026-08-17', end: '2026-08-17' }}
       />,
     )
 

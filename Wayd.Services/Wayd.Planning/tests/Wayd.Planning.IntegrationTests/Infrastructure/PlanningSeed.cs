@@ -38,7 +38,7 @@ internal static class PlanningSeed
     public static async Task<Iteration> Sprint(WaydDbContext context, Guid teamId, CancellationToken ct)
     {
         var sprint = Iteration.Create($"Atlas Sprint {Guid.NewGuid():N}"[..24], IterationType.Sprint, IterationState.Active,
-            new IterationDateRange(Instant.FromUtc(2026, 1, 5, 0, 0), Instant.FromUtc(2026, 1, 31, 0, 0)),
+            new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 30)),
             teamId, OwnershipInfo.CreateWaydOwned(), [], EventActor.System, SqlServerDbContextFixture.FixedNow);
         context.Iterations.Add(sprint);
         await context.SaveChangesAsync(ct);

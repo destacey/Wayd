@@ -24,7 +24,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
 {
     private static readonly IterationDateRange Range =
-        new(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0));
+        new(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14));
 
     private readonly WaydSqlServerApiFactory _factory = factory;
 
@@ -34,7 +34,7 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         var iterationId = await CreateReplicatedIteration(ct);
-        var moved = new IterationDateRange(Range.Start, Instant.FromUtc(2026, 1, 21, 0, 0));
+        var moved = new IterationDateRange(Range.Start, new LocalDate(2026, 1, 21));
 
         // Act — a rename, a moved end date and a state change in one save.
         using (var scope = _factory.Services.CreateScope())
@@ -77,7 +77,7 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
             var now = publishScope.ServiceProvider.GetRequiredService<IDateTimeProvider>().Now;
 #pragma warning disable CS0618 // the retired type is exactly what is under test
             var legacy = new IterationUpdatedEvent(iterationId, key, "Legacy Sprint", IterationType.Sprint, IterationState.Active,
-                Range, null, EventActor.System, now.Plus(Duration.FromMinutes(1)));
+                new IterationDateRangeV1(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0)), null, EventActor.System, now.Plus(Duration.FromMinutes(1)));
 #pragma warning restore CS0618
 
             await publishScope.ServiceProvider.GetRequiredService<IMessageBus>().PublishAsync(legacy);
@@ -87,6 +87,40 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
         Assert.True(await WaitFor(
             sp => sp.GetRequiredService<IWorkDbContext>().WorkIterations.AnyAsync(i => i.Id == iterationId && i.Name == "Legacy Sprint", ct),
             ct), "the Work copy should apply the superseded event");
+    }
+
+    [Fact]
+    public async Task SupersededIterationDateRangeChangedEvent_StillInTheOutbox_AppliesTheUtcDates()
+    {
+        // Arrange — an envelope written as the superseded type before the switch, its dates as midnight UTC.
+        var ct = TestContext.Current.CancellationToken;
+        var iterationId = await CreateReplicatedIteration(ct);
+        int key;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            key = await scope.ServiceProvider.GetRequiredService<IPlanningDbContext>().Iterations
+                .Where(i => i.Id == iterationId).Select(i => i.Key).SingleAsync(ct);
+        }
+
+        // Act
+        using (var publishScope = _factory.Services.CreateScope())
+        {
+            var now = publishScope.ServiceProvider.GetRequiredService<IDateTimeProvider>().Now;
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+            var legacy = new IterationDateRangeChangedEvent(iterationId, key,
+                new IterationDateRangeV1(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0)),
+                new IterationDateRangeV1(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 28, 0, 0)),
+                EventActor.System, now.Plus(Duration.FromMinutes(1)));
+#pragma warning restore CS0618
+
+            await publishScope.ServiceProvider.GetRequiredService<IMessageBus>().PublishAsync(legacy);
+        }
+
+        // Assert
+        var end = new LocalDate(2026, 1, 28);
+        Assert.True(await WaitFor(
+            sp => sp.GetRequiredService<IWorkDbContext>().WorkIterations.AnyAsync(i => i.Id == iterationId && i.DateRange.End == end, ct),
+            ct), "the Work copy should take the UTC date of the superseded event's end");
     }
 
     private async Task<Guid> CreateReplicatedIteration(CancellationToken ct)

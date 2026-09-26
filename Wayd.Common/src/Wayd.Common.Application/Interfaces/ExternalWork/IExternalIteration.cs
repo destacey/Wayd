@@ -7,8 +7,8 @@ public interface IExternalIteration<TMetadata> where TMetadata : class
     int Id { get; }
     string Name { get; }
     IterationType Type { get; }
-    Instant? Start { get; }
-    Instant? End { get; }
+    LocalDate? Start { get; }
+    LocalDate? End { get; }
     IterationState State { get; }
     Guid? TeamId { get; }
     TMetadata Metadata { get; }

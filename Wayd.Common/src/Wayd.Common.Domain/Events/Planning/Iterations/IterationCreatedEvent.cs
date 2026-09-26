@@ -1,25 +1,25 @@
 using System.Text.Json.Serialization;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Planning.Iterations;
 
-public sealed record IterationCreatedEvent : DomainEvent<IterationCreatedEvent>, IDomainEventDescriptor, ISimpleIteration, IAggregateEvent
+/// <summary>
+/// An iteration was created.
+/// </summary>
+/// <remarks>
+/// Frozen at its published shape and never raised; <see cref="IterationCreatedEventV2"/> replaced it. Kept so
+/// every payload written as this type still deserializes into it — its name and members are the contract
+/// those payloads were written against, so neither may change.
+/// </remarks>
+[Obsolete("Superseded by IterationCreatedEventV2. Kept only to deserialize payloads already written as this type.")]
+public sealed record IterationCreatedEvent : DomainEvent<IterationCreatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;
 
-    public IterationCreatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
-        : this(iteration.Id, iteration.Key, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
-    {
-    }
-
-    // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
-    // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
-    public IterationCreatedEvent(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
+    public IterationCreatedEvent(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRangeV1 dateRange, Guid? teamId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
         Id = id;
@@ -38,7 +38,7 @@ public sealed record IterationCreatedEvent : DomainEvent<IterationCreatedEvent>,
     public string Name { get; }
     public IterationType Type { get; }
     public IterationState State { get; }
-    public IterationDateRange DateRange { get; }
+    public IterationDateRangeV1 DateRange { get; }
     public Guid? TeamId { get; }
 
     [JsonIgnore]

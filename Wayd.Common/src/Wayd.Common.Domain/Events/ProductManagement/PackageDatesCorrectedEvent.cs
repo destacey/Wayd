@@ -7,14 +7,16 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// A release package's recorded target or released date was corrected.
 /// </summary>
 /// <remarks>
-/// Distinct from <see cref="PackageReleasedEvent"/>, which says the package shipped. This says only
-/// that what was written down was wrong, so it carries both ends: the value that was replaced is the
-/// whole point of recording the correction.
+/// Frozen at its published shape and never raised; <see cref="PackageDatesCorrectedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by PackageDatesCorrectedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record PackageDatesCorrectedEvent : DomainEvent<PackageDatesCorrectedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;
 
+    [JsonConstructor]
     public PackageDatesCorrectedEvent(
         Guid id,
         int key,

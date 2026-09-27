@@ -136,6 +136,15 @@ public sealed class DeploymentImportDefinition(
 
             await _productManagementDbContext.Deployments.AddAsync(created.Value, cancellationToken);
             row.Created(created.Value.Id);
+
+            // A rollback still shipped first, so the moment is the row's completion — not the revert, which
+            // a rolled-back deployment's CompletedAt now holds.
+            if (data.Outcome is ImportDeploymentOutcome.Succeeded or ImportDeploymentOutcome.RolledBack)
+            {
+                await ProductionRelease.Record(
+                    _productManagementDbContext, _statusResolver, created.Value, data.CompletedAt!.Value, actor,
+                    data.CompletedAt!.Value, _logger, cancellationToken);
+            }
         }
 
         return Result.Success();

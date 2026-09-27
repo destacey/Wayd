@@ -49,7 +49,7 @@ public class GetVersionActivitiesQueryHandlerTests : IDisposable
             new()
             {
                 Id = 1,
-                EventType = "VersionCutEvent",
+                EventType = "VersionCutEventV2",
                 DomainArea = "ProductManagement",
                 AggregateType = "Version",
                 AggregateId = version.Id,

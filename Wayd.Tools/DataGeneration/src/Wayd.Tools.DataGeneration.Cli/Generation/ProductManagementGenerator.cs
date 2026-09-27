@@ -100,6 +100,8 @@ public sealed class ProductManagementGenerator
             ? new ProductDependencyGenerator(_catalog, FirstShipped(), _options, _context).Generate()
             : [];
 
+        StampVersionMoments();
+
         return new GeneratedProductManagement(
             _environments,
             _products,
@@ -110,6 +112,48 @@ public sealed class ProductManagementGenerator
             _releaseContents,
             _deployments,
             dependencies);
+    }
+
+    /// <summary>
+    /// Gives every cut and released version the moments the import records. Last, so its draws leave the
+    /// history above unchanged.
+    /// </summary>
+    /// <remarks>
+    /// A cut lands early on its day, before any deployment of that build. A release is the moment production
+    /// received the version — its own deployment, or its package's — and a version that never deployed ships
+    /// at some point in the working day.
+    /// </remarks>
+    private void StampVersionMoments()
+    {
+        var productionCompletions = _deployments
+            .Where(d => d.VersionHandle is not null && d.Outcome is not null && d.Outcome != Failed
+                && _lines.Any(line => line.Production == d.EnvironmentName))
+            .GroupBy(d => d.VersionHandle!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Min(d => d.CompletedAt!.Value), StringComparer.OrdinalIgnoreCase);
+
+        var packageReleases = _packageComponents
+            .Where(c => c.Kind == Changed)
+            .Join(_packages.Where(p => p.ReleasedAt is not null), c => c.PackageVersion, p => p.Version,
+                (c, p) => (Handle: VersionModel.HandleFor(c.ProductName, c.VersionNumber), p.ReleasedDate, ReleasedAt: p.ReleasedAt!.Value),
+                StringComparer.OrdinalIgnoreCase)
+            .GroupBy(x => x.Handle, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var version in _versions)
+        {
+            if (version.CutDate is { } cut)
+                version.CutAt = At(cut, new TimeOnly(8, _faker.Random.Int(0, 59)));
+
+            if (version.ReleasedDate is not { } released)
+                continue;
+
+            version.ReleasedAt = productionCompletions.TryGetValue(version.Handle, out var deployed)
+                ? deployed
+                : packageReleases.TryGetValue(version.Handle, out var packages)
+                    && packages.Where(p => p.ReleasedDate == released).Select(p => (DateTimeOffset?)p.ReleasedAt).FirstOrDefault() is { } shipped
+                    ? shipped
+                    : At(released, new TimeOnly(_faker.Random.Int(12, 17), _faker.Random.Int(0, 59)));
+        }
     }
 
     /// <summary>The day each product first shipped a version, by name. A product with nothing shipped by today is absent.</summary>
@@ -429,6 +473,7 @@ public sealed class ProductManagementGenerator
                 case Stage.Released:
                     group.ShippedPackages.Add(package);
                     var rolledBack = Deploy(group.Line, null, packageVersion, group.Builds, group.Risk, cut, shipOn, hotfix: false, packageVersion);
+                    package.ReleasedAt = ProductionCompletion(group.Line, packageVersion);
                     if (rolledBack || _faker.Random.Double() < 0.04)
                         next = Later(next, TrainHotfix(group, riding, packageVersion, shipOn));
                     break;
@@ -459,15 +504,25 @@ public sealed class ProductManagementGenerator
         AddVersion(fixedComponent, CurrentNumber(fixedComponent), shipOn, shipOn, shipOn, Pick(HotfixNotes));
 
         var hotfixVersion = $"{packageVersion}.1";
-        AddPackage(hotfixVersion, $"{group.ProductName} hotfix", shipOn, shipOn);
+        var hotfix = AddPackage(hotfixVersion, $"{group.ProductName} hotfix", shipOn, shipOn);
 
         foreach (var member in riding)
             AddComponentLine(hotfixVersion, member.Name, member.LastNumber!, member == fixedComponent ? Changed : CarriedForward);
 
         Deploy(group.Line, null, hotfixVersion, group.Builds, group.Risk, shipOn, shipOn, hotfix: true, hotfixVersion);
+        hotfix.ReleasedAt = ProductionCompletion(group.Line, hotfixVersion);
 
         return shipOn.AddDays(2);
     }
+
+    /// <summary>
+    /// When the package's production deployment completed — a rollback still shipped it first. A failed
+    /// attempt is always followed by a retry, so there is one.
+    /// </summary>
+    private DateTimeOffset ProductionCompletion(ProductLine line, string packageVersion) =>
+        _deployments
+            .Where(d => d.PackageVersion == packageVersion && d.EnvironmentName == line.Production && d.Outcome != Failed)
+            .Max(d => d.CompletedAt!.Value);
 
     private enum Stage { Released, Ready, Planned }
 

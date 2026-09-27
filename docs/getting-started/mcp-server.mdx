@@ -348,14 +348,14 @@ Where the catalog records what exists, delivery records what shipped. The word "
 | `Versions_MarkReleased`                                                    | Mark a version released                                                                                              |
 | `Versions_Withdraw` / `Versions_Revert`                                    | Withdraw a version, or revert it                                                                                     |
 | `Versions_Delete`                                                          | Permanently delete a version and every deployment of it                                                              |
-| `Versions_CorrectDates` / `Versions_MoveTargetDate`                        | Correct recorded dates, or move the target                                                                           |
+| `Versions_CorrectDates` / `Versions_MoveTargetDate`                        | Correct the target date or the cut/released moments, or move the target                                              |
 | `ReleasePackages_GetReleasePackages` / `ReleasePackages_GetReleasePackage` | List packages, or get one                                                                                            |
 | `ReleasePackages_GetStatusHistory`                                         | A package's status change history                                                                                    |
 | `ReleasePackages_GetActivities`                                            | Every recorded change to a package                                                                                   |
 | `ReleasePackages_Assemble`                                                 | Assemble a package                                                                                                   |
 | `ReleasePackages_SetManifest`                                              | Replace what the package contains                                                                                    |
 | `ReleasePackages_MarkReleased` / `ReleasePackages_Withdraw`                | Mark a package released, or withdraw it                                                                              |
-| `ReleasePackages_CorrectDates`                                             | Correct a package's recorded target or released date                                                                 |
+| `ReleasePackages_CorrectDates`                                             | Correct a package's recorded target date or released moment                                                          |
 | `ReleasePackages_Delete`                                                   | Permanently delete a package, its manifest and every deployment of it                                                |
 | `Deployments_GetDeployments` / `Deployments_GetDeployment`                 | List deployments, or get one                                                                                         |
 | `Deployments_GetStatusHistory`                                             | A deployment's status change history                                                                                 |
@@ -378,7 +378,7 @@ Environments are **retired rather than deleted**, because historical deployments
 
 `DeliveryMetrics_GetDeliveryMetrics` returns an `unavailable` list naming what it couldn't compute and why; read it rather than treating a missing measure as zero. Change failure rate is a **proxy** — a pipeline run that failed before production is a failure that was _prevented_, while a real change failure succeeded and then broke something, which the pipeline can't know.
 
-`DeploymentEnvironments_GetRollout` reports the latest deployment of each product that **succeeded and wasn't rolled back**, so a failed attempt leaves its predecessor listed as running — and flags that a later attempt failed. `DeliveryOverview_GetDeliveryOverview` measures versions rather than deployments, so it answers how often you ship even where pipelines aren't recorded in Wayd.
+`DeploymentEnvironments_GetRollout` reports the latest deployment of each product that **succeeded and wasn't rolled back**, so a failed attempt leaves its predecessor listed as running — and flags that a later attempt failed. `DeliveryOverview_GetDeliveryOverview` measures versions rather than deployments, so it answers how often you ship even where pipelines aren't recorded in Wayd. Pass an IANA `timeZone` (default UTC) so the window and its per-day buckets are the caller's own days; cut-to-released is the elapsed time between the two moments, in fractional days.
 
 ### Organization
 

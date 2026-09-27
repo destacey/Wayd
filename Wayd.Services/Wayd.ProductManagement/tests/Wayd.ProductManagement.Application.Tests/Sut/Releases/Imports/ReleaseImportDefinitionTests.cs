@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -89,17 +89,17 @@ public sealed class ReleaseImportDefinitionTests
         return product;
     }
 
-    /// <param name="releasedDate">Null leaves the version unshipped, which is what blocks announcement.</param>
-    private Version SeedVersion(Product product, string number, LocalDate? releasedDate)
+    /// <param name="releasedAt">Null leaves the version unshipped, which is what blocks announcement.</param>
+    private Version SeedVersion(Product product, string number, Instant? releasedAt)
     {
-        var status = releasedDate is null ? StatusRef.From(_planned) : StatusRef.From(_released);
+        var status = releasedAt is null ? StatusRef.From(_planned) : StatusRef.From(_released);
 
         var version = Version.Create(
             product.Id, number, null, null, null, true, status, product.Name, EventActor.System, Now).Value;
 
-        if (releasedDate is not null)
+        if (releasedAt is not null)
         {
-            version.MarkReleased(releasedDate.Value, StatusRef.From(_released), product.Name, EventActor.System, Now);
+            version.MarkReleased(releasedAt.Value, StatusRef.From(_released), product.Name, EventActor.System, Now);
         }
 
         _dbContext.AddVersion(version);
@@ -107,16 +107,16 @@ public sealed class ReleaseImportDefinitionTests
     }
 
     private ReleasePackage SeedPackage(
-        string version, Product component, string componentVersion, LocalDate? releasedDate, Guid? versionId = null)
+        string version, Product component, string componentVersion, Instant? releasedAt, Guid? versionId = null)
     {
         var package = ReleasePackage.Create(
             version, null, null,
             [(component.Id, versionId, componentVersion, ManifestEntryKind.Changed)],
             StatusRef.From(_planned), EventActor.System, Now).Value;
 
-        if (releasedDate is not null)
+        if (releasedAt is not null)
         {
-            package.MarkReleased(releasedDate.Value, StatusRef.From(_released), EventActor.System, Now);
+            package.MarkReleased(releasedAt.Value, StatusRef.From(_released), EventActor.System, Now);
         }
 
         _dbContext.AddReleasePackage(package);
@@ -213,7 +213,7 @@ public sealed class ReleaseImportDefinitionTests
     {
         // Arrange
         var product = SeedProduct();
-        var package = SeedPackage("WAYD-2026.07", product, "4.12.0", releasedDate: null);
+        var package = SeedPackage("WAYD-2026.07", product, "4.12.0", releasedAt: null);
 
         // Act
         var result = await Run(Row(contents: PackageContent(package.Id)));
@@ -228,7 +228,7 @@ public sealed class ReleaseImportDefinitionTests
     {
         // Arrange
         var product = SeedProduct();
-        var version = SeedVersion(product, "4.12.0", releasedDate: null);
+        var version = SeedVersion(product, "4.12.0", releasedAt: null);
 
         // Act
         var result = await Run(Row(contents: VersionContent(version.Id)));
@@ -243,7 +243,7 @@ public sealed class ReleaseImportDefinitionTests
     {
         // Arrange
         var product = SeedProduct();
-        var version = SeedVersion(product, "4.12.0", releasedDate: new LocalDate(2026, 3, 20));
+        var version = SeedVersion(product, "4.12.0", releasedAt: Instant.FromUtc(2026, 3, 20, 12, 0));
 
         // Act
         var result = await Run(
@@ -263,7 +263,7 @@ public sealed class ReleaseImportDefinitionTests
         // Arrange — the one claim a release can make that its own contents contradict. The refusal names
         // what is holding it back rather than only that something is.
         var product = SeedProduct();
-        var version = SeedVersion(product, "4.12.0", releasedDate: null);
+        var version = SeedVersion(product, "4.12.0", releasedAt: null);
 
         // Act
         var result = await Run(
@@ -281,7 +281,7 @@ public sealed class ReleaseImportDefinitionTests
     {
         // Arrange
         var product = SeedProduct();
-        var package = SeedPackage("WAYD-2026.07", product, "4.12.0", releasedDate: null);
+        var package = SeedPackage("WAYD-2026.07", product, "4.12.0", releasedAt: null);
 
         // Act
         var result = await Run(
@@ -299,7 +299,7 @@ public sealed class ReleaseImportDefinitionTests
     {
         // Arrange — only announcement is constrained: a planned release may carry whatever it likes
         var product = SeedProduct();
-        var version = SeedVersion(product, "4.12.0", releasedDate: null);
+        var version = SeedVersion(product, "4.12.0", releasedAt: null);
 
         // Act
         var result = await Run(Row(contents: VersionContent(version.Id)));
@@ -315,8 +315,8 @@ public sealed class ReleaseImportDefinitionTests
         // Arrange — otherwise one shipment would be announced twice, and "what did 2026.07 contain" would
         // have two different answers
         var product = SeedProduct();
-        var version = SeedVersion(product, "4.12.0", releasedDate: null);
-        var package = SeedPackage("WAYD-2026.07", product, "4.12.0", releasedDate: null, versionId: version.Id);
+        var version = SeedVersion(product, "4.12.0", releasedAt: null);
+        var package = SeedPackage("WAYD-2026.07", product, "4.12.0", releasedAt: null, versionId: version.Id);
 
         // Act
         var result = await Run(Row(contents: [PackageContent(package.Id), VersionContent(version.Id)]));
@@ -420,9 +420,9 @@ public sealed class ReleaseImportDefinitionTests
     {
         // Arrange
         var api = SeedProduct("Wayd API");
-        var apiVersion = SeedVersion(api, "4.12.0", releasedDate: null);
+        var apiVersion = SeedVersion(api, "4.12.0", releasedAt: null);
         var client = SeedProduct("Wayd Client");
-        var clientVersion = SeedVersion(client, "4.12.0", releasedDate: null);
+        var clientVersion = SeedVersion(client, "4.12.0", releasedAt: null);
 
         // Act — one release carrying both at the same number: whichever way a product-blind lookup
         // collapsed them, one of these assertions would fail

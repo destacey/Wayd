@@ -17,14 +17,15 @@ export interface MarkVersionReleasedFormProps {
 }
 
 interface MarkVersionReleasedFormValues {
-  releasedDate: Dayjs
+  releasedAt: Dayjs
 }
 
 /**
- * Records the date a version shipped.
+ * Records the moment a version shipped.
  *
- * The picker is floored at the cut date because the aggregate refuses an earlier one — better an
- * unselectable day than a rejected submit.
+ * The picker is floored at the cut moment because the aggregate refuses an earlier one — better an
+ * unselectable day than a rejected submit. disabledDate works a day at a time, so a rule catches an
+ * earlier time on the cut day itself.
  */
 const MarkVersionReleasedForm = ({
   version,
@@ -41,10 +42,14 @@ const MarkVersionReleasedForm = ({
         try {
           const request = {
             id: version.id,
-            releasedDate: values.releasedDate.format('YYYY-MM-DD'),
+            releasedAt: values.releasedAt.toDate(),
           } as unknown as MarkVersionReleasedRequest
 
-          const response = await markReleased({ id: version.id, cacheKey: version.key, request })
+          const response = await markReleased({
+            id: version.id,
+            cacheKey: version.key,
+            request,
+          })
           if (response.error) throw response.error
 
           messageApi.success('Version marked as released.')
@@ -69,7 +74,7 @@ const MarkVersionReleasedForm = ({
       permission: 'Permissions.Delivery.Update',
     })
 
-  const cutDate = version.cutDate ? dayjs(version.cutDate) : null
+  const cutAt = version.cutAt ? dayjs(version.cutAt) : null
 
   return (
     <Modal
@@ -90,19 +95,33 @@ const MarkVersionReleasedForm = ({
         name="mark-version-released-form"
       >
         <Item
-          label="Released Date"
-          name="releasedDate"
-          rules={[{ required: true, message: 'Released date is required' }]}
+          label="Released At"
+          name="releasedAt"
+          initialValue={dayjs()}
+          rules={[
+            { required: true, message: 'Released at is required' },
+            {
+              validator: (_, value: Dayjs | undefined) =>
+                !value || !cutAt || !value.isBefore(cutAt)
+                  ? Promise.resolve()
+                  : Promise.reject(
+                      new Error(
+                        'A version cannot be released before it was cut',
+                      ),
+                    ),
+            },
+          ]}
           extra={
-            cutDate
-              ? `${version.number} was cut on ${cutDate.format('MMM D, YYYY')}.`
+            cutAt
+              ? `${version.number} was cut on ${cutAt.format('MMM D, YYYY h:mm A')}.`
               : `${version.number} has not been cut.`
           }
         >
           <DatePicker
+            showTime
             style={{ width: '100%' }}
             disabledDate={
-              cutDate ? (current) => current.isBefore(cutDate, 'day') : undefined
+              cutAt ? (current) => current.isBefore(cutAt, 'day') : undefined
             }
           />
         </Item>

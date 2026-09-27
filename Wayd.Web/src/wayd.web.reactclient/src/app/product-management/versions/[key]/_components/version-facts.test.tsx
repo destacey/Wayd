@@ -28,7 +28,9 @@ describe('VersionFacts', () => {
   it('stops saying "not yet" about a cut once the version has shipped', () => {
     // Arrange — hand-entry and import both land here: released, with no cut recorded. Cutting is
     // refused after version, so "not yet" promises something that will never happen.
-    const shipped = version({ releasedDate: '2026-04-03' as unknown as Date })
+    const shipped = version({
+      releasedAt: '2026-04-03T12:00:00Z' as unknown as Date,
+    })
 
     // Act
     render(<VersionFacts version={shipped} />)
@@ -38,9 +40,9 @@ describe('VersionFacts', () => {
     expect(screen.queryByText('Not yet cut')).not.toBeInTheDocument()
   })
 
-  it('shows the cut date when there is one', () => {
-    // Arrange / Act
-    const cut = version({ cutDate: '2026-04-01' as unknown as Date })
+  it('shows the cut moment when there is one', () => {
+    // Arrange / Act — midday UTC, so the day is the 1st whatever zone the test runs in
+    const cut = version({ cutAt: '2026-04-01T12:00:00Z' as unknown as Date })
     render(<VersionFacts version={cut} />)
 
     // Assert

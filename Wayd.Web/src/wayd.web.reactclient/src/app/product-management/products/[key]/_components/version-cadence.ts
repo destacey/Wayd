@@ -18,7 +18,7 @@ export const countReleasedWithin = (
 
   return (versions ?? []).filter(
     (version) =>
-      version.releasedDate &&
-      !dayjs(version.releasedDate).startOf('day').isBefore(windowStart),
+      version.releasedAt &&
+      !dayjs(version.releasedAt).startOf('day').isBefore(windowStart),
   ).length
 }

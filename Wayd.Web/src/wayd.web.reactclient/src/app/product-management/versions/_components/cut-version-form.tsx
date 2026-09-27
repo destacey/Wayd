@@ -6,7 +6,7 @@ import { CutVersionRequest, VersionDto } from '@/src/services/wayd-api'
 import { useCutVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
-import { Dayjs } from 'dayjs'
+import dayjs, { Dayjs } from 'dayjs'
 
 const { Item } = Form
 
@@ -17,11 +17,11 @@ export interface CutVersionFormProps {
 }
 
 interface CutVersionFormValues {
-  cutDate: Dayjs
+  cutAt: Dayjs
 }
 
 /**
- * Records the date a version was cut.
+ * Records the moment a version was cut — the build or tag that froze its scope.
  *
  * One-way: the aggregate refuses a second cut, and refuses one on a version already released or
  * withdrawn. The caller decides whether to offer this at all.
@@ -41,10 +41,14 @@ const CutVersionForm = ({
         try {
           const request = {
             id: version.id,
-            cutDate: values.cutDate.format('YYYY-MM-DD'),
+            cutAt: values.cutAt.toDate(),
           } as unknown as CutVersionRequest
 
-          const response = await cutVersion({ id: version.id, cacheKey: version.key, request })
+          const response = await cutVersion({
+            id: version.id,
+            cacheKey: version.key,
+            request,
+          })
           if (response.error) throw response.error
 
           messageApi.success('Version cut successfully.')
@@ -65,7 +69,8 @@ const CutVersionForm = ({
       },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
-      errorMessage: 'An error occurred while cutting the version. Please try again.',
+      errorMessage:
+        'An error occurred while cutting the version. Please try again.',
       permission: 'Permissions.Delivery.Update',
     })
 
@@ -83,12 +88,13 @@ const CutVersionForm = ({
     >
       <Form form={form} size="small" layout="vertical" name="cut-version-form">
         <Item
-          label="Cut Date"
-          name="cutDate"
-          rules={[{ required: true, message: 'Cut date is required' }]}
+          label="Cut At"
+          name="cutAt"
+          initialValue={dayjs()}
+          rules={[{ required: true, message: 'Cut at is required' }]}
           extra={`Cutting ${version.number} is one-way — it cannot be undone.`}
         >
-          <DatePicker style={{ width: '100%' }} />
+          <DatePicker showTime style={{ width: '100%' }} />
         </Item>
       </Form>
     </Modal>

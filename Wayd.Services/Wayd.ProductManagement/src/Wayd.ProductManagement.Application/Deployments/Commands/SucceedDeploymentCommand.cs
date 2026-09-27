@@ -72,11 +72,14 @@ public sealed class SucceedDeploymentCommandHandler(
             // one would misattribute the change permanently.
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
+            var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
+            var completedAt = request.CompletedAt ?? _dateTimeProvider.Now;
+
             var result = deployment.Succeed(
-                request.CompletedAt ?? _dateTimeProvider.Now,
+                completedAt,
                 status.Value,
                 environmentName,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
+                actor,
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)
@@ -87,6 +90,9 @@ public sealed class SucceedDeploymentCommandHandler(
                     "Unable to succeed Deployment {DeploymentId}. Error message: {Error}", request.Id, result.Error);
                 return Result.Failure(result.Error);
             }
+
+            await ProductionRelease.Record(
+                _productManagementDbContext, _statusResolver, deployment, completedAt, actor, _dateTimeProvider.Now, _logger, cancellationToken);
 
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);
 

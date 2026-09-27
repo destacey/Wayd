@@ -82,7 +82,7 @@ Only an **active** environment is accepted. Leaving \`startedAt\` empty records 
 
   ['Deployments_Succeed', {
     name: 'Deployments_Succeed',
-    description: `Record that a deployment reached its environment. ${IN_FLIGHT} There is no edit on a deployment — it records something that happened.`,
+    description: `Record that a deployment reached its environment. ${IN_FLIGHT} There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"completedAt":{"type":"string","format":"date-time","description":"When it finished. Omit to record it as finishing now."}},"required":[]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/deployments/{id}/succeed',

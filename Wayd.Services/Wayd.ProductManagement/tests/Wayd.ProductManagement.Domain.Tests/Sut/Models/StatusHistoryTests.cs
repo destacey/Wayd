@@ -71,10 +71,10 @@ public sealed class StatusHistoryTests
         var sut = PlannedVersion(workflowId);
 
         // Act
-        sut.Cut(new LocalDate(2026, 9, 1),
+        sut.Cut(Instant.FromUtc(2026, 9, 1, 12, 0),
             StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Ready, workflowId, "Ready"),
             ProductName, EventActor.System, _dateTimeProvider.Now);
-        sut.MarkReleased(new LocalDate(2026, 9, 5),
+        sut.MarkReleased(Instant.FromUtc(2026, 9, 5, 12, 0),
             StatusRefFactory.For(StatusCategory.Done, ProductStatusAlias.Released, workflowId, "Released"),
             ProductName, EventActor.System, _dateTimeProvider.Now);
 
@@ -91,7 +91,7 @@ public sealed class StatusHistoryTests
         var sut = PlannedVersion(workflowId);
 
         // Act
-        sut.Cut(new LocalDate(2026, 9, 1),
+        sut.Cut(Instant.FromUtc(2026, 9, 1, 12, 0),
             StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Ready, workflowId, "Ready"),
             ProductName, EventActor.System, _dateTimeProvider.Now);
 
@@ -153,7 +153,7 @@ public sealed class StatusHistoryTests
 
         var readyStatusId = Guid.CreateVersion7();
         var readyThen = new StatusRef(workflowId, readyStatusId, "Ready", StatusCategory.Active, (int)ProductStatusAlias.Ready);
-        sut.Cut(new LocalDate(2026, 9, 1), readyThen, ProductName, EventActor.System, _dateTimeProvider.Now);
+        sut.Cut(Instant.FromUtc(2026, 9, 1, 12, 0), readyThen, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         // The administrator renames the status; the same status id now reads differently.

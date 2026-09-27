@@ -93,8 +93,8 @@ describe('PlanVersionForm', () => {
   it('walks the lifecycle for a version entered after it shipped', async () => {
     // Arrange — the case this exists for: someone recording what already happened.
     renderForm()
-    await typeDate('Cut Date', '2026-04-10')
-    await typeDate('Released Date', '2026-04-20')
+    await typeDate('Cut At', '2026-04-10 09:00:00')
+    await typeDate('Released At', '2026-04-20 21:30:00')
 
     // Act
     await save()
@@ -103,13 +103,21 @@ describe('PlanVersionForm', () => {
     expect(planVersion).toHaveBeenCalledTimes(1)
     expect(cutVersion).toHaveBeenCalledTimes(1)
     expect(markReleased).toHaveBeenCalledTimes(1)
+    // Moments, not days: the times entered reach the API.
+    expect(markReleased).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          releasedAt: new Date(2026, 3, 20, 21, 30),
+        }),
+      }),
+    )
   })
 
   it('reports the version it created when a later step fails', async () => {
     // Arrange — the version exists by then, so telling someone it failed would invite a second one.
     cutVersion.mockResolvedValue({ error: { status: 400 } })
     renderForm()
-    await typeDate('Cut Date', '2026-04-10')
+    await typeDate('Cut At', '2026-04-10 09:00:00')
 
     // Act
     await save()

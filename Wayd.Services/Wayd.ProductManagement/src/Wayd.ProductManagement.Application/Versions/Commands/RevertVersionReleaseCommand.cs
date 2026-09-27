@@ -67,7 +67,7 @@ public sealed class RevertVersionReleaseCommandHandler(
             // Where the version was cut, Ready is the state it was in before shipping. Where it was
             // not — a version entered after the fact, which the domain permits — there is no Ready to
             // return to, so it goes back to the start of its workflow.
-            var status = version.CutDate is not null
+            var status = version.CutAt is not null
                 ? await _statusResolver.ForAlias(
                     ProductWorkflowOwners.Version.Key,
                     scopeId: null,

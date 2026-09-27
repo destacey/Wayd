@@ -57,8 +57,8 @@ public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext p
         return await packages
             .ProjectToType<ReleasePackageDto>(
                 ReleasePackageDto.CreateTypeAdapterConfig(_productManagementDbContext))
-            .OrderByDescending(p => p.ReleasedDate == null)
-            .ThenByDescending(p => p.ReleasedDate)
+            .OrderByDescending(p => p.ReleasedAt == null)
+            .ThenByDescending(p => p.ReleasedAt)
             .ToListAsync(cancellationToken);
     }
 }

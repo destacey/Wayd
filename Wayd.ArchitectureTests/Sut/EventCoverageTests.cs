@@ -121,7 +121,13 @@ public partial class EventCoverageTests
     /// Migrations that write an evented aggregate's table on purpose, by file name, each with the reason —
     /// typically one that writes the matching activity log entries itself, as the baseline backfills do.
     /// </summary>
-    private static readonly Dictionary<string, string> SetBasedWriteMigrations = [];
+    private static readonly Dictionary<string, string> SetBasedWriteMigrations = new()
+    {
+        ["20260926204406_Store-ReleasePackage-ReleasedAt-As-Instant.cs"] =
+            "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
+        ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =
+            "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
+    };
 
     private static readonly Lazy<DomainMethodAnalysis> Analysis = new(DomainMethodAnalysis.Load);
 

@@ -54,7 +54,7 @@ its manifest is what it is.
 | --- | --- | --- |
 | Product | Name, type, place in the catalog tree | Any knowledge of versions |
 | Release | Its own label, target / released dates, product notes, the versions and packages it announced | A cut date — it is never cut |
-| Version | Product, version number, target / cut / released dates, engineering notes | Where it went; which package carried it |
+| Version | Product, version number, target date, cut / released moments, engineering notes | Where it went; which package carried it |
 | Release package | Its own version, and a manifest naming a product and version per component | A product of its own; an owning release |
 | Deployment | Version *xor* package, environment, frozen category, artifact, outcome | Anything about what changed inside |
 
@@ -104,7 +104,7 @@ A version describes **what was cut, never where it went**. That separation is de
 
 Version numbers are free text, because version schemes vary and imposing one would make hand-entry wrong for somebody. Wayd never parses or compares them — `4.8.2` and `2026.04` are both just labels, so versions are never sorted by number.
 
-Versions are listed with everything not yet shipped first, then those that have shipped, newest first. What is still coming is what you are usually looking for. "Not yet shipped" means no released date, so a withdrawn version that never shipped sorts into that first group alongside planned ones.
+Versions are listed with everything not yet shipped first, then those that have shipped, newest first. What is still coming is what you are usually looking for. "Not yet shipped" means no released moment, so a withdrawn version that never shipped sorts into that first group alongside planned ones.
 
 | Status | Meaning |
 | --- | --- |
@@ -117,12 +117,12 @@ A version can only be cut against a node whose [type is releasable](./products.m
 
 ### Recording a Version
 
-**Add Version** creates the record. Cut Date and Released Date are optional on that form, and what
-you supply decides where the version starts:
+**Add Version** creates the record. Cut At and Released At — each a date and time — are optional on
+that form, and what you supply decides where the version starts:
 
 - Leave both empty for something still being planned. It starts at Planned, and you cut and release
   it later as it happens.
-- Give a cut date only, for something cut but not yet shipped. It starts at Ready.
+- Give a cut moment only, for something cut but not yet shipped. It starts at Ready.
 - Give both, for something that already shipped. It starts at Released.
 
 Whichever you supply, Wayd applies the same steps in the same order it would have if you had recorded
@@ -139,14 +139,22 @@ demanding one would make importing historical versions impossible.
 
 Each action records something that happened, and each is one-way:
 
-- **Cut** freezes scope and moves the version to Ready. A version cannot be cut twice.
-- **Mark Released** records the ship date and moves it to Released. The released date cannot be
-  earlier than the cut date.
+- **Cut** records the moment scope was frozen — a date and time, defaulting to now — and moves the
+  version to Ready. A version cannot be cut twice.
+- **Mark Released** records the moment it shipped, also defaulting to now, and moves it to Released.
+  The released moment cannot be earlier than the cut moment.
 - **Withdraw** pulls a version. A released version can still be withdrawn — pulling something after
   it shipped is exactly the case this exists for — but a withdrawn one cannot be released.
 
 Actions that a version would refuse are not offered, so the menu shows only what that version will
 actually accept.
+
+Cut and released are instants — the build or tag that froze scope, and production receiving it — and
+are entered and shown in your own time zone. A version released at 21:30 in Chicago reads as the 17th
+there and as 03:30 on the 18th in London; both are the same moment. The target date is a plan, so it
+stays a calendar date. Versions cut or released before these moments were recorded carry 12:00 UTC on
+their original date, which falls on the same day in every zone from UTC−11 to UTC+11; use
+[Correct Dates](#correcting-dates) on any whose real moment matters.
 
 ### Version Status History
 
@@ -174,22 +182,24 @@ Viewing history needs only view access to the version.
 
 ### Correcting Dates
 
-**Correct Dates** fixes a target, cut or released date that was recorded wrongly. It changes only the
-dates: the version keeps its current status, and its status history is left as it is.
+**Correct Dates** fixes a target date, or a cut or released moment, that was recorded wrongly. It
+changes only those values: the version keeps its current status, and its status history is left as
+it is.
 
 This is deliberately separate from Cut and Mark Released. Those assert that the version moved, and
-refuse to run twice — so without a correction action the only way to fix a released date would be to
-withdraw the version and release it again, recording two status changes that never happened.
+refuse to run twice — so without a correction action the only way to fix a released moment would be
+to withdraw the version and release it again, recording two status changes that never happened.
 
-All three dates are offered whether or not the version has one, because a **missing** date is as
-likely to be the error as a wrong one. A version can be marked released without ever being cut, so
-the cut date is commonly filled in afterwards. The target and cut dates can equally be cleared: each
+All three are offered whether or not the version has one, because a **missing** value is as likely to
+be the error as a wrong one. A version can be marked released without ever being cut, so the cut
+moment is commonly filled in afterwards. The target date and cut moment can equally be cleared: each
 only records something that was written down.
 
 Two rules survive, and both are real:
 
-- **The released date cannot be before the cut date.** A version cannot ship before it was cut.
-- **The released date cannot be cleared.** Emptying it would leave a released record contradicting its
+- **The released moment cannot be before the cut moment.** A version cannot ship before it was cut;
+  the two are compared as moments, to the minute.
+- **The released moment cannot be cleared.** Emptying it would leave a released record contradicting its
   own status. If the version did not in fact ship, [revert it](#reverting-a-version) instead — that
   moves the status to match.
 
@@ -199,7 +209,7 @@ A withdrawn version cannot have its dates corrected.
 
 **Revert Version** is for a version marked as shipped **by mistake** — the wrong record was updated,
 and it never actually went out. It returns the version to Ready, or to the workflow's initial status
-where it was never cut, and clears the released date. A reason is required.
+where it was never cut, and clears the released moment. A reason is required.
 
 This is not the same act as withdrawing, and the distinction matters:
 
@@ -207,7 +217,7 @@ This is not the same act as withdrawing, and the distinction matters:
 | --- | --- | --- |
 | What happened | The version shipped and was then pulled | The version never shipped; the record was wrong |
 | Resulting status | Withdrawn — terminal | Ready, or the initial status — still live |
-| Released date | Kept: it did ship | Cleared: it did not |
+| Released moment | Kept: it did ship | Cleared: it did not |
 | Reason | Optional | Required |
 
 Recording a mistake as a withdrawal would leave the history asserting that somebody pulled a version
@@ -336,8 +346,17 @@ The manifest closes once the package is released or withdrawn, and the action st
 
 ### Releasing and Withdrawing a Package
 
-- **Mark Released** records the ship date and closes the manifest. A package with an empty manifest
-  cannot be released.
+- **Mark Released** records the moment the package shipped — a date and time, defaulting to now — and
+  closes the manifest. A package with an empty manifest cannot be released.
+- **Correct Dates** fixes a target date or released moment recorded wrongly, without moving the status.
+  The released moment can be changed on a released package but not added or cleared: it is what closes
+  the manifest.
+
+A package's released moment is an instant — when the pipeline run that shipped it completed — and is
+shown in your own time zone, so the same package reads as the 17th in Chicago and the 18th in London
+when it shipped late in the evening there. Target dates are plans and stay calendar dates. Packages
+released before release moments were recorded carry 12:00 UTC on their original date, which is the
+same day in every zone; correct any whose real moment matters.
 - **Withdraw** pulls the package, with an optional reason recorded on the status transition. As with
   versions, a released package can still be withdrawn, and a withdrawn one cannot be released.
 
@@ -439,6 +458,19 @@ mistake; see [Can I delete any of this?](#can-i-delete-any-of-this).
 
 A completion cannot predate the start, and a rollback cannot predate the completion.
 
+**A success in production marks what shipped as released.** When a production deployment succeeds, a
+version it carried that has no released moment yet is marked **Released** at the deployment's
+completion, just as Mark Released would. A package deployment does the same for the package and for
+every version that **changed** in it. Its carried-forward components shipped earlier.
+
+- A released moment already recorded is never replaced, whether someone entered it or an earlier
+  deployment filled it in. Wayd cannot tell the two apart, so when importing history, import
+  deployments oldest first, or fix a moment afterwards with [Correct Dates](#correcting-dates).
+- A withdrawn version or package is left alone, and so is one cut after the deployment completed.
+
+A deployment that is later rolled back still shipped first, so it counts too. Deployments outside
+production never mark anything released.
+
 :::note What a rolled-back deployment counts as
 A rollback still counts toward **deployment frequency** — it reached production, which is what that
 measures — and counts against **change failure rate**. The two measures deliberately disagree about
@@ -476,7 +508,9 @@ Scope is a product node, defaulting to all products. Selecting a node covers **t
 | Measure | What it counts |
 | --- | --- |
 | Versions released | Versions marked released in the window, as a weekly rate |
-| Cut to released | Mean days from cutting a version to releasing it |
+| Cut to released | Mean elapsed time from cutting a version to releasing it, in fractional days |
+
+The window and its days are **your own days**: the page sends your browser's time zone, so a version released late in the evening counts on the day it happened where you are, not on the UTC day. Cut to released measures the real time between the two moments, so a version cut in the morning and released that afternoon counts as a fraction of a day rather than as zero or one.
 
 **Neither counts release packages.** A package is a bundle of versions, not a version, and counting one would count the same shipment twice — its components are each released in their own right.
 
@@ -496,7 +530,7 @@ Shading is an **absolute** scale — none, one, two, three, four, and five or mo
 
 What has happened to versions **and packages** lately, most recent first: released, cut and awaiting release, withdrawn. A package entry says how many components it carried and links to its manifest rather than listing them.
 
-Read from [status history](#version-status-history) rather than the records' own dates, for two reasons. The dates are dates — they carry no time of day, so two things that happened on one afternoon could not be ordered. And a date says the state a record is in now, while a transition says the moment it changed, which is what a feed is a list of.
+Read from [status history](#version-status-history) rather than the records' own cut and released moments, because a record's moment says the state it is in now, while a transition says when it changed — which is what a feed is a list of.
 
 :::note Packages drop out when you scope to a product
 A package spans several products, so attributing one to a single node would put the same shipment under each of them. Scoping the page to a product therefore leaves packages out of the feed, and the entries you see are versions alone.

@@ -1,6 +1,7 @@
 import { VersionDto } from '@/src/services/wayd-api'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import dayjs from 'dayjs'
 import CorrectVersionDatesForm from './correct-version-dates-form'
 
 jest.unmock('dayjs')
@@ -51,10 +52,14 @@ const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
     ...overrides,
   }) as VersionDto
 
+const CUT_AT = '2026-04-01T15:00:00Z'
+// Late evening US Central: the 1st there, the 2nd in UTC.
+const RELEASED_AT = '2026-04-02T02:30:00Z'
+
 const released = () =>
   version({
-    cutDate: '2026-04-01' as unknown as Date,
-    releasedDate: '2026-04-02' as unknown as Date,
+    cutAt: CUT_AT as unknown as Date,
+    releasedAt: RELEASED_AT as unknown as Date,
   })
 
 const renderForm = (dto: VersionDto) =>
@@ -71,31 +76,35 @@ describe('CorrectVersionDatesForm', () => {
     correctDates.mockReset().mockResolvedValue({ data: undefined })
   })
 
-  it('pre-fills the dates already recorded', () => {
+  it("pre-fills what is already recorded, in the viewer's zone", () => {
     // Arrange / Act — a correction starts from what is there; the field is rarely blank.
     renderForm(released())
 
     // Assert
-    expect(screen.getByLabelText('Cut Date')).toHaveValue('2026-04-01')
-    expect(screen.getByLabelText('Released Date')).toHaveValue('2026-04-02')
+    expect(screen.getByLabelText('Cut At')).toHaveValue(
+      dayjs(CUT_AT).format('YYYY-MM-DD HH:mm:ss'),
+    )
+    expect(screen.getByLabelText('Released At')).toHaveValue(
+      dayjs(RELEASED_AT).format('YYYY-MM-DD HH:mm:ss'),
+    )
   })
 
-  it('offers every date, including ones the version does not have', () => {
-    // Arrange — a missing date is as likely to be the error as a wrong one. A version can be marked
-    // released without ever being cut, so the cut date is commonly filled in afterwards; hiding the
+  it('offers every value, including ones the version does not have', () => {
+    // Arrange — a missing value is as likely to be the error as a wrong one. A version can be marked
+    // released without ever being cut, so the cut moment is commonly filled in afterwards; hiding the
     // field left no route to it at all.
     // Act
-    renderForm(version({ cutDate: '2026-04-01' as unknown as Date }))
+    renderForm(version({ cutAt: CUT_AT as unknown as Date }))
 
     // Assert
     expect(screen.getByLabelText('Target Date')).toBeInTheDocument()
-    expect(screen.getByLabelText('Cut Date')).toBeInTheDocument()
-    expect(screen.getByLabelText('Released Date')).toBeInTheDocument()
+    expect(screen.getByLabelText('Cut At')).toBeInTheDocument()
+    expect(screen.getByLabelText('Released At')).toBeInTheDocument()
   })
 
-  it('sends all three dates when one is corrected', () => {
+  it('sends all three values, the moments as instants', () => {
     // Arrange — the API takes them together, since the ordering rule spans the pair and an omitted
-    // date is a cleared one rather than an unchanged one.
+    // value is a cleared one rather than an unchanged one.
     renderForm(released())
 
     // Act
@@ -106,8 +115,8 @@ describe('CorrectVersionDatesForm', () => {
         expect(correctDates).toHaveBeenCalledWith({
           id: 'version-1',
           request: expect.objectContaining({
-            cutDate: '2026-04-01',
-            releasedDate: '2026-04-02',
+            cutAt: new Date(CUT_AT),
+            releasedAt: new Date(RELEASED_AT),
           }),
         })
       })

@@ -2,7 +2,10 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { formatDateOnly } from '@/src/components/common/wayd-grid'
+import {
+  formatDateOnly,
+  formatDateTime,
+} from '@/src/components/common/wayd-grid'
 import { VersionDto } from '@/src/services/wayd-api'
 import { Flex } from 'antd'
 import Link from 'next/link'
@@ -14,8 +17,9 @@ export interface VersionFactsProps {
 /**
  * A version's stable facts, for the details panel.
  *
- * The three dates run in lifecycle order — planned for, cut, shipped — so the gaps between them are
- * readable at a glance. An absent date is shown rather than hidden: not yet cut is a fact about the
+ * The three run in lifecycle order — planned for, cut, shipped — so the gaps between them are readable
+ * at a glance. The target is a plan and shows as a day; the cut and the release happened at moments, shown
+ * in the viewer's zone. An absent value is shown rather than hidden: not yet cut is a fact about the
  * version, and omitting the row makes it look like the field does not exist.
  */
 const VersionFacts = ({ version }: VersionFactsProps) => (
@@ -38,13 +42,13 @@ const VersionFacts = ({ version }: VersionFactsProps) => (
           {formatDateOnly(version.targetDate) || 'Not set'}
         </LabeledContent>
         <LabeledContent label="Cut">
-          {formatDateOnly(version.cutDate) ||
+          {formatDateTime(version.cutAt) ||
             // "Not yet" reads as still to come, which a shipped version will never do — cutting is
             // refused once it is released. Recording one is common with hand-entry and import.
-            (version.releasedDate ? 'Not set' : 'Not yet cut')}
+            (version.releasedAt ? 'Not set' : 'Not yet cut')}
         </LabeledContent>
         <LabeledContent label="Released">
-          {formatDateOnly(version.releasedDate) || 'Not yet released'}
+          {formatDateTime(version.releasedAt) || 'Not yet released'}
         </LabeledContent>
       </Flex>
     </RecordFactsGroup>

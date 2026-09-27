@@ -7,10 +7,10 @@ namespace Wayd.ProductManagement.Application.Versions.Commands;
 /// Records that a version shipped.
 /// </summary>
 /// <remarks>
-/// The released date is what orders a version history, so it is supplied rather than taken from the
+/// The released moment is what orders a version history, so it is supplied rather than taken from the
 /// clock: shipping is often recorded after the fact.
 /// </remarks>
-public sealed record MarkVersionReleasedCommand(Guid Id, LocalDate ReleasedDate) : ICommand, IRequireLinkedEmployee;
+public sealed record MarkVersionReleasedCommand(Guid Id, Instant ReleasedAt) : ICommand, IRequireLinkedEmployee;
 
 public sealed class MarkVersionReleasedCommandValidator : AbstractValidator<MarkVersionReleasedCommand>
 {
@@ -78,7 +78,7 @@ public sealed class MarkVersionReleasedCommandHandler(
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = version.MarkReleased(
-                request.ReleasedDate,
+                request.ReleasedAt,
                 status.Value,
                 productName,
                 EventActor.User(_currentUser.GetUserId(), employeeId),

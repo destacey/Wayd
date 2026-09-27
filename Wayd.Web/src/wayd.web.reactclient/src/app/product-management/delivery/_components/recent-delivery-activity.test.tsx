@@ -91,7 +91,7 @@ describe('RecentDeliveryActivity', () => {
           event({
             statusName: 'Withdrawn',
             alias: ProductStatusAlias.Withdrawn,
-            releasedDate: '2026-04-19' as unknown as Date,
+            releasedAt: '2026-04-19T12:00:00Z' as unknown as Date,
           }),
         ]}
       />,
@@ -99,6 +99,30 @@ describe('RecentDeliveryActivity', () => {
 
     // Assert
     expect(screen.getByText(/Withdrawn/)).toBeInTheDocument()
+    expect(screen.getByText(/released 19 Apr/)).toBeInTheDocument()
+  })
+
+  it('says when a withdrawn package shipped, from its released moment', () => {
+    // Arrange — a package records the moment it shipped rather than a date. Midday UTC, so the
+    // viewer's day is the 19th whatever zone the test runs in.
+    // Act
+    render(
+      <RecentDeliveryActivity
+        events={[
+          event({
+            kind: DeliveryRecordKind.ReleasePackage,
+            product: undefined,
+            label: 'OFT-2026.07',
+            componentCount: 15,
+            statusName: 'Withdrawn',
+            alias: ProductStatusAlias.Withdrawn,
+            releasedAt: '2026-04-19T12:00:00Z' as unknown as Date,
+          }),
+        ]}
+      />,
+    )
+
+    // Assert
     expect(screen.getByText(/released 19 Apr/)).toBeInTheDocument()
   })
 

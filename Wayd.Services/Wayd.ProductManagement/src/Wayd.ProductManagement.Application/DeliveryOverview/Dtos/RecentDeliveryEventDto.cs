@@ -14,10 +14,8 @@ public enum DeliveryRecordKind
 /// One thing that happened to a version or a package, most recent first.
 /// </summary>
 /// <remarks>
-/// Read from the status transitions rather than from the records' own dates, for two reasons. The
-/// dates are <c>LocalDate</c> — they carry no time of day, so a feed built from them could not order
-/// two things that happened on one afternoon. And a date says the state a record is in now, while a
-/// transition says the moment it changed, which is what a feed is a list of.
+/// Read from the status transitions rather than from the records' own moments: those say the state a
+/// record is in now, while a transition says when it changed, which is what a feed is a list of.
 /// </remarks>
 public sealed record RecentDeliveryEventDto
 {
@@ -55,7 +53,7 @@ public sealed record RecentDeliveryEventDto
     /// Carried so a withdrawal can say what it withdrew — the event alone would leave a reader
     /// asking when the thing being pulled had gone out.
     /// </remarks>
-    public LocalDate? ReleasedDate { get; init; }
+    public Instant? ReleasedAt { get; init; }
 
     /// <summary>How many components the package shipped. Null for a version.</summary>
     public int? ComponentCount { get; init; }

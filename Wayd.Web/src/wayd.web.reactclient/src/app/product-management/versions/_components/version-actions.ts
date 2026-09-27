@@ -29,14 +29,15 @@ export const versionActionAvailability = (
   version: VersionDto,
 ): VersionActionAvailability => {
   const isWithdrawn = version.status.category === StatusCategory.Removed
-  const isTerminal = version.status.category === StatusCategory.Done || isWithdrawn
+  const isTerminal =
+    version.status.category === StatusCategory.Done || isWithdrawn
 
   return {
-    canCut: !version.cutDate && !isTerminal,
-    canRelease: !version.releasedDate && !isWithdrawn,
+    canCut: !version.cutAt && !isTerminal,
+    canRelease: !version.releasedAt && !isWithdrawn,
     canWithdraw: !isWithdrawn,
     canMoveTargetDate: !isTerminal,
     canCorrectDates: !isWithdrawn,
-    canRevert: !!version.releasedDate && !isWithdrawn,
+    canRevert: !!version.releasedAt && !isWithdrawn,
   }
 }

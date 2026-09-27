@@ -4498,13 +4498,13 @@
           "DeliveryOverview"
         ],
         "summary": "Get version activity over a window.",
-        "description": "Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency.",
+        "description": "Scoping to a product covers that node and everything beneath it, so selecting a grouping rolls up its children rather than reporting nothing. Cut-to-released excludes versions released without ever being cut, which carry no latency. Versions are released at moments, so the window and the daily buckets are days in timeZone (default UTC).",
         "operationId": "DeliveryOverview_GetDeliveryOverview",
         "parameters": [
           {
             "name": "from",
             "in": "query",
-            "description": "An instant rather than a date, though the window is a date range and the versions it counts\ncarry dates. The generated client types every date parameter as a JavaScript Date and\nsends toISOString(), which no LocalDate binder accepts — so a date-typed\nparameter here is unreachable from the client that calls it. Truncated to its UTC date below,\nmatching how the other windowed endpoints take their bounds.",
+            "description": "Any instant on the window's first day, read as a day in timeZone. An instant\nrather than a date because the generated client types every date parameter as a JavaScript\nDate and sends toISOString(), which no LocalDate binder accepts. The caller\nsends the start of its local day, which lands on that day in its own zone.",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -4514,6 +4514,7 @@
           {
             "name": "to",
             "in": "query",
+            "description": "Any instant on the window's last day, which is inclusive.",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -4530,6 +4531,16 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 3
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "description": "The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults\nto UTC.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 4
           }
         ],
         "responses": {
@@ -4567,7 +4578,7 @@
           "DeliveryOverview"
         ],
         "summary": "Get what has happened to versions and packages lately.",
-        "description": "Read from status transitions rather than the records' own dates, which carry no time of day and say the state a record is in rather than the moment it changed. Scoping to a product covers its subtree and excludes packages, which span several products.",
+        "description": "Read from status transitions rather than the records' own moments, which say the state a record is in rather than when it changed. Scoping to a product covers its subtree and excludes packages, which span several products.",
         "operationId": "DeliveryOverview_GetRecentDeliveryEvents",
         "parameters": [
           {
@@ -8585,8 +8596,8 @@
         "tags": [
           "ReleasePackages"
         ],
-        "summary": "Correct a package's recorded target and released dates.",
-        "description": "Fixes dates entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released date can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.",
+        "summary": "Correct a package's recorded target date and released moment.",
+        "description": "Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.",
         "operationId": "ReleasePackages_CorrectDates",
         "parameters": [
           {
@@ -9616,7 +9627,7 @@
           "Versions"
         ],
         "summary": "Get a list of versions.",
-        "description": "Ordered by released date then sequence — never by version, which is free text.",
+        "description": "Ordered by released moment then sequence — never by version, which is free text.",
         "operationId": "Versions_GetVersions",
         "parameters": [
           {
@@ -9907,7 +9918,7 @@
           "Versions"
         ],
         "summary": "Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
-        "description": "Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.",
+        "description": "Each row is planned against its product by id and walked to the state its moments describe: neither leaves it planned, a cut moment makes it ready, a released moment makes it released. Moments are ISO-8601 timestamps with an offset.",
         "operationId": "Versions_Import",
         "parameters": [
           {
@@ -10016,7 +10027,7 @@
           "Versions"
         ],
         "summary": "Update a version.",
-        "description": "A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates are not here — each carries a rule of its own, so they move through their own actions.",
+        "description": "A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates and moments are not here — each carries a rule of its own, so they move through their own actions.",
         "operationId": "Versions_Update",
         "parameters": [
           {
@@ -10178,8 +10189,8 @@
         "tags": [
           "Versions"
         ],
-        "summary": "Correct a version's recorded target, cut and released dates.",
-        "description": "Fixes dates entered wrongly without changing the version's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the version instead.",
+        "summary": "Correct a version's recorded target date and cut and released moments.",
+        "description": "Fixes values entered wrongly without changing the version's status. All three are sent, so an omitted value is cleared. The released moment cannot be cleared — revert the version instead.",
         "operationId": "Versions_CorrectDates",
         "parameters": [
           {
@@ -10403,7 +10414,7 @@
           "Versions"
         ],
         "summary": "Revert a version recorded as shipped.",
-        "description": "For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a version which really shipped.",
+        "description": "For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released moment. Not a withdrawal — that pulls a version which really shipped.",
         "operationId": "Versions_Revert",
         "parameters": [
           {
@@ -42104,9 +42115,9 @@
             "type": "string",
             "format": "date-time"
           },
-          "releasedDate": {
+          "releasedAt": {
             "type": "string",
-            "format": "date",
+            "format": "date-time",
             "nullable": true
           },
           "componentCount": {
@@ -42762,7 +42773,7 @@
       },
       "ImportDeploymentRequest": {
         "type": "object",
-        "description": "A single CSV row for the deployment import.\nExactly one of VersionId and PackageId is set, both by id. The\nenvironment is named, because names are unique. A build number is never resolved to a version: the\nrow says which version it deployed and carries the build as its ArtifactId.\nThere is no status column. A row with no Outcome is still in flight; one with an\noutcome is walked through the same transitions a person would record, with the real timestamps\nsupplied here. A rollback is recorded as a success first, so it needs both the time it completed\nand the time it was reverted.\nTimestamps are instants, and each must carry its offset — 2026-03-01T14:30:00Z or\n2026-03-01T09:30:00-05:00. A value with no offset is refused rather than read in the\nserver's zone, which would shift every historical deployment by whatever that zone happens to be.",
+        "description": "A single CSV row for the deployment import.\nExactly one of VersionId and PackageId is set, both by id. The\nenvironment is named, because names are unique. A build number is never resolved to a version: the\nrow says which version it deployed and carries the build as its ArtifactId.\nThere is no status column. A row with no Outcome is still in flight; one with an\noutcome is walked through the same transitions a person would record, with the real timestamps\nsupplied here. A rollback is recorded as a success first, so it needs both the time it completed\nand the time it was reverted.\nTimestamps are instants, and each must carry its offset (see OffsetTimestamp).",
         "additionalProperties": false,
         "required": [
           "environmentName",
@@ -43994,9 +44005,9 @@
             "format": "date",
             "nullable": true
           },
-          "releasedDate": {
+          "releasedAt": {
             "type": "string",
-            "format": "date",
+            "format": "date-time",
             "nullable": true
           },
           "status": {
@@ -44168,12 +44179,11 @@
             "nullable": true,
             "x-csv-column": "TargetDate"
           },
-          "releasedDate": {
+          "releasedAt": {
             "type": "string",
-            "description": "When the package shipped. Supplying it makes the package Released.",
-            "format": "date",
+            "description": "When the package shipped, with its offset — copy the completion time of the pipeline run that\nshipped it as-is. Supplying it makes the package Released.",
             "nullable": true,
-            "x-csv-column": "ReleasedDate"
+            "x-csv-column": "ReleasedAt"
           }
         }
       },
@@ -44248,20 +44258,26 @@
         "type": "object",
         "description": "Records that a package shipped.",
         "additionalProperties": false,
-        "required": [
-          "releasedDate"
-        ],
         "properties": {
+          "releasedAt": {
+            "type": "string",
+            "description": "The moment it shipped. Supplied rather than taken from the clock, because shipping is often\nrecorded after the fact. Required unless the deprecated ReleasedDate is sent instead.",
+            "format": "date-time",
+            "nullable": true
+          },
           "releasedDate": {
             "type": "string",
-            "description": "The date it shipped. Supplied rather than taken from the clock, because shipping is often\nrecorded after the fact.",
-            "format": "date"
+            "description": "The day it shipped, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
+            "nullable": true
           }
         }
       },
       "CorrectReleasePackageDatesRequest": {
         "type": "object",
-        "description": "Corrects a package's recorded target and released dates.",
+        "description": "Corrects a package's recorded target date and released moment.",
         "additionalProperties": false,
         "properties": {
           "targetDate": {
@@ -44269,9 +44285,17 @@
             "format": "date",
             "nullable": true
           },
+          "releasedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "releasedDate": {
             "type": "string",
+            "description": "The released day, read as 12:00 in the organization's default time zone.",
             "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
             "nullable": true
           }
         }
@@ -44381,9 +44405,9 @@
               }
             ]
           },
-          "releasedDate": {
+          "releasedAt": {
             "type": "string",
-            "format": "date",
+            "format": "date-time",
             "nullable": true
           }
         }
@@ -44398,9 +44422,9 @@
           "package": {
             "$ref": "#/components/schemas/NavigationDto"
           },
-          "releasedDate": {
+          "releasedAt": {
             "type": "string",
-            "format": "date",
+            "format": "date-time",
             "nullable": true
           }
         }
@@ -44764,14 +44788,14 @@
             "format": "date",
             "nullable": true
           },
-          "cutDate": {
+          "cutAt": {
             "type": "string",
-            "format": "date",
+            "format": "date-time",
             "nullable": true
           },
-          "releasedDate": {
+          "releasedAt": {
             "type": "string",
-            "format": "date",
+            "format": "date-time",
             "nullable": true
           },
           "status": {
@@ -44825,7 +44849,7 @@
       },
       "ImportVersionRequest": {
         "type": "object",
-        "description": "A single CSV row for the version import.\nThe product is referenced by id, and a version is identified by that product together with its\nNumber — version strings are free text and only meaningful within one product, so two\nproducts may each hold a 1.0.0.\nThere is no status column: the dates decide where the version ends up. A row with no dates is\nplanned, a CutDate makes it ready, and a ReleasedDate makes it\nreleased. A released date without a cut date is legitimate — a version recorded after the fact\noften has no record of when scope froze.",
+        "description": "A single CSV row for the version import.\nThe product is referenced by id, and a version is identified by that product together with its\nNumber — version strings are free text and only meaningful within one product, so two\nproducts may each hold a 1.0.0.\nThere is no status column: the moments decide where the version ends up. A row with neither is\nplanned, a CutAt makes it ready, and a ReleasedAt makes it\nreleased. A released moment without a cut moment is legitimate — a version recorded after the fact\noften has no record of when scope froze.\nBoth moments are instants and must carry their offset (see OffsetTimestamp): copy the\nCI/CD timestamps as-is.",
         "additionalProperties": false,
         "required": [
           "productId",
@@ -44869,19 +44893,17 @@
             "nullable": true,
             "x-csv-column": "TargetDate"
           },
-          "cutDate": {
+          "cutAt": {
             "type": "string",
-            "description": "When scope froze. Supplying it makes the version Ready.",
-            "format": "date",
+            "description": "When scope froze — the build or tag — with its offset. Supplying it makes the version Ready.",
             "nullable": true,
-            "x-csv-column": "CutDate"
+            "x-csv-column": "CutAt"
           },
-          "releasedDate": {
+          "releasedAt": {
             "type": "string",
-            "description": "When it shipped. Supplying it makes the version Released.",
-            "format": "date",
+            "description": "When it shipped, with its offset. Supplying it makes the version Released.",
             "nullable": true,
-            "x-csv-column": "ReleasedDate"
+            "x-csv-column": "ReleasedAt"
           },
           "sequence": {
             "type": "integer",
@@ -44959,7 +44981,7 @@
       },
       "CorrectVersionDatesRequest": {
         "type": "object",
-        "description": "Corrects a version's recorded target, cut and released dates.",
+        "description": "Corrects a version's recorded target date and cut and released moments.",
         "additionalProperties": false,
         "properties": {
           "targetDate": {
@@ -44968,16 +44990,32 @@
             "format": "date",
             "nullable": true
           },
+          "cutAt": {
+            "type": "string",
+            "description": "The corrected cut moment, or null to clear it. May be added to a version that was never cut: a\nversion can be marked released without being cut, so a cut moment discovered later is a\ncorrection rather than a lifecycle step.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "releasedAt": {
+            "type": "string",
+            "description": "The corrected released moment. May be added or changed, but not cleared on a version that has\none — emptying it would leave the status contradicting the record. Use the revert action to\nrecord that a version did not ship.",
+            "format": "date-time",
+            "nullable": true
+          },
           "cutDate": {
             "type": "string",
-            "description": "The corrected cut date, or null to clear it. May be added to a version that was never cut: a\nversion can be marked released without being cut, so a cut date discovered later is a\ncorrection rather than a lifecycle step.",
+            "description": "The cut day, read as 12:00 in the organization's default time zone.",
             "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use CutAt. Removed in a future release.",
             "nullable": true
           },
           "releasedDate": {
             "type": "string",
-            "description": "The corrected released date. May be added or changed, but not cleared on a version that has\none — emptying it would leave the status contradicting the dates. Use the revert action to\nrecord that a version did not ship.",
+            "description": "The released day, read as 12:00 in the organization's default time zone.",
             "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
             "nullable": true
           }
         }
@@ -44986,14 +45024,20 @@
         "type": "object",
         "description": "Freezes scope and marks a version ready to ship.",
         "additionalProperties": false,
-        "required": [
-          "cutDate"
-        ],
         "properties": {
+          "cutAt": {
+            "type": "string",
+            "description": "The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the\nclock, because cutting is often recorded after the fact. Required unless the deprecated\nCutDate is sent instead.",
+            "format": "date-time",
+            "nullable": true
+          },
           "cutDate": {
             "type": "string",
-            "description": "The date scope was frozen. Supplied rather than taken from the clock, because cutting is often\nrecorded after the fact.",
-            "format": "date"
+            "description": "The day it was cut, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use CutAt. Removed in a future release.",
+            "nullable": true
           }
         }
       },
@@ -45001,14 +45045,20 @@
         "type": "object",
         "description": "Records that a version shipped.",
         "additionalProperties": false,
-        "required": [
-          "releasedDate"
-        ],
         "properties": {
+          "releasedAt": {
+            "type": "string",
+            "description": "The moment it shipped. This is what orders a version history, so it is supplied rather than\ntaken from the clock. Required unless the deprecated ReleasedDate is sent instead.",
+            "format": "date-time",
+            "nullable": true
+          },
           "releasedDate": {
             "type": "string",
-            "description": "The date it shipped. This is what orders a version history, so it is supplied rather than taken\nfrom the clock.",
-            "format": "date"
+            "description": "The day it shipped, read as 12:00 in the organization's default time zone.",
+            "format": "date",
+            "deprecated": true,
+            "x-deprecatedMessage": "Use ReleasedAt. Removed in a future release.",
+            "nullable": true
           }
         }
       },

@@ -19,8 +19,8 @@ public sealed class VersionFaker : PrivateConstructorFaker<Version>
         RuleFor(x => x.Name, f => null);
         RuleFor(x => x.Sequence, f => null);
         RuleFor(x => x.TargetDate, f => null);
-        RuleFor(x => x.CutDate, f => null);
-        RuleFor(x => x.ReleasedDate, f => null);
+        RuleFor(x => x.CutAt, f => null);
+        RuleFor(x => x.ReleasedAt, f => null);
         RuleFor(x => x.Notes, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
         // A real record always has one: ApplyStatus sets it from the StatusRef it is given,
@@ -82,16 +82,16 @@ public static class VersionFakerExtensions
         return faker;
     }
 
-    public static VersionFaker WithCutDate(this VersionFaker faker, LocalDate? cutDate)
+    public static VersionFaker WithCutAt(this VersionFaker faker, Instant? cutAt)
     {
-        faker.RuleFor(x => x.CutDate, cutDate);
+        faker.RuleFor(x => x.CutAt, cutAt);
 
         return faker;
     }
 
-    public static VersionFaker WithReleasedDate(this VersionFaker faker, LocalDate? releasedDate)
+    public static VersionFaker WithReleasedAt(this VersionFaker faker, Instant? releasedAt)
     {
-        faker.RuleFor(x => x.ReleasedDate, releasedDate);
+        faker.RuleFor(x => x.ReleasedAt, releasedAt);
 
         return faker;
     }
@@ -127,9 +127,9 @@ public static class VersionFakerExtensions
     /// <summary>
     /// A version that has been cut but not yet released.
     /// </summary>
-    public static VersionFaker AsCut(this VersionFaker faker, LocalDate cutDate)
+    public static VersionFaker AsCut(this VersionFaker faker, Instant cutAt)
     {
-        faker.RuleFor(x => x.CutDate, cutDate);
+        faker.RuleFor(x => x.CutAt, cutAt);
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Active);
 
         return faker;
@@ -138,14 +138,14 @@ public static class VersionFakerExtensions
     /// <summary>
     /// A version that has shipped.
     /// </summary>
-    /// <param name="cutDate">
+    /// <param name="cutAt">
     /// Nullable because cutting is not a prerequisite for releasing — a version entered after the fact
-    /// legitimately ships with no cut date, and historical import depends on it.
+    /// legitimately ships with no cut moment, and historical import depends on it.
     /// </param>
-    public static VersionFaker AsReleased(this VersionFaker faker, LocalDate? cutDate, LocalDate releasedDate)
+    public static VersionFaker AsReleased(this VersionFaker faker, Instant? cutAt, Instant releasedAt)
     {
-        faker.RuleFor(x => x.CutDate, cutDate);
-        faker.RuleFor(x => x.ReleasedDate, releasedDate);
+        faker.RuleFor(x => x.CutAt, cutAt);
+        faker.RuleFor(x => x.ReleasedAt, releasedAt);
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Done);
 
         return faker;

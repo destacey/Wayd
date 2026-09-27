@@ -28,15 +28,18 @@ public sealed class ImportReleasePackageRequest
     /// <summary>When the package is expected to ship.</summary>
     public DateOnly? TargetDate { get; set; }
 
-    /// <summary>When the package shipped. Supplying it makes the package Released.</summary>
-    public DateOnly? ReleasedDate { get; set; }
+    /// <summary>
+    /// When the package shipped, with its offset — copy the completion time of the pipeline run that
+    /// shipped it as-is. Supplying it makes the package Released.
+    /// </summary>
+    public string? ReleasedAt { get; set; }
 
     public ImportReleasePackageDto ToImportReleasePackageDto(
         IReadOnlyList<ImportReleasePackageComponentDto> components) =>
         new(Version,
             Name,
             TargetDate?.ToLocalDate(),
-            ReleasedDate?.ToLocalDate(),
+            OffsetTimestamp.Parse(ReleasedAt),
             components);
 }
 
@@ -52,6 +55,11 @@ public sealed class ImportReleasePackageRequestValidator : CustomValidator<Impor
 
         RuleFor(p => p.Name)
             .MaximumLength(128);
+
+        RuleFor(p => p.ReleasedAt)
+            .Must(OffsetTimestamp.IsValid)
+                .When(p => !string.IsNullOrWhiteSpace(p.ReleasedAt))
+                .WithMessage(OffsetTimestamp.Message(nameof(ImportReleasePackageRequest.ReleasedAt)));
     }
 }
 

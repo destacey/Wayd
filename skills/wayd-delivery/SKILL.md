@@ -27,7 +27,7 @@ wrong one of these.
 | Record | Example | Answers | Does **not** hold |
 | --- | --- | --- | --- |
 | **Product** | `Wayd API` | What exists, and where it sits in the catalog | Any knowledge of versions |
-| **Version** | `Wayd API 4.12.0` | What was **built** — one artifact, cut on a date | Where it went |
+| **Version** | `Wayd API 4.12.0` | What was **built** — one artifact, cut at a moment | Where it went |
 | **Release Package** | `WAYD-2026.09.1` | What **moved through environments together** | A product of its own |
 | **Release** | `Wayd 2026.09` | What was **announced to customers** | A cut date — it is never cut |
 
@@ -94,7 +94,7 @@ nothing and never conflicts.
 Telling customers `2026.09` is out while a version inside it has not gone anywhere is the one claim a
 release can make that its own contents contradict.
 
-**Before announcing:** call `Releases_GetRelease` and check each contents entry's shipped date. Release
+**Before announcing:** call `Releases_GetRelease` and check each contents entry's `releasedAt`. Release
 the outstanding ones, or remove them from the release. An **empty release announces normally** — a
 repackaging or a pricing change is announced with nothing deployed, and emptiness is never the blocker.
 
@@ -120,7 +120,7 @@ change, and sending both complete lists.
 ## Ordering and version numbers
 
 Version numbers and release labels are **free text and never parsed**. `4.8.2` and `2026.04` are both
-just labels; Wayd never sorts or compares them. Ordering comes from dates, with an optional
+just labels; Wayd never sorts or compares them. Ordering comes from released moments, with an optional
 `sequence` override for the case where chronology misleads — a backport shipping after the version
 that superseded it.
 
@@ -136,7 +136,7 @@ Both end an assertion, and choosing wrongly writes a history that misleads whoev
 | --- | --- | --- |
 | What happened | It really shipped or was announced, then was pulled | It never shipped or was announced; the record was wrong |
 | Resulting status | Terminal | Back to a live status |
-| The date | Kept — it did happen | Cleared — it did not |
+| The released date or moment | Kept — it did happen | Cleared — it did not |
 | Reason | Optional | **Required** |
 
 Recording a mistake as a withdrawal leaves the append-only history asserting that somebody pulled
@@ -145,13 +145,28 @@ something nobody ever shipped, and a later reader has no way to tell.
 **Correcting dates is a third thing.** `Releases_CorrectDates`, `Versions_CorrectDates` and
 `ReleasePackages_CorrectDates` say a date was written down wrongly. The status does not move and the
 history is untouched — which is why they exist separately from the actions that assert a record moved.
-A package's released date can only be corrected once it has been released; it cannot be added through
-a correction, because the released date is what closes the manifest.
+A package's released moment can only be corrected once it has been released; it cannot be added through
+a correction, because the released moment is what closes the manifest.
 
-Dates are calendar dates with no time and no offset, so the time-zone conversion happens when you write
-them and nothing downstream can redo it. When deriving one from a UTC timestamp — a deployment's
-completion time, say — convert it to the organization's local date first: a late-evening US deploy
-lands after midnight UTC and would otherwise be recorded a day late.
+**What happened is an instant; what is planned is a date.**
+
+| Record | Instants (`...At`) | Calendar dates (`...Date`) |
+| --- | --- | --- |
+| Version | `cutAt` — the build or tag; `releasedAt` — when production received it | `targetDate` |
+| Release package | `releasedAt` — when the pipeline run that shipped it completed | `targetDate` |
+| Release | — | `targetDate`, `releasedDate` (the announcement is a business date) |
+| Deployment | `startedAt`, `completedAt` | — |
+
+Send an instant exactly as the CI/CD system reports it, with its offset (`2026-09-18T02:30:00Z`) — **never
+convert it to a local date first**; a bare date is refused. Records released before these were instants
+were converted at 12:00 UTC on their original date; correct one whose real moment matters.
+
+A release's dates are still calendar dates with no time and no offset. When deriving its released date
+from a timestamp, convert it to the organization's local date: a late-evening US announcement lands after
+midnight UTC and would otherwise be recorded a day late.
+
+`DeliveryOverview_GetDeliveryOverview` counts versions by the day they shipped, so pass the reader's IANA
+`timeZone` — the same release is a different day in Chicago and in UTC. Without it the days are UTC days.
 
 ---
 
@@ -173,6 +188,12 @@ or `RollBack` is recorded, none can be called again. Note that **failure and rol
 a failure never arrived, while a rollback arrived and had to be undone. Change failure rate counts the
 second kind.
 
+**A production success releases what it shipped.** Succeeding a production deployment, or importing one
+that succeeded or was rolled back, marks an unreleased version — or a package and the versions that
+changed in it — Released at the deployment's completion. So where deployments are recorded, you do not
+also need `Versions_MarkReleased` or `ReleasePackages_MarkReleased`. A released moment already set is never
+replaced; import history oldest first, or use `CorrectDates` afterwards.
+
 ---
 
 ## Typical flows
@@ -180,7 +201,7 @@ second kind.
 ### Recording what shipped, end to end
 
 1. `Versions_Plan` — the artifact that was built, against a **releasable** product.
-2. `Versions_Cut`, then `Versions_MarkReleased` — or supply both dates later via
+2. `Versions_Cut`, then `Versions_MarkReleased` — or supply both moments later via
    `Versions_CorrectDates` if you are entering history after the fact.
 3. `ReleasePackages_Assemble` — where several components shipped together. Name the **version record**
    on each manifest line, not just the version string, or the release will not know the version is

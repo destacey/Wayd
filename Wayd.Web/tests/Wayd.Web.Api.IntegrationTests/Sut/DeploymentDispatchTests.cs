@@ -197,6 +197,61 @@ public sealed class DeploymentDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Dispatch_SucceedDeploymentCommand_ReleasesAPackageAndItsChangedVersionsFromProduction()
+    {
+        // Arrange — a package whose manifest names the version as changed in it
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+
+        var fixture = await Arrange(dispatcher, dbContext, EnvironmentCategory.Production);
+        var productId = await dbContext.Versions
+            .Where(v => v.Id == fixture.VersionId)
+            .Select(v => v.ProductId)
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        var package = await dispatcher.Send(
+            new AssembleReleasePackageCommand(Unique("Pkg"), null, null,
+            [
+                new ManifestEntry(productId, fixture.VersionId, "4.8.2", ManifestEntryKind.Changed),
+            ]),
+            TestContext.Current.CancellationToken);
+        Assert.True(package.IsSuccess, package.IsFailure ? package.Error : null);
+
+        var started = await dispatcher.Send(
+            new StartDeploymentCommand(null, package.Value.Id, fixture.EnvironmentId, null, null),
+            TestContext.Current.CancellationToken);
+        Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
+
+        // Whole seconds, so the value read back from datetime2 compares exactly; a minute on, so it is
+        // not before the start.
+        var completedAt = Instant.FromUnixTimeSeconds(SystemClock.Instance.GetCurrentInstant().ToUnixTimeSeconds() + 60);
+
+        // Act
+        var succeeded = await dispatcher.Send(
+            new SucceedDeploymentCommand(started.Value.Id, completedAt), TestContext.Current.CancellationToken);
+
+        // Assert — read back in a fresh scope. The package's manifest is only in memory if the handler
+        // included it, and an unloaded manifest reads as empty, which MarkReleased refuses.
+        Assert.True(succeeded.IsSuccess, succeeded.IsFailure ? succeeded.Error : null);
+
+        using var readScope = _factory.Services.CreateScope();
+        var reader = readScope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+
+        var packageReleasedAt = await reader.ReleasePackages
+            .Where(p => p.Id == package.Value.Id)
+            .Select(p => p.ReleasedAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        var versionReleasedAt = await reader.Versions
+            .Where(v => v.Id == fixture.VersionId)
+            .Select(v => v.ReleasedAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(completedAt, packageReleasedAt);
+        Assert.Equal(completedAt, versionReleasedAt);
+    }
+
+    [Fact]
     public async Task Dispatch_StartDeploymentCommand_RefusesBothAVersionAndAPackage()
     {
         // Arrange

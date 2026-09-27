@@ -84,11 +84,11 @@ export const buildReleasePackageColumns = (): ColumnDef<
     meta: { columnType: 'dateOnly' },
   },
   {
-    id: 'releasedDate',
-    accessorKey: 'releasedDate',
+    id: 'releasedAt',
+    accessorKey: 'releasedAt',
     header: 'Released',
-    size: 130,
-    meta: { columnType: 'dateOnly' },
+    size: 180,
+    meta: { columnType: 'dateTime' },
   },
 ]
 

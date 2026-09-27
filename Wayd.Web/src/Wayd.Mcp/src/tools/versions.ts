@@ -47,7 +47,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Versions_GetVersion', {
     name: 'Versions_GetVersion',
-    description: `Get one version in full — its product, version number, and its target, cut and released dates. ${NOT_A_RELEASE} Accepts the version's UUID or its short key.`,
+    description: `Get one version in full — its product, version number, and its target date and its cut and released moments. ${NOT_A_RELEASE} Accepts the version's UUID or its short key.`,
     inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string","description":"Version ID (UUID) or its short key."}},"required":["idOrKey"]},
     method: 'get',
     pathTemplate: '/api/product-management/versions/{idOrKey}',
@@ -96,7 +96,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Versions_Cut', {
     name: 'Versions_Cut',
     description: `Record that a version was cut — scope is frozen and it is ready to ship. **One-way: a version cannot be cut twice**, and a released or withdrawn version refuses it. Cutting is not a prerequisite for releasing: a version imported after the fact can be marked released without ever having been cut, which is why this is a separate action rather than a step.`,
-    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"cutDate":{"type":"string","format":"date","description":"The date it was cut. Format YYYY-MM-DD."}},"required":["cutDate"]}},"required":["id","requestBody"]},
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"cutAt":{"type":"string","format":"date-time","description":"The moment it was cut — the build or tag that froze its scope. ISO 8601 with an offset, e.g. 2026-09-17T15:00:00Z; copy the CI/CD timestamp as-is."}},"required":["cutAt"]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/versions/{id}/cut',
     executionParameters: [{"name":"id","in":"path"}],
@@ -107,8 +107,8 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Versions_MarkReleased', {
     name: 'Versions_MarkReleased',
-    description: `Record that a version shipped. **This is not announcing it to customers** — that is Releases_MarkReleased on a release. A version can be marked released without ever having been cut, which is what makes importing historical versions possible; where it was cut, the released date cannot be earlier than the cut date. Refused on a withdrawn version.`,
-    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"releasedDate":{"type":"string","format":"date","description":"The date it shipped. Format YYYY-MM-DD. Cannot be earlier than the cut date where one is recorded."}},"required":["releasedDate"]}},"required":["id","requestBody"]},
+    description: `Record that a version shipped. **This is not announcing it to customers** — that is Releases_MarkReleased on a release. A version can be marked released without ever having been cut, which is what makes importing historical versions possible; where it was cut, it cannot be released before it was cut. Refused on a withdrawn version.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"releasedAt":{"type":"string","format":"date-time","description":"The moment it shipped — when production received it. ISO 8601 with an offset, e.g. 2026-09-18T02:30:00Z; copy the CI/CD timestamp as-is. Cannot be earlier than the cut moment where one is recorded."}},"required":["releasedAt"]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/versions/{id}/release',
     executionParameters: [{"name":"id","in":"path"}],
@@ -143,7 +143,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Versions_Revert', {
     name: 'Versions_Revert',
-    description: `Record that a version marked as shipped did **not in fact ship** — the wrong record was updated. Returns it to Ready, or to the initial status where it was never cut, and clears the released date. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts. Do not use this for a version that really shipped and was then pulled — that is Versions_Withdraw.`,
+    description: `Record that a version marked as shipped did **not in fact ship** — the wrong record was updated. Returns it to Ready, or to the initial status where it was never cut, and clears the released moment. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts. Do not use this for a version that really shipped and was then pulled — that is Versions_Withdraw.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"reason":{"type":"string","description":"Why the version was reverted. Required."}},"required":["reason"]}},"required":["id","requestBody"]},
     method: 'post',
     pathTemplate: '/api/product-management/versions/{id}/revert',
@@ -155,8 +155,8 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Versions_CorrectDates', {
     name: 'Versions_CorrectDates',
-    description: `Fix a version's target, cut or released date that was recorded wrongly. The status does not move and the status history is left untouched — that is the point of having this separate from Versions_Cut and Versions_MarkReleased, which assert the version moved and refuse to run twice. **All three dates are sent, so an omitted target or cut date is cleared.** The released date cannot be cleared once set: a released record with no released date contradicts its own status — revert it instead. The released date cannot precede the cut date. Refused on a withdrawn version.`,
-    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"targetDate":{"type":"string","format":"date","description":"Format YYYY-MM-DD. Omit to clear it."},"cutDate":{"type":"string","format":"date","description":"Format YYYY-MM-DD. Omit to clear it. Commonly filled in afterwards, since a version can ship without ever being cut."},"releasedDate":{"type":"string","format":"date","description":"Format YYYY-MM-DD. Cannot be cleared once set, and cannot precede the cut date."}},"required":[]}},"required":["id","requestBody"]},
+    description: `Fix a version's target date or cut or released moment that was recorded wrongly. The status does not move and the status history is left untouched — that is the point of having this separate from Versions_Cut and Versions_MarkReleased, which assert the version moved and refuse to run twice. **All three are sent, so an omitted target date or cut moment is cleared.** The released moment cannot be cleared once set: a released record with no released moment contradicts its own status — revert it instead. A version cannot be released before it was cut. The target date is a calendar date; the cut and released moments are instants, sent with their offset exactly as the CI/CD system reports them. Refused on a withdrawn version.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid","description":ID_ONLY},"requestBody":{"type":"object","properties":{"targetDate":{"type":"string","format":"date","description":"Format YYYY-MM-DD. Omit to clear it."},"cutAt":{"type":"string","format":"date-time","description":"ISO 8601 with an offset. Omit to clear it. Commonly filled in afterwards, since a version can ship without ever being cut."},"releasedAt":{"type":"string","format":"date-time","description":"ISO 8601 with an offset. Cannot be cleared once set, and cannot precede the cut moment."}},"required":[]}},"required":["id","requestBody"]},
     method: 'put',
     pathTemplate: '/api/product-management/versions/{id}/dates',
     executionParameters: [{"name":"id","in":"path"}],

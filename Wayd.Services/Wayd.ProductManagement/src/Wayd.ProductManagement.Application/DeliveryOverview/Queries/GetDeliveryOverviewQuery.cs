@@ -7,17 +7,27 @@ namespace Wayd.ProductManagement.Application.DeliveryOverview.Queries;
 /// <summary>
 /// Version activity over a window, for one product subtree or the whole catalog.
 /// </summary>
+/// <param name="From">The first day of the window, inclusive, in <paramref name="Zone"/>.</param>
+/// <param name="To">The last day of the window, inclusive, in <paramref name="Zone"/>.</param>
+/// <param name="Zone">
+/// Whose days these are. Versions are released at moments, so which day one falls on — and so whether it is
+/// inside the window and which daily bucket it counts in — depends on the viewer's zone. A late-evening US
+/// release is the next day in UTC.
+/// </param>
 /// <param name="ProductId">
 /// Narrows to this node <em>and everything beneath it</em>. Selecting a grouping that has no versions
 /// of its own therefore rolls up its children rather than reporting nothing.
 /// </param>
-public sealed record GetDeliveryOverviewQuery(LocalDate From, LocalDate To, Guid? ProductId = null)
+public sealed record GetDeliveryOverviewQuery(LocalDate From, LocalDate To, DateTimeZone Zone, Guid? ProductId = null)
     : IQuery<DeliveryOverviewDto>;
 
 public sealed class GetDeliveryOverviewQueryValidator : AbstractValidator<GetDeliveryOverviewQuery>
 {
     public GetDeliveryOverviewQueryValidator()
     {
+        RuleFor(q => q.Zone)
+            .NotNull();
+
         RuleFor(q => q.To)
             .GreaterThanOrEqualTo(q => q.From)
             .WithMessage("The end of the window cannot be before its start.");
@@ -35,10 +45,12 @@ public sealed class GetDeliveryOverviewQueryHandler(IProductManagementDbContext 
     private sealed record CatalogNode(Guid Id, int Key, string Name, Guid? ParentId, bool IsReleasable);
 
     /// <summary>One released version, reduced to what every figure here needs.</summary>
+    /// <param name="ReleasedOn">The day it was released, in the query's zone.</param>
     private sealed record ReleasedVersion(
         Guid ProductId,
-        LocalDate ReleasedDate,
-        LocalDate? CutDate,
+        Instant ReleasedAt,
+        LocalDate ReleasedOn,
+        Instant? CutAt,
         int StatusAliasValue);
 
     public async Task<DeliveryOverviewDto> Handle(
@@ -69,10 +81,10 @@ public sealed class GetDeliveryOverviewQueryHandler(IProductManagementDbContext 
         var previousTo = query.From.PlusDays(-1);
         var previousFrom = previousTo.PlusDays(-(windowDays - 1));
 
-        var released = await ReleasedBetween(previousFrom, query.To, inScope, cancellationToken);
+        var released = await ReleasedBetween(previousFrom, query.To, query.Zone, inScope, cancellationToken);
 
-        var current = released.Where(v => v.ReleasedDate >= query.From).ToList();
-        var previous = released.Where(v => v.ReleasedDate < query.From).ToList();
+        var current = released.Where(v => v.ReleasedOn >= query.From).ToList();
+        var previous = released.Where(v => v.ReleasedOn < query.From).ToList();
 
         var byProduct = catalog.ToDictionary(p => p.Id);
 
@@ -126,18 +138,26 @@ public sealed class GetDeliveryOverviewQueryHandler(IProductManagementDbContext 
     }
 
     private async Task<List<ReleasedVersion>> ReleasedBetween(
-        LocalDate from, LocalDate to, HashSet<Guid> inScope, CancellationToken cancellationToken)
+        LocalDate from, LocalDate to, DateTimeZone zone, HashSet<Guid> inScope, CancellationToken cancellationToken)
     {
+        // Half-open: the window runs to the start of the day after its last one.
+        var start = from.AtStartOfDayInZone(zone).ToInstant();
+        var end = to.PlusDays(1).AtStartOfDayInZone(zone).ToInstant();
+
         var versions = await _productManagementDbContext.Versions
-            .Where(v => v.ReleasedDate != null
-                && v.ReleasedDate >= from
-                && v.ReleasedDate <= to)
-            .Select(v => new ReleasedVersion(v.ProductId, v.ReleasedDate!.Value, v.CutDate, v.StatusAliasValue))
+            .Where(v => v.ReleasedAt != null
+                && v.ReleasedAt >= start
+                && v.ReleasedAt < end)
+            .Select(v => new { v.ProductId, ReleasedAt = v.ReleasedAt!.Value, v.CutAt, v.StatusAliasValue })
             .ToListAsync(cancellationToken);
 
         // Filtered here rather than with a Contains over the scope: the id set can be the whole
         // catalog, and a parameter list that size is worse than a pass over a window's releases.
-        return versions.Where(v => inScope.Contains(v.ProductId)).ToList();
+        return versions
+            .Where(v => inScope.Contains(v.ProductId))
+            .Select(v => new ReleasedVersion(
+                v.ProductId, v.ReleasedAt, v.ReleasedAt.InZone(zone).Date, v.CutAt, v.StatusAliasValue))
+            .ToList();
     }
 
     private static double PerWeek(int count, double windowDays) =>
@@ -161,13 +181,13 @@ public sealed class GetDeliveryOverviewQueryHandler(IProductManagementDbContext 
     /// Days from cut to release, for the versions that were actually cut.
     /// </summary>
     /// <remarks>
-    /// A version released without a cut date carries no latency. Excluded rather than counted as
+    /// A version released without a cut moment carries no latency. Excluded rather than counted as
     /// zero, which would pull the mean down every time someone backfills history.
     /// </remarks>
     private static List<double> Measurable(IEnumerable<ReleasedVersion> versions) =>
         versions
-            .Where(v => v.CutDate is not null)
-            .Select(v => (double)Period.Between(v.CutDate!.Value, v.ReleasedDate, PeriodUnits.Days).Days)
+            .Where(v => v.CutAt is not null)
+            .Select(v => (v.ReleasedAt - v.CutAt!.Value).TotalDays)
             .ToList();
 
     /// <summary>
@@ -234,7 +254,7 @@ public sealed class GetDeliveryOverviewQueryHandler(IProductManagementDbContext 
                 Days =
                 [
                     .. versions
-                        .GroupBy(version => version.ReleasedDate)
+                        .GroupBy(version => version.ReleasedOn)
                         .OrderBy(day => day.Key)
                         .Select(day => new DailyReleaseCountDto
                         {

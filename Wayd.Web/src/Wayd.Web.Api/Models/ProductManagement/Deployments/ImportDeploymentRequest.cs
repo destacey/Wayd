@@ -1,4 +1,3 @@
-using NodaTime.Text;
 using Wayd.ProductManagement.Application.Deployments.Dtos;
 
 namespace Wayd.Web.Api.Models.ProductManagement.Deployments;
@@ -17,9 +16,7 @@ namespace Wayd.Web.Api.Models.ProductManagement.Deployments;
 /// and the time it was reverted.
 /// </para>
 /// <para>
-/// Timestamps are instants, and each must carry its offset — <c>2026-03-01T14:30:00Z</c> or
-/// <c>2026-03-01T09:30:00-05:00</c>. A value with no offset is refused rather than read in the
-/// server's zone, which would shift every historical deployment by whatever that zone happens to be.
+/// Timestamps are instants, and each must carry its offset (see <see cref="OffsetTimestamp"/>).
 /// </para>
 /// </summary>
 public sealed class ImportDeploymentRequest
@@ -70,25 +67,11 @@ public sealed class ImportDeploymentRequest
             PackageId,
             EnvironmentName,
             ArtifactId,
-            ParseInstant(StartedAt)!.Value,
+            OffsetTimestamp.Parse(StartedAt)!.Value,
             ParseOutcome(Outcome),
-            ParseInstant(CompletedAt),
-            ParseInstant(RolledBackAt),
+            OffsetTimestamp.Parse(CompletedAt),
+            OffsetTimestamp.Parse(RolledBackAt),
             Reason);
-
-    /// <summary>
-    /// Reads an ISO-8601 timestamp that carries its offset. Null for a blank cell, and for a value the
-    /// validator has already refused.
-    /// </summary>
-    internal static Instant? ParseInstant(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return null;
-
-        var parsed = OffsetDateTimePattern.ExtendedIso.Parse(value.Trim());
-
-        return parsed.Success ? parsed.Value.ToInstant() : null;
-    }
 
     /// <summary>
     /// Reads an outcome by name. Null for a blank cell, and for a value the validator has already refused.
@@ -120,8 +103,8 @@ public sealed class ImportDeploymentRequestValidator : CustomValidator<ImportDep
 
         RuleFor(d => d.StartedAt)
             .NotEmpty()
-            .Must(BeAnOffsetTimestamp)
-                .WithMessage("StartedAt must be an ISO-8601 timestamp with an offset, such as 2026-03-01T14:30:00Z.");
+            .Must(OffsetTimestamp.IsValid)
+                .WithMessage(OffsetTimestamp.Message(nameof(ImportDeploymentRequest.StartedAt)));
 
         RuleFor(d => d.Outcome)
             .Must(o => string.IsNullOrWhiteSpace(o)
@@ -130,9 +113,9 @@ public sealed class ImportDeploymentRequestValidator : CustomValidator<ImportDep
                 .WithMessage("Outcome must be blank, 'Succeeded', 'Failed' or 'RolledBack'.");
 
         RuleFor(d => d.CompletedAt)
-            .Must(BeAnOffsetTimestamp)
+            .Must(OffsetTimestamp.IsValid)
                 .When(d => !string.IsNullOrWhiteSpace(d.CompletedAt), ApplyConditionTo.CurrentValidator)
-                .WithMessage("CompletedAt must be an ISO-8601 timestamp with an offset, such as 2026-03-01T14:30:00Z.")
+                .WithMessage(OffsetTimestamp.Message(nameof(ImportDeploymentRequest.CompletedAt)))
             .NotEmpty()
                 .When(d => !string.IsNullOrWhiteSpace(d.Outcome), ApplyConditionTo.CurrentValidator)
                 .WithMessage("A deployment with an outcome needs the time it completed.")
@@ -143,9 +126,9 @@ public sealed class ImportDeploymentRequestValidator : CustomValidator<ImportDep
                 .WithMessage("The completion cannot be before the deployment started.");
 
         RuleFor(d => d.RolledBackAt)
-            .Must(BeAnOffsetTimestamp)
+            .Must(OffsetTimestamp.IsValid)
                 .When(d => !string.IsNullOrWhiteSpace(d.RolledBackAt), ApplyConditionTo.CurrentValidator)
-                .WithMessage("RolledBackAt must be an ISO-8601 timestamp with an offset, such as 2026-03-01T14:30:00Z.")
+                .WithMessage(OffsetTimestamp.Message(nameof(ImportDeploymentRequest.RolledBackAt)))
             .NotEmpty()
                 .When(d => IsRolledBack(d.Outcome), ApplyConditionTo.CurrentValidator)
                 .WithMessage("A rolled-back deployment needs the time it was rolled back.")
@@ -159,9 +142,6 @@ public sealed class ImportDeploymentRequestValidator : CustomValidator<ImportDep
             .MaximumLength(1024);
     }
 
-    private static bool BeAnOffsetTimestamp(string? value) =>
-        ImportDeploymentRequest.ParseInstant(value) is not null;
-
     private static bool IsRolledBack(string? outcome) =>
         ImportDeploymentRequest.ParseOutcome(outcome) == ImportDeploymentOutcome.RolledBack;
 
@@ -171,8 +151,8 @@ public sealed class ImportDeploymentRequestValidator : CustomValidator<ImportDep
     /// </summary>
     private static bool IsNotBefore(string? later, string? earlier)
     {
-        var laterInstant = ImportDeploymentRequest.ParseInstant(later);
-        var earlierInstant = ImportDeploymentRequest.ParseInstant(earlier);
+        var laterInstant = OffsetTimestamp.Parse(later);
+        var earlierInstant = OffsetTimestamp.Parse(earlier);
 
         return laterInstant is null || earlierInstant is null || laterInstant >= earlierInstant;
     }

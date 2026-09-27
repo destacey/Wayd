@@ -24,7 +24,7 @@ public sealed record ReleasePackageDto
 
     public string? Name { get; init; }
     public LocalDate? TargetDate { get; init; }
-    public LocalDate? ReleasedDate { get; init; }
+    public Instant? ReleasedAt { get; init; }
 
     /// <summary>The package's current status.</summary>
     public StatusNavigationDto Status { get; init; } = default!;

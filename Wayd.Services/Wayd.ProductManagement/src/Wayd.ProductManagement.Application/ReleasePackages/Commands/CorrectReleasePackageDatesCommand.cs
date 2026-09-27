@@ -1,15 +1,15 @@
 namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
 
 /// <summary>
-/// Corrects a package's recorded target and released dates.
+/// Corrects a package's recorded target date and released moment.
 /// </summary>
 /// <remarks>
 /// Separate from marking the package released, which asserts that it shipped and so refuses to run
-/// twice. This asserts only that a date was written down wrongly, and leaves the status alone —
-/// otherwise a package released under the wrong date could only be withdrawn, stranding every
+/// twice. This asserts only that a value was written down wrongly, and leaves the status alone —
+/// otherwise a package released under the wrong moment could only be withdrawn, stranding every
 /// deployment of it.
 /// <para>
-/// Both dates are sent, so an omitted target date clears it. The released date can be changed on a
+/// Both values are sent, so an omitted target date clears it. The released moment can be changed on a
 /// released package but not cleared, and cannot be added to one that has not been released:
 /// <c>MarkReleasePackageReleasedCommand</c> records it.
 /// </para>
@@ -17,7 +17,7 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
 public sealed record CorrectReleasePackageDatesCommand(
     Guid Id,
     LocalDate? TargetDate,
-    LocalDate? ReleasedDate)
+    Instant? ReleasedAt)
     : ICommand, IRequireLinkedEmployee;
 
 public sealed class CorrectReleasePackageDatesCommandValidator : AbstractValidator<CorrectReleasePackageDatesCommand>
@@ -64,7 +64,7 @@ public sealed class CorrectReleasePackageDatesCommandHandler(
 
             var result = package.CorrectDates(
                 request.TargetDate,
-                request.ReleasedDate,
+                request.ReleasedAt,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 

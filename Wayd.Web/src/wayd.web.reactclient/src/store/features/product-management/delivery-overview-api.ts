@@ -5,11 +5,15 @@ import {
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
+import dayjs from 'dayjs'
 
 /**
- * ISO-8601 strings rather than `Date`s: query arguments become the Redux cache key, and a `Date`
+ * `YYYY-MM-DD` strings rather than `Date`s: query arguments become the Redux cache key, and a `Date`
  * there is non-serializable — the store logs an error for every one. The generated client wants
  * `Date`s, so the conversion happens in the queryFn instead.
+ *
+ * Both are days in the viewer's zone, which is sent along: versions ship at moments, so the server needs
+ * the zone to know which day each one fell on.
  */
 export interface GetDeliveryOverviewRequest {
   from: string
@@ -32,9 +36,12 @@ export const deliveryOverviewApi = apiSlice.injectEndpoints({
       queryFn: async (request) => {
         try {
           const data = await getDeliveryOverviewClient().getDeliveryOverview(
-            new Date(request.from),
-            new Date(request.to),
+            // Local midnight, not `new Date('YYYY-MM-DD')`, which is UTC midnight and so the previous
+            // day anywhere west of Greenwich.
+            dayjs(request.from).toDate(),
+            dayjs(request.to).toDate(),
             request.productId,
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
           )
           return { data }
         } catch (error) {
@@ -75,7 +82,5 @@ export const deliveryOverviewApi = apiSlice.injectEndpoints({
   }),
 })
 
-export const {
-  useGetDeliveryOverviewQuery,
-  useGetRecentDeliveryEventsQuery,
-} = deliveryOverviewApi
+export const { useGetDeliveryOverviewQuery, useGetRecentDeliveryEventsQuery } =
+  deliveryOverviewApi

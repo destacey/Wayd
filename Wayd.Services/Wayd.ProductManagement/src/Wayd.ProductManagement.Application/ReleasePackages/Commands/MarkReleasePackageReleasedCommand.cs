@@ -10,7 +10,7 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
 /// The package is the unit that shipped, so one pipeline run counts once even where it carried several
 /// component releases.
 /// </remarks>
-public sealed record MarkReleasePackageReleasedCommand(Guid Id, LocalDate ReleasedDate) : ICommand, IRequireLinkedEmployee;
+public sealed record MarkReleasePackageReleasedCommand(Guid Id, Instant ReleasedAt) : ICommand, IRequireLinkedEmployee;
 
 public sealed class MarkReleasePackageReleasedCommandValidator : AbstractValidator<MarkReleasePackageReleasedCommand>
 {
@@ -73,7 +73,7 @@ public sealed class MarkReleasePackageReleasedCommandHandler(
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = package.MarkReleased(
-                request.ReleasedDate,
+                request.ReleasedAt,
                 status.Value,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);

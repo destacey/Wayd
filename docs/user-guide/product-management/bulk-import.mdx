@@ -66,8 +66,9 @@ A few rules apply to every import:
   `Header with name 'X' was not found`. Include every column and leave unused cells blank.
 - **Multi-value columns are semicolon-separated.** A comma would collide with the CSV field delimiter.
 - **Dates are ISO `yyyy-MM-dd`.** A date column takes a date, not a timestamp: a cell carrying a time
-  is rejected rather than truncated. The deployment columns that are genuine timestamps say so, and
-  carry their offset — see [timestamps](#timestamps-carry-their-offset).
+  is rejected rather than truncated. The columns that are genuine moments — a version's `CutAt` and
+  `ReleasedAt`, a package's `ReleasedAt`, a deployment's timestamps — say so, and carry their offset:
+  see [timestamps](#timestamps-carry-their-offset).
 - **Names are matched case-insensitively** and surrounding whitespace is ignored, so `Application` and
   ` application ` resolve to the same type.
 - **A missing file returns 422**, not 400 — the file is a validation failure like any other.
@@ -117,7 +118,8 @@ A release marked with a `ReleasedDate` is **refused while anything it carries ha
 is the one cross-record rule in Product Management, and it is why releases come last.
 
 So a released release needs its versions and packages imported first **with their own released
-dates**. Importing them undated and adding the dates later leaves the release unimportable in between.
+moments**. Importing them unreleased and releasing them later leaves the release unimportable in
+between.
 See [announcing a release](#announcing-a-release).
 :::
 
@@ -125,7 +127,7 @@ Unlike [PPM](../ppm/bulk-import.mdx#import-order), there is **no finalize pass**
 programs active and closes them afterwards, because a program only accepts projects while active.
 Nothing here works that way: a version can be
 [marked released without ever being cut](#the-dates-decide-the-status), a package or release simply
-carries its released date, and a deployment is [walked to its outcome](#the-outcome-decides-the-status)
+carries its released moment or date, and a deployment is [walked to its outcome](#the-outcome-decides-the-status)
 with the timestamps its row carries. Every record reaches its final state in one pass.
 
 ## Permissions
@@ -348,8 +350,8 @@ and an unknown one fails the run.
 | `Number` | Yes | The version as you write it — `4.8.2`, `2026.04`. Free text, never parsed. Max 64 chars. |
 | `Name` | No | An optional human name. Max 128 chars. |
 | `TargetDate` | No | `yyyy-MM-dd`. When it is expected to ship. |
-| `CutDate` | No | `yyyy-MM-dd`. Supplying it makes the version **Ready**. |
-| `ReleasedDate` | No | `yyyy-MM-dd`. Supplying it makes the version **Released**. Cannot be before `CutDate`. |
+| `CutAt` | No | An ISO-8601 timestamp **with its offset** — `2026-09-18T02:30:00Z` or `2026-09-17T21:30:00-05:00`. The build or tag that froze scope; copy it from the CI/CD system as-is. A value with no offset is refused. Supplying it makes the version **Ready**. |
+| `ReleasedAt` | No | An ISO-8601 timestamp **with its offset**, as for `CutAt`. When production received it. Supplying it makes the version **Released**. Cannot be before `CutAt`. |
 | `Sequence` | No | A manual ordering override, for backports where chronology misleads. |
 | `Notes` | No | Engineering notes for this version. |
 
@@ -361,9 +363,9 @@ same steps in the same order it would have if you had recorded each one as it ha
 | Dates supplied | Resulting status |
 |---|---|
 | Neither | Planned |
-| `CutDate` only | Ready |
-| `CutDate` and `ReleasedDate` | Released |
-| `ReleasedDate` only | Released |
+| `CutAt` only | Ready |
+| `CutAt` and `ReleasedAt` | Released |
+| `ReleasedAt` only | Released |
 
 That last row is deliberate. **A version can be marked released without ever having been cut** — a
 shipment recorded after the fact often has no record of when scope froze, and demanding one would make
@@ -400,13 +402,13 @@ appear in the same dialog.
 | `Version` | Yes | The package's own version — `WAYD-2026.09`. Free text, never parsed. Max 64 chars. |
 | `Name` | No | An optional human name. Max 128 chars. |
 | `TargetDate` | No | `yyyy-MM-dd`. When it is expected to ship. |
-| `ReleasedDate` | No | `yyyy-MM-dd`. Supplying it makes the package **Released**. |
+| `ReleasedAt` | No | An ISO-8601 timestamp **with its offset** — `2026-09-18T02:30:00Z` or `2026-09-17T21:30:00-05:00`. When the pipeline run that shipped it completed; copy it from the CI/CD system as-is. A value with no offset is refused. Supplying it makes the package **Released**. |
 
 A package has no product — it spans them — so its version is its only identifying field, and a version
 repeated within the file or already in Wayd fails the batch.
 
-There is no cut step: a package is assembled and then ships, so a row with no released date is
-assembled and one with a released date has shipped.
+There is no cut step: a package is assembled and then ships, so a row with no released moment is
+assembled and one with a released moment has shipped.
 
 ### The manifest file
 
@@ -494,12 +496,13 @@ what is holding it back:
 
 ```
 Release '2026.07' is marked as released but carries content that has not shipped:
-'Wayd API 4.12.0'. Import those with a released date first, or leave this release's
+'Wayd API 4.12.0'. Import those with their ReleasedAt first, or leave this release's
 ReleasedDate empty.
 ```
 
-That is the practical reason releases come [last](#import-order), and why the versions and packages
-they carry need their own released dates in the same run.
+That is the practical reason
+releases come [last](#import-order), and why the versions and packages they carry need their own
+released moments in the same run.
 
 ## Environments import
 
@@ -577,10 +580,10 @@ renaming an outcome does not break the import.
 
 ### Timestamps carry their offset
 
-`StartedAt`, `CompletedAt` and `RolledBackAt` are instants, not dates, and each must say what zone it
-is in: `2026-03-01T14:30:00Z`, or `2026-03-01T09:30:00-05:00`. A value with no offset is refused with a
+A version's `CutAt` and `ReleasedAt`, a package's `ReleasedAt`, and a deployment's `StartedAt`,
+`CompletedAt` and `RolledBackAt` are instants, not dates, and each must say what zone it is in: `2026-03-01T14:30:00Z`, or `2026-03-01T09:30:00-05:00`. A value with no offset is refused with a
 `422` naming the row, rather than read in the server's zone — which would shift every historical
-deployment by whatever that zone happens to be, and by a different amount on a different host.
+record by whatever that zone happens to be, and by a different amount on a different host.
 
 ### A version or a package, never both
 

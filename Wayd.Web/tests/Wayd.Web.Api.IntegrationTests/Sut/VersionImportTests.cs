@@ -42,7 +42,7 @@ public sealed class VersionImportTests(WaydSqlServerApiFactory factory)
     }
 
     private static ImportVersionDto Row(Guid productId, string number) =>
-        new(productId, number, null, null, new LocalDate(2026, 3, 1), new LocalDate(2026, 3, 8), null, null);
+        new(productId, number, null, null, Instant.FromUtc(2026, 3, 1, 12, 0), Instant.FromUtc(2026, 3, 8, 12, 0), null, null);
 
     [Fact]
     public async Task Import_KeepsOutEveryVersionOfAProductWithARejectedRow_AndKeepsTheOtherProducts()

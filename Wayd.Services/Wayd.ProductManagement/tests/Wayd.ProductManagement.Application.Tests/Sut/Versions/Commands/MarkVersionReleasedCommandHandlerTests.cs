@@ -44,12 +44,12 @@ public sealed class MarkVersionReleasedCommandHandlerTests : ProductCommandTestB
 
         // Act
         var result = await sut.Handle(
-            new MarkVersionReleasedCommand(version.Id, new LocalDate(2026, 6, 2)),
+            new MarkVersionReleasedCommand(version.Id, Instant.FromUtc(2026, 6, 2, 12, 0)),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        version.ReleasedDate.Should().Be(new LocalDate(2026, 6, 2));
+        version.ReleasedAt.Should().Be(Instant.FromUtc(2026, 6, 2, 12, 0));
         version.StatusCategory.Should().Be(StatusCategory.Done);
     }
 
@@ -61,17 +61,17 @@ public sealed class MarkVersionReleasedCommandHandlerTests : ProductCommandTestB
         var version = SeedVersion(product.Id);
         var sut = CreateSut();
         await sut.Handle(
-            new MarkVersionReleasedCommand(version.Id, new LocalDate(2026, 6, 2)),
+            new MarkVersionReleasedCommand(version.Id, Instant.FromUtc(2026, 6, 2, 12, 0)),
             TestContext.Current.CancellationToken);
 
         // Act
         var result = await sut.Handle(
-            new MarkVersionReleasedCommand(version.Id, new LocalDate(2026, 7, 2)),
+            new MarkVersionReleasedCommand(version.Id, Instant.FromUtc(2026, 7, 2, 12, 0)),
             TestContext.Current.CancellationToken);
 
         // Assert
         // The released date orders the delivery history, so overwriting it would rewrite the past.
         result.IsFailure.Should().BeTrue();
-        version.ReleasedDate.Should().Be(new LocalDate(2026, 6, 2));
+        version.ReleasedAt.Should().Be(Instant.FromUtc(2026, 6, 2, 12, 0));
     }
 }

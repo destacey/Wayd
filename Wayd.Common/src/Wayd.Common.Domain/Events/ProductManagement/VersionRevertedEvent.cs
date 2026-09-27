@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement;
@@ -14,11 +14,17 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// Carries the released date that was cleared, because the correction is only legible against the
 /// value it replaced.
 /// </para>
+/// <para>
+/// Frozen at its published shape and never raised; <see cref="VersionRevertedEventV2"/> replaced it. Kept so every payload
+/// written as this type still deserializes into it, so neither its name nor its members may change.
+/// </para>
 /// </remarks>
+[Obsolete("Superseded by VersionRevertedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record VersionRevertedEvent : DomainEvent<VersionRevertedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
 
+    [JsonConstructor]
     public VersionRevertedEvent(
         Guid id,
         int key,

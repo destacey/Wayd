@@ -101,8 +101,8 @@ public sealed class VersionTests
         var sut = Version.Create(Guid.CreateVersion7(), "4.8.2", null, null, null, true, proposed, ProductName, EventActor.System, _dateTimeProvider.Now).Value;
 
         // Act
-        sut.Cut(new LocalDate(2026, 9, 1), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
-        sut.MarkReleased(new LocalDate(2026, 9, 30), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        sut.Cut(Instant.FromUtc(2026, 9, 1, 12, 0), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        sut.MarkReleased(Instant.FromUtc(2026, 9, 30, 12, 0), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
         sut.ExecutePostPersistenceActions();
 
         // Assert
@@ -151,27 +151,27 @@ public sealed class VersionTests
         // Arrange
         var sut = _faker.Generate();
         var ready = StatusRefFactory.Ready();
-        var cutDate = new LocalDate(2026, 9, 1);
+        var cutAt = Instant.FromUtc(2026, 9, 1, 14, 30);
 
         // Act
-        var result = sut.Cut(cutDate, ready, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Cut(cutAt, ready, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.CutDate.Should().Be(cutDate);
+        sut.CutAt.Should().Be(cutAt);
         sut.StatusId.Should().Be(ready.StatusId);
         sut.StatusCategory.Should().Be(StatusCategory.Active);
-        sut.DomainEvents.Should().ContainSingle(e => e is VersionCutEvent);
+        sut.DomainEvents.Should().ContainSingle(e => e is VersionCutEventV2);
     }
 
     [Fact]
     public void Cut_ShouldFail_WhenAlreadyCut()
     {
         // Arrange
-        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+        var sut = _faker.AsCut(Instant.FromUtc(2026, 9, 1, 12, 0)).Generate();
 
         // Act
-        var result = sut.Cut(new LocalDate(2026, 9, 2), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Cut(Instant.FromUtc(2026, 9, 2, 12, 0), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -185,7 +185,7 @@ public sealed class VersionTests
         var sut = _faker.AsWithdrawn().Generate();
 
         // Act
-        var result = sut.Cut(new LocalDate(2026, 9, 1), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Cut(Instant.FromUtc(2026, 9, 1, 12, 0), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -200,42 +200,42 @@ public sealed class VersionTests
     public void MarkReleased_ShouldRecordTheShipDateAndRaiseEvent()
     {
         // Arrange
-        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+        var sut = _faker.AsCut(Instant.FromUtc(2026, 9, 1, 12, 0)).Generate();
         var released = StatusRefFactory.Released();
-        var releasedDate = new LocalDate(2026, 9, 5);
+        var releasedAt = Instant.FromUtc(2026, 9, 5, 2, 30);
 
         // Act
-        var result = sut.MarkReleased(releasedDate, released, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.MarkReleased(releasedAt, released, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.ReleasedDate.Should().Be(releasedDate);
+        sut.ReleasedAt.Should().Be(releasedAt);
         sut.StatusCategory.Should().Be(StatusCategory.Done);
-        sut.DomainEvents.Should().ContainSingle(e => e is VersionReleasedEvent);
+        sut.DomainEvents.Should().ContainSingle(e => e is VersionReleasedEventV2);
     }
 
     [Fact]
     public void MarkReleased_ShouldFail_WhenReleasedBeforeItWasCut()
     {
         // Arrange
-        var sut = _faker.AsCut(new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsCut(Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.MarkReleased(new LocalDate(2026, 9, 1), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.MarkReleased(Instant.FromUtc(2026, 9, 1, 12, 0), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("The released date cannot be before the cut date.");
+        result.Error.Should().Be("A version cannot be released before it was cut.");
     }
 
     [Fact]
     public void MarkReleased_ShouldFail_WhenAlreadyReleased()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.MarkReleased(new LocalDate(2026, 9, 6), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.MarkReleased(Instant.FromUtc(2026, 9, 6, 12, 0), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -249,13 +249,13 @@ public sealed class VersionTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.MarkReleased(new LocalDate(2026, 9, 5), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.MarkReleased(Instant.FromUtc(2026, 9, 5, 12, 0), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // Hand-entry and historical import land at version level with no cut recorded; refusing this
         // would make importing a year of past versions impossible.
         result.IsSuccess.Should().BeTrue();
-        sut.CutDate.Should().BeNull();
+        sut.CutAt.Should().BeNull();
     }
 
     #endregion MarkReleased
@@ -266,27 +266,27 @@ public sealed class VersionTests
     public void CorrectDates_ShouldReplaceBothDatesAndRaiseEvent()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 2), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 2, 12, 0), Instant.FromUtc(2026, 9, 6, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.CutDate.Should().Be(new LocalDate(2026, 9, 2));
-        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 6));
-        sut.DomainEvents.Should().ContainSingle(e => e is VersionDatesCorrectedEvent);
+        sut.CutAt.Should().Be(Instant.FromUtc(2026, 9, 2, 12, 0));
+        sut.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 6, 12, 0));
+        sut.DomainEvents.Should().ContainSingle(e => e is VersionDatesCorrectedEventV2);
     }
 
     [Fact]
     public void CorrectDates_ShouldLeaveTheStatusWhereItIs()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
         var statusId = sut.StatusId;
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 6, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // The point of the method: correcting a typo must not manufacture a status transition, which
@@ -294,100 +294,100 @@ public sealed class VersionTests
         result.IsSuccess.Should().BeTrue();
         sut.StatusId.Should().Be(statusId);
         sut.StatusCategory.Should().Be(StatusCategory.Done);
-        sut.DomainEvents.Should().NotContain(e => e is VersionReleasedEvent);
+        sut.DomainEvents.Should().NotContain(e => e is VersionReleasedEventV2);
     }
 
     [Fact]
     public void CorrectDates_ShouldCarryBothEndsOfEachChange()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 2), new LocalDate(2026, 9, 6), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 2, 12, 0), Instant.FromUtc(2026, 9, 6, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // The replaced value is the whole reason to record a correction; it is gone from the version.
         result.IsSuccess.Should().BeTrue();
-        var raised = sut.DomainEvents.OfType<VersionDatesCorrectedEvent>().Single();
-        raised.FromCutDate.Should().Be(new LocalDate(2026, 9, 1));
-        raised.ToCutDate.Should().Be(new LocalDate(2026, 9, 2));
-        raised.FromReleasedDate.Should().Be(new LocalDate(2026, 9, 5));
-        raised.ToReleasedDate.Should().Be(new LocalDate(2026, 9, 6));
+        var raised = sut.DomainEvents.OfType<VersionDatesCorrectedEventV2>().Single();
+        raised.FromCutAt.Should().Be(Instant.FromUtc(2026, 9, 1, 12, 0));
+        raised.ToCutAt.Should().Be(Instant.FromUtc(2026, 9, 2, 12, 0));
+        raised.FromReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 5, 12, 0));
+        raised.ToReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 6, 12, 0));
     }
 
     [Fact]
-    public void CorrectDates_ShouldCorrectTheCutDate_WhenNotYetReleased()
+    public void CorrectDates_ShouldCorrectTheCutMoment_WhenNotYetReleased()
     {
         // Arrange
-        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+        var sut = _faker.AsCut(Instant.FromUtc(2026, 9, 1, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 3), null, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 3, 12, 0), null, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.CutDate.Should().Be(new LocalDate(2026, 9, 3));
-        sut.ReleasedDate.Should().BeNull();
+        sut.CutAt.Should().Be(Instant.FromUtc(2026, 9, 3, 12, 0));
+        sut.ReleasedAt.Should().BeNull();
     }
 
     [Fact]
     public void CorrectDates_ShouldSucceedWithoutRaisingAnEvent_WhenNothingChanged()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.DomainEvents.Should().NotContain(e => e is VersionDatesCorrectedEvent);
+        sut.DomainEvents.Should().NotContain(e => e is VersionDatesCorrectedEventV2);
     }
 
     [Fact]
     public void CorrectDates_ShouldFail_WhenReleasedBeforeCut()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 6), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 6, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("The released date cannot be before the cut date.");
-        sut.CutDate.Should().Be(new LocalDate(2026, 9, 1));
+        result.Error.Should().Be("A version cannot be released before it was cut.");
+        sut.CutAt.Should().Be(Instant.FromUtc(2026, 9, 1, 12, 0));
     }
 
     [Fact]
-    public void CorrectDates_ShouldAddACutDate_WhenTheReleaseWasNeverCut()
+    public void CorrectDates_ShouldAddACutMoment_WhenTheReleaseWasNeverCut()
     {
         // Arrange — a version can be marked released without ever being cut, which historical import
-        // depends on. A cut date discovered afterwards is a correction, not a lifecycle step.
-        var sut = _faker.AsReleased(null, new LocalDate(2026, 9, 5)).Generate();
+        // depends on. A cut moment discovered afterwards is a correction, not a lifecycle step.
+        var sut = _faker.AsReleased(null, Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.CutDate.Should().Be(new LocalDate(2026, 9, 1));
+        sut.CutAt.Should().Be(Instant.FromUtc(2026, 9, 1, 12, 0));
     }
 
     [Fact]
-    public void CorrectDates_ShouldClearTheCutDate()
+    public void CorrectDates_ShouldClearTheCutMoment()
     {
-        // Arrange — the cut date only records something written down, so removing a wrong one is a
+        // Arrange — the cut moment only records something written down, so removing a wrong one is a
         // correction like any other. The status is untouched either way.
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, null, new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, null, Instant.FromUtc(2026, 9, 5, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        sut.CutDate.Should().BeNull();
+        sut.CutAt.Should().BeNull();
         sut.StatusCategory.Should().Be(StatusCategory.Done);
     }
 
@@ -395,12 +395,12 @@ public sealed class VersionTests
     public void CorrectDates_ShouldCorrectAndClearTheTargetDate()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5))
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0))
             .WithTargetDate(new LocalDate(2026, 8, 1))
             .Generate();
 
         // Act
-        var corrected = sut.CorrectDates(new LocalDate(2026, 8, 15), new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var corrected = sut.CorrectDates(new LocalDate(2026, 8, 15), Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert — a released version can still have a mis-typed target date fixed. MoveTargetDate
         // refuses once the version is Done, so without this there is no route to it at all.
@@ -408,7 +408,7 @@ public sealed class VersionTests
         sut.TargetDate.Should().Be(new LocalDate(2026, 8, 15));
 
         // Act — and cleared, since a target date is only a statement of intent.
-        var cleared = sut.CorrectDates(null, new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5), ProductName, EventActor.System, _dateTimeProvider.Now);
+        var cleared = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0), ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         cleared.IsSuccess.Should().BeTrue();
@@ -416,19 +416,19 @@ public sealed class VersionTests
     }
 
     [Fact]
-    public void CorrectDates_ShouldFail_WhenClearingTheReleasedDate()
+    public void CorrectDates_ShouldFail_WhenClearingTheReleasedMoment()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 1), null, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 1, 12, 0), null, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert — the one date a correction cannot empty: the status would then contradict the
         // dates. Saying a version did not ship is RevertRelease's job, which moves the status too.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A released version cannot have its released date removed. Revert the version instead.");
-        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 5));
+        result.Error.Should().Be("A released version cannot have its released moment removed. Revert the version instead.");
+        sut.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 5, 12, 0));
     }
 
     [Fact]
@@ -453,7 +453,7 @@ public sealed class VersionTests
         var sut = _faker.AsWithdrawn().Generate();
 
         // Act
-        var result = sut.CorrectDates(null, new LocalDate(2026, 9, 2), null, ProductName, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.CorrectDates(null, Instant.FromUtc(2026, 9, 2, 12, 0), null, ProductName, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -467,26 +467,26 @@ public sealed class VersionTests
     #region RevertRelease
 
     [Fact]
-    public void RevertRelease_ShouldClearTheReleasedDateAndMoveBackToReady()
+    public void RevertRelease_ShouldClearTheReleasedMomentAndMoveBackToReady()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
         var result = sut.RevertRelease(StatusRefFactory.Ready(), "Marked released against the wrong version.", ProductName, EventActor.System, _dateTimeProvider.Now);
 
-        // Assert — the released date and the status are one fact, so they move together.
+        // Assert — the released moment and the status are one fact, so they move together.
         result.IsSuccess.Should().BeTrue();
-        sut.ReleasedDate.Should().BeNull();
+        sut.ReleasedAt.Should().BeNull();
         sut.StatusCategory.Should().Be(StatusCategory.Active);
-        sut.CutDate.Should().Be(new LocalDate(2026, 9, 1));
+        sut.CutAt.Should().Be(Instant.FromUtc(2026, 9, 1, 12, 0));
     }
 
     [Fact]
     public void RevertRelease_ShouldRaiseItsOwnEventRatherThanAWithdrawal()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
         var result = sut.RevertRelease(StatusRefFactory.Ready(), "Recorded in error.", ProductName, EventActor.System, _dateTimeProvider.Now);
@@ -496,16 +496,16 @@ public sealed class VersionTests
         result.IsSuccess.Should().BeTrue();
         sut.DomainEvents.Should().NotContain(e => e is VersionWithdrawnEvent);
 
-        var reverted = sut.DomainEvents.OfType<VersionRevertedEvent>().Single();
+        var reverted = sut.DomainEvents.OfType<VersionRevertedEventV2>().Single();
         reverted.Reason.Should().Be("Recorded in error.");
-        reverted.FromReleasedDate.Should().Be(new LocalDate(2026, 9, 5));
+        reverted.FromReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 5, 12, 0));
     }
 
     [Fact]
     public void RevertRelease_ShouldFail_WhenTheReleaseWasNeverReleased()
     {
         // Arrange
-        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+        var sut = _faker.AsCut(Instant.FromUtc(2026, 9, 1, 12, 0)).Generate();
 
         // Act
         var result = sut.RevertRelease(StatusRefFactory.Ready(), "Recorded in error.", ProductName, EventActor.System, _dateTimeProvider.Now);
@@ -518,10 +518,10 @@ public sealed class VersionTests
     [Fact]
     public void RevertRelease_ShouldFail_WhenWithdrawn()
     {
-        // Arrange — a version that shipped and was then pulled. The released date has to be present,
+        // Arrange — a version that shipped and was then pulled. The released moment has to be present,
         // or the "nothing to revert" guard answers first and this asserts the wrong rule.
         var sut = _faker
-            .AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5))
+            .AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0))
             .AsWithdrawn()
             .Generate();
 
@@ -539,7 +539,7 @@ public sealed class VersionTests
     public void RevertRelease_ShouldFail_WithoutAReason(string reason)
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
         var result = sut.RevertRelease(StatusRefFactory.Ready(), reason, ProductName, EventActor.System, _dateTimeProvider.Now);
@@ -548,7 +548,7 @@ public sealed class VersionTests
         // already asserts, so the record has to say why.
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A reason is required to revert a version.");
-        sut.ReleasedDate.Should().Be(new LocalDate(2026, 9, 5));
+        sut.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 5, 12, 0));
     }
 
     #endregion RevertRelease
@@ -557,7 +557,7 @@ public sealed class VersionTests
     public void Withdraw_ShouldMoveToRemovedAndRaiseEventWithReason()
     {
         // Arrange
-        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+        var sut = _faker.AsCut(Instant.FromUtc(2026, 9, 1, 12, 0)).Generate();
 
         // Act
         var result = sut.Withdraw("Critical defect found in staging.", StatusRefFactory.Withdrawn(), ProductName, EventActor.System, _dateTimeProvider.Now);
@@ -613,7 +613,7 @@ public sealed class VersionTests
     public void MoveTargetDate_ShouldFail_WhenTheVersionHasShipped()
     {
         // Arrange
-        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+        var sut = _faker.AsReleased(Instant.FromUtc(2026, 9, 1, 12, 0), Instant.FromUtc(2026, 9, 5, 12, 0)).Generate();
 
         // Act
         var result = sut.MoveTargetDate(new LocalDate(2026, 10, 14), ProductName, EventActor.System, _dateTimeProvider.Now);

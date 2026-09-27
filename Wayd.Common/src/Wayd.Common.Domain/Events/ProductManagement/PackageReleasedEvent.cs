@@ -6,10 +6,17 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// <summary>
 /// A release package shipped.
 /// </summary>
+/// <remarks>
+/// Frozen at its published shape and never raised; <see cref="PackageReleasedEventV2"/> replaced it.
+/// Kept so every payload written as this type still deserializes into it — its name and members are the
+/// contract those payloads were written against, so neither may change.
+/// </remarks>
+[Obsolete("Superseded by PackageReleasedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record PackageReleasedEvent : DomainEvent<PackageReleasedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
 
+    [JsonConstructor]
     public PackageReleasedEvent(Guid id, int key, string version, LocalDate releasedDate, int componentCount, Guid statusId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {

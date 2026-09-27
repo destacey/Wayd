@@ -23,7 +23,7 @@ export const releasePackageActionAvailability = (
   releasePackage: ReleasePackageDto,
 ): ReleasePackageActionAvailability => {
   const isWithdrawn = releasePackage.status.category === StatusCategory.Removed
-  const isReleased = !!releasePackage.releasedDate
+  const isReleased = !!releasePackage.releasedAt
 
   return {
     canEditManifest: !isReleased && !isWithdrawn,

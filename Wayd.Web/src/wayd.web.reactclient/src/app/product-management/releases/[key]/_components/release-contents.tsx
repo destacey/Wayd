@@ -34,7 +34,8 @@ export interface ContentsEntry {
    */
   product: string
   detail: React.ReactNode
-  releasedDate?: Date
+  /** When it shipped, shown as the viewer's day. */
+  shipped?: Date
 }
 
 export const toEntries = (release: ReleaseDto): ContentsEntry[] => [
@@ -48,7 +49,7 @@ export const toEntries = (release: ReleaseDto): ContentsEntry[] => [
     // A package's own contents live on its page; naming them here would duplicate a manifest that can
     // disagree with this copy.
     detail: <Text type="secondary">Package</Text>,
-    releasedDate: entry.releasedDate,
+    shipped: entry.releasedAt,
   })),
   ...(release.versions ?? []).map((entry) => ({
     id: entry.version.id,
@@ -61,7 +62,7 @@ export const toEntries = (release: ReleaseDto): ContentsEntry[] => [
     ) : (
       <Text type="secondary">—</Text>
     ),
-    releasedDate: entry.releasedDate,
+    shipped: entry.releasedAt,
   })),
 ]
 
@@ -107,8 +108,8 @@ export const buildContentsColumns = (): ColumnDef<ContentsEntry, any>[] => [
     cell: ({ row }) => row.original.detail,
   },
   {
-    id: 'releasedDate',
-    accessorKey: 'releasedDate',
+    id: 'shipped',
+    accessorKey: 'shipped',
     header: 'Shipped',
     size: 150,
     meta: { columnType: 'dateOnly' },
@@ -116,8 +117,8 @@ export const buildContentsColumns = (): ColumnDef<ContentsEntry, any>[] => [
     // leaving an empty cell the reader has to interpret. The date is formatted here rather than left
     // to the column type, because an explicit cell replaces the type's own renderer.
     cell: ({ row }) =>
-      row.original.releasedDate ? (
-        formatDateOnly(row.original.releasedDate)
+      row.original.shipped ? (
+        formatDateOnly(row.original.shipped)
       ) : (
         <Text type="warning">Not yet shipped</Text>
       ),

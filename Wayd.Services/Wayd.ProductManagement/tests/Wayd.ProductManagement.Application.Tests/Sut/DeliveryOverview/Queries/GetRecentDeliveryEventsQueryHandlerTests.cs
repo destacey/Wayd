@@ -268,7 +268,7 @@ public sealed class GetRecentDeliveryEventsQueryHandlerTests : ProductCommandTes
         var product = SeedReleasableProduct("Notifications");
         var version = SeedVersion(product.Id, "2.1.0");
         version.MarkReleased(
-            new LocalDate(2026, 4, 19),
+            Instant.FromUtc(2026, 4, 19, 12, 0),
             Status("Released", StatusCategory.Done, ProductStatusAlias.Released),
             "Notifications",
             EventActor.System,
@@ -288,6 +288,6 @@ public sealed class GetRecentDeliveryEventsQueryHandlerTests : ProductCommandTes
         // Assert
         var entry = result.Single();
         entry.Alias.Should().Be(ProductStatusAlias.Withdrawn);
-        entry.ReleasedDate.Should().Be(new LocalDate(2026, 4, 19));
+        entry.ReleasedAt.Should().Be(Instant.FromUtc(2026, 4, 19, 12, 0));
     }
 }

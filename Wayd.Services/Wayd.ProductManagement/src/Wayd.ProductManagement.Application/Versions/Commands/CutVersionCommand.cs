@@ -9,7 +9,7 @@ namespace Wayd.ProductManagement.Application.Versions.Commands;
 /// <remarks>
 /// Cutting is one-way: a version already cut, released or withdrawn refuses it.
 /// </remarks>
-public sealed record CutVersionCommand(Guid Id, LocalDate CutDate) : ICommand, IRequireLinkedEmployee;
+public sealed record CutVersionCommand(Guid Id, Instant CutAt) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CutVersionCommandValidator : AbstractValidator<CutVersionCommand>
 {
@@ -77,7 +77,7 @@ public sealed class CutVersionCommandHandler(
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = version.Cut(
-                request.CutDate,
+                request.CutAt,
                 status.Value,
                 productName,
                 EventActor.User(_currentUser.GetUserId(), employeeId),

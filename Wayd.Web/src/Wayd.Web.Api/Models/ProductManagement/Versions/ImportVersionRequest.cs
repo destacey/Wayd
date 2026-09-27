@@ -11,10 +11,14 @@ namespace Wayd.Web.Api.Models.ProductManagement.Versions;
 /// products may each hold a <c>1.0.0</c>.
 /// </para>
 /// <para>
-/// There is no status column: the dates decide where the version ends up. A row with no dates is
-/// planned, a <see cref="CutDate"/> makes it ready, and a <see cref="ReleasedDate"/> makes it
-/// released. A released date without a cut date is legitimate — a version recorded after the fact
+/// There is no status column: the moments decide where the version ends up. A row with neither is
+/// planned, a <see cref="CutAt"/> makes it ready, and a <see cref="ReleasedAt"/> makes it
+/// released. A released moment without a cut moment is legitimate — a version recorded after the fact
 /// often has no record of when scope froze.
+/// </para>
+/// <para>
+/// Both moments are instants and must carry their offset (see <see cref="OffsetTimestamp"/>): copy the
+/// CI/CD timestamps as-is.
 /// </para>
 /// </summary>
 public sealed class ImportVersionRequest
@@ -37,11 +41,11 @@ public sealed class ImportVersionRequest
     /// <summary>When the version is expected to ship.</summary>
     public DateOnly? TargetDate { get; set; }
 
-    /// <summary>When scope froze. Supplying it makes the version Ready.</summary>
-    public DateOnly? CutDate { get; set; }
+    /// <summary>When scope froze — the build or tag — with its offset. Supplying it makes the version Ready.</summary>
+    public string? CutAt { get; set; }
 
-    /// <summary>When it shipped. Supplying it makes the version Released.</summary>
-    public DateOnly? ReleasedDate { get; set; }
+    /// <summary>When it shipped, with its offset. Supplying it makes the version Released.</summary>
+    public string? ReleasedAt { get; set; }
 
     /// <summary>A manual ordering override, for the rare case where chronology misleads.</summary>
     public long? Sequence { get; set; }
@@ -54,8 +58,8 @@ public sealed class ImportVersionRequest
             Number,
             Name,
             TargetDate?.ToLocalDate(),
-            CutDate?.ToLocalDate(),
-            ReleasedDate?.ToLocalDate(),
+            OffsetTimestamp.Parse(CutAt),
+            OffsetTimestamp.Parse(ReleasedAt),
             Sequence,
             Notes);
 }
@@ -76,9 +80,19 @@ public sealed class ImportVersionRequestValidator : CustomValidator<ImportVersio
         RuleFor(v => v.Name)
             .MaximumLength(128);
 
+        RuleFor(v => v.CutAt)
+            .Must(OffsetTimestamp.IsValid)
+                .When(v => !string.IsNullOrWhiteSpace(v.CutAt))
+                .WithMessage(OffsetTimestamp.Message(nameof(ImportVersionRequest.CutAt)));
+
         // The one ordering rule the domain keeps: a version cannot ship before it was cut.
-        RuleFor(v => v.ReleasedDate)
-            .Must((row, released) => released is null || row.CutDate is null || released >= row.CutDate)
-                .WithMessage("The released date cannot be before the cut date.");
+        RuleFor(v => v.ReleasedAt)
+            .Must(OffsetTimestamp.IsValid)
+                .When(v => !string.IsNullOrWhiteSpace(v.ReleasedAt), ApplyConditionTo.CurrentValidator)
+                .WithMessage(OffsetTimestamp.Message(nameof(ImportVersionRequest.ReleasedAt)))
+            .Must((row, released) => OffsetTimestamp.Parse(released) is not { } releasedAt
+                    || OffsetTimestamp.Parse(row.CutAt) is not { } cutAt
+                    || releasedAt >= cutAt)
+                .WithMessage("A version cannot be released before it was cut.");
     }
 }

@@ -4095,8 +4095,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<DateTime?>("ReleasedDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("StatusAliasValue")
                         .HasColumnType("int");
@@ -4146,9 +4146,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasAlternateKey("Key");
 
-                    b.HasIndex("ReleasedDate");
+                    b.HasIndex("ReleasedAt");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReleasedDate"), new[] { "Id", "Key", "Version", "Name", "StatusCategory" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReleasedAt"), new[] { "Id", "Key", "Version", "Name", "StatusCategory" });
 
                     b.HasIndex("StatusWorkflowId");
 
@@ -4278,8 +4278,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CutDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("CutAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
@@ -4303,8 +4303,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("ReleasedDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<long?>("Sequence")
                         .HasColumnType("bigint");
@@ -4356,9 +4356,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("ProductId", "Number");
 
-                    b.HasIndex("ProductId", "ReleasedDate");
+                    b.HasIndex("ProductId", "ReleasedAt");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProductId", "ReleasedDate"), new[] { "Id", "Key", "Number", "Name", "Sequence", "StatusCategory" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProductId", "ReleasedAt"), new[] { "Id", "Key", "Number", "Name", "Sequence", "StatusCategory" });
 
                     b.ToTable("Versions", "Delivery");
                 });

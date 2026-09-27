@@ -21,17 +21,17 @@ export interface CorrectReleasePackageDatesFormProps {
 
 interface CorrectReleasePackageDatesFormValues {
   targetDate?: Dayjs
-  releasedDate?: Dayjs
+  releasedAt?: Dayjs
 }
 
 /**
- * Fixes a package's recorded target and released dates.
+ * Fixes a package's recorded target date and released moment.
  *
  * Separate from Mark Released, which asserts the package shipped and refuses to run twice. This says
- * only that a date was written down wrongly, so the status stays where it is.
+ * only that a value was written down wrongly, so the status stays where it is.
  *
- * The released date is offered only on a released package, and cannot be emptied there: a recorded
- * released date is what closes the manifest, so the domain refuses both adding one here and clearing
+ * The released moment is offered only on a released package, and cannot be emptied there: a recorded
+ * released moment is what closes the manifest, so the domain refuses both adding one here and clearing
  * one. Mark Released records the first.
  */
 const CorrectReleasePackageDatesForm = ({
@@ -43,16 +43,16 @@ const CorrectReleasePackageDatesForm = ({
 
   const [correctDates] = useCorrectReleasePackageDatesMutation()
 
-  const isReleased = !!releasePackage.releasedDate
+  const isReleased = !!releasePackage.releasedAt
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CorrectReleasePackageDatesFormValues>({
       onSubmit: async (values: CorrectReleasePackageDatesFormValues, form) => {
         try {
-          // Both dates are sent, so an empty target date is cleared rather than left alone.
+          // Both values are sent, so an empty target date is cleared rather than left alone.
           const request = {
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
-            releasedDate: values.releasedDate?.format('YYYY-MM-DD'),
+            releasedAt: values.releasedAt?.toDate(),
           } as unknown as CorrectReleasePackageDatesRequest
 
           const response = await correctDates({
@@ -112,8 +112,8 @@ const CorrectReleasePackageDatesForm = ({
             targetDate: releasePackage.targetDate
               ? dayjs(releasePackage.targetDate)
               : undefined,
-            releasedDate: releasePackage.releasedDate
-              ? dayjs(releasePackage.releasedDate)
+            releasedAt: releasePackage.releasedAt
+              ? dayjs(releasePackage.releasedAt)
               : undefined,
           }}
         >
@@ -126,17 +126,17 @@ const CorrectReleasePackageDatesForm = ({
           </Item>
           {isReleased && (
             <Item
-              label="Released Date"
-              name="releasedDate"
-              extra="The local date it shipped."
+              label="Released At"
+              name="releasedAt"
+              extra="When the pipeline run that shipped it completed, in your time zone."
               rules={[
                 {
                   required: true,
-                  message: 'A released package keeps its released date.',
+                  message: 'A released package keeps its released moment.',
                 },
               ]}
             >
-              <DatePicker style={{ width: '100%' }} />
+              <DatePicker showTime style={{ width: '100%' }} />
             </Item>
           )}
         </Form>

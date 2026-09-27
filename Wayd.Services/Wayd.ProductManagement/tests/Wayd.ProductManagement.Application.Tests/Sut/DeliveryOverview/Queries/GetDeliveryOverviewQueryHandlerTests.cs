@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -39,20 +39,34 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
         return SeedProduct(name, parentId, type.Id);
     }
 
-    /// <summary>A released version, optionally cut first and optionally withdrawn afterwards.</summary>
+    /// <summary>
+    /// A version released at midday UTC on <paramref name="releasedOn"/>, which is that day in every zone
+    /// these tests read it in.
+    /// </summary>
     private Version SeedReleased(
         Guid productId,
         string number,
-        LocalDate releasedDate,
-        LocalDate? cutDate = null,
+        LocalDate releasedOn,
+        LocalDate? cutOn = null,
+        bool withdrawn = false) =>
+        SeedReleasedAt(productId, number, Midday(releasedOn), cutOn is null ? null : Midday(cutOn.Value), withdrawn);
+
+    private static Instant Midday(LocalDate day) => day.At(new LocalTime(12, 0)).InUtc().ToInstant();
+
+    /// <summary>A released version, optionally cut first and optionally withdrawn afterwards.</summary>
+    private Version SeedReleasedAt(
+        Guid productId,
+        string number,
+        Instant releasedAt,
+        Instant? cutAt = null,
         bool withdrawn = false)
     {
         var version = SeedVersion(productId, number);
 
-        if (cutDate is not null)
+        if (cutAt is not null)
         {
             version.Cut(
-                cutDate.Value,
+                cutAt.Value,
                 Status("Ready", StatusCategory.Active, ProductStatusAlias.Ready),
                 "product",
                 EventActor.System,
@@ -60,7 +74,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
         }
 
         version.MarkReleased(
-            releasedDate,
+            releasedAt,
             Status("Released", StatusCategory.Done, ProductStatusAlias.Released),
             "product",
             EventActor.System,
@@ -93,7 +107,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert — both ends inclusive.
         result.Frequency.Count.Should().Be(2);
@@ -117,7 +131,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert — the 14th day back is the first day of the previous window; the 15th is outside it,
         // so four count rather than five.
@@ -134,7 +148,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert
         result.Frequency.PreviousPerWeek.Should().BeNull();
@@ -146,13 +160,13 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
         // Arrange — a backfilled version carries no latency. Counting it as zero would pull the mean
         // down every time more history was loaded.
         var product = SeedReleasableProduct("Checkout API");
-        SeedReleased(product.Id, "1.0", WindowStart.PlusDays(4), cutDate: WindowStart);
-        SeedReleased(product.Id, "1.1", WindowStart.PlusDays(6), cutDate: WindowStart);
+        SeedReleased(product.Id, "1.0", WindowStart.PlusDays(4), cutOn: WindowStart);
+        SeedReleased(product.Id, "1.1", WindowStart.PlusDays(6), cutOn: WindowStart);
         SeedReleased(product.Id, "0.9", WindowStart.PlusDays(2));
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert — the pair is reported so a reader can see how much of the window it speaks for.
         result.CutToReleased.AverageDays.Should().Be(5);
@@ -169,7 +183,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert — null, not zero: zero would claim same-day releases.
         result.CutToReleased.AverageDays.Should().BeNull();
@@ -189,7 +203,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, platform.Id),
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc, platform.Id),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -210,7 +224,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, payments.Id),
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc, payments.Id),
             TestContext.Current.CancellationToken);
 
         // Assert — the scoped grouping heads its own branch; the other branch is gone entirely.
@@ -230,7 +244,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, platform.Id),
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc, platform.Id),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -248,7 +262,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert
         result.Activity.Select(a => a.Product.Name).Should().Equal("Checkout API", "Quiet Service");
@@ -267,7 +281,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert
         var activity = result.Activity.Single();
@@ -294,7 +308,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert — depth-first, each node once, indented by how deep it sits.
         result.Activity.Select(a => (a.Product.Name, a.Depth, a.IsReleasable))
@@ -315,7 +329,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert
         var grouping = result.Activity.First();
@@ -334,10 +348,48 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert
         result.Activity.Select(a => a.Product.Name).Should().Equal("Checkout API");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReadTheWindowInTheViewersZone()
+    {
+        // Arrange — 21:30 on the window's last day in Chicago, which is already the next day in UTC.
+        // Read in Chicago it belongs to this window; read in UTC it falls just outside.
+        var product = SeedReleasableProduct("Checkout API");
+        SeedReleasedAt(product.Id, "1.0", Instant.FromUtc(2026, 4, 29, 2, 30));
+        var chicago = DateTimeZoneProviders.Tzdb["America/Chicago"];
+
+        // Act
+        var inChicago = await CreateSut().Handle(
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, chicago), TestContext.Current.CancellationToken);
+        var inUtc = await CreateSut().Handle(
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
+
+        // Assert
+        inChicago.Frequency.Count.Should().Be(1);
+        inChicago.Activity.Single().Days.Single().Date.Should().Be(WindowEnd);
+        inUtc.Frequency.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMeasureLatencyAsElapsedTime()
+    {
+        // Arrange — cut at noon and released at midnight: half a day, not the whole day that counting
+        // calendar dates would report.
+        var product = SeedReleasableProduct("Checkout API");
+        SeedReleasedAt(
+            product.Id, "1.0", Instant.FromUtc(2026, 4, 17, 0, 0), cutAt: Instant.FromUtc(2026, 4, 16, 12, 0));
+
+        // Act
+        var result = await CreateSut().Handle(
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.CutToReleased.AverageDays.Should().Be(0.5);
     }
 
     [Fact]
@@ -351,7 +403,7 @@ public sealed class GetDeliveryOverviewQueryHandlerTests : ProductCommandTestBas
 
         // Act
         var result = await CreateSut().Handle(
-            new GetDeliveryOverviewQuery(WindowStart, WindowEnd), TestContext.Current.CancellationToken);
+            new GetDeliveryOverviewQuery(WindowStart, WindowEnd, DateTimeZone.Utc), TestContext.Current.CancellationToken);
 
         // Assert
         result.Scope.ReleasableNodeCount.Should().Be(2);

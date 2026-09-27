@@ -1,6 +1,7 @@
 import { ReleasePackageDto } from '@/src/services/wayd-api'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import dayjs from 'dayjs'
 import CorrectReleasePackageDatesForm from './correct-release-package-dates-form'
 
 jest.unmock('dayjs')
@@ -55,10 +56,13 @@ const releasePackage = (
     ...overrides,
   }) as ReleasePackageDto
 
+// Late evening US Central: the 17th there, the 18th in UTC.
+const RELEASED_AT = '2026-09-18T02:30:00Z'
+
 const released = () =>
   releasePackage({
     targetDate: '2026-09-16' as unknown as Date,
-    releasedDate: '2026-09-18' as unknown as Date,
+    releasedAt: RELEASED_AT as unknown as Date,
   })
 
 const renderForm = (dto: ReleasePackageDto) =>
@@ -75,16 +79,18 @@ describe('CorrectReleasePackageDatesForm', () => {
     correctDates.mockReset().mockResolvedValue({ data: undefined })
   })
 
-  it('pre-fills the dates already recorded', () => {
+  it("pre-fills what is already recorded, the released moment in the viewer's zone", () => {
     // Arrange / Act — a correction starts from what is there.
     renderForm(released())
 
     // Assert
     expect(screen.getByLabelText('Target Date')).toHaveValue('2026-09-16')
-    expect(screen.getByLabelText('Released Date')).toHaveValue('2026-09-18')
+    expect(screen.getByLabelText('Released At')).toHaveValue(
+      dayjs(RELEASED_AT).format('YYYY-MM-DD HH:mm:ss'),
+    )
   })
 
-  it('offers no released date on a package that has not been released', () => {
+  it('offers no released moment on a package that has not been released', () => {
     // Arrange — the domain refuses adding one here: a released date closes the manifest, and
     // Mark Released is the action that records the first.
     // Act
@@ -92,10 +98,10 @@ describe('CorrectReleasePackageDatesForm', () => {
 
     // Assert
     expect(screen.getByLabelText('Target Date')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Released Date')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Released At')).not.toBeInTheDocument()
   })
 
-  it('sends both dates when one is corrected', async () => {
+  it('sends both values, the released moment as an instant', async () => {
     // Arrange — an omitted target date is a cleared one, not an unchanged one.
     renderForm(released())
 
@@ -107,7 +113,7 @@ describe('CorrectReleasePackageDatesForm', () => {
       id: 'package-1',
       request: {
         targetDate: '2026-09-16',
-        releasedDate: '2026-09-18',
+        releasedAt: new Date(RELEASED_AT),
       },
     })
   })

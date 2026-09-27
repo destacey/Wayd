@@ -1,4 +1,7 @@
 using CsvHelper;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
+using Wayd.Web.Api.Models.ProductManagement;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Microsoft.FeatureManagement.Mvc;
@@ -28,14 +31,16 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-public class VersionsController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
+public class VersionsController(IDispatcher dispatcher, ICsvService csvService, ISettings<SchedulingSettings> schedulingSettings, ILogger<VersionsController> logger) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ILogger<VersionsController> _logger = logger;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get a list of versions.", "Ordered by released date then sequence — never by version, which is free text.")]
+    [OpenApiOperation("Get a list of versions.", "Ordered by released moment then sequence — never by version, which is free text.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<VersionDto>>> GetVersions(
@@ -122,7 +127,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Submit a csv file of versions to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
-        "Each row is planned against its product by id and walked to the state its dates describe: no dates leaves it planned, a cut date makes it ready, a released date makes it released.")]
+        "Each row is planned against its product by id and walked to the state its moments describe: neither leaves it planned, a cut moment makes it ready, a released moment makes it released. Moments are ISO-8601 timestamps with an offset.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -170,7 +175,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Update a version.",
-        "A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates are not here — each carries a rule of its own, so they move through their own actions.")]
+        "A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates and moments are not here — each carries a rule of its own, so they move through their own actions.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -206,15 +211,18 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Correct a version's recorded target, cut and released dates.",
-        "Fixes dates entered wrongly without changing the version's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the version instead.")]
+        "Correct a version's recorded target date and cut and released moments.",
+        "Fixes values entered wrongly without changing the version's status. All three are sent, so an omitted value is cleared. The released moment cannot be cleared — revert the version instead.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
         Guid id, [FromBody] CorrectVersionDatesRequest request, CancellationToken cancellationToken)
     {
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Correct version dates", cancellationToken);
+
         var result = await _dispatcher.Send(
-            new CorrectVersionDatesCommand(id, request.TargetDate, request.CutDate, request.ReleasedDate),
+            new CorrectVersionDatesCommand(id, request.TargetDate, request.ResolveCutAt(zone), request.ResolveReleasedAt(zone)),
             cancellationToken);
 
         return result.IsSuccess
@@ -230,7 +238,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     public async Task<ActionResult> Cut(
         Guid id, [FromBody] CutVersionRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new CutVersionCommand(id, request.CutDate), cancellationToken);
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Cut version", cancellationToken);
+
+        var result = await _dispatcher.Send(new CutVersionCommand(id, request.ResolveCutAt(zone)), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -249,8 +260,11 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     public async Task<ActionResult> MarkReleased(
         Guid id, [FromBody] MarkVersionReleasedRequest request, CancellationToken cancellationToken)
     {
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Mark version released", cancellationToken);
+
         var result = await _dispatcher.Send(
-            new MarkVersionReleasedCommand(id, request.ReleasedDate), cancellationToken);
+            new MarkVersionReleasedCommand(id, request.ResolveReleasedAt(zone)), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -290,7 +304,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService) 
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Revert a version recorded as shipped.",
-        "For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a version which really shipped.")]
+        "For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released moment. Not a withdrawal — that pulls a version which really shipped.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

@@ -47,7 +47,8 @@ const when = (changedOn: string | Date): string => {
   const today = dayjs()
 
   if (at.isSame(today, 'day')) return at.format('HH:mm')
-  if (at.isSame(today.subtract(1, 'day'), 'day')) return `Yest. ${at.format('HH:mm')}`
+  if (at.isSame(today.subtract(1, 'day'), 'day'))
+    return `Yest. ${at.format('HH:mm')}`
   // Without the year a December event read as this December once January arrived.
   if (!at.isSame(today, 'year')) return at.format('D MMM YYYY HH:mm')
   return at.format('D MMM HH:mm')
@@ -69,11 +70,12 @@ const detail = (event: RecentDeliveryEventDto): string => {
   }
 
   // A withdrawal has to say what it withdrew, or a reader is left asking when the thing went out.
-  if (event.alias === ProductStatusAlias.Withdrawn && event.releasedDate) {
-    parts.push(`released ${dayjs(event.releasedDate).format('D MMM')}`)
+  const released = event.releasedAt
+  if (event.alias === ProductStatusAlias.Withdrawn && released) {
+    parts.push(`released ${dayjs(released).format('D MMM')}`)
   }
 
-  if (event.alias === ProductStatusAlias.Ready && !event.releasedDate) {
+  if (event.alias === ProductStatusAlias.Ready && !released) {
     parts.push('awaiting release')
   }
 
@@ -119,7 +121,9 @@ const RecentDeliveryActivity = ({ events }: RecentDeliveryActivityProps) => {
             }
           >
             <Flex gap={10} align="flex-start" style={{ width: '100%' }}>
-              <Text type={tone === 'secondary' ? 'secondary' : tone}>{icon}</Text>
+              <Text type={tone === 'secondary' ? 'secondary' : tone}>
+                {icon}
+              </Text>
               <Flex vertical gap={2} style={{ minWidth: 0 }}>
                 <Flex gap={8} align="baseline" wrap>
                   <Link href={href(event)}>
@@ -131,7 +135,9 @@ const RecentDeliveryActivity = ({ events }: RecentDeliveryActivityProps) => {
                     </Text>
                   )}
                 </Flex>
-                <Tooltip title={dayjs(event.changedOn).format('ddd D MMM YYYY HH:mm')}>
+                <Tooltip
+                  title={dayjs(event.changedOn).format('ddd D MMM YYYY HH:mm')}
+                >
                   <Text
                     type={tone === 'danger' ? 'danger' : 'secondary'}
                     style={{ fontSize: 12 }}

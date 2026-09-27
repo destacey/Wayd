@@ -131,9 +131,9 @@ public sealed class ReleasePackageImportDefinition(
 
             var package = created.Value;
 
-            if (data.ReleasedDate is not null)
+            if (data.ReleasedAt is not null)
             {
-                var released = package.MarkReleased(data.ReleasedDate.Value, releasedStatus, actor, timestamp);
+                var released = package.MarkReleased(data.ReleasedAt.Value, releasedStatus, actor, timestamp);
                 if (released.IsFailure)
                 {
                     row.Failed($"Could not release package '{version}': {released.Error}");

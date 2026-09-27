@@ -27,7 +27,9 @@ export interface VersionsGridProps {
  * The package a version shipped in is deliberately absent. `Version.PackageId` is never written, so
  * the column would be empty on every row; a package's membership lives in its manifest.
  */
-export const buildVersionColumns = (showProduct: boolean): ColumnDef<VersionDto, any>[] => [
+export const buildVersionColumns = (
+  showProduct: boolean,
+): ColumnDef<VersionDto, any>[] => [
   { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
   // Ahead of the version: 4.8.2 and 2026.04 say nothing side by side without their products.
   ...(showProduct
@@ -90,18 +92,18 @@ export const buildVersionColumns = (showProduct: boolean): ColumnDef<VersionDto,
     meta: { columnType: 'dateOnly' },
   },
   {
-    id: 'cutDate',
-    accessorKey: 'cutDate',
+    id: 'cutAt',
+    accessorKey: 'cutAt',
     header: 'Cut',
-    size: 130,
-    meta: { columnType: 'dateOnly' },
+    size: 180,
+    meta: { columnType: 'dateTime' },
   },
   {
-    id: 'releasedDate',
-    accessorKey: 'releasedDate',
+    id: 'releasedAt',
+    accessorKey: 'releasedAt',
     header: 'Released',
-    size: 130,
-    meta: { columnType: 'dateOnly' },
+    size: 180,
+    meta: { columnType: 'dateTime' },
   },
 ]
 

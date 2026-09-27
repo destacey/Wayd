@@ -118,9 +118,9 @@ public sealed class ReleasePackageImportDefinitionTests
     private static ImportReleasePackageDto Row(
         Guid productId,
         string version = "WAYD-2026.09",
-        LocalDate? releasedDate = null,
+        Instant? releasedAt = null,
         params ImportReleasePackageComponentDto[] components) =>
-        new(version, null, null, releasedDate,
+        new(version, null, null, releasedAt,
             components.Length > 0 ? components : [Component(productId)]);
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class ReleasePackageImportDefinitionTests
     }
 
     [Fact]
-    public async Task CreatePackages_LeavesARowWithNoReleasedDateAssembled()
+    public async Task CreatePackages_LeavesARowWithNoReleasedMomentAssembled()
     {
         // Arrange
         var product = SeedProduct();
@@ -172,26 +172,26 @@ public sealed class ReleasePackageImportDefinitionTests
 
         var package = _dbContext.ReleasePackages.Single();
         package.StatusId.Should().Be(_assembled.Id);
-        package.ReleasedDate.Should().BeNull();
+        package.ReleasedAt.Should().BeNull();
         outcome.CreatedEntityId.Should().Be(package.Id);
     }
 
     [Fact]
-    public async Task CreatePackages_MarksARowWithAReleasedDateReleased()
+    public async Task CreatePackages_MarksARowWithAReleasedMomentReleased()
     {
         // Arrange
         var product = SeedProduct();
-        var releasedDate = new LocalDate(2026, 4, 5);
+        var releasedAt = Instant.FromUtc(2026, 4, 6, 3, 10);
 
         // Act
-        var result = await Run(Row(product.Id, releasedDate: releasedDate));
+        var result = await Run(Row(product.Id, releasedAt: releasedAt));
 
         // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();
 
         var package = _dbContext.ReleasePackages.Single();
         package.StatusId.Should().Be(_released.Id);
-        package.ReleasedDate.Should().Be(releasedDate);
+        package.ReleasedAt.Should().Be(releasedAt);
     }
 
     [Fact]

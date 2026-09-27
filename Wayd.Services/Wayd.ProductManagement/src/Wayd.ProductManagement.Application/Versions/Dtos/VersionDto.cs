@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Versions.Dtos;
 /// </summary>
 /// <remarks>
 /// <see cref="Number"/> is free text and is never parsed. Callers presenting a list order by
-/// <see cref="ReleasedDate"/> then <see cref="Sequence"/>, never by the version string.
+/// <see cref="ReleasedAt"/> then <see cref="Sequence"/>, never by the version string.
 /// </remarks>
 public sealed record VersionDto : IMapFrom<Version>
 {
@@ -32,8 +32,8 @@ public sealed record VersionDto : IMapFrom<Version>
     public long? Sequence { get; init; }
 
     public LocalDate? TargetDate { get; init; }
-    public LocalDate? CutDate { get; init; }
-    public LocalDate? ReleasedDate { get; init; }
+    public Instant? CutAt { get; init; }
+    public Instant? ReleasedAt { get; init; }
 
     /// <summary>The version's current status.</summary>
     public StatusNavigationDto Status { get; init; } = default!;

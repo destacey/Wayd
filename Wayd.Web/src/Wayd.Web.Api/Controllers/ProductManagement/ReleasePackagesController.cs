@@ -1,4 +1,7 @@
 using CsvHelper;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
+using Wayd.Web.Api.Models.ProductManagement;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Microsoft.FeatureManagement.Mvc;
@@ -28,10 +31,12 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
-public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
+public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvService, ISettings<SchedulingSettings> schedulingSettings, ILogger<ReleasePackagesController> logger) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ILogger<ReleasePackagesController> _logger = logger;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
@@ -251,8 +256,11 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     public async Task<ActionResult> MarkReleased(
         Guid id, [FromBody] MarkReleasePackageReleasedRequest request, CancellationToken cancellationToken)
     {
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Mark package released", cancellationToken);
+
         var result = await _dispatcher.Send(
-            new MarkReleasePackageReleasedCommand(id, request.ReleasedDate), cancellationToken);
+            new MarkReleasePackageReleasedCommand(id, request.ResolveReleasedAt(zone)), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -262,15 +270,18 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Correct a package's recorded target and released dates.",
-        "Fixes dates entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released date can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.")]
+        "Correct a package's recorded target date and released moment.",
+        "Fixes values entered wrongly without changing the package's status or its status history. Both are sent, so an omitted target date is cleared. The released moment can be changed on a released package but not cleared, and cannot be added to one that has not been released — mark it released instead.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
         Guid id, [FromBody] CorrectReleasePackageDatesRequest request, CancellationToken cancellationToken)
     {
+        var zone = await LegacyDeliveryDates.ZoneForRequest(
+            request.UsesLegacyDates(), _schedulingSettings, _logger, "Correct package dates", cancellationToken);
+
         var result = await _dispatcher.Send(
-            new CorrectReleasePackageDatesCommand(id, request.TargetDate, request.ReleasedDate),
+            new CorrectReleasePackageDatesCommand(id, request.TargetDate, request.ResolveReleasedAt(zone)),
             cancellationToken);
 
         return result.IsSuccess

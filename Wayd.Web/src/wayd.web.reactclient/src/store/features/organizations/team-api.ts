@@ -16,7 +16,10 @@ import {
   UpdateTeamOperatingModelRequest,
   TeamOperatingModelDetailsDto,
   PagedResponseOfActivityLogDto,
-  SchedulingSettingsDto,
+  OperatingModelDefaultsDto,
+  SetTeamOfTeamsOperatingModelRequest,
+  UpdateTeamOfTeamsOperatingModelRequest,
+  TeamOfTeamsOperatingModelDetailsDto,
 } from './../../../services/wayd-api'
 import {
   CreateTeamFormValues,
@@ -632,18 +635,28 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     // TEAM OPERATING MODELS
-    getTeamOperatingModelDefaults: builder.query<SchedulingSettingsDto, void>({
-      queryFn: async () => {
+    getOperatingModelDefaults: builder.query<
+      OperatingModelDefaultsDto,
+      { teamId: string; teamType: TeamTypeName; startDate: string }
+    >({
+      queryFn: async ({ teamId, teamType, startDate }) => {
         try {
-          const data = await getTeamsClient().getOperatingModelDefaults()
+          const client =
+            teamType === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
+          const data = await client.getOperatingModelDefaults(teamId, startDate)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
         }
       },
-      // The scheduling settings' tag, so saving them refreshes the defaults.
-      providesTags: [{ type: QueryTags.SystemSettings, id: 'scheduling' }],
+      // The zone comes from the parent's operating model through the team's
+      // membership, and the grace period from the scheduling settings.
+      providesTags: (result, error, { teamId }) => [
+        { type: QueryTags.SystemSettings, id: 'scheduling' },
+        { type: QueryTags.TeamMembership, id: teamId },
+        { type: QueryTags.TeamOperatingModel, id: 'defaults' },
+      ],
     }),
 
     getTeamOperatingModel: builder.query<
@@ -807,6 +820,124 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamOperatingModel, id: teamId },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
         { type: QueryTags.TeamOperatingModel, id: `${teamId}-scrum` },
+        { type: QueryTags.ActivityLog, id: teamId },
+      ],
+    }),
+
+    // TEAM OF TEAMS OPERATING MODELS
+    getTeamOfTeamsOperatingModels: builder.query<
+      TeamOfTeamsOperatingModelDetailsDto[],
+      string
+    >({
+      queryFn: async (teamId) => {
+        try {
+          const data = await getTeamsOfTeamsClient().getOperatingModels(teamId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, teamId) => [
+        { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
+      ],
+    }),
+
+    getTeamOfTeamsOperatingModel: builder.query<
+      TeamOfTeamsOperatingModelDetailsDto,
+      { teamId: string; operatingModelId: string }
+    >({
+      queryFn: async ({ teamId, operatingModelId }) => {
+        try {
+          const data = await getTeamsOfTeamsClient().getOperatingModel(
+            teamId,
+            operatingModelId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { teamId, operatingModelId }) => [
+        { type: QueryTags.TeamOperatingModel, id: teamId },
+        { type: QueryTags.TeamOperatingModel, id: operatingModelId },
+      ],
+    }),
+
+    setTeamOfTeamsOperatingModel: builder.mutation<
+      string,
+      { teamId: string; request: SetTeamOfTeamsOperatingModelRequest }
+    >({
+      queryFn: async ({ teamId, request }) => {
+        try {
+          const data = await getTeamsOfTeamsClient().setOperatingModel(
+            teamId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { teamId }) => [
+        { type: QueryTags.TeamOperatingModel, id: teamId },
+        { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
+        { type: QueryTags.TeamOperatingModel, id: 'defaults' },
+        { type: QueryTags.ActivityLog, id: teamId },
+      ],
+    }),
+
+    updateTeamOfTeamsOperatingModel: builder.mutation<
+      void,
+      {
+        teamId: string
+        operatingModelId: string
+        request: UpdateTeamOfTeamsOperatingModelRequest
+      }
+    >({
+      queryFn: async ({ teamId, operatingModelId, request }) => {
+        try {
+          const data = await getTeamsOfTeamsClient().updateOperatingModel(
+            teamId,
+            operatingModelId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { teamId }) => [
+        { type: QueryTags.TeamOperatingModel, id: teamId },
+        { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
+        { type: QueryTags.TeamOperatingModel, id: 'defaults' },
+        { type: QueryTags.ActivityLog, id: teamId },
+      ],
+    }),
+
+    deleteTeamOfTeamsOperatingModel: builder.mutation<
+      void,
+      { teamId: string; operatingModelId: string }
+    >({
+      queryFn: async ({ teamId, operatingModelId }) => {
+        try {
+          const data = await getTeamsOfTeamsClient().deleteOperatingModel(
+            teamId,
+            operatingModelId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { teamId }) => [
+        { type: QueryTags.TeamOperatingModel, id: teamId },
+        { type: QueryTags.TeamOperatingModel, id: `${teamId}-history` },
+        { type: QueryTags.TeamOperatingModel, id: 'defaults' },
         { type: QueryTags.ActivityLog, id: teamId },
       ],
     }),
@@ -1008,7 +1139,7 @@ export const {
   useGetTeamRisksQuery,
   useGetTeamOfTeamsRisksQuery,
   // Operating Models
-  useGetTeamOperatingModelDefaultsQuery,
+  useGetOperatingModelDefaultsQuery,
   useGetTeamOperatingModelQuery,
   useGetTeamOperatingModelAsOfQuery,
   useGetTeamOperatingModelsQuery,
@@ -1017,6 +1148,11 @@ export const {
   useUpdateTeamOperatingModelMutation,
   useDeleteTeamOperatingModelMutation,
   useGetTeamOperatingModelsForTeamsQuery,
+  useGetTeamOfTeamsOperatingModelsQuery,
+  useGetTeamOfTeamsOperatingModelQuery,
+  useSetTeamOfTeamsOperatingModelMutation,
+  useUpdateTeamOfTeamsOperatingModelMutation,
+  useDeleteTeamOfTeamsOperatingModelMutation,
   useGetTeamOfTeamsDetailsQuery,
   useCreateTeamMutation,
   useUpdateTeamMutation,

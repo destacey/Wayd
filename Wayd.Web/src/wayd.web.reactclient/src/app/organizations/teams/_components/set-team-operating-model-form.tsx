@@ -1,7 +1,7 @@
 'use client'
 
 import { DatePicker, Form, InputNumber, Modal, Radio } from 'antd'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Methodology,
   SetTeamOperatingModelRequest,
@@ -9,7 +9,7 @@ import {
 } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import {
-  useGetTeamOperatingModelDefaultsQuery,
+  useGetOperatingModelDefaultsQuery,
   useSetTeamOperatingModelMutation,
 } from '@/src/store/features/organizations/team-api'
 import {
@@ -66,7 +66,6 @@ const SetTeamOperatingModelForm = ({
 }: SetTeamOperatingModelFormProps) => {
   const messageApi = useMessage()
 
-  const { data: defaults } = useGetTeamOperatingModelDefaultsQuery()
   const [setOperatingModel] = useSetTeamOperatingModelMutation()
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
@@ -99,19 +98,34 @@ const SetTeamOperatingModelForm = ({
       permission: 'Permissions.Teams.Update',
     })
 
-  // Pre-fill only what the user has not already chosen.
+  // The suggested zone is the parent's on the start date, so it follows the date.
+  const startDate = Form.useWatch('startDate', form)
+  const { data: defaults } = useGetOperatingModelDefaultsQuery(
+    {
+      teamId,
+      teamType: 'Team',
+      startDate: startDate?.format('YYYY-MM-DD') ?? '',
+    },
+    { skip: !startDate },
+  )
+
+  // Pre-fill only what the user has not chosen themselves. The form's touched
+  // flag cannot tell: setting a value programmatically marks it touched too,
+  // which would stop the suggestion following later start dates.
+  const [userChosen, setUserChosen] = useState<
+    Partial<Record<keyof SetTeamOperatingModelFormValues, boolean>>
+  >({})
   useEffect(() => {
     if (!defaults) return
-    if (!form.isFieldTouched('timeZone')) {
-      form.setFieldValue('timeZone', defaults.defaultTimeZone)
+    if (!userChosen.timeZone) {
+      form.setFieldsValue({ timeZone: defaults.timeZone })
     }
-    if (!form.isFieldTouched('commitmentGraceDays')) {
-      form.setFieldValue(
-        'commitmentGraceDays',
-        defaults.defaultCommitmentGraceDays,
-      )
+    if (!userChosen.commitmentGraceDays) {
+      form.setFieldsValue({
+        commitmentGraceDays: defaults.commitmentGraceDays,
+      })
     }
-  }, [defaults, form])
+  }, [defaults, form, userChosen])
 
   return (
     <Modal
@@ -130,6 +144,12 @@ const SetTeamOperatingModelForm = ({
         size="small"
         layout="vertical"
         name="set-team-operating-model-form"
+        onValuesChange={(changed) =>
+          setUserChosen((chosen) => ({
+            ...chosen,
+            ...Object.fromEntries(Object.keys(changed).map((k) => [k, true])),
+          }))
+        }
       >
         <FormItem
           name="startDate"
@@ -163,7 +183,16 @@ const SetTeamOperatingModelForm = ({
         <FormItem
           name="timeZone"
           label="Time Zone"
-          extra="The zone the team's sprint days are counted in. Sprints planned before this model's start keep the previous model's zone."
+          extra={
+            <>
+              The zone the team&apos;s sprint days are counted in. Sprints
+              planned before this model&apos;s start keep the previous
+              model&apos;s zone.
+              {defaults?.timeZoneSource && (
+                <> Suggested from {defaults.timeZoneSource}.</>
+              )}
+            </>
+          }
           rules={[{ required: true, message: 'Time zone is required' }]}
         >
           <TimeZoneSelect aria-label="Time Zone" />

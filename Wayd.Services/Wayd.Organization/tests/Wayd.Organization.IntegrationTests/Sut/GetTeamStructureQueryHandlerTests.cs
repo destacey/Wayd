@@ -38,7 +38,7 @@ public sealed class GetTeamStructureQueryHandlerTests(SqlServerDbContextFixture 
             var now = SqlServerDbContextFixture.FixedNow;
             var actor = EventActor.System;
 
-            var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, actor, now);
+            var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, "UTC", actor, now);
             var team = Team.Create("Cards", new TeamCode("TEAM"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, actor, now);
             var former = Team.Create("Wallets", new TeamCode("FORMER"), null, ActiveDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, actor, now);
 

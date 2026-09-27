@@ -16,6 +16,7 @@ namespace Wayd.Organization.Domain.Models;
 public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeactivatableArgs>
 {
     private readonly List<TeamMembership> _childMemberships = [];
+    private readonly List<TeamOfTeamsOperatingModel> _operatingModels = [];
 
     private TeamOfTeams() { }
 
@@ -29,6 +30,9 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
     }
 
     public IReadOnlyCollection<TeamMembership> ChildMemberships => _childMemberships.AsReadOnly();
+
+    /// <summary>Gets the operating models for this team of teams.</summary>
+    public IReadOnlyCollection<TeamOfTeamsOperatingModel> OperatingModels => _operatingModels.AsReadOnly();
 
     /// <summary>
     /// The process for activating a team of teams.
@@ -127,6 +131,89 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
         }
     }
 
+    /// <summary>
+    /// Sets a new operating model for the team of teams. If a current model exists, it will be closed
+    /// with an end date of one day before the new model's start date.
+    /// </summary>
+    /// <param name="startDate">The start date for the new operating model.</param>
+    /// <param name="timeZone">The IANA id of the team of teams' time zone.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp.</param>
+    /// <returns>A result containing the new operating model or an error.</returns>
+    public Result<TeamOfTeamsOperatingModel> SetOperatingModel(LocalDate startDate, string timeZone, EventActor actor, Instant timestamp)
+    {
+        var currentModel = _operatingModels.SingleOrDefault(m => m.IsCurrent);
+
+        var result = TeamOfTeamsOperatingModel.Create(startDate, timeZone, currentModel);
+        if (result.IsFailure)
+            return result;
+
+        var model = result.Value;
+        _operatingModels.Add(model);
+
+        var period = ToFlexibleDateRange(model.DateRange);
+        var settings = SettingsOf(model);
+        var supersededPeriod = currentModel is null ? null : ToFlexibleDateRange(currentModel.DateRange);
+        AddKeyedDomainEvent(() => new TeamOfTeamsOperatingModelSetEvent(Id, Key, period, settings, supersededPeriod, actor, timestamp));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Corrects one of the team of teams' operating models for its whole period.
+    /// </summary>
+    /// <param name="operatingModelId">The operating model identifier to correct.</param>
+    /// <param name="timeZone">The IANA id of the team of teams' time zone.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp.</param>
+    /// <returns>A result indicating success or failure.</returns>
+    public Result CorrectOperatingModel(Guid operatingModelId, string timeZone, EventActor actor, Instant timestamp)
+    {
+        var operatingModel = _operatingModels.SingleOrDefault(m => m.Id == operatingModelId);
+        if (operatingModel is null)
+            return Result.Failure($"Operating model with Id {operatingModelId} not found for this team of teams.");
+
+        var before = SettingsOf(operatingModel);
+
+        var result = operatingModel.Update(timeZone);
+        if (result.IsFailure)
+            return result;
+
+        var after = SettingsOf(operatingModel);
+        if (after == before)
+            return result;
+
+        var period = ToFlexibleDateRange(operatingModel.DateRange);
+        AddKeyedDomainEvent(() => new TeamOfTeamsOperatingModelCorrectedEvent(Id, Key, period, after, before, actor, timestamp));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Removes the current operating model from the team of teams, making the one before it current again.
+    /// A team of teams must always have at least one operating model.
+    /// </summary>
+    /// <param name="operatingModelId">The operating model identifier to remove.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp.</param>
+    /// <returns>A result indicating success or failure.</returns>
+    public Result RemoveOperatingModel(Guid operatingModelId, EventActor actor, Instant timestamp)
+    {
+        var result = OperatingModel.RemoveCurrent(_operatingModels, operatingModelId);
+        if (result.IsFailure)
+            return result;
+
+        var (removed, reinstated) = result.Value;
+        var period = ToFlexibleDateRange(removed.DateRange);
+        var settings = SettingsOf(removed);
+        var reinstatedPeriod = ToFlexibleDateRange(reinstated.DateRange);
+        AddKeyedDomainEvent(() => new TeamOfTeamsOperatingModelRemovedEvent(Id, Key, period, settings, reinstatedPeriod, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    private static TeamOfTeamsOperatingModelSettings SettingsOf(TeamOfTeamsOperatingModel model) => new(model.TimeZone);
+
     /// <summary>Gets the descendant team ids as of.</summary>
     /// <param name="date">The date.</param>
     /// <param name="includeFuture">if set to <c>true</c> [include future].</param>
@@ -171,10 +258,11 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
     /// <param name="code">The code.</param>
     /// <param name="description">The description.</param>
     /// <param name="activeDate">The active date.</param>
+    /// <param name="timeZone">The IANA id of the initial operating model's time zone.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns></returns>
-    public static TeamOfTeams Create(string name, TeamCode code, string? description, LocalDate activeDate, EventActor actor, Instant timestamp)
+    public static TeamOfTeams Create(string name, TeamCode code, string? description, LocalDate activeDate, string timeZone, EventActor actor, Instant timestamp)
     {
         var team = new TeamOfTeams(name, code, description, activeDate);
 
@@ -203,6 +291,10 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
                 actor,
                 timestamp))
         );
+
+        var operatingModel = team.SetOperatingModel(activeDate, timeZone, actor, timestamp);
+        if (operatingModel.IsFailure)
+            throw new ArgumentException(operatingModel.Error);
 
         return team;
     }

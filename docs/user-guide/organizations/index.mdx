@@ -87,7 +87,7 @@ A Team of Teams shares the same core properties as a Team (name, code, dates) bu
 - It can also be a member of a parent Team of Teams
 - It provides rollup visibility across its descendant teams
 
-**Team of Teams** have a simplified detail page focused on hierarchy and risk management. They do not have backlogs or sprints — those belong to the leaf-level delivery teams — but their [Allocation](#allocation-report) report rolls up the completed work of every team beneath them.
+**Team of Teams** have a simplified detail page focused on hierarchy and risk management. They do not have backlogs or sprints — those belong to the leaf-level delivery teams — but their [Allocation](#allocation-report) report rolls up the completed work of every team beneath them. They have their own [operating model](#team-of-teams-operating-model), holding the time zone for their own rollups.
 
 ### Operating Model
 
@@ -104,7 +104,15 @@ Each team has an **Operating Model** that defines how it works. The operating mo
 
 Operating models have an effective date range, creating a history. When a team changes how it works (e.g., moving from Kanban to Scrum, or relocating to another time zone), a new operating model is added and the previous one is automatically closed the day before the new one starts.
 
-A sprint uses the time zone and grace period of the operating model in effect on its planned start date, for the whole sprint. So a team that moves keeps its old zone for sprints planned before the move, while editing a model corrects every sprint in that model's period. New models are pre-filled from the [scheduling settings](../settings/index.mdx), which never change an existing team.
+A sprint uses the time zone and grace period of the operating model in effect on its planned start date, for the whole sprint. So a team that moves keeps its old zone for sprints planned before the move, while editing a model corrects every sprint in that model's period.
+
+A new model's time zone is pre-filled from the team's parent Team of Teams — the zone that team of teams had on the new model's start date — or from the [scheduling settings](../settings/index.mdx) when the team had no parent then. The grace period is pre-filled from the scheduling settings. These are suggestions only: changing the parent's zone or the scheduling settings never changes an existing team.
+
+#### Team of Teams Operating Model
+
+A Team of Teams has its own operating model with a single setting, its **Time Zone**, which its own rollups (such as day-by-day charts across its teams) count days in. Methodology and sizing stay with the child teams, which can mix Scrum and Kanban. The zone is not inherited by the child teams, which keep their own even when they are spread across several zones; it only pre-fills their new operating models.
+
+It follows the same rules as a team's operating model: setting a new model from a date closes the previous one the day before, correcting a model changes its whole period, and there is always at least one.
 
 The operating model affects what the team sees in the UI:
 - **Scrum teams** see a **Sprints** section and an **Active Sprint** indicator on their detail page
@@ -238,7 +246,7 @@ Memberships can be edited or deleted from this section (with appropriate permiss
 
 ### Activity
 
-The **Activity** section shows the team's recorded history: what changed, who changed it, and when. Teams of Teams carry the same section. Besides the team's details and activation, it records members joining, leaving or changing roles, the team joining, leaving or re-dating its membership in a team of teams, and operating models being set, corrected or removed. A team of teams also lists the membership changes of the teams under it. Member, membership and operating model changes are recorded from the release that began tracking them, so changes made before it do not appear. See [Activity Log](../activity-log.mdx).
+The **Activity** section shows the team's recorded history: what changed, who changed it, and when. Teams of Teams carry the same section. Besides the team's details and activation, it records members joining, leaving or changing roles, the team joining, leaving or re-dating its membership in a team of teams, and operating models being set, corrected or removed. A team of teams also lists the membership changes of the teams under it. Member, membership and operating model changes are recorded from the release that began tracking them, so changes made before it do not appear. A Team of Teams that existed before it had an operating model starts its operating model history with a system entry recording the UTC model it was given then. See [Activity Log](../activity-log.mdx).
 
 ### Operating Model History (Report)
 
@@ -250,6 +258,8 @@ Listed under **Reports** at the bottom of the section rail, this shows the full 
 - Status (Current or Historical)
 
 Only the current operating model can be edited or deleted (and deletion is only possible if there are multiple models — a team must always have at least one).
+
+A Team of Teams has the same report, showing the Start and End dates, Time Zone and Status of each of its models. Its current model is edited or deleted from the row menu.
 
 ### Cycle Time Report (Report)
 
@@ -310,6 +320,7 @@ Wayd renders a **Functional Organization Chart** that visualizes the complete te
 2. Click **Create Team of Teams**
 3. Enter a **Name**, **Code**, and **Active Date**
 4. Optionally add a **Description**
+5. The team of teams is created with an operating model in the scheduling settings' time zone
 
 ### Managing Team Hierarchy
 
@@ -324,14 +335,22 @@ To add a team to a Team of Teams:
 
 1. Navigate to the team's detail page
 2. From the page actions menu, choose **Operating Model > Set Operating Model**
-3. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone** and **Commitment Grace Period** (pre-filled from the scheduling settings)
-4. Set the **Start Date** — the previous model will automatically close the day before
+3. Set the **Start Date** — the previous model will automatically close the day before
+4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone** and **Commitment Grace Period**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
 
 To correct the current model without creating a new one:
 1. From the page actions menu, choose **Operating Model > Update Operating Model**
 2. Change the **Methodology**, **Sizing Method**, **Time Zone** or **Commitment Grace Period**
 
 A correction applies to the model's whole period, including past sprints. If the team actually moved to another time zone, set a new operating model from the move date instead.
+
+### Changing a Team of Teams' Operating Model
+
+1. Navigate to the team of teams' detail page
+2. From the page actions menu, choose **Operating Model > Set Operating Model**
+3. Set the **Start Date** and check the **Time Zone** (suggested from its own parent's zone on that date, or from the scheduling settings)
+
+To correct the current model instead, open **Operating Model History** from the Reports and choose **Edit** from its row menu.
 
 ### Deactivating a Team
 

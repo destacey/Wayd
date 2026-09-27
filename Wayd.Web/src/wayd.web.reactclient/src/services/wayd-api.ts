@@ -36119,10 +36119,18 @@ export class TeamsClient {
     }
 
     /**
-     * Get the system defaults a new operating model is pre-filled with.
+     * Get the values a new operating model for a team is pre-filled with.
+     * @param startDate (optional) 
      */
-    getOperatingModelDefaults( cancelToken?: CancelToken): Promise<SchedulingSettingsDto> {
-        let url_ = this.baseUrl + "/api/organization/teams/operating-models/defaults";
+    getOperatingModelDefaults(id: string, startDate?: string | undefined, cancelToken?: CancelToken): Promise<OperatingModelDefaultsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{id}/operating-models/defaults?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (startDate === null)
+            throw new globalThis.Error("The parameter 'startDate' cannot be null.");
+        else if (startDate !== undefined)
+            url_ += "startDate=" + encodeURIComponent("" + startDate) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -36145,7 +36153,7 @@ export class TeamsClient {
         });
     }
 
-    protected processGetOperatingModelDefaults(response: AxiosResponse): Promise<SchedulingSettingsDto> {
+    protected processGetOperatingModelDefaults(response: AxiosResponse): Promise<OperatingModelDefaultsDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -36160,13 +36168,27 @@ export class TeamsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<SchedulingSettingsDto>(result200);
+            return Promise.resolve<OperatingModelDefaultsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SchedulingSettingsDto>(null as any);
+        return Promise.resolve<OperatingModelDefaultsDto>(null as any);
     }
 
     /**
@@ -37378,6 +37400,414 @@ export class TeamsOfTeamsClient {
     }
 
     protected processRemoveTeamMembership(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the operating model history for a team of teams.
+     */
+    getOperatingModels(id: string, cancelToken?: CancelToken): Promise<TeamOfTeamsOperatingModelDetailsDto[]> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/operating-models";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetOperatingModels(_response);
+        });
+    }
+
+    protected processGetOperatingModels(response: AxiosResponse): Promise<TeamOfTeamsOperatingModelDetailsDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamOfTeamsOperatingModelDetailsDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamOfTeamsOperatingModelDetailsDto[]>(null as any);
+    }
+
+    /**
+     * Set a new operating model for a team of teams.
+     */
+    setOperatingModel(id: string, request: SetTeamOfTeamsOperatingModelRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/operating-models";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetOperatingModel(_response);
+        });
+    }
+
+    protected processSetOperatingModel(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Get the values a new operating model for a team of teams is pre-filled with.
+     * @param startDate (optional) 
+     */
+    getOperatingModelDefaults(id: string, startDate?: string | undefined, cancelToken?: CancelToken): Promise<OperatingModelDefaultsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/operating-models/defaults?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (startDate === null)
+            throw new globalThis.Error("The parameter 'startDate' cannot be null.");
+        else if (startDate !== undefined)
+            url_ += "startDate=" + encodeURIComponent("" + startDate) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetOperatingModelDefaults(_response);
+        });
+    }
+
+    protected processGetOperatingModelDefaults(response: AxiosResponse): Promise<OperatingModelDefaultsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<OperatingModelDefaultsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<OperatingModelDefaultsDto>(null as any);
+    }
+
+    /**
+     * Get a specific operating model for a team of teams.
+     */
+    getOperatingModel(id: string, operatingModelId: string, cancelToken?: CancelToken): Promise<TeamOfTeamsOperatingModelDetailsDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/operating-models/{operatingModelId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (operatingModelId === undefined || operatingModelId === null)
+            throw new globalThis.Error("The parameter 'operatingModelId' must be defined.");
+        url_ = url_.replace("{operatingModelId}", encodeURIComponent("" + operatingModelId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetOperatingModel(_response);
+        });
+    }
+
+    protected processGetOperatingModel(response: AxiosResponse): Promise<TeamOfTeamsOperatingModelDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamOfTeamsOperatingModelDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamOfTeamsOperatingModelDetailsDto>(null as any);
+    }
+
+    /**
+     * Correct an existing operating model for a team of teams.
+     */
+    updateOperatingModel(id: string, operatingModelId: string, request: UpdateTeamOfTeamsOperatingModelRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/operating-models/{operatingModelId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (operatingModelId === undefined || operatingModelId === null)
+            throw new globalThis.Error("The parameter 'operatingModelId' must be defined.");
+        url_ = url_.replace("{operatingModelId}", encodeURIComponent("" + operatingModelId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateOperatingModel(_response);
+        });
+    }
+
+    protected processUpdateOperatingModel(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete the current operating model from a team of teams.
+     */
+    deleteOperatingModel(id: string, operatingModelId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/operating-models/{operatingModelId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (operatingModelId === undefined || operatingModelId === null)
+            throw new globalThis.Error("The parameter 'operatingModelId' must be defined.");
+        url_ = url_.replace("{operatingModelId}", encodeURIComponent("" + operatingModelId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteOperatingModel(_response);
+        });
+    }
+
+    protected processDeleteOperatingModel(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -49345,9 +49775,10 @@ export interface TeamOperatingModelDetailsDto {
     isCurrent: boolean;
 }
 
-export interface SchedulingSettingsDto {
-    defaultTimeZone: string;
-    defaultCommitmentGraceDays: number;
+export interface OperatingModelDefaultsDto {
+    timeZone: string;
+    timeZoneSource?: string | undefined;
+    commitmentGraceDays: number;
 }
 
 export interface SetTeamOperatingModelRequest {
@@ -49448,6 +49879,27 @@ export interface UpdateTeamOfTeamsRequest {
 export interface DeactivateTeamOfTeamsRequest {
     id: string;
     inactiveDate: Date;
+}
+
+export interface TeamOfTeamsOperatingModelDetailsDto {
+    id: string;
+    teamId: string;
+    start: Date;
+    end?: Date | undefined;
+    timeZone: string;
+    isCurrent: boolean;
+}
+
+export interface SetTeamOfTeamsOperatingModelRequest {
+    /** The start date for this operating model. */
+    startDate: Date;
+    /** The IANA id of the time zone the team of teams' own rollups count days in. */
+    timeZone: string;
+}
+
+export interface UpdateTeamOfTeamsOperatingModelRequest {
+    /** The IANA id of the time zone the team of teams' own rollups count days in. */
+    timeZone: string;
 }
 
 export interface LinkDto {
@@ -50498,6 +50950,11 @@ export interface ReclassifyWorkflowStatusRequest {
 export interface ReorderWorkflowStatusesRequest {
     /** Every status of the workflow, in the order wanted. A partial list is refused. */
     orderedStatusIds: string[];
+}
+
+export interface SchedulingSettingsDto {
+    defaultTimeZone: string;
+    defaultCommitmentGraceDays: number;
 }
 
 export interface UpdateSchedulingSettingsRequest {

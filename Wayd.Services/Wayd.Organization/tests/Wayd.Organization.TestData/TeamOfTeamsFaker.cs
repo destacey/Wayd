@@ -80,6 +80,18 @@ public static class TeamOfTeamsFakerExtensions
         return faker;
     }
 
+    public static TeamOfTeamsFaker WithOperatingModel(this TeamOfTeamsFaker faker, TeamOfTeamsOperatingModelFaker operatingModelFaker, LocalDate? activeDate = null)
+    {
+        var actualActiveDate = activeDate ?? new LocalDate(2025, 5, 20);
+
+        var operatingModel = operatingModelFaker.WithDateRange(actualActiveDate, null).Generate();
+
+        faker.RuleFor(x => x.ActiveDate, actualActiveDate);
+        faker.RuleFor("_operatingModels", f => new List<TeamOfTeamsOperatingModel> { operatingModel });
+
+        return faker;
+    }
+
     public static TeamOfTeamsFaker AsInactive(this TeamOfTeamsFaker faker, LocalDate? inactiveDate = null)
     {
         var actualInactiveDate = inactiveDate ?? new LocalDate(2025, 5, 20);

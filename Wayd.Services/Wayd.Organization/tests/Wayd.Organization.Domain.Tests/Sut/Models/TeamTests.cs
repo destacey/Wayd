@@ -1196,7 +1196,7 @@ public class TeamTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Cannot remove the last operating model. A team must always have at least one operating model.");
+        result.Error.Should().Be("Cannot remove the last operating model. At least one operating model must remain.");
         team.OperatingModels.Should().HaveCount(1);
     }
 
@@ -1216,7 +1216,7 @@ public class TeamTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be($"Operating model with Id {nonExistentId} not found for this team.");
+        result.Error.Should().Be($"Operating model with Id {nonExistentId} not found.");
     }
 
     [Fact]

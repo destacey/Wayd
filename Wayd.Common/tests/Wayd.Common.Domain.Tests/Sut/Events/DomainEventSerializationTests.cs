@@ -800,6 +800,72 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void TeamOfTeamsOperatingModelSetEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new TeamOfTeamsOperatingModelSetEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            period: new FlexibleDateRange(new LocalDate(2026, 1, 1)),
+            settings: new TeamOfTeamsOperatingModelSettings("America/Chicago"),
+            supersededPeriod: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Period.Should().Be(original.Period);
+        roundTripped.Settings.Should().Be(original.Settings);
+        roundTripped.SupersededPeriod.Should().Be(original.SupersededPeriod);
+    }
+
+    [Fact]
+    public void TeamOfTeamsOperatingModelCorrectedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new TeamOfTeamsOperatingModelCorrectedEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            period: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
+            settings: new TeamOfTeamsOperatingModelSettings("Europe/London"),
+            previous: new TeamOfTeamsOperatingModelSettings("UTC"),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Period.Should().Be(original.Period);
+        roundTripped.Settings.Should().Be(original.Settings);
+        roundTripped.Previous.Should().Be(original.Previous);
+    }
+
+    [Fact]
+    public void TeamOfTeamsOperatingModelRemovedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new TeamOfTeamsOperatingModelRemovedEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            period: new FlexibleDateRange(new LocalDate(2026, 1, 1)),
+            settings: new TeamOfTeamsOperatingModelSettings("Asia/Tokyo"),
+            reinstatedPeriod: new FlexibleDateRange(new LocalDate(2025, 1, 1)),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Period.Should().Be(original.Period);
+        roundTripped.Settings.Should().Be(original.Settings);
+        roundTripped.ReinstatedPeriod.Should().Be(original.ReinstatedPeriod);
+    }
+
+    [Fact]
     public void TeamDeactivatedEvent_PayloadWrittenBefore1_1_ReadsKeyAndCodeAsNotRecorded()
     {
         // Arrange - a 1.0 payload, written before Key and Code were added

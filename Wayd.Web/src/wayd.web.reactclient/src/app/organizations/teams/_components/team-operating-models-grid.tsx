@@ -13,10 +13,12 @@ import {
   SizingMethod,
   TeamOperatingModelDetailsDto,
 } from '@/src/services/wayd-api'
-import { useMessage } from '@/src/components/contexts/messaging'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
+import DeleteOperatingModelForm, {
+  findReinstatedModel,
+} from '@/src/app/organizations/_components/delete-operating-model-form'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 interface TeamOperatingModelsGridProps {
   teamId: string
@@ -85,9 +87,10 @@ const TeamOperatingModelsGrid = ({
   teamId,
   canUpdate,
 }: TeamOperatingModelsGridProps) => {
-  const messageApi = useMessage()
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [showUpdateForm, setShowUpdateForm] = useState(false)
+  const [modelToDelete, setModelToDelete] =
+    useState<TeamOperatingModelDetailsDto | null>(null)
 
   const {
     data: operatingModelsData,
@@ -115,20 +118,8 @@ const TeamOperatingModelsGrid = ({
       setShowUpdateForm(true)
     }
 
-    const handleDelete = async (model: TeamOperatingModelDetailsDto) => {
-      try {
-        await deleteOperatingModel({
-          teamId,
-          operatingModelId: model.id,
-        }).unwrap()
-        messageApi.success('Successfully deleted operating model.')
-      } catch (error: any) {
-        messageApi.error(
-          error.detail ??
-            'An unexpected error occurred while deleting the operating model.',
-        )
-        console.error(error)
-      }
+    const handleDelete = (model: TeamOperatingModelDetailsDto) => {
+      setModelToDelete(model)
     }
 
     return [
@@ -190,7 +181,7 @@ const TeamOperatingModelsGrid = ({
         cell: ({ row }) => <StatusCellRenderer data={row.original} />,
       },
     ]
-  }, [canUpdate, totalModelsCount, teamId, deleteOperatingModel, messageApi])
+  }, [canUpdate, totalModelsCount])
 
   return (
     <>
@@ -209,6 +200,21 @@ const TeamOperatingModelsGrid = ({
           operatingModelId={selectedModelId}
           onFormComplete={() => handleUpdateFormClose()}
           onFormCancel={() => handleUpdateFormClose()}
+        />
+      )}
+
+      {modelToDelete && (
+        <DeleteOperatingModelForm
+          operatingModel={modelToDelete}
+          reinstatedModel={findReinstatedModel(operatingModelsData)}
+          deleteOperatingModel={() =>
+            deleteOperatingModel({
+              teamId,
+              operatingModelId: modelToDelete.id,
+            }).unwrap()
+          }
+          onFormComplete={() => setModelToDelete(null)}
+          onFormCancel={() => setModelToDelete(null)}
         />
       )}
     </>

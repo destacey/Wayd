@@ -221,6 +221,111 @@ public class TeamsOfTeamsController : ControllerBase
 
     #endregion Team Memberships
 
+    #region Operating Models
+
+    [HttpGet("{id}/operating-models")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [OpenApiOperation("Get the operating model history for a team of teams.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<TeamOfTeamsOperatingModelDetailsDto>>> GetOperatingModels(Guid id, CancellationToken cancellationToken)
+    {
+        var teamExists = await _dispatcher.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
+        if (!teamExists)
+            return NotFound();
+
+        var models = await _dispatcher.Send(new GetTeamOfTeamsOperatingModelsQuery(id), cancellationToken);
+
+        return Ok(models);
+    }
+
+    [HttpGet("{id}/operating-models/defaults")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [OpenApiOperation("Get the values a new operating model for a team of teams is pre-filled with.", "The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OperatingModelDefaultsDto>> GetOperatingModelDefaults(Guid id, [FromQuery] string startDate, CancellationToken cancellationToken)
+    {
+        if (!IsoDateQuery.TryParse(startDate, out var parsedStartDate) || parsedStartDate is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
+
+        var teamExists = await _dispatcher.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
+        if (!teamExists)
+            return NotFound();
+
+        var defaults = await _dispatcher.Send(new TeamsMemberQueries.GetOperatingModelDefaultsQuery(id, parsedStartDate.Value), cancellationToken);
+
+        return defaults is not null
+            ? Ok(defaults)
+            : NotFound();
+    }
+
+    [HttpGet("{id}/operating-models/{operatingModelId}")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
+    [OpenApiOperation("Get a specific operating model for a team of teams.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamOfTeamsOperatingModelDetailsDto>> GetOperatingModel(Guid id, Guid operatingModelId, CancellationToken cancellationToken)
+    {
+        var operatingModel = await _dispatcher.Send(new GetTeamOfTeamsOperatingModelQuery(id, operatingModelId), cancellationToken);
+
+        return operatingModel is not null
+            ? Ok(operatingModel)
+            : NotFound();
+    }
+
+    [HttpPost("{id}/operating-models")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
+    [OpenApiOperation("Set a new operating model for a team of teams.", "")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetOperatingModel(Guid id, [FromBody] SetTeamOfTeamsOperatingModelRequest request, CancellationToken cancellationToken)
+    {
+        var teamExists = await _dispatcher.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
+        if (!teamExists)
+            return NotFound();
+
+        var result = await _dispatcher.Send(request.ToSetTeamOfTeamsOperatingModelCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetOperatingModel), new { id, operatingModelId = result.Value }, result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/operating-models/{operatingModelId}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
+    [OpenApiOperation("Correct an existing operating model for a team of teams.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> UpdateOperatingModel(Guid id, Guid operatingModelId, [FromBody] UpdateTeamOfTeamsOperatingModelRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToUpdateTeamOfTeamsOperatingModelCommand(id, operatingModelId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpDelete("{id}/operating-models/{operatingModelId}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Teams)]
+    [OpenApiOperation("Delete the current operating model from a team of teams.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> DeleteOperatingModel(Guid id, Guid operatingModelId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteTeamOfTeamsOperatingModelCommand(id, operatingModelId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    #endregion Operating Models
+
     #region Risks
 
     [HttpGet("{id}/risks")]

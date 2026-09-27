@@ -33,6 +33,8 @@ Operating models have date ranges creating a history. New model auto-closes prev
 
 Higher-level organizational unit containing child teams and other teams of teams. Provides rollup visibility across descendants. Same properties as Team but with child membership management.
 
+A team of teams has its own effective-dated operating model (`TeamOfTeamsOperatingModel`) carrying only a Time Zone (IANA id), the zone its own rollups count days in; methodology and sizing stay with the child teams, which can mix them. It follows the same move-versus-correction rules as a team's model (both share the `OperatingModel` base) and always has at least one. The zone is never inherited: when a team or team of teams gets a new operating model, its zone is pre-filled from the parent team of teams' zone in effect on the new model's start date (membership is effective-dated too), falling back to the scheduling settings (`GetOperatingModelDefaultsQuery`).
+
 ### Team Memberships
 
 Parent-child relationships with date ranges. States: Past, Active, Future.

@@ -227,3 +227,40 @@ public class TeamOperatingModelConfig : IEntityTypeConfiguration<TeamOperatingMo
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public class TeamOfTeamsOperatingModelConfig : IEntityTypeConfiguration<TeamOfTeamsOperatingModel>
+{
+    public void Configure(EntityTypeBuilder<TeamOfTeamsOperatingModel> builder)
+    {
+        builder.ToTable("TeamOfTeamsOperatingModels", SchemaNames.Organization);
+
+        builder.HasKey(m => m.Id);
+
+        builder.Property<Guid>("TeamId");
+
+        builder.HasIndex("TeamId");
+
+        builder.HasIndex("TeamId")
+            .IncludeProperties(m => new { m.Id, m.TimeZone })
+            .WhereNull("End")
+            .HasDatabaseName("IX_TeamOfTeamsOperatingModels_TeamId_Current");
+
+        builder.Property(m => m.Id).ValueGeneratedNever();
+
+        builder.Property(m => m.TimeZone)
+            .IsRequired()
+            .HasColumnType("varchar")
+            .HasMaxLength(64);
+
+        builder.ComplexProperty(m => m.DateRange, options =>
+        {
+            options.Property(d => d.Start).HasColumnName("Start").IsRequired();
+            options.Property(d => d.End).HasColumnName("End");
+        });
+
+        builder.HasOne<TeamOfTeams>()
+            .WithMany(t => t.OperatingModels)
+            .HasForeignKey("TeamId")
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

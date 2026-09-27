@@ -32047,20 +32047,63 @@
         ]
       }
     },
-    "/api/organization/teams/operating-models/defaults": {
+    "/api/organization/teams/{id}/operating-models/defaults": {
       "get": {
         "tags": [
           "Teams"
         ],
-        "summary": "Get the system defaults a new operating model is pre-filled with.",
+        "summary": "Get the values a new operating model for a team is pre-filled with.",
+        "description": "The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default.",
         "operationId": "Teams_GetOperatingModelDefaults",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SchedulingSettingsDto"
+                  "$ref": "#/components/schemas/OperatingModelDefaultsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -33176,6 +33219,401 @@
           },
           {
             "name": "teamMembershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/operating-models": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Get the operating model history for a team of teams.",
+        "operationId": "TeamsOfTeams_GetOperatingModels",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamOfTeamsOperatingModelDetailsDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Set a new operating model for a team of teams.",
+        "operationId": "TeamsOfTeams_SetOperatingModel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTeamOfTeamsOperatingModelRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/operating-models/defaults": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Get the values a new operating model for a team of teams is pre-filled with.",
+        "description": "The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.",
+        "operationId": "TeamsOfTeams_GetOperatingModelDefaults",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatingModelDefaultsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/operating-models/{operatingModelId}": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Get a specific operating model for a team of teams.",
+        "operationId": "TeamsOfTeams_GetOperatingModel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "operatingModelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamOfTeamsOperatingModelDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Correct an existing operating model for a team of teams.",
+        "operationId": "TeamsOfTeams_UpdateOperatingModel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "operatingModelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamOfTeamsOperatingModelRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Delete the current operating model from a team of teams.",
+        "operationId": "TeamsOfTeams_DeleteOperatingModel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "operatingModelId",
             "in": "path",
             "required": true,
             "schema": {
@@ -59275,18 +59713,23 @@
           }
         }
       },
-      "SchedulingSettingsDto": {
+      "OperatingModelDefaultsDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "defaultTimeZone",
-          "defaultCommitmentGraceDays"
+          "timeZone",
+          "commitmentGraceDays"
         ],
         "properties": {
-          "defaultTimeZone": {
-            "type": "string"
+          "timeZone": {
+            "type": "string",
+            "minLength": 1
           },
-          "defaultCommitmentGraceDays": {
+          "timeZoneSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "commitmentGraceDays": {
             "type": "integer",
             "format": "int32"
           }
@@ -59707,6 +60150,87 @@
           "inactiveDate": {
             "type": "string",
             "format": "date",
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "TeamOfTeamsOperatingModelDetailsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "teamId",
+          "start",
+          "timeZone",
+          "isCurrent"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "teamId": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "isCurrent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SetTeamOfTeamsOperatingModelRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "startDate",
+          "timeZone"
+        ],
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "description": "The start date for this operating model.",
+            "format": "date",
+            "minLength": 1,
+            "nullable": false
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA id of the time zone the team of teams' own rollups count days in.",
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "UpdateTeamOfTeamsOperatingModelRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timeZone"
+        ],
+        "properties": {
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA id of the time zone the team of teams' own rollups count days in.",
             "minLength": 1,
             "nullable": false
           }
@@ -63462,6 +63986,23 @@
               "nullable": false,
               "example": "00000000-0000-0000-0000-000000000000"
             }
+          }
+        }
+      },
+      "SchedulingSettingsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "defaultTimeZone",
+          "defaultCommitmentGraceDays"
+        ],
+        "properties": {
+          "defaultTimeZone": {
+            "type": "string"
+          },
+          "defaultCommitmentGraceDays": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

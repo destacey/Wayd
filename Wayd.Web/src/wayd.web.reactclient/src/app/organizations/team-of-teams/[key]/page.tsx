@@ -42,6 +42,8 @@ import { InactiveTag, PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import { ItemType } from 'antd/es/menu/interface'
 import DeactivateTeamOfTeamsForm from '@/src/app/organizations/_components/deactivate-team-of-teams-form'
+import TeamOfTeamsOperatingModelsGrid from './_components/team-of-teams-operating-models-grid'
+import SetTeamOfTeamsOperatingModelForm from './_components/set-team-of-teams-operating-model-form'
 
 const AllocationReport = dynamic(
   () =>
@@ -57,6 +59,7 @@ enum TeamOfTeamsTabs {
   TeamMemberships = 'team-memberships',
   Members = 'members',
   Activities = 'activities',
+  OperatingModelHistory = 'operating-model-history',
   Allocation = 'allocation',
 }
 
@@ -77,6 +80,8 @@ const TeamOfTeamsDetailsPage = (props: {
     useState<boolean>(false)
   const [openAddMemberForm, setOpenAddMemberForm] = useState<boolean>(false)
   const [openDeactivateTeamForm, setOpenDeactivateTeamForm] =
+    useState<boolean>(false)
+  const [openSetOperatingModelForm, setOpenSetOperatingModelForm] =
     useState<boolean>(false)
   // Expensive sections do not fetch until open — including on arrival via a
   // deep link, since this reads the URL. No visited-latch: RTK Query caches by
@@ -187,6 +192,22 @@ const TeamOfTeamsDetailsPage = (props: {
       })
     }
 
+    if (canUpdateTeam) {
+      items.push({ type: 'divider', key: 'divider-operating-model' })
+      items.push({
+        type: 'group',
+        label: 'Operating Model',
+        children: [
+          {
+            key: 'set-operating-model',
+            label: 'Set Operating Model',
+            title: 'Sets a new operating model for the team of teams',
+            onClick: () => setOpenSetOperatingModelForm(true),
+          },
+        ],
+      })
+    }
+
     return items
   })()
   const renderSectionContent = (activeTab: TeamOfTeamsTabs) => {
@@ -220,6 +241,13 @@ const TeamOfTeamsDetailsPage = (props: {
         )
       case TeamOfTeamsTabs.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
+      case TeamOfTeamsTabs.OperatingModelHistory:
+        return (
+          <TeamOfTeamsOperatingModelsGrid
+            teamId={team!.id}
+            canUpdate={canUpdateTeam}
+          />
+        )
       case TeamOfTeamsTabs.Allocation:
         return (
           <AllocationReport teamType="team-of-teams" teamCode={team!.code} />
@@ -247,6 +275,10 @@ const TeamOfTeamsDetailsPage = (props: {
       label: 'Allocation',
       // The report renders its own title alongside its controls.
       hideHeading: true,
+    },
+    {
+      id: TeamOfTeamsTabs.OperatingModelHistory,
+      label: 'Operating Model History',
     },
   ]
 
@@ -329,6 +361,13 @@ const TeamOfTeamsDetailsPage = (props: {
           team={team!}
           onFormComplete={() => onDeactivateTeamFormClosed(true)}
           onFormCancel={() => onDeactivateTeamFormClosed(false)}
+        />
+      )}
+      {openSetOperatingModelForm && (
+        <SetTeamOfTeamsOperatingModelForm
+          teamId={team.id}
+          onFormComplete={() => setOpenSetOperatingModelForm(false)}
+          onFormCancel={() => setOpenSetOperatingModelForm(false)}
         />
       )}
       {openAddMemberForm && team?.isActive && (

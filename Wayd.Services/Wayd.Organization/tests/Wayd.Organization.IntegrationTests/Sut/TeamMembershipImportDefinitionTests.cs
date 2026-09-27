@@ -68,8 +68,8 @@ public sealed class TeamMembershipImportDefinitionTests
 
         var team = Team.Create("Payments", new TeamCode("TEAM"), null, ActiveDate,
             Methodology.Kanban, SizingMethod.Count, "UTC", 1, actor, now);
-        var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, actor, now);
-        var valueStream = TeamOfTeams.Create("Payments VS", new TeamCode("VS"), null, ActiveDate, actor, now);
+        var art = TeamOfTeams.Create("Payments ART", new TeamCode("ART"), null, ActiveDate, "UTC", actor, now);
+        var valueStream = TeamOfTeams.Create("Payments VS", new TeamCode("VS"), null, ActiveDate, "UTC", actor, now);
 
         await context.Teams.AddAsync(team, cancellationToken);
         await context.TeamOfTeams.AddAsync(art, cancellationToken);

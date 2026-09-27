@@ -242,7 +242,7 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
 
     private TeamOfTeams AddTeamOfTeams(string name, string code)
     {
-        var teamOfTeams = TeamOfTeams.Create(name, new TeamCode(code), null, LastYear, EventActor.System, Now);
+        var teamOfTeams = TeamOfTeams.Create(name, new TeamCode(code), null, LastYear, "UTC", EventActor.System, Now);
         _dbContext.AddTeamOfTeams(teamOfTeams);
         return teamOfTeams;
     }

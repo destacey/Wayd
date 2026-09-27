@@ -54,7 +54,7 @@ public sealed class RemoveTeamMembershipCommandHandlerTests
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
-        var child = TeamOfTeams.Create("Removal Child", NewCode(), null, ActiveDate, EventActor.System, SqlServerDbContextFixture.FixedNow);
+        var child = TeamOfTeams.Create("Removal Child", NewCode(), null, ActiveDate, "UTC", EventActor.System, SqlServerDbContextFixture.FixedNow);
         var membershipId = await SeedMembership(child, cancellationToken);
 
         await using var context = _fixture.CreateContext();
@@ -71,7 +71,7 @@ public sealed class RemoveTeamMembershipCommandHandlerTests
     private async Task<Guid> SeedMembership(BaseTeam child, CancellationToken cancellationToken)
     {
         await using var context = _fixture.CreateContext();
-        var parent = TeamOfTeams.Create($"{child.Name} Parent", NewCode(), null, ActiveDate, EventActor.System, SqlServerDbContextFixture.FixedNow);
+        var parent = TeamOfTeams.Create($"{child.Name} Parent", NewCode(), null, ActiveDate, "UTC", EventActor.System, SqlServerDbContextFixture.FixedNow);
 
         context.Add(child);
         await context.TeamOfTeams.AddAsync(parent, cancellationToken);

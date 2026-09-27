@@ -111,7 +111,7 @@ public sealed class TeamImportDefinition(
 
             if (data.Type == TeamType.TeamOfTeams)
             {
-                var teamOfTeams = TeamOfTeams.Create(data.Name, data.Code, data.Description, data.ActiveDate, actor, timestamp);
+                var teamOfTeams = TeamOfTeams.Create(data.Name, data.Code, data.Description, data.ActiveDate, scheduling.DefaultTimeZone, actor, timestamp);
                 await _organizationDbContext.TeamOfTeams.AddAsync(teamOfTeams, cancellationToken);
                 team = teamOfTeams;
             }

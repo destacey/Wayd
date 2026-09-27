@@ -1,6 +1,7 @@
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Models;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.TestData;
 using Wayd.Tests.Shared;
@@ -32,7 +33,7 @@ public class TeamOfTeamsTests
         var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
 
         // Act
-        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "UTC", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.Type.Should().Be(TeamType.TeamOfTeams);
@@ -71,7 +72,7 @@ public class TeamOfTeamsTests
         // Arrange — what the team import does for an already-retired row: create the team active, the
         // only way the domain allows, then deactivate it, all before one save
         var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
-        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "UTC", EventActor.System, _dateTimeProvider.Now);
         var inactiveDate = fakeTeamOfTeams.ActiveDate.PlusDays(30);
 
         // Act
@@ -90,7 +91,7 @@ public class TeamOfTeamsTests
     {
         // Arrange — a new team of teams has no Key until the save assigns one
         var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
-        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "UTC", EventActor.System, _dateTimeProvider.Now);
         var inactiveDate = fakeTeamOfTeams.ActiveDate.PlusDays(30);
 
         // Act
@@ -98,7 +99,7 @@ public class TeamOfTeamsTests
 
         // Assert
         sut.DomainEvents.Should().BeEmpty();
-        sut.PostPersistenceActions.Should().HaveCount(2);
+        sut.PostPersistenceActions.Should().HaveCount(3);
     }
 
     [Fact]
@@ -109,7 +110,7 @@ public class TeamOfTeamsTests
         string? name = null;
 
         // Act
-        Action action = () => TeamOfTeams.Create(name!, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        Action action = () => TeamOfTeams.Create(name!, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "UTC", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Value cannot be null. (Parameter 'Name')");
@@ -124,7 +125,7 @@ public class TeamOfTeamsTests
         var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
 
         // Act
-        Action action = () => TeamOfTeams.Create(name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        Action action = () => TeamOfTeams.Create(name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "UTC", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Required input Name was empty. (Parameter 'Name')");
@@ -138,7 +139,7 @@ public class TeamOfTeamsTests
         TeamCode code = null!;
 
         // Act
-        Action action = () => TeamOfTeams.Create(fakeTeamOfTeams.Name, code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        Action action = () => TeamOfTeams.Create(fakeTeamOfTeams.Name, code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "UTC", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Value cannot be null. (Parameter 'Code')");
@@ -154,7 +155,7 @@ public class TeamOfTeamsTests
         var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
 
         // Act
-        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, description, fakeTeamOfTeams.ActiveDate, EventActor.System, _dateTimeProvider.Now);
+        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, description, fakeTeamOfTeams.ActiveDate, "UTC", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.Description.Should().BeNull();
@@ -900,4 +901,277 @@ public class TeamOfTeamsTests
 
 
     #endregion Memberships
+
+    #region Operating Models
+
+    [Fact]
+    public void Create_OpensTheFirstOperatingModelFromTheActiveDate()
+    {
+        // Arrange
+        var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
+
+        // Act
+        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "America/Chicago", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var model = sut.OperatingModels.Should().ContainSingle().Subject;
+        model.DateRange.Should().Be(new OperatingModelDateRange(fakeTeamOfTeams.ActiveDate, null));
+        model.TimeZone.Should().Be("America/Chicago");
+        model.IsCurrent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Create_WithAnInvalidTimeZone_Throws()
+    {
+        // Arrange
+        var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
+
+        // Act
+        Action action = () => TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "Not/AZone", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        action.Should().Throw<ArgumentException>().WithMessage("'Not/AZone' is not a valid IANA time zone.");
+    }
+
+    [Fact]
+    public void Create_RaisesTheFirstOperatingModelAfterTheTeamOfTeams()
+    {
+        // Arrange
+        var fakeTeamOfTeams = _teamOfTeamsFaker.Generate();
+
+        // Act
+        var sut = TeamOfTeams.Create(fakeTeamOfTeams.Name, fakeTeamOfTeams.Code, fakeTeamOfTeams.Description, fakeTeamOfTeams.ActiveDate, "America/Chicago", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+        sut.SetPrivate(t => t.Key, 42);
+        sut.ExecutePostPersistenceActions();
+        sut.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(TeamCreatedEvent), typeof(TeamOfTeamsOperatingModelSetEvent));
+        var raised = sut.DomainEvents.OfType<TeamOfTeamsOperatingModelSetEvent>().Single();
+        raised.Key.Should().Be(42);
+        raised.Period.Should().Be(new FlexibleDateRange(fakeTeamOfTeams.ActiveDate, null));
+        raised.Settings.Should().Be(new TeamOfTeamsOperatingModelSettings("America/Chicago"));
+        raised.SupersededPeriod.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetOperatingModel_ClosesTheCurrentModelTheDayBefore()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var date2 = new LocalDate(2024, 1, 1);
+        var first = sut.SetOperatingModel(date1, "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.SetOperatingModel(date2, "America/Chicago", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.OperatingModels.Should().HaveCount(2);
+        first.DateRange.Should().Be(new OperatingModelDateRange(date1, date2.PlusDays(-1)));
+        first.TimeZone.Should().Be("UTC", "a move keeps the old zone for the days before it");
+        result.Value.DateRange.Should().Be(new OperatingModelDateRange(date2, null));
+        result.Value.TimeZone.Should().Be("America/Chicago");
+    }
+
+    [Fact]
+    public void SetOperatingModel_WhenACurrentModelExists_RaisesEventCarryingTheModelItEnded()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var date2 = new LocalDate(2024, 1, 1);
+        sut.SetOperatingModel(date1, "UTC", EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.SetOperatingModel(date2, "Europe/London", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamOfTeamsOperatingModelSetEvent>().Subject;
+        raised.Id.Should().Be(sut.Id);
+        raised.Key.Should().Be(sut.Key);
+        raised.Period.Should().Be(new FlexibleDateRange(date2, null));
+        raised.Settings.Should().Be(new TeamOfTeamsOperatingModelSettings("Europe/London"));
+        raised.SupersededPeriod.Should().Be(new FlexibleDateRange(date1, date2.PlusDays(-1)));
+    }
+
+    [Fact]
+    public void SetOperatingModel_OnTheCurrentStart_FailsAndRaisesNoEvent()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var current = sut.SetOperatingModel(date1, "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.SetOperatingModel(date1, "Europe/London", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("New operating model start date must be after the current model's start date.");
+        current.IsCurrent.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetOperatingModel_WithAnInvalidTimeZone_LeavesTheCurrentModelOpen()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var current = sut.SetOperatingModel(new LocalDate(2023, 1, 1), "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.SetOperatingModel(new LocalDate(2024, 1, 1), "Not/AZone", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        current.IsCurrent.Should().BeTrue();
+        sut.OperatingModels.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CorrectOperatingModel_WhenChanged_CorrectsTheWholePeriodAndRaisesEventCarryingBothEnds()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var date2 = new LocalDate(2024, 1, 1);
+        var first = sut.SetOperatingModel(date1, "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        sut.SetOperatingModel(date2, "UTC", EventActor.System, _dateTimeProvider.Now);
+        first.SetPrivate(m => m.Id, Guid.NewGuid());
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.CorrectOperatingModel(first.Id, "America/Denver", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        first.TimeZone.Should().Be("America/Denver");
+        first.DateRange.Should().Be(new OperatingModelDateRange(date1, date2.PlusDays(-1)));
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamOfTeamsOperatingModelCorrectedEvent>().Subject;
+        raised.Period.Should().Be(new FlexibleDateRange(date1, date2.PlusDays(-1)));
+        raised.Settings.Should().Be(new TeamOfTeamsOperatingModelSettings("America/Denver"));
+        raised.Previous.Should().Be(new TeamOfTeamsOperatingModelSettings("UTC"));
+    }
+
+    [Fact]
+    public void CorrectOperatingModel_WhenNothingChanged_RaisesNoEvent()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var model = sut.SetOperatingModel(new LocalDate(2023, 1, 1), "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        model.SetPrivate(m => m.Id, Guid.NewGuid());
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.CorrectOperatingModel(model.Id, "UTC", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CorrectOperatingModel_WithAnInvalidTimeZone_FailsAndChangesNothing()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var model = sut.SetOperatingModel(new LocalDate(2023, 1, 1), "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        model.SetPrivate(m => m.Id, Guid.NewGuid());
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.CorrectOperatingModel(model.Id, "Not/AZone", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        model.TimeZone.Should().Be("UTC");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CorrectOperatingModel_WithAnUnknownModel_Fails()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        sut.SetOperatingModel(new LocalDate(2023, 1, 1), "UTC", EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.CorrectOperatingModel(Guid.NewGuid(), "Europe/London", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveOperatingModel_ReinstatesThePreviousModelAndRaisesEventCarryingIt()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var date1 = new LocalDate(2023, 1, 1);
+        var date2 = new LocalDate(2024, 1, 1);
+        var first = sut.SetOperatingModel(date1, "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        var second = sut.SetOperatingModel(date2, "Europe/London", EventActor.System, _dateTimeProvider.Now).Value;
+        second.SetPrivate(m => m.Id, Guid.NewGuid());
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.RemoveOperatingModel(second.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.OperatingModels.Should().ContainSingle().Which.Should().BeSameAs(first);
+        first.IsCurrent.Should().BeTrue();
+        var raised = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<TeamOfTeamsOperatingModelRemovedEvent>().Subject;
+        raised.Period.Should().Be(new FlexibleDateRange(date2, null));
+        raised.Settings.Should().Be(new TeamOfTeamsOperatingModelSettings("Europe/London"));
+        raised.ReinstatedPeriod.Should().Be(new FlexibleDateRange(date1, null));
+    }
+
+    [Fact]
+    public void RemoveOperatingModel_TheLastModel_FailsAndRaisesNoEvent()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var model = sut.SetOperatingModel(new LocalDate(2023, 1, 1), "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        model.SetPrivate(m => m.Id, Guid.NewGuid());
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.RemoveOperatingModel(model.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Cannot remove the last operating model. At least one operating model must remain.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveOperatingModel_AHistoricalModel_Fails()
+    {
+        // Arrange
+        var sut = _teamOfTeamsFaker.Generate();
+        var first = sut.SetOperatingModel(new LocalDate(2023, 1, 1), "UTC", EventActor.System, _dateTimeProvider.Now).Value;
+        first.SetPrivate(m => m.Id, Guid.NewGuid());
+        var second = sut.SetOperatingModel(new LocalDate(2024, 1, 1), "Europe/London", EventActor.System, _dateTimeProvider.Now).Value;
+        second.SetPrivate(m => m.Id, Guid.NewGuid());
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.RemoveOperatingModel(first.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sut.OperatingModels.Should().HaveCount(2);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Operating Models
 }

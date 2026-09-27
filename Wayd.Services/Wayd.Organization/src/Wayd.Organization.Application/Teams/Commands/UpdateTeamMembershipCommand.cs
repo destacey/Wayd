@@ -20,12 +20,13 @@ public sealed class UpdateTeamMembershipCommandValidator : CustomValidator<Updat
     }
 }
 
-public sealed class UpdateTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateTeamMembershipCommandHandler> logger) : ICommandHandler<UpdateTeamMembershipCommand>
+public sealed class UpdateTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<UpdateTeamMembershipCommandHandler> logger) : ICommandHandler<UpdateTeamMembershipCommand>
 {
     private const string RequestName = nameof(UpdateTeamMembershipCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateTeamMembershipCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateTeamMembershipCommand request, CancellationToken cancellationToken)
@@ -37,7 +38,7 @@ public sealed class UpdateTeamMembershipCommandHandler(IOrganizationDbContext or
                     .ThenInclude(m => m.Target)
                 .SingleAsync(t => t.Id == request.TeamId, cancellationToken: cancellationToken);
 
-            var result = team.UpdateTeamMembership(request.TeamMembershipId, request.DateRange, _dateTimeProvider.Now);
+            var result = team.UpdateTeamMembership(request.TeamMembershipId, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("{RequestName}: failed to update Team Membership {TeamMembershipId} for Team {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);

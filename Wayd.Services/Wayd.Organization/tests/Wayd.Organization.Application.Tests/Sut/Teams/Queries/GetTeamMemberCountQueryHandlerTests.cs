@@ -1,6 +1,7 @@
 ﻿using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -10,6 +11,8 @@ namespace Wayd.Organization.Application.Tests.Sut.Teams.Queries;
 
 public class GetTeamMemberCountQueryHandlerTests : IDisposable
 {
+    private static readonly Instant Timestamp = Instant.FromUtc(2026, 6, 1, 0, 0);
+
     private readonly FakeOrganizationDbContext _dbContext = new();
     private readonly GetTeamMemberCountQueryHandler _handler;
     private readonly TeamFaker _teamFaker = new();
@@ -34,9 +37,9 @@ public class GetTeamMemberCountQueryHandlerTests : IDisposable
         var team = _teamFaker.Generate();
         _dbContext.AddTeam(team);
         var twoRoles = NewEmployee();
-        team.AddMember(twoRoles, Guid.NewGuid());
-        team.AddMember(twoRoles, Guid.NewGuid());
-        team.AddMember(NewEmployee(), Guid.NewGuid());
+        team.AddMember(twoRoles, [Guid.NewGuid()], EventActor.System, Timestamp);
+        team.AddMember(twoRoles, [Guid.NewGuid()], EventActor.System, Timestamp);
+        team.AddMember(NewEmployee(), [Guid.NewGuid()], EventActor.System, Timestamp);
 
         // Act
         var result = await _handler.Handle(new GetTeamMemberCountQuery(team.Id), TestContext.Current.CancellationToken);
@@ -52,8 +55,8 @@ public class GetTeamMemberCountQueryHandlerTests : IDisposable
         var team = _teamFaker.Generate();
         _dbContext.AddTeam(team);
         var inactive = NewEmployee();
-        team.AddMember(inactive, Guid.NewGuid());
-        team.AddMember(NewEmployee(), Guid.NewGuid());
+        team.AddMember(inactive, [Guid.NewGuid()], EventActor.System, Timestamp);
+        team.AddMember(NewEmployee(), [Guid.NewGuid()], EventActor.System, Timestamp);
         inactive.Deactivate(Instant.FromUtc(2026, 9, 1, 0, 0));
 
         // Act

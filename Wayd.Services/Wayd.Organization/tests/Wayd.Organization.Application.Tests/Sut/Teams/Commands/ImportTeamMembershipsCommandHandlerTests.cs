@@ -5,6 +5,7 @@ using NodaTime.Testing;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Identity;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Imports;
@@ -22,7 +23,9 @@ public sealed class ImportTeamMembershipsCommandHandlerTests : IDisposable
     public ImportTeamMembershipsCommandHandlerTests()
     {
         var clock = new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
-        _definition = new TeamMembershipImportDefinition(_dbContext, clock, new ImportPayloadSerializer());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+        _definition = new TeamMembershipImportDefinition(_dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
 
         _dispatcher
             .Setup(d => d.Send(It.IsAny<SubmitImportCommand>(), It.IsAny<CancellationToken>()))

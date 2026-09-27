@@ -10,7 +10,6 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Enums;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.TestData;
 
@@ -250,7 +249,7 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
 
     private static void Place(BaseTeam child, TeamOfTeams parent, LocalDate? start = null, LocalDate? end = null)
     {
-        var placed = child.AddTeamMembership(parent, new MembershipDateRange(start ?? LastYear, end), Now);
+        var placed = child.AddTeamMembership(parent, new MembershipDateRange(start ?? LastYear, end), EventActor.System, Now);
         placed.IsSuccess.Should().BeTrue(placed.IsFailure ? placed.Error : null);
     }
 

@@ -3,7 +3,6 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
-using Wayd.Organization.Domain.Enums;
 using NodaTime;
 using Wayd.Common.Domain.Events;
 
@@ -129,17 +128,57 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <param name="sizingMethod">The sizing method the team uses.</param>
     /// <param name="timeZone">The IANA id of the team's time zone.</param>
     /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp.</param>
     /// <returns>A result containing the new operating model or an error.</returns>
-    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays)
+    public Result<TeamOperatingModel> SetOperatingModel(LocalDate startDate, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, EventActor actor, Instant timestamp)
     {
         var currentModel = _operatingModels.SingleOrDefault(m => m.IsCurrent);
 
         var result = TeamOperatingModel.Create(startDate, methodology, sizingMethod, timeZone, commitmentGraceDays, currentModel);
+        if (result.IsFailure)
+            return result;
 
-        if (result.IsSuccess)
-        {
-            _operatingModels.Add(result.Value);
-        }
+        var model = result.Value;
+        _operatingModels.Add(model);
+
+        var period = ToFlexibleDateRange(model.DateRange);
+        var settings = SettingsOf(model);
+        var supersededPeriod = currentModel is null ? null : ToFlexibleDateRange(currentModel.DateRange);
+        AddKeyedDomainEvent(() => new TeamOperatingModelSetEvent(Id, Key, period, settings, supersededPeriod, actor, timestamp));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Corrects one of the team's operating models for its whole period.
+    /// </summary>
+    /// <param name="operatingModelId">The operating model identifier to correct.</param>
+    /// <param name="methodology">The methodology the team uses.</param>
+    /// <param name="sizingMethod">The sizing method the team uses.</param>
+    /// <param name="timeZone">The IANA id of the team's time zone.</param>
+    /// <param name="commitmentGraceDays">The commitment grace period in days.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp.</param>
+    /// <returns>A result indicating success or failure.</returns>
+    public Result CorrectOperatingModel(Guid operatingModelId, Methodology methodology, SizingMethod sizingMethod, string timeZone, int commitmentGraceDays, EventActor actor, Instant timestamp)
+    {
+        var operatingModel = _operatingModels.SingleOrDefault(m => m.Id == operatingModelId);
+        if (operatingModel is null)
+            return Result.Failure($"Operating model with Id {operatingModelId} not found for this team.");
+
+        var before = SettingsOf(operatingModel);
+
+        var result = operatingModel.Update(methodology, sizingMethod, timeZone, commitmentGraceDays);
+        if (result.IsFailure)
+            return result;
+
+        var after = SettingsOf(operatingModel);
+        if (after == before)
+            return result;
+
+        var period = ToFlexibleDateRange(operatingModel.DateRange);
+        AddKeyedDomainEvent(() => new TeamOperatingModelCorrectedEvent(Id, Key, period, after, before, actor, timestamp));
 
         return result;
     }
@@ -150,8 +189,10 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// can only be removed if there is at least one historical model to fall back to.
     /// </summary>
     /// <param name="operatingModelId">The operating model identifier to remove.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp.</param>
     /// <returns>A result indicating success or failure.</returns>
-    public Result RemoveOperatingModel(Guid operatingModelId)
+    public Result RemoveOperatingModel(Guid operatingModelId, EventActor actor, Instant timestamp)
     {
         var operatingModel = _operatingModels.SingleOrDefault(m => m.Id == operatingModelId);
 
@@ -181,8 +222,16 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
 
         _operatingModels.Remove(operatingModel);
 
+        var period = ToFlexibleDateRange(operatingModel.DateRange);
+        var settings = SettingsOf(operatingModel);
+        var reinstatedPeriod = ToFlexibleDateRange(previousModel.DateRange);
+        AddKeyedDomainEvent(() => new TeamOperatingModelRemovedEvent(Id, Key, period, settings, reinstatedPeriod, actor, timestamp));
+
         return Result.Success();
     }
+
+    private static TeamOperatingModelSettings SettingsOf(TeamOperatingModel model) =>
+        new(model.Methodology, model.SizingMethod, model.TimeZone, model.CommitmentGraceDays);
 
     /// <summary>Creates the specified team with an initial operating model.</summary>
     /// <param name="name">The name.</param>
@@ -226,7 +275,7 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
                 timestamp))
         );
 
-        var operatingModel = team.SetOperatingModel(activeDate, methodology, sizingMethod, timeZone, commitmentGraceDays);
+        var operatingModel = team.SetOperatingModel(activeDate, methodology, sizingMethod, timeZone, commitmentGraceDays, actor, timestamp);
         if (operatingModel.IsFailure)
             throw new ArgumentException(operatingModel.Error);
 

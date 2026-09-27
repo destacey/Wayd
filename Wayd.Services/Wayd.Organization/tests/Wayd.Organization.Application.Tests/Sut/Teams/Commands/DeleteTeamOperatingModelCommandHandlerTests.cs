@@ -2,10 +2,15 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.TestData;
 using Moq;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Identity;
+using Wayd.Tests.Shared;
 using NodaTime;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Commands;
@@ -15,6 +20,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
     private readonly TeamFaker _teamFaker;
     private readonly FakeOrganizationDbContext _dbContext;
     private readonly DeleteTeamOperatingModelCommandHandler _handler;
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
     private readonly Mock<ILogger<DeleteTeamOperatingModelCommandHandler>> _mockLogger;
 
     public DeleteTeamOperatingModelCommandHandlerTests()
@@ -23,8 +29,13 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
         _dbContext = new FakeOrganizationDbContext();
         _mockLogger = new Mock<ILogger<DeleteTeamOperatingModelCommandHandler>>();
 
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
         _handler = new DeleteTeamOperatingModelCommandHandler(
             _dbContext,
+            _dateTimeProvider,
+            currentUser.Object,
             _mockLogger.Object);
     }
 
@@ -37,7 +48,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create an operating model
         var startDate = new LocalDate(2024, 1, 1);
-        var createResult = team.SetOperatingModel(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        var createResult = team.SetOperatingModel(startDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
         createResult.IsSuccess.Should().BeTrue();
         var operatingModelId = createResult.Value.Id;
 
@@ -80,7 +91,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
         _dbContext.AddTeam(team);
 
         // Create an operating model so the team has at least one
-        team.SetOperatingModel(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        team.SetOperatingModel(new LocalDate(2024, 1, 1), Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
 
         var nonExistentOperatingModelId = Guid.NewGuid();
         var command = new DeleteTeamOperatingModelCommand(team.Id, nonExistentOperatingModelId);
@@ -105,7 +116,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create first operating model
         var firstStartDate = new LocalDate(2023, 1, 1);
-        var firstResult = team.SetOperatingModel(firstStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1);
+        var firstResult = team.SetOperatingModel(firstStartDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
         firstResult.IsSuccess.Should().BeTrue();
         var firstModel = firstResult.Value;
         var firstModelId = Guid.NewGuid();
@@ -113,7 +124,7 @@ public class DeleteTeamOperatingModelCommandHandlerTests : IDisposable
 
         // Create second (current) operating model
         var secondStartDate = new LocalDate(2024, 1, 1);
-        var secondResult = team.SetOperatingModel(secondStartDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1);
+        var secondResult = team.SetOperatingModel(secondStartDate, Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, _dateTimeProvider.Now);
         secondResult.IsSuccess.Should().BeTrue();
         var secondModel = secondResult.Value;
         var secondModelId = Guid.NewGuid();

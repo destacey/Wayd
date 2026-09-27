@@ -24,11 +24,15 @@ namespace Wayd.Organization.Application.Teams.Imports;
 /// </remarks>
 public sealed class TeamMemberImportDefinition(
     IOrganizationDbContext organizationDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportTeamMemberDto>(serializer)
 {
     public const string ImportKey = "team-members";
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
     public override string DisplayName => "Team Staffing";
@@ -55,6 +59,9 @@ public sealed class TeamMemberImportDefinition(
     /// </remarks>
     private async Task<Result> AddMembers(ImportPassContext<ImportTeamMemberDto> context, CancellationToken cancellationToken)
     {
+        var timestamp = _dateTimeProvider.Now;
+        var actor = EventActor.Import(_currentUser.GetUserId());
+
         var teamCodes = context.Rows.Select(r => Normalize(r.Data.TeamCode)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var employeeNumbers = context.Rows.Select(r => r.Data.EmployeeNumber.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var roleNames = context.Rows.Select(r => r.Data.RoleName.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -101,7 +108,7 @@ public sealed class TeamMemberImportDefinition(
             var employee = employeesByNumber[group.Key.EmployeeNumber];
             var roleIds = group.Select(r => roleIdsByName[r.Data.RoleName.Trim()]).Distinct().ToList();
 
-            var added = team.AddMember(employee, roleIds);
+            var added = team.AddMember(employee, roleIds, actor, timestamp);
 
             foreach (var row in group)
             {

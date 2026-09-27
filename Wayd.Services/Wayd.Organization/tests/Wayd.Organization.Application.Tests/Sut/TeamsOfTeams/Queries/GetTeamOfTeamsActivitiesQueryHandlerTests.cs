@@ -17,6 +17,7 @@ public class GetTeamOfTeamsActivitiesQueryHandlerTests : IDisposable
     private readonly Mock<IActivityLogReader> _activityLogReader = new();
     private readonly GetTeamOfTeamsActivitiesQueryHandler _handler;
     private readonly TeamOfTeamsFaker _teamOfTeamsFaker = new();
+    private readonly TeamFaker _teamFaker = new();
 
     public GetTeamOfTeamsActivitiesQueryHandlerTests()
     {
@@ -75,6 +76,74 @@ public class GetTeamOfTeamsActivitiesQueryHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(expectedResponse);
     }
+
+    [Fact]
+    public async Task Handle_NamesTheChildTeamARelatedEntryWasRaisedOn()
+    {
+        // Arrange
+        var parent = _teamOfTeamsFaker.Generate();
+        var child = _teamFaker.Generate();
+        _dbContext.AddTeamOfTeams(parent);
+        _dbContext.AddTeam(child);
+
+        var own = Activity(parent.Id, isRelated: false);
+        var joined = Activity(child.Id, isRelated: true);
+
+        _activityLogReader
+            .Setup(r => r.Read(parent.Id, "Team", 1, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResponse<ActivityLogDto>([joined, own], 2, 1, 50));
+
+        // Act
+        var result = await _handler.Handle(
+            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var items = result.Value!.Items;
+        items.Single(i => i.Id == joined.Id).RaisedOn.Should().BeEquivalentTo(new { child.Id, child.Key, child.Name });
+        items.Single(i => i.Id == own.Id).RaisedOn.Should().BeNull("an entry raised on this team of teams needs no pointer back to it");
+    }
+
+    [Fact]
+    public async Task Handle_LeavesRaisedOnEmpty_WhenTheRelatedTeamNoLongerExists()
+    {
+        // Arrange
+        var parent = _teamOfTeamsFaker.Generate();
+        _dbContext.AddTeamOfTeams(parent);
+
+        var fromRemoved = Activity(Guid.CreateVersion7(), isRelated: true);
+
+        _activityLogReader
+            .Setup(r => r.Read(parent.Id, "Team", 1, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResponse<ActivityLogDto>([fromRemoved], 1, 1, 50));
+
+        // Act
+        var result = await _handler.Handle(
+            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var item = result.Value!.Items.Should().ContainSingle().Subject;
+        item.IsRelated.Should().BeTrue();
+        item.RaisedOn.Should().BeNull();
+    }
+
+    // The tests tell entries apart by id, so each call needs its own.
+    private static long _nextActivityId;
+
+    private static ActivityLogDto Activity(Guid aggregateId, bool isRelated) => new()
+    {
+        Id = Interlocked.Increment(ref _nextActivityId),
+        EventType = "TeamMembershipAddedEvent",
+        DomainArea = "Organization",
+        AggregateType = "Team",
+        AggregateId = aggregateId,
+        ActorKind = EventActorKind.User,
+        Timestamp = Instant.FromUnixTimeSeconds(100),
+        Payload = "{}",
+        Summary = "Team Membership Added",
+        IsRelated = isRelated,
+    };
 
     public void Dispose() => _dbContext.Dispose();
 }

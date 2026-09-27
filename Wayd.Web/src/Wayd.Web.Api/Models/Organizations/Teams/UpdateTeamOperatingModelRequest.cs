@@ -1,6 +1,6 @@
 ﻿using Wayd.Common.Application.SystemSettings.Scheduling;
 using Wayd.Organization.Application.Teams.Commands;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Web.Api.Models.Organizations.Teams;
 

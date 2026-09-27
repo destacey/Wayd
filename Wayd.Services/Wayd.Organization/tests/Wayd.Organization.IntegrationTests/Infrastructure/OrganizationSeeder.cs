@@ -3,7 +3,7 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Context;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
 using Wayd.Common.Domain.Events;
 

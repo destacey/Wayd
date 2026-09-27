@@ -1,5 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime;
+using NodaTime.Testing;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Identity;
+using Wayd.Tests.Shared;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -13,6 +19,7 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
     private readonly EmployeeFaker _employeeFaker;
     private readonly FakeOrganizationDbContext _dbContext;
     private readonly AddTeamMemberCommandHandler _handler;
+    private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
 
     public AddTeamMemberCommandHandlerTests()
     {
@@ -20,9 +27,14 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         _employeeFaker = new EmployeeFaker();
         _dbContext = new FakeOrganizationDbContext();
 
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
         _handler = new AddTeamMemberCommandHandler(
             _dbContext,
             _dbContext,
+            _dateTimeProvider,
+            currentUser.Object,
             new Mock<ILogger<AddTeamMemberCommandHandler>>().Object);
     }
 
@@ -83,7 +95,7 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
-        team.AddMember(employee, roleId);
+        team.AddMember(employee, [roleId], EventActor.System, _dateTimeProvider.Now);
 
         var command = new AddTeamMemberCommand(team.Id, employee.Id, [roleId]);
 

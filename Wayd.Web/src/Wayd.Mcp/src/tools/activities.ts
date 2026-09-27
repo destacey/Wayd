@@ -117,7 +117,7 @@ export const definitions: [string, McpToolDefinition][] = [
   activityTool(
     'Teams_GetActivities',
     'Get team activity history',
-    'Get a team\'s activity history, newest first: the team\'s creation, detail changes, activation and deactivation.',
+    'Get a team\'s activity history, newest first: the team\'s creation, detail changes, activation and deactivation, members joining, leaving or changing roles (by employee and role id), its membership in a team of teams being added, re-dated or removed, and operating models being set, corrected or removed.',
     '/api/organization/teams/{idOrKey}/activities',
     'Team ID (UUID) or its integer key — the `id` that `Teams_GetTeam` takes.'
   ),

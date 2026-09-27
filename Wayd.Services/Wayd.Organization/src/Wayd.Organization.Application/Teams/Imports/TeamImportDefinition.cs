@@ -11,7 +11,6 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.Persistence;
-using Wayd.Organization.Domain.Enums;
 using Wayd.Organization.Domain.Models;
 
 namespace Wayd.Organization.Application.Teams.Imports;

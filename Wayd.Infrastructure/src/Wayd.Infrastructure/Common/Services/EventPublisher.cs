@@ -1,7 +1,6 @@
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Wolverine;
-using Wolverine.Runtime.Routing;
+using Wolverine.Runtime;
 
 namespace Wayd.Infrastructure.Common.Services;
 
@@ -9,45 +8,29 @@ public class EventPublisher : IEventPublisher
 {
     private readonly ILogger<EventPublisher> _logger;
     private readonly IMessageBus _bus;
+    private readonly WolverineRuntime _runtime;
 
-    // Per-event-type cache of "does this event have a handler". Populated on first publish so the
-    // no-handler probe (an IndeterminateRoutesException) is paid at most once per event type, not on
-    // every publish of a subscriber-less event.
-    private static readonly ConcurrentDictionary<Type, bool> HasHandler = new();
-
-    public EventPublisher(ILogger<EventPublisher> logger, IMessageBus bus) =>
-        (_logger, _bus) = (logger, bus);
+    public EventPublisher(ILogger<EventPublisher> logger, IMessageBus bus, IWolverineRuntime runtime) =>
+        (_logger, _bus, _runtime) = (logger, bus, (WolverineRuntime)runtime);
 
     public async Task PublishAsync(IEvent @event)
     {
         _logger.LogInformation("Publishing Event : {event}", @event.GetType().Name);
-
-        var eventType = @event.GetType();
 
         // This is the INLINE dispatch path (durable events instead enlist in the outbox in BaseDbContext).
         // InvokeAsync runs the handler synchronously before returning, preserving read-your-writes for the
         // cross-domain replication projections (same-Id copies) that in-request reads and subsequent commands
         // depend on.
         //
-        // InvokeAsync throws IndeterminateRoutesException when a message type has no handler. Some domain
-        // events are raised with no handler (e.g. the Program* events), so treat "no handler" as a no-op and
-        // remember it per type. Wolverine routes on the runtime type, so passing the event via its IEvent
-        // variable still dispatches to the concrete event type's handler.
-        if (HasHandler.TryGetValue(eventType, out var handled) && !handled)
+        // InvokeAsync demands a handler: for a type with none, Wolverine logs an error and throws. Many domain
+        // events are raised with no handler and are only recorded in the activity log, so ask the handler
+        // graph first. Wolverine routes on the runtime type, so passing the event via its IEvent variable
+        // still dispatches to the concrete event type's handler.
+        if (_runtime.Handlers.ChainFor(@event.GetType()) is null)
         {
             return;
         }
 
-        try
-        {
-            await _bus.InvokeAsync(@event);
-            HasHandler.TryAdd(eventType, true);
-        }
-        catch (IndeterminateRoutesException)
-        {
-            // No handler for this event type — a subscriber-less event is a no-op. Cache so we don't pay the
-            // exception again for this type.
-            HasHandler[eventType] = false;
-        }
+        await _bus.InvokeAsync(@event);
     }
 }

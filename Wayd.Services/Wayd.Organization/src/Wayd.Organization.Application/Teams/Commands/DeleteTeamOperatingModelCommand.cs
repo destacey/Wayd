@@ -18,11 +18,15 @@ public sealed class DeleteTeamOperatingModelCommandValidator : CustomValidator<D
 
 public sealed class DeleteTeamOperatingModelCommandHandler(
     IOrganizationDbContext organizationDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<DeleteTeamOperatingModelCommandHandler> logger) : ICommandHandler<DeleteTeamOperatingModelCommand>
 {
     private const string RequestName = nameof(DeleteTeamOperatingModelCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteTeamOperatingModelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteTeamOperatingModelCommand request, CancellationToken cancellationToken)
@@ -38,7 +42,7 @@ public sealed class DeleteTeamOperatingModelCommandHandler(
                 return Result.Failure($"Team with Id {request.TeamId} not found.");
             }
 
-            var result = team.RemoveOperatingModel(request.OperatingModelId);
+            var result = team.RemoveOperatingModel(request.OperatingModelId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to remove operating model {OperatingModelId} from Team {TeamId}. Error: {Error}",

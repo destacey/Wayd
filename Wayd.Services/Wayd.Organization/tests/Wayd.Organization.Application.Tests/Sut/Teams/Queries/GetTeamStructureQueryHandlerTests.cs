@@ -1,9 +1,9 @@
 using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Events;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Enums;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.TestData;
 
@@ -40,7 +40,7 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
 
     private static void Join(BaseTeam child, TeamOfTeams parent, LocalDate start, LocalDate? end = null)
     {
-        child.AddTeamMembership(parent, new MembershipDateRange(start, end), Timestamp).IsSuccess.Should().BeTrue();
+        child.AddTeamMembership(parent, new MembershipDateRange(start, end), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -125,8 +125,8 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
     {
         // Arrange
         var team = NewTeam();
-        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(new LocalDate(2026, 8, 1), Methodology.Kanban, SizingMethod.Count, "UTC", 1).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(new LocalDate(2026, 8, 1), Methodology.Kanban, SizingMethod.Count, "UTC", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamStructureQuery(team.Id, From, To), TestContext.Current.CancellationToken);
@@ -145,8 +145,8 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
     {
         // Arrange
         var team = NewTeam();
-        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1).IsSuccess.Should().BeTrue();
-        team.SetOperatingModel(From, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(ActiveDate, Methodology.Scrum, SizingMethod.Count, "UTC", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.SetOperatingModel(From, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamStructureQuery(team.Id, From, To), TestContext.Current.CancellationToken);

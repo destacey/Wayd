@@ -2,10 +2,13 @@
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Extensions;
+using Wayd.Common.Interfaces;
+using Wayd.Common.Models;
 using NodaTime;
 
 namespace Wayd.Organization.Domain.Models;
@@ -72,16 +75,26 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
     public IReadOnlyCollection<TeamMember> Members => _members.AsReadOnly();
 
     /// <summary>Adds a member to this team with one or more roles.</summary>
-    public Result AddMember(Employee employee, IReadOnlyList<Guid> roleIds)
+    public Result AddMember(Employee employee, IReadOnlyList<Guid> roleIds, EventActor actor, Instant timestamp)
     {
         try
         {
-            foreach (var roleId in roleIds)
+            Guard.Against.Null(employee);
+
+            if (roleIds.Count == 0)
+                return Result.Failure("At least one role must be specified.");
+
+            var before = MemberRoleIds(employee.Id);
+
+            foreach (var roleId in roleIds.Distinct())
             {
-                var result = AddMember(employee, roleId);
+                var result = AddMemberRole(employee, roleId);
                 if (result.IsFailure)
                     return Result.Failure(result.Error);
             }
+
+            RaiseMemberRolesChange(employee.Id, before, actor, timestamp);
+
             return Result.Success();
         }
         catch (Exception ex)
@@ -90,13 +103,10 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
         }
     }
 
-    /// <summary>Adds a member to this team with a single role.</summary>
-    public Result<TeamMember> AddMember(Employee employee, Guid roleId)
+    private Result<TeamMember> AddMemberRole(Employee employee, Guid roleId)
     {
         try
         {
-            Guard.Against.Null(employee);
-
             if (!IsActive)
                 return Result.Failure<TeamMember>($"Members cannot be added to inactive teams. {Name} is inactive.");
 
@@ -118,22 +128,19 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
     }
 
     /// <summary>Updates the roles of an existing team member, adding and removing as needed.</summary>
-    public Result UpdateMemberRoles(Employee employee, IReadOnlyList<Guid> roleIds)
+    public Result UpdateMemberRoles(Employee employee, IReadOnlyList<Guid> roleIds, EventActor actor, Instant timestamp)
     {
         try
         {
             Guard.Against.Null(employee);
 
-            var currentRoleIds = _members
-                .Where(m => m.EmployeeId == employee.Id && !m.IsDeleted)
-                .Select(m => m.RoleId)
-                .ToHashSet();
+            var currentRoleIds = MemberRoleIds(employee.Id);
 
             var requestedRoleIds = roleIds.ToHashSet();
 
             foreach (var roleId in requestedRoleIds.Except(currentRoleIds))
             {
-                var result = AddMember(employee, roleId);
+                var result = AddMemberRole(employee, roleId);
                 if (result.IsFailure)
                     return Result.Failure(result.Error);
             }
@@ -146,6 +153,8 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
                     return Result.Failure(result.Error);
             }
 
+            RaiseMemberRolesChange(employee.Id, currentRoleIds, actor, timestamp);
+
             return Result.Success();
         }
         catch (Exception ex)
@@ -155,7 +164,7 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
     }
 
     /// <summary>Removes an employee from this team.</summary>
-    public Result RemoveMember(Guid employeeId)
+    public Result RemoveMember(Guid employeeId, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -163,14 +172,53 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
             if (memberships.Count == 0)
                 return Result.Failure("Employee is not a member of this team.");
 
+            var before = MemberRoleIds(employeeId);
+
             foreach (var membership in memberships)
                 membership.IsDeleted = true;
+
+            RaiseMemberRolesChange(employeeId, before, actor, timestamp);
 
             return Result.Success();
         }
         catch (Exception ex)
         {
             return Result.Failure(ex.ToString());
+        }
+    }
+
+    private HashSet<Guid> MemberRoleIds(Guid employeeId) =>
+        _members
+            .Where(m => m.EmployeeId == employeeId && !m.IsDeleted)
+            .Select(m => m.RoleId)
+            .ToHashSet();
+
+    /// <summary>
+    /// Raises the event for how an employee's roles on this team moved from <paramref name="before"/>:
+    /// joining from none, leaving for none, or otherwise a change of roles.
+    /// </summary>
+    private void RaiseMemberRolesChange(Guid employeeId, HashSet<Guid> before, EventActor actor, Instant timestamp)
+    {
+        var after = MemberRoleIds(employeeId);
+        if (after.SetEquals(before))
+            return;
+
+        Guid[] roleIds = [.. after];
+
+        if (before.Count == 0)
+        {
+            AddKeyedDomainEvent(() => new TeamMemberAddedEvent(Id, Key, employeeId, roleIds, actor, timestamp));
+        }
+        else if (after.Count == 0)
+        {
+            Guid[] heldRoleIds = [.. before];
+            AddKeyedDomainEvent(() => new TeamMemberRemovedEvent(Id, Key, employeeId, heldRoleIds, actor, timestamp));
+        }
+        else
+        {
+            Guid[] added = [.. after.Except(before)];
+            Guid[] removed = [.. before.Except(after)];
+            AddKeyedDomainEvent(() => new TeamMemberRolesChangedEvent(Id, Key, employeeId, added, removed, roleIds, actor, timestamp));
         }
     }
 
@@ -195,9 +243,10 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
     /// <summary>Adds the team membership.</summary>
     /// <param name="parentTeam">The parent team.</param>
     /// <param name="dateRange">The date range.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns></returns>
-    public Result<TeamMembership> AddTeamMembership(TeamOfTeams parentTeam, MembershipDateRange dateRange, Instant timestamp)
+    public Result<TeamMembership> AddTeamMembership(TeamOfTeams parentTeam, MembershipDateRange dateRange, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -228,6 +277,10 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
             // the same batch is only visible if it was recorded here too.
             parentTeam.RecordChildMembership(membership);
 
+            var parentTeamId = parentTeam.Id;
+            var range = ToFlexibleDateRange(dateRange);
+            AddKeyedDomainEvent(() => new TeamMembershipAddedEvent(Id, Key, parentTeamId, range, actor, timestamp));
+
             return membership;
         }
         catch (Exception ex)
@@ -241,9 +294,10 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
     /// </summary>
     /// <param name="membershipId"></param>
     /// <param name="dateRange"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result<TeamMembership> UpdateTeamMembership(Guid membershipId, MembershipDateRange dateRange, Instant timestamp)
+    public Result<TeamMembership> UpdateTeamMembership(Guid membershipId, MembershipDateRange dateRange, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -260,7 +314,15 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
             if (_parentMemberships.Any(m => m.Id != membershipId && m.DateRange.Overlaps(dateRange)))
                 return Result.Failure<TeamMembership>("Teams can only have one active parent Team Membership.  This membership would create an overlapping membership.");
 
+            var previous = membership.DateRange;
             membership.Update(dateRange);
+            if (membership.DateRange == previous)
+                return membership;
+
+            var parentTeamId = membership.TargetId;
+            var range = ToFlexibleDateRange(membership.DateRange);
+            var previousRange = ToFlexibleDateRange(previous);
+            AddKeyedDomainEvent(() => new TeamMembershipDatesChangedEvent(Id, Key, parentTeamId, range, previousRange, actor, timestamp));
 
             return membership;
         }
@@ -272,8 +334,10 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
 
     /// <summary>Removes a team membership.</summary>
     /// <param name="membershipId">The membership identifier.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
+    /// <param name="timestamp">The timestamp.</param>
     /// <returns>On success, returns the TeamMembership that was deleted.  This is needed until the EF core bug is fixed.</returns>
-    public Result<TeamMembership> RemoveTeamMembership(Guid membershipId)
+    public Result<TeamMembership> RemoveTeamMembership(Guid membershipId, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -287,6 +351,10 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
 
             _parentMemberships.Remove(membership);
 
+            var parentTeamId = membership.TargetId;
+            var range = ToFlexibleDateRange(membership.DateRange);
+            AddKeyedDomainEvent(() => new TeamMembershipRemovedEvent(Id, Key, parentTeamId, range, actor, timestamp));
+
             return Result.Success(membership);
         }
         catch (Exception ex)
@@ -294,6 +362,8 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
             return Result.Failure<TeamMembership>(ex.ToString());
         }
     }
+
+    protected static FlexibleDateRange ToFlexibleDateRange(IDateRange<LocalDate, LocalDate?> range) => new(range.Start, range.End);
 
     /// <summary>
     /// Raises an event whose payload carries <see cref="Key"/>. Before the first save the key is still zero

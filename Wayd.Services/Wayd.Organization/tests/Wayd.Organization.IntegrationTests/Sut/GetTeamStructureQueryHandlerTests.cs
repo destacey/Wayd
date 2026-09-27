@@ -3,7 +3,7 @@ using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Queries;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
 
@@ -45,8 +45,8 @@ public sealed class GetTeamStructureQueryHandlerTests(SqlServerDbContextFixture 
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddRangeAsync([team, former], cancellationToken);
 
-            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), now).IsSuccess.Should().BeTrue();
-            former.AddTeamMembership(art, new MembershipDateRange(ActiveDate, From.PlusDays(-1)), now).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), EventActor.System, now).IsSuccess.Should().BeTrue();
+            former.AddTeamMembership(art, new MembershipDateRange(ActiveDate, From.PlusDays(-1)), EventActor.System, now).IsSuccess.Should().BeTrue();
 
             await seedContext.SaveChangesAsync(cancellationToken);
             (artId, teamId, formerId) = (art.Id, team.Id, former.Id);

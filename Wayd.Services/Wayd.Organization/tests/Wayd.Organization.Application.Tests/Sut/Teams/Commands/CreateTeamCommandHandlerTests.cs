@@ -9,7 +9,7 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Commands;

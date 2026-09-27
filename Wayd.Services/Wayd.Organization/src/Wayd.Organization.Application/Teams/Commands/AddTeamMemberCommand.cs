@@ -18,6 +18,8 @@ public sealed class AddTeamMemberCommandValidator : CustomValidator<AddTeamMembe
 public sealed class AddTeamMemberCommandHandler(
     IOrganizationDbContext organizationDbContext,
     IWaydDbContext waydDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<AddTeamMemberCommandHandler> logger)
     : ICommandHandler<AddTeamMemberCommand>
 {
@@ -25,6 +27,8 @@ public sealed class AddTeamMemberCommandHandler(
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<AddTeamMemberCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(AddTeamMemberCommand request, CancellationToken cancellationToken)
@@ -48,7 +52,7 @@ public sealed class AddTeamMemberCommandHandler(
                 return Result.Failure("Employee not found.");
             }
 
-            var result = team.AddMember(employee, request.RoleIds);
+            var result = team.AddMember(employee, request.RoleIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Error adding member to team {TeamId}. Error message: {Error}", request.TeamId, result.Error);

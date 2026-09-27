@@ -24,10 +24,12 @@ namespace Wayd.Organization.Application.Teams.Imports;
 public sealed class TeamMembershipImportDefinition(
     IOrganizationDbContext organizationDbContext,
     IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportTeamMembershipDto>(serializer)
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public const string ImportKey = "team-memberships";
 
@@ -57,6 +59,7 @@ public sealed class TeamMembershipImportDefinition(
     private async Task<Result> AddMemberships(ImportPassContext<ImportTeamMembershipDto> context, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         var codes = context.Rows
             .SelectMany(r => new[] { Normalize(r.Data.ChildCode), Normalize(r.Data.ParentCode) })
@@ -103,7 +106,7 @@ public sealed class TeamMembershipImportDefinition(
             var child = teamsByCode[Normalize(row.Data.ChildCode)];
             var parent = (TeamOfTeams)teamsByCode[Normalize(row.Data.ParentCode)];
 
-            var result = child.AddTeamMembership(parent, new MembershipDateRange(row.Data.Start, row.Data.End), timestamp);
+            var result = child.AddTeamMembership(parent, new MembershipDateRange(row.Data.Start, row.Data.End), actor, timestamp);
             if (result.IsFailure)
             {
                 // The domain refused — an overlap or a cycle it can only see with the whole file loaded.

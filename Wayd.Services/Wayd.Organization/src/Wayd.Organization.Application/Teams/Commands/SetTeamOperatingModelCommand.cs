@@ -1,5 +1,5 @@
 ﻿using Wayd.Common.Application.SystemSettings.Scheduling;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
@@ -41,11 +41,15 @@ public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetT
 
 public sealed class SetTeamOperatingModelCommandHandler(
     IOrganizationDbContext organizationDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<SetTeamOperatingModelCommandHandler> logger) : ICommandHandler<SetTeamOperatingModelCommand, Guid>
 {
     private const string RequestName = nameof(SetTeamOperatingModelCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<SetTeamOperatingModelCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(SetTeamOperatingModelCommand request, CancellationToken cancellationToken)
@@ -61,7 +65,7 @@ public sealed class SetTeamOperatingModelCommandHandler(
                 return Result.Failure<Guid>($"Team with Id {request.TeamId} not found.");
             }
 
-            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays);
+            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",

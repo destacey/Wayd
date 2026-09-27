@@ -34,8 +34,16 @@ public sealed class TeamMemberImportDefinitionTests
     }
 
     private static TeamMemberImportDefinition CreateDefinition(
-        Wayd.Infrastructure.Persistence.Context.WaydDbContext context) =>
-        new(context, new ImportPayloadSerializer());
+        Wayd.Infrastructure.Persistence.Context.WaydDbContext context)
+    {
+        var dateTimeProvider = new Mock<IDateTimeProvider>();
+        dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
+
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+
+        return new(context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
+    }
 
     private static ImportProcessRow[] Rows(
         TeamMemberImportDefinition definition,

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Wayd.Organization.Domain.Enums;
+namespace Wayd.Common.Domain.Enums.Organization;
 
 /// <summary>
 /// Defines the sizing method a team uses to estimate work items.

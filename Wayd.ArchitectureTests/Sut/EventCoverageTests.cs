@@ -97,15 +97,6 @@ public partial class EventCoverageTests
         ["StatusTrackedEntity.SwitchWorkflow(StatusRemap, EventActor, Instant, String)"] = "Gap: #896.",
         ["DeploymentEnvironment.Update(String, Int32)"] = "Gap: #897.",
         ["DeploymentEnvironment.Activate()"] = "Gap: #897.",
-        ["Team.SetOperatingModel(LocalDate, Methodology, SizingMethod, String, Int32)"] = "Gap: #813.",
-        ["Team.RemoveOperatingModel(Guid)"] = "Gap: #813.",
-        ["BaseTeam.AddMember(Employee, IReadOnlyList<Guid>)"] = "Gap: #813.",
-        ["BaseTeam.AddMember(Employee, Guid)"] = "Gap: #813.",
-        ["BaseTeam.UpdateMemberRoles(Employee, IReadOnlyList<Guid>)"] = "Gap: #813.",
-        ["BaseTeam.RemoveMember(Guid)"] = "Gap: #813.",
-        ["BaseTeam.AddTeamMembership(TeamOfTeams, MembershipDateRange, Instant)"] = "Gap: #813.",
-        ["BaseTeam.UpdateTeamMembership(Guid, MembershipDateRange, Instant)"] = "Gap: #813.",
-        ["BaseTeam.RemoveTeamMembership(Guid)"] = "Gap: #813.",
 
         // Undecided (#816): whether these changes are part of the aggregate's history at all.
         ["ProjectPortfolio.MoveProjectRanks(PpmActor, IReadOnlyList<Guid>, Nullable<Guid>, Nullable<Guid>)"] = "Ranking: #816.",

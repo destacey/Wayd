@@ -69,7 +69,7 @@ description: Guides agents working with Wayd Teams and Teams of Teams via the Wa
 
 ### Activity history
 
-`Teams_GetActivities` with `idOrKey` (the team's integer ID or its UUID) returns the team's recorded changes, newest first: creation, detail changes, activation and deactivation. Membership changes are not part of it. Each entry's `payload` is a JSON string carrying the value before and after, and a `Baseline` entry marks where tracking began for a team that already existed.
+`Teams_GetActivities` with `idOrKey` (the team's integer ID or its UUID) returns the team's recorded changes, newest first: creation, detail changes, activation and deactivation; members joining, leaving or changing roles; its membership in a team of teams being added, re-dated or removed; and operating models being set, corrected (settings changed in place for the model's whole period) or removed. Member entries carry employee and role ids, not names, and no MCP tool resolves either, so report them as ids rather than guessing who they are. These changes are recorded only from the release that began tracking them, so a team's earlier staffing and operating model history is not in the log. Each entry's `payload` is a JSON string carrying the value before and after, and a `Baseline` entry marks where tracking began for a team that already existed.
 
 ### Backlog health
 

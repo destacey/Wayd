@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.TeamMemberRoles.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
@@ -10,6 +12,8 @@ namespace Wayd.Organization.Application.Tests.Sut.TeamMemberRoles.Commands;
 
 public class DeleteTeamMemberRoleCommandHandlerTests : IDisposable
 {
+    private static readonly Instant Timestamp = Instant.FromUtc(2026, 6, 1, 0, 0);
+
     private readonly TeamFaker _teamFaker;
     private readonly EmployeeFaker _employeeFaker;
     private readonly FakeOrganizationDbContext _dbContext;
@@ -53,7 +57,7 @@ public class DeleteTeamMemberRoleCommandHandlerTests : IDisposable
         _dbContext.AddTeamMemberRole(role);
         _dbContext.AddTeam(team);
 
-        team.AddMember(employee, role.Id);
+        team.AddMember(employee, [role.Id], EventActor.System, Timestamp);
         _dbContext.AddTeamMember(team.Members.Single());
 
         var command = new DeleteTeamMemberRoleCommand(role.Id);

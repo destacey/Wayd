@@ -713,6 +713,93 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void TeamMemberRolesChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — three Guid collections, one of them empty
+        var original = new TeamMemberRolesChangedEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            employeeId: Guid.NewGuid(),
+            addedRoleIds: [Guid.NewGuid()],
+            removedRoleIds: [],
+            roleIds: [Guid.NewGuid(), Guid.NewGuid()],
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
+    }
+
+    [Fact]
+    public void TeamMembershipDatesChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — one range open-ended, the other closed
+        var original = new TeamMembershipDatesChangedEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            parentTeamId: Guid.NewGuid(),
+            dateRange: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2026, 6, 30)),
+            previousDateRange: new FlexibleDateRange(new LocalDate(2025, 1, 1)),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.DateRange.Should().Be(original.DateRange);
+        roundTripped.PreviousDateRange.Should().Be(original.PreviousDateRange);
+        roundTripped.ParentTeamId.Should().Be(original.ParentTeamId);
+    }
+
+    [Fact]
+    public void TeamOperatingModelSetEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — the nested settings record carries two enums
+        var original = new TeamOperatingModelSetEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            period: new FlexibleDateRange(new LocalDate(2026, 1, 1)),
+            settings: new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Count, "America/Chicago", 2),
+            supersededPeriod: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Period.Should().Be(original.Period);
+        roundTripped.Settings.Should().Be(original.Settings);
+        roundTripped.SupersededPeriod.Should().Be(original.SupersededPeriod);
+    }
+
+    [Fact]
+    public void TeamOperatingModelCorrectedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new TeamOperatingModelCorrectedEvent(
+            id: Guid.NewGuid(),
+            key: 42,
+            period: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
+            settings: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.StoryPoints, "Europe/London", 1),
+            previous: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Count, "UTC", 0),
+            EventActor.System,
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Period.Should().Be(original.Period);
+        roundTripped.Settings.Should().Be(original.Settings);
+        roundTripped.Previous.Should().Be(original.Previous);
+    }
+
+    [Fact]
     public void TeamDeactivatedEvent_PayloadWrittenBefore1_1_ReadsKeyAndCodeAsNotRecorded()
     {
         // Arrange - a 1.0 payload, written before Key and Code were added

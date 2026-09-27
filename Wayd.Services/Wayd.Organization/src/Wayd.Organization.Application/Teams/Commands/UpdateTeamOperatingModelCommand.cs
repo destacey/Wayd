@@ -1,5 +1,5 @@
 ﻿using Wayd.Common.Application.SystemSettings.Scheduling;
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
@@ -40,11 +40,15 @@ public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<U
 
 public sealed class UpdateTeamOperatingModelCommandHandler(
     IOrganizationDbContext organizationDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<UpdateTeamOperatingModelCommandHandler> logger) : ICommandHandler<UpdateTeamOperatingModelCommand>
 {
     private const string RequestName = nameof(UpdateTeamOperatingModelCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateTeamOperatingModelCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateTeamOperatingModelCommand request, CancellationToken cancellationToken)
@@ -62,15 +66,21 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
                 return Result.Failure($"Team with Id {request.TeamId} not found.");
             }
 
-            var operatingModel = team.OperatingModels.SingleOrDefault(m => m.Id == request.OperatingModelId);
-            if (operatingModel is null)
+            if (!team.OperatingModels.Any(m => m.Id == request.OperatingModelId))
             {
                 _logger.LogInformation("Operating model {OperatingModelId} for Team {TeamId} not found",
                     request.OperatingModelId, request.TeamId);
                 return Result.Failure($"Operating model with Id {request.OperatingModelId} for Team {request.TeamId} not found.");
             }
 
-            var updateResult = operatingModel.Update(request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays);
+            var updateResult = team.CorrectOperatingModel(
+                request.OperatingModelId,
+                request.Methodology,
+                request.SizingMethod,
+                request.TimeZone,
+                request.CommitmentGraceDays,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+                _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 _logger.LogError("Failed to update operating model {OperatingModelId}. Error: {Error}",

@@ -1,4 +1,4 @@
-using Wayd.Organization.Domain.Enums;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.TestData;
 using NodaTime;

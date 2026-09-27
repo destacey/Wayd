@@ -13,12 +13,16 @@ public sealed class RemoveTeamMemberCommandValidator : CustomValidator<RemoveTea
 
 public sealed class RemoveTeamMemberCommandHandler(
     IOrganizationDbContext organizationDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<RemoveTeamMemberCommandHandler> logger)
     : ICommandHandler<RemoveTeamMemberCommand>
 {
     private const string AppRequestName = nameof(RemoveTeamMemberCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<RemoveTeamMemberCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RemoveTeamMemberCommand request, CancellationToken cancellationToken)
@@ -35,7 +39,7 @@ public sealed class RemoveTeamMemberCommandHandler(
                 return Result.Failure("Team not found.");
             }
 
-            var result = team.RemoveMember(request.EmployeeId);
+            var result = team.RemoveMember(request.EmployeeId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogError("Error removing member {EmployeeId} from team {TeamId}. Error: {Error}", request.EmployeeId, request.TeamId, result.Error);

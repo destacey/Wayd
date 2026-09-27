@@ -194,37 +194,14 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <returns>A result indicating success or failure.</returns>
     public Result RemoveOperatingModel(Guid operatingModelId, EventActor actor, Instant timestamp)
     {
-        var operatingModel = _operatingModels.SingleOrDefault(m => m.Id == operatingModelId);
+        var result = OperatingModel.RemoveCurrent(_operatingModels, operatingModelId);
+        if (result.IsFailure)
+            return result;
 
-        if (operatingModel is null)
-        {
-            return Result.Failure($"Operating model with Id {operatingModelId} not found for this team.");
-        }
-
-        if (!operatingModel.IsCurrent)
-        {
-            return Result.Failure("Only the current operating model can be removed. Historical operating models must be preserved to maintain data integrity.");
-        }
-
-        if (_operatingModels.Count == 1)
-        {
-            return Result.Failure("Cannot remove the last operating model. A team must always have at least one operating model.");
-        }
-
-        // Find the previous operating model (the one with the latest start date before the current one)
-        var previousModel = _operatingModels
-            .Where(m => m.Id != operatingModelId)
-            .OrderByDescending(m => m.DateRange.Start)
-            .First();
-
-        // Clear the end date to make it current again
-        previousModel.ClearEndDate();
-
-        _operatingModels.Remove(operatingModel);
-
-        var period = ToFlexibleDateRange(operatingModel.DateRange);
-        var settings = SettingsOf(operatingModel);
-        var reinstatedPeriod = ToFlexibleDateRange(previousModel.DateRange);
+        var (removed, reinstated) = result.Value;
+        var period = ToFlexibleDateRange(removed.DateRange);
+        var settings = SettingsOf(removed);
+        var reinstatedPeriod = ToFlexibleDateRange(reinstated.DateRange);
         AddKeyedDomainEvent(() => new TeamOperatingModelRemovedEvent(Id, Key, period, settings, reinstatedPeriod, actor, timestamp));
 
         return Result.Success();

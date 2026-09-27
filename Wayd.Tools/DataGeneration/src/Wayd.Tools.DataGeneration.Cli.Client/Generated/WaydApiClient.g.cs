@@ -61465,10 +61465,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the system defaults a new operating model is pre-filled with.
+        /// Get the values a new operating model for a team is pre-filled with.
         /// </summary>
+        /// <remarks>
+        /// The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<SchedulingSettingsDto> GetOperatingModelDefaultsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<OperatingModelDefaultsDto> GetOperatingModelDefaultsAsync(System.Guid id, string? startDate = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -64753,11 +64756,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the system defaults a new operating model is pre-filled with.
+        /// Get the values a new operating model for a team is pre-filled with.
         /// </summary>
+        /// <remarks>
+        /// The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<SchedulingSettingsDto> GetOperatingModelDefaultsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<OperatingModelDefaultsDto> GetOperatingModelDefaultsAsync(System.Guid id, string? startDate = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
             var client_ = _httpClient;
             var disposeClient_ = false;
             try
@@ -64769,8 +64778,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/organization/teams/operating-models/defaults"
-                    urlBuilder_.Append("api/organization/teams/operating-models/defaults");
+                    // Operation Path: "api/organization/teams/{id}/operating-models/defaults"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/operating-models/defaults");
+                    urlBuilder_.Append('?');
+                    if (startDate != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startDate")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startDate, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -64797,12 +64814,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<SchedulingSettingsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<OperatingModelDefaultsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -65731,6 +65768,51 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RemoveTeamMembershipAsync(System.Guid id, System.Guid teamMembershipId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the operating model history for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TeamOfTeamsOperatingModelDetailsDto>> GetOperatingModelsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set a new operating model for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> SetOperatingModelAsync(System.Guid id, SetTeamOfTeamsOperatingModelRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the values a new operating model for a team of teams is pre-filled with.
+        /// </summary>
+        /// <remarks>
+        /// The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<OperatingModelDefaultsDto> GetOperatingModelDefaultsAsync(System.Guid id, string? startDate = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a specific operating model for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamOfTeamsOperatingModelDetailsDto> GetOperatingModelAsync(System.Guid id, System.Guid operatingModelId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Correct an existing operating model for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UpdateOperatingModelAsync(System.Guid id, System.Guid operatingModelId, UpdateTeamOfTeamsOperatingModelRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete the current operating model from a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteOperatingModelAsync(System.Guid id, System.Guid operatingModelId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -66860,6 +66942,597 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/team-memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamMembershipId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the operating model history for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TeamOfTeamsOperatingModelDetailsDto>> GetOperatingModelsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/operating-models"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/operating-models");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<TeamOfTeamsOperatingModelDetailsDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set a new operating model for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> SetOperatingModelAsync(System.Guid id, SetTeamOfTeamsOperatingModelRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/operating-models"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/operating-models");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the values a new operating model for a team of teams is pre-filled with.
+        /// </summary>
+        /// <remarks>
+        /// The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<OperatingModelDefaultsDto> GetOperatingModelDefaultsAsync(System.Guid id, string? startDate = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/operating-models/defaults"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/operating-models/defaults");
+                    urlBuilder_.Append('?');
+                    if (startDate != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("startDate")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(startDate, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<OperatingModelDefaultsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a specific operating model for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamOfTeamsOperatingModelDetailsDto> GetOperatingModelAsync(System.Guid id, System.Guid operatingModelId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (operatingModelId == null)
+                throw new System.ArgumentNullException("operatingModelId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/operating-models/{operatingModelId}"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/operating-models/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(operatingModelId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamOfTeamsOperatingModelDetailsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Correct an existing operating model for a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UpdateOperatingModelAsync(System.Guid id, System.Guid operatingModelId, UpdateTeamOfTeamsOperatingModelRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (operatingModelId == null)
+                throw new System.ArgumentNullException("operatingModelId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/operating-models/{operatingModelId}"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/operating-models/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(operatingModelId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete the current operating model from a team of teams.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeleteOperatingModelAsync(System.Guid id, System.Guid operatingModelId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (operatingModelId == null)
+                throw new System.ArgumentNullException("operatingModelId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/operating-models/{operatingModelId}"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/operating-models/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(operatingModelId, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -83654,11 +84327,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The moment it shipped. Supplied rather than taken from the clock, because shipping is often
-        /// <br/>recorded after the fact.
+        /// <br/>recorded after the fact. Required unless the deprecated ReleasedDate is sent instead.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset ReleasedAt { get; set; } = default!;
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
+
+        /// <summary>
+        /// The day it shipped, read as 12:00 in the organization's default time zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        [System.Obsolete("Use ReleasedAt. Removed in a future release.")]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
     }
 
@@ -83675,6 +84355,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
+
+        /// <summary>
+        /// The released day, read as 12:00 in the organization's default time zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        [System.Obsolete("Use ReleasedAt. Removed in a future release.")]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
     }
 
@@ -84324,6 +85012,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
+        /// <summary>
+        /// The cut day, read as 12:00 in the organization's default time zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        [System.Obsolete("Use CutAt. Removed in a future release.")]
+        public System.DateTimeOffset? CutDate { get; set; } = default!;
+
+        /// <summary>
+        /// The released day, read as 12:00 in the organization's default time zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        [System.Obsolete("Use ReleasedAt. Removed in a future release.")]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -84335,11 +85039,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The moment scope was frozen — the build or tag that cut it. Supplied rather than taken from the
-        /// <br/>clock, because cutting is often recorded after the fact.
+        /// <br/>clock, because cutting is often recorded after the fact. Required unless the deprecated
+        /// <br/>CutDate is sent instead.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cutAt")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset CutAt { get; set; } = default!;
+        public System.DateTimeOffset? CutAt { get; set; } = default!;
+
+        /// <summary>
+        /// The day it was cut, read as 12:00 in the organization's default time zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        [System.Obsolete("Use CutAt. Removed in a future release.")]
+        public System.DateTimeOffset? CutDate { get; set; } = default!;
 
     }
 
@@ -84352,11 +85064,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// The moment it shipped. This is what orders a version history, so it is supplied rather than
-        /// <br/>taken from the clock.
+        /// <br/>taken from the clock. Required unless the deprecated ReleasedDate is sent instead.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedAt")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset ReleasedAt { get; set; } = default!;
+        public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
+
+        /// <summary>
+        /// The day it shipped, read as 12:00 in the organization's default time zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        [System.Obsolete("Use ReleasedAt. Removed in a future release.")]
+        public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
     }
 
@@ -94979,15 +95698,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class SchedulingSettingsDto
+    public partial class OperatingModelDefaultsDto
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("defaultTimeZone")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string DefaultTimeZone { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TimeZone { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("defaultCommitmentGraceDays")]
-        public int DefaultCommitmentGraceDays { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("timeZoneSource")]
+        public string? TimeZoneSource { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("commitmentGraceDays")]
+        public int CommitmentGraceDays { get; set; } = default!;
 
     }
 
@@ -95307,6 +96029,70 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset InactiveDate { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamOfTeamsOperatingModelDetailsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid TeamId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TimeZone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isCurrent")]
+        public bool IsCurrent { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetTeamOfTeamsOperatingModelRequest
+    {
+
+        /// <summary>
+        /// The start date for this operating model.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startDate")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset StartDate { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA id of the time zone the team of teams' own rollups count days in.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TimeZone { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateTeamOfTeamsOperatingModelRequest
+    {
+
+        /// <summary>
+        /// The IANA id of the time zone the team of teams' own rollups count days in.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string TimeZone { get; set; } = default!;
 
     }
 
@@ -98362,6 +99148,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("orderedStatusIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> OrderedStatusIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SchedulingSettingsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaultTimeZone")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string DefaultTimeZone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaultCommitmentGraceDays")]
+        public int DefaultCommitmentGraceDays { get; set; } = default!;
 
     }
 

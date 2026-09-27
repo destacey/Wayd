@@ -4,8 +4,6 @@ using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Application.SystemSettings.Scheduling.Dtos;
-using Wayd.Common.Application.SystemSettings.Scheduling.Queries;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Organization.Application.Models;
@@ -642,15 +640,26 @@ public class TeamsController(
         return Ok(operatingModels);
     }
 
-    [HttpGet("operating-models/defaults")]
+    [HttpGet("{id}/operating-models/defaults")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
-    [OpenApiOperation("Get the system defaults a new operating model is pre-filled with.", "")]
+    [OpenApiOperation("Get the values a new operating model for a team is pre-filled with.", "The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<SchedulingSettingsDto>> GetOperatingModelDefaults(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OperatingModelDefaultsDto>> GetOperatingModelDefaults(Guid id, [FromQuery] string startDate, CancellationToken cancellationToken)
     {
-        var settings = await _dispatcher.Send(new GetSchedulingSettingsQuery(), cancellationToken);
+        if (!IsoDateQuery.TryParse(startDate, out var parsedStartDate) || parsedStartDate is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(IsoDateQuery.FormatError, HttpContext));
 
-        return Ok(settings);
+        var teamExists = await _dispatcher.Send(new TeamExistsQuery(id), cancellationToken);
+        if (!teamExists)
+            return NotFound();
+
+        var defaults = await _dispatcher.Send(new GetOperatingModelDefaultsQuery(id, parsedStartDate.Value), cancellationToken);
+
+        return defaults is not null
+            ? Ok(defaults)
+            : NotFound();
     }
 
     [HttpGet("{id}/has-ever-been-scrum")]

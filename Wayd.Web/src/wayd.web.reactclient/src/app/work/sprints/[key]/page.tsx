@@ -8,7 +8,7 @@ import {
   useGetSprintBacklogQuery,
   useGetSprintQuery,
   useLazyGetSprintActivitiesQuery,
-} from '@/src/store/features/planning/sprints-api'
+} from '@/src/store/features/work-management/sprints-api'
 import {
   ACTIVITY_LOG_PAGE_SIZE,
   ActivityLogExportButton,
@@ -21,7 +21,7 @@ import SprintDetailsLoading from './loading'
 import {
   SprintBacklogGrid,
   SprintDetails,
-} from '@/src/app/planning/sprints/_components'
+} from '@/src/app/work/sprints/_components'
 import { IterationStateTag } from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
 import {
@@ -95,7 +95,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   })
 
   const handleSprintChange = (value: string | number) => {
-    router.push(`/planning/sprints/${value}`)
+    router.push(`/work/sprints/${value}`)
   }
 
   const sprintsItems = !teamSprints

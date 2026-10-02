@@ -65,7 +65,7 @@ const SprintCell = ({ sprint }: SprintCellProps) => {
   return (
     <div style={{ textAlign: 'center' }}>
       <div>
-        <Link href={`/planning/sprints/${sprint.key}`}>{sprint.name}</Link>
+        <Link href={`/work/sprints/${sprint.key}`}>{sprint.name}</Link>
       </div>
       <Text type="secondary" style={{ fontSize: '11px' }}>
         {formatDateRange(sprint.start, sprint.end)}

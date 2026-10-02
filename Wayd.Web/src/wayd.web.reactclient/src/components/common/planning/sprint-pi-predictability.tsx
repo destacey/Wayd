@@ -2,7 +2,7 @@
 
 import { MetricCard } from '../metrics'
 import WaydTooltip from '../wayd-tooltip'
-import { useGetSprintPlanningIntervalsQuery } from '@/src/store/features/planning/sprints-api'
+import { useGetSprintPlanningIntervalsQuery } from '@/src/store/features/work-management/sprints-api'
 import { useGetPlanningIntervalMetricsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { NavigationDto } from '@/src/services/wayd-api'
 import { Col, Row } from 'antd'

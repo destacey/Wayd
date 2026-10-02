@@ -13,7 +13,7 @@ import {
   SprintWorkItemMetricsDto,
   SizingMethod,
 } from '@/src/services/wayd-api'
-import { useGetSprintMetricsQuery } from '@/src/store/features/planning/sprints-api'
+import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
 
 // Mock dayjs
 jest.mock('dayjs', () => {
@@ -29,7 +29,7 @@ jest.mock('dayjs', () => {
 })
 
 // Mock the API hooks
-jest.mock('@/src/store/features/planning/sprints-api', () => ({
+jest.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintMetricsQuery: jest.fn(),
 }))
 

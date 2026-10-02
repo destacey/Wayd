@@ -91,7 +91,7 @@ const SprintCard: FC<SprintCardProps> = ({
               {sprint.team.name}
             </Link>
             <Link
-              href={`/planning/sprints/${sprint.sprintKey}`}
+              href={`/work/sprints/${sprint.sprintKey}`}
               style={{ fontSize: 13, width: 'fit-content' }}
             >
               {sprint.sprintName}
@@ -123,7 +123,7 @@ const SprintCard: FC<SprintCardProps> = ({
                 {sprint.team.name}
               </Link>
               <Link
-                href={`/planning/sprints/${sprint.sprintKey}`}
+                href={`/work/sprints/${sprint.sprintKey}`}
                 style={{ fontSize: 13, width: 'fit-content' }}
               >
                 {sprint.sprintName}

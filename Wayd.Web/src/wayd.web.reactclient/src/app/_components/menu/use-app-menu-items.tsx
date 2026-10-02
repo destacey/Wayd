@@ -64,12 +64,7 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
       'plan.planning-intervals',
       '/planning/planning-intervals',
     ),
-    restrictedPermissionMenuItem(
-      'Permissions.Iterations.View',
-      'Sprints',
-      'plan.sprints',
-      '/planning/sprints',
-    ),
+
     restrictedPermissionMenuItem(
       'Permissions.Roadmaps.View',
       'Roadmaps',
@@ -106,6 +101,12 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
       'Workspaces',
       'work.workspaces',
       '/work/workspaces',
+    ),
+    restrictedPermissionMenuItem(
+      'Permissions.Iterations.View',
+      'Sprints',
+      'work.sprints',
+      '/work/sprints',
     ),
   ]),
   ...(options.productManagement

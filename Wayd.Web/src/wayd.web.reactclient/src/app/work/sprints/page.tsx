@@ -4,7 +4,7 @@ import { PageTitle } from '@/src/components/common'
 import { SprintsGrid } from '@/src/components/common/planning'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { useGetSprintsQuery } from '@/src/store/features/planning/sprints-api'
+import { useGetSprintsQuery } from '@/src/store/features/work-management/sprints-api'
 import { FC } from 'react'
 
 const SprintsPage: FC = () => {
@@ -19,6 +19,7 @@ const SprintsPage: FC = () => {
         sprints={sprintsData ?? []}
         isLoading={isLoading}
         refetch={refetch}
+        // Named for the page's old route; renaming it would discard every user's saved column layout.
         persistStateKey="planning-sprints"
       />
     </div>

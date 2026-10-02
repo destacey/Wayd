@@ -9,7 +9,7 @@ export interface SprintLinkProps {
 const SprintLink = ({ sprint, showTeamCode = true }: SprintLinkProps) => {
   if (!sprint) return null
 
-  const url = `/planning/sprints/${sprint.key}`
+  const url = `/work/sprints/${sprint.key}`
   const displayText =
     showTeamCode && sprint.team?.code
       ? `${sprint.name} (${sprint.team.code})`

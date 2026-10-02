@@ -273,8 +273,6 @@ public static class ApplicationPermissions
         new("Update Roadmaps", ApplicationAction.Update, ApplicationResource.Roadmaps, PlanningCategory),
         new("Delete Roadmaps", ApplicationAction.Delete, ApplicationResource.Roadmaps, PlanningCategory),
 
-        new("View Iterations", ApplicationAction.View, ApplicationResource.Iterations, PlanningCategory),
-
         new("View Poker Sessions", ApplicationAction.View, ApplicationResource.PokerSessions, PlanningCategory),
         new("Create Poker Sessions", ApplicationAction.Create, ApplicationResource.PokerSessions, PlanningCategory),
         new("Update Poker Sessions", ApplicationAction.Update, ApplicationResource.PokerSessions, PlanningCategory),
@@ -371,6 +369,8 @@ public static class ApplicationPermissions
         new("Create Workspaces", ApplicationAction.Create, ApplicationResource.Workspaces, WorkManagementCategory),
         new("Update Workspaces", ApplicationAction.Update, ApplicationResource.Workspaces, WorkManagementCategory),
         new("Delete Workspaces", ApplicationAction.Delete, ApplicationResource.Workspaces, WorkManagementCategory),
+
+        new("View Iterations", ApplicationAction.View, ApplicationResource.Iterations, WorkManagementCategory),
 
         new("View WorkItems", ApplicationAction.View, ApplicationResource.WorkItems, WorkManagementCategory),
         new("Create WorkItems", ApplicationAction.Create, ApplicationResource.WorkItems, WorkManagementCategory),

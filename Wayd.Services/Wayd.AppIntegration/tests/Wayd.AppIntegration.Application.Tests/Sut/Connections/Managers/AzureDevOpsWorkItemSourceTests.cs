@@ -15,7 +15,6 @@ using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Application.Requests.Planning.Iterations;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Interfaces;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;

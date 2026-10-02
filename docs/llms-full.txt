@@ -86,32 +86,11 @@ Iteration health (active iterations only): On Track (completion rate ≥ expecte
 
 PI Iteration detail pages aggregate metrics from all mapped team sprints (cross-team view).
 
-### Sprints
+### Sprint Mapping
 
-Short time-boxed periods (typically 2 weeks) owned by teams. Properties:
-- Name, Type (Sprint/Iteration), State (Future/Active/Completed), Date Range
-- Team (optional), Ownership (Owned/Managed)
-- Managed sprints have External Metadata (e.g., Azure DevOps iteration path)
+Each team's sprint maps to a PI iteration (one sprint per team per iteration). Removing a team from PI removes its sprint mappings.
 
-Sprint Mapping: Each team's sprint maps to a PI iteration (one sprint per team per iteration). Removing a team from PI removes its sprint mappings.
-
-### Sprint Metrics
-
-| Metric | Formula |
-|--------|---------|
-| Total | Sum of all items/story points in sprint |
-| Completed | Items where status category is Done OR Removed |
-| In Progress | Items where status category is Active |
-| Not Started | Items where status category is Proposed |
-| Remaining | Total − Completed |
-| Completion Rate | (Completed / Total) × 100 |
-| Velocity | Completed count (story points or items) |
-| Avg Cycle Time | Sum(Done − Activated) / Count for Done items with both timestamps |
-| Missing Story Points | Count of items with null or zero story points |
-
-"Completed" includes Done + Removed. Cycle time only calculated for Done items (not Removed) with both Activated and Done timestamps.
-
-PI Iteration metrics: counts/points summed across sprints, cycle time averaged (simple, not weighted).
+PI Iteration metrics: counts/points summed across mapped sprints, cycle time averaged (simple, not weighted).
 
 ### Planning Interval Objectives
 
@@ -184,6 +163,29 @@ Permissions: all child mutations (goals, steps, tasks, lanes, personas, checklis
 ---
 
 ## Work Management Domain
+
+### Sprints
+
+Short time-boxed periods (typically 2 weeks) owned by teams. Properties:
+- Name, Type (Sprint/Iteration), State (Future/Active/Completed), Date Range
+- Team (optional), Ownership (Owned/Managed)
+- Managed sprints have External Metadata (e.g., Azure DevOps iteration path)
+
+### Sprint Metrics
+
+| Metric | Formula |
+|--------|---------|
+| Total | Sum of all items/story points in sprint |
+| Completed | Items where status category is Done OR Removed |
+| In Progress | Items where status category is Active |
+| Not Started | Items where status category is Proposed |
+| Remaining | Total − Completed |
+| Completion Rate | (Completed / Total) × 100 |
+| Velocity | Completed count (story points or items) |
+| Avg Cycle Time | Sum(Done − Activated) / Count for Done items with both timestamps |
+| Missing Story Points | Count of items with null or zero story points |
+
+"Completed" includes Done + Removed. Cycle time only calculated for Done items (not Removed) with both Activated and Done timestamps.
 
 ### Workspaces
 
@@ -709,6 +711,7 @@ Planning
 Work Management
   Workspace → uses → Work Process → defines → Work Type ↔ Workflow
   Workspace → contains → Work Item
+  Sprint → contains → Work Item
   Work Item → has → Status → belongs to → Status Category
   Work Item → depends on → Work Item (predecessor/successor with health)
   Work Item → parent of → Work Item (Portfolio tier only, higher level required)

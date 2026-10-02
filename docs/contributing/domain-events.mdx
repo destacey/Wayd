@@ -230,7 +230,7 @@ sees events late, twice, and out of order. `DurableEventFailurePolicy` retries a
 
 A handler must be correct under all of that. For a consumer that reacts to a change ("tell the new Owner"),
 that means being idempotent on its own or deduplicating on `EventId`. A module keeping a **copy** of another
-module's record — `WorkTeam`, `PlanningTeam`, `PpmTeam`, `WorkProject`, `WorkIteration`, the PPM
+module's record — `WorkTeam`, `PlanningTeam`, `PpmTeam`, `WorkProject`, `PlanningSprint`, the PPM
 `StrategicTheme` — follows the rules below, and every existing copy does.
 
 **1. Apply absolute values, never deltas.** A handler writes the values the event carries, so applying the

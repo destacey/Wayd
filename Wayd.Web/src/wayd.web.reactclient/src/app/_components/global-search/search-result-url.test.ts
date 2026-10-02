@@ -46,7 +46,7 @@ describe('getSearchResultUrl', () => {
   describe('Planning', () => {
     it('returns sprint url', () => {
       expect(getSearchResultUrl(item('Iteration', '42'))).toBe(
-        '/planning/sprints/42',
+        '/work/sprints/42',
       )
     })
 

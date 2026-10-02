@@ -8,7 +8,7 @@ jest.mock('../../../store/features/organizations/team-api', () => ({
   useGetTeamDetailsQuery: jest.fn(() => ({ data: undefined })),
 }))
 
-jest.mock('../../../store/features/planning/sprints-api', () => ({
+jest.mock('../../../store/features/work-management/sprints-api', () => ({
   useGetSprintMetricsQuery: jest.fn(),
 }))
 
@@ -52,7 +52,7 @@ jest.mock('./sprint-pi-predictability', () => ({
 }))
 
 import { useGetActiveSprintQuery } from '../../../store/features/organizations/team-api'
-import { useGetSprintMetricsQuery } from '../../../store/features/planning/sprints-api'
+import { useGetSprintMetricsQuery } from '../../../store/features/work-management/sprints-api'
 
 describe('ActiveTeamSprint', () => {
   const mockSprint = {
@@ -183,6 +183,6 @@ describe('ActiveTeamSprint', () => {
 
     const link = screen.getByRole('link', { name: 'Sprint 1' })
     expect(link).toBeInTheDocument()
-    expect(link).toHaveAttribute('href', '/planning/sprints/S1')
+    expect(link).toHaveAttribute('href', '/work/sprints/S1')
   })
 })

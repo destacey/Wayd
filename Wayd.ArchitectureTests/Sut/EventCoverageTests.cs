@@ -13,7 +13,6 @@ using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Organization.Domain.Models;
 using Wayd.Planning.Domain.Models;
-using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -67,7 +66,6 @@ public partial class EventCoverageTests
         typeof(TeamOfTeams),
 
         // Planning
-        typeof(Iteration),
         typeof(PlanningInterval),
         typeof(PlanningIntervalObjective),
         typeof(Risk),
@@ -90,7 +88,7 @@ public partial class EventCoverageTests
         typeof(StrategicTheme),
 
         // Work
-        typeof(WorkIteration),
+        typeof(Iteration),
         typeof(WorkProcess),
     ];
 
@@ -103,8 +101,6 @@ public partial class EventCoverageTests
     {
         ["StatusTrackedEntity.DrainStatusTransitions()"] =
             "Hands the pending transition rows to BaseDbContext to insert; the saved record is unchanged.",
-        ["WorkIteration.ctor(ISimpleIteration, Instant)"] =
-            "Builds the Work copy when the owning Iteration's creation event arrives; that event is the history.",
 
         // Known gaps: each changes state a reader of the history would expect to see.
         ["StatusTrackedEntity.SwitchWorkflow(StatusRemap, EventActor, Instant, String)"] = "Gap: #896.",

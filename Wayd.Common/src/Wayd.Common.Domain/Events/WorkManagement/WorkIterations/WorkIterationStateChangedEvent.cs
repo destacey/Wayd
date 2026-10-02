@@ -8,6 +8,7 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 /// <summary>
 /// The Work copy of an iteration moved between Future, Active and Completed.
 /// </summary>
+[Obsolete("Raised by the Work copy of an iteration, which became the sprint itself (#925); the sprint raises the Iteration* events. Kept only to deserialize payloads already written as this type.")]
 public sealed record WorkIterationStateChangedEvent : DomainEvent<WorkIterationStateChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;

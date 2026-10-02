@@ -11,6 +11,7 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 /// Supersedes <see cref="WorkIterationDateRangeChangedEvent"/>, whose ranges carried instants. A new type
 /// rather than a new version, because retyping a field breaks every consumer written against the old shape.
 /// </remarks>
+[Obsolete("Raised by the Work copy of an iteration, which became the sprint itself (#925); the sprint raises the Iteration* events. Kept only to deserialize payloads already written as this type.")]
 public sealed record WorkIterationDateRangeChangedEventV2 : DomainEvent<WorkIterationDateRangeChangedEventV2>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.ScheduleChanged;

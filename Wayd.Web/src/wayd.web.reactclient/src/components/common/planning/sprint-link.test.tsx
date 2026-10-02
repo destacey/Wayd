@@ -50,7 +50,7 @@ describe('SprintLink', () => {
 
     const link = screen.getByRole('link')
     expect(link).toBeInTheDocument()
-    expect(link).toHaveAttribute('href', '/planning/sprints/101')
+    expect(link).toHaveAttribute('href', '/work/sprints/101')
     expect(link).toHaveTextContent('Sprint 1 (TA)')
   })
 
@@ -59,7 +59,7 @@ describe('SprintLink', () => {
 
     const link = screen.getByRole('link')
     expect(link).toBeInTheDocument()
-    expect(link).toHaveAttribute('href', '/planning/sprints/101')
+    expect(link).toHaveAttribute('href', '/work/sprints/101')
     expect(link).toHaveTextContent('Sprint 1')
     expect(link).not.toHaveTextContent('(TA)')
   })
@@ -69,7 +69,7 @@ describe('SprintLink', () => {
 
     const link = screen.getByRole('link')
     expect(link).toBeInTheDocument()
-    expect(link).toHaveAttribute('href', '/planning/sprints/102')
+    expect(link).toHaveAttribute('href', '/work/sprints/102')
     expect(link).toHaveTextContent('Sprint 2')
     expect(link).not.toHaveTextContent('(')
   })
@@ -79,7 +79,7 @@ describe('SprintLink', () => {
 
     const link = screen.getByRole('link')
     expect(link).toBeInTheDocument()
-    expect(link).toHaveAttribute('href', '/planning/sprints/103')
+    expect(link).toHaveAttribute('href', '/work/sprints/103')
     expect(link).toHaveTextContent('Sprint 3')
     expect(link).not.toHaveTextContent('(')
   })
@@ -106,7 +106,7 @@ describe('SprintLink', () => {
     render(<SprintLink sprint={sprint} />)
 
     const link = screen.getByRole('link')
-    expect(link).toHaveAttribute('href', '/planning/sprints/999')
+    expect(link).toHaveAttribute('href', '/work/sprints/999')
   })
 
   it('handles sprint with team code and showTeamCode explicitly true', () => {

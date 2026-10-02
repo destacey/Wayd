@@ -34,7 +34,6 @@ const sidebars: SidebarsConfig = {
           link: {type: 'doc', id: 'user-guide/planning/index'},
           items: [
             'user-guide/planning/planning-intervals',
-            'user-guide/planning/sprints',
             'user-guide/planning/risks',
             'user-guide/planning/roadmaps',
             'user-guide/planning/planning-poker',
@@ -47,6 +46,7 @@ const sidebars: SidebarsConfig = {
           link: {type: 'doc', id: 'user-guide/work-management/index'},
           items: [
             'user-guide/work-management/work-items',
+            'user-guide/work-management/sprints',
             'user-guide/work-management/work-configuration',
             'user-guide/work-management/cycle-time-report',
           ],

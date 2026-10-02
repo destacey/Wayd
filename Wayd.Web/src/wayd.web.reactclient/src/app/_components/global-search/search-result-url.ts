@@ -20,7 +20,7 @@ export function getSearchResultUrl(item: GlobalSearchResultItemDto): string {
 
     // Planning
     case 'Iteration':
-      return `/planning/sprints/${key}`
+      return `/work/sprints/${key}`
     case 'PlanningInterval':
       return `/planning/planning-intervals/${key}`
     case 'PlanningIntervalIteration':

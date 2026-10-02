@@ -81,33 +81,41 @@ internal static partial class ActivityLogEntryFactory
     private static IEnumerable<AggregateReference>? RelatedAggregatesOf(DomainEvent domainEvent) =>
         (domainEvent as IRelatedAggregateEvent)?.RelatedAggregates;
 
-    private static string ResolveDomainArea(string entityNamespace, string eventNamespace)
+    /// <remarks>
+    /// The module that owns the record wins over the event's namespace. An event type cannot follow its
+    /// aggregate to another module, because the outbox and the log key on the type: the sprint's
+    /// <c>Iteration*</c> events live under Planning, and the sprint belongs to Work.
+    /// </remarks>
+    private static string ResolveDomainArea(string entityNamespace, string eventNamespace) =>
+        DomainAreaOf(entityNamespace) ?? DomainAreaOf(eventNamespace) ?? "App";
+
+    private static string? DomainAreaOf(string @namespace)
     {
-        if (entityNamespace.Contains("ProjectPortfolioManagement") || eventNamespace.Contains("ProjectPortfolioManagement"))
+        if (@namespace.Contains("ProjectPortfolioManagement"))
             return "Ppm";
-        if (entityNamespace.Contains("Organization") || eventNamespace.Contains("Organization"))
+        if (@namespace.Contains("Organization"))
             return "Organization";
-        if (entityNamespace.Contains("ProductManagement") || eventNamespace.Contains("ProductManagement"))
+        if (@namespace.Contains("ProductManagement"))
             return "ProductManagement";
-        if (entityNamespace.Contains("Planning") || eventNamespace.Contains("Planning"))
+        if (@namespace.Contains("Planning"))
             return "Planning";
         // Before Work, which a Workday connection's namespace also contains.
-        if (entityNamespace.Contains("AppIntegration") || eventNamespace.Contains("AppIntegration"))
+        if (@namespace.Contains("AppIntegration"))
             return "AppIntegration";
-        if (entityNamespace.Contains("Work") || eventNamespace.Contains("Work"))
+        if (@namespace.Contains("Work"))
             return "Work";
-        if (entityNamespace.Contains("StrategicManagement") || eventNamespace.Contains("StrategicManagement"))
+        if (@namespace.Contains("StrategicManagement"))
             return "StrategicManagement";
-        if (entityNamespace.Contains("StatusWorkflow") || eventNamespace.Contains("StatusWorkflow"))
+        if (@namespace.Contains("StatusWorkflow"))
             return "StatusWorkflows";
-        if (entityNamespace.Contains("Scoring") || eventNamespace.Contains("Scoring"))
+        if (@namespace.Contains("Scoring"))
             return "Scoring";
-        if (entityNamespace.Contains("Identity") || eventNamespace.Contains("Identity"))
+        if (@namespace.Contains("Identity"))
             return "Identity";
-        if (entityNamespace.Contains("Links") || eventNamespace.Contains("Links"))
+        if (@namespace.Contains("Links"))
             return "Links";
 
-        return "App";
+        return null;
     }
 
     private static Guid ResolveAggregateId(IEntity entity, DomainEvent domainEvent)

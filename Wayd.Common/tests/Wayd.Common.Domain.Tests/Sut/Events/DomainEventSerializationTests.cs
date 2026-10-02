@@ -935,6 +935,7 @@ public sealed class DomainEventSerializationTests
     public void WorkIterationDateRangeChangedEventV2_RoundTripsBothEnds()
     {
         // Arrange
+#pragma warning disable CS0618 // retired, but payloads written as it must still round-trip
         var original = new WorkIterationDateRangeChangedEventV2(
             Guid.NewGuid(),
             7,
@@ -942,6 +943,7 @@ public sealed class DomainEventSerializationTests
             new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 16)),
             EventActor.System,
             Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+#pragma warning restore CS0618
 
         // Act
         var roundTripped = RoundTrip(original);

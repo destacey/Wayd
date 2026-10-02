@@ -8,6 +8,7 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 /// <summary>
 /// The Work copy of an iteration was assigned to a different team, or to none.
 /// </summary>
+[Obsolete("Raised by the Work copy of an iteration, which became the sprint itself (#925); the sprint raises the Iteration* events. Kept only to deserialize payloads already written as this type.")]
 public sealed record WorkIterationTeamChangedEvent : DomainEvent<WorkIterationTeamChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Planning
 
-The Planning domain provides the capabilities to plan, organize, and execute work across periods of time. It supports scaled agile planning with planning intervals, iterations, sprints, team objectives, risk management, roadmaps, and collaborative estimation.
+The Planning domain provides the capabilities to plan, organize, and execute work across periods of time. It supports scaled agile planning with planning intervals, iterations, sprint mapping, team objectives, risk management, roadmaps, and collaborative estimation.
 
 ## How Planning Connects Across Wayd
 
@@ -21,12 +21,12 @@ graph LR
     subgraph "Planning"
         PI["Planning Intervals"]
         Iter["Iterations"]
-        Sprint["Sprints"]
         Obj["Objectives"]
         Risk["Risks"]
         RM["Roadmaps"]
     end
     subgraph "Work Management"
+        Sprint["Sprints"]
         WI["Work Items"]
     end
 
@@ -94,7 +94,7 @@ graph TD
 
 **How it fits together:**
 1. A **[Planning Interval](./planning-intervals.mdx)** defines the overall timeframe and contains **[Iterations](./planning-intervals.mdx#iterations-within-a-pi)** (the schedule)
-2. **[Teams](../organizations/index.mdx#teams)** participate in the PI and each team owns **[Sprints](./sprints.mdx)**
+2. **[Teams](../organizations/index.mdx#teams)** participate in the PI and each team owns **[Sprints](../work-management/sprints.mdx)**
 3. Each team's sprints are **[mapped](./planning-intervals.mdx#sprint-mapping)** to PI iterations (one sprint per team per iteration)
 4. Teams commit to **[Objectives](./planning-intervals.mdx#objectives)** — what they will deliver during the PI
 5. **[Work Items](../work-management/work-items.mdx#work-items)** live in sprints and represent the actual work being done
@@ -105,7 +105,6 @@ The PI iteration view aggregates all mapped sprints, giving you a cross-team vie
 ## Sections
 
 - **[Planning Intervals](./planning-intervals.mdx)** — PIs, iterations, sprint mapping, objectives, predictability, and plan review
-- **[Sprints & Metrics](./sprints.mdx)** — Sprint management and delivery metrics (velocity, cycle time, completion rate)
 - **[Risks](./risks.mdx)** — Risk identification and management using the ROAM model
 - **[Roadmaps](./roadmaps.mdx)** — Visual timeline planning with activities, milestones, and timeboxes
 - **[Planning Poker](./planning-poker.mdx)** — Collaborative estimation with real-time voting

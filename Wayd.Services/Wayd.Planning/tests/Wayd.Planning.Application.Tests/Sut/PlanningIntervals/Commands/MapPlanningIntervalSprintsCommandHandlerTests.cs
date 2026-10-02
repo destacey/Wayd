@@ -20,7 +20,7 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
     private readonly Mock<ILogger<MapPlanningIntervalSprintsCommandHandler>> _mockLogger;
 
     private readonly PlanningIntervalFaker _planningIntervalFaker;
-    private readonly IterationFaker _iterationFaker;
+    private readonly PlanningSprintFaker _sprintFaker;
 
     public MapPlanningIntervalSprintsCommandHandlerTests()
     {
@@ -30,7 +30,7 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
         _handler = new MapPlanningIntervalSprintsCommandHandler(_dbContext, Mock.Of<ICurrentUser>(), Mock.Of<IDateTimeProvider>(), _mockLogger.Object);
 
         _planningIntervalFaker = new PlanningIntervalFaker();
-        _iterationFaker = new IterationFaker();
+        _sprintFaker = new PlanningSprintFaker();
     }
 
     [Fact]
@@ -93,12 +93,12 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
             .WithIterations(piDates, 2, "Iteration ")
             .Generate();
 
-        var sprint1 = _iterationFaker.AsSprint().WithTeamId(teamId).Generate();
-        var sprint2 = _iterationFaker.AsSprint().WithTeamId(teamId).Generate();
+        var sprint1 = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
+        var sprint2 = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
 
         _dbContext.AddPlanningInterval(planningInterval);
-        _dbContext.AddIteration(sprint1);
-        _dbContext.AddIteration(sprint2);
+        _dbContext.AddPlanningSprint(sprint1);
+        _dbContext.AddPlanningSprint(sprint2);
 
         var iteration1Id = planningInterval.Iterations.First().Id;
         var iteration2Id = planningInterval.Iterations.Last().Id;
@@ -136,10 +136,10 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
             .WithIterations(piDates, 2, "Iteration ")
             .Generate();
 
-        var sprint = _iterationFaker.AsSprint().WithTeamId(teamId).Generate();
+        var sprint = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
 
         _dbContext.AddPlanningInterval(planningInterval);
-        _dbContext.AddIteration(sprint);
+        _dbContext.AddPlanningSprint(sprint);
 
         var iterationId = planningInterval.Iterations.First().Id;
 
@@ -184,14 +184,14 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
             .WithIterations(piDates, 2, "Iteration ")
             .Generate();
 
-        var sprint1 = _iterationFaker.AsSprint().WithTeamId(teamId).Generate();
-        var sprint2 = _iterationFaker.AsSprint().WithTeamId(teamId).Generate();
-        var sprint3 = _iterationFaker.AsSprint().WithTeamId(teamId).Generate();
+        var sprint1 = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
+        var sprint2 = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
+        var sprint3 = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
 
         _dbContext.AddPlanningInterval(planningInterval);
-        _dbContext.AddIteration(sprint1);
-        _dbContext.AddIteration(sprint2);
-        _dbContext.AddIteration(sprint3);
+        _dbContext.AddPlanningSprint(sprint1);
+        _dbContext.AddPlanningSprint(sprint2);
+        _dbContext.AddPlanningSprint(sprint3);
 
         var iteration1Id = planningInterval.Iterations.First().Id;
         var iteration2Id = planningInterval.Iterations.Last().Id;
@@ -276,10 +276,10 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
             .WithIterations(piDates, 2, "Iteration ")
             .Generate();
 
-        var iteration = _iterationFaker.AsIteration().WithTeamId(teamId).Generate(); // Not a sprint!
+        var iteration = _sprintFaker.AsIteration().WithTeamId(teamId).Generate(); // Not a sprint!
 
         _dbContext.AddPlanningInterval(planningInterval);
-        _dbContext.AddIteration(iteration);
+        _dbContext.AddPlanningSprint(iteration);
 
         var iterationId = planningInterval.Iterations.First().Id;
 
@@ -313,10 +313,10 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
             .WithIterations(piDates, 2, "Iteration ")
             .Generate();
 
-        var sprint = _iterationFaker.AsSprint().WithTeamId(team2Id).Generate(); // Different team!
+        var sprint = _sprintFaker.AsSprint().WithTeamId(team2Id).Generate(); // Different team!
 
         _dbContext.AddPlanningInterval(planningInterval);
-        _dbContext.AddIteration(sprint);
+        _dbContext.AddPlanningSprint(sprint);
 
         var iterationId = planningInterval.Iterations.First().Id;
 
@@ -349,10 +349,10 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
             .WithIterations(piDates, 2, "Iteration ")
             .Generate();
 
-        var sprint = _iterationFaker.AsSprint().WithTeamId(teamId).Generate();
+        var sprint = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
 
         _dbContext.AddPlanningInterval(planningInterval);
-        _dbContext.AddIteration(sprint);
+        _dbContext.AddPlanningSprint(sprint);
 
         var iterationId = planningInterval.Iterations.First().Id;
 
@@ -389,12 +389,12 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
             .WithIterations(piDates, 2, "Iteration ")
             .Generate();
 
-        var team1Sprint = _iterationFaker.AsSprint().WithTeamId(team1Id).Generate();
-        var team2Sprint = _iterationFaker.AsSprint().WithTeamId(team2Id).Generate();
+        var team1Sprint = _sprintFaker.AsSprint().WithTeamId(team1Id).Generate();
+        var team2Sprint = _sprintFaker.AsSprint().WithTeamId(team2Id).Generate();
 
         _dbContext.AddPlanningInterval(planningInterval);
-        _dbContext.AddIteration(team1Sprint);
-        _dbContext.AddIteration(team2Sprint);
+        _dbContext.AddPlanningSprint(team1Sprint);
+        _dbContext.AddPlanningSprint(team2Sprint);
 
         var iterationId = planningInterval.Iterations.First().Id;
 

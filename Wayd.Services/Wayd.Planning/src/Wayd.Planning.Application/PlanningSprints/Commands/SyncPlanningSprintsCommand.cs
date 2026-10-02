@@ -31,7 +31,7 @@ public sealed class SyncPlanningSprintsCommandHandler(
             int deleteCount = 0;
 
             var existingSprints = await _planningDbContext.PlanningSprints
-                .ToListAsync(cancellationToken);
+                .ToDictionaryAsync(x => x.Id, cancellationToken);
 
             var sourceIds = request.Sprints.Select(x => x.Id).ToHashSet();
 
@@ -39,9 +39,8 @@ public sealed class SyncPlanningSprintsCommandHandler(
             // A mapped copy stays: only its deletion event unmaps it, through the PI that records the change.
             var mappedSprintIds = await _planningDbContext.PlanningIntervalIterationSprints
                 .Select(s => s.SprintId)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-            var sprintsToDelete = existingSprints
+                .ToHashSetAsync(cancellationToken);
+            var sprintsToDelete = existingSprints.Values
                 .Where(x => !sourceIds.Contains(x.Id) && !x.Watermarks.AnyAfter(request.AsOf) && !mappedSprintIds.Contains(x.Id))
                 .ToList();
             if (sprintsToDelete.Count != 0)
@@ -52,8 +51,7 @@ public sealed class SyncPlanningSprintsCommandHandler(
 
             foreach (var sprint in request.Sprints)
             {
-                var existingSprint = existingSprints.FirstOrDefault(x => x.Id == sprint.Id);
-                if (existingSprint == null)
+                if (!existingSprints.TryGetValue(sprint.Id, out var existingSprint))
                 {
                     await _planningDbContext.PlanningSprints.AddAsync(new PlanningSprint(sprint, request.AsOf), cancellationToken);
                     createCount++;

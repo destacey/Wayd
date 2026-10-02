@@ -47,11 +47,12 @@ public sealed class UpdateAzureDevOpsConnectionCommandValidator : CustomValidato
     }
 }
 
-public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<UpdateAzureDevOpsConnectionCommand, Guid>
+public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<UpdateAzureDevOpsConnectionCommand, Guid>
 {
     private const string AppRequestName = nameof(UpdateAzureDevOpsConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateAzureDevOpsConnectionCommandHandler> _logger = logger;
     private readonly IAzureDevOpsService _azureDevOpsService = azureDevOpsService;
@@ -85,7 +86,7 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
 
             var configurationIsValid = systemIdAndTestResult.IsSuccess && !string.IsNullOrWhiteSpace(connection.SystemId);
 
-            var updateResult = connection.Update(request.Name, request.Description, request.Organization, pat, configurationIsValid, _dateTimeProvider.Now);
+            var updateResult = connection.Update(request.Name, request.Description, request.Organization, pat, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

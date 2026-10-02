@@ -47,11 +47,12 @@ public sealed class CreateAzureDevOpsConnectionCommandValidator : CustomValidato
     }
 }
 
-public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<CreateAzureDevOpsConnectionCommand, Guid>
+public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<CreateAzureDevOpsConnectionCommand, Guid>
 {
     private const string AppRequestName = nameof(CreateAzureDevOpsConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateAzureDevOpsConnectionCommandHandler> _logger = logger;
     private readonly IAzureDevOpsService _azureDevOpsService = azureDevOpsService;
@@ -70,7 +71,7 @@ public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
             }
             var systemId = systemIdResult.IsSuccess ? systemIdResult.Value : null;
 
-            var connection = AzureDevOpsBoardsConnection.Create(request.Name, request.Description, systemId, config, systemIdResult.IsSuccess, null, timestamp);
+            var connection = AzureDevOpsBoardsConnection.Create(request.Name, request.Description, systemId, config, systemIdResult.IsSuccess, null, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
 
             await _appIntegrationDbContext.AzureDevOpsBoardsConnections.AddAsync(connection, cancellationToken);
 

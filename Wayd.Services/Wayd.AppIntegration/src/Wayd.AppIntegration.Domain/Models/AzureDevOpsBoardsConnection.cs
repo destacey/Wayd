@@ -1,6 +1,7 @@
 ﻿using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Extensions;
 
@@ -42,7 +43,7 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         && (Configuration.WorkProcesses.Any(p => p.IntegrationIsActive)
         || Configuration.Workspaces.Any(p => p.IntegrationIsActive));
 
-    public Result Update(string name, string? description, string organization, string personalAccessToken, bool configurationIsValid, Instant timestamp)
+    public Result Update(string name, string? description, string organization, string personalAccessToken, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -56,12 +57,16 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             if (!UpdateValuesChanged(newName, newDescription, newOrganization, newPersonalAccessToken, configurationIsValid))
                 return Result.Success();
 
+            var before = CaptureState();
+
             Name = newName;
             Description = newDescription;
             IsValidConfiguration = configurationIsValid;
 
             Configuration.Organization = newOrganization;
             Configuration.PersonalAccessToken = newPersonalAccessToken;
+
+            RaiseChangesSince(before, actor, timestamp);
 
             return Result.Success();
         }
@@ -411,12 +416,21 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         }
     }
 
-    public static AzureDevOpsBoardsConnection Create(string name, string? description, string? systemId, AzureDevOpsBoardsConnectionConfiguration configuration, bool configurationIsValid, AzureDevOpsBoardsTeamConfiguration? teamConfiguration, Instant timestamp)
+    public static AzureDevOpsBoardsConnection Create(string name, string? description, string? systemId, AzureDevOpsBoardsConnectionConfiguration configuration, bool configurationIsValid, AzureDevOpsBoardsTeamConfiguration? teamConfiguration, EventActor actor, Instant timestamp)
     {
         var connector = new AzureDevOpsBoardsConnection(name, description, systemId, configuration, configurationIsValid, teamConfiguration);
 
+        connector.RaiseCreated(actor, timestamp);
+
         return connector;
     }
+
+    // Workspaces, processes and team mappings are synced from Azure DevOps, not configured here.
+    protected override ConnectionSetting[] DescribeSettings() =>
+        [Setting(nameof(Configuration.Organization), Configuration.Organization)];
+
+    protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
+        [(nameof(Configuration.PersonalAccessToken), Configuration.PersonalAccessToken)];
 
     private bool UpdateValuesChanged(string name, string? description, string organization, string personalAccessToken, bool configurationIsValid)
     {

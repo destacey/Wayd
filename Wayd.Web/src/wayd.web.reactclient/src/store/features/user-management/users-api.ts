@@ -4,6 +4,7 @@ import {
   ConvertToLocalAccountRequest,
   CreateUserRequest,
   ManageRoleUsersRequest,
+  PagedResponseOfActivityLogDto,
   StageProviderMigrationRequest,
   StageSignInTenantRequest,
   UserDetailsDto,
@@ -20,7 +21,9 @@ export const usersApi = apiSlice.injectEndpoints({
       queryFn: async () => {
         try {
           const data = await getUsersClient().getUsers()
-          data.sort((a, b) => (a.userName ?? '').localeCompare(b.userName ?? ''))
+          data.sort((a, b) =>
+            (a.userName ?? '').localeCompare(b.userName ?? ''),
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -99,6 +102,7 @@ export const usersApi = apiSlice.injectEndpoints({
           { type: QueryTags.User, id: 'LIST' },
           { type: QueryTags.RoleUsers },
           { type: QueryTags.RoleUsersCount },
+          { type: QueryTags.ActivityLog, id: arg.userId },
         ]
       },
     }),
@@ -119,6 +123,10 @@ export const usersApi = apiSlice.injectEndpoints({
           { type: QueryTags.RoleUsersCount, id: arg.roleId },
           { type: QueryTags.User, id: 'LIST' },
           { type: QueryTags.UserRole, id: 'LIST' },
+          ...[...arg.userIdsToAdd, ...arg.userIdsToRemove].map((id) => ({
+            type: QueryTags.ActivityLog,
+            id,
+          })),
         ]
       },
     }),
@@ -163,6 +171,7 @@ export const usersApi = apiSlice.injectEndpoints({
         { type: QueryTags.User, id: arg.id },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserOption, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: arg.id },
       ],
     }),
 
@@ -214,6 +223,7 @@ export const usersApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.User, id: arg.userId },
         { type: QueryTags.User, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: arg.userId },
       ],
     }),
 
@@ -243,6 +253,7 @@ export const usersApi = apiSlice.injectEndpoints({
         { type: QueryTags.User, id: arg },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserOption, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: arg },
       ],
     }),
 
@@ -272,6 +283,7 @@ export const usersApi = apiSlice.injectEndpoints({
         { type: QueryTags.User, id: arg },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserOption, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: arg },
       ],
     }),
 
@@ -302,6 +314,7 @@ export const usersApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.User, id: arg },
         { type: QueryTags.User, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: arg },
       ],
     }),
 
@@ -337,6 +350,7 @@ export const usersApi = apiSlice.injectEndpoints({
         { type: QueryTags.User, id: userId },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserIdentityHistory, id: userId },
+        { type: QueryTags.ActivityLog, id: userId },
       ],
     }),
 
@@ -361,6 +375,7 @@ export const usersApi = apiSlice.injectEndpoints({
         { type: QueryTags.User, id: arg.userId },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserIdentityHistory, id: arg.userId },
+        { type: QueryTags.ActivityLog, id: arg.userId },
       ],
     }),
 
@@ -381,6 +396,7 @@ export const usersApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.User, id: arg.userId },
         { type: QueryTags.User, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id: arg.userId },
       ],
     }),
 
@@ -398,6 +414,7 @@ export const usersApi = apiSlice.injectEndpoints({
         { type: QueryTags.User, id: userId },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserIdentityHistory, id: userId },
+        { type: QueryTags.ActivityLog, id: userId },
       ],
     }),
 
@@ -422,6 +439,29 @@ export const usersApi = apiSlice.injectEndpoints({
         { type: QueryTags.User, id: arg.userId },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserIdentityHistory, id: arg.userId },
+        { type: QueryTags.ActivityLog, id: arg.userId },
+      ],
+    }),
+
+    getUserActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getUsersClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
       ],
     }),
 
@@ -467,5 +507,7 @@ export const {
   useStageSignInTenantMutation,
   useCancelProviderMigrationMutation,
   useConvertToLocalAccountMutation,
+  useGetUserActivitiesQuery,
+  useLazyGetUserActivitiesQuery,
   useGetUserOptionsQuery,
 } = usersApi

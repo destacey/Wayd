@@ -5,10 +5,20 @@ import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { useGetOidcProviderQuery } from '@/src/store/features/user-management/oidc-providers-api'
+import {
+  useGetOidcProviderActivitiesQuery,
+  useGetOidcProviderQuery,
+  useLazyGetOidcProviderActivitiesQuery,
+} from '@/src/store/features/user-management/oidc-providers-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import {
   ActiveTenantMigrations,
@@ -23,6 +33,7 @@ import getTenantMigrationAccess from './_components/tenant-migration-access'
 enum ProviderSections {
   Overview = 'overview',
   ActiveMigrations = 'active-migrations',
+  Activities = 'activities',
 }
 
 /** The dialogs this record can open. One value, not one boolean each. */
@@ -37,6 +48,28 @@ const OidcProviderDetailsPage = (props: {
   const [dialog, setDialog] = useState<DialogId | null>(null)
 
   const { data: provider, isLoading, error } = useGetOidcProviderQuery(id)
+
+  const searchParams = useSearchParams()
+  const activeSection = searchParams.get('section') ?? ProviderSections.Overview
+
+  const activitiesQuery = useGetOidcProviderActivitiesQuery(
+    {
+      idOrKey: provider?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip: !provider?.id || activeSection !== ProviderSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetOidcProviderActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: provider?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `identity-provider-${id}-activity`,
+  })
 
   const { hasPermissionClaim } = useAuth()
   const canUpdate = hasPermissionClaim('Permissions.OidcProviders.Update')
@@ -90,8 +123,7 @@ const OidcProviderDetailsPage = (props: {
   })()
 
   // Active Migrations exists only for a multi-tenant Entra provider the viewer
-  // can see users on. Everywhere else that leaves one section, and
-  // `RecordLayout` drops the rail rather than spending 190px on it.
+  // can see users on.
   const sections: RecordSection[] = [
     { id: ProviderSections.Overview, label: 'Overview' },
     ...(showActiveMigrations
@@ -102,6 +134,7 @@ const OidcProviderDetailsPage = (props: {
           },
         ]
       : []),
+    { id: ProviderSections.Activities, label: 'Activity' },
   ]
 
   if (isLoading) {
@@ -134,14 +167,22 @@ const OidcProviderDetailsPage = (props: {
               <PageActions actionItems={actionsMenuItems} />
             ) : undefined,
         }}
-      >
-        {(section) =>
-          section === ProviderSections.ActiveMigrations ? (
-            <ActiveTenantMigrations providerId={provider.id} />
-          ) : (
-            <OidcProviderDetails provider={provider} />
-          )
+        sectionActions={
+          activeSection === ProviderSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
         }
+      >
+        {(section) => {
+          switch (section) {
+            case ProviderSections.ActiveMigrations:
+              return <ActiveTenantMigrations providerId={provider.id} />
+            case ProviderSections.Activities:
+              return <ActivityLogTimeline {...activityLog.timelineProps} />
+            default:
+              return <OidcProviderDetails provider={provider} />
+          }
+        }}
       </RecordLayout>
 
       {dialog === 'edit' && (

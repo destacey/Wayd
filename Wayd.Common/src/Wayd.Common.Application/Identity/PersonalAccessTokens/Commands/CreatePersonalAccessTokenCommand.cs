@@ -103,6 +103,7 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
                 userId: userId,
                 expiresAt: request.ExpiresAt,
                 scopes: null,
+                actor: EventActor.User(userId, _currentUser.GetEmployeeId()),
                 timestamp: now
             );
 

@@ -10,12 +10,14 @@ public sealed record DeactivateConnectionCommand(Guid Id) : ICommand;
 
 public sealed class DeactivateConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<DeactivateConnectionCommandHandler> logger) : ICommandHandler<DeactivateConnectionCommand>
 {
     private const string AppRequestName = nameof(DeactivateConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeactivateConnectionCommandHandler> _logger = logger;
 
@@ -28,7 +30,7 @@ public sealed class DeactivateConnectionCommandHandler(
             if (connection is null)
                 return Result.Failure($"Connection {request.Id} not found.");
 
-            var result = connection.Deactivate(_dateTimeProvider.Now);
+            var result = connection.Deactivate(ConnectionActivatableArgs.Create(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
             if (result.IsFailure)
                 return result;
 

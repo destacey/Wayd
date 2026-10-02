@@ -11,5 +11,6 @@ global using Wayd.AppIntegration.Domain.Models;
 global using Wayd.Common.Application.Interfaces;
 global using Wayd.Common.Application.Persistence;
 global using Wayd.Common.Application.Validation;
+global using Wayd.Common.Domain.Events;
 global using Wayd.Common.Extensions;
 global using NodaTime;

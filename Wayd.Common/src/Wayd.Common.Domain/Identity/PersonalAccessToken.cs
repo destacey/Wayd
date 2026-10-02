@@ -1,6 +1,8 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Data;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Identity;
@@ -132,9 +134,10 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// Revokes this token.
     /// </summary>
     /// <param name="revokedBy">The ID of the user revoking the token.</param>
+    /// <param name="actor">Who revoked the token, for the event.</param>
     /// <param name="timestamp">The timestamp for the revocation.</param>
     /// <returns>A Result indicating success or failure.</returns>
-    public Result Revoke(string revokedBy, Instant timestamp)
+    public Result Revoke(string revokedBy, EventActor actor, Instant timestamp)
     {
         if (IsRevoked)
         {
@@ -144,6 +147,8 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         RevokedAt = timestamp;
         RevokedBy = revokedBy;
 
+        AddDomainEvent(new PersonalAccessTokenRevokedEvent(Id, UserId, actor, timestamp));
+
         return Result.Success();
     }
 
@@ -151,9 +156,10 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// Updates the token name.
     /// </summary>
     /// <param name="name">The new name.</param>
+    /// <param name="actor">Who renamed the token, for the event.</param>
     /// <param name="timestamp">The timestamp for the update.</param>
     /// <returns>A Result indicating success or failure.</returns>
-    public Result UpdateName(string name, Instant timestamp)
+    public Result UpdateName(string name, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -162,7 +168,14 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
                 return Result.Failure("Cannot update a revoked token.");
             }
 
+            // Compared after assignment, never against the argument: the setter trims.
+            var previousName = Name;
             Name = name;
+
+            if (Name != previousName)
+            {
+                AddDomainEvent(new PersonalAccessTokenRenamedEvent(Id, UserId, previousName, Name, actor, timestamp));
+            }
 
             return Result.Success();
         }
@@ -176,9 +189,10 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// Updates the token expiration date.
     /// </summary>
     /// <param name="expiresAt">The new expiration date.</param>
+    /// <param name="actor">Who moved the expiration, for the event.</param>
     /// <param name="timestamp">The timestamp for the update.</param>
     /// <returns>A Result indicating success or failure.</returns>
-    public Result UpdateExpiresAt(Instant expiresAt, Instant timestamp)
+    public Result UpdateExpiresAt(Instant expiresAt, EventActor actor, Instant timestamp)
     {
         if (IsRevoked)
         {
@@ -190,9 +204,25 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
             return Result.Failure("Expiration date must be in the future.");
         }
 
+        if (ExpiresAt == expiresAt)
+        {
+            return Result.Success();
+        }
+
+        var previousExpiresAt = ExpiresAt;
         ExpiresAt = expiresAt;
 
+        AddDomainEvent(new PersonalAccessTokenExpirationChangedEvent(Id, UserId, previousExpiresAt, ExpiresAt, actor, timestamp));
+
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Raises the deletion event. The caller removes the token in the same save, which is what drains the event.
+    /// </summary>
+    public void Delete(EventActor actor, Instant timestamp)
+    {
+        AddDomainEvent(new PersonalAccessTokenDeletedEvent(Id, UserId, Name, actor, timestamp));
     }
 
     /// <summary>
@@ -204,6 +234,7 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// <param name="userId">The ID of the user who owns this token.</param>
     /// <param name="expiresAt">When the token expires.</param>
     /// <param name="scopes">Optional scopes to limit token permissions.</param>
+    /// <param name="actor">Who created the token, for the event.</param>
     /// <param name="timestamp">The timestamp of the creation.</param>
     /// <returns>A Result containing the new PersonalAccessToken or an error.</returns>
     public static Result<PersonalAccessToken> Create(
@@ -213,6 +244,7 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         string userId,
         Instant expiresAt,
         string? scopes,
+        EventActor actor,
         Instant timestamp)
     {
         try
@@ -226,6 +258,9 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
             {
                 Scopes = scopes
             };
+
+            token.AddDomainEvent(new PersonalAccessTokenCreatedEvent(
+                token.Id, token.UserId, token.Name, token.ExpiresAt, token.Scopes, actor, timestamp));
 
             return Result.Success(token);
         }

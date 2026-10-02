@@ -1,5 +1,6 @@
 ﻿using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Extensions;
 
 namespace Wayd.AppIntegration.Domain.Models.Workday;
@@ -46,6 +47,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         string? departmentOrganizationTypeId,
         IReadOnlyList<WorkdayOrgExclusion>? orgExclusions,
         bool configurationIsValid,
+        EventActor actor,
         Instant timestamp)
     {
         try
@@ -71,6 +73,8 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
                 return Result.Failure(
                     $"WsdlUrl '{newWsdlUrl}' is not a valid Workday Staffing endpoint URL. Expected form: https://{{host}}/ccx/service/{{tenant}}/Staffing/{{version}}.");
 
+            var before = CaptureState();
+
             Name = newName;
             Description = newDescription;
             IsValidConfiguration = configurationIsValid;
@@ -91,6 +95,8 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             Configuration.TenantAlias = parts.TenantAlias;
             Configuration.WsdlVersion = parts.WsdlVersion;
             Configuration.SoapEndpoint = parts.SoapEndpoint;
+
+            RaiseChangesSince(before, actor, timestamp);
 
             return Result.Success();
         }
@@ -177,10 +183,34 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         string? description,
         WorkdayConnectionConfiguration configuration,
         bool configurationIsValid,
+        EventActor actor,
         Instant timestamp)
     {
         var connection = new WorkdayConnection(name, description, configurationIsValid, configuration);
 
+        connection.RaiseCreated(actor, timestamp);
+
         return connection;
     }
+
+    // The host, tenant, version and endpoint are parsed from WsdlUrl, so they are not settings of their own.
+    // Exclusions are compared by key, as UpdateValuesChanged does; their display name is a cosmetic cache.
+    protected override ConnectionSetting[] DescribeSettings() =>
+    [
+        Setting(nameof(Configuration.WsdlUrl), Configuration.WsdlUrl),
+        Setting(nameof(Configuration.IsuUsername), Configuration.IsuUsername),
+        Setting(nameof(Configuration.WorkerKey), Configuration.WorkerKey),
+        Setting(nameof(Configuration.IncludeInactive), Configuration.IncludeInactive),
+        Setting(nameof(Configuration.MatchBy), Configuration.MatchBy),
+        Setting(nameof(Configuration.UseUserIdAsEmailFallback), Configuration.UseUserIdAsEmailFallback),
+        Setting(nameof(Configuration.UsePreferredName), Configuration.UsePreferredName),
+        Setting(nameof(Configuration.NormalizeNameCasing), Configuration.NormalizeNameCasing),
+        Setting(nameof(Configuration.DepartmentOrganizationTypeId), Configuration.DepartmentOrganizationTypeId),
+        Setting(nameof(Configuration.OrgExclusions), string.Join(", ", Configuration.OrgExclusions
+            .Select(e => $"{e.OrganizationTypeId}:{e.OrganizationReference}")
+            .Order(StringComparer.Ordinal))),
+    ];
+
+    protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
+        [(nameof(Configuration.IsuPassword), Configuration.IsuPassword)];
 }

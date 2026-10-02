@@ -5,6 +5,7 @@ using Wayd.AppIntegration.Application.Connections.Commands.Entra;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 
@@ -126,6 +127,7 @@ public class UpdateEntraConnectionCommandHandlerTests
             "Original description",
             new EntraConnectionConfiguration(TenantId, ClientId, StoredClientSecret),
             configurationIsValid: true,
+            EventActor.System,
             _now);
 
         _db.AddEntraConnection(connection);

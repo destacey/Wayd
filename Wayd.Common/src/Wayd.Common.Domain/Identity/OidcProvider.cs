@@ -1,6 +1,8 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Data;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Identity;
@@ -161,6 +163,7 @@ public sealed class OidcProvider : BaseAuditableEntity
     /// <param name="allowedTenantIds">The allowed tenant IDs of the provider.</param>
     /// <param name="clockSkewSeconds">The clock skew in seconds.</param>
     /// <param name="isEnabled">Whether the provider is enabled.</param>
+    /// <param name="actor">Who added the provider, for the event.</param>
     /// <param name="timestamp">The timestamp of the creation.</param>
     /// <param name="registrationPolicy">The registration policy of the provider. Optional; if not provided, defaults to disabled.</param>
     /// <returns>A result indicating success or failure.</returns>
@@ -175,6 +178,7 @@ public sealed class OidcProvider : BaseAuditableEntity
         IReadOnlyList<string>? allowedTenantIds,
         int clockSkewSeconds,
         bool isEnabled,
+        EventActor actor,
         Instant timestamp,
         RegistrationPolicy? registrationPolicy = null)
     {
@@ -199,6 +203,17 @@ public sealed class OidcProvider : BaseAuditableEntity
                 isEnabled,
                 registrationPolicy ?? RegistrationPolicy.Disabled());
 
+            provider.AddDomainEvent(new OidcProviderCreatedEvent(
+                provider.Id,
+                provider.Name,
+                provider.DisplayName,
+                provider.ProviderType,
+                provider.CurrentConfiguration(),
+                OidcProviderRegistrationPolicy.From(provider.RegistrationPolicy),
+                provider.IsEnabled,
+                actor,
+                timestamp));
+
             return Result.Success(provider);
         }
         catch (Exception ex)
@@ -222,6 +237,7 @@ public sealed class OidcProvider : BaseAuditableEntity
     /// <param name="allowedTenantIds">The allowed tenant IDs of the provider.</param>
     /// <param name="clockSkewSeconds">The clock skew in seconds.</param>
     /// <param name="isEnabled">Whether the provider is enabled.</param>
+    /// <param name="actor">Who changed the provider, for the events.</param>
     /// <param name="timestamp">The timestamp of the update.</param>
     /// <param name="registrationPolicy">The registration policy of the provider. Optional; if not provided, defaults to disabled.</param>
     /// <returns>A result indicating success or failure.</returns>
@@ -234,6 +250,7 @@ public sealed class OidcProvider : BaseAuditableEntity
         IReadOnlyList<string>? allowedTenantIds,
         int clockSkewSeconds,
         bool isEnabled,
+        EventActor actor,
         Instant timestamp,
         RegistrationPolicy? registrationPolicy = null)
     {
@@ -245,6 +262,12 @@ public sealed class OidcProvider : BaseAuditableEntity
                 return Result.Failure(validation.Error);
             }
 
+            // Compared after assignment, never against the arguments: the setters trim and the tenant list is
+            // normalized.
+            var previousDetails = new OidcProviderDetails(DisplayName);
+            var previousConfiguration = CurrentConfiguration();
+            var previousPolicy = OidcProviderRegistrationPolicy.From(RegistrationPolicy);
+
             DisplayName = displayName;
             Authority = authority;
             ClientId = clientId;
@@ -252,8 +275,27 @@ public sealed class OidcProvider : BaseAuditableEntity
             Scopes = scopes ?? [];
             AllowedTenantIds = NormalizeAllowedTenantIds(allowedTenantIds);
             ClockSkewSeconds = clockSkewSeconds;
-            IsEnabled = isEnabled;
             RegistrationPolicy = registrationPolicy ?? RegistrationPolicy.Disabled();
+
+            var details = new OidcProviderDetails(DisplayName);
+            if (details != previousDetails)
+            {
+                AddDomainEvent(new OidcProviderDetailsUpdatedEvent(Id, details.Label, previousDetails, actor, timestamp));
+            }
+
+            var configuration = CurrentConfiguration();
+            if (!configuration.IsEquivalentTo(previousConfiguration))
+            {
+                AddDomainEvent(new OidcProviderConfigurationChangedEvent(Id, configuration, previousConfiguration, actor, timestamp));
+            }
+
+            var policy = OidcProviderRegistrationPolicy.From(RegistrationPolicy);
+            if (policy != previousPolicy)
+            {
+                AddDomainEvent(new OidcProviderRegistrationPolicyChangedEvent(Id, policy, previousPolicy, actor, timestamp));
+            }
+
+            SetEnabled(isEnabled, actor, timestamp);
 
             return Result.Success();
         }
@@ -267,13 +309,28 @@ public sealed class OidcProvider : BaseAuditableEntity
     /// Convenience for the test-connection / disable / enable admin actions
     /// without rewriting the whole record.
     /// </summary>
-    public Result SetEnabled(bool isEnabled, Instant timestamp)
+    public Result SetEnabled(bool isEnabled, EventActor actor, Instant timestamp)
     {
         if (IsEnabled == isEnabled) return Result.Success();
 
         IsEnabled = isEnabled;
+        AddDomainEvent(isEnabled
+            ? new OidcProviderEnabledEvent(Id, actor, timestamp)
+            : new OidcProviderDisabledEvent(Id, actor, timestamp));
+
         return Result.Success();
     }
+
+    /// <summary>
+    /// Raises the deletion event. The caller removes the provider in the same save, which is what drains the event.
+    /// </summary>
+    public void Delete(EventActor actor, Instant timestamp)
+    {
+        AddDomainEvent(new OidcProviderDeletedEvent(Id, Name, actor, timestamp));
+    }
+
+    private OidcProviderConfiguration CurrentConfiguration() =>
+        new(Authority, ClientId, Audience, [.. Scopes], AllowedTenantIds is null ? null : [.. AllowedTenantIds], ClockSkewSeconds);
 
     private static Result ValidateInvariants(
         string name,

@@ -356,7 +356,9 @@ that history incomplete — silently, because the row still saves. `EventCoverag
   instead.
 
 A change that is deliberately not history goes on `UneventedMutators` with its reason, and a migration that
-accounts for its writes another way on `SetBasedWriteMigrations`. Both lists fail on an entry that no longer
+accounts for its writes another way on `SetBasedWriteMigrations`. Shipped code that writes a column that is no part of
+the aggregate's history — `LastSeenWriter` stamping a personal access token's `LastUsedAt` on every authenticated
+request — goes on `SetBasedWriteSourcesOutsideHistory`. Both lists fail on an entry that no longer
 excuses anything. The method check is "raises somewhere", not "raises on every path": a method that raises in
 one branch and changes state unevented in another passes, so it is a floor, not a proof.
 
@@ -602,6 +604,13 @@ entries, write the baselines, and give the migration a test that compares each r
 risks, skipping soft-deleted records and an interval's soft-deleted iterations along with the sprint mappings that
 still pointed at them. `Backfill-Scoring-Model-Baseline-Activity` baselined scoring models; it builds each scale's levels into a
 temporary table first, because SQL Server cannot aggregate an expression that contains another aggregate.
+`Backfill-Security-Configuration-Baseline-Activity` baselined personal access tokens, OIDC providers and connections,
+skipping revoked tokens and soft-deleted connections, and filed each token's baseline under its owner as well.
+A baseline may implement `IRelatedAggregateEvent` when its creation event does, so it is listed wherever the creation
+event would be; it still implements no module marker. A connection's settings are read out of its configuration JSON,
+where the default serializer stored enums as numbers, so the migration maps them to the names the events carry;
+`SecurityConfigurationBaselineBackfillTests` compares each row with the factory's entry by running the migration's SQL
+against the current schema.
 
 **A seeder that creates an evented aggregate records its creation too.** The backfill runs once, before any seeder,
 so a record a seeder creates on a fresh install is never baselined. Seeders run during `InitializeDatabases`,

@@ -48,6 +48,8 @@ User accounts control access to Wayd. Each user has:
 
 Local users created by an administrator have a **Must Change Password** flag that requires them to set a new password on first login.
 
+A user's detail page carries an **Activity** section: the changes made to the account — its details, roles, lockouts, password changes and identity-provider moves — together with the history of every personal access token the user owns: each token created, renamed, given a new expiration, revoked or deleted, and by whom. A token entry names the token it was raised on. See [Activity Log](../activity-log.mdx).
+
 #### Creating users
 
 Administrators create accounts from **Settings → User Management → Users → Create User**. This is the path for provisioning a user before their first sign-in — for example when a provider's auto-registration is off, or for local (Wayd) accounts.
@@ -146,6 +148,8 @@ Single sign-on providers are configured in **Settings → Identity Providers** (
 - **Upgrades are secure by default.** Existing providers have auto-registration turned **off** after upgrading to this version; re-enable it deliberately per provider.
 - **A role in use can't be deleted.** If a role is set as a provider's default, attempting to delete it is blocked with a clear message until you repoint the provider to a different role.
 
+A provider's detail page carries an **Activity** section: the provider added, its login label edited, its configuration (issuer, client, audience, scopes, allowed tenants or clock skew) changed, its registration policy changed, enabled, disabled or deleted — each entry with the values before and after. A provider stores no secret, so none is ever recorded.
+
 ### Roles
 
 Roles define permission groups. Users are assigned to roles to control access to features, pages, and actions throughout the application.
@@ -162,7 +166,7 @@ In [Project Portfolio Management](../ppm/index.mdx), a permission claim alone is
 
 ### Personal Access Tokens
 
-Users can generate **Personal Access Tokens (PATs)** for API access. These are managed from the user's profile page.
+Users can generate **Personal Access Tokens (PATs)** for API access. These are managed from the user's profile page. Every change to a token is recorded in the owning user's [Activity](#users), which administrators read from the user's detail page.
 
 ## Feature Management
 
@@ -328,6 +332,7 @@ A **Connector** is a configurable integration type that lets a specific external
 - **Sync Now** — Triggers a manual sync for that connection only. Available on Work Sync and People Sync connectors. Routes to the right runner based on the connector's category.
 - **Sync History** — A section on the connection detail page showing past runs with their status, duration, and per-run details (workspaces and work items for Work Sync; employees fetched and upserted for People Sync).
 - **Delete** — Removes the connection. Past sync history rows are preserved by design.
+- **Activity** — A section on the connection detail page recording the connection created, its name or description edited, its settings changed (each entry lists the settings before and after), its credentials replaced, activated, deactivated or deleted, and by whom. A credential change records *which* credential was replaced — the personal access token, API key, client secret or password — and never its value, not even hashed. Syncing workspaces, processes and teams from Azure DevOps and probing a Workday configuration are not recorded here; the Sync History section covers them.
 
 ### Azure DevOps Boards
 

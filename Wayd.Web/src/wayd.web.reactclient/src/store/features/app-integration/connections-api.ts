@@ -5,6 +5,7 @@ import {
   ConnectorListDto,
   CreateConnectionRequest,
   ExternalIdentityMappingDto,
+  PagedResponseOfActivityLogDto,
   SyncRunDetailsDto,
   SyncRunListDto,
   SyncType,
@@ -103,6 +104,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.Connection, id: arg.id },
         { type: QueryTags.ConnectionDetail, id: arg.id },
+        { type: QueryTags.ActivityLog, id: arg.id },
       ],
     }),
 
@@ -116,7 +118,10 @@ export const connectionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: [{ type: QueryTags.Connection }],
+      invalidatesTags: (result, error, id) => [
+        { type: QueryTags.Connection },
+        { type: QueryTags.ActivityLog, id },
+      ],
     }),
 
     activateConnection: builder.mutation<void, string>({
@@ -132,6 +137,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: QueryTags.Connection, id },
         { type: QueryTags.ConnectionDetail, id },
+        { type: QueryTags.ActivityLog, id },
       ],
     }),
 
@@ -148,6 +154,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: QueryTags.Connection, id },
         { type: QueryTags.ConnectionDetail, id },
+        { type: QueryTags.ActivityLog, id },
       ],
     }),
 
@@ -206,6 +213,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: QueryTags.Connection, id },
         { type: QueryTags.ConnectionDetail, id },
+        { type: QueryTags.ActivityLog, id },
       ],
     }),
 
@@ -251,6 +259,28 @@ export const connectionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getConnectionActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getConnectionsClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
+
     getSyncRun: builder.query<SyncRunDetailsDto, string>({
       queryFn: async (syncRunId) => {
         try {
@@ -283,4 +313,6 @@ export const {
   useInitConnectionMutation,
   useGetConnectionIdentitiesQuery,
   useUpdateConnectionIdentityMutation,
+  useGetConnectionActivitiesQuery,
+  useLazyGetConnectionActivitiesQuery,
 } = connectionsApi

@@ -1,4 +1,7 @@
-﻿using Wayd.Web.Api.Extensions;
+﻿using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Identity.Users.Queries;
+using Wayd.Common.Application.Models;
+using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.UserManagement.Users;
 
 namespace Wayd.Web.Api.Controllers.UserManagement;
@@ -6,9 +9,10 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 [Route("api/user-management/users")]
 [ApiVersionNeutral]
 [ApiController]
-public class UsersController(IUserService userService) : ControllerBase
+public class UsersController(IUserService userService, IDispatcher dispatcher) : ControllerBase
 {
     private readonly IUserService _userService = userService;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Users)]
@@ -57,6 +61,20 @@ public class UsersController(IUserService userService) : ControllerBase
         return user is null
             ? NotFound()
             : user;
+    }
+
+    [HttpGet("{id}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
+    [OpenApiOperation("Get activity history for the user, including their personal access tokens.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetUserActivitiesQuery(id, page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
+            : NotFound();
     }
 
     [HttpPut("{id}")]

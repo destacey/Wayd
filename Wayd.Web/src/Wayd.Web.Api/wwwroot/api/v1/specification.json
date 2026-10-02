@@ -743,6 +743,76 @@
         ]
       }
     },
+    "/api/user-management/oidc-providers/{id}/activities": {
+      "get": {
+        "tags": [
+          "OidcProviders"
+        ],
+        "summary": "Get activity history for the OIDC provider.",
+        "operationId": "OidcProviders_GetActivities",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/user-management/oidc-providers/{id}/test-discovery": {
       "post": {
         "tags": [
@@ -2327,6 +2397,73 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/user-management/users/{id}/activities": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get activity history for the user, including their personal access tokens.",
+        "operationId": "Users_GetActivities",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
                 }
               }
             }
@@ -35685,6 +35822,76 @@
         ]
       }
     },
+    "/api/app-integrations/connections/{id}/activities": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Get activity history for the connection.",
+        "operationId": "Connections_GetActivities",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/activate": {
       "post": {
         "tags": [
@@ -40240,6 +40447,220 @@
           }
         }
       },
+      "PagedResponseOfActivityLogDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityLogDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ActivityLogDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventType",
+          "domainArea",
+          "aggregateType",
+          "payload",
+          "id",
+          "category",
+          "aggregateId",
+          "actorKind",
+          "timestamp",
+          "eventVersion",
+          "isRelated"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ActivityCategory"
+          },
+          "domainArea": {
+            "type": "string"
+          },
+          "aggregateType": {
+            "type": "string"
+          },
+          "aggregateId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "actorKind": {
+            "$ref": "#/components/schemas/EventActorKind"
+          },
+          "employee": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventVersion": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRelated": {
+            "type": "boolean"
+          },
+          "raisedOn": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          }
+        }
+      },
+      "ActivityCategory": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Created",
+          "Updated",
+          "ScheduleChanged",
+          "StatusChanged",
+          "StateChanged",
+          "Health",
+          "Removed",
+          "Baseline"
+        ],
+        "enum": [
+          "Created",
+          "Updated",
+          "ScheduleChanged",
+          "StatusChanged",
+          "StateChanged",
+          "Health",
+          "Removed",
+          "Baseline"
+        ]
+      },
+      "EventActorKind": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "User",
+          "System",
+          "Import",
+          "Sync",
+          "Anonymous"
+        ],
+        "enum": [
+          "User",
+          "System",
+          "Import",
+          "Sync",
+          "Anonymous"
+        ]
+      },
+      "EmployeeNavigationDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "NavigationDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NavigationDtoOfGuidAndInteger"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "NavigationDtoOfGuidAndInteger": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
       "CreateOidcProviderRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -40852,43 +41273,6 @@
           }
         }
       },
-      "NavigationDto": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/NavigationDtoOfGuidAndInteger"
-          },
-          {
-            "type": "object",
-            "additionalProperties": false
-          }
-        ]
-      },
-      "NavigationDtoOfGuidAndInteger": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "id",
-          "key",
-          "name"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "minLength": 1,
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "key": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      },
       "RoleListDto": {
         "type": "object",
         "additionalProperties": false,
@@ -41473,183 +41857,6 @@
             "$ref": "#/components/schemas/SimpleNavigationDto"
           }
         }
-      },
-      "PagedResponseOfActivityLogDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "items",
-          "pageNumber",
-          "pageSize",
-          "totalCount",
-          "totalPages",
-          "hasPreviousPage",
-          "hasNextPage"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ActivityLogDto"
-            }
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "hasPreviousPage": {
-            "type": "boolean"
-          },
-          "hasNextPage": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ActivityLogDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "eventType",
-          "domainArea",
-          "aggregateType",
-          "payload",
-          "id",
-          "category",
-          "aggregateId",
-          "actorKind",
-          "timestamp",
-          "eventVersion",
-          "isRelated"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "eventType": {
-            "type": "string"
-          },
-          "category": {
-            "$ref": "#/components/schemas/ActivityCategory"
-          },
-          "domainArea": {
-            "type": "string"
-          },
-          "aggregateType": {
-            "type": "string"
-          },
-          "aggregateId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "actorKind": {
-            "$ref": "#/components/schemas/EventActorKind"
-          },
-          "employee": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/EmployeeNavigationDto"
-              }
-            ]
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "correlationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "eventVersion": {
-            "type": "string"
-          },
-          "payload": {
-            "type": "string"
-          },
-          "summary": {
-            "type": "string",
-            "nullable": true
-          },
-          "isRelated": {
-            "type": "boolean"
-          },
-          "raisedOn": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/NavigationDto"
-              }
-            ]
-          }
-        }
-      },
-      "ActivityCategory": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "Created",
-          "Updated",
-          "ScheduleChanged",
-          "StatusChanged",
-          "StateChanged",
-          "Health",
-          "Removed",
-          "Baseline"
-        ],
-        "enum": [
-          "Created",
-          "Updated",
-          "ScheduleChanged",
-          "StatusChanged",
-          "StateChanged",
-          "Health",
-          "Removed",
-          "Baseline"
-        ]
-      },
-      "EventActorKind": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "User",
-          "System",
-          "Import",
-          "Sync",
-          "Anonymous"
-        ],
-        "enum": [
-          "User",
-          "System",
-          "Import",
-          "Sync",
-          "Anonymous"
-        ]
-      },
-      "EmployeeNavigationDto": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/NavigationDto"
-          },
-          {
-            "type": "object",
-            "additionalProperties": false
-          }
-        ]
       },
       "ObjectIdAndKey": {
         "type": "object",

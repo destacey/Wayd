@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Extensions;
+﻿using Wayd.Common.Domain.Events.AppIntegration;
+using Wayd.Common.Extensions;
 
 namespace Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 
@@ -25,7 +26,7 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
 
     public override bool HasActiveIntegrationObjects => IsValidConfiguration;
 
-    public Result Update(string name, string? description, string apiKey, string deploymentName, bool configurationIsValid, Instant timestamp)
+    public Result Update(string name, string? description, string apiKey, string deploymentName, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -39,12 +40,16 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
             if (!UpdateValuesChanged(newName, newDescription, newApiKey, newDeploymentName, configurationIsValid))
                 return Result.Success();
 
+            var before = CaptureState();
+
             Name = newName;
             Description = newDescription;
             IsValidConfiguration = configurationIsValid;
 
             Configuration.ApiKey = newApiKey;
             Configuration.DeploymentName = newDeploymentName;
+
+            RaiseChangesSince(before, actor, timestamp);
 
             return Result.Success();
         }
@@ -73,6 +78,7 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
         string? description,
         AzureOpenAIConnectionConfiguration configuration,
         bool configurationIsValid,
+        EventActor actor,
         Instant timestamp)
     {
         var connection = new AzureOpenAIConnection(
@@ -81,6 +87,20 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
             configurationIsValid,
             configuration);
 
+        connection.RaiseCreated(actor, timestamp);
+
         return connection;
     }
+
+    protected override ConnectionSetting[] DescribeSettings() =>
+    [
+        Setting(nameof(Configuration.BaseUrl), Configuration.BaseUrl),
+        Setting(nameof(Configuration.DeploymentName), Configuration.DeploymentName),
+        Setting(nameof(Configuration.DefaultTemperature), Configuration.DefaultTemperature),
+        Setting(nameof(Configuration.DefaultMaxOutputTokens), Configuration.DefaultMaxOutputTokens),
+        Setting(nameof(Configuration.JsonModePreferred), Configuration.JsonModePreferred),
+    ];
+
+    protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
+        [(nameof(Configuration.ApiKey), Configuration.ApiKey)];
 }

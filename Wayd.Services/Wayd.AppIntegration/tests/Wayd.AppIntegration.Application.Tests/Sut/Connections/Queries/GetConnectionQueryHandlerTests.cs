@@ -12,6 +12,8 @@ using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.AppIntegration;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Queries;
 
@@ -108,9 +110,9 @@ public class GetConnectionQueryHandlerTests
         var shortSecret = "ab";
         var longSecret = new string('x', 120);
         var withShort = AzureDevOpsBoardsConnection.Create(
-            "Short", null, null, new AzureDevOpsBoardsConnectionConfiguration("org-short", shortSecret), true, null, _now);
+            "Short", null, null, new AzureDevOpsBoardsConnectionConfiguration("org-short", shortSecret), true, null, EventActor.System, _now);
         var withLong = AzureDevOpsBoardsConnection.Create(
-            "Long", null, null, new AzureDevOpsBoardsConnectionConfiguration("org-long", longSecret), true, null, _now);
+            "Long", null, null, new AzureDevOpsBoardsConnectionConfiguration("org-long", longSecret), true, null, EventActor.System, _now);
         _db.AddConnections([withShort, withLong]);
 
         // Act
@@ -139,17 +141,21 @@ public class GetConnectionQueryHandlerTests
     private static List<Connection> CreateOneOfEachConcreteConnectionType() =>
     [
         AzureDevOpsBoardsConnection.Create(
-            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, _now),
+            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, EventActor.System, _now),
         AzureOpenAIConnection.Create(
-            "Azure OpenAI", null, new AzureOpenAIConnectionConfiguration("key", "model", "https://ai.acme.example"), true, _now),
+            "Azure OpenAI", null, new AzureOpenAIConnectionConfiguration("key", "model", "https://ai.acme.example"), true, EventActor.System, _now),
         EntraConnection.Create(
-            "Entra", null, new EntraConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, _now),
+            "Entra", null, new EntraConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, EventActor.System, _now),
         WorkdayConnection.Create(
-            "Workday", null, new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"), true, _now),
+            "Workday", null, new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"), true, EventActor.System, _now),
     ];
 
     private sealed class UnmappedConnection : Connection
     {
         public override bool HasActiveIntegrationObjects => false;
+
+        protected override ConnectionSetting[] DescribeSettings() => [];
+
+        protected override IReadOnlyList<(string Name, string Value)> Credentials() => [];
     }
 }

@@ -10,12 +10,14 @@ public sealed record ActivateConnectionCommand(Guid Id) : ICommand;
 
 public sealed class ActivateConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<ActivateConnectionCommandHandler> logger) : ICommandHandler<ActivateConnectionCommand>
 {
     private const string AppRequestName = nameof(ActivateConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ActivateConnectionCommandHandler> _logger = logger;
 
@@ -42,7 +44,7 @@ public sealed class ActivateConnectionCommandHandler(
                     return Result.Failure($"Another PeopleSync connection ({conflicting.Name}) is already active. Deactivate it before activating this one.");
             }
 
-            var result = connection.Activate(_dateTimeProvider.Now);
+            var result = connection.Activate(ConnectionActivatableArgs.Create(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
             if (result.IsFailure)
                 return result;
 

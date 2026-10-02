@@ -49,6 +49,7 @@ public sealed class CreateEntraConnectionCommandValidator : CustomValidator<Crea
 
 public sealed class CreateEntraConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<CreateEntraConnectionCommandHandler> logger)
     : ICommandHandler<CreateEntraConnectionCommand, Guid>
@@ -56,6 +57,7 @@ public sealed class CreateEntraConnectionCommandHandler(
     private const string AppRequestName = nameof(CreateEntraConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateEntraConnectionCommandHandler> _logger = logger;
 
@@ -77,7 +79,7 @@ public sealed class CreateEntraConnectionCommandHandler(
             // TODO: Test the connection here and set IsValidConfiguration based on the outcome.
             var isConfigurationValid = true;
 
-            var connection = EntraConnection.Create(request.Name, request.Description, config, isConfigurationValid, timestamp);
+            var connection = EntraConnection.Create(request.Name, request.Description, config, isConfigurationValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
 
             await _appIntegrationDbContext.EntraConnections.AddAsync(connection, cancellationToken);
 

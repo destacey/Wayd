@@ -7,7 +7,9 @@ using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Events.AppIntegration;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Queries;
 
@@ -71,10 +73,10 @@ public class GetConnectionsQueryHandlerTests
     {
         // Arrange
         var active = AzureDevOpsBoardsConnection.Create(
-            "Active", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, _now);
+            "Active", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, EventActor.System, _now);
         var inactive = AzureDevOpsBoardsConnection.Create(
-            "Inactive", null, "system-id-2", new AzureDevOpsBoardsConnectionConfiguration("org2", "pat2"), true, null, _now);
-        inactive.Deactivate(_now);
+            "Inactive", null, "system-id-2", new AzureDevOpsBoardsConnectionConfiguration("org2", "pat2"), true, null, EventActor.System, _now);
+        inactive.Deactivate(ConnectionActivatableArgs.Create(EventActor.System, _now));
         _db.AddConnections([active, inactive]);
 
         // Act
@@ -107,17 +109,21 @@ public class GetConnectionsQueryHandlerTests
     private static List<Connection> CreateOneOfEachConcreteConnectionType() =>
     [
         AzureDevOpsBoardsConnection.Create(
-            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, _now),
+            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, EventActor.System, _now),
         AzureOpenAIConnection.Create(
-            "Azure OpenAI", null, new AzureOpenAIConnectionConfiguration("key", "model", "https://ai.acme.example"), true, _now),
+            "Azure OpenAI", null, new AzureOpenAIConnectionConfiguration("key", "model", "https://ai.acme.example"), true, EventActor.System, _now),
         EntraConnection.Create(
-            "Entra", null, new EntraConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, _now),
+            "Entra", null, new EntraConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, EventActor.System, _now),
         WorkdayConnection.Create(
-            "Workday", null, new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"), true, _now),
+            "Workday", null, new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"), true, EventActor.System, _now),
     ];
 
     private sealed class UnmappedConnection : Connection
     {
         public override bool HasActiveIntegrationObjects => false;
+
+        protected override ConnectionSetting[] DescribeSettings() => [];
+
+        protected override IReadOnlyList<(string Name, string Value)> Credentials() => [];
     }
 }

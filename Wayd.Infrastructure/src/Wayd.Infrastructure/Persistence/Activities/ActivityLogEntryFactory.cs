@@ -91,6 +91,9 @@ internal static partial class ActivityLogEntryFactory
             return "ProductManagement";
         if (entityNamespace.Contains("Planning") || eventNamespace.Contains("Planning"))
             return "Planning";
+        // Before Work, which a Workday connection's namespace also contains.
+        if (entityNamespace.Contains("AppIntegration") || eventNamespace.Contains("AppIntegration"))
+            return "AppIntegration";
         if (entityNamespace.Contains("Work") || eventNamespace.Contains("Work"))
             return "Work";
         if (entityNamespace.Contains("StrategicManagement") || eventNamespace.Contains("StrategicManagement"))
@@ -103,8 +106,6 @@ internal static partial class ActivityLogEntryFactory
             return "Identity";
         if (entityNamespace.Contains("Links") || eventNamespace.Contains("Links"))
             return "Links";
-        if (entityNamespace.Contains("AppIntegration") || eventNamespace.Contains("AppIntegration"))
-            return "AppIntegration";
 
         return "App";
     }

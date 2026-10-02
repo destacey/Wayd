@@ -22,12 +22,14 @@ public sealed class DeletePersonalAccessTokenCommandValidator : CustomValidator<
 public sealed class DeletePersonalAccessTokenCommandHandler(
     IWaydDbContext dbContext,
     ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<DeletePersonalAccessTokenCommandHandler> logger) : ICommandHandler<DeletePersonalAccessTokenCommand>
 {
     private const string AppRequestName = nameof(DeletePersonalAccessTokenCommand);
 
     private readonly IWaydDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeletePersonalAccessTokenCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeletePersonalAccessTokenCommand request, CancellationToken cancellationToken)
@@ -47,6 +49,7 @@ public sealed class DeletePersonalAccessTokenCommandHandler(
                 return Result.Failure("Token not found or you do not have permission to delete it.");
             }
 
+            token.Delete(EventActor.User(userIdString, _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             _dbContext.PersonalAccessTokens.Remove(token);
             await _dbContext.SaveChangesAsync(cancellationToken);
 

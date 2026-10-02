@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Identity;
+﻿using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
+using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
 using NodaTime.Extensions;
@@ -8,6 +10,8 @@ namespace Wayd.Common.Domain.Tests.Sut.Identity;
 
 public sealed class PersonalAccessTokenTests
 {
+    private static readonly EventActor Actor = EventActor.User(Guid.NewGuid().ToString());
+
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly Instant _now;
     private readonly PersonalAccessTokenFaker _tokenFaker;
@@ -26,7 +30,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -51,7 +55,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.AsExpired(_now.Minus(Duration.FromDays(1))).Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -65,7 +69,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -78,7 +82,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -91,7 +95,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -115,7 +119,7 @@ public sealed class PersonalAccessTokenTests
     {
         // Arrange
         var expiresAt = _now.Plus(Duration.FromDays(1));
-        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, _now).Value;
+        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, Actor, _now).Value;
         var futureTime = _now.Plus(Duration.FromDays(2));
 
         // Act
@@ -150,7 +154,7 @@ public sealed class PersonalAccessTokenTests
         var revokeTime = _now.Plus(Duration.FromDays(1));
 
         // Act
-        var result = token.Revoke(revokedBy, revokeTime);
+        var result = token.Revoke(revokedBy, Actor, revokeTime);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -168,7 +172,7 @@ public sealed class PersonalAccessTokenTests
         var token = _tokenFaker.WithRevokedToken(revokedBy, _now).Generate();
 
         // Act
-        var result = token.Revoke(Guid.NewGuid().ToString(), _now.Plus(Duration.FromDays(1)));
+        var result = token.Revoke(Guid.NewGuid().ToString(), Actor, _now.Plus(Duration.FromDays(1)));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -183,7 +187,7 @@ public sealed class PersonalAccessTokenTests
         var newName = "New Name";
 
         // Act
-        var result = token.UpdateName(newName, _now);
+        var result = token.UpdateName(newName, Actor, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -198,7 +202,7 @@ public sealed class PersonalAccessTokenTests
         var token = _tokenFaker.WithRevokedToken(revokedBy, _now).Generate();
 
         // Act
-        var result = token.UpdateName("New Name", _now);
+        var result = token.UpdateName("New Name", Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -213,7 +217,7 @@ public sealed class PersonalAccessTokenTests
         var newExpiresAt = _now.Plus(Duration.FromDays(180));
 
         // Act
-        var result = token.UpdateExpiresAt(newExpiresAt, _now);
+        var result = token.UpdateExpiresAt(newExpiresAt, Actor, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -229,7 +233,7 @@ public sealed class PersonalAccessTokenTests
         var newExpiresAt = _now.Plus(Duration.FromDays(180));
 
         // Act
-        var result = token.UpdateExpiresAt(newExpiresAt, _now);
+        var result = token.UpdateExpiresAt(newExpiresAt, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -244,7 +248,7 @@ public sealed class PersonalAccessTokenTests
         var pastExpiresAt = _now.Minus(Duration.FromDays(1));
 
         // Act
-        var result = token.UpdateExpiresAt(pastExpiresAt, _now);
+        var result = token.UpdateExpiresAt(pastExpiresAt, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -258,7 +262,7 @@ public sealed class PersonalAccessTokenTests
         var token = _tokenFaker.Generate();
 
         // Act
-        var result = token.UpdateExpiresAt(_now, _now);
+        var result = token.UpdateExpiresAt(_now, Actor, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -270,7 +274,7 @@ public sealed class PersonalAccessTokenTests
     {
         // Arrange
         var expiresAt = _now.Plus(Duration.FromDays(1));
-        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, _now).Value;
+        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, Actor, _now).Value;
 
         // Act & Assert
         token.IsExpiredAt(_now).Should().BeFalse();
@@ -302,11 +306,138 @@ public sealed class PersonalAccessTokenTests
         var expiresAt = _now.Plus(Duration.FromDays(365));
 
         // Act
-        var result = PersonalAccessToken.Create(name, tokenIdentifier, tokenHash, userId, expiresAt, null, _now);
+        var result = PersonalAccessToken.Create(name, tokenIdentifier, tokenHash, userId, expiresAt, null, Actor, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Scopes.Should().BeNull();
     }
 
+    [Fact]
+    public void Create_RaisesCreatedEvent_WithoutTokenMaterial()
+    {
+        // Arrange
+        var fakePat = _tokenFaker.Generate();
+
+        // Act
+        var token = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, Actor, _now).Value;
+
+        // Assert
+        var created = token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenCreatedEvent>().Subject;
+        created.Id.Should().Be(token.Id);
+        created.UserId.Should().Be(fakePat.UserId);
+        created.Name.Should().Be(token.Name);
+        created.ExpiresAt.Should().Be(fakePat.ExpiresAt);
+        created.Actor.Should().Be(Actor);
+        created.Timestamp.Should().Be(_now);
+        created.GetType().GetProperties().Select(p => p.Name).Should().NotContain(["TokenHash", "TokenIdentifier"]);
+    }
+
+    [Fact]
+    public void Revoke_RaisesRevokedEvent()
+    {
+        // Arrange
+        var token = _tokenFaker.Generate();
+        var revokeTime = _now.Plus(Duration.FromHours(1));
+
+        // Act
+        token.Revoke(Actor.UserId!, Actor, revokeTime);
+
+        // Assert
+        var revoked = token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenRevokedEvent>().Subject;
+        revoked.Id.Should().Be(token.Id);
+        revoked.UserId.Should().Be(token.UserId);
+        revoked.Actor.Should().Be(Actor);
+        revoked.Timestamp.Should().Be(revokeTime);
+    }
+
+    [Fact]
+    public void Revoke_WhenAlreadyRevoked_RaisesNothing()
+    {
+        // Arrange
+        var token = _tokenFaker.WithRevokedToken(Guid.NewGuid().ToString(), _now).Generate();
+
+        // Act
+        token.Revoke(Actor.UserId!, Actor, _now);
+
+        // Assert
+        token.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateName_RaisesRenamedEvent_WithBothEnds()
+    {
+        // Arrange
+        var token = _tokenFaker.Generate();
+        var previousName = token.Name;
+
+        // Act
+        token.UpdateName("  Build agent  ", Actor, _now);
+
+        // Assert
+        var renamed = token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenRenamedEvent>().Subject;
+        renamed.PreviousName.Should().Be(previousName);
+        renamed.Name.Should().Be("Build agent");
+        renamed.UserId.Should().Be(token.UserId);
+    }
+
+    [Fact]
+    public void UpdateName_WhenOnlyWhitespaceDiffers_RaisesNothing()
+    {
+        // Arrange
+        var token = _tokenFaker.Generate();
+
+        // Act
+        token.UpdateName($" {token.Name} ", Actor, _now);
+
+        // Assert
+        token.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateExpiresAt_RaisesExpirationChangedEvent_WithBothEnds()
+    {
+        // Arrange
+        var token = _tokenFaker.Generate();
+        var previousExpiresAt = token.ExpiresAt;
+        var newExpiresAt = previousExpiresAt.Plus(Duration.FromDays(30));
+
+        // Act
+        token.UpdateExpiresAt(newExpiresAt, Actor, _now);
+
+        // Assert
+        var changed = token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenExpirationChangedEvent>().Subject;
+        changed.PreviousExpiresAt.Should().Be(previousExpiresAt);
+        changed.ExpiresAt.Should().Be(newExpiresAt);
+    }
+
+    [Fact]
+    public void UpdateExpiresAt_WhenUnchanged_RaisesNothing()
+    {
+        // Arrange
+        var token = _tokenFaker.Generate();
+
+        // Act
+        var result = token.UpdateExpiresAt(token.ExpiresAt, Actor, _now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        token.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Delete_RaisesDeletedEvent_WithName()
+    {
+        // Arrange
+        var token = _tokenFaker.Generate();
+
+        // Act
+        token.Delete(Actor, _now);
+
+        // Assert
+        var deleted = token.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PersonalAccessTokenDeletedEvent>().Subject;
+        deleted.Id.Should().Be(token.Id);
+        deleted.UserId.Should().Be(token.UserId);
+        deleted.Name.Should().Be(token.Name);
+    }
 }

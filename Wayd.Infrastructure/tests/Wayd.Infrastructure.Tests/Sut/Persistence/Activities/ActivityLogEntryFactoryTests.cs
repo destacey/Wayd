@@ -1,8 +1,13 @@
 ﻿using NodaTime;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Infrastructure.Persistence.Activities;
+using Wayd.Work.Domain.Models;
 
 namespace Wayd.Infrastructure.Tests.Sut.Persistence.Activities;
 
@@ -80,6 +85,23 @@ public sealed class ActivityLogEntryFactoryTests
 
         // Assert
         entry.Category.Should().Be(ActivityCategory.Created);
+    }
+
+    [Fact]
+    public void CreateActivityLogEntry_ForAnEventFromAnotherModulesNamespace_TakesTheDomainAreaOfTheRecord()
+    {
+        // Arrange — the sprint lives in Work, while its events kept their Planning namespace.
+        var timestamp = Instant.FromUtc(2026, 10, 2, 9, 0);
+        var sprint = Iteration.Create("Sprint 1", IterationType.Sprint, IterationState.Active,
+            new IterationDateRange(new LocalDate(2026, 10, 1), new LocalDate(2026, 10, 14)), null,
+            OwnershipInfo.CreateWaydOwned(), [], EventActor.System, timestamp);
+        var raised = new IterationStateChangedEvent(sprint.Id, 7, IterationState.Future, IterationState.Active, EventActor.System, timestamp);
+
+        // Act
+        var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, sprint, ordinal: 0, correlationId: null);
+
+        // Assert
+        entry.DomainArea.Should().Be("Work");
     }
 
     [Fact]

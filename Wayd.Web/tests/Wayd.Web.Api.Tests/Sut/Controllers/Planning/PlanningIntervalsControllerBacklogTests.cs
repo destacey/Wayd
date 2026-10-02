@@ -6,10 +6,10 @@ using Moq.AutoMock;
 using NodaTime;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Planning.Application.Iterations.Dtos;
 using Wayd.Planning.Application.Models;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
+using Wayd.Planning.Application.PlanningSprints.Dtos;
 using Wayd.Web.Api.Controllers.Planning;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -27,7 +27,7 @@ public sealed class PlanningIntervalsControllerBacklogTests
         return controller;
     }
 
-    private static SprintListDto Sprint(Guid id, string name) => new()
+    private static PlanningSprintListDto Sprint(Guid id, string name) => new()
     {
         Id = id,
         Key = 1,
@@ -43,7 +43,7 @@ public sealed class PlanningIntervalsControllerBacklogTests
         }
     };
 
-    private static PlanningIntervalIterationSprintsDto Iteration(string name, params SprintListDto[] sprints) => new()
+    private static PlanningIntervalIterationSprintsDto Iteration(string name, params PlanningSprintListDto[] sprints) => new()
     {
         Id = Guid.NewGuid(),
         Key = 1,

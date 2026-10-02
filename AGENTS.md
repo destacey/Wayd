@@ -28,9 +28,9 @@ If Aspire cannot run, stop and ask.
 Wayd/
   Wayd.Common/                    # Shared libraries and base abstractions
   Wayd.Services/                  # 9 vertical slice domain services
-    Wayd.Work/                    # Work items, workspaces, processes, workflows
+    Wayd.Work/                    # Work items, sprints, workspaces, processes, workflows
     Wayd.Organization/            # Teams, employees, memberships
-    Wayd.Planning/                # PIs, sprints, objectives, risks, roadmaps
+    Wayd.Planning/                # PIs, sprint mappings, objectives, risks, roadmaps
     Wayd.ProjectPortfolioManagement/  # Portfolios, programs, projects, tasks
     Wayd.StrategicManagement/     # Visions, strategies, themes
     Wayd.AppIntegration/          # Integration configuration
@@ -92,10 +92,10 @@ Full detail: [docs/contributing/architecture.mdx](docs/contributing/architecture
 Teams (Scrum/Kanban), Teams of Teams (hierarchy), Operating Models (methodology + sizing), Team Memberships (date-ranged parent-child with Past/Active/Future states).
 
 ### Planning
-Planning Intervals (8-12 week PIs with iterations), Sprints (team-owned, mapped to PI iterations), Objectives (team commitments with predictability tracking), Risks (ROAM model), Roadmaps (activities/milestones/timeboxes), Planning Poker (real-time estimation).
+Planning Intervals (8-12 week PIs with iterations, and the mapping of each team's sprints to them), Objectives (team commitments with predictability tracking), Risks (ROAM model), Roadmaps (activities/milestones/timeboxes), Planning Poker (real-time estimation).
 
 ### Work Management
-Workspaces (containers using work processes), Work Items (hierarchical with dependencies and revision tracking), Work Processes (type-to-workflow mappings), Work Types (Portfolio/Requirement/Task/Other tiers), Workflows (status progressions), Work Statuses (normalized to 4 categories: Proposed/Active/Done/Removed).
+Workspaces (containers using work processes), Work Items (hierarchical with dependencies and revision tracking), Sprints (team-owned time boxes holding work items, mapped to PI iterations), Work Processes (type-to-workflow mappings), Work Types (Portfolio/Requirement/Task/Other tiers), Workflows (status progressions), Work Statuses (normalized to 4 categories: Proposed/Active/Done/Removed).
 
 ### Project Portfolio Management
 Portfolios (top-level containers), Programs (project groups), Projects (lifecycle stages, tasks with WBS, dependencies), Strategic Initiatives (KPI tracking with checkpoints/measurements), Expenditure Categories.

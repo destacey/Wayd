@@ -29,8 +29,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | Term | Definition |
 |------|-----------|
 | **Planning Interval (PI)** | A fixed timeframe (typically 8-12 weeks) during which teams deliver value toward committed objectives. Contains iterations, objectives, and team associations. States: Future, Active, Completed. |
-| **Iteration** | A time-boxed period within a PI. Has a Name, Category (Development or Innovation and Planning), and Date Range. Aggregates sprint metrics across all mapped team sprints. |
-| **Sprint** | A short time-boxed period (typically 2 weeks) owned by a team. Type: Sprint or Iteration. State: Future, Active, Completed. Can be Owned (Wayd) or Managed (external system). |
+| **Iteration** | A time-boxed period within a PI. Has a Name, Category (Development or Innovation and Planning), and Date Range. Aggregates sprint metrics across all mapped team sprints. Not to be confused with a [Sprint](#work-management), which belongs to Work Management. |
 | **Sprint Mapping** | The association of a team's sprint to a PI iteration. One sprint per team per iteration. Enables cross-team aggregate views. |
 | **Planning Interval Objective** | A team's commitment to deliver a specific outcome within a PI. Has Status (NotStarted, InProgress, Completed, Canceled, Missed), IsStretch flag, and optional Health Check. |
 | **Stretch Objective** | An aspirational goal that is not counted toward predictability. Contrasts with committed objectives. |
@@ -75,6 +74,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 
 | Term | Definition |
 |------|-----------|
+| **Sprint** | A short time-boxed period (typically 2 weeks) owned by a team, holding the work items assigned to it. Type: Sprint, or Iteration for one that is not a team's sprint (no team, or a team of teams). State: Future, Active, Completed. Can be Owned (Wayd) or Managed (external system, e.g. an Azure DevOps iteration). Mapped to PI iterations through a [Sprint Mapping](#planning). |
 | **Work Item** | The fundamental unit of work. Has a Key (WorkspaceKey-Number), Title (immutable), Type, Status, StatusCategory, Priority, StoryPoints, Assignee, Team, Parent, Sprint, Project. |
 | **Work Item Key** | Unique identifier in format `WorkspaceKey-Number` (e.g., `PLAT-1234`). Workspace key is 2-20 uppercase alphanumeric starting with a letter. |
 | **Workspace** | A container for work items using a specific work process. Has a Key, Name, Ownership (Owned/Managed), and IsActive flag. |

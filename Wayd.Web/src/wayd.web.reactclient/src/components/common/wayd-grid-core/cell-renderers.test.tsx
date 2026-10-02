@@ -117,7 +117,7 @@ describe('renderSprintLink', () => {
 
     // Assert
     const link = screen.getByRole('link', { name: 'Sprint 12 (JCE)' })
-    expect(link).toHaveAttribute('href', '/planning/sprints/4')
+    expect(link).toHaveAttribute('href', '/work/sprints/4')
   })
 
   it('omits the code when showTeamCode is false', () => {

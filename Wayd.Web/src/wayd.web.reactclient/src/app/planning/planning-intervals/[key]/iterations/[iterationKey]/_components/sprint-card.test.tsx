@@ -255,7 +255,7 @@ describe('SprintCard', () => {
       )
 
       const sprintLink = screen.getByRole('link', { name: 'Sprint 1' })
-      expect(sprintLink).toHaveAttribute('href', '/planning/sprints/101')
+      expect(sprintLink).toHaveAttribute('href', '/work/sprints/101')
     })
 
     it('renders formatted date range', () => {

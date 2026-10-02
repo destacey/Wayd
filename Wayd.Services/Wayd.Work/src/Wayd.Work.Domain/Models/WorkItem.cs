@@ -150,7 +150,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     /// <summary>
     /// The current iteration of the work item.
     /// </summary>
-    public WorkIteration? Iteration { get; set; }
+    public Iteration? Iteration { get; set; }
 
     public Instant? ActivatedTimestamp { get; private set; }
 

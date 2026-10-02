@@ -18,6 +18,21 @@ const nextConfig = {
     // build-time type checking enabled, since the alias does provide it.
     useTypeScriptCli: false,
   },
+  // Sprint URLs from before the pages moved under /work, still in bookmarks and shared links.
+  async redirects() {
+    return [
+      {
+        source: '/planning/sprints',
+        destination: '/work/sprints',
+        permanent: true,
+      },
+      {
+        source: '/planning/sprints/:key',
+        destination: '/work/sprints/:key',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default withSerwist(nextConfig)

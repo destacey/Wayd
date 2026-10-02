@@ -57,9 +57,9 @@ Wayd/
     Wayd.Tests.Shared    # Shared test utilities and fakers
 
   Wayd.Services/         # Vertical slice domain services
-    Wayd.Work/           # Work item management
+    Wayd.Work/           # Work items, sprints and the work sync
     Wayd.Organization/   # Teams and employees
-    Wayd.Planning/       # Iterations and planning intervals
+    Wayd.Planning/       # Planning intervals, PI iterations and sprint mappings
     Wayd.AppIntegration/ # Integration configuration
     Wayd.Links/          # Cross-entity relationships
     Wayd.StrategicManagement/   # Strategic planning
@@ -193,7 +193,7 @@ another domain, kept aligned two ways:
 | Organization | `Team` / `TeamOfTeams` | `TeamCreated/DetailsUpdated/Activated/Deactivated/Deleted` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
 | PPM | `Project` | `ProjectCreated/DetailsUpdated/KeyChangedV2/Deleted` | Work `WorkProject` |
 | StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/DetailsUpdated/Activated/Archived/Deleted` | PPM `PpmStrategicThemes` |
-| Planning | `Iteration` | `IterationCreated/DetailsUpdated/DateRangeChanged/StateChanged/TeamChanged/Deleted` | Work `WorkIteration` |
+| Work | `Iteration` (sprints) | `IterationCreated/DetailsUpdated/DateRangeChanged/StateChanged/TeamChanged/Deleted` | Planning `PlanningSprint` |
 | Common | `Employee` | — (shared table) | referenced by Guid everywhere |
 
 `StrategicTheme` is owned by **StrategicManagement**; PPM only holds a copy — author themes in

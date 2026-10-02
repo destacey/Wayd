@@ -1,5 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
-using Wayd.Planning.Application.Iterations.Dtos;
+using Wayd.Planning.Application.PlanningSprints.Dtos;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
 
@@ -41,7 +41,7 @@ public sealed record PlanningIntervalIterationSprintsDto : IMapFrom<PlanningInte
     /// <summary>
     /// List of sprints mapped to this PI iteration.
     /// </summary>
-    public List<SprintListDto> Sprints { get; set; } = [];
+    public List<PlanningSprintListDto> Sprints { get; set; } = [];
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {

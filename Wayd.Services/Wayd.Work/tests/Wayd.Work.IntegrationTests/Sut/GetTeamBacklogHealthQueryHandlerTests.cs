@@ -4,8 +4,9 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Interfaces.Organization;
-using Wayd.Common.Domain.Interfaces.Planning.Iterations;
+using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Infrastructure.Persistence.Context;
@@ -100,14 +101,13 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
 
     private async Task<Guid> SeedSprint(Guid teamId, IterationState state)
     {
-        var key = Random.Shared.Next(100_000, 999_999);
+        var key = Guid.NewGuid().ToString("N")[..8];
         var range = new IterationDateRange(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 14));
-        var sprint = new WorkIteration(
-            new SourceIteration(Guid.NewGuid(), key, $"Sprint {key}", IterationType.Sprint, state, range, teamId),
-            _now);
+        var sprint = Iteration.Create($"Sprint {key}", IterationType.Sprint, state, range, teamId,
+            OwnershipInfo.CreateWaydOwned(), [], EventActor.System, _now);
 
         await using var context = new WaydDbContextAccessor(_fixture);
-        context.Context.WorkIterations.Add(sprint);
+        context.Context.Iterations.Add(sprint);
         await context.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return sprint.Id;
@@ -188,8 +188,4 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
     }
 
     private sealed record SourceTeam(Guid Id, int Key, string Name, TeamCode Code, TeamType Type, bool IsActive) : ISimpleTeam;
-
-    private sealed record SourceIteration(
-        Guid Id, int Key, string Name, IterationType Type, IterationState State, IterationDateRange DateRange, Guid? TeamId)
-        : ISimpleIteration;
 }

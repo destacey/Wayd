@@ -6,7 +6,6 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Interfaces;
 using Wayd.Planning.Domain.Interfaces;
-using Wayd.Planning.Domain.Models.Iterations;
 using NodaTime;
 
 namespace Wayd.Planning.Domain.Models;
@@ -413,7 +412,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <param name="iterationId">The iteration ID within this PI.</param>
     /// <param name="sprint">The sprint entity to map.</param>
     /// <returns>A result indicating success or failure with an error message.</returns>
-    public Result MapSprintToIteration(Guid iterationId, Iteration sprint, EventActor actor, Instant timestamp)
+    public Result MapSprintToIteration(Guid iterationId, PlanningSprint sprint, EventActor actor, Instant timestamp)
     {
         var previousMappings = SprintMappings();
 
@@ -424,7 +423,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
         return result;
     }
 
-    private Result MapSprintToIterationCore(Guid iterationId, Iteration sprint)
+    private Result MapSprintToIterationCore(Guid iterationId, PlanningSprint sprint)
     {
         Guard.Against.Null(sprint, nameof(sprint));
 
@@ -517,7 +516,7 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// <param name="iterationSprintMappings">Dictionary where key is iteration ID and value is sprint ID (null to unmap).</param>
     /// <param name="sprints">Dictionary of available sprints keyed by ID.</param>
     /// <returns>A result indicating success or failure with an error message.</returns>
-    public Result SyncTeamSprintMappings(Guid teamId, Dictionary<Guid, Guid?> iterationSprintMappings, Dictionary<Guid, Iteration> sprints, EventActor actor, Instant timestamp)
+    public Result SyncTeamSprintMappings(Guid teamId, Dictionary<Guid, Guid?> iterationSprintMappings, Dictionary<Guid, PlanningSprint> sprints, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(iterationSprintMappings, nameof(iterationSprintMappings));
         Guard.Against.Null(sprints, nameof(sprints));

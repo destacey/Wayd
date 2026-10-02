@@ -117,7 +117,7 @@ ILogger<MapPlanningIntervalSprintsCommandHandler> logger) : ICommandHandler<MapP
                 .ToList();
 
             // Load all requested sprints
-            var sprints = await _planningDbContext.Iterations
+            var sprints = await _planningDbContext.PlanningSprints
                 .Where(i => sprintIds.Contains(i.Id))
                 .ToDictionaryAsync(i => i.Id, i => i, cancellationToken);
 

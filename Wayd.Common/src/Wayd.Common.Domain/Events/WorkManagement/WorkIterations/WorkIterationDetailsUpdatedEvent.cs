@@ -10,6 +10,7 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 /// The Work copy of an iteration's name or type changed. Supersedes, with the other <c>WorkIteration*Changed</c> events,
 /// <see cref="WorkIterationUpdatedEvent"/>.
 /// </summary>
+[Obsolete("Raised by the Work copy of an iteration, which became the sprint itself (#925); the sprint raises the Iteration* events. Kept only to deserialize payloads already written as this type.")]
 public sealed record WorkIterationDetailsUpdatedEvent : DomainEvent<WorkIterationDetailsUpdatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

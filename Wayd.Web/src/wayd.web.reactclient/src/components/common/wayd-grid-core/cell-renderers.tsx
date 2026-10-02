@@ -137,7 +137,7 @@ export const renderSprintLink = (
   if (!sprint) return null
   const code = sprint.team?.code
   const label = showTeamCode && code ? `${sprint.name} (${code})` : sprint.name
-  return <Link href={`/planning/sprints/${sprint.key}`}>{label}</Link>
+  return <Link href={`/work/sprints/${sprint.key}`}>{label}</Link>
 }
 
 /** A user reference: identified by `id`, labeled by `userName`. */

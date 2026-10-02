@@ -1,7 +1,7 @@
 'use client'
 
 import { useGetActiveSprintQuery, useGetTeamDetailsQuery } from '@/src/store/features/organizations/team-api'
-import { useGetSprintMetricsQuery } from '@/src/store/features/planning/sprints-api'
+import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
 import { SizingMethod } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
@@ -74,7 +74,7 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         ) : (
           <Text>Active Sprint: </Text>
         )}
-        <Link href={`/planning/sprints/${sprintData.key}`}>
+        <Link href={`/work/sprints/${sprintData.key}`}>
           {sprintData.name}
         </Link>
       </div>

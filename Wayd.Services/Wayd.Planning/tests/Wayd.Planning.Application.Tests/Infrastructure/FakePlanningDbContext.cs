@@ -7,7 +7,6 @@ using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Planning.Application.Persistence;
 using Wayd.Planning.Domain.Models;
-using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
@@ -22,11 +21,11 @@ namespace Wayd.Planning.Application.Tests.Infrastructure;
 public class FakePlanningDbContext : IPlanningDbContext, IDisposable
 {
     // Planning domain entities
-    private readonly List<Iteration> _iterations = [];
     private readonly List<PlanningIntervalObjective> _planningIntervalObjectives = [];
     private readonly List<PlanningInterval> _planningIntervals = [];
     private readonly List<PlanningIntervalIterationSprint> _planningIntervalIterationSprints = [];
     private readonly List<Risk> _risks = [];
+    private readonly List<PlanningSprint> _planningSprints = [];
     private readonly List<PlanningTeam> _planningTeams = [];
     private readonly List<PlanningIntervalObjectiveHealthCheck> _planningIntervalObjectiveHealthChecks = [];
     private readonly List<Roadmap> _roadmaps = [];
@@ -44,11 +43,11 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     private readonly List<ScoringModel> _scoringModels = [];
 
     // DbSet properties
-    public DbSet<Iteration> Iterations => _iterations.AsDbSet();
     public DbSet<PlanningIntervalObjective> PlanningIntervalObjectives => _planningIntervalObjectives.AsDbSet();
     public DbSet<PlanningInterval> PlanningIntervals => _planningIntervals.AsDbSet();
     public DbSet<PlanningIntervalIterationSprint> PlanningIntervalIterationSprints => _planningIntervalIterationSprints.AsDbSet();
     public DbSet<Risk> Risks => _risks.AsDbSet();
+    public DbSet<PlanningSprint> PlanningSprints => _planningSprints.AsDbSet();
     public DbSet<PlanningTeam> PlanningTeams => _planningTeams.AsDbSet();
     public DbSet<PlanningIntervalObjectiveHealthCheck> PlanningIntervalObjectiveHealthChecks => _planningIntervalObjectiveHealthChecks.AsDbSet();
     public DbSet<Roadmap> Roadmaps => _roadmaps.AsDbSet();
@@ -91,7 +90,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
         }
 
         // Return the total number of entities as a simple success indicator
-        var count = _iterations.Count + _planningIntervals.Count + _risks.Count +
+        var count = _planningSprints.Count + _planningIntervals.Count + _risks.Count +
                     _planningTeams.Count + _planningIntervalObjectiveHealthChecks.Count + _roadmaps.Count +
                     _estimationScales.Count + _pokerSessions.Count +
                     _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
@@ -110,10 +109,6 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
 
     #region Helper Methods for Test Setup
 
-    // Iteration
-    public void AddIteration(Iteration iteration) => _iterations.Add(iteration);
-    public void AddIterations(IEnumerable<Iteration> iterations) => _iterations.AddRange(iterations);
-
     // PlanningInterval
     public void AddPlanningInterval(PlanningInterval planningInterval) => _planningIntervals.Add(planningInterval);
     public void AddPlanningIntervals(IEnumerable<PlanningInterval> planningIntervals) => _planningIntervals.AddRange(planningIntervals);
@@ -125,6 +120,10 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     // Risk
     public void AddRisk(Risk risk) => _risks.Add(risk);
     public void AddRisks(IEnumerable<Risk> risks) => _risks.AddRange(risks);
+
+    // PlanningSprint
+    public void AddPlanningSprint(PlanningSprint planningSprint) => _planningSprints.Add(planningSprint);
+    public void AddPlanningSprints(IEnumerable<PlanningSprint> planningSprints) => _planningSprints.AddRange(planningSprints);
 
     // PlanningTeam
     public void AddPlanningTeam(PlanningTeam planningTeam) => _planningTeams.Add(planningTeam);
@@ -164,7 +163,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     /// </summary>
     public void Clear()
     {
-        _iterations.Clear();
+        _planningSprints.Clear();
         _planningIntervals.Clear();
         _planningIntervalObjectives.Clear();
         _risks.Clear();

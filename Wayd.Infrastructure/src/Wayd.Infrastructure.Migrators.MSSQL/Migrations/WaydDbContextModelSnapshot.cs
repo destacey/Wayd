@@ -996,7 +996,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ObjectId"), new[] { "Name", "Value" });
 
-                    b.ToTable("IterationExternalMetadata", "Planning");
+                    b.ToTable("IterationExternalMetadata", "Work");
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModel", b =>
@@ -2305,97 +2305,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("TeamOperatingModels", "Organization");
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.Iterations.Iteration", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Key")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid?>("TeamId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.ComplexProperty(typeof(Dictionary<string, object>), "DateRange", "Wayd.Planning.Domain.Models.Iterations.Iteration.DateRange#IterationDateRange", b1 =>
-                        {
-                            b1.IsRequired();
-
-                            b1.Property<DateTime?>("End")
-                                .HasColumnType("date")
-                                .HasColumnName("End");
-
-                            b1.Property<DateTime?>("Start")
-                                .HasColumnType("date")
-                                .HasColumnName("Start");
-                        });
-
-                    b.ComplexProperty(typeof(Dictionary<string, object>), "OwnershipInfo", "Wayd.Planning.Domain.Models.Iterations.Iteration.OwnershipInfo#OwnershipInfo", b1 =>
-                        {
-                            b1.IsRequired();
-
-                            b1.Property<string>("Connector")
-                                .HasMaxLength(32)
-                                .HasColumnType("varchar")
-                                .HasColumnName("Connector");
-
-                            b1.Property<string>("ExternalId")
-                                .HasMaxLength(64)
-                                .HasColumnType("varchar")
-                                .HasColumnName("ExternalId");
-
-                            b1.Property<string>("Ownership")
-                                .IsRequired()
-                                .HasMaxLength(32)
-                                .HasColumnType("varchar")
-                                .HasColumnName("Ownership");
-
-                            b1.Property<string>("SystemId")
-                                .HasMaxLength(64)
-                                .HasColumnType("varchar")
-                                .HasColumnName("SystemId");
-                        });
-
-                    b.HasKey("Id");
-
-                    b.HasAlternateKey("Key");
-
-                    b.HasIndex("TeamId");
-
-                    b.ToTable("Iterations", "Planning");
-                });
-
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningInterval", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2947,6 +2856,66 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsUnique();
 
                     b.ToTable("PokerVotes", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningSprint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Key")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "DateRange", "Wayd.Planning.Domain.Models.PlanningSprint.DateRange#IterationDateRange", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<DateTime?>("End")
+                                .HasColumnType("date")
+                                .HasColumnName("End");
+
+                            b1.Property<DateTime?>("Start")
+                                .HasColumnType("date")
+                                .HasColumnName("Start");
+                        });
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("TeamId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TeamId"), new[] { "Key", "Name", "Type", "State" });
+
+                    b.ToTable("PlanningSprints", "Planning");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningTeam", b =>
@@ -5962,6 +5931,97 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Visions", "StrategicManagement");
                 });
 
+            modelBuilder.Entity("Wayd.Work.Domain.Models.Iteration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "DateRange", "Wayd.Work.Domain.Models.Iteration.DateRange#IterationDateRange", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<DateTime?>("End")
+                                .HasColumnType("date")
+                                .HasColumnName("End");
+
+                            b1.Property<DateTime?>("Start")
+                                .HasColumnType("date")
+                                .HasColumnName("Start");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "OwnershipInfo", "Wayd.Work.Domain.Models.Iteration.OwnershipInfo#OwnershipInfo", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Connector")
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("Connector");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(64)
+                                .HasColumnType("varchar")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<string>("Ownership")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("Ownership");
+
+                            b1.Property<string>("SystemId")
+                                .HasMaxLength(64)
+                                .HasColumnType("varchar")
+                                .HasColumnName("SystemId");
+                        });
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("Iterations", "Work");
+                });
+
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6278,64 +6338,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ObjectId", "Context"), new[] { "WorkItemId" });
 
                     b.ToTable("WorkItemReferences", "Work");
-                });
-
-            modelBuilder.Entity("Wayd.Work.Domain.Models.WorkIteration", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Key")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<Guid?>("TeamId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<byte[]>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("Watermarks")
-                        .IsRequired()
-                        .HasColumnType("varchar(1024)")
-                        .HasColumnName("Watermarks");
-
-                    b.ComplexProperty(typeof(Dictionary<string, object>), "DateRange", "Wayd.Work.Domain.Models.WorkIteration.DateRange#IterationDateRange", b1 =>
-                        {
-                            b1.IsRequired();
-
-                            b1.Property<DateTime?>("End")
-                                .HasColumnType("date")
-                                .HasColumnName("End");
-
-                            b1.Property<DateTime?>("Start")
-                                .HasColumnType("date")
-                                .HasColumnName("Start");
-                        });
-
-                    b.HasKey("Id");
-
-                    b.HasAlternateKey("Key");
-
-                    b.HasIndex("TeamId");
-
-                    b.ToTable("WorkIterations", "Work");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkProcess", b =>
@@ -7410,7 +7412,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Common.Domain.Models.KeyValueObjectMetadata", b =>
                 {
-                    b.HasOne("Wayd.Planning.Domain.Models.Iterations.Iteration", null)
+                    b.HasOne("Wayd.Work.Domain.Models.Iteration", null)
                         .WithMany("ExternalMetadata")
                         .HasForeignKey("ObjectId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -7630,16 +7632,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.Iterations.Iteration", b =>
-                {
-                    b.HasOne("Wayd.Planning.Domain.Models.PlanningTeam", "Team")
-                        .WithMany("Iterations")
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Team");
-                });
-
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningIntervalIteration", b =>
                 {
                     b.HasOne("Wayd.Planning.Domain.Models.PlanningInterval", "PlanningInterval")
@@ -7665,7 +7657,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Wayd.Planning.Domain.Models.Iterations.Iteration", "Sprint")
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningSprint", "Sprint")
                         .WithMany()
                         .HasForeignKey("SprintId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -7770,6 +7762,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
 
                     b.Navigation("Participant");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningSprint", b =>
+                {
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningTeam", "Team")
+                        .WithMany("Sprints")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.Risk", b =>
@@ -8771,6 +8773,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Dates");
                 });
 
+            modelBuilder.Entity("Wayd.Work.Domain.Models.Iteration", b =>
+                {
+                    b.HasOne("Wayd.Work.Domain.Models.WorkTeam", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId");
+
+                    b.Navigation("Team");
+                });
+
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkItem", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", "AssignedTo")
@@ -8782,7 +8793,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Wayd.Work.Domain.Models.WorkIteration", "Iteration")
+                    b.HasOne("Wayd.Work.Domain.Models.Iteration", "Iteration")
                         .WithMany()
                         .HasForeignKey("IterationId");
 
@@ -8905,15 +8916,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("WorkItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Wayd.Work.Domain.Models.WorkIteration", b =>
-                {
-                    b.HasOne("Wayd.Work.Domain.Models.WorkTeam", "Team")
-                        .WithMany()
-                        .HasForeignKey("TeamId");
-
-                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkProcessScheme", b =>
@@ -9136,11 +9138,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("ParentMemberships");
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.Iterations.Iteration", b =>
-                {
-                    b.Navigation("ExternalMetadata");
-                });
-
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningInterval", b =>
                 {
                     b.Navigation("IterationSprints");
@@ -9174,9 +9171,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningTeam", b =>
                 {
-                    b.Navigation("Iterations");
-
                     b.Navigation("PlanningIntervalTeams");
+
+                    b.Navigation("Sprints");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.Roadmaps.Roadmap", b =>
@@ -9310,6 +9307,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Checkpoints");
 
                     b.Navigation("Measurements");
+                });
+
+            modelBuilder.Entity("Wayd.Work.Domain.Models.Iteration", b =>
+                {
+                    b.Navigation("ExternalMetadata");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkItem", b =>

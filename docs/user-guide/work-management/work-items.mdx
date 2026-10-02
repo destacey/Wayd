@@ -42,7 +42,7 @@ The workspace detail page has two tabs:
 
 **Work Items Tab:**
 - Sortable, filterable grid of all work items in the workspace
-- Columns: Key, Title, Type, Status, Status Category, Story Points, [Team](../organizations/index.mdx#teams), [Sprint](../planning/sprints.mdx), Parent, Assigned To, [Project](../ppm/projects.mdx)
+- Columns: Key, Title, Type, Status, Status Category, Story Points, [Team](../organizations/index.mdx#teams), [Sprint](./sprints.mdx), Parent, Assigned To, [Project](../ppm/projects.mdx)
 - Click a work item to navigate to its detail page
 
 Actions: Set External URLs (for managed workspaces)
@@ -63,7 +63,7 @@ Every work item has:
 - **Assignee** — The person responsible for the work
 - **[Team](../organizations/index.mdx#teams)** — The team responsible for delivery
 - **Parent** — Optional hierarchical link to a parent work item. See [Hierarchy Rules](#work-item-hierarchy-rules).
-- **[Sprint/Iteration](../planning/sprints.mdx)** — Time-boxed period the work is planned for
+- **[Sprint/Iteration](./sprints.mdx)** — Time-boxed period the work is planned for
 - **[Project](../ppm/projects.mdx)** — Optional association with a PPM project ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only)
 - **Activated Timestamp** — When work moved to Active status
 - **Done Timestamp** — When work moved to Done or Removed status
@@ -82,7 +82,7 @@ Work items support:
 The work item detail page has multiple tabs that adapt based on the work item's type and status:
 
 **Details Tab:**
-- All core properties: Key, [Type](./work-configuration.mdx#work-types), [Status](./work-configuration.mdx#work-statuses), [Status Category](./work-configuration.mdx#work-status-categories), Priority, Story Points, [Team](../organizations/index.mdx#teams) (link), [Sprint](../planning/sprints.mdx) (link, shows "Backlog" if unassigned), Parent (link), [Project](../ppm/projects.mdx) (link), Assigned To, Created By, Last Modified By
+- All core properties: Key, [Type](./work-configuration.mdx#work-types), [Status](./work-configuration.mdx#work-statuses), [Status Category](./work-configuration.mdx#work-status-categories), Priority, Story Points, [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link, shows "Backlog" if unassigned), Parent (link), [Project](../ppm/projects.mdx) (link), Assigned To, Created By, Last Modified By
 - **Progress Steps** — Visual lifecycle indicator showing Proposed → Active → Done/Removed with timestamps for each transition
 - Timestamps: Created, Activated, Done (formatted with date and time)
 
@@ -100,7 +100,7 @@ The work item detail page has multiple tabs that adapt based on the work item's 
 **Dependencies Tab:**
 - Two-column grouped grid:
   - **Dependency Info**: Type (Predecessor/Successor with tooltip), State, Health (color-coded), Scope (Intra-Team/Cross-Team with explanation)
-  - **Work Item Info**: Key (linked), Title, Type, Status, [Team](../organizations/index.mdx#teams) (link), [Sprint](../planning/sprints.mdx) (link)
+  - **Work Item Info**: Key (linked), Title, Type, Status, [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link)
 - Support for external work item links (icon linking to integrated system)
 
 ### Where Work Items Appear
@@ -109,7 +109,7 @@ Work items are visible in multiple places throughout Wayd:
 - **[Workspace detail page](#workspace-detail-page)** — All work items in the workspace
 - **[Team Backlog section](../organizations/index.mdx#backlog)** — All work items assigned to a team across all workspaces
 - **[Team Dependencies section](../organizations/index.mdx#dependencies)** — Dependencies involving the team
-- **[Sprint Backlog](../planning/sprints.mdx#sprint-detail-page)** — Work items assigned to a specific sprint
+- **[Sprint Backlog](./sprints.mdx#sprint-detail-page)** — Work items assigned to a specific sprint
 - **[PI Iteration Backlog](../planning/planning-intervals.mdx#pi-iteration-detail-page)** — Work items in a PI iteration
 - **[Project Work Items section](../ppm/projects.mdx#project-detail-page)** — Work items associated with a project
 
@@ -125,7 +125,7 @@ Each dependency tracks:
   - **To Do** — Predecessor is Proposed
   - **In Progress** — Predecessor is Active
   - **Done** — Predecessor is Done or Removed
-- **Planning Health** — Automatically calculated from planned dates ([sprint](../planning/sprints.mdx) end dates):
+- **Planning Health** — Automatically calculated from planned dates ([sprint](./sprints.mdx) end dates):
 
 | Health | Condition |
 |--------|-----------|

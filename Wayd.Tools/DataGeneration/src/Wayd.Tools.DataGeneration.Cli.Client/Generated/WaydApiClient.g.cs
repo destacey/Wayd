@@ -90253,12 +90253,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("sprints")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<SprintListDto> Sprints { get; set; } = new System.Collections.ObjectModel.Collection<SprintListDto>();
+        public System.Collections.Generic.ICollection<PlanningSprintListDto> Sprints { get; set; } = new System.Collections.ObjectModel.Collection<PlanningSprintListDto>();
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class SprintListDto
+    public partial class PlanningSprintListDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
@@ -92551,6 +92551,41 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RoadmapStateDto : CommonEnumDto
     {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintListDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public PlanningTeamNavigationDto Team { get; set; } = default!;
 
     }
 

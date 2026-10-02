@@ -47995,10 +47995,10 @@ export interface PlanningIntervalIterationSprintsDto {
     start: Date;
     end: Date;
     category: SimpleNavigationDto;
-    sprints: SprintListDto[];
+    sprints: PlanningSprintListDto[];
 }
 
-export interface SprintListDto {
+export interface PlanningSprintListDto {
     id: string;
     key: number;
     name: string;
@@ -48745,6 +48745,16 @@ export interface VisibilityDto extends CommonEnumDto {
 }
 
 export interface RoadmapStateDto extends CommonEnumDto {
+}
+
+export interface SprintListDto {
+    id: string;
+    key: number;
+    name: string;
+    state: SimpleNavigationDto;
+    start: Date;
+    end: Date;
+    team: PlanningTeamNavigationDto;
 }
 
 export interface SprintDetailsDto {

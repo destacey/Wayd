@@ -1,18 +1,18 @@
 /**
  * Remark plugin that transforms relative links in MDX docs to absolute /docs/ paths.
  *
- * MDX files use relative paths (e.g., `../planning/sprints#sprint-metrics`) based on
+ * MDX files use relative paths (e.g., `../planning/risks`) based on
  * their file system location. These work in Docusaurus but not in the Next.js app
  * because the browser resolves them against the URL, not the file path.
  *
  * This plugin runs at serialize time and rewrites links to absolute paths based on
- * the source file's slug, so `../planning/sprints` in a file at
- * `user-guide/work-management/work-items` becomes `/docs/user-guide/planning/sprints`.
+ * the source file's slug, so `../planning/risks` in a file at
+ * `user-guide/work-management/work-items` becomes `/docs/user-guide/planning/risks`.
  *
  * Options:
  *   - slug: string[] — The slug segments of the current doc
  *       For index pages: ['user-guide', 'planning', 'index']
- *       For leaf pages:  ['user-guide', 'planning', 'sprints']
+ *       For leaf pages:  ['user-guide', 'planning', 'risks']
  *   - basePath: string — The base URL path for docs (default: '/docs')
  */
 import { visit } from 'unist-util-visit'

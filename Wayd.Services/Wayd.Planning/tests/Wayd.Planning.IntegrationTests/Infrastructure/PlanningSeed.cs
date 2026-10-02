@@ -7,7 +7,7 @@ using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
 using Wayd.Planning.Domain.Models;
-using Wayd.Planning.Domain.Models.Iterations;
+using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 
 namespace Wayd.Planning.IntegrationTests.Infrastructure;
 
@@ -35,14 +35,20 @@ internal static class PlanningSeed
         return planningTeam;
     }
 
-    public static async Task<Iteration> Sprint(WaydDbContext context, Guid teamId, CancellationToken ct)
+    /// <summary>
+    /// The Planning copy of a sprint, which PI sprint mappings point at. Replication delivers it asynchronously
+    /// in production, so it is written here directly.
+    /// </summary>
+    public static async Task<PlanningSprint> Sprint(WaydDbContext context, Guid teamId, CancellationToken ct)
     {
-        var sprint = Iteration.Create($"Atlas Sprint {Guid.NewGuid():N}"[..24], IterationType.Sprint, IterationState.Active,
-            new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 30)),
-            teamId, OwnershipInfo.CreateWaydOwned(), [], EventActor.System, SqlServerDbContextFixture.FixedNow);
-        context.Iterations.Add(sprint);
+        var source = new SprintSource(Guid.NewGuid(), Random.Shared.Next(100_000, int.MaxValue), $"Atlas Sprint {Guid.NewGuid():N}"[..24],
+            IterationType.Sprint, IterationState.Active, new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 30)), teamId);
+        var sprint = new PlanningSprint(source, SqlServerDbContextFixture.FixedNow);
+        context.PlanningSprints.Add(sprint);
         await context.SaveChangesAsync(ct);
 
         return sprint;
     }
+
+    private sealed record SprintSource(Guid Id, int Key, string Name, IterationType Type, IterationState State, IterationDateRange DateRange, Guid? TeamId) : ISimpleIteration;
 }

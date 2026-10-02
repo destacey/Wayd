@@ -622,7 +622,7 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var sprint = new IterationFaker()
+        var sprint = new PlanningSprintFaker()
             .AsSprint()
             .WithTeamId(teamId)
             .Generate();
@@ -650,7 +650,7 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var iteration = new IterationFaker()
+        var iteration = new PlanningSprintFaker()
             .AsIteration() // Not a sprint
             .WithTeamId(teamId)
             .Generate();
@@ -678,7 +678,7 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var sprint = new IterationFaker()
+        var sprint = new PlanningSprintFaker()
             .AsSprint()
             .WithTeamId(otherTeamId) // Sprint belongs to different team
             .Generate();
@@ -705,7 +705,7 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var sprint = new IterationFaker()
+        var sprint = new PlanningSprintFaker()
             .AsSprint()
             .WithTeamId(null) // No team assigned
             .Generate();
@@ -732,7 +732,7 @@ public class PlanningIntervalTests
             .Generate();
 
         var nonExistentIterationId = Guid.NewGuid();
-        var sprint = new IterationFaker()
+        var sprint = new PlanningSprintFaker()
             .AsSprint()
             .WithTeamId(teamId)
             .Generate();
@@ -759,7 +759,7 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var sprint = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
 
         // Map sprint first time
         var firstResult = sut.MapSprintToIteration(iterationId, sprint, EventActor.System, _dateTimeProvider.Now);
@@ -788,7 +788,7 @@ public class PlanningIntervalTests
 
         var firstIterationId = sut.Iterations.First().Id;
         var secondIterationId = sut.Iterations.Last().Id;
-        var sprint = new IterationFaker()
+        var sprint = new PlanningSprintFaker()
             .AsSprint()
             .WithTeamId(teamId)
             .Generate();
@@ -820,8 +820,8 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var sprint1 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
-        var sprint2 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint1 = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint2 = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
 
         // Map first sprint successfully
         sut.MapSprintToIteration(iterationId, sprint1, EventActor.System, _dateTimeProvider.Now);
@@ -858,7 +858,7 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var sprint = new IterationFaker()
+        var sprint = new PlanningSprintFaker()
             .AsSprint()
             .WithTeamId(teamId)
             .Generate();
@@ -908,9 +908,9 @@ public class PlanningIntervalTests
         var firstIterationId = sut.Iterations.First().Id;
         var secondIterationId = sut.Iterations.Last().Id;
 
-        var sprint1 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
-        var sprint2 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
-        var sprint3 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint1 = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint2 = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint3 = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
 
         sut.MapSprintToIteration(firstIterationId, sprint1, EventActor.System, _dateTimeProvider.Now);
         sut.MapSprintToIteration(firstIterationId, sprint2, EventActor.System, _dateTimeProvider.Now);
@@ -962,8 +962,8 @@ public class PlanningIntervalTests
             .Generate();
 
         var iterationId = sut.Iterations.First().Id;
-        var team1Sprint = new IterationFaker().AsSprint().WithTeamId(team1Id).Generate();
-        var team2Sprint = new IterationFaker().AsSprint().WithTeamId(team2Id).Generate();
+        var team1Sprint = new PlanningSprintFaker().AsSprint().WithTeamId(team1Id).Generate();
+        var team2Sprint = new PlanningSprintFaker().AsSprint().WithTeamId(team2Id).Generate();
 
         sut.MapSprintToIteration(iterationId, team1Sprint, EventActor.System, _dateTimeProvider.Now);
         sut.MapSprintToIteration(iterationId, team2Sprint, EventActor.System, _dateTimeProvider.Now);
@@ -1440,7 +1440,7 @@ public class PlanningIntervalTests
         var teamId = Guid.NewGuid();
         var sut = ExistingWithIterations(teamId);
         var removed = sut.Iterations.Last();
-        var sprint = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
         sut.MapSprintToIteration(removed.Id, sprint, Actor, _dateTimeProvider.Now);
         sut.ClearDomainEvents();
 
@@ -1521,13 +1521,13 @@ public class PlanningIntervalTests
         var teamId = Guid.NewGuid();
         var sut = ExistingWithIterations(teamId);
         var iterationIds = sut.Iterations.Select(i => i.Id).ToList();
-        var sprint1 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
-        var sprint2 = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint1 = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint2 = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
 
         // Act
         var result = sut.SyncTeamSprintMappings(teamId,
             new Dictionary<Guid, Guid?> { [iterationIds[0]] = sprint1.Id, [iterationIds[1]] = sprint2.Id },
-            new Dictionary<Guid, Wayd.Planning.Domain.Models.Iterations.Iteration> { [sprint1.Id] = sprint1, [sprint2.Id] = sprint2 },
+            new Dictionary<Guid, PlanningSprint> { [sprint1.Id] = sprint1, [sprint2.Id] = sprint2 },
             Actor, _dateTimeProvider.Now);
 
         // Assert
@@ -1547,7 +1547,7 @@ public class PlanningIntervalTests
         var teamId = Guid.NewGuid();
         var sut = ExistingWithIterations(teamId);
         var iterationId = sut.Iterations.First().Id;
-        var sprint = new IterationFaker().AsSprint().WithTeamId(teamId).Generate();
+        var sprint = new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate();
         sut.MapSprintToIteration(iterationId, sprint, Actor, _dateTimeProvider.Now);
         sut.ClearDomainEvents();
 

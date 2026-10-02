@@ -535,7 +535,7 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
 
         // Relationships
         builder.HasOne(o => o.Team)
-            .WithMany(t => t.Iterations)
+            .WithMany()
             .HasForeignKey(p => p.TeamId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -560,6 +560,48 @@ public class IterationExternalMetadata : IEntityTypeConfiguration<KeyValueObject
         builder.Property(m => m.ObjectId).IsRequired();
         builder.Property(m => m.Name).IsRequired().HasMaxLength(128);
         builder.Property(m => m.Value).HasMaxLength(4000);
+    }
+}
+
+public class PlanningSprintConfig : IEntityTypeConfiguration<PlanningSprint>
+{
+    public void Configure(EntityTypeBuilder<PlanningSprint> builder)
+    {
+        builder.ToTable("PlanningSprints", SchemaNames.Planning);
+
+        builder.HasKey(s => s.Id);
+        builder.HasAlternateKey(s => s.Key);
+
+        builder.HasIndex(s => s.TeamId)
+            .IncludeProperties(s => new { s.Key, s.Name, s.Type, s.State });
+
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.Key).ValueGeneratedNever();
+        builder.Property(s => s.Name).HasMaxLength(256).IsRequired();
+
+        builder.Property(s => s.Type).IsRequired()
+            .HasConversion<EnumConverter<IterationType>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(s => s.State).IsRequired()
+            .HasConversion<EnumConverter<IterationState>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.ComplexProperty(s => s.DateRange, options =>
+        {
+            options.Property(d => d.Start).HasColumnName("Start");
+            options.Property(d => d.End).HasColumnName("End");
+        });
+
+        builder.ConfigureReplicaTracking(s => s.Watermarks);
+
+        // Relationships
+        builder.HasOne(s => s.Team)
+            .WithMany(t => t.Sprints)
+            .HasForeignKey(s => s.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

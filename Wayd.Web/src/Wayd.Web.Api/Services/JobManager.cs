@@ -7,6 +7,7 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.Iterations.Queries;
+using Wayd.Planning.Application.PlanningSprints.Commands;
 using Wayd.Planning.Application.PlanningTeams.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries;
@@ -95,6 +96,12 @@ public class JobManager(
         if (result.IsFailure)
         {
             _logger.LogError("Failed to sync iterations: {Error}", result.Error);
+        }
+
+        var planningResult = await _dispatcher.Send(new SyncPlanningSprintsCommand(iterations, asOf), cancellationToken);
+        if (planningResult.IsFailure)
+        {
+            _logger.LogError("Failed to sync Planning sprints: {Error}", planningResult.Error);
         }
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncIterations));

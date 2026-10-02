@@ -2,7 +2,6 @@
 using Wayd.Common.Application.Search.Dtos;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Search;
@@ -70,7 +69,7 @@ public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext
         });
 
         // Sprints
-        var sprintQuery = planningDbContext.Iterations
+        var sprintQuery = planningDbContext.PlanningSprints
             .Where(i => i.Type == IterationType.Sprint && i.Name.Contains(term));
 
         var sprintCount = await sprintQuery.CountAsync(cancellationToken);
@@ -81,7 +80,8 @@ public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext
                 Title = i.Name,
                 Subtitle = i.Team != null ? i.Team.Name : null,
                 Key = i.Key.ToString(),
-                EntityType = nameof(Iteration)
+                // The client routes a result on this value, and sprints have always reported it.
+                EntityType = "Iteration"
             })
             .Take(max)
             .ToListAsync(cancellationToken);

@@ -1,6 +1,4 @@
-﻿using Wayd.Planning.Domain.Models.Iterations;
-
-namespace Wayd.Planning.Domain.Models;
+﻿namespace Wayd.Planning.Domain.Models;
 
 public sealed class PlanningIntervalIterationSprint : BaseAuditableEntity
 {
@@ -21,5 +19,5 @@ public sealed class PlanningIntervalIterationSprint : BaseAuditableEntity
 
     public Guid SprintId { get; private init; }
 
-    public Iteration Sprint { get; private set; } = default!;
+    public PlanningSprint Sprint { get; private set; } = default!;
 }

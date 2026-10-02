@@ -27,6 +27,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     private readonly List<PlanningInterval> _planningIntervals = [];
     private readonly List<PlanningIntervalIterationSprint> _planningIntervalIterationSprints = [];
     private readonly List<Risk> _risks = [];
+    private readonly List<PlanningSprint> _planningSprints = [];
     private readonly List<PlanningTeam> _planningTeams = [];
     private readonly List<PlanningIntervalObjectiveHealthCheck> _planningIntervalObjectiveHealthChecks = [];
     private readonly List<Roadmap> _roadmaps = [];
@@ -49,6 +50,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     public DbSet<PlanningInterval> PlanningIntervals => _planningIntervals.AsDbSet();
     public DbSet<PlanningIntervalIterationSprint> PlanningIntervalIterationSprints => _planningIntervalIterationSprints.AsDbSet();
     public DbSet<Risk> Risks => _risks.AsDbSet();
+    public DbSet<PlanningSprint> PlanningSprints => _planningSprints.AsDbSet();
     public DbSet<PlanningTeam> PlanningTeams => _planningTeams.AsDbSet();
     public DbSet<PlanningIntervalObjectiveHealthCheck> PlanningIntervalObjectiveHealthChecks => _planningIntervalObjectiveHealthChecks.AsDbSet();
     public DbSet<Roadmap> Roadmaps => _roadmaps.AsDbSet();
@@ -125,6 +127,10 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     // Risk
     public void AddRisk(Risk risk) => _risks.Add(risk);
     public void AddRisks(IEnumerable<Risk> risks) => _risks.AddRange(risks);
+
+    // PlanningSprint
+    public void AddPlanningSprint(PlanningSprint planningSprint) => _planningSprints.Add(planningSprint);
+    public void AddPlanningSprints(IEnumerable<PlanningSprint> planningSprints) => _planningSprints.AddRange(planningSprints);
 
     // PlanningTeam
     public void AddPlanningTeam(PlanningTeam planningTeam) => _planningTeams.Add(planningTeam);

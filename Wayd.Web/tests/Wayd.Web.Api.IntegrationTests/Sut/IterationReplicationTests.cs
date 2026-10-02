@@ -16,7 +16,7 @@ using Wolverine;
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
 /// <summary>
-/// A Planning iteration is copied into Work by the durable <c>Iteration*</c> events. One sync pass can change
+/// A sprint is copied into Work and into Planning's own copy by the durable <c>Iteration*</c> events. One sync pass can change
 /// several parts of an iteration at once, raising an event for each, and every one must reach the copy through
 /// the real host.
 /// </summary>
@@ -55,6 +55,13 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
                 && i.State == IterationState.Completed
                 && i.DateRange.End == moved.End, ct),
             ct), "the Work copy should take the new name, state and dates");
+        Assert.True(await WaitFor(
+            sp => sp.GetRequiredService<IPlanningDbContext>().PlanningSprints.AnyAsync(s =>
+                s.Id == iterationId
+                && s.Name == "Sprint 1 (extended)"
+                && s.State == IterationState.Completed
+                && s.DateRange.End == moved.End, ct),
+            ct), "the Planning copy should take the new name, state and dates");
     }
 
     [Fact]
@@ -140,6 +147,9 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
         Assert.True(await WaitFor(
             sp => sp.GetRequiredService<IWorkDbContext>().WorkIterations.AnyAsync(i => i.Id == iterationId, ct),
             ct), "the Work copy should exist before the change under test is made");
+        Assert.True(await WaitFor(
+            sp => sp.GetRequiredService<IPlanningDbContext>().PlanningSprints.AnyAsync(s => s.Id == iterationId, ct),
+            ct), "the Planning copy should exist before the change under test is made");
 
         return iterationId;
     }

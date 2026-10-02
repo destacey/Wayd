@@ -3,7 +3,6 @@ using Wayd.Common.Domain.Interfaces;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Replication;
-using Wayd.Planning.Domain.Models.Iterations;
 using NodaTime;
 
 namespace Wayd.Planning.Domain.Models;
@@ -14,7 +13,7 @@ namespace Wayd.Planning.Domain.Models;
 /// </summary>
 public sealed class PlanningTeam : ISimpleTeam, IHasIdAndKey, IHasTeamIdAndCode
 {
-    private readonly List<Iteration> _iterations = [];
+    private readonly List<PlanningSprint> _sprints = [];
     private readonly List<PlanningIntervalTeam> _planningIntervalTeams = [];
 
     private PlanningTeam() { }
@@ -42,7 +41,7 @@ public sealed class PlanningTeam : ISimpleTeam, IHasIdAndKey, IHasTeamIdAndCode
     public TeamType Type { get; private set; } = default!;
     public bool IsActive { get; private set; }
     public TeamReplicaWatermarks Watermarks { get; private set; } = TeamReplicaWatermarks.None;
-    public IReadOnlyCollection<Iteration> Iterations => _iterations.AsReadOnly();
+    public IReadOnlyCollection<PlanningSprint> Sprints => _sprints.AsReadOnly();
     public IReadOnlyCollection<PlanningIntervalTeam> PlanningIntervalTeams => _planningIntervalTeams.AsReadOnly();
 
     /// <summary>

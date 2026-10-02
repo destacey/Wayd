@@ -1,6 +1,6 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Work.Application.WorkIterations.Dtos;
+using Wayd.Work.Application.Iterations.Dtos;
 using Wayd.Work.Application.WorkTeams.Dtos;
 
 namespace Wayd.Work.Application.WorkItems.Dtos;

@@ -11,13 +11,13 @@ public class DependencyWorkItemInfoTests
 {
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly WorkItemFaker _workItemFaker;
-    private readonly WorkIterationFaker _workIterationFaker;
+    private readonly IterationFaker _iterationFaker;
 
     public DependencyWorkItemInfoTests()
     {
         _dateTimeProvider = new(new DateTime(2025, 04, 01, 11, 0, 0));
         _workItemFaker = new WorkItemFaker();
-        _workIterationFaker = new WorkIterationFaker();
+        _iterationFaker = new IterationFaker();
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(5), IterationState.Active, IterationType.Sprint).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationState.Active, IterationType.Sprint).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -63,7 +63,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(5), IterationState.Active, IterationType.Iteration).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationState.Active, IterationType.Iteration).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -84,7 +84,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(5), IterationState.Completed, IterationType.Sprint).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationState.Completed, IterationType.Sprint).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -105,7 +105,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(-5), IterationState.Active, IterationType.Sprint).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(-5), IterationState.Active, IterationType.Sprint).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -126,7 +126,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today, IterationState.Active, IterationType.Sprint).Generate();
+        var iteration = _iterationFaker.WithEndDate(today, IterationState.Active, IterationType.Sprint).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -147,7 +147,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(1), IterationState.Future, IterationType.Sprint).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(1), IterationState.Future, IterationType.Sprint).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -168,7 +168,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(-5), IterationState.Active, IterationType.Sprint).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(-5), IterationState.Active, IterationType.Sprint).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -206,7 +206,7 @@ public class DependencyWorkItemInfoTests
         // Arrange
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(7), IterationState.Active, IterationType.Sprint).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(7), IterationState.Active, IterationType.Sprint).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
@@ -225,7 +225,7 @@ public class DependencyWorkItemInfoTests
         // Arrange - Create a completed, past, non-sprint iteration (all filters should exclude it)
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
-        var iteration = _workIterationFaker.WithEndDate(today.PlusDays(-5), IterationState.Completed, IterationType.Iteration).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(-5), IterationState.Completed, IterationType.Iteration).Generate();
 
         var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;

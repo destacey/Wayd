@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Application.Requests.Planning.Iterations;
+using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Planning.Iterations;

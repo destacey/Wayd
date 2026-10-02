@@ -2,7 +2,7 @@
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
-using Wayd.Work.Application.WorkIterations.Dtos;
+using Wayd.Work.Application.Iterations.Dtos;
 using Wayd.Work.Application.WorkProjects.Dtos;
 using Wayd.Work.Application.Workspaces.Dtos;
 using Wayd.Work.Application.WorkTeams.Dtos;

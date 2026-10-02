@@ -14,7 +14,6 @@ using Wayd.Links;
 using Wayd.Links.Models;
 using Wayd.Planning.Application.Persistence;
 using Wayd.Planning.Domain.Models;
-using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
@@ -99,7 +98,6 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
 
     #region IPlanning
 
-    public DbSet<Iteration> Iterations => Set<Iteration>();
     public DbSet<PlanningIntervalObjective> PlanningIntervalObjectives => Set<PlanningIntervalObjective>();
     public DbSet<PlanningInterval> PlanningIntervals => Set<PlanningInterval>();
     public DbSet<PlanningIntervalIterationSprint> PlanningIntervalIterationSprints => Set<PlanningIntervalIterationSprint>();
@@ -186,7 +184,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<WorkItem> WorkItems => Set<WorkItem>();
     public DbSet<WorkItemDependency> WorkItemDependencies => Set<WorkItemDependency>();
     public DbSet<WorkItemHierarchy> WorkItemHierarchies => Set<WorkItemHierarchy>();
-    public DbSet<WorkIteration> WorkIterations => Set<WorkIteration>();
+    public DbSet<Iteration> Iterations => Set<Iteration>();
     public DbSet<WorkProcess> WorkProcesses => Set<WorkProcess>();
     public DbSet<WorkProject> WorkProjects => Set<WorkProject>();
     public DbSet<Workspace> Workspaces => Set<Workspace>();

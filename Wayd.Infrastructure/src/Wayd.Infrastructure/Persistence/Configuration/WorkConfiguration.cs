@@ -5,6 +5,7 @@ using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
@@ -413,19 +414,18 @@ public class WorkItemDependencyConfig : IEntityTypeConfiguration<WorkItemDepende
     }
 }
 
-public class WorkIterationConfig : IEntityTypeConfiguration<WorkIteration>
+public class IterationConfig : IEntityTypeConfiguration<Iteration>
 {
-    public void Configure(EntityTypeBuilder<WorkIteration> builder)
+    public void Configure(EntityTypeBuilder<Iteration> builder)
     {
-        builder.ToTable("WorkIterations", SchemaNames.Work);
+        builder.ToTable("Iterations", SchemaNames.Work);
 
-        builder.HasKey(w => w.Id);
-        builder.HasAlternateKey(w => w.Key);
-
-        builder.Property(w => w.Id).ValueGeneratedNever();
-        builder.Property(w => w.Key).ValueGeneratedNever();
+        builder.HasKey(i => i.Id);
+        builder.HasAlternateKey(i => i.Key);
 
         // Properties
+        builder.Property(i => i.Id).ValueGeneratedNever();
+        builder.Property(i => i.Key).ValueGeneratedOnAdd();
         builder.Property(i => i.Name).HasMaxLength(256).IsRequired();
 
         builder.Property(i => i.Type).IsRequired()
@@ -445,13 +445,38 @@ public class WorkIterationConfig : IEntityTypeConfiguration<WorkIteration>
             options.Property(d => d.End).HasColumnName("End");
         });
 
-        builder.ConfigureReplicaTracking(i => i.Watermarks);
+        builder.ComplexProperty(i => i.OwnershipInfo, options =>
+        {
+            options.Property(o => o.Ownership).HasColumnName("Ownership")
+                .HasConversion<EnumConverter<Ownership>>()
+                .HasColumnType("varchar")
+                .HasMaxLength(32)
+                .IsRequired();
+            options.Property(o => o.Connector).HasColumnName("Connector")
+                .HasConversion<EnumConverter<Connector>>()
+                .HasColumnType("varchar")
+                .HasMaxLength(32);
+            options.Property(o => o.SystemId).HasColumnName("SystemId")
+                .HasColumnType("varchar")
+                .HasMaxLength(64);
+            options.Property(o => o.ExternalId).HasColumnName("ExternalId")
+                .HasColumnType("varchar")
+                .HasMaxLength(64);
+        });
+
+        // Ignore
+        builder.Ignore(i => i.ExternalMetadataManager);
 
         // Relationships
-        builder.HasOne(i => i.Team)
+        builder.HasOne(o => o.Team)
             .WithMany()
             .HasForeignKey(p => p.TeamId)
             .OnDelete(DeleteBehavior.ClientSetNull);
+
+        builder.HasMany(i => i.ExternalMetadata)
+            .WithOne()
+            .HasForeignKey(m => m.ObjectId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // TODO: this is needed for the nested mapping to work correctly. Not sure why Mapster doesn't pick it up automatically.
         // WorkIterationNavigationDto with Team property
@@ -459,6 +484,24 @@ public class WorkIterationConfig : IEntityTypeConfiguration<WorkIteration>
             .AutoInclude();
     }
 }
+
+public class IterationExternalMetadata : IEntityTypeConfiguration<KeyValueObjectMetadata>
+{
+    public void Configure(EntityTypeBuilder<KeyValueObjectMetadata> builder)
+    {
+        builder.ToTable("IterationExternalMetadata", SchemaNames.Work);
+
+        builder.HasKey(m => new { m.ObjectId, m.Name });
+
+        builder.HasIndex(m => m.ObjectId)
+            .IncludeProperties(m => new { m.Name, m.Value });
+
+        builder.Property(m => m.ObjectId).IsRequired();
+        builder.Property(m => m.Name).IsRequired().HasMaxLength(128);
+        builder.Property(m => m.Value).HasMaxLength(4000);
+    }
+}
+
 public class WorkProcessConfig : IEntityTypeConfiguration<WorkProcess>
 {
     public void Configure(EntityTypeBuilder<WorkProcess> builder)

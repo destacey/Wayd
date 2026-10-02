@@ -27,7 +27,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     private readonly List<WorkTypeHierarchy> _workTypeHierarchies = [];
     private readonly List<WorkTeam> _workTeams = [];
     private readonly List<WorkProject> _workProjects = [];
-    private readonly List<WorkIteration> _workIterations = [];
+    private readonly List<Iteration> _iterations = [];
     private readonly List<WorkItemReference> _workItemReferences = [];
     private readonly List<WorkItemHierarchy> _workItemHierarchies = [];
     private readonly List<WorkItemDependency> _workItemDependencies = [];
@@ -51,7 +51,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public DbSet<WorkTypeHierarchy> WorkTypeHierarchies => _workTypeHierarchies.AsDbSet();
     public DbSet<WorkTeam> WorkTeams => _workTeams.AsDbSet();
     public DbSet<WorkProject> WorkProjects => _workProjects.AsDbSet();
-    public DbSet<WorkIteration> WorkIterations => _workIterations.AsDbSet();
+    public DbSet<Iteration> Iterations => _iterations.AsDbSet();
     public DbSet<WorkItemReference> WorkItemReferences => _workItemReferences.AsDbSet();
     public DbSet<WorkItemHierarchy> WorkItemHierarchies => _workItemHierarchies.AsDbSet();
     public DbSet<WorkItemDependency> WorkItemDependencies => _workItemDependencies.AsDbSet();
@@ -94,7 +94,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
         var count = _workspaces.Count + _workProcesses.Count + _workItems.Count +
                     _workTypes.Count + _workStatuses.Count + _workflows.Count +
                     _workTypeHierarchies.Count + _workTeams.Count + _workProjects.Count +
-                    _workIterations.Count + _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count +
+                    _iterations.Count + _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count +
                     _personalAccessTokens.Count;
         return Task.FromResult(count);
     }
@@ -150,9 +150,9 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public void AddWorkProject(WorkProject project) => _workProjects.Add(project);
     public void AddWorkProjects(IEnumerable<WorkProject> projects) => _workProjects.AddRange(projects);
 
-    // WorkIteration
-    public void AddWorkIteration(WorkIteration iteration) => _workIterations.Add(iteration);
-    public void AddWorkIterations(IEnumerable<WorkIteration> iterations) => _workIterations.AddRange(iterations);
+    // Iteration
+    public void AddIteration(Iteration iteration) => _iterations.Add(iteration);
+    public void AddIterations(IEnumerable<Iteration> iterations) => _iterations.AddRange(iterations);
 
     // WorkItemReference
     public void AddWorkItemReference(WorkItemReference reference) => _workItemReferences.Add(reference);
@@ -180,7 +180,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
         _workTypeHierarchies.Clear();
         _workTeams.Clear();
         _workProjects.Clear();
-        _workIterations.Clear();
+        _iterations.Clear();
         _workItemReferences.Clear();
         _workItemHierarchies.Clear();
         _workItemDependencies.Clear();

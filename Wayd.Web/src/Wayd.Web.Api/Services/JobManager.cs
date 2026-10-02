@@ -6,7 +6,7 @@ using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Organization.Application.Teams.Queries;
-using Wayd.Planning.Application.Iterations.Queries;
+using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Planning.Application.PlanningSprints.Commands;
 using Wayd.Planning.Application.PlanningTeams.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
@@ -15,7 +15,6 @@ using Wayd.ProjectPortfolioManagement.Application.PpmTeams.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.StrategicManagement.Application.StrategicThemes.Queries;
 using Wayd.Web.Api.Interfaces;
-using Wayd.Work.Application.WorkIterations.Commands;
 using Wayd.Work.Application.WorkProjects.Commands;
 using Wayd.Work.Application.WorkTeams.Commands;
 using PpmSyncStrategicThemesCommand = Wayd.ProjectPortfolioManagement.Application.StrategicThemes.Commands.SyncStrategicThemesCommand;
@@ -92,16 +91,10 @@ public class JobManager(
         var asOf = _dateTimeProvider.Now;
         var iterations = await _dispatcher.Send(new GetSimpleIterationsQuery(), cancellationToken);
 
-        var result = await _dispatcher.Send(new SyncWorkIterationsCommand(iterations, asOf), cancellationToken);
+        var result = await _dispatcher.Send(new SyncPlanningSprintsCommand(iterations, asOf), cancellationToken);
         if (result.IsFailure)
         {
-            _logger.LogError("Failed to sync iterations: {Error}", result.Error);
-        }
-
-        var planningResult = await _dispatcher.Send(new SyncPlanningSprintsCommand(iterations, asOf), cancellationToken);
-        if (planningResult.IsFailure)
-        {
-            _logger.LogError("Failed to sync Planning sprints: {Error}", planningResult.Error);
+            _logger.LogError("Failed to sync Planning sprints: {Error}", result.Error);
         }
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncIterations));

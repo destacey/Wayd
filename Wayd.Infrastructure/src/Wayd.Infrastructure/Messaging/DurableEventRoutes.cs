@@ -54,7 +54,7 @@ public static class DurableEventRoutes
         typeof(ProjectKeyChangedEvent),
 #pragma warning restore CS0618
 
-        // Planning Iteration → Work WorkIteration and Planning PlanningSprint.
+        // Work Iteration → Planning PlanningSprint.
         typeof(IterationCreatedEventV2),
         typeof(IterationDetailsUpdatedEvent),
         typeof(IterationDateRangeChangedEventV2),

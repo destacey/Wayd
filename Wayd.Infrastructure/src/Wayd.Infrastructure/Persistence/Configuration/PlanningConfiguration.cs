@@ -9,7 +9,6 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;
-using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
@@ -479,89 +478,6 @@ public class RoadmapMilestoneConfiguration : IEntityTypeConfiguration<RoadmapMil
 #endregion Roadmaps
 
 #region Iterations
-
-public class IterationConfig : IEntityTypeConfiguration<Iteration>
-{
-    public void Configure(EntityTypeBuilder<Iteration> builder)
-    {
-        builder.ToTable("Iterations", SchemaNames.Planning);
-
-        builder.HasKey(i => i.Id);
-        builder.HasAlternateKey(i => i.Key);
-
-        // Properties
-        builder.Property(i => i.Id).ValueGeneratedNever();
-        builder.Property(i => i.Key).ValueGeneratedOnAdd();
-        builder.Property(i => i.Name).HasMaxLength(256).IsRequired();
-
-        builder.Property(i => i.Type).IsRequired()
-            .HasConversion<EnumConverter<IterationType>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
-
-        builder.Property(i => i.State).IsRequired()
-            .HasConversion<EnumConverter<IterationState>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
-
-        // Value Objects
-        builder.ComplexProperty(i => i.DateRange, options =>
-        {
-            options.Property(d => d.Start).HasColumnName("Start");
-            options.Property(d => d.End).HasColumnName("End");
-        });
-
-        builder.ComplexProperty(i => i.OwnershipInfo, options =>
-        {
-            options.Property(o => o.Ownership).HasColumnName("Ownership")
-                .HasConversion<EnumConverter<Ownership>>()
-                .HasColumnType("varchar")
-                .HasMaxLength(32)
-                .IsRequired();
-            options.Property(o => o.Connector).HasColumnName("Connector")
-                .HasConversion<EnumConverter<Connector>>()
-                .HasColumnType("varchar")
-                .HasMaxLength(32);
-            options.Property(o => o.SystemId).HasColumnName("SystemId")
-                .HasColumnType("varchar")
-                .HasMaxLength(64);
-            options.Property(o => o.ExternalId).HasColumnName("ExternalId")
-                .HasColumnType("varchar")
-                .HasMaxLength(64);
-        });
-
-        // Ignore
-        builder.Ignore(i => i.ExternalMetadataManager);
-
-        // Relationships
-        builder.HasOne(o => o.Team)
-            .WithMany()
-            .HasForeignKey(p => p.TeamId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(i => i.ExternalMetadata)
-            .WithOne()
-            .HasForeignKey(m => m.ObjectId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
-public class IterationExternalMetadata : IEntityTypeConfiguration<KeyValueObjectMetadata>
-{
-    public void Configure(EntityTypeBuilder<KeyValueObjectMetadata> builder)
-    {
-        builder.ToTable("IterationExternalMetadata", SchemaNames.Planning);
-
-        builder.HasKey(m => new { m.ObjectId, m.Name });
-
-        builder.HasIndex(m => m.ObjectId)
-            .IncludeProperties(m => new { m.Name, m.Value });
-
-        builder.Property(m => m.ObjectId).IsRequired();
-        builder.Property(m => m.Name).IsRequired().HasMaxLength(128);
-        builder.Property(m => m.Value).HasMaxLength(4000);
-    }
-}
 
 public class PlanningSprintConfig : IEntityTypeConfiguration<PlanningSprint>
 {

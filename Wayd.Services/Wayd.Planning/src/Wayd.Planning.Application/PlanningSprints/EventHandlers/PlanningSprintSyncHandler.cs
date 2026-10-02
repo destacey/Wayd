@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Requests.Planning.Iterations;
+using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events.Planning.Iterations;

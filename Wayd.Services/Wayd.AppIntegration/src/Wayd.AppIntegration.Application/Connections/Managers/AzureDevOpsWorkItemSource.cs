@@ -7,7 +7,6 @@ using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Application.Logging;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Application.Requests.Planning.Iterations;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Dtos;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;

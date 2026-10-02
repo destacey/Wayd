@@ -13,10 +13,10 @@ public sealed record GetSprintWorkItemMetricsQuery : IQuery<SprintWorkItemMetric
 {
     public GetSprintWorkItemMetricsQuery(IdOrKey idOrKey)
     {
-        IdOrKeyFilter = idOrKey.CreateFilter<WorkIteration>();
+        IdOrKeyFilter = idOrKey.CreateFilter<Iteration>();
     }
 
-    public Expression<Func<WorkIteration, bool>> IdOrKeyFilter { get; }
+    public Expression<Func<Iteration, bool>> IdOrKeyFilter { get; }
 }
 
 public sealed class GetSprintWorkItemMetricsQueryHandler(
@@ -33,7 +33,7 @@ public sealed class GetSprintWorkItemMetricsQueryHandler(
     {
         // Cast to Guid? or the HasValue check below never fires: FirstOrDefaultAsync over a non-nullable
         // Guid returns Guid.Empty on a miss, making an unknown sprint a 200 with empty metrics, not a 404.
-        var sprintId = await _workDbContext.WorkIterations
+        var sprintId = await _workDbContext.Iterations
             .Where(request.IdOrKeyFilter)
             .Where(i => i.Type == IterationType.Sprint)
             .Select(i => (Guid?)i.Id)

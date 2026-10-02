@@ -28,18 +28,20 @@ public sealed class SyncPlanningSprintsCommandHandlerTests : IDisposable
     public void Dispose() => _planningDbContext.Dispose();
 
     [Fact]
-    public async Task Handle_WhenThereAreNoSprints_DoesNothing()
+    public async Task Handle_WhenTheSourceHasNoSprints_DeletesTheCopies()
     {
         // Arrange
         _planningDbContext.AddPlanningSprint(new PlanningSprint(new PlanningSprintFaker().Generate(), Created));
+        var createdAfterTheRead = new PlanningSprint(new PlanningSprintFaker().Generate(), AfterTheRead);
+        _planningDbContext.AddPlanningSprint(createdAfterTheRead);
 
         // Act
         var result = await _handler.Handle(new SyncPlanningSprintsCommand([], Read), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _planningDbContext.PlanningSprints.Should().ContainSingle();
-        _planningDbContext.SaveChangesCallCount.Should().Be(0);
+        _planningDbContext.PlanningSprints.Should().ContainSingle().Which.Id.Should().Be(createdAfterTheRead.Id);
+        _planningDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

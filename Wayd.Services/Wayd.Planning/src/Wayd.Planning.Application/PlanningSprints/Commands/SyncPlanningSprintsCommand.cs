@@ -1,3 +1,4 @@
+using Ardalis.GuardClauses;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 
 namespace Wayd.Planning.Application.PlanningSprints.Commands;
@@ -20,11 +21,8 @@ public sealed class SyncPlanningSprintsCommandHandler(
     {
         try
         {
-            if (request.Sprints == null || !request.Sprints.Any())
-            {
-                _logger.LogInformation("No sprints to sync.");
-                return Result.Success();
-            }
+            // An empty source is a complete read in which every sprint is gone, so it still removes the copies.
+            Guard.Against.Null(request.Sprints);
 
             int createCount = 0;
             int updateCount = 0;

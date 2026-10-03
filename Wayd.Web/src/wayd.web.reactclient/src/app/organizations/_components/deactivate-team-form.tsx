@@ -27,7 +27,7 @@ const mapToRequestValues = (
   return {
     id,
     inactiveDate: inactiveDate?.format('YYYY-MM-DD'),
-  } as unknown as DeactivateTeamRequest
+  } as DeactivateTeamRequest
 }
 
 const DeactivateTeamForm = ({
@@ -66,8 +66,7 @@ const DeactivateTeamForm = ({
       },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
-      errorMessage:
-        'An unexpected error occurred while deactivating the team.',
+      errorMessage: 'An unexpected error occurred while deactivating the team.',
       permission: 'Permissions.Teams.Update',
     })
 

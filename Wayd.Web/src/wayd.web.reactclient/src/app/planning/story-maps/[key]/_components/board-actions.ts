@@ -1,4 +1,5 @@
 import { StoryMapPersonaDto } from '@/src/services/wayd-api'
+import type { CalendarDate } from '@/src/utils/calendar-date'
 import { DropResult } from './board-drag'
 
 /**
@@ -38,8 +39,8 @@ export interface BoardActions {
   /** Either date may be undefined — a lane can carry only a start, only an end, or neither. */
   onSetSwimLaneDates: (
     swimLaneId: string,
-    startDate: Date | undefined,
-    endDate: Date | undefined,
+    startDate: CalendarDate | undefined,
+    endDate: CalendarDate | undefined,
   ) => void
   /** A completed drag, already resolved to which node moved and where. */
   onDrop: (drop: DropResult) => void

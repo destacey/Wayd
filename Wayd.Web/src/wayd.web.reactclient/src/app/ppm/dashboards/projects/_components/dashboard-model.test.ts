@@ -111,8 +111,8 @@ describe('scope in the URL', () => {
 describe('isEndingSoon', () => {
   it('is true for an open project ending within 30 days, today included', () => {
     // Arrange
-    const soon = project({ key: 'A', end: new Date(2026, 9, 24) })
-    const todayEnd = project({ key: 'B', end: new Date(2026, 8, 24) })
+    const soon = project({ key: 'A', end: '2026-10-24' })
+    const todayEnd = project({ key: 'B', end: '2026-09-24' })
 
     // Act / Assert
     expect(isEndingSoon(soon, today)).toBe(true)
@@ -121,9 +121,9 @@ describe('isEndingSoon', () => {
 
   it('is false for a project already past its end, undated, or further out', () => {
     // Arrange
-    const past = project({ key: 'A', end: new Date(2026, 8, 23) })
+    const past = project({ key: 'A', end: '2026-09-23' })
     const undated = project({ key: 'B' })
-    const later = project({ key: 'C', end: new Date(2026, 9, 25) })
+    const later = project({ key: 'C', end: '2026-10-25' })
 
     // Act / Assert
     expect(isEndingSoon(past, today)).toBe(false)
@@ -135,7 +135,7 @@ describe('isEndingSoon', () => {
     // Arrange
     const completed = project({
       key: 'A',
-      end: new Date(2026, 9, 1),
+      end: '2026-10-01',
       status: { id: 3, name: 'Completed', lifecycleCategory: 'Completed' },
     })
 
@@ -150,11 +150,11 @@ describe('computeAttention', () => {
     const projects = [
       project({ key: 'A', healthCheck: health('Unhealthy') }),
       project({ key: 'B', healthCheck: health('At Risk') }),
-      project({ key: 'C', end: new Date(2026, 9, 10) }),
+      project({ key: 'C', end: '2026-10-10' }),
       project({
         key: 'D',
         healthCheck: health('Healthy'),
-        end: new Date(2027, 0, 1),
+        end: '2027-01-01',
       }),
     ]
     const summaries: PlanSummaries = {
@@ -258,9 +258,9 @@ describe('sortProjects', () => {
   it('sorts undated projects last by end date and unscored last by score', () => {
     // Arrange
     const projects = [
-      project({ key: 'A', end: new Date(2026, 11, 1) }),
+      project({ key: 'A', end: '2026-12-01' }),
       project({ key: 'B' }),
-      project({ key: 'C', end: new Date(2026, 9, 1) }),
+      project({ key: 'C', end: '2026-10-01' }),
     ]
     const scored = [
       project({ key: 'A' }),

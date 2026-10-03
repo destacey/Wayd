@@ -30,7 +30,8 @@ interface PlanningIntervalAtAGlanceProps {
 const PlanningIntervalAtAGlance = ({
   planningInterval,
 }: PlanningIntervalAtAGlanceProps) => {
-  const isFuturePlanningInterval = planningInterval.state.id === IterationState.Future
+  const isFuturePlanningInterval =
+    planningInterval.state.id === IterationState.Future
 
   const { data: piPredictabilityData, isLoading: isLoadingPiPredictability } =
     useGetPlanningIntervalPredictabilityQuery(planningInterval.key, {
@@ -88,8 +89,8 @@ const PlanningIntervalAtAGlance = ({
         <Row gutter={[16, 16]} align="stretch">
           <Col xs={24} sm={12} md={12} lg={6}>
             <TimelineProgress
-              start={new Date(planningInterval.start)}
-              end={new Date(planningInterval.end)}
+              start={planningInterval.start}
+              end={planningInterval.end}
               style={{ height: '100%', width: '100%', minWidth: 0 }}
             />
           </Col>
@@ -110,13 +111,19 @@ const PlanningIntervalAtAGlance = ({
                   <Flex gap={12} style={{ fontSize: 12 }}>
                     <WaydTooltip title="Regular (non-stretch)">
                       <span>
-                        <AimOutlined style={{ marginRight: 4 }} aria-label="Regular" />
+                        <AimOutlined
+                          style={{ marginRight: 4 }}
+                          aria-label="Regular"
+                        />
                         {objectiveCounts.regular}
                       </span>
                     </WaydTooltip>
                     <WaydTooltip title="Stretch">
                       <span>
-                        <PlusCircleOutlined style={{ marginRight: 4 }} aria-label="Stretch" />
+                        <PlusCircleOutlined
+                          style={{ marginRight: 4 }}
+                          aria-label="Stretch"
+                        />
                         {objectiveCounts.stretch}
                       </span>
                     </WaydTooltip>

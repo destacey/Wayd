@@ -18,7 +18,11 @@ import { MarkdownRenderer } from '@/src/components/common/markdown'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useGetProjectQuery } from '@/src/store/features/ppm/projects-api'
-import { getDrawerWidthPixels, isApiError } from '@/src/utils'
+import {
+  getDrawerWidthPixels,
+  isApiError,
+  parseCalendarDate,
+} from '@/src/utils'
 import { Button, Divider, Drawer, Flex } from 'antd'
 import dayjs from 'dayjs'
 import { WaydTooltip } from '@/src/components/common'
@@ -83,7 +87,8 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
   ].sort((a, b) => caseInsensitiveCompare(a.name, b.name))
 
   const hasStarted =
-    projectData?.start && dayjs(projectData.start).isBefore(dayjs(), 'day')
+    projectData?.start &&
+    parseCalendarDate(projectData.start).isBefore(dayjs(), 'day')
 
   const hasNarrative = !!(
     projectData?.description ||
@@ -94,7 +99,7 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
   const timelineFormat =
     projectData?.start &&
     projectData.end &&
-    new Date(projectData.start).getFullYear() === new Date().getFullYear()
+    parseCalendarDate(projectData.start).isSame(dayjs(), 'year')
       ? 'MMM D'
       : 'MMM D, YYYY'
 
@@ -143,7 +148,10 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
           )}
           <LabeledContent label="Dates">
             <WaydDateRange
-              dateRange={{ start: projectData?.start, end: projectData?.end }}
+              dateRange={{
+                start: projectData?.start,
+                end: projectData?.end,
+              }}
             />
           </LabeledContent>
           <LabeledContent label="Expenditure Category">

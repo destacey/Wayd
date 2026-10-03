@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import dayjs from 'dayjs'
 import { Button, Flex, Spin, Table, Tag, Typography } from 'antd'
 import { EditOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
@@ -18,6 +17,12 @@ import WaydEmpty from '@/src/components/common/wayd-empty'
 import useTheme from '@/src/components/contexts/theme'
 import useAuth from '@/src/components/contexts/auth'
 import ConfigureTeamSprintMappingsForm from './configure-team-sprint-mappings-form'
+import {
+  CalendarDate,
+  compareCalendarDates,
+  formatCalendarDate,
+  todayCalendarDate,
+} from '@/src/utils'
 
 const { Text } = Typography
 
@@ -35,17 +40,15 @@ interface TeamRowData {
   sprintsByIteration: Record<string, SprintListDto | null>
 }
 
-const formatDateRange = (start: Date, end: Date): string => {
-  return `${dayjs(start).format('MMM D')} - ${dayjs(end).format('MMM D')}`
+const formatDateRange = (start: CalendarDate, end: CalendarDate): string => {
+  return `${formatCalendarDate(start, 'MMM D')} - ${formatCalendarDate(end, 'MMM D')}`
 }
 
-const isActiveIteration = (start: Date, end: Date): boolean => {
-  const today = dayjs().startOf('day')
-  const startDate = dayjs(start).startOf('day')
-  const endDate = dayjs(end).startOf('day')
+const isActiveIteration = (start: CalendarDate, end: CalendarDate): boolean => {
+  const today = todayCalendarDate()
   return (
-    (today.isAfter(startDate) || today.isSame(startDate)) &&
-    (today.isBefore(endDate) || today.isSame(endDate))
+    compareCalendarDates(start, today) <= 0 &&
+    compareCalendarDates(today, end) <= 0
   )
 }
 
@@ -110,8 +113,8 @@ export const PlanningIntervalTeamSprintMappings = ({
   // the PI runs them. The API returns them unordered.
   const iterationSprintsData = !iterationSprintsResponse
     ? undefined
-    : [...iterationSprintsResponse].sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+    : [...iterationSprintsResponse].sort((a, b) =>
+        compareCalendarDates(a.start, b.start),
       )
 
   const isLoading = teamsLoading || sprintsLoading

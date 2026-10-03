@@ -5,10 +5,8 @@ import LinksCard from '@/src/components/common/links/links-card'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { SprintDetailsDto } from '@/src/services/wayd-api'
 import { Divider, Flex } from 'antd'
-import dayjs from 'dayjs'
+import { calendarDaysBetween, formatCalendarDate } from '@/src/utils'
 import Link from 'next/link'
-
-const formatDate = (value: Date) => dayjs(value).format('MMM D, YYYY')
 
 export interface SprintFactsProps {
   sprint: SprintDetailsDto
@@ -22,16 +20,18 @@ export interface SprintFactsProps {
  */
 const SprintFacts = ({ sprint }: SprintFactsProps) => {
   // Inclusive of both endpoints: a Mon-Fri sprint is five days, not four.
-  const days = dayjs(sprint.end).diff(dayjs(sprint.start), 'day') + 1
+  const days = calendarDaysBetween(sprint.start, sprint.end) + 1
 
   return (
     <>
       <Flex vertical gap={10}>
         <LabeledContent label="Start">
-          {formatDate(sprint.start)}
+          {formatCalendarDate(sprint.start)}
         </LabeledContent>
 
-        <LabeledContent label="End">{formatDate(sprint.end)}</LabeledContent>
+        <LabeledContent label="End">
+          {formatCalendarDate(sprint.end)}
+        </LabeledContent>
 
         {days > 0 && (
           <LabeledContent label="Length">

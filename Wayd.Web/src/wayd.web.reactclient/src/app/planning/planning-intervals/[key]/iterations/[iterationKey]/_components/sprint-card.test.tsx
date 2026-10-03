@@ -1,3 +1,5 @@
+jest.unmock('dayjs')
+
 import { render, screen } from '@testing-library/react'
 import SprintCard from './sprint-card'
 import { IterationState } from '@/src/components/types'
@@ -93,8 +95,8 @@ describe('SprintCard', () => {
     sprintKey: 101,
     sprintName: 'Sprint 1',
     state: { id: IterationState.Active, name: 'Active' },
-    start: new Date('2025-01-01T09:00:00'),
-    end: new Date('2025-01-14T17:00:00'),
+    start: '2025-01-01',
+    end: '2025-01-14',
     team: {
       id: 'team-1',
       key: 1,
@@ -119,7 +121,7 @@ describe('SprintCard', () => {
   const mockOperatingModelStoryPoints: TeamOperatingModelDetailsDto = {
     id: 'om-1',
     teamId: 'team-1',
-    start: new Date('2024-01-01'),
+    start: '2024-01-01',
     methodology: Methodology.Scrum,
     sizingMethod: SizingMethod.StoryPoints,
     timeZone: 'UTC',
@@ -130,7 +132,7 @@ describe('SprintCard', () => {
   const mockOperatingModelCount: TeamOperatingModelDetailsDto = {
     id: 'om-2',
     teamId: 'team-1',
-    start: new Date('2024-01-01'),
+    start: '2024-01-01',
     methodology: Methodology.Kanban,
     sizingMethod: SizingMethod.Count,
     timeZone: 'UTC',
@@ -267,7 +269,6 @@ describe('SprintCard', () => {
         />,
       )
 
-      // dayjs is mocked globally, check that dates are rendered
       expect(
         screen.getByText(/Jan 1, 2025.*-.*Jan 14, 2025/),
       ).toBeInTheDocument()
@@ -284,9 +285,9 @@ describe('SprintCard', () => {
         />,
       )
 
-      expect(screen.getByTestId('iteration-health-indicator')).toHaveTextContent(
-        'Health: 5/10',
-      )
+      expect(
+        screen.getByTestId('iteration-health-indicator'),
+      ).toHaveTextContent('Health: 5/10')
     })
 
     it('renders health indicator with story point values when applicable', () => {
@@ -298,9 +299,9 @@ describe('SprintCard', () => {
         />,
       )
 
-      expect(screen.getByTestId('iteration-health-indicator')).toHaveTextContent(
-        'Health: 50/100',
-      )
+      expect(
+        screen.getByTestId('iteration-health-indicator'),
+      ).toHaveTextContent('Health: 50/100')
     })
   })
 

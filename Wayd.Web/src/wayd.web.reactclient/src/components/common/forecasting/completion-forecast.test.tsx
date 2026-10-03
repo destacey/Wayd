@@ -81,7 +81,7 @@ describe('CompletionForecast', () => {
     render(
       <CompletionForecast
         forecast={createForecast({
-          targetDate: '2026-10-05' as unknown as Date,
+          targetDate: '2026-10-05',
         })}
         isLoading={false}
       />,
@@ -95,7 +95,7 @@ describe('CompletionForecast', () => {
     render(
       <CompletionForecast
         forecast={createForecast({
-          targetDate: '2026-10-05' as unknown as Date,
+          targetDate: '2026-10-05',
         })}
         isLoading={false}
         targetDateOverride="2026-10-09"

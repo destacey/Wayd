@@ -1,8 +1,13 @@
 'use client'
 
-import dayjs from 'dayjs'
 import { CSSProperties, FC } from 'react'
 import { Card, Flex, Grid, Progress, Typography } from 'antd'
+import {
+  calendarDaysBetween,
+  CalendarDate,
+  parseCalendarDate,
+  todayCalendarDate,
+} from '@/src/utils/calendar-date'
 
 const { Text } = Typography
 const { useBreakpoint } = Grid
@@ -10,8 +15,8 @@ const { useBreakpoint } = Grid
 const DATE_FORMAT = 'MMM D'
 
 export interface TimelineProgressProps {
-  start: Date | null
-  end: Date | null
+  start: CalendarDate | null
+  end: CalendarDate | null
   variant?: 'outlined' | 'borderless'
   size?: 'default' | 'small'
   style?: CSSProperties
@@ -31,22 +36,19 @@ const TimelineProgress: FC<TimelineProgressProps> = ({
 
   if (!start || !end) return null
 
-  const now = dayjs()
-  const startDate = dayjs(start)
-  const endDate = dayjs(end)
+  const startDay = parseCalendarDate(start)
+  const endDay = parseCalendarDate(end)
 
-  // For calendar day counting, ignore time and count inclusive days
-  const startDay = startDate.startOf('day')
-  const endDay = endDate.startOf('day')
-  const today = now.startOf('day')
-
-  const totalDays = endDay.diff(startDay, 'day') + 1
-  const isFuture = now.isBefore(startDay)
-  const daysUntilStart = isFuture ? startDay.diff(today, 'day') : 0
+  const totalDays = calendarDaysBetween(start, end) + 1
+  const daysUntilStart = Math.max(
+    calendarDaysBetween(todayCalendarDate(), start),
+    0,
+  )
+  const isFuture = daysUntilStart > 0
 
   const currentDay = isFuture
     ? 0
-    : Math.min(Math.max(now.diff(startDay, 'day') + 1, 0), totalDays)
+    : Math.min(calendarDaysBetween(start, todayCalendarDate()) + 1, totalDays)
   const progressPercent = isFuture
     ? 0
     : Math.round((currentDay / totalDays) * 100)
@@ -55,7 +57,9 @@ const TimelineProgress: FC<TimelineProgressProps> = ({
 
   const content = (
     <Flex vertical gap={4} style={variant === 'borderless' ? style : undefined}>
-      <Text type="secondary" style={{ fontSize }}>Timeline</Text>
+      <Text type="secondary" style={{ fontSize }}>
+        Timeline
+      </Text>
       <Progress
         percent={progressPercent}
         showInfo={false}
@@ -63,10 +67,10 @@ const TimelineProgress: FC<TimelineProgressProps> = ({
       />
       <Flex justify="space-between">
         <Text type="secondary" style={{ fontSize }}>
-          {startDate.format(dateFormat)}
+          {startDay.format(dateFormat)}
         </Text>
         <Text type="secondary" style={{ fontSize }}>
-          {endDate.format(dateFormat)}
+          {endDay.format(dateFormat)}
         </Text>
       </Flex>
       <Flex justify="center">

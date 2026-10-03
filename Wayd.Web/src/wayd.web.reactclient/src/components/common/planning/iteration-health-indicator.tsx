@@ -4,6 +4,7 @@ import {
   calculateIterationHealth,
   IterationHealthStatus,
 } from '@/src/utils/iteration-health'
+import { CalendarDate } from '@/src/utils/calendar-date'
 import { Badge } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import { FC } from 'react'
@@ -21,9 +22,9 @@ const healthTooltip = (
 
 export interface IterationHealthIndicatorProps {
   /** Start date of the iteration */
-  startDate: Date
+  startDate: CalendarDate
   /** End date of the iteration */
-  endDate: Date
+  endDate: CalendarDate
   /** Total planned points/items */
   total: number
   /** Completed points/items */

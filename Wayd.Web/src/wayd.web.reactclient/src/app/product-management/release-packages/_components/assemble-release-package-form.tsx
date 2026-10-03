@@ -9,7 +9,12 @@ import {
 import { useAssembleReleasePackageMutation } from '@/src/store/features/product-management/release-packages-api'
 import { useGetVersionsQuery } from '@/src/store/features/product-management/versions-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  toCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { DatePicker, Form, Input, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
 import ManifestEditor, {
@@ -52,23 +57,26 @@ const AssembleReleasePackageForm = ({
     useModalForm<AssembleReleasePackageFormValues>({
       onSubmit: async (values: AssembleReleasePackageFormValues, form) => {
         try {
-          // The components are typed rather than swept into the cast below: the version link is the
-          // field the double-count rule reads, and a blanket cast previously hid a rename of it on
-          // the API side — the request bound nothing and every line recorded a null version record.
-          // The cast that remains is only for the dates, which are sent as strings.
-          const components: ManifestEntryRequest[] = values.components.map((entry) => ({
-            productId: entry.productId,
-            versionId: entry.versionId,
-            version: entry.version,
-            kind: entry.kind,
-          }))
+          // Typed, never cast: the version link is the field the double-count rule reads, and a cast
+          // hides a rename of it on the API side — the request binds nothing and every line records
+          // a null version record.
+          const components: ManifestEntryRequest[] = values.components.map(
+            (entry) => ({
+              productId: entry.productId,
+              versionId: entry.versionId,
+              version: entry.version,
+              kind: entry.kind,
+            }),
+          )
 
-          const request = {
+          const request: AssembleReleasePackageRequest = {
             version: values.version,
             name: values.name,
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
             components,
-          } as unknown as AssembleReleasePackageRequest
+          }
 
           const response = await assembleReleasePackage(request)
           if (response.error) throw response.error
@@ -123,7 +131,10 @@ const AssembleReleasePackageForm = ({
           name="version"
           rules={[
             { required: true, message: 'Version is required' },
-            { max: 128, message: 'Version cannot be longer than 128 characters' },
+            {
+              max: 128,
+              message: 'Version cannot be longer than 128 characters',
+            },
           ]}
           extra="The package's own version, distinct from any component's."
         >
@@ -132,7 +143,9 @@ const AssembleReleasePackageForm = ({
         <Item
           label="Name"
           name="name"
-          rules={[{ max: 256, message: 'Name cannot be longer than 256 characters' }]}
+          rules={[
+            { max: 256, message: 'Name cannot be longer than 256 characters' },
+          ]}
         >
           <Input />
         </Item>

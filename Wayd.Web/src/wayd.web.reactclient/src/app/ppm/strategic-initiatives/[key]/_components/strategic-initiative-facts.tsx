@@ -13,6 +13,7 @@ import { StrategicInitiativeDetailsDto } from '@/src/services/wayd-api'
 import { Divider, Flex } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
+import { parseCalendarDate } from '@/src/utils'
 import RecordRoleList from '../../../_components/record-role-list'
 
 export interface StrategicInitiativeFactsProps {
@@ -31,13 +32,12 @@ const StrategicInitiativeFacts = ({
 }: StrategicInitiativeFactsProps) => {
   const hasStarted =
     strategicInitiative.start &&
-    dayjs(strategicInitiative.start).isBefore(dayjs(), 'day')
+    parseCalendarDate(strategicInitiative.start).isBefore(dayjs(), 'day')
 
   const timelineFormat =
     strategicInitiative.start &&
     strategicInitiative.end &&
-    new Date(strategicInitiative.start).getFullYear() ===
-      new Date().getFullYear()
+    parseCalendarDate(strategicInitiative.start).isSame(dayjs(), 'year')
       ? 'MMM D'
       : 'MMM D, YYYY'
 

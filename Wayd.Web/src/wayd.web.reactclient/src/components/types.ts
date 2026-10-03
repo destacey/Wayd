@@ -1,3 +1,5 @@
+import type { CalendarDate } from '../utils/calendar-date'
+
 export interface OptionModel<T = string> {
   value: T
   label: string
@@ -19,8 +21,8 @@ export interface StatusOptionModel extends OptionModel<number> {
 }
 
 export interface DateRange {
-  start?: Date
-  end?: Date
+  start?: CalendarDate | Date
+  end?: CalendarDate | Date
 }
 
 // Iteration States from Wayd.Common.Domain.Enums.Work.IterationState

@@ -113,3 +113,32 @@ describe('percentageElapsed', () => {
     expect(percentage).toBeLessThan(51)
   })
 })
+
+describe('calendar date inputs', () => {
+  it('counts days remaining between calendar dates', () => {
+    // Act
+    const result = daysRemaining('2026-10-09', '2026-09-28')
+
+    // Assert
+    expect(result).toEqual(11)
+  })
+
+  it('counts a calendar date against a local reference date by its day', () => {
+    // Arrange
+    const lateOnTheDay = new Date(2026, 8, 28, 23, 59)
+
+    // Act
+    const result = daysRemaining('2026-09-29', lateOnTheDay)
+
+    // Assert
+    expect(result).toEqual(1)
+  })
+
+  it('calculates percentage elapsed from calendar dates', () => {
+    // Act
+    const result = percentageElapsed('2025-01-01', '2025-01-11', '2025-01-05')
+
+    // Assert
+    expect(result).toEqual(40)
+  })
+})

@@ -9,7 +9,13 @@ import {
   RightOutlined,
 } from '@ant-design/icons'
 import { Button, DatePicker, Popconfirm, Popover } from 'antd'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
+import {
+  CalendarDate,
+  formatCalendarDate,
+  parseCalendarDate,
+  toCalendarDate,
+} from '@/src/utils'
 import { FC, useState } from 'react'
 import { BoardActions } from './board-actions'
 import InlineEditText from './inline-edit-text'
@@ -21,24 +27,22 @@ const { RangePicker } = DatePicker
 const DISPLAY_FORMAT = 'D MMM YYYY'
 
 /** "1 Mar 2026 – 14 Mar 2026", or just the one date when only a start or an end is set. */
-const formatRange = (start: Date | undefined, end: Date | undefined) => {
-  const from = start ? dayjs(start).format(DISPLAY_FORMAT) : null
-  const to = end ? dayjs(end).format(DISPLAY_FORMAT) : null
+const formatRange = (
+  start: CalendarDate | undefined,
+  end: CalendarDate | undefined,
+) => {
+  const from = start ? formatCalendarDate(start, DISPLAY_FORMAT) : null
+  const to = end ? formatCalendarDate(end, DISPLAY_FORMAT) : null
   if (from && to) return `${from} – ${to}`
   return from ?? to
 }
 
-const toDayjs = (value: Date | undefined): Dayjs | null =>
-  value ? dayjs(value).startOf('day') : null
+const toDayjs = (value: CalendarDate | undefined): Dayjs | null =>
+  value ? parseCalendarDate(value) : null
 
-/**
- * These are NodaTime `LocalDate`s — plain calendar dates, not instants. NSwag types them as `Date`,
- * but serializing an actual Date would emit a full UTC timestamp and can shift the day either way
- * depending on the viewer's timezone, so send the formatted `YYYY-MM-DD` the API expects. The cast
- * bridges that generated-type-vs-wire-format mismatch; the same is done for roadmap dates.
- */
-const toLocalDate = (value: Dayjs | null | undefined): Date | undefined =>
-  value ? (value.format('YYYY-MM-DD') as unknown as Date) : undefined
+const toLocalDate = (
+  value: Dayjs | null | undefined,
+): CalendarDate | undefined => (value ? toCalendarDate(value) : undefined)
 
 export interface SwimLaneHeaderProps {
   swimLane: StoryMapSwimLaneDto

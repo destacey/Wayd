@@ -1,12 +1,20 @@
 'use client'
 
-import { useGetActiveSprintQuery, useGetTeamDetailsQuery } from '@/src/store/features/organizations/team-api'
+import {
+  useGetActiveSprintQuery,
+  useGetTeamDetailsQuery,
+} from '@/src/store/features/organizations/team-api'
 import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
 import { SizingMethod } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
 import { FC } from 'react'
-import { CompletionRateMetric, CycleTimeMetric, StatusMetric, VelocityMetric } from '../metrics'
+import {
+  CompletionRateMetric,
+  CycleTimeMetric,
+  StatusMetric,
+  VelocityMetric,
+} from '../metrics'
 import useTheme from '@/src/components/contexts/theme'
 import SprintPiPredictability from './sprint-pi-predictability'
 import TimelineProgress from './timeline-progress'
@@ -30,11 +38,17 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
   const { data: sprintData, isLoading: sprintIsLoading } =
     useGetActiveSprintQuery(teamId)
 
-  const { data: teamDetails } = useGetTeamDetailsQuery(sprintData?.team.key ?? 0, {
-    skip: sizingMethod !== undefined || !sprintData?.team.key,
-  })
+  const { data: teamDetails } = useGetTeamDetailsQuery(
+    sprintData?.team.key ?? 0,
+    {
+      skip: sizingMethod !== undefined || !sprintData?.team.key,
+    },
+  )
 
-  const resolvedSizingMethod = sizingMethod ?? teamDetails?.operatingModel?.sizingMethod ?? SizingMethod.StoryPoints
+  const resolvedSizingMethod =
+    sizingMethod ??
+    teamDetails?.operatingModel?.sizingMethod ??
+    SizingMethod.StoryPoints
   const useStoryPoints = resolvedSizingMethod === SizingMethod.StoryPoints
 
   const sprintKey = sprintData?.key
@@ -44,12 +58,19 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
     })
 
   const displayValues = (() => {
-    if (!metrics) return { total: 0, completed: 0, inProgress: 0, notStarted: 0 }
+    if (!metrics)
+      return { total: 0, completed: 0, inProgress: 0, notStarted: 0 }
     return {
       total: useStoryPoints ? metrics.totalStoryPoints : metrics.totalWorkItems,
-      completed: useStoryPoints ? metrics.completedStoryPoints : metrics.completedWorkItems,
-      inProgress: useStoryPoints ? metrics.inProgressStoryPoints : metrics.inProgressWorkItems,
-      notStarted: useStoryPoints ? metrics.notStartedStoryPoints : metrics.notStartedWorkItems,
+      completed: useStoryPoints
+        ? metrics.completedStoryPoints
+        : metrics.completedWorkItems,
+      inProgress: useStoryPoints
+        ? metrics.inProgressStoryPoints
+        : metrics.inProgressWorkItems,
+      notStarted: useStoryPoints
+        ? metrics.notStartedStoryPoints
+        : metrics.notStartedWorkItems,
     }
   })()
 
@@ -74,13 +95,11 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         ) : (
           <Text>Active Sprint: </Text>
         )}
-        <Link href={`/work/sprints/${sprintData.key}`}>
-          {sprintData.name}
-        </Link>
+        <Link href={`/work/sprints/${sprintData.key}`}>{sprintData.name}</Link>
       </div>
       <IterationHealthIndicator
-        startDate={new Date(sprintData.start)}
-        endDate={new Date(sprintData.end)}
+        startDate={sprintData.start}
+        endDate={sprintData.end}
         total={displayValues.total}
         completed={displayValues.completed}
       />

@@ -1,3 +1,7 @@
+// The global dayjs stub reads a calendar date as UTC midnight, which is the
+// previous day west of UTC.
+jest.unmock('dayjs')
+
 import { render, screen, act } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { ProjectStageListDto } from '@/src/services/wayd-api'
@@ -214,8 +218,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: new Date('2026-01-15T12:00:00'),
-        end: new Date('2026-03-15T12:00:00'),
+        start: '2026-01-15',
+        end: '2026-03-15',
       }),
     ]
 
@@ -259,7 +263,7 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: new Date('2026-02-01T12:00:00'),
+        start: '2026-02-01',
       }),
     ]
 
@@ -274,7 +278,7 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        end: new Date('2026-06-30T12:00:00'),
+        end: '2026-06-30',
       }),
     ]
 
@@ -291,8 +295,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: new Date('2026-01-15T12:00:00'),
-        end: new Date('2026-03-15T12:00:00'),
+        start: '2026-01-15',
+        end: '2026-03-15',
         progress: 45,
       }),
     ]
@@ -309,8 +313,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: new Date('2026-01-15T12:00:00'),
-        end: new Date('2026-03-15T12:00:00'),
+        start: '2026-01-15',
+        end: '2026-03-15',
         progress: 45,
       }),
     ]
@@ -332,8 +336,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: new Date('2026-01-15T12:00:00'),
-        end: new Date('2026-03-15T12:00:00'),
+        start: '2026-01-15',
+        end: '2026-03-15',
         progress: 45,
       }),
     ]
@@ -362,8 +366,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: new Date('2026-01-15T12:00:00'),
-        end: new Date('2026-03-15T12:00:00'),
+        start: '2026-01-15',
+        end: '2026-03-15',
         progress: 45,
       }),
     ]
@@ -417,8 +421,8 @@ describe('StageTimeline', () => {
         createStage({
           name: 'Plan',
           order: 1,
-          start: new Date('2026-01-15T12:00:00'),
-          end: new Date('2026-03-15T12:00:00'),
+          start: '2026-01-15',
+          end: '2026-03-15',
           progress: 50,
         }),
       ]

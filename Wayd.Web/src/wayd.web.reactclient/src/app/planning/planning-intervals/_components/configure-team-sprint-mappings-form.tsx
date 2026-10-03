@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import dayjs from 'dayjs'
 import { Flex, Modal, Select, Spin, Typography } from 'antd'
 import {
   MapPlanningIntervalSprintsRequest,
@@ -14,6 +13,11 @@ import {
 import { useGetTeamSprintsQuery } from '@/src/store/features/organizations/team-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
+import {
+  CalendarDate,
+  compareCalendarDates,
+  formatCalendarDate,
+} from '@/src/utils'
 
 const { Text } = Typography
 
@@ -30,14 +34,14 @@ export interface ConfigureTeamSprintMappingsFormProps {
 interface IterationSprintMapping {
   iterationId: string
   iterationName: string
-  iterationStart: Date
-  iterationEnd: Date
+  iterationStart: CalendarDate
+  iterationEnd: CalendarDate
   iterationCategory: string
   sprintId: string | null
 }
 
-const formatDateRange = (start: Date, end: Date): string => {
-  return `${dayjs(start).format('MMM D, YYYY')} - ${dayjs(end).format('MMM D, YYYY')}`
+const formatDateRange = (start: CalendarDate, end: CalendarDate): string => {
+  return `${formatCalendarDate(start)} - ${formatCalendarDate(end)}`
 }
 
 const formatSprintOption = (sprint: SprintListDto): string => {
@@ -74,7 +78,7 @@ const ConfigureTeamSprintMappingsForm = ({
   const sprintOptions = !teamSprintsData
     ? []
     : [...teamSprintsData]
-        .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
+        .sort((a, b) => compareCalendarDates(b.start, a.start))
         .map((sprint) => ({
           value: sprint.id,
           label: formatSprintOption(sprint),
@@ -84,29 +88,26 @@ const ConfigureTeamSprintMappingsForm = ({
   const mappings: IterationSprintMapping[] = !iterationSprintsData
     ? []
     : [...iterationSprintsData]
-        .sort(
-          (a, b) =>
-            new Date(a.start).getTime() - new Date(b.start).getTime(),
-        )
+        .sort((a, b) => compareCalendarDates(a.start, b.start))
         .map((iteration) => {
-        const existingSprint = iteration.sprints?.find(
-          (s) => s.team.id === teamId,
-        )
-        const defaultSprintId = existingSprint?.id ?? null
-        const sprintId =
-          iteration.id in sprintOverrides
-            ? sprintOverrides[iteration.id]
-            : defaultSprintId
+          const existingSprint = iteration.sprints?.find(
+            (s) => s.team.id === teamId,
+          )
+          const defaultSprintId = existingSprint?.id ?? null
+          const sprintId =
+            iteration.id in sprintOverrides
+              ? sprintOverrides[iteration.id]
+              : defaultSprintId
 
-        return {
-          iterationId: iteration.id,
-          iterationName: iteration.name,
-          iterationStart: iteration.start,
-          iterationEnd: iteration.end,
-          iterationCategory: iteration.category?.name ?? '',
-          sprintId,
-        }
-      })
+          return {
+            iterationId: iteration.id,
+            iterationName: iteration.name,
+            iterationStart: iteration.start,
+            iterationEnd: iteration.end,
+            iterationCategory: iteration.category?.name ?? '',
+            sprintId,
+          }
+        })
 
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {

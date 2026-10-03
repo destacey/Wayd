@@ -4,8 +4,9 @@ import { LifecycleStatusTag } from '@/src/components/common'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import StageTimeline from './stage-timeline'
 import { ProjectListDto } from '@/src/services/wayd-api'
-import { getSortedNames } from '@/src/utils'
+import { getSortedNames, parseCalendarDate } from '@/src/utils'
 import { Card, Flex, Segmented, Spin, Typography } from 'antd'
+import dayjs from 'dayjs'
 import styles from './projects-card-view.module.css'
 import Link from 'next/link'
 import { FC, ReactNode, useMemo, useState } from 'react'
@@ -55,7 +56,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({
   const timelineFormat =
     project.start &&
     project.end &&
-    new Date(project.start).getFullYear() === new Date().getFullYear()
+    parseCalendarDate(project.start).isSame(dayjs(), 'year')
       ? 'MMM D'
       : 'MMM D, YYYY'
 

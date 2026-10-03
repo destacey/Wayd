@@ -1,3 +1,5 @@
+import { calendarDaysBetween, CalendarDate } from './calendar-date'
+
 /**
  * Represents the health status of an iteration (sprint or PI iteration).
  */
@@ -23,15 +25,15 @@ export interface IterationHealthResult {
  */
 export interface IterationHealthParams {
   /** Start date of the iteration */
-  startDate: Date
+  startDate: CalendarDate
   /** End date of the iteration */
-  endDate: Date
+  endDate: CalendarDate
   /** Total planned points/items */
   total: number
   /** Completed points/items */
   completed: number
-  /** Optional reference date (defaults to now) */
-  referenceDate?: Date
+  /** Optional reference day (defaults to today in the viewer's calendar) */
+  referenceDate?: CalendarDate | Date
 }
 
 /**
@@ -48,11 +50,11 @@ export interface IterationHealthParams {
  * @example
  * // Sprint: 40 SP, 14 days, Day 10, 24 SP done
  * const result = calculateIterationHealth({
- *   startDate: new Date('2024-01-01'),
- *   endDate: new Date('2024-01-14'),
+ *   startDate: '2024-01-01',
+ *   endDate: '2024-01-14',
  *   total: 40,
  *   completed: 24,
- *   referenceDate: new Date('2024-01-10'),
+ *   referenceDate: '2024-01-10',
  * })
  * // result.status === IterationHealthStatus.AtRisk
  * // result.variancePercent === 11.5 (behind)
@@ -62,24 +64,16 @@ export function calculateIterationHealth(
 ): IterationHealthResult {
   const { startDate, endDate, total, completed, referenceDate } = params
 
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const now = referenceDate ? new Date(referenceDate) : new Date()
-
-  // Normalize dates to midnight UTC
-  start.setUTCHours(0, 0, 0, 0)
-  end.setUTCHours(0, 0, 0, 0)
-  now.setUTCHours(0, 0, 0, 0)
-
-  const elapsedMs = now.getTime() - start.getTime()
+  const now = referenceDate ?? new Date()
+  const daysElapsedRaw = calendarDaysBetween(startDate, now)
 
   // Handle iteration not yet started
-  if (elapsedMs <= 0) {
+  if (daysElapsedRaw <= 0) {
     return { status: IterationHealthStatus.NotStarted, variancePercent: 0 }
   }
 
   // Handle completed iteration (end date has passed)
-  if (now.getTime() > end.getTime()) {
+  if (calendarDaysBetween(endDate, now) > 0) {
     return { status: IterationHealthStatus.Completed, variancePercent: 0 }
   }
 
@@ -88,10 +82,8 @@ export function calculateIterationHealth(
     return { status: IterationHealthStatus.Unknown, variancePercent: 0 }
   }
 
-  const totalMs = end.getTime() - start.getTime()
-
-  const totalDays = totalMs / (1000 * 3600 * 24)
-  const daysElapsed = Math.min(elapsedMs / (1000 * 3600 * 24), totalDays)
+  const totalDays = calendarDaysBetween(startDate, endDate)
+  const daysElapsed = Math.min(daysElapsedRaw, totalDays)
   const daysRemaining = Math.max(0, totalDays - daysElapsed)
 
   // Where should we be? (ideal linear burndown)

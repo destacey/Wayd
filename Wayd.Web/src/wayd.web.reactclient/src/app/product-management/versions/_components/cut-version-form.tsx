@@ -42,7 +42,7 @@ const CutVersionForm = ({
           const request = {
             id: version.id,
             cutAt: values.cutAt.toDate(),
-          } as unknown as CutVersionRequest
+          } as CutVersionRequest
 
           const response = await cutVersion({
             id: version.id,

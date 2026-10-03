@@ -3,7 +3,9 @@
 import { MetricCard } from '@/src/components/common/metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import { ProgramDetailsDto, ProjectListDto } from '@/src/services/wayd-api'
+import { parseCalendarDate } from '@/src/utils'
 import { Card, Col, Flex, Row, theme } from 'antd'
+import dayjs from 'dayjs'
 import BreakdownPie from '../../../_components/breakdown-pie'
 import ProjectsNeedingAttentionCard from '../../../_components/projects-needing-attention-card'
 import {
@@ -46,7 +48,7 @@ const ProgramOverview = ({
   const timelineFormat =
     program.start &&
     program.end &&
-    new Date(program.start).getFullYear() === new Date().getFullYear()
+    parseCalendarDate(program.start).isSame(dayjs(), 'year')
       ? 'MMM D'
       : 'MMM D, YYYY'
 

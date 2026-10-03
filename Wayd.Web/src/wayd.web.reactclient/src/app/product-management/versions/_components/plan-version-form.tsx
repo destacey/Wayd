@@ -66,7 +66,7 @@ const PlanVersionForm = ({
             version: values.version,
             name: values.name,
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
-          } as unknown as PlanVersionRequest
+          } as PlanVersionRequest
 
           const response = await planVersion(request)
           if (response.error) throw response.error
@@ -87,7 +87,7 @@ const PlanVersionForm = ({
               request: {
                 id,
                 cutAt: values.cutAt.toDate(),
-              } as unknown as CutVersionRequest,
+              } as CutVersionRequest,
             })
             if (cut.error) {
               messageApi.error(
@@ -104,7 +104,7 @@ const PlanVersionForm = ({
               request: {
                 id,
                 releasedAt: values.releasedAt.toDate(),
-              } as unknown as MarkVersionReleasedRequest,
+              } as MarkVersionReleasedRequest,
             })
             if (released.error) {
               messageApi.error(

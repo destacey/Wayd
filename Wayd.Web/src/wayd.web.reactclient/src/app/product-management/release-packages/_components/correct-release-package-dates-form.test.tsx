@@ -61,7 +61,7 @@ const RELEASED_AT = '2026-09-18T02:30:00Z'
 
 const released = () =>
   releasePackage({
-    targetDate: '2026-09-16' as unknown as Date,
+    targetDate: '2026-09-16',
     releasedAt: RELEASED_AT as unknown as Date,
   })
 
@@ -94,7 +94,7 @@ describe('CorrectReleasePackageDatesForm', () => {
     // Arrange — the domain refuses adding one here: a released date closes the manifest, and
     // Mark Released is the action that records the first.
     // Act
-    renderForm(releasePackage({ targetDate: '2026-09-16' as unknown as Date }))
+    renderForm(releasePackage({ targetDate: '2026-09-16' }))
 
     // Assert
     expect(screen.getByLabelText('Target Date')).toBeInTheDocument()

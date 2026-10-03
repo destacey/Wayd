@@ -174,6 +174,7 @@ Match the comment density of the surrounding file rather than importing a differ
 
 - **API calls**: Always use NSwag-generated typed client (e.g., `getProjectsClient()`). Never use `authenticatedFetch()` directly. Clients in `wayd.web.reactclient/src/services/clients.ts`.
 - **Theming**: Ant Design theme tokens only — never hardcode colors. Prefer CSS variables (`var(--ant-color-primary)`) in CSS modules over `theme.useToken()` in JS. Only use `theme.useToken()` when values are needed in JS logic.
+- **Dates**: a `LocalDate` is generated as `string` (`"YYYY-MM-DD"`), an `Instant` as `Date`. Handle calendar dates only through `src/utils/calendar-date.ts` — never `new Date(x)` or `dayjs.utc(x)`, which shift the day west of UTC. See [Dates and instants](docs/contributing/frontend.mdx#dates-and-instants).
 - **State**: Redux Toolkit + RTK Query for API data. React Context for auth/theme. `useState` for local UI state.
 - **PWA**: Installable via Serwist (`@serwist/turbopack`). See [Frontend Development docs](docs/contributing/frontend.mdx#pwa-progressive-web-app) for details.
 - **Ant Design reference**: For component APIs, usage examples, and design tokens, fetch the machine-readable docs — per-component `https://ant.design/components/<name>.md` (e.g. `Table.md`), the full index at <https://ant.design/llms-full.txt>, and the design-token spec at <https://ant.design/design.md>. See <https://ant.design/docs/react/for-agents> for the full agent toolset (CLI + MCP server).

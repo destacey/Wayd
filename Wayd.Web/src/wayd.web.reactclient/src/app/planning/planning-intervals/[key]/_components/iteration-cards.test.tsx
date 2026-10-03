@@ -1,3 +1,5 @@
+jest.unmock('dayjs')
+
 import { render, screen } from '@testing-library/react'
 
 global.ResizeObserver = class {
@@ -35,9 +37,8 @@ const mockQuery = useGetPlanningIntervalIterationsQuery as unknown as jest.Mock
 const mockMetricsQuery =
   useGetPlanningIntervalIterationMetricsQuery as unknown as jest.Mock
 
-// Build a Date from a YYYY-MM-DD string in the *local* timezone so dayjs
-// formatting in the component matches the input (otherwise "2024-07-22" is
-// parsed as UTC and drifts to Jul 21 in negative-offset zones).
+// The fake clock must sit on the local day, or "today" drifts a day in
+// negative-offset zones.
 const localDate = (isoDay: string) => {
   const [y, m, d] = isoDay.split('-').map(Number)
   return new Date(y, m - 1, d)
@@ -54,8 +55,8 @@ const mkIteration = (overrides: {
   id: `id-${overrides.key}`,
   key: overrides.key,
   name: overrides.name,
-  start: localDate(overrides.start) as unknown as Date,
-  end: localDate(overrides.end) as unknown as Date,
+  start: overrides.start,
+  end: overrides.end,
   state: overrides.state,
   category: { id: 1, name: overrides.categoryName ?? 'Development' },
 })
@@ -359,4 +360,3 @@ describe('IterationCards', () => {
     })
   })
 })
-

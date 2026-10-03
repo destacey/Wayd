@@ -7,7 +7,12 @@ import {
   ReleasePackageDto,
 } from '@/src/services/wayd-api'
 import { useCorrectReleasePackageDatesMutation } from '@/src/store/features/product-management/release-packages-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 
@@ -53,7 +58,7 @@ const CorrectReleasePackageDatesForm = ({
           const request = {
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
             releasedAt: values.releasedAt?.toDate(),
-          } as unknown as CorrectReleasePackageDatesRequest
+          } as CorrectReleasePackageDatesRequest
 
           const response = await correctDates({
             id: releasePackage.id,
@@ -110,7 +115,7 @@ const CorrectReleasePackageDatesForm = ({
           name="correct-release-package-dates-form"
           initialValues={{
             targetDate: releasePackage.targetDate
-              ? dayjs(releasePackage.targetDate)
+              ? parseCalendarDate(releasePackage.targetDate)
               : undefined,
             releasedAt: releasePackage.releasedAt
               ? dayjs(releasePackage.releasedAt)

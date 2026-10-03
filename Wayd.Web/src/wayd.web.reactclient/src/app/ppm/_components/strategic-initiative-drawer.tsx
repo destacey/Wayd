@@ -12,7 +12,11 @@ import { RecordFactsGroup } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useGetStrategicInitiativeQuery } from '@/src/store/features/ppm/strategic-initiatives-api'
-import { getDrawerWidthPixels, isApiError } from '@/src/utils'
+import {
+  getDrawerWidthPixels,
+  isApiError,
+  parseCalendarDate,
+} from '@/src/utils'
 import { Divider, Drawer, Flex } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
@@ -64,13 +68,12 @@ const StrategicInitiativeDrawer: FC<StrategicInitiativeDrawerProps> = ({
 
   const hasStarted =
     strategicInitiativeData?.start &&
-    dayjs(strategicInitiativeData.start).isBefore(dayjs(), 'day')
+    parseCalendarDate(strategicInitiativeData.start).isBefore(dayjs(), 'day')
 
   const timelineFormat =
     strategicInitiativeData?.start &&
     strategicInitiativeData.end &&
-    new Date(strategicInitiativeData.start).getFullYear() ===
-      new Date().getFullYear()
+    parseCalendarDate(strategicInitiativeData.start).isSame(dayjs(), 'year')
       ? 'MMM D'
       : 'MMM D, YYYY'
 
@@ -131,9 +134,7 @@ const StrategicInitiativeDrawer: FC<StrategicInitiativeDrawerProps> = ({
           </LabeledContent>
           <LabeledContent label="Owners">
             <RecordRoleList
-              people={
-                strategicInitiativeData?.strategicInitiativeOwners ?? []
-              }
+              people={strategicInitiativeData?.strategicInitiativeOwners ?? []}
               emptyText="No owners assigned"
             />
           </LabeledContent>

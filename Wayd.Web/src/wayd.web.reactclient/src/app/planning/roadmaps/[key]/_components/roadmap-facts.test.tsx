@@ -7,8 +7,8 @@ const roadmap = {
   id: 'roadmap-1',
   key: 8,
   name: 'Platform 2026',
-  start: new Date('2026-01-05'),
-  end: new Date('2026-12-18'),
+  start: '2026-01-05',
+  end: '2026-12-18',
   visibility: { id: '1', name: 'Public' },
   state: { id: '1', name: 'Active' },
   roadmapManagers: [],
@@ -17,8 +17,8 @@ const roadmap = {
 
 describe('RoadmapFacts', () => {
   it('renders the span as the calendar dates it is', () => {
-    // Arrange / Act — stored as UTC, so formatting locally would shift them a
-    // day earlier for anyone behind UTC.
+    // Arrange / Act — a calendar date has no zone, so no browser zone may
+    // shift it.
     render(<RoadmapFacts roadmap={roadmap} />)
 
     // Assert
@@ -44,7 +44,9 @@ describe('RoadmapFacts', () => {
     // Assert — sorted, and each links to the person
     const links = screen.getAllByRole('link')
     const names = links.map((l) => l.textContent)
-    expect(names.indexOf('Ada Lovelace')).toBeLessThan(names.indexOf('Wei Chen'))
+    expect(names.indexOf('Ada Lovelace')).toBeLessThan(
+      names.indexOf('Wei Chen'),
+    )
     expect(screen.getByRole('link', { name: /Ada Lovelace/ })).toHaveAttribute(
       'href',
       '/organizations/employees/42',

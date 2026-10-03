@@ -38,8 +38,8 @@ describe('SprintsGrid', () => {
       key: 101,
       name: 'Sprint 1',
       state: { id: 1, name: 'Active' },
-      start: new Date('2025-01-01'),
-      end: new Date('2025-01-15'),
+      start: '2025-01-01',
+      end: '2025-01-15',
       team: { id: '1', key: 1, name: 'Team Alpha', code: 'TA', type: 'Team' },
     },
     {
@@ -47,8 +47,8 @@ describe('SprintsGrid', () => {
       key: 102,
       name: 'Sprint 2',
       state: { id: 2, name: 'Planned' },
-      start: new Date('2025-01-16'),
-      end: new Date('2025-01-30'),
+      start: '2025-01-16',
+      end: '2025-01-30',
       team: { id: '2', key: 2, name: 'Team Beta', code: 'TB', type: 'Team' },
     },
   ]

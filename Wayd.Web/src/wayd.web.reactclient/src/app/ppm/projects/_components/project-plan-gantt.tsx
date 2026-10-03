@@ -9,6 +9,7 @@
 // "Milestone" is a single-date marker on `plannedDate` rather than a span.
 
 import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import type { CalendarDate } from '@/src/utils'
 import {
   toMs,
   useGanttPane,
@@ -68,26 +69,22 @@ const projectPlanAccessors: GanttAccessors<ProjectPlanNodeDto> = {
  * its position until the refetch lands (without this the bar visibly snaps back
  * to where it started, then jumps to the new dates). Mirrors applyOptimisticDates
  * in the roadmap API. Returns whether the node was found.
- *
- * The DTO fields are typed `Date` but hold ISO strings at runtime; we store
- * YYYY-MM-DD to match the post-refetch shape (dayjs parses both, and storing real
- * Dates would trip Redux's serializability check).
  */
 export function applyOptimisticPlanDates(
   nodes: ProjectPlanNodeDto[] | undefined,
   id: string,
   isMilestone: boolean,
-  start: string,
-  end: string,
+  start: CalendarDate,
+  end: CalendarDate,
 ): boolean {
   if (!nodes) return false
   for (const node of nodes) {
     if (node.id === id) {
       if (isMilestone) {
-        node.plannedDate = start as unknown as Date
+        node.plannedDate = start
       } else {
-        node.start = start as unknown as Date
-        node.end = end as unknown as Date
+        node.start = start
+        node.end = end
       }
       return true
     }
@@ -105,8 +102,8 @@ export function applyOptimisticPlanDates(
  */
 export function computeProjectPlanGanttDomain(
   treeData: ProjectPlanNodeDto[],
-  projectStart?: Date | string,
-  projectEnd?: Date | string,
+  projectStart?: CalendarDate,
+  projectEnd?: CalendarDate,
 ): { domainStart: number; domainEnd: number } {
   return computeGenericDomain(treeData, projectPlanAccessors, [
     toMs(projectStart),
@@ -118,8 +115,8 @@ export type ProjectPlanGanttOptions = Omit<
   GanttPaneOptions<ProjectPlanNodeDto>,
   'domainHint'
 > & {
-  projectStart?: Date | string
-  projectEnd?: Date | string
+  projectStart?: CalendarDate
+  projectEnd?: CalendarDate
 }
 
 export type ProjectPlanGanttModel = GanttPaneModel<ProjectPlanNodeDto>

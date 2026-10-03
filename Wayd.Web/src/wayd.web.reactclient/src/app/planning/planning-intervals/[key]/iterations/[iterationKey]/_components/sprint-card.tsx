@@ -18,7 +18,7 @@ import {
 } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Grid, Row, Tag, Typography } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
-import dayjs from 'dayjs'
+import { formatCalendarDate } from '@/src/utils'
 import Link from 'next/link'
 import { FC } from 'react'
 
@@ -60,11 +60,8 @@ const SprintCard: FC<SprintCardProps> = ({
     ? sprint.notStartedStoryPoints
     : sprint.notStartedWorkItems
 
-  const formatDateRange = () => {
-    const start = dayjs(sprint.start)
-    const end = dayjs(sprint.end)
-    return `${start.format('MMM D, YYYY')} - ${end.format('MMM D, YYYY')}`
-  }
+  const formatDateRange = () =>
+    `${formatCalendarDate(sprint.start)} - ${formatCalendarDate(sprint.end)}`
 
   const isFuture = sprint.state.id === IterationState.Future
 
@@ -101,8 +98,8 @@ const SprintCard: FC<SprintCardProps> = ({
             </Text>
             <Flex gap={8} wrap>
               <IterationHealthIndicator
-                startDate={new Date(sprint.start)}
-                endDate={new Date(sprint.end)}
+                startDate={sprint.start}
+                endDate={sprint.end}
                 total={displayTotal}
                 completed={displayCompleted}
               />
@@ -135,8 +132,8 @@ const SprintCard: FC<SprintCardProps> = ({
 
             <Flex vertical gap={8} align="end">
               <IterationHealthIndicator
-                startDate={new Date(sprint.start)}
-                endDate={new Date(sprint.end)}
+                startDate={sprint.start}
+                endDate={sprint.end}
                 total={displayTotal}
                 completed={displayCompleted}
               />
@@ -152,8 +149,8 @@ const SprintCard: FC<SprintCardProps> = ({
         {/* Progress Bar - only show for active/completed sprints */}
         {!isFuture && (
           <IterationProgressBar
-            startDate={new Date(sprint.start)}
-            endDate={new Date(sprint.end)}
+            startDate={sprint.start}
+            endDate={sprint.end}
             total={displayTotal}
             completed={displayCompleted}
           />

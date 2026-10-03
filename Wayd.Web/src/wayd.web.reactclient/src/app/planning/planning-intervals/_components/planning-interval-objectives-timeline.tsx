@@ -15,8 +15,10 @@ import {
   PlanningIntervalObjectiveListDto,
 } from '@/src/services/wayd-api'
 import { WaydTimeline } from '@/src/components/common/timeline'
-import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline'
-
+import type {
+  TimelineItem,
+  TimelineGroup,
+} from '@/src/components/common/timeline'
 
 const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
 
@@ -59,7 +61,7 @@ function mapObjectives(
         // Iteration end is inclusive in the DTO; add 1 day minus 1 second to
         // match the legacy component's rendering (fills to end of that day).
         start: ms(iter.start),
-        end: ms(dayjs(iter.end as unknown as string).add(1, 'day').subtract(1, 'second')),
+        end: ms(dayjs(iter.end).add(1, 'day').subtract(1, 'second')),
         groupId: enableGroups ? ROOT_GROUP_ID : undefined,
       }),
     ) ?? []

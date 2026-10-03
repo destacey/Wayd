@@ -6,6 +6,7 @@ import ProjectsDashboardTimeline, {
 } from './projects-dashboard-timeline'
 import { ProjectGroup } from './dashboard-model'
 import { ProjectListDto, ProjectStageListDto } from '@/src/services/wayd-api'
+import { CalendarDate } from '@/src/utils'
 
 // Building the model does date arithmetic the global dayjs stub cannot do.
 jest.unmock('dayjs')
@@ -53,8 +54,8 @@ const stage = (
   name: string,
   status: string,
   order: number,
-  start?: Date,
-  end?: Date,
+  start?: CalendarDate,
+  end?: CalendarDate,
 ): ProjectStageListDto => ({
   id,
   name,
@@ -95,25 +96,11 @@ const groups: ProjectGroup[] = [
         key: 'P1',
         name: 'Alpha',
         healthCheck: { id: 'hc', status: { id: 3, name: 'Unhealthy' } },
-        start: new Date(2026, 4, 1),
-        end: new Date(2026, 11, 18),
+        start: '2026-05-01',
+        end: '2026-12-18',
         stages: [
-          stage(
-            's1',
-            'Design',
-            'Completed',
-            1,
-            new Date(2026, 4, 1),
-            new Date(2026, 6, 1),
-          ),
-          stage(
-            's2',
-            'Build',
-            'In Progress',
-            2,
-            new Date(2026, 5, 15),
-            new Date(2026, 9, 1),
-          ),
+          stage('s1', 'Design', 'Completed', 1, '2026-05-01', '2026-07-01'),
+          stage('s2', 'Build', 'In Progress', 2, '2026-06-15', '2026-10-01'),
           stage('s3', 'Close', 'Not Started', 3),
         ],
       }),

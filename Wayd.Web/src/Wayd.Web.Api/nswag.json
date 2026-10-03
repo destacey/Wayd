@@ -117,7 +117,7 @@
             "inlineNamedDictionaries": false,
             "inlineNamedAny": false,
             "includeHttpContext": false,
-            "templateDirectory": null,
+            "templateDirectory": "NSwagTemplates",
             "typeNameGeneratorType": null,
             "propertyNameGeneratorType": null,
             "enumNameGeneratorType": null,

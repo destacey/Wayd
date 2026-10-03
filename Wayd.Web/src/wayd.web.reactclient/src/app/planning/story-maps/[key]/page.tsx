@@ -54,6 +54,7 @@ import { RecordShell } from '@/src/components/common/record'
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
 import { togglePersonaId } from '@/src/store/features/planning/story-map-patches'
 import { generateCsv, downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
+import type { CalendarDate } from '@/src/utils/calendar-date'
 import type { DropResult } from './_components/board-drag'
 import { buildExportRows, EXPORT_HEADERS } from './_components/board-export'
 import {
@@ -348,8 +349,8 @@ const StoryMapDetailPage: FC = () => {
 
   const handleSetSwimLaneDates = async (
     swimLaneId: string,
-    startDate: Date | undefined,
-    endDate: Date | undefined,
+    startDate: CalendarDate | undefined,
+    endDate: CalendarDate | undefined,
   ) => {
     if (!map) return
     try {

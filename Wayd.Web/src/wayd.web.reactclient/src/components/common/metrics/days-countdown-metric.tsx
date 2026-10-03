@@ -1,7 +1,7 @@
 'use client'
 
 import { FC } from 'react'
-import { daysRemaining, percentageElapsed } from '@/src/utils'
+import { CalendarDate, daysRemaining, percentageElapsed } from '@/src/utils'
 import { IterationState } from '../../types'
 import { MetricCard } from '.'
 
@@ -14,12 +14,12 @@ export interface DaysCountdownMetricProps {
   /**
    * Start date (used when state is 'Future')
    */
-  startDate: Date
+  startDate: CalendarDate
 
   /**
    * End date (used when state is 'Active ')
    */
-  endDate: Date
+  endDate: CalendarDate
 
   /**
    * Optional custom labels for different states

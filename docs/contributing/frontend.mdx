@@ -40,6 +40,31 @@ const workItems = await client.getList(workspaceId)
 
 **Never use `authenticatedFetch()` directly** unless the generated client doesn't have the method yet.
 
+### Dates and instants
+
+The generated types follow the two kinds of time the API publishes:
+
+| API type | OpenAPI | Generated type | Meaning |
+|---|---|---|---|
+| `LocalDate` | `format: date` | `string` (`"2026-09-28"`) | A day on the calendar — a sprint's planned start, a target date |
+| `Instant` | `format: date-time` | `Date` | A moment — when something was started, completed or released |
+
+The client generates interfaces only and never parses a response, so both arrive as strings at runtime. A
+`Date`-typed instant is safe to hand to `dayjs(...)`; a calendar date is not a moment and must never be
+treated as one. Use the helpers in `src/utils/calendar-date.ts` (exported from `@/src/utils`):
+
+- `formatCalendarDate(value)` to show one, as written, with no zone conversion.
+- `parseCalendarDate(value)` for date math or a `DatePicker`; it is local midnight of that day.
+- `toCalendarDate(dayjsOrDate)` to send a picked day back to the API.
+- `compareCalendarDates` to sort, and `calendarDaysBetween` / `daysRemaining` to count days.
+
+**Never `new Date(calendarDate)` or `dayjs.utc(calendarDate)`.** `new Date("2026-09-28")` is UTC midnight,
+which is the previous day anywhere west of UTC. Instants are shown in the viewer's zone; where a record also
+has a team time zone that can differ from the viewer's, label which zone a time is in.
+
+`wayd-api.ts` gets the `string` type from an override of the generator's interface template,
+`Wayd.Web.Api/NSwagTemplates/Interface.liquid`: NSwag's single `dateTimeType` setting covers both formats.
+
 ## Styling
 
 Use **Ant Design theme tokens**. Never hardcode colors.

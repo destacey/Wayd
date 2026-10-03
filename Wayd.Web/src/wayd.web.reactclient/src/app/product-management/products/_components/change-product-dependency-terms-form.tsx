@@ -9,7 +9,13 @@ import {
   ProductDependencyDto,
 } from '@/src/services/wayd-api'
 import { useChangeProductDependencyTermsMutation } from '@/src/store/features/product-management/products-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  toCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { Alert, DatePicker, Form, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { useState } from 'react'
@@ -60,7 +66,9 @@ const ChangeProductDependencyTermsForm = ({
           const request = {
             strength: values.strength,
             interactionStyles: values.interactionStyles,
-            changedOn: values.changedOn?.format('YYYY-MM-DD'),
+            changedOn: values.changedOn
+              ? toCalendarDate(values.changedOn)
+              : undefined,
           } as ChangeProductDependencyTermsRequest
 
           const response = await changeTerms({
@@ -107,7 +115,7 @@ const ChangeProductDependencyTermsForm = ({
 
   // The current dependency ends the day before the change, so the change can fall no earlier than the day
   // after it started.
-  const earliest = dayjs(dependency.startsOn).add(1, 'day')
+  const earliest = parseCalendarDate(dependency.startsOn).add(1, 'day')
   const startedToday = earliest.isAfter(dayjs(), 'day')
 
   // Filling in styles nobody had recorded changed nothing about the dependency, so the API records it in

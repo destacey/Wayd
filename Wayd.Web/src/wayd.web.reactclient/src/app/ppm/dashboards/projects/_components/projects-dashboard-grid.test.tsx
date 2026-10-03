@@ -73,7 +73,7 @@ const projects = [
         progress: 40,
       },
     ],
-    end: new Date(2026, 9, 5),
+    end: '2026-10-05',
   }),
   project({ key: 'P2', name: 'Beta' }),
   project({

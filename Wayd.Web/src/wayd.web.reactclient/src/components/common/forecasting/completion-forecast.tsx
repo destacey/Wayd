@@ -1,7 +1,7 @@
 'use client'
 
 import { WorkItemForecastDto } from '@/src/services/wayd-api'
-import { teamUrl } from '@/src/utils'
+import { CalendarDate, teamUrl } from '@/src/utils'
 import { Alert, Card, Flex, Progress, Skeleton, Tag, Typography } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'
@@ -26,7 +26,7 @@ export interface CompletionForecastProps {
    * own. The chance is worked out from the histogram, so picking a date does
    * not re-run the forecast.
    */
-  targetDateOverride?: Date | string
+  targetDateOverride?: CalendarDate
 }
 
 const outcomeAlerts: Record<

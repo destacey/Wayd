@@ -30,7 +30,7 @@ const mapToRequestValues = (
   return {
     id,
     inactiveDate: inactiveDate?.format('YYYY-MM-DD'),
-  } as unknown as DeactivateTeamOfTeamsRequest
+  } as DeactivateTeamOfTeamsRequest
 }
 
 const DeactivateTeamOfTeamsForm = ({

@@ -1,4 +1,13 @@
 export { daysRemaining, percentageElapsed } from './dates'
+export {
+  type CalendarDate,
+  calendarDaysBetween,
+  compareCalendarDates,
+  formatCalendarDate,
+  parseCalendarDate,
+  toCalendarDate,
+  todayCalendarDate,
+} from './calendar-date'
 export { getSortedNames, getSortedNameList } from './get-sorted-names'
 export {
   getWorkStatusCategoryColor,

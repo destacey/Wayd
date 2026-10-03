@@ -62,7 +62,7 @@ const dependency = {
   product: { id: 'web', key: 2, name: 'Storefront Web' },
   dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
   strength: DependencyStrength.Soft,
-  startsOn: new Date('2026-03-01T00:00:00Z'),
+  startsOn: '2026-03-01',
 } as ProductDependencyDto
 
 const submit = async () => {

@@ -102,8 +102,8 @@ describe('SprintMetrics', () => {
     id: 'sprint-1',
     key: 1,
     name: 'Sprint 1',
-    start: new Date('2025-01-01'),
-    end: new Date('2025-01-14'),
+    start: '2025-01-01',
+    end: '2025-01-14',
     state: { id: IterationState.Active, name: 'Active' },
     team: {
       id: 'team-1',
@@ -382,4 +382,3 @@ describe('SprintMetrics', () => {
     })
   })
 })
-

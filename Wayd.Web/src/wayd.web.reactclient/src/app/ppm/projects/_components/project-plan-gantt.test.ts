@@ -1,4 +1,9 @@
+// The global dayjs stub reads a calendar date as UTC midnight; the chart places
+// it at local midnight.
+jest.unmock('dayjs')
+
 import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import { parseCalendarDate } from '@/src/utils'
 import {
   applyOptimisticPlanDates,
   computeProjectPlanGanttDomain,
@@ -8,7 +13,7 @@ import {
 
 const DAY = 86_400_000
 const PAD = 14 * DAY
-const at = (iso: string) => Date.parse(iso)
+const at = (iso: string) => parseCalendarDate(iso).valueOf()
 
 const node = (over: Partial<ProjectPlanNodeDto>): ProjectPlanNodeDto =>
   ({
@@ -68,13 +73,13 @@ describe('computeProjectPlanGanttDomain', () => {
         children: [
           node({
             id: 'task-1',
-            start: new Date(at('2026-03-01')),
-            end: new Date(at('2026-03-10')),
+            start: '2026-03-01',
+            end: '2026-03-10',
           }),
           node({
             id: 'task-2',
-            start: new Date(at('2026-03-05')),
-            end: new Date(at('2026-03-20')),
+            start: '2026-03-05',
+            end: '2026-03-20',
           }),
         ],
       }),
@@ -92,7 +97,7 @@ describe('computeProjectPlanGanttDomain', () => {
       node({
         id: 'ms-1',
         type: { id: 2, name: 'Milestone' },
-        plannedDate: new Date(at('2026-06-15')),
+        plannedDate: '2026-06-15',
       }),
     ]
     // Act
@@ -105,11 +110,11 @@ describe('computeProjectPlanGanttDomain', () => {
   it('ignores a task that is missing one endpoint', () => {
     // Arrange — a half-dated task must not drag the axis to epoch 0.
     const tree = [
-      node({ id: 'task-1', start: new Date(at('2026-03-01')), end: undefined }),
+      node({ id: 'task-1', start: '2026-03-01', end: undefined }),
       node({
         id: 'task-2',
-        start: new Date(at('2026-04-01')),
-        end: new Date(at('2026-04-10')),
+        start: '2026-04-01',
+        end: '2026-04-10',
       }),
     ]
     // Act
@@ -124,8 +129,8 @@ describe('computeProjectPlanGanttDomain', () => {
     const tree = [
       node({
         id: 'task-1',
-        start: new Date(at('2026-03-01')),
-        end: new Date(at('2026-03-10')),
+        start: '2026-03-01',
+        end: '2026-03-10',
       }),
     ]
     // Act
@@ -160,9 +165,7 @@ describe('applyOptimisticPlanDates', () => {
 
   it('writes only plannedDate for a milestone', () => {
     // Arrange
-    const tree = [
-      node({ id: 'ms1', type: { id: 2, name: 'Milestone' } }),
-    ]
+    const tree = [node({ id: 'ms1', type: { id: 2, name: 'Milestone' } })]
     // Act
     const found = applyOptimisticPlanDates(
       tree,
@@ -217,20 +220,23 @@ describe('applyOptimisticPlanDates', () => {
 
   it('leaves other nodes untouched', () => {
     // Arrange
-    const tree = [
-      node({ id: 't1' }),
-      node({ id: 't2', start: new Date(at('2026-01-01')) }),
-    ]
+    const tree = [node({ id: 't1' }), node({ id: 't2', start: '2026-01-01' })]
     // Act
     applyOptimisticPlanDates(tree, 't1', false, '2026-04-01', '2026-04-05')
     // Assert — only the dragged bar moves.
-    expect(tree[1].start).toEqual(new Date(at('2026-01-01')))
+    expect(tree[1].start).toBe('2026-01-01')
   })
 
   it('tolerates an undefined tree', () => {
     // Arrange / Act / Assert — the cache may be empty when a drag commits.
     expect(
-      applyOptimisticPlanDates(undefined, 't1', false, '2026-04-01', '2026-04-05'),
+      applyOptimisticPlanDates(
+        undefined,
+        't1',
+        false,
+        '2026-04-01',
+        '2026-04-05',
+      ),
     ).toBe(false)
   })
 })

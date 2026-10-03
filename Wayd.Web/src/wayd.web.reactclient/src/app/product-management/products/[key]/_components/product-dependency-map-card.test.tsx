@@ -98,7 +98,7 @@ const link = (
   product: from,
   dependsOnProduct: to,
   strength,
-  startsOn: new Date('2026-01-01'),
+  startsOn: '2026-01-01',
   productPath: [],
   dependsOnProductPath: [],
 })

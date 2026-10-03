@@ -7,18 +7,32 @@ using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.ArchitectureTests.Helpers;
+using Wayd.Common.Domain.Activities;
+using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Links.Models;
 using Wayd.Organization.Domain.Models;
 using Wayd.Planning.Domain.Models;
+using Wayd.Planning.Domain.Models.PlanningPoker;
+using Wayd.Planning.Domain.Models.Roadmaps;
+using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.Work.Domain.Models;
+using PpmStrategicTheme = Wayd.ProjectPortfolioManagement.Domain.Models.StrategicTheme;
 using StrategicTheme = Wayd.StrategicManagement.Domain.Models.StrategicTheme;
+using Strategy = Wayd.StrategicManagement.Domain.Models.Strategy;
 using Version = Wayd.ProductManagement.Domain.Models.Version;
+using Vision = Wayd.StrategicManagement.Domain.Models.Vision;
 
 namespace Wayd.ArchitectureTests.Sut;
 
@@ -101,33 +115,138 @@ public partial class EventCoverageTests
     {
         ["StatusTrackedEntity.DrainStatusTransitions()"] =
             "Hands the pending transition rows to BaseDbContext to insert; the saved record is unchanged.",
-
-        // Undecided (#816): whether these changes are part of the aggregate's history at all.
-        ["ProjectPortfolio.MoveProjectRanks(PpmActor, IReadOnlyList<Guid>, Nullable<Guid>, Nullable<Guid>)"] = "Ranking: #816.",
-        ["ProjectPortfolio.RebalanceRanks(PpmActor)"] = "Ranking: #816.",
-        ["Project.CreateTask(Int32, String, String, ProjectTaskType, TaskStatus, TaskPriority, Progress, Guid, FlexibleDateRange, Nullable<LocalDate>, Nullable<Decimal>, Dictionary<TaskRole, HashSet<Guid>>)"] = "Project tasks: #816.",
-        ["Project.ChangeTaskPlacement(Guid, Guid, Nullable<Int32>)"] = "Project tasks: #816.",
-        ["Project.DeleteTask(Guid)"] = "Project tasks: #816.",
-        ["Project.LinkTaskParents()"] = "Project tasks: #816.",
-        ["Project.UpdateTaskDates(Guid, FlexibleDateRange, Nullable<LocalDate>, Boolean)"] = "Project tasks: #816.",
-        ["Project.UpdateStageDates(Guid, FlexibleDateRange)"] = "Project tasks: #816.",
-        ["Project.RecalculateAncestorsForTask(ProjectTask)"] = "Project tasks: #816.",
-        ["WorkProcess.Create(String, String, Instant)"] = "Synced process configuration: #816.",
-        ["WorkProcess.CreateExternal(String, String, Guid, Instant)"] = "Synced process configuration: #816.",
-        ["WorkProcess.Update(String, String, Instant)"] = "Synced process configuration: #816.",
-        ["WorkProcess.AddWorkType(Int32, Guid, Boolean, Instant)"] = "Synced process configuration: #816.",
-        ["WorkProcess.ActivateWorkType(Int32, Instant)"] = "Synced process configuration: #816.",
-        ["WorkProcess.DeactivateWorkType(Int32, Instant)"] = "Synced process configuration: #816.",
-        ["WorkProcess.ChangeWorkTypeWorkflow(Int32, Guid, Instant)"] = "Synced process configuration: #816.",
-        ["AzureDevOpsBoardsConnection.SetSystemId(String)"] = "Synced connection state: #816.",
-        ["AzureDevOpsBoardsConnection.SyncWorkspaces(IEnumerable<AzureDevOpsBoardsWorkspace>, Instant)"] = "Synced connection state: #816.",
-        ["AzureDevOpsBoardsConnection.SyncProcesses(IEnumerable<AzureDevOpsBoardsWorkProcess>, Instant)"] = "Synced connection state: #816.",
-        ["AzureDevOpsBoardsConnection.SyncTeams(List<IExternalTeam>, Instant)"] = "Synced connection state: #816.",
-        ["AzureDevOpsBoardsConnection.UpdateWorkProcessIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "Integration state: #816.",
-        ["AzureDevOpsBoardsConnection.ClearWorkProcessIntegrationState(Guid, Instant)"] = "Integration state: #816.",
-        ["AzureDevOpsBoardsConnection.UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "Integration state: #816.",
+        ["ProjectPortfolio.MoveProjectRanks(PpmActor, IReadOnlyList<Guid>, Nullable<Guid>, Nullable<Guid>)"] =
+            "Rank is display order on the portfolio's board, positioned between neighbours; not a fact about any project.",
+        ["ProjectPortfolio.RebalanceRanks(PpmActor)"] =
+            "Renumbers every project's rank without changing their order.",
         ["WorkdayConnection.RecordInitResult(Boolean, IReadOnlyList<String>, IReadOnlyList<String>, String, IReadOnlyList<WorkdayOrgType>, DateTimeOffset)"] =
-            "Records the result of probing the configuration, not a change to it: #816.",
+            "Records the result of probing the configuration, not a change to it.",
+        ["HealthCheckBase.Update(HealthStatus, Instant, String, Instant)"] =
+            "In Common, so it cannot be internal to the aggregates that own a health check; only their UpdateHealthCheck calls it, and that raises.",
+        ["HealthCheckBase.ChangeExpiration(Instant)"] =
+            "Called only by HealthReport when a new check supersedes the latest, inside the owning aggregate's AddHealthCheck, which raises.",
+
+        // Not yet evented: each awaits the issue it names.
+        ["Project.CreateTask(Int32, String, String, ProjectTaskType, TaskStatus, TaskPriority, Progress, Guid, FlexibleDateRange, Nullable<LocalDate>, Nullable<Decimal>, Dictionary<TaskRole, HashSet<Guid>>)"] = "#950.",
+        ["Project.ChangeTaskPlacement(Guid, Guid, Nullable<Int32>)"] = "#950.",
+        ["Project.DeleteTask(Guid)"] = "#950.",
+        ["Project.LinkTaskParents()"] = "#950.",
+        ["Project.UpdateTaskDates(Guid, FlexibleDateRange, Nullable<LocalDate>, Boolean)"] = "#950.",
+        ["Project.UpdateStageDates(Guid, FlexibleDateRange)"] = "#950.",
+        ["Project.RecalculateAncestorsForTask(ProjectTask)"] = "#950.",
+        ["ProjectTask.UpdateDetails(String, String, TaskPriority)"] = "#950.",
+        ["ProjectTask.UpdateStatus(TaskStatus, Instant)"] = "#950.",
+        ["ProjectTask.UpdateProgress(Progress)"] = "#950.",
+        ["ProjectTask.UpdatePlannedDates(FlexibleDateRange, Nullable<LocalDate>)"] = "#950.",
+        ["ProjectTask.UpdateEffort(Nullable<Decimal>)"] = "#950.",
+        ["ProjectTask.AddDependency(ProjectTask)"] = "#950.",
+        ["ProjectTask.RemoveDependency(Guid, Instant)"] = "#950.",
+        ["ProjectStage.UpdateDescription(String)"] = "#950.",
+        ["ProjectStage.UpdateStatus(TaskStatus)"] = "#950.",
+        ["ProjectStage.UpdatePlannedDates(FlexibleDateRange)"] = "#950.",
+        ["ProjectStage.UpdateProgress(Progress)"] = "#950.",
+        ["WorkProcess.CreateExternal(String, String, Guid, Instant)"] = "#955.",
+        ["WorkProcess.Update(String, String, Instant)"] = "#955.",
+        ["WorkProcess.AddWorkType(Int32, Guid, Boolean, Instant)"] = "#955.",
+        ["WorkProcess.ActivateWorkType(Int32, Instant)"] = "#955.",
+        ["WorkProcess.DeactivateWorkType(Int32, Instant)"] = "#955.",
+        ["WorkProcess.ChangeWorkTypeWorkflow(Int32, Guid, Instant)"] = "#955.",
+        ["AzureDevOpsBoardsConnection.SetSystemId(String)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.SyncWorkspaces(IEnumerable<AzureDevOpsBoardsWorkspace>, Instant)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.SyncProcesses(IEnumerable<AzureDevOpsBoardsWorkProcess>, Instant)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.SyncTeams(List<IExternalTeam>, Instant)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.UpdateWorkProcessIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.ClearWorkProcessIntegrationState(Guid, Instant)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "#956.",
+    };
+
+    /// <summary>
+    /// The aggregates that raise no events, each with the reason: either it is deliberately not history, or
+    /// it awaits the issue that will event it. Every type a DbSet exposes is on this list,
+    /// <see cref="EventedAggregates"/> or <see cref="ChildEntities"/> — see
+    /// <see cref="EveryEntity_IsEventedUneventedOrAChild"/>.
+    /// </summary>
+    /// <remarks>
+    /// Synced data is not a reason on its own: the sync is when Wayd learns the fact, and an aggregate that
+    /// raises only on a real change raises in proportion to change, not to how often it syncs.
+    /// </remarks>
+    private static readonly Dictionary<Type, string> UneventedAggregates = new()
+    {
+        [typeof(WorkItem)] =
+            "Synced at thousands of genuine changes per run, which would dominate the log; the work system keeps field-level revisions.",
+        [typeof(PokerSession)] =
+            "A short-lived collaborative session with a change per vote; live updates go out over SignalR.",
+        [typeof(StoryMap)] =
+            "A drafting canvas of fine-grained edits whose current state is the artifact.",
+
+        // Copies built from another module's events, which are their history.
+        [typeof(PlanningSprint)] = "A copy of Work's Iteration.",
+        [typeof(PlanningTeam)] = "A copy of Organization's team.",
+        [typeof(PpmStrategicTheme)] = "A copy of Strategic Management's StrategicTheme.",
+        [typeof(PpmTeam)] = "A copy of Organization's team.",
+        [typeof(WorkProject)] = "A copy of PPM's Project.",
+        [typeof(WorkTeam)] = "A copy of Organization's team.",
+        [typeof(User)] = "A read-only view over the Identity user, whose ApplicationUser raises the events.",
+
+        // Records that are themselves a log or the state of a run.
+        [typeof(ActivityLogEntry)] = "The log the events are recorded in.",
+        [typeof(StatusTransition)] = "A transition row the owning record writes alongside its status-changed event.",
+        [typeof(ImportProcess)] = "The state of an import run, advanced per chunk; it is the record of the run.",
+        [typeof(SyncRun)] = "The state of a sync run; it is the record of the run.",
+
+        // Derived or side-effect data with no meaning of its own.
+        [typeof(ExternalEmployeeBlacklistItem)] =
+            "External ids a removed employee must not be re-imported from; written as part of that removal.",
+        [typeof(WorkflowAliasName)] = "Lookup data rebuilt from code at startup.",
+
+        // Not yet evented: each awaits the issue it names.
+        [typeof(Strategy)] = "#951.",
+        [typeof(Vision)] = "#951.",
+        [typeof(EstimationScale)] = "#952.",
+        [typeof(ExpenditureCategory)] = "#952.",
+        [typeof(FeatureFlag)] = "#952.",
+        [typeof(Link)] = "#952.",
+        [typeof(ProductTagCategory)] = "#952.",
+        [typeof(ProductType)] = "#952.",
+        [typeof(ProjectLifecycle)] = "#952.",
+        [typeof(TeamMemberRole)] = "#952.",
+        [typeof(WorkItemReference)] = "#952.",
+        [typeof(Roadmap)] = "#953.",
+        [typeof(Employee)] = "#954.",
+        [typeof(ExternalIdentityMapping)] = "#954.",
+        [typeof(Workflow)] = "#955.",
+        [typeof(WorkStatus)] = "#955.",
+        [typeof(WorkType)] = "#955.",
+        [typeof(WorkTypeHierarchy)] = "#955.",
+        [typeof(Workspace)] = "#955.",
+    };
+
+    /// <summary>
+    /// Entities with a DbSet of their own that belong to another aggregate, by the aggregate they belong to.
+    /// A child of an evented aggregate is part of its history, so its own public mutators must raise too.
+    /// </summary>
+    private static readonly Dictionary<Type, Type> ChildEntities = new()
+    {
+        [typeof(ImportProcessRow)] = typeof(ImportProcess),
+        [typeof(PlanningIntervalIterationSprint)] = typeof(PlanningInterval),
+        [typeof(PlanningIntervalObjectiveHealthCheck)] = typeof(PlanningIntervalObjective),
+        [typeof(ProductDependency)] = typeof(Product),
+        [typeof(ProductTag)] = typeof(ProductTagCategory),
+        [typeof(ProductTagAssignment)] = typeof(Product),
+        [typeof(ProjectHealthCheck)] = typeof(Project),
+        [typeof(ProjectScore)] = typeof(Project),
+        [typeof(ProjectStage)] = typeof(Project),
+        [typeof(ProjectStatusHistory)] = typeof(Project),
+        [typeof(ProjectTask)] = typeof(Project),
+        [typeof(ProjectTaskDependency)] = typeof(Project),
+        [typeof(ReleasePackageComponent)] = typeof(ReleasePackage),
+        [typeof(ReleasePackageInclusion)] = typeof(Release),
+        [typeof(ReleaseVersion)] = typeof(Release),
+        [typeof(TeamMember)] = typeof(BaseTeam),
+        [typeof(TeamOperatingModel)] = typeof(Team),
+        [typeof(WorkflowStatus)] = typeof(StatusWorkflow),
+        [typeof(WorkItemDependency)] = typeof(WorkItem),
+        [typeof(WorkItemHierarchy)] = typeof(WorkItem),
     };
 
     /// <summary>
@@ -154,7 +273,7 @@ public partial class EventCoverageTests
 
     private static readonly Lazy<DomainMethodAnalysis> Analysis = new(DomainMethodAnalysis.Load);
 
-    public static TheoryData<string> EventedAggregateNames() => new(EventedAggregates.Select(t => t.FullName!).Order());
+    public static TheoryData<string> HistoryTypeNames() => new(HistoryTypes().Select(t => t.FullName!).Order());
 
     [Fact]
     public void EventedAggregates_AreExactlyTheTypesThatRaiseEvents()
@@ -186,25 +305,49 @@ public partial class EventCoverageTests
             "complete. Remove it, or find where its events went");
     }
 
+    [Fact]
+    public void EveryEntity_IsEventedUneventedOrAChild()
+    {
+        // Arrange
+        var entities = WaydModel.DbSetsByName.Values.Where(IsWaydDomainType).Distinct().ToList();
+
+        // Act
+        var placements = entities
+            .Select(e => (Entity: e, Lists: (IsEvented(e) ? 1 : 0) + (UneventedAggregates.ContainsKey(e) ? 1 : 0) + (ChildEntities.ContainsKey(e) ? 1 : 0)))
+            .ToList();
+
+        // Assert
+        Listed(placements.Where(p => p.Lists == 0).Select(p => p.Entity.FullName)).Should().BeEmpty(
+            "every entity is either an evented aggregate, an unevented one with the reason, or a child of " +
+            "another aggregate. Add it to EventedAggregates by raising its events, to UneventedAggregates with " +
+            "why its changes are not history (or the issue that will event it), or to ChildEntities");
+        Listed(placements.Where(p => p.Lists > 1).Select(p => p.Entity.FullName)).Should().BeEmpty(
+            "an entity is on more than one of EventedAggregates, UneventedAggregates and ChildEntities. An " +
+            "aggregate that now raises comes off UneventedAggregates");
+        Listed(UneventedAggregates.Keys.Concat(ChildEntities.Keys).Except(entities).Select(t => t.FullName)).Should().BeEmpty(
+            "an entry in UneventedAggregates or ChildEntities must name an entity the context still exposes");
+    }
+
     [Theory]
-    [MemberData(nameof(EventedAggregateNames))]
-    public void PublicMutators_RaiseAnEvent(string aggregateName)
+    [MemberData(nameof(HistoryTypeNames))]
+    public void PublicMutators_RaiseAnEvent(string typeName)
     {
         // Arrange
         var analysis = Analysis.Value;
-        var aggregate = analysis.Definition(EventedAggregates.Single(t => t.FullName == aggregateName));
+        var type = analysis.Definition(HistoryTypes().Single(t => t.FullName == typeName));
 
         // Act
-        var unevented = UneventedPublicMutators(analysis, aggregate)
+        var unevented = UneventedPublicMutators(analysis, type)
             .Where(m => !UneventedMutators.ContainsKey(m))
             .ToList();
 
         // Assert
         Listed(unevented).Should().BeEmpty(
-            $"{aggregate.Name} records its history as events, so a public method that changes its state " +
-            "without raising one leaves that history incomplete. Raise an event for the change (see " +
-            "docs/contributing/domain-events.mdx), or, where the change is deliberately not history, add it " +
-            "to UneventedMutators with the reason");
+            $"{type.Name} is part of an evented aggregate's history, so a public method that changes its " +
+            "state without raising an event leaves that history incomplete. Raise an event for the change " +
+            "(see docs/contributing/domain-events.mdx), make a child's method internal so only its aggregate " +
+            "changes it, or, where the change is deliberately not history, add it to UneventedMutators with " +
+            "the reason");
     }
 
     [Fact]
@@ -214,7 +357,7 @@ public partial class EventCoverageTests
         var analysis = Analysis.Value;
 
         // Act
-        var flagged = EventedAggregates
+        var flagged = HistoryTypes()
             .Select(analysis.Definition)
             .SelectMany(a => UneventedPublicMutators(analysis, a))
             .ToHashSet();
@@ -282,6 +425,21 @@ public partial class EventCoverageTests
             "an entry in SetBasedWriteMigrations or SetBasedWriteSourcesOutsideHistory must name a file that " +
             "still writes an evented table");
     }
+
+    /// <summary>The evented aggregates and the children that belong to one: every type whose changes are history.</summary>
+    private static IEnumerable<Type> HistoryTypes() =>
+        EventedAggregates.Concat(ChildEntities.Where(c => IsEvented(c.Value)).Select(c => c.Key));
+
+    /// <summary>An evented aggregate, or an abstract base whose concrete aggregates are.</summary>
+    private static bool IsEvented(Type type) => EventedAggregates.Any(type.IsAssignableFrom);
+
+    /// <summary>
+    /// Wayd's own entities outside Infrastructure. The Identity entities there (<c>ApplicationUser</c> and
+    /// <c>ApplicationRole</c>, which raise) are outside the domain assemblies this guard reads.
+    /// </summary>
+    private static bool IsWaydDomainType(Type type) =>
+        type.Assembly.GetName().Name!.StartsWith("Wayd.", StringComparison.Ordinal)
+        && type.Assembly != typeof(WaydDbContext).Assembly;
 
     /// <summary>
     /// Every public method on the aggregate, or on a domain base class it inherits from, that can change

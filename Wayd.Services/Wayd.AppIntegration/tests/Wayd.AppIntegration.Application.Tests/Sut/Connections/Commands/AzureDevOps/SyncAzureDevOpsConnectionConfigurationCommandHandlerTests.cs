@@ -4,6 +4,7 @@ using Moq;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Models;
 using Wayd.Tests.Shared;
@@ -41,6 +42,7 @@ public class SyncAzureDevOpsConnectionConfigurationCommandHandlerTests
             config,
             true,
             null,
+            EventActor.System,
             _clock.Now);
 
         _db.AddAzureDevOpsBoardsConnection(connection);
@@ -148,7 +150,7 @@ public class SyncAzureDevOpsConnectionConfigurationCommandHandlerTests
         var process = AzureDevOpsBoardsWorkProcess.Create(externalId, "Agile", "test");
         var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", processes: [process]);
         var connection = AzureDevOpsBoardsConnection.Create(
-            "Test Connection", null, "test-system-id", config, true, null, _clock.Now);
+            "Test Connection", null, "test-system-id", config, true, null, EventActor.System, _clock.Now);
         _db.AddAzureDevOpsBoardsConnection(connection);
 
         var azdoProcess = AzureDevOpsBoardsWorkProcess.Create(externalId, "Agile", "test");

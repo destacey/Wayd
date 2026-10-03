@@ -1,8 +1,13 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Mono.Cecil;
+using Wayd.AppIntegration.Domain.Models;
+using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.ArchitectureTests.Helpers;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -42,7 +47,15 @@ public partial class EventCoverageTests
     /// </summary>
     private static readonly HashSet<Type> EventedAggregates =
     [
+        // App Integration
+        typeof(AzureDevOpsBoardsConnection),
+        typeof(AzureOpenAIConnection),
+        typeof(EntraConnection),
+        typeof(WorkdayConnection),
+
         // Common
+        typeof(OidcProvider),
+        typeof(PersonalAccessToken),
         typeof(ScoringModel),
         typeof(StatusWorkflow),
         typeof(SystemSettingsSection),
@@ -111,6 +124,15 @@ public partial class EventCoverageTests
         ["WorkProcess.ActivateWorkType(Int32, Instant)"] = "Synced process configuration: #816.",
         ["WorkProcess.DeactivateWorkType(Int32, Instant)"] = "Synced process configuration: #816.",
         ["WorkProcess.ChangeWorkTypeWorkflow(Int32, Guid, Instant)"] = "Synced process configuration: #816.",
+        ["AzureDevOpsBoardsConnection.SetSystemId(String)"] = "Synced connection state: #816.",
+        ["AzureDevOpsBoardsConnection.SyncWorkspaces(IEnumerable<AzureDevOpsBoardsWorkspace>, Instant)"] = "Synced connection state: #816.",
+        ["AzureDevOpsBoardsConnection.SyncProcesses(IEnumerable<AzureDevOpsBoardsWorkProcess>, Instant)"] = "Synced connection state: #816.",
+        ["AzureDevOpsBoardsConnection.SyncTeams(List<IExternalTeam>, Instant)"] = "Synced connection state: #816.",
+        ["AzureDevOpsBoardsConnection.UpdateWorkProcessIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "Integration state: #816.",
+        ["AzureDevOpsBoardsConnection.ClearWorkProcessIntegrationState(Guid, Instant)"] = "Integration state: #816.",
+        ["AzureDevOpsBoardsConnection.UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "Integration state: #816.",
+        ["WorkdayConnection.RecordInitResult(Boolean, IReadOnlyList<String>, IReadOnlyList<String>, String, IReadOnlyList<WorkdayOrgType>, DateTimeOffset)"] =
+            "Records the result of probing the configuration, not a change to it: #816.",
     };
 
     /// <summary>
@@ -123,6 +145,16 @@ public partial class EventCoverageTests
             "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
         ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =
             "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
+    };
+
+    /// <summary>
+    /// Shipped source that writes an evented aggregate's table set-based on purpose, by file name, each with
+    /// the reason. Only for a column that is not part of the aggregate's history at all.
+    /// </summary>
+    private static readonly Dictionary<string, string> SetBasedWriteSourcesOutsideHistory = new()
+    {
+        ["LastSeenWriter.cs"] =
+            "Stamps PersonalAccessToken.LastUsedAt on authentication, batched and conditional; usage telemetry, not a change to the token.",
     };
 
     private static readonly Lazy<DomainMethodAnalysis> Analysis = new(DomainMethodAnalysis.Load);
@@ -234,7 +266,8 @@ public partial class EventCoverageTests
                     writes.Add($"{location}:{LineOf(source, statement.Index)} {statement.Groups["verb"].Value} on {table}");
             }
 
-            if (writes.Count > 0 && IsMigration(file) && SetBasedWriteMigrations.ContainsKey(Path.GetFileName(file)))
+            var exemptions = IsMigration(file) ? SetBasedWriteMigrations : SetBasedWriteSourcesOutsideHistory;
+            if (writes.Count > 0 && exemptions.ContainsKey(Path.GetFileName(file)))
                 exemptionsUsed.Add(Path.GetFileName(file));
             else
                 offenders.AddRange(writes);
@@ -248,9 +281,11 @@ public partial class EventCoverageTests
             "a set-based write changes rows without loading the aggregate, so no event is raised and the " +
             "aggregate's history silently misses the change. Load the records and change them through the " +
             "aggregate's methods, or, for a migration that accounts for the change another way, add it to " +
-            "SetBasedWriteMigrations with the reason");
-        Listed(SetBasedWriteMigrations.Keys.Except(exemptionsUsed)).Should().BeEmpty(
-            "an entry in SetBasedWriteMigrations must name a migration that still writes an evented table");
+            "SetBasedWriteMigrations with the reason. A column that is not history at all goes on " +
+            "SetBasedWriteSourcesOutsideHistory");
+        Listed(SetBasedWriteMigrations.Keys.Concat(SetBasedWriteSourcesOutsideHistory.Keys).Except(exemptionsUsed)).Should().BeEmpty(
+            "an entry in SetBasedWriteMigrations or SetBasedWriteSourcesOutsideHistory must name a file that " +
+            "still writes an evented table");
     }
 
     /// <summary>

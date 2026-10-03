@@ -14,12 +14,16 @@ namespace Wayd.Infrastructure.Auth.Oidc.Handlers;
 /// </summary>
 public sealed class DeleteOidcProviderCommandHandler(
     IWaydDbContext dbContext,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     IUserIdentityStore userIdentityStore,
     IOidcProviderRegistry registry,
     ILogger<DeleteOidcProviderCommandHandler> logger)
     : ICommandHandler<DeleteOidcProviderCommand, DeleteOidcProviderResult>
 {
     private readonly IWaydDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IUserIdentityStore _userIdentityStore = userIdentityStore;
     private readonly IOidcProviderRegistry _registry = registry;
     private readonly ILogger<DeleteOidcProviderCommandHandler> _logger = logger;
@@ -49,6 +53,7 @@ public sealed class DeleteOidcProviderCommandHandler(
                 return Result.Success(new DeleteOidcProviderResult(Deleted: false, ActiveIdentityCount: activeCount));
             }
 
+            provider.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             _dbContext.OidcProviders.Remove(provider);
             await _dbContext.SaveChangesAsync(cancellationToken);
 

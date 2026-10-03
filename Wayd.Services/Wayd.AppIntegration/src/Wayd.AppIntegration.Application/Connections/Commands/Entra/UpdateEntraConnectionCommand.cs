@@ -53,6 +53,7 @@ public sealed class UpdateEntraConnectionCommandValidator : CustomValidator<Upda
 
 public sealed class UpdateEntraConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<UpdateEntraConnectionCommandHandler> logger)
     : ICommandHandler<UpdateEntraConnectionCommand, Guid>
@@ -60,6 +61,7 @@ public sealed class UpdateEntraConnectionCommandHandler(
     private const string AppRequestName = nameof(UpdateEntraConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateEntraConnectionCommandHandler> _logger = logger;
 
@@ -88,6 +90,7 @@ public sealed class UpdateEntraConnectionCommandHandler(
                 request.MatchBy,
                 request.NormalizeNameCasing,
                 configurationIsValid,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
 
             if (updateResult.IsFailure)

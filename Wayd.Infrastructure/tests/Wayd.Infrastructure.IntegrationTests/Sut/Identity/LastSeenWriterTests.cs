@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Common.Application.Identity;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.Identity;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -36,7 +37,7 @@ public sealed class LastSeenWriterTests(SqlServerDbContextFixture fixture)
 
         var user = new ApplicationUser
         {
-            Id = $"user-{Guid.NewGuid():N}",
+            Id = Guid.NewGuid().ToString(),
             UserName = "user@acme.example",
             NormalizedUserName = "USER@ACME.EXAMPLE",
             Email = "user@acme.example",
@@ -53,6 +54,7 @@ public sealed class LastSeenWriterTests(SqlServerDbContextFixture fixture)
             user.Id,
             Now.Plus(Duration.FromDays(30)),
             null,
+            EventActor.User(user.Id),
             Now.Minus(Duration.FromDays(1))).Value;
 
         context.Set<ApplicationUser>().Add(user);

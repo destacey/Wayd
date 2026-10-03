@@ -12,9 +12,11 @@ using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Application.Connections.Commands.Identities;
 using Wayd.AppIntegration.Application.Connections.Queries.Identities;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Employees.Queries;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
@@ -166,6 +168,20 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
         };
 
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{id}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
+    [OpenApiOperation("Get activity history for the connection.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetConnectionActivitiesQuery(id, page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
+            : NotFound();
     }
 
     [HttpPost("{id}/activate")]

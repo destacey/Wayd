@@ -1,4 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared.Data;
 
@@ -15,6 +17,7 @@ namespace Wayd.Common.Domain.Tests.Sut.Identity;
 public sealed class OidcProviderTests
 {
     private static readonly Instant Timestamp = SystemClock.Instance.GetCurrentInstant();
+    private static readonly EventActor Actor = EventActor.User(Guid.NewGuid().ToString());
     private const string ValidName = "MicrosoftEntraId";
     private const string ValidDisplayName = "Microsoft Entra ID";
     private const string ValidEntraAuthority = "https://login.microsoftonline.com/common/v2.0";
@@ -42,6 +45,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: ValidAllowedTenants,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp);
 
         result.IsSuccess.Should().BeTrue();
@@ -74,6 +78,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: null,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp);
 
         result.IsSuccess.Should().BeTrue();
@@ -118,6 +123,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: null,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp);
 
         result.IsFailure.Should().BeTrue();
@@ -224,6 +230,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: new[] { "22222222-2222-2222-2222-222222222222" },
             clockSkewSeconds: 120,
             isEnabled: false,
+            actor: Actor,
             timestamp: Timestamp);
 
         result.IsSuccess.Should().BeTrue();
@@ -260,6 +267,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: ValidAllowedTenants,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp);
 
         result.IsFailure.Should().BeTrue();
@@ -282,6 +290,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: Array.Empty<string>(),
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp);
 
         result.IsFailure.Should().BeTrue();
@@ -303,6 +312,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: new[] { "irrelevant" },  // tolerated on Create, ignored at runtime
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp).Value;
 
         var result = provider.Update(
@@ -314,6 +324,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: null,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp);
 
         result.IsSuccess.Should().BeTrue();
@@ -327,7 +338,7 @@ public sealed class OidcProviderTests
     {
         var provider = EntraFixture().AsEnabled().Generate();
 
-        var result = provider.SetEnabled(false, Timestamp);
+        var result = provider.SetEnabled(false, Actor, Timestamp);
 
         result.IsSuccess.Should().BeTrue();
         provider.IsEnabled.Should().BeFalse();
@@ -339,7 +350,7 @@ public sealed class OidcProviderTests
         // Idempotent: re-applying the current state succeeds without changes.
         var provider = EntraFixture().AsEnabled().Generate();
 
-        var result = provider.SetEnabled(true, Timestamp);
+        var result = provider.SetEnabled(true, Actor, Timestamp);
 
         result.IsSuccess.Should().BeTrue();
         provider.IsEnabled.Should().BeTrue();
@@ -374,6 +385,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: ValidAllowedTenants,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp,
             registrationPolicy: RegistrationPolicy.Enabled(requireEmployeeRecord: false, defaultRoleId: "role-123"));
 
@@ -400,6 +412,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: ValidAllowedTenants,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp,
             registrationPolicy: RegistrationPolicy.FromFlat(
                 allowAutoRegistration: false, requireEmployeeRecord: false, defaultRoleId: "role-123"));
@@ -424,6 +437,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: ValidAllowedTenants,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp,
             registrationPolicy: RegistrationPolicy.Enabled(requireEmployeeRecord: false, defaultRoleId: " role-xyz "));
 
@@ -452,6 +466,7 @@ public sealed class OidcProviderTests
             allowedTenantIds: ValidAllowedTenants,
             clockSkewSeconds: 60,
             isEnabled: true,
+            actor: Actor,
             timestamp: Timestamp,
             registrationPolicy: RegistrationPolicy.Disabled());
 
@@ -459,6 +474,142 @@ public sealed class OidcProviderTests
         provider.RegistrationPolicy.AllowAutoRegistration.Should().BeFalse();
         provider.RegistrationPolicy.RequireEmployeeRecord.Should().BeNull();
         provider.RegistrationPolicy.DefaultRoleId.Should().BeNull();
+    }
+
+    // --- Events ---
+
+    [Fact]
+    public void Create_RaisesCreatedEvent()
+    {
+        // Act
+        var provider = CreateEntra().Value;
+
+        // Assert
+        var created = provider.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<OidcProviderCreatedEvent>().Subject;
+        created.Id.Should().Be(provider.Id);
+        created.Name.Should().Be(ValidName);
+        created.Label.Should().Be(ValidDisplayName);
+        created.ProviderType.Should().Be(OidcProviderType.MicrosoftEntraId);
+        created.Configuration.Authority.Should().Be(ValidEntraAuthority);
+        created.Configuration.AllowedTenantIds.Should().Equal(ValidAllowedTenants);
+        created.RegistrationPolicy.Should().Be(new OidcProviderRegistrationPolicy(false, null, null));
+        created.IsEnabled.Should().BeTrue();
+        created.Actor.Should().Be(Actor);
+    }
+
+    [Fact]
+    public void Update_WithSameValues_RaisesNothing()
+    {
+        // Arrange
+        var provider = EntraFixture().AsEnabled().Generate();
+
+        // Act
+        UpdateEntra(provider, displayName: $" {ValidDisplayName} ", scopes: [.. ValidScopes.Reverse()]);
+
+        // Assert
+        provider.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Update_Label_RaisesOnlyDetailsUpdated()
+    {
+        // Arrange
+        var provider = EntraFixture().AsEnabled().Generate();
+
+        // Act
+        UpdateEntra(provider, displayName: "Acme Sign-in");
+
+        // Assert
+        var updated = provider.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<OidcProviderDetailsUpdatedEvent>().Subject;
+        updated.Label.Should().Be("Acme Sign-in");
+        updated.Previous.Should().Be(new OidcProviderDetails(ValidDisplayName));
+    }
+
+    [Fact]
+    public void Update_TenantAllowlist_RaisesConfigurationChanged_WithBothEnds()
+    {
+        // Arrange
+        var provider = EntraFixture().AsEnabled().Generate();
+        const string addedTenant = "22222222-2222-2222-2222-222222222222";
+
+        // Act
+        UpdateEntra(provider, allowedTenantIds: [ValidTenantId, addedTenant]);
+
+        // Assert
+        var changed = provider.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<OidcProviderConfigurationChangedEvent>().Subject;
+        changed.Previous.AllowedTenantIds.Should().Equal(ValidTenantId);
+        changed.Configuration.AllowedTenantIds.Should().Equal(ValidTenantId, addedTenant);
+        changed.Configuration.Authority.Should().Be(ValidEntraAuthority);
+    }
+
+    [Fact]
+    public void Update_RegistrationPolicy_RaisesRegistrationPolicyChanged_WithBothEnds()
+    {
+        // Arrange
+        var provider = EntraFixture().AsEnabled().Generate();
+
+        // Act
+        UpdateEntra(provider, registrationPolicy: RegistrationPolicy.Enabled(requireEmployeeRecord: true, defaultRoleId: "role-xyz"));
+
+        // Assert
+        var changed = provider.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<OidcProviderRegistrationPolicyChangedEvent>().Subject;
+        changed.Previous.Should().Be(new OidcProviderRegistrationPolicy(false, null, null));
+        changed.RegistrationPolicy.Should().Be(new OidcProviderRegistrationPolicy(true, true, "role-xyz"));
+    }
+
+    [Fact]
+    public void Update_Disabling_RaisesDisabled()
+    {
+        // Arrange
+        var provider = EntraFixture().AsEnabled().Generate();
+
+        // Act
+        UpdateEntra(provider, isEnabled: false);
+
+        // Assert
+        provider.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<OidcProviderDisabledEvent>()
+            .Which.Id.Should().Be(provider.Id);
+    }
+
+    [Fact]
+    public void SetEnabled_Enabling_RaisesEnabled()
+    {
+        // Arrange
+        var provider = EntraFixture().AsDisabled().Generate();
+
+        // Act
+        provider.SetEnabled(true, Actor, Timestamp);
+
+        // Assert
+        provider.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<OidcProviderEnabledEvent>();
+    }
+
+    [Fact]
+    public void SetEnabled_WithNoChange_RaisesNothing()
+    {
+        // Arrange
+        var provider = EntraFixture().AsEnabled().Generate();
+
+        // Act
+        provider.SetEnabled(true, Actor, Timestamp);
+
+        // Assert
+        provider.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Delete_RaisesDeletedEvent_WithName()
+    {
+        // Arrange
+        var provider = EntraFixture().Generate();
+
+        // Act
+        provider.Delete(Actor, Timestamp);
+
+        // Assert
+        var deleted = provider.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<OidcProviderDeletedEvent>().Subject;
+        deleted.Id.Should().Be(provider.Id);
+        deleted.Name.Should().Be(ValidName);
     }
 
     // --- Helpers ---
@@ -484,7 +635,30 @@ public sealed class OidcProviderTests
             allowedTenantIds: allowedTenantIds ?? ValidAllowedTenants,
             clockSkewSeconds: clockSkewSeconds,
             isEnabled: isEnabled,
+            actor: Actor,
             timestamp: Timestamp);
+    }
+
+    private static void UpdateEntra(
+        OidcProvider provider,
+        string displayName = ValidDisplayName,
+        IReadOnlyList<string>? scopes = null,
+        IReadOnlyList<string>? allowedTenantIds = null,
+        bool isEnabled = true,
+        RegistrationPolicy? registrationPolicy = null)
+    {
+        provider.Update(
+            displayName: displayName,
+            authority: ValidEntraAuthority,
+            clientId: ValidClientId,
+            audience: ValidAudience,
+            scopes: scopes ?? ValidScopes,
+            allowedTenantIds: allowedTenantIds ?? ValidAllowedTenants,
+            clockSkewSeconds: 60,
+            isEnabled: isEnabled,
+            actor: Actor,
+            timestamp: Timestamp,
+            registrationPolicy: registrationPolicy).IsSuccess.Should().BeTrue();
     }
 
     // A valid Entra provider built via the faker, for tests that need a starting

@@ -49,7 +49,7 @@ public sealed class RevokePersonalAccessTokenCommandHandler(
                 return Result.Failure("Token not found or you do not have permission to revoke it.");
             }
 
-            var revokeResult = token.Revoke(userId, _dateTimeProvider.Now);
+            var revokeResult = token.Revoke(userId, EventActor.User(userId, _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (revokeResult.IsFailure)
             {
                 return revokeResult;

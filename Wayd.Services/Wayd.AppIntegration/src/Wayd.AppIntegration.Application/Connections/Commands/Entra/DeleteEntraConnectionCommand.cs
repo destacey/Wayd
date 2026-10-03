@@ -7,11 +7,15 @@ public sealed record DeleteEntraConnectionCommand(Guid Id) : ICommand;
 public sealed class DeleteEntraConnectionCommandHandler : ICommandHandler<DeleteEntraConnectionCommand>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger<DeleteEntraConnectionCommandHandler> _logger;
 
-    public DeleteEntraConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ILogger<DeleteEntraConnectionCommandHandler> logger)
+    public DeleteEntraConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<DeleteEntraConnectionCommandHandler> logger)
     {
         _appIntegrationDbContext = appIntegrationDbContext;
+        _currentUser = currentUser;
+        _dateTimeProvider = dateTimeProvider;
         _logger = logger;
     }
 
@@ -27,6 +31,7 @@ public sealed class DeleteEntraConnectionCommandHandler : ICommandHandler<Delete
                 return Result.Failure($"Entra Connection {request.Id} not found.");
             }
 
+            connection.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             _appIntegrationDbContext.EntraConnections.Remove(connection);
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 

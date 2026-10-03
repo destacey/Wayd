@@ -4,9 +4,11 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 
 public sealed record DeleteAzureDevOpsConnectionCommand(Guid Id) : ICommand;
 
-public sealed class DeleteAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ILogger<DeleteAzureDevOpsConnectionCommandHandler> logger) : ICommandHandler<DeleteAzureDevOpsConnectionCommand>
+public sealed class DeleteAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<DeleteAzureDevOpsConnectionCommandHandler> logger) : ICommandHandler<DeleteAzureDevOpsConnectionCommand>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeleteAzureDevOpsConnectionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteAzureDevOpsConnectionCommand request, CancellationToken cancellationToken)
@@ -21,6 +23,7 @@ public sealed class DeleteAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
                 return Result.Failure($"Azure DevOps Connection {request.Id} not found.");
             }
 
+            connection.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             _appIntegrationDbContext.AzureDevOpsBoardsConnections.Remove(connection);
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 

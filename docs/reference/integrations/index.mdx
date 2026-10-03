@@ -54,7 +54,13 @@ API responses additionally mask secret fields before returning them, preserving 
 
 ### Activation
 
-New connections are **active by default**. Admins toggle this from the detail page's action menu — `IsActive` is the single switch that controls whether a connection participates in sync runs (no separate "sync enabled" flag; the two concepts were collapsed since `IsActive=false` already excludes a connection from every runner). Activation transitions raise `EntityActivatedEvent` / `EntityDeactivatedEvent` so the deliberate state change is captured in domain events rather than silently bundled into a config edit.
+New connections are **active by default**. Admins toggle this from the detail page's action menu — `IsActive` is the single switch that controls whether a connection participates in sync runs (no separate "sync enabled" flag; the two concepts were collapsed since `IsActive=false` already excludes a connection from every runner). Activation transitions raise `ConnectionActivatedEvent` / `ConnectionDeactivatedEvent`, so the deliberate state change is recorded on its own rather than bundled into a config edit.
+
+### Connection events
+
+Every connector shares one family of events on `Connection`, all filed under the `Connection` aggregate: `ConnectionCreatedEvent`, `ConnectionDetailsUpdatedEvent` (name, description), `ConnectionConfigurationChangedEvent`, `ConnectionCredentialsChangedEvent`, `ConnectionActivatedEvent`, `ConnectionDeactivatedEvent` and `ConnectionDeletedEvent`. A connector describes its non-secret settings by overriding `DescribeSettings()`, as name/value pairs formatted invariantly in a fixed order; that list is what the created and configuration-changed events carry, before and after. It lists its credentials in `Credentials()`, which is compared in memory only — the credentials event names which ones were replaced and nothing else. A new connector implements both, and a setting it adds belongs in `DescribeSettings()` or it changes without a record.
+
+State a connector syncs from its external system (Azure DevOps workspaces, processes and teams, integration state, Workday init results) raises no event; it is listed in `EventCoverageTests.UneventedMutators` pending #816.
 
 ### Sync history
 

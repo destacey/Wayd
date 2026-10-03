@@ -189,6 +189,16 @@ GET planning-intervals/{idOrKey}/objectives/{objectiveIdOrKey}/activities?page=1
 
 An objective belonging to a different interval returns 404, as an unknown one does.
 
+Three administration records take an id rather than an id or key, and live under their own areas:
+
+```
+GET user-management/users/{id}/activities?page=1&pageSize=50
+GET user-management/oidc-providers/{id}/activities?page=1&pageSize=50
+GET app-integrations/connections/{id}/activities?page=1&pageSize=50
+```
+
+A user's history includes the history of the personal access tokens they own; those entries come back with `isRelated` set and `raisedOn` naming the token, or null once the token has been deleted.
+
 ## PPM Ranking Endpoints
 
 Portfolio project ranking is exposed under `/api/ppm/portfolios`:

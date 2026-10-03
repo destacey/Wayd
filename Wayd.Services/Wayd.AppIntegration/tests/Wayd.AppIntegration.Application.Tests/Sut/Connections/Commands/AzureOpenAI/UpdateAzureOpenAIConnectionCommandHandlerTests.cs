@@ -5,6 +5,7 @@ using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Commands.AzureOpenAI;
@@ -112,6 +113,7 @@ public class UpdateAzureOpenAIConnectionCommandHandlerTests
             "Original description",
             new AzureOpenAIConnectionConfiguration(StoredApiKey, DeploymentName, BaseUrl),
             configurationIsValid: true,
+            EventActor.System,
             _now);
 
         _db.AddAzureOpenAIConnection(connection);

@@ -11,11 +11,19 @@ import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-provi
 import {
   useCancelProviderMigrationMutation,
   useCancelTenantMigrationMutation,
+  useGetUserActivitiesQuery,
   useGetUserQuery,
+  useLazyGetUserActivitiesQuery,
 } from '@/src/store/features/user-management/users-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { App, Space, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound } from 'next/navigation'
+import { notFound, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import {
   ConvertToLocalAccountForm,
@@ -31,6 +39,7 @@ import { UserOverview } from './_components'
 
 enum UserSections {
   Overview = 'overview',
+  Activities = 'activities',
 }
 
 /** The dialogs this record can open. One value, not one boolean each. */
@@ -53,6 +62,28 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
 
   const { getAccountActionMenuItems } = useUserAccountActions()
   const { data: user, isLoading, error } = useGetUserQuery(id)
+
+  const searchParams = useSearchParams()
+  const activeSection = searchParams.get('section') ?? UserSections.Overview
+
+  const activitiesQuery = useGetUserActivitiesQuery(
+    {
+      idOrKey: user?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip: !user?.id || activeSection !== UserSections.Activities,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetUserActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: user?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `user-${user?.userName ?? id}-activity`,
+  })
   const [cancelTenantMigration] = useCancelTenantMigrationMutation()
   const [cancelProviderMigration] = useCancelProviderMigrationMutation()
   const { data: authProviders } = useGetAuthProvidersQuery()
@@ -216,11 +247,12 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
     return items
   })()
 
-  // One section, so no rail — and no facts panel, which is closed by default
-  // and holds reference material beside content. An account's own fields are
-  // what the page is for, so they and its history stack on the one page.
+  // No facts panel, which is closed by default and holds reference material
+  // beside content. An account's own fields are what the page is for, so they
+  // and its identity history stack in Overview.
   const sections: RecordSection[] = [
     { id: UserSections.Overview, label: 'Overview' },
+    { id: UserSections.Activities, label: 'Activity' },
   ]
 
   if (isLoading) {
@@ -268,8 +300,19 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
               <PageActions actionItems={actionsMenuItems} />
             ) : undefined,
         }}
+        sectionActions={
+          activeSection === UserSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
       >
-        {() => <UserOverview user={user} />}
+        {(section) =>
+          section === UserSections.Activities ? (
+            <ActivityLogTimeline {...activityLog.timelineProps} />
+          ) : (
+            <UserOverview user={user} />
+          )
+        }
       </RecordLayout>
 
       {dialog === 'edit' && (

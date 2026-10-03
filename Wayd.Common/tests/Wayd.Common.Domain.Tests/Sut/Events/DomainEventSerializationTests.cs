@@ -1,11 +1,13 @@
 ﻿using System.Text.Json;
 using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
@@ -19,6 +21,7 @@ using Wayd.Common.Domain.Events.Settings;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
@@ -1496,6 +1499,118 @@ public sealed class DomainEventSerializationTests
         roundTripped.Removed.Should().Equal(original.Removed);
         roundTripped.Roles.Should().BeEquivalentTo(original.Roles);
         roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void PersonalAccessTokenExpirationChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — two Instants in the payload, beside the one every event carries.
+        var original = new PersonalAccessTokenExpirationChangedEvent(
+            Guid.NewGuid(),
+            Guid.NewGuid().ToString(),
+            Instant.FromUtc(2026, 3, 1, 0, 0, 0),
+            Instant.FromUtc(2026, 6, 1, 0, 0, 0),
+            EventActor.User("user-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.UserId.Should().Be(original.UserId);
+        roundTripped.PreviousExpiresAt.Should().Be(original.PreviousExpiresAt);
+        roundTripped.ExpiresAt.Should().Be(original.ExpiresAt);
+    }
+
+    [Fact]
+    public void OidcProviderCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — an enum and nested records holding string arrays, one of them null.
+        var original = new OidcProviderCreatedEvent(
+            Guid.NewGuid(),
+            "acme-okta",
+            "Acme Okta",
+            OidcProviderType.GenericOidc,
+            new OidcProviderConfiguration("https://acme.example", "client-1", "api://client-1", ["openid", "profile"], null, 60),
+            new OidcProviderRegistrationPolicy(true, false, "role-1"),
+            true,
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Label.Should().Be(original.Label);
+        roundTripped.ProviderType.Should().Be(original.ProviderType);
+        roundTripped.Configuration.IsEquivalentTo(original.Configuration).Should().BeTrue();
+        roundTripped.Configuration.AllowedTenantIds.Should().BeNull();
+        roundTripped.RegistrationPolicy.Should().Be(original.RegistrationPolicy);
+        roundTripped.IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void OidcProviderConfigurationChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — both ends as nested records with arrays.
+        var original = new OidcProviderConfigurationChangedEvent(
+            Guid.NewGuid(),
+            new OidcProviderConfiguration("https://login.example", "client-1", "client-1", ["openid"], ["tenant-1", "tenant-2"], 120),
+            new OidcProviderConfiguration("https://login.example", "client-1", "client-1", ["openid"], ["tenant-1"], 60),
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Configuration.AllowedTenantIds.Should().Equal(original.Configuration.AllowedTenantIds);
+        roundTripped.Configuration.ClockSkewSeconds.Should().Be(120);
+        roundTripped.Previous.AllowedTenantIds.Should().Equal(original.Previous.AllowedTenantIds);
+    }
+
+    [Fact]
+    public void ConnectionConfigurationChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — arrays of records whose values can be null.
+        var original = new ConnectionConfigurationChangedEvent(
+            Guid.NewGuid(),
+            [new ConnectionSetting("TenantId", "tenant-1"), new ConnectionSetting("AllUsersGroupObjectId", "group-1")],
+            [new ConnectionSetting("TenantId", "tenant-1"), new ConnectionSetting("AllUsersGroupObjectId", null)],
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Settings.Should().Equal(original.Settings);
+        roundTripped.Previous.Should().Equal(original.Previous);
+    }
+
+    [Fact]
+    public void ConnectionCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — an enum, a nullable description and an array of records.
+        var original = new ConnectionCreatedEvent(
+            Guid.NewGuid(),
+            "Boards",
+            null,
+            Connector.AzureDevOps,
+            true,
+            [new ConnectionSetting("Organization", "acme")],
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Description.Should().BeNull();
+        roundTripped.Connector.Should().Be(Connector.AzureDevOps);
+        roundTripped.Settings.Should().Equal(original.Settings);
     }
 
     private static T RoundTrip<T>(T value)

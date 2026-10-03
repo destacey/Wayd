@@ -10,6 +10,7 @@ using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Identity.Users;
@@ -88,7 +89,7 @@ public class PeopleSyncRunnerTests
         var connection = EntraConnection.Create(
             "Entra", null,
             new EntraConnectionConfiguration("tenant-id", "client-id", "client-secret"),
-            configurationIsValid: true, _clock.Now);
+            configurationIsValid: true, EventActor.System, _clock.Now);
 
         // The runner gates on the base Connections set; the descriptor builder loads the typed set.
         _db.AddConnection(connection);
@@ -101,7 +102,7 @@ public class PeopleSyncRunnerTests
         var connection = WorkdayConnection.Create(
             "Workday", null,
             new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"),
-            configurationIsValid: true, _clock.Now);
+            configurationIsValid: true, EventActor.System, _clock.Now);
 
         _db.AddConnection(connection);
         _db.AddWorkdayConnection(connection);
@@ -230,7 +231,7 @@ public class PeopleSyncRunnerTests
     {
         // Arrange — an active work-sync connection
         var connection = AzureDevOpsBoardsConnection.Create(
-            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, _clock.Now);
+            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), true, null, EventActor.System, _clock.Now);
         _db.AddConnection(connection);
 
         // Act
@@ -246,7 +247,7 @@ public class PeopleSyncRunnerTests
     {
         // Arrange
         var connection = SeedActiveEntraConnection();
-        connection.Deactivate(_clock.Now);
+        connection.Deactivate(ConnectionActivatableArgs.Create(EventActor.System, _clock.Now));
 
         // Act
         var result = await _sut.Run(connection.Id, SyncTriggerSource.Manual, SyncType.Full, TestContext.Current.CancellationToken);

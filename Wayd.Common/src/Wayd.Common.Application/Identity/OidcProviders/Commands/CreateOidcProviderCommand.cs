@@ -98,12 +98,14 @@ public sealed class CreateOidcProviderCommandValidator : CustomValidator<CreateO
 
 public sealed class CreateOidcProviderCommandHandler(
     IWaydDbContext dbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     IOidcProviderRegistry registry,
     ILogger<CreateOidcProviderCommandHandler> logger)
     : ICommandHandler<CreateOidcProviderCommand, OidcProviderDto>
 {
     private readonly IWaydDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IOidcProviderRegistry _registry = registry;
     private readonly ILogger<CreateOidcProviderCommandHandler> _logger = logger;
@@ -123,6 +125,7 @@ public sealed class CreateOidcProviderCommandHandler(
                 allowedTenantIds: request.AllowedTenantIds,
                 clockSkewSeconds: request.ClockSkewSeconds,
                 isEnabled: request.IsEnabled,
+                actor: EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 timestamp: _dateTimeProvider.Now,
                 registrationPolicy: RegistrationPolicy.FromFlat(
                     request.AllowAutoRegistration,

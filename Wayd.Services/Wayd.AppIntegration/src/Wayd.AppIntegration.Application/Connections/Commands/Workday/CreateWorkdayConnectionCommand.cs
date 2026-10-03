@@ -53,6 +53,7 @@ public sealed class CreateWorkdayConnectionCommandValidator : CustomValidator<Cr
 
 public sealed class CreateWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,
     ILogger<CreateWorkdayConnectionCommandHandler> logger)
@@ -61,6 +62,7 @@ public sealed class CreateWorkdayConnectionCommandHandler(
     private const string AppRequestName = nameof(CreateWorkdayConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IWorkdayConnectionInitializer _initializer = initializer;
     private readonly ILogger<CreateWorkdayConnectionCommandHandler> _logger = logger;
@@ -93,7 +95,7 @@ public sealed class CreateWorkdayConnectionCommandHandler(
 
             // Create the connection first with IsValidConfiguration = false so the row exists even
             // if the probe is slow or fails — admins shouldn't lose typed config.
-            var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, timestamp);
+            var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
             await _appIntegrationDbContext.WorkdayConnections.AddAsync(connection, cancellationToken);
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 

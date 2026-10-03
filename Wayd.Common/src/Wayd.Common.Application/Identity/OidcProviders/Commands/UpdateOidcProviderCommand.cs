@@ -71,12 +71,14 @@ public sealed class UpdateOidcProviderCommandValidator : CustomValidator<UpdateO
 
 public sealed class UpdateOidcProviderCommandHandler(
     IWaydDbContext dbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     IOidcProviderRegistry registry,
     ILogger<UpdateOidcProviderCommandHandler> logger)
     : ICommandHandler<UpdateOidcProviderCommand>
 {
     private readonly IWaydDbContext _dbContext = dbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IOidcProviderRegistry _registry = registry;
     private readonly ILogger<UpdateOidcProviderCommandHandler> _logger = logger;
@@ -102,6 +104,7 @@ public sealed class UpdateOidcProviderCommandHandler(
                 allowedTenantIds: request.AllowedTenantIds,
                 clockSkewSeconds: request.ClockSkewSeconds,
                 isEnabled: request.IsEnabled,
+                actor: EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 timestamp: _dateTimeProvider.Now,
                 registrationPolicy: RegistrationPolicy.FromFlat(
                     request.AllowAutoRegistration,

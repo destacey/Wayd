@@ -46,6 +46,7 @@ public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<Up
 
 public sealed class UpdateWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,
     ILogger<UpdateWorkdayConnectionCommandHandler> logger)
@@ -54,6 +55,7 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
     private const string AppRequestName = nameof(UpdateWorkdayConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IWorkdayConnectionInitializer _initializer = initializer;
     private readonly ILogger<UpdateWorkdayConnectionCommandHandler> _logger = logger;
@@ -93,6 +95,7 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
                 request.DepartmentOrganizationTypeId,
                 exclusions,
                 configurationIsValid: false,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now);
 
             if (updateResult.IsFailure)

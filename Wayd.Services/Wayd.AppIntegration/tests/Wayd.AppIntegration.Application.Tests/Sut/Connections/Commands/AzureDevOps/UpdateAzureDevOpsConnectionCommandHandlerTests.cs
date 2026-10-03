@@ -8,6 +8,7 @@ using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 
@@ -133,6 +134,7 @@ public class UpdateAzureDevOpsConnectionCommandHandlerTests
             new AzureDevOpsBoardsConnectionConfiguration("acme-org", StoredPat),
             configurationIsValid: true,
             teamConfiguration: null,
+            EventActor.System,
             _now);
 
         _db.AddAzureDevOpsBoardsConnection(connection);

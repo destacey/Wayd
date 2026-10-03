@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models;
 using Wayd.Tests.Shared;
 
@@ -8,6 +9,8 @@ namespace Wayd.AppIntegration.Domain.Tests.Sut.Models;
 
 public class AzureDevOpsBoardsConnectionTests
 {
+    private static readonly EventActor Actor = EventActor.User(Guid.NewGuid().ToString());
+
     private readonly TestingDateTimeProvider _dateTimeProvider;
 
     public AzureDevOpsBoardsConnectionTests()
@@ -27,7 +30,7 @@ public class AzureDevOpsBoardsConnectionTests
             config,
             true,
             null,
-            _dateTimeProvider.Now);
+            Actor, _dateTimeProvider.Now);
 
         // Assert
         connection.Should().BeAssignableTo<ISyncableConnection>();
@@ -47,7 +50,7 @@ public class AzureDevOpsBoardsConnectionTests
             config,
             true,
             null,
-            _dateTimeProvider.Now);
+            Actor, _dateTimeProvider.Now);
 
         // Assert
         var syncable = connection as ISyncableConnection;
@@ -67,13 +70,13 @@ public class AzureDevOpsBoardsConnectionTests
 
         var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", processes: [workProcess]);
         var connection = AzureDevOpsBoardsConnection.Create(
-            "Test Connection", null, "test-system-id", config, true, null, _dateTimeProvider.Now);
+            "Test Connection", null, "test-system-id", config, true, null, Actor, _dateTimeProvider.Now);
 
         // Sanity: with active integration object + active connection, CanSync should be true.
         ((ISyncableConnection)connection).CanSync.Should().BeTrue();
 
         // Act
-        connection.Deactivate(_dateTimeProvider.Now);
+        connection.Deactivate(ConnectionActivatableArgs.Create(Actor, _dateTimeProvider.Now));
 
         // Assert
         ((ISyncableConnection)connection).CanSync.Should().BeFalse();
@@ -89,7 +92,7 @@ public class AzureDevOpsBoardsConnectionTests
 
         var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", processes: [workProcess]);
         var connection = AzureDevOpsBoardsConnection.Create(
-            "Test Connection", null, "test-system-id", config, configurationIsValid: false, null, _dateTimeProvider.Now);
+            "Test Connection", null, "test-system-id", config, configurationIsValid: false, null, Actor, _dateTimeProvider.Now);
 
         // Assert
         ((ISyncableConnection)connection).CanSync.Should().BeFalse();
@@ -107,7 +110,7 @@ public class AzureDevOpsBoardsConnectionTests
 
         var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", processes: [workProcess]);
         var connection = AzureDevOpsBoardsConnection.Create(
-            "Test Connection", null, "test-system-id", config, true, null, _dateTimeProvider.Now);
+            "Test Connection", null, "test-system-id", config, true, null, Actor, _dateTimeProvider.Now);
 
         var liveInternalId = Guid.CreateVersion7();
         var registration = new IntegrationRegistration<Guid, Guid>(
@@ -137,7 +140,7 @@ public class AzureDevOpsBoardsConnectionTests
             config,
             true,
             null,
-            _dateTimeProvider.Now);
+            Actor, _dateTimeProvider.Now);
 
         // Act
         var result = connection.ClearWorkProcessIntegrationState(externalId, _dateTimeProvider.Now);
@@ -164,7 +167,7 @@ public class AzureDevOpsBoardsConnectionTests
             config,
             true,
             null,
-            _dateTimeProvider.Now);
+            Actor, _dateTimeProvider.Now);
 
         // Act
         var result = connection.ClearWorkProcessIntegrationState(externalId, _dateTimeProvider.Now);
@@ -186,7 +189,7 @@ public class AzureDevOpsBoardsConnectionTests
             config,
             true,
             null,
-            _dateTimeProvider.Now);
+            Actor, _dateTimeProvider.Now);
 
         // Act
         var result = connection.ClearWorkProcessIntegrationState(Guid.CreateVersion7(), _dateTimeProvider.Now);

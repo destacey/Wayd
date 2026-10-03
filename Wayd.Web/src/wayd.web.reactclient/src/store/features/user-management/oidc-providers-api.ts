@@ -6,6 +6,7 @@ import {
   CreateOidcProviderRequest,
   OidcProviderDto,
   OidcProviderListItemDto,
+  PagedResponseOfActivityLogDto,
   PendingTenantMigrationDto,
   StageBulkTenantMigrationRequest,
   TenantMigrationCandidateDto,
@@ -43,7 +44,10 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    createOidcProvider: builder.mutation<OidcProviderDto, CreateOidcProviderRequest>({
+    createOidcProvider: builder.mutation<
+      OidcProviderDto,
+      CreateOidcProviderRequest
+    >({
       queryFn: async (request) => {
         try {
           const data = await getOidcProvidersClient().create(request)
@@ -59,7 +63,10 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     updateOidcProvider: builder.mutation<void, UpdateOidcProviderRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getOidcProvidersClient().update(request.id, request)
+          const data = await getOidcProvidersClient().update(
+            request.id,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -69,6 +76,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.OidcProvider, id: 'LIST' },
         { type: QueryTags.OidcProvider, id: arg.id },
+        { type: QueryTags.ActivityLog, id: arg.id },
       ],
     }),
 
@@ -82,10 +90,38 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.OidcProvider, id: 'LIST' }],
+      invalidatesTags: (result, error, id) => [
+        { type: QueryTags.OidcProvider, id: 'LIST' },
+        { type: QueryTags.ActivityLog, id },
+      ],
     }),
 
-    testOidcProviderDiscovery: builder.mutation<TestOidcProviderDiscoveryResult, string>({
+    getOidcProviderActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      { idOrKey: string | number; page?: number; pageSize?: number }
+    >({
+      queryFn: async ({ idOrKey, page, pageSize }) => {
+        try {
+          const data = await getOidcProvidersClient().getActivities(
+            String(idOrKey),
+            page,
+            pageSize,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
+      ],
+    }),
+
+    testOidcProviderDiscovery: builder.mutation<
+      TestOidcProviderDiscoveryResult,
+      string
+    >({
       queryFn: async (id) => {
         try {
           const data = await getOidcProvidersClient().testDiscovery(id)
@@ -118,7 +154,10 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    getPendingTenantMigrations: builder.query<PendingTenantMigrationDto[], string>({
+    getPendingTenantMigrations: builder.query<
+      PendingTenantMigrationDto[],
+      string
+    >({
       queryFn: async (providerId) => {
         try {
           const data =
@@ -157,6 +196,10 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
         { type: QueryTags.PendingTenantMigrations, id: arg.providerId },
         { type: QueryTags.User, id: 'LIST' },
         { type: QueryTags.UserOption, id: 'LIST' },
+        ...arg.request.userIds.map((id) => ({
+          type: QueryTags.ActivityLog,
+          id,
+        })),
       ],
     }),
   }),
@@ -168,6 +211,8 @@ export const {
   useCreateOidcProviderMutation,
   useUpdateOidcProviderMutation,
   useDeleteOidcProviderMutation,
+  useGetOidcProviderActivitiesQuery,
+  useLazyGetOidcProviderActivitiesQuery,
   useTestOidcProviderDiscoveryMutation,
   useGetTenantMigrationCandidatesQuery,
   useGetPendingTenantMigrationsQuery,

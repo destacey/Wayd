@@ -11,6 +11,7 @@ using Wayd.AppIntegration.Application.Connectors.Dtos;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Interfaces;
@@ -86,7 +87,7 @@ public class WorkSyncRunnerTests
 
         var connection = AzureDevOpsBoardsConnection.Create(
             "Test Connection", "desc", systemId, config, configurationIsValid: true,
-            teamConfiguration: null, timestamp: _clock.Now);
+            teamConfiguration: null, EventActor.System, timestamp: _clock.Now);
 
         connection.UpdateWorkProcessIntegrationState(
             new IntegrationRegistration<Guid, Guid>(processExternalId, IntegrationState<Guid>.Create(processInternalId, true)),

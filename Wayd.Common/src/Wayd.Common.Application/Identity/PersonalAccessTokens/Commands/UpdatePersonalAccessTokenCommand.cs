@@ -76,6 +76,7 @@ public sealed class UpdatePersonalAccessTokenCommandHandler(
         {
             var userIdString = _currentUser.GetUserId();
             var now = _dateTimeProvider.Now;
+            var actor = EventActor.User(userIdString, _currentUser.GetEmployeeId());
 
             var token = await _dbContext.PersonalAccessTokens
                 .FirstOrDefaultAsync(t => t.Id == request.TokenId && t.UserId == userIdString, cancellationToken);
@@ -91,7 +92,7 @@ public sealed class UpdatePersonalAccessTokenCommandHandler(
             // Update name if it has changed
             if (token.Name != request.Name)
             {
-                var nameUpdateResult = token.UpdateName(request.Name, now);
+                var nameUpdateResult = token.UpdateName(request.Name, actor, now);
                 if (nameUpdateResult.IsFailure)
                 {
                     return nameUpdateResult;
@@ -101,7 +102,7 @@ public sealed class UpdatePersonalAccessTokenCommandHandler(
             // Update expiration if it has changed
             if (token.ExpiresAt != request.ExpiresAt)
             {
-                var expirationUpdateResult = token.UpdateExpiresAt(request.ExpiresAt, now);
+                var expirationUpdateResult = token.UpdateExpiresAt(request.ExpiresAt, actor, now);
                 if (expirationUpdateResult.IsFailure)
                 {
                     return expirationUpdateResult;

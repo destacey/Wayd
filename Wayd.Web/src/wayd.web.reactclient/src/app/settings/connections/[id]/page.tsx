@@ -10,13 +10,21 @@ import { ConnectionDetailsDto } from '@/src/services/wayd-api'
 import {
   useActivateConnectionMutation,
   useDeactivateConnectionMutation,
+  useGetConnectionActivitiesQuery,
   useGetConnectionQuery,
+  useLazyGetConnectionActivitiesQuery,
 } from '@/src/store/features/app-integration/connections-api'
+import {
+  ACTIVITY_LOG_PAGE_SIZE,
+  ActivityLogExportButton,
+  ActivityLogTimeline,
+  useActivityLog,
+} from '@/src/components/common/activities'
 import { ExportOutlined } from '@ant-design/icons'
 import { Alert, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
-import { notFound, useRouter } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useMemo, useState } from 'react'
 import DeleteConnectionForm from '../_components/delete-connection-form'
 import EditConnectionForm from '../_components/edit-connection-form'
@@ -28,6 +36,7 @@ import ConnectionDetailsLoading from './loading'
 
 /** The connector's own configuration — every connector has one. */
 const OVERVIEW_SECTION = 'overview'
+const ACTIVITIES_SECTION = 'activities'
 
 const IdentityWrapper = ({ children }: { children: React.ReactNode }) => (
   <>{children}</>
@@ -54,6 +63,28 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   )
 
   const { data: connection, isLoading, refetch } = useGetConnectionQuery(id)
+
+  const searchParams = useSearchParams()
+  const activeSection = searchParams.get('section') ?? OVERVIEW_SECTION
+
+  const activitiesQuery = useGetConnectionActivitiesQuery(
+    {
+      idOrKey: connection?.id ?? '',
+      page: 1,
+      pageSize: ACTIVITY_LOG_PAGE_SIZE,
+    },
+    {
+      skip: !connection?.id || activeSection !== ACTIVITIES_SECTION,
+    },
+  )
+  const [fetchActivityLogPage] = useLazyGetConnectionActivitiesQuery()
+
+  const activityLog = useActivityLog({
+    idOrKey: connection?.id,
+    query: activitiesQuery,
+    fetchPage: fetchActivityLogPage,
+    exportFilename: `connection-${id}-activity`,
+  })
 
   const messageApi = useMessage()
   const [activateConnection, { isLoading: isActivating }] =
@@ -82,14 +113,13 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const entry = useMemo(() => getDetailEntry(connection), [connection])
   const externalUrl = entry?.getExternalUrl?.(connection!)
 
-  // Overview plus whatever the connector registers. A connector with no extra
-  // sections gets no rail, which `RecordLayout` decides on its own.
   const sections: RecordSection[] = [
     { id: OVERVIEW_SECTION, label: 'Overview' },
     ...(entry?.extraSections ?? []).map((s) => ({
       id: s.key,
       label: s.label,
     })),
+    { id: ACTIVITIES_SECTION, label: 'Activity' },
   ]
 
   const onEditConnectionFormClosed = (wasSaved: boolean) => {
@@ -174,6 +204,9 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
       const DetailsView = entry.Details
       return <DetailsView connection={connection} />
     }
+    if (section === ACTIVITIES_SECTION) {
+      return <ActivityLogTimeline {...activityLog.timelineProps} />
+    }
     const extra = entry.extraSections?.find((s) => s.key === section)
     return extra?.render(connection) ?? null
   }
@@ -228,6 +261,11 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
                 <PageActions actionItems={actionsMenuItems} />
               ) : undefined,
           }}
+          sectionActions={
+            activeSection === ACTIVITIES_SECTION ? (
+              <ActivityLogExportButton activityLog={activityLog} />
+            ) : undefined
+          }
         >
           {(section) => renderSection(section)}
         </RecordLayout>

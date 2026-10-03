@@ -53,11 +53,12 @@ public sealed class CreateAzureOpenAIConnectionCommandValidator : CustomValidato
     }
 }
 
-public sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureOpenAIConnectionCommandHandler> logger) : ICommandHandler<CreateAzureOpenAIConnectionCommand, Guid>
+public sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureOpenAIConnectionCommandHandler> logger) : ICommandHandler<CreateAzureOpenAIConnectionCommand, Guid>
 {
     private const string AppRequestName = nameof(CreateAzureOpenAIConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateAzureOpenAIConnectionCommandHandler> _logger = logger;
 
@@ -71,7 +72,7 @@ public sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbC
             // TODO: call some thing to Test the connection to then pass in the isValidConfiguration flag
             var isConfigurationValid = true;
 
-            var connection = AzureOpenAIConnection.Create(request.Name, request.Description, config, isConfigurationValid, timestamp);
+            var connection = AzureOpenAIConnection.Create(request.Name, request.Description, config, isConfigurationValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
 
             await _appIntegrationDbContext.AzureOpenAIConnections.AddAsync(connection, cancellationToken);
 

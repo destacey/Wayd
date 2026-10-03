@@ -1463,6 +1463,77 @@ export class OidcProvidersClient {
     }
 
     /**
+     * Get activity history for the OIDC provider.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     */
+    getActivities(id: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/user-management/oidc-providers/{id}/activities?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
      * Fetch the provider's OIDC discovery document and report success/failure.
      */
     testDiscovery(id: string, cancelToken?: CancelToken): Promise<TestOidcProviderDiscoveryResult> {
@@ -3600,6 +3671,77 @@ export class UsersClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get activity history for the user, including their personal access tokens.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     */
+    getActivities(id: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/user-management/users/{id}/activities?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
     }
 
     /**
@@ -40235,6 +40377,77 @@ export class ConnectionsClient {
     }
 
     /**
+     * Get activity history for the connection.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     */
+    getActivities(id: string, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/activities?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetActivities(_response);
+        });
+    }
+
+    protected processGetActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
      * Activate a connection.
      */
     activateConnection(id: string, cancelToken?: CancelToken): Promise<void> {
@@ -44813,6 +45026,65 @@ export interface OidcProviderDto {
     defaultRoleId?: string | undefined;
 }
 
+export interface PagedResponseOfActivityLogDto {
+    items: ActivityLogDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+export interface ActivityLogDto {
+    id: number;
+    eventType: string;
+    category: ActivityCategory;
+    domainArea: string;
+    aggregateType: string;
+    aggregateId: string;
+    actorKind: EventActorKind;
+    employee?: EmployeeNavigationDto | undefined;
+    timestamp: Date;
+    correlationId?: string | undefined;
+    eventVersion: string;
+    payload: string;
+    summary?: string | undefined;
+    isRelated: boolean;
+    raisedOn?: NavigationDto | undefined;
+}
+
+export enum ActivityCategory {
+    Created = "Created",
+    Updated = "Updated",
+    ScheduleChanged = "ScheduleChanged",
+    StatusChanged = "StatusChanged",
+    StateChanged = "StateChanged",
+    Health = "Health",
+    Removed = "Removed",
+    Baseline = "Baseline",
+}
+
+export enum EventActorKind {
+    User = "User",
+    System = "System",
+    Import = "Import",
+    Sync = "Sync",
+    Anonymous = "Anonymous",
+}
+
+export interface NavigationDtoOfGuidAndInteger {
+    id: string;
+    key: number;
+    name: string;
+}
+
+export interface NavigationDto extends NavigationDtoOfGuidAndInteger {
+}
+
+export interface EmployeeNavigationDto extends NavigationDto {
+}
+
 export interface CreateOidcProviderRequest {
     name: string;
     displayName: string;
@@ -44961,15 +45233,6 @@ export interface UserDetailsDto {
     lastActivityAt?: Date | undefined;
     employee?: NavigationDto | undefined;
     roles: RoleListDto[];
-}
-
-export interface NavigationDtoOfGuidAndInteger {
-    id: string;
-    key: number;
-    name: string;
-}
-
-export interface NavigationDto extends NavigationDtoOfGuidAndInteger {
 }
 
 export interface RoleListDto {
@@ -45123,56 +45386,6 @@ export interface StrategicThemeDetailsDto {
     name: string;
     description: string;
     state: SimpleNavigationDto;
-}
-
-export interface PagedResponseOfActivityLogDto {
-    items: ActivityLogDto[];
-    pageNumber: number;
-    pageSize: number;
-    totalCount: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
-}
-
-export interface ActivityLogDto {
-    id: number;
-    eventType: string;
-    category: ActivityCategory;
-    domainArea: string;
-    aggregateType: string;
-    aggregateId: string;
-    actorKind: EventActorKind;
-    employee?: EmployeeNavigationDto | undefined;
-    timestamp: Date;
-    correlationId?: string | undefined;
-    eventVersion: string;
-    payload: string;
-    summary?: string | undefined;
-    isRelated: boolean;
-    raisedOn?: NavigationDto | undefined;
-}
-
-export enum ActivityCategory {
-    Created = "Created",
-    Updated = "Updated",
-    ScheduleChanged = "ScheduleChanged",
-    StatusChanged = "StatusChanged",
-    StateChanged = "StateChanged",
-    Health = "Health",
-    Removed = "Removed",
-    Baseline = "Baseline",
-}
-
-export enum EventActorKind {
-    User = "User",
-    System = "System",
-    Import = "Import",
-    Sync = "Sync",
-    Anonymous = "Anonymous",
-}
-
-export interface EmployeeNavigationDto extends NavigationDto {
 }
 
 export interface ObjectIdAndKey {

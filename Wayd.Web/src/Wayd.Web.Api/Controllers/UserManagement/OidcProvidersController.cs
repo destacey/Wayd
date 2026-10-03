@@ -1,7 +1,9 @@
-﻿using Wayd.Common.Application.Identity.OidcProviders.Commands;
+﻿using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Identity.OidcProviders.Commands;
 using Wayd.Common.Application.Identity.OidcProviders.Dtos;
 using Wayd.Common.Application.Identity.OidcProviders.Queries;
 using Wayd.Common.Application.Identity.Users;
+using Wayd.Common.Application.Models;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.UserManagement.OidcProviders;
 
@@ -41,6 +43,20 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
     {
         var provider = await _dispatcher.Send(new GetOidcProviderQuery(id), cancellationToken);
         return provider is not null ? Ok(provider) : NotFound();
+    }
+
+    [HttpGet("{id:guid}/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.OidcProviders)]
+    [OpenApiOperation("Get activity history for the OIDC provider.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        var result = await _dispatcher.Send(new GetOidcProviderActivitiesQuery(id, page, pageSize), cancellationToken);
+
+        return result.Value is not null
+            ? Ok(result.Value)
+            : NotFound();
     }
 
     [HttpPost]

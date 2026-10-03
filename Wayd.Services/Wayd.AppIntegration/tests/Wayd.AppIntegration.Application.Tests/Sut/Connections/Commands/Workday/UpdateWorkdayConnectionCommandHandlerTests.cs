@@ -6,6 +6,7 @@ using Wayd.AppIntegration.Application.Connections.Commands.Workday;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -142,6 +143,7 @@ public class UpdateWorkdayConnectionCommandHandlerTests
             "Original description",
             new WorkdayConnectionConfiguration(WsdlUrl, IsuUsername, StoredIsuPassword),
             configurationIsValid: true,
+            EventActor.System,
             _now);
 
         _db.AddWorkdayConnection(connection);

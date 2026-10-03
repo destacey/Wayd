@@ -122,6 +122,10 @@ public sealed class BaselineEventConventionTests
         // Arrange
         var type = DomainEventCatalog.ByName(typeName);
         var allowed = type.BaseType!.GetInterfaces().ToHashSet();
+        // Filing an entry under a related record is not something a consumer dispatches on, and a baseline must be
+        // listed wherever its creation event is.
+        if (typeof(IRelatedAggregateEvent).IsAssignableFrom(BaselineBase(type)!.GetGenericArguments()[1]))
+            allowed.Add(typeof(IRelatedAggregateEvent));
 
         // Act
         var added = type.GetInterfaces()

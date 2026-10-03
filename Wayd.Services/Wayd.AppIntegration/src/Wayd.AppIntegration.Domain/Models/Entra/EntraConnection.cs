@@ -1,4 +1,5 @@
 ﻿using Wayd.AppIntegration.Domain.Interfaces;
+using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Extensions;
 
 namespace Wayd.AppIntegration.Domain.Models.Entra;
@@ -45,6 +46,7 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
         Wayd.Common.Domain.Enums.AppIntegrations.EmployeeMatchProperty matchBy,
         bool normalizeNameCasing,
         bool configurationIsValid,
+        EventActor actor,
         Instant timestamp)
     {
         try
@@ -61,6 +63,8 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
             if (!UpdateValuesChanged(newName, newDescription, newTenantId, newClientId, newClientSecret, newGroupId, includeDisabledUsers, matchBy, normalizeNameCasing, configurationIsValid))
                 return Result.Success();
 
+            var before = CaptureState();
+
             Name = newName;
             Description = newDescription;
             IsValidConfiguration = configurationIsValid;
@@ -72,6 +76,8 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
             Configuration.IncludeDisabledUsers = includeDisabledUsers;
             Configuration.MatchBy = matchBy;
             Configuration.NormalizeNameCasing = normalizeNameCasing;
+
+            RaiseChangesSince(before, actor, timestamp);
 
             return Result.Success();
         }
@@ -111,10 +117,26 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
         string? description,
         EntraConnectionConfiguration configuration,
         bool configurationIsValid,
+        EventActor actor,
         Instant timestamp)
     {
         var connection = new EntraConnection(name, description, configurationIsValid, configuration);
 
+        connection.RaiseCreated(actor, timestamp);
+
         return connection;
     }
+
+    protected override ConnectionSetting[] DescribeSettings() =>
+    [
+        Setting(nameof(Configuration.TenantId), Configuration.TenantId),
+        Setting(nameof(Configuration.ClientId), Configuration.ClientId),
+        Setting(nameof(Configuration.AllUsersGroupObjectId), Configuration.AllUsersGroupObjectId),
+        Setting(nameof(Configuration.IncludeDisabledUsers), Configuration.IncludeDisabledUsers),
+        Setting(nameof(Configuration.MatchBy), Configuration.MatchBy),
+        Setting(nameof(Configuration.NormalizeNameCasing), Configuration.NormalizeNameCasing),
+    ];
+
+    protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
+        [(nameof(Configuration.ClientSecret), Configuration.ClientSecret)];
 }

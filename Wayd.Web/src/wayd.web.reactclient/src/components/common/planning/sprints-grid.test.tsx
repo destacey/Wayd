@@ -167,7 +167,7 @@ describe('SprintsGrid', () => {
     )
   })
 
-  it('offers the lifecycle moments as columns hidden by default', () => {
+  it('shows the lifecycle moments as columns by default', () => {
     // Arrange / Act
     render(
       <SprintsGrid
@@ -182,10 +182,7 @@ describe('SprintsGrid', () => {
       .calls[0][0]
     for (const id of ['started', 'completed']) {
       const column = call.columns.find((c: { id: string }) => c.id === id)
-      expect(column.meta).toEqual({
-        columnType: 'dateTime',
-        hiddenByDefault: true,
-      })
+      expect(column.meta).toEqual({ columnType: 'dateTime' })
     }
   })
 

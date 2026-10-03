@@ -20,11 +20,6 @@ public sealed class TeamMember : BaseSoftDeletableEntity
     public Guid RoleId { get; private set; }
     public TeamMemberRole Role { get; private set; } = default!;
 
-    public void UpdateRole(Guid roleId)
-    {
-        RoleId = roleId;
-    }
-
     internal static TeamMember Create(Guid teamId, Guid employeeId, Guid roleId)
     {
         return new TeamMember(teamId, employeeId, roleId);

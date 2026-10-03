@@ -232,18 +232,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProc
         }
     }
 
-    /// <summary>Creates an owned Work Process.</summary>
-    /// <param name="name">The name.</param>
-    /// <param name="description">The description.</param>
-    /// <param name="ownership">The ownership.</param>
-    /// <param name="timestamp">The timestamp.</param>
-    /// <returns></returns>
-    public static WorkProcess Create(string name, string? description, Instant timestamp)
-    {
-        WorkProcess workProcess = new(name, description, Ownership.Owned, null);
-        return workProcess;
-    }
-
     /// <summary>Creates a managed Work Process linked to a external id.</summary>
     /// <param name="name">The name.</param>
     /// <param name="description">The description.</param>

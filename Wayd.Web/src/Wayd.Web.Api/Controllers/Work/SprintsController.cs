@@ -91,12 +91,12 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPost("{id}/start")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Start a sprint.", "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.")]
+    [OpenApiOperation("Start a sprint.", "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Start(Guid id, [FromBody] StartSprintRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new StartSprintCommand(id, request.CompleteOpenSprint, request.StartedAt), cancellationToken);
+        var result = await _dispatcher.Send(new StartSprintCommand(id, request.CompleteOpenSprintId, request.StartedAt), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

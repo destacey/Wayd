@@ -63,7 +63,7 @@ public sealed class StartSprintCommandHandlerTests(SqlServerDbContextFixture fix
         await using (var accessor = new WaydDbContextAccessor(_fixture))
         {
             var result = await Handler(accessor, now: Instant.FromUtc(2026, 9, 26, 12, 0))
-                .Handle(new StartSprintCommand(sprint2Id, CompleteOpenSprint: true, startedAt), cancellationToken);
+                .Handle(new StartSprintCommand(sprint2Id, CompleteOpenSprintId: sprint1Id, startedAt), cancellationToken);
 
             result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         }

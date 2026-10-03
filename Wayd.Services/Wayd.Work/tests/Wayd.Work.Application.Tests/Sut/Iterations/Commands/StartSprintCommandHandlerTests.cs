@@ -37,7 +37,7 @@ public class StartSprintCommandHandlerTests : IDisposable
         var now = _scenario.DateTimeProvider.Now;
 
         // Act
-        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: _scenario.Sprint1.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -56,7 +56,7 @@ public class StartSprintCommandHandlerTests : IDisposable
         var startedAt = InChicago(Sprint2Start.PlusDays(-3), 10);
 
         // Act
-        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true, startedAt), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: _scenario.Sprint1.Id, startedAt), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -71,7 +71,7 @@ public class StartSprintCommandHandlerTests : IDisposable
     {
         // Act
         var result = await _handler.Handle(
-            new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true, _scenario.DateTimeProvider.Now.Plus(Duration.FromMinutes(5))),
+            new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: _scenario.Sprint1.Id, _scenario.DateTimeProvider.Now.Plus(Duration.FromMinutes(5))),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -84,7 +84,7 @@ public class StartSprintCommandHandlerTests : IDisposable
     public async Task Handle_WhenTheOpenSprintIsNotConfirmed_FailsAndSavesNothing()
     {
         // Act
-        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: false), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: null), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -95,13 +95,30 @@ public class StartSprintCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WhenTheConfirmationNamesAnotherSprint_FailsAndCompletesNothing()
+    {
+        // Arrange — the dialog was confirmed for a sprint that is no longer the open one
+        var confirmedFor = Guid.NewGuid();
+
+        // Act
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: confirmedFor), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(_scenario.Sprint1.Name);
+        _scenario.Sprint1.Completed.Should().BeNull();
+        _scenario.Sprint2.Started.Should().BeNull();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_WhenTheCallerIsNotAMember_Fails()
     {
         // Arrange
         _scenario.IsMember = false;
 
         // Act
-        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: _scenario.Sprint1.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -118,7 +135,7 @@ public class StartSprintCommandHandlerTests : IDisposable
         _scenario.IsAdministrator = true;
 
         // Act
-        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: _scenario.Sprint1.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -133,7 +150,7 @@ public class StartSprintCommandHandlerTests : IDisposable
         _scenario.IsAdministrator = true;
 
         // Act
-        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprintId: _scenario.Sprint1.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -144,7 +161,7 @@ public class StartSprintCommandHandlerTests : IDisposable
     public async Task Handle_WhenTheSprintDoesNotExist_Fails()
     {
         // Act
-        var result = await _handler.Handle(new StartSprintCommand(Guid.NewGuid(), CompleteOpenSprint: true), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new StartSprintCommand(Guid.NewGuid(), CompleteOpenSprintId: _scenario.Sprint1.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

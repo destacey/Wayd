@@ -7,10 +7,11 @@ namespace Wayd.Work.Application.Iterations.Commands;
 
 /// <summary>
 /// Records that the team started the sprint at <paramref name="StartedAt"/>, or now when it is omitted. When
-/// another of the team's sprints is still open, <paramref name="CompleteOpenSprint"/> confirms completing it at
-/// the same moment.
+/// another of the team's sprints is still open, <paramref name="CompleteOpenSprintId"/> names it to confirm
+/// completing it at the same moment; it must still be the team's open sprint, so a confirmation given for one
+/// sprint never completes another.
 /// </summary>
-public sealed record StartSprintCommand(Guid Id, bool CompleteOpenSprint, Instant? StartedAt = null) : ICommand, IRequireLinkedEmployee;
+public sealed record StartSprintCommand(Guid Id, Guid? CompleteOpenSprintId = null, Instant? StartedAt = null) : ICommand, IRequireLinkedEmployee;
 
 public sealed class StartSprintCommandValidator : AbstractValidator<StartSprintCommand>
 {
@@ -66,8 +67,11 @@ public sealed class StartSprintCommandHandler(
         if (timeline.OpenSprint is not { } open || open == sprint)
             return [() => sprint.Start(timeline, startedAt, actor, now)];
 
-        if (!request.CompleteOpenSprint)
+        if (request.CompleteOpenSprintId is null)
             return [() => Result.Failure($"{open.Name} is still open. Confirm completing it to start this sprint.")];
+
+        if (request.CompleteOpenSprintId != open.Id)
+            return [() => Result.Failure($"The team's open sprint is now {open.Name}. Refresh and confirm again.")];
 
         // The open sprint is completed, and saved, before this one starts: SQL Server checks the open-sprint
         // index after each statement, so a start that reached it first would leave the team two open sprints

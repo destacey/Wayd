@@ -27037,7 +27037,7 @@
           "Sprints"
         ],
         "summary": "Start a sprint.",
-        "description": "Records that the team started the sprint now. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.",
+        "description": "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.",
         "operationId": "Sprints_Start",
         "parameters": [
           {
@@ -27093,7 +27093,7 @@
           "Sprints"
         ],
         "summary": "Complete a sprint.",
-        "description": "Records that the team completed the sprint now. Requires membership of the sprint's team or its team of teams.",
+        "description": "Records that the team completed the sprint, now or at an earlier completedAt inside its completion window. Requires membership of the sprint's team or its team of teams.",
         "operationId": "Sprints_Complete",
         "parameters": [
           {
@@ -27109,6 +27109,18 @@
             "x-position": 1
           }
         ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSprintRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
         "responses": {
           "204": {
             "description": ""
@@ -56837,8 +56849,24 @@
           "canStart": {
             "type": "boolean"
           },
+          "startWindow": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InstantWindowDto"
+              }
+            ]
+          },
           "canComplete": {
             "type": "boolean"
+          },
+          "completeWindow": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InstantWindowDto"
+              }
+            ]
           },
           "canReopen": {
             "type": "boolean"
@@ -56850,6 +56878,24 @@
                 "$ref": "#/components/schemas/NavigationDto"
               }
             ]
+          }
+        }
+      },
+      "InstantWindowDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "earliest"
+        ],
+        "properties": {
+          "earliest": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latest": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
@@ -56928,6 +56974,25 @@
           "completeOpenSprint": {
             "type": "boolean",
             "description": "Confirms completing the team's open sprint at the same instant. A team has one open sprint at a\ntime, so starting is refused while another is open unless this is set."
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When the team started the sprint, now or earlier. Omit to record it as starting now. It must fall in\nthe sprint's start window, which the sprint details report.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CompleteSprintRequest": {
+        "type": "object",
+        "description": "Completes a sprint.",
+        "additionalProperties": false,
+        "properties": {
+          "completedAt": {
+            "type": "string",
+            "description": "When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall\nin the sprint's completion window, which the sprint details report.",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },

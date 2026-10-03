@@ -30735,17 +30735,21 @@ export class SprintsClient {
     /**
      * Complete a sprint.
      */
-    complete(id: string, cancelToken?: CancelToken): Promise<void> {
+    complete(id: string, request: CompleteSprintRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/work/sprints/{id}/complete";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(request);
+
         let options_: AxiosRequestConfig = {
+            data: content_,
             method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
             },
             cancelToken
         };
@@ -49377,9 +49381,16 @@ export interface SprintDetailsDto {
     overlapsNextSprint: boolean;
     canManageSprint: boolean;
     canStart: boolean;
+    startWindow?: InstantWindowDto | undefined;
     canComplete: boolean;
+    completeWindow?: InstantWindowDto | undefined;
     canReopen: boolean;
     openSprint?: NavigationDto | undefined;
+}
+
+export interface InstantWindowDto {
+    earliest: Date;
+    latest?: Date | undefined;
 }
 
 export interface SprintWorkItemMetricsDto {
@@ -49401,6 +49412,16 @@ export interface StartSprintRequest {
     /** Confirms completing the team's open sprint at the same instant. A team has one open sprint at a
 time, so starting is refused while another is open unless this is set. */
     completeOpenSprint: boolean;
+    /** When the team started the sprint, now or earlier. Omit to record it as starting now. It must fall in
+the sprint's start window, which the sprint details report. */
+    startedAt?: Date | undefined;
+}
+
+/** Completes a sprint. */
+export interface CompleteSprintRequest {
+    /** When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall
+in the sprint's completion window, which the sprint details report. */
+    completedAt?: Date | undefined;
 }
 
 export interface WorkProcessListDto {

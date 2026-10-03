@@ -54102,7 +54102,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Start a sprint.
         /// </summary>
         /// <remarks>
-        /// Records that the team started the sprint now. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.
+        /// Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task StartAsync(System.Guid id, StartSprintRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -54112,10 +54112,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a sprint.
         /// </summary>
         /// <remarks>
-        /// Records that the team completed the sprint now. Requires membership of the sprint's team or its team of teams.
+        /// Records that the team completed the sprint, now or at an earlier completedAt inside its completion window. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task CompleteAsync(System.Guid id, CompleteSprintRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -54639,7 +54639,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Start a sprint.
         /// </summary>
         /// <remarks>
-        /// Records that the team started the sprint now. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.
+        /// Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task StartAsync(System.Guid id, StartSprintRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -54731,13 +54731,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a sprint.
         /// </summary>
         /// <remarks>
-        /// Records that the team completed the sprint now. Requires membership of the sprint's team or its team of teams.
+        /// Records that the team completed the sprint, now or at an earlier completedAt inside its completion window. Requires membership of the sprint's team or its team of teams.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task CompleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task CompleteAsync(System.Guid id, CompleteSprintRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -54745,7 +54748,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
@@ -93876,14 +93882,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canStart")]
         public bool CanStart { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("startWindow")]
+        public InstantWindowDto? StartWindow { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("canComplete")]
         public bool CanComplete { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("completeWindow")]
+        public InstantWindowDto? CompleteWindow { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("canReopen")]
         public bool CanReopen { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("openSprint")]
         public NavigationDto? OpenSprint { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class InstantWindowDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("earliest")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Earliest { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("latest")]
+        public System.DateTimeOffset? Latest { get; set; } = default!;
 
     }
 
@@ -93941,6 +93966,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completeOpenSprint")]
         public bool CompleteOpenSprint { get; set; } = default!;
+
+        /// <summary>
+        /// When the team started the sprint, now or earlier. Omit to record it as starting now. It must fall in
+        /// <br/>the sprint's start window, which the sprint details report.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startedAt")]
+        public System.DateTimeOffset? StartedAt { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Completes a sprint.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CompleteSprintRequest
+    {
+
+        /// <summary>
+        /// When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall
+        /// <br/>in the sprint's completion window, which the sprint details report.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedAt")]
+        public System.DateTimeOffset? CompletedAt { get; set; } = default!;
 
     }
 

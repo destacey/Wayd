@@ -27031,6 +27031,150 @@
         ]
       }
     },
+    "/api/work/sprints/{id}/start": {
+      "post": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Start a sprint.",
+        "description": "Records that the team started the sprint now. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.",
+        "operationId": "Sprints_Start",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartSprintRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/work/sprints/{id}/complete": {
+      "post": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Complete a sprint.",
+        "description": "Records that the team completed the sprint now. Requires membership of the sprint's team or its team of teams.",
+        "operationId": "Sprints_Complete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/work/sprints/{id}/reopen": {
+      "post": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Reopen a sprint.",
+        "description": "Clears a completed sprint's completion while the team has not started a later sprint. Requires membership of the sprint's team or its team of teams.",
+        "operationId": "Sprints_Reopen",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/{key}/planning-intervals": {
       "get": {
         "tags": [
@@ -56598,6 +56742,16 @@
           },
           "team": {
             "$ref": "#/components/schemas/WorkTeamNavigationDto"
+          },
+          "started": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completed": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
@@ -56611,7 +56765,13 @@
           "id",
           "key",
           "start",
-          "end"
+          "end",
+          "overlapsPreviousSprint",
+          "overlapsNextSprint",
+          "canManageSprint",
+          "canStart",
+          "canComplete",
+          "canReopen"
         ],
         "properties": {
           "id": {
@@ -56640,6 +56800,56 @@
           },
           "team": {
             "$ref": "#/components/schemas/WorkTeamNavigationDto"
+          },
+          "started": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completed": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "effectiveStart": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "effectiveEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timeZone": {
+            "type": "string",
+            "nullable": true
+          },
+          "overlapsPreviousSprint": {
+            "type": "boolean"
+          },
+          "overlapsNextSprint": {
+            "type": "boolean"
+          },
+          "canManageSprint": {
+            "type": "boolean"
+          },
+          "canStart": {
+            "type": "boolean"
+          },
+          "canComplete": {
+            "type": "boolean"
+          },
+          "canReopen": {
+            "type": "boolean"
+          },
+          "openSprint": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           }
         }
       },
@@ -56704,6 +56914,20 @@
           },
           "cycleTime": {
             "$ref": "#/components/schemas/CycleTimeSummary"
+          }
+        }
+      },
+      "StartSprintRequest": {
+        "type": "object",
+        "description": "Starts a sprint now.",
+        "additionalProperties": false,
+        "required": [
+          "completeOpenSprint"
+        ],
+        "properties": {
+          "completeOpenSprint": {
+            "type": "boolean",
+            "description": "Confirms completing the team's open sprint at the same instant. A team has one open sprint at a\ntime, so starting is refused while another is open unless this is set."
           }
         }
       },

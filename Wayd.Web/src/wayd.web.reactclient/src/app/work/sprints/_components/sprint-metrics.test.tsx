@@ -112,6 +112,12 @@ describe('SprintMetrics', () => {
       code: 'T1',
       type: 'Team',
     },
+    overlapsPreviousSprint: false,
+    overlapsNextSprint: false,
+    canManageSprint: false,
+    canStart: false,
+    canComplete: false,
+    canReopen: false,
   }
 
   const mockMetrics: SprintWorkItemMetricsDto = {

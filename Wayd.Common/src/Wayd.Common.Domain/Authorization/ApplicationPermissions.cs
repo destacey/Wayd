@@ -371,6 +371,10 @@ public static class ApplicationPermissions
         new("Delete Workspaces", ApplicationAction.Delete, ApplicationResource.Workspaces, WorkManagementCategory),
 
         new("View Iterations", ApplicationAction.View, ApplicationResource.Iterations, WorkManagementCategory),
+        // Starting, completing and reopening a sprint also needs membership of its team or of the team of
+        // teams above it; Administer waives that membership, never this permission.
+        new("Update Iterations", ApplicationAction.Update, ApplicationResource.Iterations, WorkManagementCategory),
+        new("Administer Iterations", ApplicationAction.Administer, ApplicationResource.Iterations, WorkManagementCategory),
 
         new("View WorkItems", ApplicationAction.View, ApplicationResource.WorkItems, WorkManagementCategory),
         new("Create WorkItems", ApplicationAction.Create, ApplicationResource.WorkItems, WorkManagementCategory),

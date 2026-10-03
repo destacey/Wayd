@@ -2,7 +2,7 @@
 
 import { IterationState } from '@/src/components/types'
 import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
-import { Flex } from 'antd'
+import { Alert, Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import { FC, ReactNode } from 'react'
@@ -11,6 +11,30 @@ export interface SprintDetailsProps {
   sprint: SprintDetailsDto
   sizingMethod?: SizingMethod
   onHealthIndicatorReady?: (indicator: ReactNode) => void
+}
+
+// Overlapping sprints would count the same time twice, so the earlier one's
+// default end is cut to the later one's start, actual or default.
+export const sprintOverlapWarning = (
+  sprint: SprintDetailsDto,
+): { title: string; description: string } | null => {
+  const neighbours = [
+    sprint.overlapsPreviousSprint && 'previous',
+    sprint.overlapsNextSprint && 'next',
+  ].filter(Boolean)
+  if (!neighbours.length) return null
+
+  const cuts = [
+    sprint.overlapsPreviousSprint &&
+      "The previous sprint's default end is cut to this sprint's start.",
+    sprint.overlapsNextSprint &&
+      "This sprint's default end is cut to the next sprint's start.",
+  ].filter(Boolean)
+
+  return {
+    title: `This sprint's planned dates overlap the team's ${neighbours.join(' and ')} sprint in Azure DevOps.`,
+    description: `${cuts.join(' ')} Correct the dates in Azure DevOps to remove the overlap.`,
+  }
 }
 
 const SprintDetails: FC<SprintDetailsProps> = ({
@@ -25,8 +49,18 @@ const SprintDetails: FC<SprintDetailsProps> = ({
     sprintState === IterationState.Active ||
     sprintState === IterationState.Completed
 
+  const overlapWarning = sprintOverlapWarning(sprint)
+
   return (
     <Flex vertical gap={16}>
+      {overlapWarning && (
+        <Alert
+          type="warning"
+          showIcon
+          title={overlapWarning.title}
+          description={overlapWarning.description}
+        />
+      )}
       {/* Team and dates live in the record's details panel — repeating them
           here would duplicate the panel beside it. */}
       <TimelineProgress

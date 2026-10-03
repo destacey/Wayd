@@ -30672,6 +30672,185 @@ export class SprintsClient {
     }
 
     /**
+     * Start a sprint.
+     */
+    start(id: string, request: StartSprintRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/start";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStart(_response);
+        });
+    }
+
+    protected processStart(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Complete a sprint.
+     */
+    complete(id: string, request: CompleteSprintRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/complete";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processComplete(_response);
+        });
+    }
+
+    protected processComplete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Reopen a sprint.
+     */
+    reopen(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/{id}/reopen";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReopen(_response);
+        });
+    }
+
+    protected processReopen(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get planning intervals that this sprint is mapped to.
      */
     getPlanningIntervals(key: number, cancelToken?: CancelToken): Promise<NavigationDto[]> {
@@ -49181,6 +49360,8 @@ export interface SprintListDto {
     start: string;
     end: string;
     team: WorkTeamNavigationDto;
+    started?: Date | undefined;
+    completed?: Date | undefined;
 }
 
 export interface SprintDetailsDto {
@@ -49191,6 +49372,25 @@ export interface SprintDetailsDto {
     start: string;
     end: string;
     team: WorkTeamNavigationDto;
+    started?: Date | undefined;
+    completed?: Date | undefined;
+    effectiveStart?: Date | undefined;
+    effectiveEnd?: Date | undefined;
+    timeZone?: string | undefined;
+    overlapsPreviousSprint: boolean;
+    overlapsNextSprint: boolean;
+    canManageSprint: boolean;
+    canStart: boolean;
+    startWindow?: InstantWindowDto | undefined;
+    canComplete: boolean;
+    completeWindow?: InstantWindowDto | undefined;
+    canReopen: boolean;
+    openSprint?: NavigationDto | undefined;
+}
+
+export interface InstantWindowDto {
+    earliest: Date;
+    latest?: Date | undefined;
 }
 
 export interface SprintWorkItemMetricsDto {
@@ -49205,6 +49405,24 @@ export interface SprintWorkItemMetricsDto {
     notStartedStoryPoints: number;
     missingStoryPointsCount: number;
     cycleTime: CycleTimeSummary;
+}
+
+/** Starts a sprint. */
+export interface StartSprintRequest {
+    /** The team's open sprint, named to confirm completing it at the same moment. A team has one open sprint
+at a time, so starting is refused while another is open unless this names it — and refused if it names
+a sprint that is no longer the open one. */
+    completeOpenSprintId?: string | undefined;
+    /** When the team started the sprint, now or earlier. Omit to record it as starting now. It must fall in
+the sprint's start window, which the sprint details report. */
+    startedAt?: Date | undefined;
+}
+
+/** Completes a sprint. */
+export interface CompleteSprintRequest {
+    /** When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall
+in the sprint's completion window, which the sprint details report. */
+    completedAt?: Date | undefined;
 }
 
 export interface WorkProcessListDto {

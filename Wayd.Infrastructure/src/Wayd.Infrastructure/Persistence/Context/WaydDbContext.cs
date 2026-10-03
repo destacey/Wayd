@@ -192,6 +192,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<WorkTeam> WorkTeams => Set<WorkTeam>();
     public DbSet<WorkType> WorkTypes => Set<WorkType>();
 
+    async Task<IUnitOfWork> IWorkDbContext.BeginUnitOfWork(CancellationToken cancellationToken) =>
+        await BeginUnitOfWork(cancellationToken);
+
     public IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top)
     {
         var query = IsFtsAvailable()

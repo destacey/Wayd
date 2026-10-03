@@ -7,10 +7,10 @@ audience: [user, agent]
 
 # Permissions
 
-Wayd answers "may this user do this?" with **two independent checks**. Most of the application uses only the first; Project Portfolio Management uses both.
+Wayd answers "may this user do this?" with **two independent checks**. Most of the application uses only the first; Project Portfolio Management and the sprint lifecycle use both.
 
 1. **Permission claims** — granted through [roles](./index.mdx#roles). These decide whether a user can reach a feature at all.
-2. **Delivery leadership** — in PPM only, whether the user actually leads the record being changed. A permission claim alone is not enough to change a project, program, or portfolio.
+2. **Membership of the record** — whether the user belongs to the record being changed. In PPM that is delivery leadership: a permission claim alone is not enough to change a project, program, or portfolio. For a sprint it is [team membership](#sprint-lifecycle-team-membership).
 
 Both must pass. Holding `Permissions.Projects.Update` lets you reach the project edit endpoints; being a project Owner decides *which* projects you may change.
 
@@ -85,15 +85,24 @@ A portfolio has nothing above it to inherit leadership from, so a brand-new port
 
 The seeded **Admin** role includes this permission.
 
+## Sprint lifecycle: team membership
+
+[Starting, completing and reopening a sprint](../work-management/sprints.mdx#starting-completing-and-reopening-a-sprint) needs `Permissions.Iterations.Update` **and** membership of the sprint's team, in any role. Members of the team of teams the team belongs to on the day also qualify — only its direct team of teams, not the ones above it.
+
+`Permissions.Iterations.Administer` waives the membership for every team's sprints, the way the [PPM Administrator](#ppm-administrator) permission waives leadership. Like it, it never substitutes for the `Update` permission. The seeded **Admin** role includes both.
+
+Viewing sprints needs only `Permissions.Iterations.View`.
+
 ## Why an action might be unavailable
 
-When a PPM action is missing from a menu or rejected on submit, it is one of:
+When a PPM or sprint action is missing from a menu or rejected on submit, it is one of:
 
 | Cause | What to do |
 |---|---|
 | Missing the permission claim | Ask an administrator to grant it via **Settings → Roles** |
 | Not leading the record | Ask an Owner or Manager of the record — or of its program or portfolio — to assign you a role, or to perform the action |
-| No linked employee record | PPM changes are attributed to an employee. Ask an administrator to link your user account to one. |
+| Not on the sprint's team | Ask to be added to the team or its team of teams, or ask a member to perform the action |
+| No linked employee record | PPM and sprint changes are attributed to an employee. Ask an administrator to link your user account to one. |
 | A domain rule blocks it | The action may be invalid for the record's current state — for example, a portfolio cannot close while it still contains open projects |
 
 ## Upgrading to this version

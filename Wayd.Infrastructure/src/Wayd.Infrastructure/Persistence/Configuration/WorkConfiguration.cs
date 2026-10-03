@@ -440,6 +440,24 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
             .HasColumnType("varchar")
             .HasMaxLength(32);
 
+        // Concurrency tokens so two requests that change the same sprint's lifecycle at once cannot both
+        // save: the second would overwrite the first's moment and record a second event for one change.
+        // The open-sprint index below only catches two different sprints.
+        builder.Property(i => i.Started).IsConcurrencyToken();
+        builder.Property(i => i.Completed).IsConcurrencyToken();
+
+        // Declared because EF otherwise drops the foreign key's index as covered by the filtered one below,
+        // which only holds open sprints.
+        builder.HasIndex(i => i.TeamId);
+
+        // The aggregate allows one open sprint per team; this stops two concurrent starts of different
+        // sprints from both passing that check and saving. TeamId is in the filter because SQL Server treats
+        // nulls as equal in a unique index: a sync that unmaps the team of two open sprints would otherwise
+        // fail on the second.
+        builder.HasIndex(i => i.TeamId, "IX_Iterations_TeamId_Open")
+            .IsUnique()
+            .WhereNotNullAndNull([nameof(Iteration.TeamId), nameof(Iteration.Started)], nameof(Iteration.Completed));
+
         // Value Objects
         builder.ComplexProperty(i => i.DateRange, options =>
         {

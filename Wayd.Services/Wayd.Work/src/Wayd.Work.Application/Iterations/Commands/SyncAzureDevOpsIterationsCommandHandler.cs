@@ -139,6 +139,8 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
             .Select(t => new { t.Id, t.Type })
             .ToDictionaryAsync(t => t.Id, t => t.Type, cancellationToken);
 
+        List<Iteration> movedOpenSprints = [];
+
         foreach (var externalIteration in externalIterations)
         {
             syncLog.IterationRequested(externalIteration.Id);
@@ -165,6 +167,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
             var externalIdString = externalIteration.Id.ToString();
             if (existingByExternalId.TryGetValue(externalIdString, out var existingIteration))
             {
+                var previousTeamId = existingIteration.TeamId;
                 var updateResult = existingIteration.Update(
                     externalIteration.Name,
                     sprintType,
@@ -178,6 +181,14 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
                 {
                     _logger.LogError("Failed to update iteration {IterationName} for SystemId {SystemId} and Azdo Project {AzdoProjectId}: {Error}", externalIteration.Name, systemId, azdoProjectId, updateResult.Error);
                     return Result.Failure($"Failed to update iterations for SystemId {systemId} and Azdo Project {azdoProjectId}.");
+                }
+
+                if (existingIteration.TeamId is not null
+                    && existingIteration.TeamId != previousTeamId
+                    && existingIteration.Started is not null
+                    && existingIteration.Completed is null)
+                {
+                    movedOpenSprints.Add(existingIteration);
                 }
 
                 // Update editable external metadata
@@ -214,6 +225,8 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
             }
         }
 
+        await CompleteCollidingOpenSprints(movedOpenSprints, cancellationToken);
+
         // Persist changes for this project group (creates/updates)
         try
         {
@@ -226,6 +239,44 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// A team has one open sprint, so an open sprint the source moved to a team that already has one is
+    /// completed now; the team's own sprint stays open. Without this the save fails on the open-sprint index,
+    /// and keeps failing on every sync until someone corrects the source.
+    /// </summary>
+    private async Task CompleteCollidingOpenSprints(List<Iteration> movedOpenSprints, CancellationToken cancellationToken)
+    {
+        if (movedOpenSprints.Count == 0)
+            return;
+
+        var teamIds = movedOpenSprints.Select(s => s.TeamId!.Value).Distinct().ToList();
+
+        // Tracked, so a sprint already moved in this batch comes back as the same instance with its new team.
+        var openInTargetTeams = await _workDbContext.Iterations
+            .Where(i => i.TeamId != null && teamIds.Contains(i.TeamId.Value) && i.Started != null && i.Completed == null)
+            .ToListAsync(cancellationToken);
+
+        var now = _dateTimeProvider.Now;
+        foreach (var teamId in teamIds)
+        {
+            var open = openInTargetTeams.Concat(movedOpenSprints)
+                .Distinct()
+                .Where(i => i.TeamId == teamId && i.Started is not null && i.Completed is null)
+                .ToList();
+            if (open.Count < 2)
+                continue;
+
+            var kept = open.FirstOrDefault(i => !movedOpenSprints.Contains(i))
+                ?? open.MaxBy(i => i.Started)!;
+
+            foreach (var sprint in open.Where(i => i != kept))
+            {
+                sprint.CompleteOnTeamMove(EventActor.Sync(null), now);
+                _logger.LogWarning("Completed open sprint {SprintId} because the source moved it to team {TeamId}, which already has open sprint {OpenSprintId}.", sprint.Id, teamId, kept.Id);
+            }
+        }
     }
 
     private sealed record IterationSyncLog

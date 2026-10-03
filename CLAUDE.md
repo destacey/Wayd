@@ -211,6 +211,8 @@ Every mutating method on these aggregates requires a `PpmActor`, so the compiler
 
 The read side mirrors the rule as `canManageProject` / `canManageProgram` / `canManagePortfolio` DTO fields; the UI gates on permission **and** flag. Those projections and the aggregate predicates must stay in agreement.
 
+**Sprint lifecycle is membership-gated too**, but in the handler rather than the aggregate: start/complete/reopen need `Permissions.Iterations.Update` plus membership of the sprint's team or its direct team of teams (`SprintAuthorization.CanManageTeamSprints` → `IsTeamMemberQuery`), waived by `Permissions.Iterations.Administer`. The lifecycle rules themselves live in `TeamSprintTimeline`, which `GetSprintQuery` reuses for the DTO's `CanStart`/`CanComplete`/`CanReopen`.
+
 See [docs/contributing/architecture.mdx](docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization) and [docs/user-guide/settings/permissions.mdx](docs/user-guide/settings/permissions.mdx).
 
 ### Feature Flags

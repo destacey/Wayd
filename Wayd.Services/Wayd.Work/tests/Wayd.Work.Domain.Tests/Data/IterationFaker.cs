@@ -72,6 +72,25 @@ public static class IterationFakerExtensions
         return faker;
     }
 
+    public static IterationFaker WithTeam(this IterationFaker faker, WorkTeam team)
+    {
+        faker.RuleFor(x => x.TeamId, team.Id);
+        faker.RuleFor(x => x.Team, team);
+        return faker;
+    }
+
+    public static IterationFaker WithStarted(this IterationFaker faker, Instant? started)
+    {
+        faker.RuleFor(x => x.Started, started);
+        return faker;
+    }
+
+    public static IterationFaker WithCompleted(this IterationFaker faker, Instant? completed)
+    {
+        faker.RuleFor(x => x.Completed, completed);
+        return faker;
+    }
+
     public static IterationFaker WithOwnershipInfo(this IterationFaker faker, OwnershipInfo ownershipInfo)
     {
         faker.RuleFor(x => x.OwnershipInfo, ownershipInfo);

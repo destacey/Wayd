@@ -135,6 +135,8 @@ The read side mirrors the same rule as `canManageProject` / `canManageProgram` /
 `GetProjectQuery` builds its DTO with `ProjectToType`, so every mapping clause must translate to SQL. `BackwardStatusTargets` cannot — building it calls a static factory inside a `Select` over a collection — so the mapping `.Ignore`s it and `ResolveBackwardStatusTargets()` fills it after materialisation. A clause that fails to translate throws only under a real provider; in-memory fakes run the projection as LINQ-to-Objects and evaluate anything, so changes to this mapping need a test in `Wayd.ProjectPortfolioManagement.IntegrationTests`.
 :::
 
+**Sprints are the other membership-gated area.** Starting, completing and reopening a sprint needs `Permissions.Iterations.Update` and membership of the sprint's team or its direct team of teams, which `Permissions.Iterations.Administer` waives. Membership lives in Organization, so the Work handlers answer it through `IsTeamMemberQuery` (`SprintAuthorization.CanManageTeamSprints`) rather than in the aggregate; the aggregate enforces only the lifecycle rules, through `TeamSprintTimeline`. `SprintDetailsDto` exposes both — `CanManageSprint` and `CanStart`/`CanComplete`/`CanReopen` — computed by the same code the commands run.
+
 See [Permissions](../user-guide/settings/permissions.mdx) for the user-facing rule.
 
 ### No Repository Pattern

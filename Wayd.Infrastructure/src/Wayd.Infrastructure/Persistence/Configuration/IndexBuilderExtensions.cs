@@ -41,6 +41,13 @@ public static class IndexBuilderExtensions
     public static IndexBuilder WhereNotNull(this IndexBuilder builder, string column) =>
         builder.HasFilter(IsNotNull(column));
 
+    /// <summary>
+    /// Index only rows where every one of <paramref name="notNullColumns"/> is set and
+    /// <paramref name="nullColumn"/> is not: something begun and not yet ended.
+    /// </summary>
+    public static IndexBuilder<TEntity> WhereNotNullAndNull<TEntity>(this IndexBuilder<TEntity> builder, string[] notNullColumns, string nullColumn) =>
+        builder.HasFilter(string.Join(" AND ", [.. notNullColumns.Select(IsNotNull), IsNull(nullColumn)]));
+
     private const string NotDeleted = "[IsDeleted] = 0";
     private const string Active = "[IsActive] = 1";
     private static string IsNull(string column) => $"[{column}] IS NULL";

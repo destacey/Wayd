@@ -157,4 +157,144 @@ public class IterationTests
         iteration.DomainEvents.OfType<IterationCreatedEventV2>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1");
         iteration.DomainEvents.OfType<IterationDetailsUpdatedEvent>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1a");
     }
+
+    private static readonly DateTimeZone Chicago = DateTimeZoneProviders.Tzdb["America/Chicago"];
+    private static readonly LocalDate Sprint1Start = new(2026, 9, 14);
+    private static readonly LocalDate Sprint2Start = new(2026, 9, 28);
+
+    private static Instant InChicago(LocalDate date, int hour) =>
+        date.At(new LocalTime(hour, 0)).InZoneLeniently(Chicago).ToInstant();
+
+    private static (Iteration Sprint1, Iteration Sprint2, TeamSprintTimeline Timeline) TwoSprints(Instant? sprint1Started = null, Instant? sprint1Completed = null)
+    {
+        var teamId = Guid.NewGuid();
+        var sprint1 = new IterationFaker().AsSprint().WithKey(1).WithTeamId(teamId)
+            .WithDateRange(new IterationDateRange(Sprint1Start, Sprint1Start.PlusDays(13)))
+            .WithStarted(sprint1Started).WithCompleted(sprint1Completed).Generate();
+        var sprint2 = new IterationFaker().AsSprint().WithKey(2).WithTeamId(teamId)
+            .WithDateRange(new IterationDateRange(Sprint2Start, Sprint2Start.PlusDays(13))).Generate();
+        var schedules = new TeamSprintSchedules([new SprintSchedulePeriod(new LocalDate(2026, 1, 1), null, new SprintSchedule(Chicago, 1))], new SprintSchedule(DateTimeZone.Utc, 1));
+
+        return (sprint1, sprint2, new TeamSprintTimeline(teamId, [sprint1, sprint2], schedules));
+    }
+
+    [Fact]
+    public void Start_OnTheFridayBeforeAHoliday_AtTheMomentTheOpenSprintCompleted_Succeeds()
+    {
+        // Arrange — Monday is a holiday, so the team plans on Friday afternoon
+        var (sprint1, sprint2, timeline) = TwoSprints(sprint1Started: InChicago(Sprint1Start, 10));
+        var friday = InChicago(Sprint2Start.PlusDays(-3), 15);
+        sprint1.Complete(timeline, friday, EventActor.System, friday).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = sprint2.Start(timeline, friday, EventActor.System, friday);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint2.Started.Should().Be(friday);
+        sprint1.Completed.Should().Be(friday);
+        sprint1.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintCompletedEvent>()
+            .Which.Completed.Should().Be(friday);
+        sprint2.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintStartedEvent>()
+            .Which.Started.Should().Be(friday);
+    }
+
+    [Fact]
+    public void Start_WhileAnotherSprintIsOpen_FailsAndChangesNothing()
+    {
+        // Arrange
+        var (sprint1, sprint2, timeline) = TwoSprints(sprint1Started: InChicago(Sprint1Start, 10));
+
+        // Act
+        var result = sprint2.Start(timeline, InChicago(Sprint2Start, 9), EventActor.System, InChicago(Sprint2Start, 9));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(sprint1.Name);
+        sprint1.Completed.Should().BeNull();
+        sprint2.Started.Should().BeNull();
+        sprint1.DomainEvents.Should().BeEmpty();
+        sprint2.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Start_WhenTheRulesRefuse_RaisesNothing()
+    {
+        // Arrange — sprint 1 has not reached its default start
+        var (_, sprint2, timeline) = TwoSprints();
+
+        // Act
+        var result = sprint2.Start(timeline, InChicago(Sprint1Start, 9), EventActor.System, InChicago(Sprint1Start, 9));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sprint2.Started.Should().BeNull();
+        sprint2.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Complete_RecordsTheInstantAndRaisesTheCompletedEvent()
+    {
+        // Arrange
+        var (sprint1, _, timeline) = TwoSprints(sprint1Started: InChicago(Sprint1Start, 10));
+        var now = InChicago(Sprint2Start, 9);
+
+        // Act
+        var result = sprint1.Complete(timeline, now, EventActor.System, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint1.Completed.Should().Be(now);
+        sprint1.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintCompletedEvent>()
+            .Which.Completed.Should().Be(now);
+    }
+
+    [Fact]
+    public void Reopen_ClearsTheCompletionAndCarriesIt()
+    {
+        // Arrange
+        var completed = InChicago(Sprint2Start, 9);
+        var (sprint1, _, timeline) = TwoSprints(sprint1Started: InChicago(Sprint1Start, 10), sprint1Completed: completed);
+
+        // Act
+        var result = sprint1.Reopen(timeline, EventActor.System, InChicago(Sprint2Start, 10));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint1.Completed.Should().BeNull();
+        sprint1.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintReopenedEvent>()
+            .Which.PreviousCompleted.Should().Be(completed);
+    }
+
+    [Fact]
+    public void CompleteOnTeamMove_CompletesAnOpenSprintAndKeepsItsStart()
+    {
+        // Arrange
+        var started = InChicago(Sprint1Start, 10);
+        var (sprint1, _, _) = TwoSprints(sprint1Started: started);
+        var now = InChicago(Sprint1Start.PlusDays(2), 9);
+
+        // Act
+        var result = sprint1.CompleteOnTeamMove(EventActor.System, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sprint1.Started.Should().Be(started);
+        sprint1.Completed.Should().Be(now);
+        sprint1.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintCompletedEvent>();
+    }
+
+    [Fact]
+    public void CompleteOnTeamMove_WhenTheSprintIsNotOpen_FailsAndRaisesNothing()
+    {
+        // Arrange
+        var (sprint1, _, _) = TwoSprints();
+
+        // Act
+        var result = sprint1.CompleteOnTeamMove(EventActor.System, InChicago(Sprint1Start, 9));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sprint1.DomainEvents.Should().BeEmpty();
+    }
 }

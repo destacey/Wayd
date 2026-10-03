@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
@@ -79,6 +80,26 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
                 .OrderBy(e => e.Key.WorkspaceKey)
                 .ThenBy(e => e.Key.WorkItemNumber)
                 .Take(top));
+
+    /// <summary>
+    /// The number of units of work committed. In-memory saves have no transaction, so the scope only records
+    /// that the handler committed it.
+    /// </summary>
+    public int UnitOfWorkCommitCount { get; private set; }
+
+    public Task<IUnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken) =>
+        Task.FromResult<IUnitOfWork>(new FakeUnitOfWork(this));
+
+    private sealed class FakeUnitOfWork(FakeWorkDbContext context) : IUnitOfWork
+    {
+        public Task CommitAsync(CancellationToken cancellationToken)
+        {
+            context.UnitOfWorkCommitCount++;
+            return Task.CompletedTask;
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
 
     /// <summary>
     /// Gets the number of times SaveChangesAsync has been called.

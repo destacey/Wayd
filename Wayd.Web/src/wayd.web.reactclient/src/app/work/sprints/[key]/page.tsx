@@ -1,6 +1,7 @@
 'use client'
 
-import { IconMenu } from '@/src/components/common'
+import { IconMenu, PageActions } from '@/src/components/common'
+import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { compareCalendarDates } from '@/src/utils'
@@ -20,8 +21,10 @@ import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { ReactNode, use, useState } from 'react'
 import SprintDetailsLoading from './loading'
 import {
+  ChangeSprintLifecycleForm,
   SprintBacklogGrid,
   SprintDetails,
+  SprintLifecycleAction,
 } from '@/src/app/work/sprints/_components'
 import { IterationStateTag } from '@/src/components/common/planning'
 import { IterationState } from '@/src/components/types'
@@ -31,6 +34,7 @@ import {
 } from '@/src/store/features/organizations/team-api'
 import { SwapOutlined } from '@ant-design/icons'
 import { Space } from 'antd'
+import { ItemType } from 'antd/es/menu/interface'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import SprintFacts from './_components/sprint-facts'
 
@@ -48,7 +52,11 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // health can sit in the identity bar beside the record's name.
   const [healthIndicator, setHealthIndicator] = useState<ReactNode>(null)
 
+  const [lifecycleAction, setLifecycleAction] =
+    useState<SprintLifecycleAction | null>(null)
+
   const router = useRouter()
+  const { hasPermissionClaim } = useAuth()
 
   // The active section lives in the URL, owned by RecordLayout. Read here only
   // to gate the backlog, which is the expensive query.
@@ -127,6 +135,23 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     return notFound()
   }
 
+  // The claim alone is not enough: the caller must also belong to the sprint's
+  // team, and the lifecycle rules must allow the move right now.
+  const canManage =
+    hasPermissionClaim('Permissions.Iterations.Update') &&
+    sprint.canManageSprint
+  const lifecycleItems: ItemType[] = [
+    { action: SprintLifecycleAction.Start, allowed: sprint.canStart },
+    { action: SprintLifecycleAction.Complete, allowed: sprint.canComplete },
+    { action: SprintLifecycleAction.Reopen, allowed: sprint.canReopen },
+  ]
+    .filter(({ allowed }) => canManage && allowed)
+    .map(({ action }) => ({
+      key: action,
+      label: action,
+      onClick: () => setLifecycleAction(action),
+    }))
+
   const sections: RecordSection[] = [
     { id: SprintSections.Overview, label: 'Overview' },
     { id: SprintSections.Backlog, label: 'Backlog' },
@@ -159,34 +184,49 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   }
 
   return (
-    <RecordLayout
-      sections={sections}
-      defaultSection={SprintSections.Overview}
-      record={{
-        name: sprint.name,
-        recordKey: String(sprint.key),
-        subtitle: 'Sprint Details',
-        parent: {
-          label: sprint.team.name,
-          href: `/organizations/teams/${sprint.team.key}`,
-        },
-        tags: (
-          <Space>
-            {switchSprints}
-            <IterationStateTag state={sprint.state.id as IterationState} />
-          </Space>
-        ),
-        actions: healthIndicator,
-      }}
-      facts={<SprintFacts sprint={sprint} />}
-      sectionActions={
-        activeSection === SprintSections.Activities ? (
-          <ActivityLogExportButton activityLog={activityLog} />
-        ) : undefined
-      }
-    >
-      {(section) => renderSection(section as SprintSections)}
-    </RecordLayout>
+    <>
+      <RecordLayout
+        sections={sections}
+        defaultSection={SprintSections.Overview}
+        record={{
+          name: sprint.name,
+          recordKey: String(sprint.key),
+          subtitle: 'Sprint Details',
+          parent: {
+            label: sprint.team.name,
+            href: `/organizations/teams/${sprint.team.key}`,
+          },
+          tags: (
+            <Space>
+              {switchSprints}
+              <IterationStateTag state={sprint.state.id as IterationState} />
+            </Space>
+          ),
+          actions: (
+            <>
+              {healthIndicator}
+              <PageActions actionItems={lifecycleItems} />
+            </>
+          ),
+        }}
+        facts={<SprintFacts sprint={sprint} />}
+        sectionActions={
+          activeSection === SprintSections.Activities ? (
+            <ActivityLogExportButton activityLog={activityLog} />
+          ) : undefined
+        }
+      >
+        {(section) => renderSection(section as SprintSections)}
+      </RecordLayout>
+      {lifecycleAction && (
+        <ChangeSprintLifecycleForm
+          sprint={sprint}
+          action={lifecycleAction}
+          onFormComplete={() => setLifecycleAction(null)}
+          onFormCancel={() => setLifecycleAction(null)}
+        />
+      )}
+    </>
   )
 }
 

@@ -21,4 +21,7 @@ public interface IWorkDbContext : IWaydDbContext
     /// ordered by key prefix then key number, limited to <paramref name="top"/> results.
     /// </summary>
     IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top);
+
+    /// <summary>Opens a transaction over several saves; see <see cref="IUnitOfWork"/>.</summary>
+    Task<IUnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken);
 }

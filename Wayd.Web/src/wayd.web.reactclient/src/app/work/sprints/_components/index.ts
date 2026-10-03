@@ -4,3 +4,4 @@ export {
   default as ChangeSprintLifecycleForm,
   SprintLifecycleAction,
 } from './change-sprint-lifecycle-form'
+export { default as CorrectSprintActualDatesForm } from './correct-sprint-actual-dates-form'

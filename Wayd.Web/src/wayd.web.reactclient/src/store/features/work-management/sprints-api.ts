@@ -169,6 +169,36 @@ export const sprintsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id, key }) =>
         sprintLifecycleTags(id, key),
     }),
+
+    correctSprintActualDates: builder.mutation<
+      void,
+      {
+        sprints: {
+          id: string
+          key: number
+          started?: Date
+          completed?: Date
+        }[]
+      }
+    >({
+      queryFn: async ({ sprints }) => {
+        try {
+          const data = await getSprintsClient().correctActualDates({
+            sprints: sprints.map(({ id, started, completed }) => ({
+              sprintId: id,
+              started,
+              completed,
+            })),
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { sprints }) =>
+        sprints.flatMap(({ id, key }) => sprintLifecycleTags(id, key)),
+    }),
   }),
 })
 
@@ -198,4 +228,5 @@ export const {
   useStartSprintMutation,
   useCompleteSprintMutation,
   useReopenSprintMutation,
+  useCorrectSprintActualDatesMutation,
 } = sprintsApi

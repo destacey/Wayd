@@ -102,10 +102,6 @@ public partial class EventCoverageTests
         ["StatusTrackedEntity.DrainStatusTransitions()"] =
             "Hands the pending transition rows to BaseDbContext to insert; the saved record is unchanged.",
 
-        // Known gaps: each changes state a reader of the history would expect to see.
-        ["DeploymentEnvironment.Update(String, Int32)"] = "Gap: #897.",
-        ["DeploymentEnvironment.Activate()"] = "Gap: #897.",
-
         // Undecided (#816): whether these changes are part of the aggregate's history at all.
         ["ProjectPortfolio.MoveProjectRanks(PpmActor, IReadOnlyList<Guid>, Nullable<Guid>, Nullable<Guid>)"] = "Ranking: #816.",
         ["ProjectPortfolio.RebalanceRanks(PpmActor)"] = "Ranking: #816.",

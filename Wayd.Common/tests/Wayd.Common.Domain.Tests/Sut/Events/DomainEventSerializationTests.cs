@@ -1219,6 +1219,27 @@ public sealed class DomainEventSerializationTests
         roundTripped.Previous.Should().Be(original.Previous);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void EnvironmentDetailsUpdatedEvent_RoundTripsThePreviousDetails(bool recorded)
+    {
+        // Arrange
+        var original = new EnvironmentDetailsUpdatedEvent(
+            Guid.NewGuid(), 7, "Production EU", 5,
+            recorded ? new EnvironmentDetails("prod-eu", 2) : null,
+            EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Key.Should().Be(7);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.RingOrder.Should().Be(original.RingOrder);
+        roundTripped.Previous.Should().Be(original.Previous);
+    }
+
     [Fact]
     public void StrategicThemeUpdatedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
     {

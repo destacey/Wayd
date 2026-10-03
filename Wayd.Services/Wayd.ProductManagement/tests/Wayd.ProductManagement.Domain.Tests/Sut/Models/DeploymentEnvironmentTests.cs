@@ -103,6 +103,25 @@ public sealed class DeploymentEnvironmentTests
     }
 
     [Fact]
+    public void Reclassify_BeforePersistence_DefersEventUntilPostPersistence()
+    {
+        // Arrange
+        var sut = DeploymentEnvironment.Create("QA", EnvironmentCategory.Testing, 1, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.Reclassify(EnvironmentCategory.Staging, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+
+        sut.ExecutePostPersistenceActions();
+
+        sut.DomainEvents.Select(e => e.GetType()).Should().Equal(
+            typeof(EnvironmentAddedEvent), typeof(EnvironmentReclassifiedEventV2));
+    }
+
+    [Fact]
     public void Reclassify_ToTheSameCategory_ShouldSucceedWithoutRaisingAnEvent()
     {
         // Arrange
@@ -189,6 +208,64 @@ public sealed class DeploymentEnvironmentTests
 
     #endregion Deactivate
 
+    #region Activate
+
+    [Fact]
+    public void Activate_ShouldReactivateAndRaiseEvent()
+    {
+        // Arrange
+        var sut = _faker.AsRetired().Generate();
+
+        // Act
+        var result = sut.Activate(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.IsActive.Should().BeTrue();
+
+        var reinstated = sut.DomainEvents.OfType<EnvironmentReinstatedEvent>().Should().ContainSingle().Subject;
+        reinstated.Id.Should().Be(sut.Id);
+        reinstated.Key.Should().Be(sut.Key);
+        reinstated.Timestamp.Should().Be(_dateTimeProvider.Now);
+    }
+
+    [Fact]
+    public void Activate_ShouldFailWithoutRaising_WhenAlreadyActive()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.Activate(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This environment is already active.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Activate_BeforePersistence_DefersEventUntilPostPersistence()
+    {
+        // Arrange
+        var sut = DeploymentEnvironment.Create("QA2", EnvironmentCategory.Testing, 1, EventActor.System, _dateTimeProvider.Now);
+        sut.Deactivate(EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.Activate(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+
+        sut.ExecutePostPersistenceActions();
+
+        sut.DomainEvents.Select(e => e.GetType()).Should().Equal(
+            typeof(EnvironmentAddedEvent), typeof(EnvironmentRetiredEventV2), typeof(EnvironmentReinstatedEvent));
+    }
+
+    #endregion Activate
+
     #region Update
 
     [Fact]
@@ -198,12 +275,82 @@ public sealed class DeploymentEnvironmentTests
         var sut = _faker.WithRingOrder(2).Generate();
 
         // Act
-        var result = sut.Update("Production EU", 5);
+        var result = sut.Update("Production EU", 5, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.Name.Should().Be("Production EU");
         sut.RingOrder.Should().Be(5);
+    }
+
+    [Fact]
+    public void Update_ShouldRaiseADetailsEventCarryingBothEnds()
+    {
+        // Arrange
+        var sut = _faker.WithName("prod-eu").WithRingOrder(2).Generate();
+
+        // Act
+        sut.Update("Production EU", 5, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var updated = sut.DomainEvents.OfType<EnvironmentDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        updated.Id.Should().Be(sut.Id);
+        updated.Key.Should().Be(sut.Key);
+        updated.Name.Should().Be("Production EU");
+        updated.RingOrder.Should().Be(5);
+        updated.Previous.Should().Be(new EnvironmentDetails("prod-eu", 2));
+    }
+
+    [Fact]
+    public void Update_WithOnlyARingOrderChange_ShouldRaise()
+    {
+        // Arrange
+        var sut = _faker.WithName("Staging").WithRingOrder(2).Generate();
+
+        // Act
+        sut.Update("Staging", 3, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var updated = sut.DomainEvents.OfType<EnvironmentDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        updated.RingOrder.Should().Be(3);
+        updated.Previous!.RingOrder.Should().Be(2);
+    }
+
+    [Fact]
+    public void Update_WithNoChange_ShouldSucceedWithoutRaisingAnEvent()
+    {
+        // Arrange — the name differs only by whitespace the setter trims, so nothing actually changes
+        var sut = _faker.WithName("Staging").WithRingOrder(2).Generate();
+
+        // Act
+        var result = sut.Update(" Staging ", 2, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Update_BeforePersistence_DefersEventUntilPostPersistence()
+    {
+        // Arrange
+        var sut = DeploymentEnvironment.Create("QA", EnvironmentCategory.Testing, 1, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.Update("QA2", 2, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+
+        sut.ExecutePostPersistenceActions();
+
+        var events = sut.DomainEvents.ToList();
+        events.Should().HaveCount(2);
+        events[0].Should().BeOfType<EnvironmentAddedEvent>();
+        var updated = events[1].Should().BeOfType<EnvironmentDetailsUpdatedEvent>().Subject;
+        updated.Name.Should().Be("QA2");
+        updated.Previous.Should().Be(new EnvironmentDetails("QA", 1));
     }
 
     [Fact]
@@ -213,11 +360,12 @@ public sealed class DeploymentEnvironmentTests
         var sut = _faker.AsRetired().Generate();
 
         // Act
-        var result = sut.Update("Production EU", 5);
+        var result = sut.Update("Production EU", 5, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A retired environment cannot be updated.");
+        sut.DomainEvents.Should().BeEmpty();
     }
 
     #endregion Update

@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Application.DeploymentEnvironments.Commands;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
@@ -28,6 +29,33 @@ public sealed class SetDeploymentEnvironmentActiveCommandHandlerTests : ProductC
         // Assert
         result.IsSuccess.Should().BeTrue();
         environment.IsActive.Should().BeFalse();
+
+        environment.ExecutePostPersistenceActions();
+        var retired = environment.DomainEvents.OfType<EnvironmentRetiredEventV2>().Should().ContainSingle().Subject;
+        retired.Actor.UserId.Should().Be(CurrentUser.Object.GetUserId());
+        retired.Timestamp.Should().Be(Now);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReactivateTheEnvironmentAndRaiseAnEvent()
+    {
+        // Arrange
+        var environment = SeedEnvironment();
+        environment.Deactivate(EventActor.System, Now);
+        var sut = ActivationSut();
+
+        // Act
+        var result = await sut.Handle(
+            new SetDeploymentEnvironmentActiveCommand(environment.Id, true), TestContext.Current.CancellationToken);
+        environment.ExecutePostPersistenceActions();
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        environment.IsActive.Should().BeTrue();
+
+        var reinstated = environment.DomainEvents.OfType<EnvironmentReinstatedEvent>().Should().ContainSingle().Subject;
+        reinstated.Actor.UserId.Should().Be(CurrentUser.Object.GetUserId());
+        reinstated.Timestamp.Should().Be(Now);
     }
 
     [Fact]

@@ -73,15 +73,25 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Renames the environment and repositions it in the rollout order.
     /// </summary>
-    public Result Update(string name, int ringOrder)
+    public Result Update(string name, int ringOrder, EventActor actor, Instant timestamp)
     {
         if (!IsActive)
         {
             return Result.Failure("A retired environment cannot be updated.");
         }
 
+        var previous = new EnvironmentDetails(Name, RingOrder);
+
         Name = name;
         RingOrder = ringOrder;
+
+        var current = new EnvironmentDetails(Name, RingOrder);
+        if (current == previous)
+        {
+            return Result.Success();
+        }
+
+        RaiseWhenKeyed(() => new EnvironmentDetailsUpdatedEvent(Id, Key, current.Name, current.RingOrder, previous, actor, timestamp));
 
         return Result.Success();
     }
@@ -110,7 +120,7 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
         var fromCategory = Category;
         Category = category;
 
-        AddDomainEvent(new EnvironmentReclassifiedEventV2(Id, Key, fromCategory, category, actor, timestamp));
+        RaiseWhenKeyed(() => new EnvironmentReclassifiedEventV2(Id, Key, fromCategory, category, actor, timestamp));
 
         return Result.Success();
     }
@@ -131,14 +141,7 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
 
         IsActive = false;
 
-        if (Key == 0)
-        {
-            AddPostPersistenceAction(() => AddDomainEvent(new EnvironmentRetiredEventV2(Id, Key, actor, timestamp)));
-        }
-        else
-        {
-            AddDomainEvent(new EnvironmentRetiredEventV2(Id, Key, actor, timestamp));
-        }
+        RaiseWhenKeyed(() => new EnvironmentRetiredEventV2(Id, Key, actor, timestamp));
 
         return Result.Success();
     }
@@ -151,7 +154,7 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
     /// and its historical deployments should stay attached to the same environment rather than a
     /// duplicate.
     /// </remarks>
-    public Result Activate()
+    public Result Activate(EventActor actor, Instant timestamp)
     {
         if (IsActive)
         {
@@ -159,6 +162,8 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
         }
 
         IsActive = true;
+
+        RaiseWhenKeyed(() => new EnvironmentReinstatedEvent(Id, Key, actor, timestamp));
 
         return Result.Success();
     }
@@ -199,5 +204,22 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
             timestamp)));
 
         return environment;
+    }
+
+    /// <summary>
+    /// Raises the event now, or once the save assigns <see cref="Key"/> when the environment is not yet
+    /// persisted — the import defines and retires an environment in one pass, and an event raised before
+    /// the first save would carry Key 0.
+    /// </summary>
+    private void RaiseWhenKeyed(Func<DomainEvent> createEvent)
+    {
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(createEvent()));
+        }
+        else
+        {
+            AddDomainEvent(createEvent());
+        }
     }
 }

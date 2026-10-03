@@ -44,6 +44,7 @@ public sealed class UpdateDeploymentEnvironmentCommandHandlerTests : ProductComm
         await sut.Handle(
             new UpdateDeploymentEnvironmentCommand(environment.Id, "Staging", EnvironmentCategory.Production, 2),
             TestContext.Current.CancellationToken);
+        environment.ExecutePostPersistenceActions();
 
         // Assert
         // Moving an environment into Production changes what every past deployment to it counts toward,
@@ -63,9 +64,30 @@ public sealed class UpdateDeploymentEnvironmentCommandHandlerTests : ProductComm
         await sut.Handle(
             new UpdateDeploymentEnvironmentCommand(environment.Id, "Staging 2", EnvironmentCategory.Staging, 2),
             TestContext.Current.CancellationToken);
+        environment.ExecutePostPersistenceActions();
 
         // Assert
         environment.DomainEvents.OfType<EnvironmentReclassifiedEventV2>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRaiseADetailsEventAttributedToTheCurrentUser()
+    {
+        // Arrange
+        var environment = SeedEnvironment("prod-eu", EnvironmentCategory.Production, 3);
+        var sut = UpdateSut();
+
+        // Act
+        await sut.Handle(
+            new UpdateDeploymentEnvironmentCommand(environment.Id, "Production EU", EnvironmentCategory.Production, 5),
+            TestContext.Current.CancellationToken);
+        environment.ExecutePostPersistenceActions();
+
+        // Assert
+        var updated = environment.DomainEvents.OfType<EnvironmentDetailsUpdatedEvent>().Should().ContainSingle().Subject;
+        updated.Previous.Should().Be(new EnvironmentDetails("prod-eu", 3));
+        updated.Actor.UserId.Should().Be(CurrentUser.Object.GetUserId());
+        updated.Timestamp.Should().Be(Now);
     }
 
     [Fact]

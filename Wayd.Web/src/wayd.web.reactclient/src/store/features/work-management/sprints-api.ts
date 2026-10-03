@@ -108,8 +108,79 @@ export const sprintsApi = apiSlice.injectEndpoints({
         { type: QueryTags.ActivityLog, id: String(idOrKey) },
       ],
     }),
+
+    startSprint: builder.mutation<
+      void,
+      {
+        id: string
+        key: number
+        completeOpenSprint: boolean
+        openSprint?: NavigationDto
+      }
+    >({
+      queryFn: async ({ id, completeOpenSprint }) => {
+        try {
+          const data = await getSprintsClient().start(id, {
+            completeOpenSprint,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { id, key, openSprint }) => [
+        ...sprintLifecycleTags(id, key),
+        ...(openSprint
+          ? sprintLifecycleTags(openSprint.id, openSprint.key)
+          : []),
+      ],
+    }),
+
+    completeSprint: builder.mutation<void, { id: string; key: number }>({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getSprintsClient().complete(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { id, key }) =>
+        sprintLifecycleTags(id, key),
+    }),
+
+    reopenSprint: builder.mutation<void, { id: string; key: number }>({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getSprintsClient().reopen(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { id, key }) =>
+        sprintLifecycleTags(id, key),
+    }),
   }),
 })
+
+// A lifecycle change moves the sprint's state, so every view of the team's
+// sprints goes stale with it. The team tags are invalidated by type: they are
+// keyed by team, which these mutations are not given.
+function sprintLifecycleTags(id: string, key: number) {
+  return [
+    { type: QueryTags.Sprint, id: key },
+    { type: QueryTags.Sprint, id: 'LIST' },
+    { type: QueryTags.SprintMetrics, id: key },
+    { type: QueryTags.ActivityLog, id },
+    QueryTags.TeamSprint,
+    QueryTags.ActiveSprint,
+    QueryTags.TeamSprintOption,
+  ] as const
+}
 
 export const {
   useGetSprintsQuery,
@@ -119,4 +190,7 @@ export const {
   useGetSprintPlanningIntervalsQuery,
   useGetSprintActivitiesQuery,
   useLazyGetSprintActivitiesQuery,
+  useStartSprintMutation,
+  useCompleteSprintMutation,
+  useReopenSprintMutation,
 } = sprintsApi

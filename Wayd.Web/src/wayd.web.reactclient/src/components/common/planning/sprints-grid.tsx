@@ -71,6 +71,20 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         size: 150,
         meta: { columnType: 'dateOnly' },
       },
+      {
+        id: 'started',
+        accessorKey: 'started',
+        header: 'Started',
+        size: 175,
+        meta: { columnType: 'dateTime', hiddenByDefault: true },
+      },
+      {
+        id: 'completed',
+        accessorKey: 'completed',
+        header: 'Completed',
+        size: 175,
+        meta: { columnType: 'dateTime', hiddenByDefault: true },
+      },
     ],
     [props.hideTeam],
   )

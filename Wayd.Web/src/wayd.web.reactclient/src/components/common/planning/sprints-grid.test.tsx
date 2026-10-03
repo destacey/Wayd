@@ -167,6 +167,28 @@ describe('SprintsGrid', () => {
     )
   })
 
+  it('offers the lifecycle moments as columns hidden by default', () => {
+    // Arrange / Act
+    render(
+      <SprintsGrid
+        sprints={mockSprints}
+        isLoading={false}
+        refetch={mockRefetch}
+      />,
+    )
+
+    // Assert
+    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
+      .calls[0][0]
+    for (const id of ['started', 'completed']) {
+      const column = call.columns.find((c: { id: string }) => c.id === id)
+      expect(column.meta).toEqual({
+        columnType: 'dateTime',
+        hiddenByDefault: true,
+      })
+    }
+  })
+
   it('calls refetch when the refresh action fires', () => {
     // Arrange
     render(

@@ -47,9 +47,12 @@ public sealed class SetDeploymentEnvironmentActiveCommandHandler(
                 return Result.Failure("Deployment environment not found.");
             }
 
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var now = _dateTimeProvider.Now;
+
             var result = request.IsActive
-                ? environment.Activate()
-                : environment.Deactivate(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+                ? environment.Activate(actor, now)
+                : environment.Deactivate(actor, now);
 
             if (result.IsFailure)
             {

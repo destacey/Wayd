@@ -71,7 +71,10 @@ public sealed class UpdateDeploymentEnvironmentCommandHandler(
                 return Result.Failure($"An environment named '{name}' already exists.");
             }
 
-            var updateResult = environment.Update(name, request.RingOrder);
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var now = _dateTimeProvider.Now;
+
+            var updateResult = environment.Update(name, request.RingOrder, actor, now);
             if (updateResult.IsFailure)
             {
                 _logger.LogInformation(
@@ -80,8 +83,7 @@ public sealed class UpdateDeploymentEnvironmentCommandHandler(
                 return Result.Failure(updateResult.Error);
             }
 
-            var reclassifyResult = environment.Reclassify(
-                request.Category, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+            var reclassifyResult = environment.Reclassify(request.Category, actor, now);
 
             if (reclassifyResult.IsFailure)
             {

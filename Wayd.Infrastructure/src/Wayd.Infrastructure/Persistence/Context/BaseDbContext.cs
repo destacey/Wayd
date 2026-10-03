@@ -279,7 +279,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     /// <summary>
     /// A transaction over several saves. Commit through it; disposing without committing rolls back.
     /// </summary>
-    public sealed class UnitOfWork(BaseDbContext context, IDbContextTransaction? transaction) : IAsyncDisposable
+    public sealed class UnitOfWork(BaseDbContext context, IDbContextTransaction? transaction) : IUnitOfWork
     {
         private readonly BaseDbContext _context = context;
         private readonly IDbContextTransaction? _transaction = transaction;

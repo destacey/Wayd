@@ -5940,6 +5940,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("Completed")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Key")
@@ -5954,6 +5955,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<DateTime?>("Started")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("State")

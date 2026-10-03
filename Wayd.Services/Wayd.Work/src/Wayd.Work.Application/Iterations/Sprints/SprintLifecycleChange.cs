@@ -81,8 +81,8 @@ internal static class SprintLifecycleChange
             }
             catch (DbUpdateException ex)
             {
-                // The open-sprint index refuses a second open sprint for the team, which two concurrent starts
-                // could otherwise both pass the aggregate's check to create.
+                // A concurrent change got there first: another request changed this sprint's lifecycle (a
+                // concurrency conflict), or opened a different sprint for the team (the open-sprint index).
                 logger.LogWarning(ex, "Unable to save the {Action} of sprint {SprintId}.", action, sprintId);
                 return Result.Failure("Another change to this team's sprints was saved at the same time. Refresh and try again.");
             }

@@ -202,7 +202,8 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
 
         if (releasedAt is null && ReleasedAt is not null)
         {
-            return Result.Failure("A released package cannot have its released moment removed.");
+            return Result.Failure(
+                "A released package cannot have its released moment removed. Send the released moment with the correction.");
         }
 
         if (releasedAt is not null && ReleasedAt is null)

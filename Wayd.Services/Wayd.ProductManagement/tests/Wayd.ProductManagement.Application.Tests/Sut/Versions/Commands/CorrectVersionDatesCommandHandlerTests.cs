@@ -112,7 +112,7 @@ public sealed class CorrectVersionDatesCommandHandlerTests : ProductCommandTestB
 
         // Assert — reverting is the action that says it did not ship
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("Revert the version instead");
+        result.Error.Should().Contain("revert the version only if it did not ship");
         version.ReleasedAt.Should().Be(ReleasedAt);
         version.DomainEvents.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);

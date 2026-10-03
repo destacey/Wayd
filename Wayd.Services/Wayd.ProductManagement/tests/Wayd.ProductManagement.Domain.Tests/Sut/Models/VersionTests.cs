@@ -427,7 +427,7 @@ public sealed class VersionTests
         // Assert — the one date a correction cannot empty: the status would then contradict the
         // dates. Saying a version did not ship is RevertRelease's job, which moves the status too.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A released version cannot have its released moment removed. Revert the version instead.");
+        result.Error.Should().Be("A released version cannot have its released moment removed. Send the released moment with the correction; revert the version only if it did not ship.");
         sut.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 5, 12, 0));
     }
 

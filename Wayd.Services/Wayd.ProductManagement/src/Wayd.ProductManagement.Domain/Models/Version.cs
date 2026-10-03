@@ -326,10 +326,12 @@ public sealed class Version : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A withdrawn version cannot have its dates corrected.");
         }
 
+        // A caller correcting other dates can omit the released moment without meaning to remove it, so the
+        // message leads with resending it; reverting is right only when the version really did not ship.
         if (releasedAt is null && ReleasedAt is not null)
         {
             return Result.Failure(
-                "A released version cannot have its released moment removed. Revert the version instead.");
+                "A released version cannot have its released moment removed. Send the released moment with the correction; revert the version only if it did not ship.");
         }
 
         if (cutAt is not null && releasedAt is not null && releasedAt < cutAt)

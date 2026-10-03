@@ -124,6 +124,17 @@ describe('calendarDaysBetween', () => {
     expect(result).toBe(1)
   })
 
+  it('counts an ISO instant string by the viewer’s day, not its UTC date', () => {
+    // Arrange
+    const lateOnTheStart = new Date(2026, 8, 28, 23, 30).toISOString()
+
+    // Act
+    const result = calendarDaysBetween(lateOnTheStart, '2026-09-29')
+
+    // Assert
+    expect(result).toBe(1)
+  })
+
   it('is negative when the end is earlier', () => {
     // Act
     const result = calendarDaysBetween('2026-09-28', '2026-09-25')

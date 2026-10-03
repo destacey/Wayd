@@ -13,6 +13,7 @@ export type CalendarDate = string
 const ISO_FORMAT = 'YYYY-MM-DD'
 const DISPLAY_FORMAT = 'MMM D, YYYY'
 const MS_PER_DAY = 86_400_000
+const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * Local midnight of the day, for date math and date pickers. dayjs reads an
@@ -54,7 +55,8 @@ export function compareCalendarDates(
 
 /**
  * Whole days from `from` to `to`, counted on the calendar: a calendar date is
- * its own day, and a `Date` is the day it falls on for the viewer. Counted
+ * its own day, and an instant (a `Date`, or the ISO string a `Date`-typed
+ * field really holds) is the day it falls on for the viewer. Counted
  * from the day's numbers rather than milliseconds, so a DST change between
  * them cannot shift the result.
  */
@@ -66,12 +68,16 @@ export function calendarDaysBetween(
 }
 
 function dayNumber(value: CalendarDate | Date): number {
-  if (typeof value === 'string') {
-    const [year, month, day] = value.slice(0, 10).split('-').map(Number)
+  if (typeof value === 'string' && CALENDAR_DATE_PATTERN.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
     return Date.UTC(year, month - 1, day) / MS_PER_DAY
   }
+  // Anything else is an instant. A `Date`-typed instant still arrives from
+  // the API as an ISO string, and its date prefix is the UTC day, not the
+  // viewer's.
+  const instant = typeof value === 'string' ? new Date(value) : value
   return (
-    Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) /
+    Date.UTC(instant.getFullYear(), instant.getMonth(), instant.getDate()) /
     MS_PER_DAY
   )
 }

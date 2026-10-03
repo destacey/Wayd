@@ -52,6 +52,28 @@ jobs:
             - name: Test
               run: npm run test:only
 
+    changeset:
+        # The release PR consumes the changesets, so it would always fail this.
+        if: github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - name: Install dependencies
+              run: npm ci
+              working-directory: Wayd.Web/src/Wayd.Mcp
+
+            - name: Require a changeset for shipped changes
+              run: bash .github/scripts/mcp-changeset-check.sh "origin/${{ github.base_ref }}"
+
     release-pr:
         needs: [build]
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

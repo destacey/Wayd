@@ -1,0 +1,23 @@
+#!/bin/sh
+# Refuses a push whose branch changes what @wayd/mcp publishes without adding a changeset -- the same
+# check CI runs on the pull request, run here so it is caught before review. A change with no changeset
+# merges cleanly and is never released. Bypass with `git push --no-verify`.
+
+root="$(git rev-parse --show-toplevel)"
+
+if ! git rev-parse --verify --quiet origin/main > /dev/null; then
+    exit 0
+fi
+
+# A spec-only change is checked by regenerating the import formats, which needs the MCP's packages.
+if [ ! -d "$root/Wayd.Web/src/Wayd.Mcp/node_modules" ]; then
+    echo "pre-push: skipping the MCP changeset check; run 'npm ci' in Wayd.Web/src/Wayd.Mcp to enable it." >&2
+    exit 0
+fi
+
+if ! output="$(bash "$root/.github/scripts/mcp-changeset-check.sh" origin/main 2>/dev/null)"; then
+    echo "pre-push: $output" | sed 's/::error:://' >&2
+    exit 1
+fi
+
+exit 0

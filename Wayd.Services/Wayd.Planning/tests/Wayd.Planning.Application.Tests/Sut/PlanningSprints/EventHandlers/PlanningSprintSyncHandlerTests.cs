@@ -203,6 +203,71 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
         _planningDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Handle_TeamChanged_WhenTheTeamIsClearedOnAMappedSprint_UnmapsIt()
+    {
+        // Arrange
+        var (planningInterval, sprint, iterationId) = MappedSprint();
+
+        // Act
+        await _handler.Handle(new IterationTeamChangedEvent(sprint.Id, 1, sprint.TeamId, null, EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        sprint.TeamId.Should().BeNull();
+        planningInterval.IterationSprints.Should().BeEmpty();
+        var raised = planningInterval.DomainEvents.OfType<PlanningIntervalSprintMappingsChangedEvent>().Should().ContainSingle().Subject;
+        raised.Removed.Should().BeEquivalentTo([new PlanningIntervalSprintMapping(iterationId, sprint.Id)]);
+        raised.Timestamp.Should().Be(SecondEdit);
+        _planningDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_TeamChanged_WhenAMappedSprintMovesToAnotherTeam_UnmapsIt()
+    {
+        // Arrange
+        var (planningInterval, sprint, _) = MappedSprint();
+        var otherTeamId = Guid.NewGuid();
+
+        // Act
+        await _handler.Handle(new IterationTeamChangedEvent(sprint.Id, 1, sprint.TeamId, otherTeamId, EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        sprint.TeamId.Should().Be(otherTeamId);
+        planningInterval.IterationSprints.Should().BeEmpty();
+        _planningDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_TeamChanged_WhenOlderThanTheCopy_LeavesTheMapping()
+    {
+        // Arrange
+        var (planningInterval, sprint, _) = MappedSprint();
+        var teamId = sprint.TeamId;
+
+        // Act
+        await _handler.Handle(new IterationTeamChangedEvent(sprint.Id, 1, null, Guid.NewGuid(), EventActor.System, Created.Minus(Duration.FromMinutes(1))), TestContext.Current.CancellationToken);
+
+        // Assert
+        sprint.TeamId.Should().Be(teamId);
+        planningInterval.IterationSprints.Should().ContainSingle();
+        planningInterval.DomainEvents.Should().BeEmpty();
+        _planningDbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_StateChanged_WhenTheSprintIsMapped_LeavesTheMapping()
+    {
+        // Arrange
+        var (planningInterval, sprint, _) = MappedSprint();
+
+        // Act
+        await _handler.Handle(new IterationStateChangedEvent(sprint.Id, 1, sprint.State, IterationState.Completed, EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
+
+        // Assert
+        planningInterval.IterationSprints.Should().ContainSingle();
+        planningInterval.DomainEvents.Should().BeEmpty();
+    }
+
 #pragma warning disable CS0618 // the retired types are exactly what is under test
     [Fact]
     public async Task Handle_SupersededDateRangeChanged_AppliesTheUtcDateOfEachInstant()
@@ -354,6 +419,23 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
 
         // Assert
         _planningDbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    /// <summary>A sprint mapped to the first iteration of a PI its team is in, with the PI's events cleared.</summary>
+    private (PlanningInterval PlanningInterval, PlanningSprint Sprint, Guid IterationId) MappedSprint()
+    {
+        var piDates = new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 3, 31));
+        var teamId = Guid.NewGuid();
+        var planningInterval = new PlanningIntervalFaker().WithDateRange(piDates).WithTeams(teamId).WithIterations(piDates, 2, "Iteration ").Generate();
+        var sprint = new PlanningSprint(new PlanningSprintFaker().AsSprint().WithTeamId(teamId).WithState(IterationState.Active).WithDateRange(Range).Generate(), Created);
+        var iterationId = planningInterval.Iterations.First().Id;
+        planningInterval.MapSprintToIteration(iterationId, sprint, EventActor.System, Created).IsSuccess.Should().BeTrue();
+        planningInterval.ClearDomainEvents();
+
+        _planningDbContext.AddPlanningInterval(planningInterval);
+        _planningDbContext.AddPlanningSprint(sprint);
+
+        return (planningInterval, sprint, iterationId);
     }
 
     private void SourceReturns(ISimpleIteration? sprint) =>

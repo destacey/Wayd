@@ -3,6 +3,7 @@ using Moq;
 using NodaTime;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Models;
 using Wayd.Planning.Application.PlanningSprints.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -162,6 +163,39 @@ public sealed class SyncPlanningSprintsCommandHandlerTests : IDisposable
         var synced = _planningDbContext.PlanningSprints.Single(s => s.Id == id);
         synced.Name.Should().Be("Sprint 2");
         synced.Watermarks.Details.Should().Be(AfterTheRead);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAMappedSprintChangedTeam_UnmapsIt()
+    {
+        // Arrange
+        var piDates = new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 3, 31));
+        var teamId = Guid.NewGuid();
+        var planningInterval = new PlanningIntervalFaker().WithDateRange(piDates).WithTeams(teamId).WithIterations(piDates, 2, "Iteration ").Generate();
+        var moved = new PlanningSprint(new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate(), Created);
+        var stayed = new PlanningSprint(new PlanningSprintFaker().AsSprint().WithTeamId(teamId).Generate(), Created);
+        planningInterval.MapSprintToIteration(planningInterval.Iterations.First().Id, moved, EventActor.System, Created).IsSuccess.Should().BeTrue();
+        planningInterval.MapSprintToIteration(planningInterval.Iterations.Last().Id, stayed, EventActor.System, Created).IsSuccess.Should().BeTrue();
+        planningInterval.ClearDomainEvents();
+
+        _planningDbContext.AddPlanningInterval(planningInterval);
+        foreach (var mapping in planningInterval.IterationSprints)
+            _planningDbContext.PlanningIntervalIterationSprints.Add(mapping);
+        _planningDbContext.AddPlanningSprints([moved, stayed]);
+
+        var otherTeamId = Guid.NewGuid();
+        var sources = new[] { SameSprintAs(moved).WithTeamId(otherTeamId).Generate(), SameSprintAs(stayed).Generate() };
+
+        // Act
+        var result = await _handler.Handle(new SyncPlanningSprintsCommand(sources, Read), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        moved.TeamId.Should().Be(otherTeamId);
+        planningInterval.IterationSprints.Should().ContainSingle().Which.SprintId.Should().Be(stayed.Id);
+        planningInterval.DomainEvents.OfType<PlanningIntervalSprintMappingsChangedEvent>().Should().ContainSingle()
+            .Which.Timestamp.Should().Be(Read);
+        _planningDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     private static PlanningSprintFaker SameSprintAs(PlanningSprint sprint) =>

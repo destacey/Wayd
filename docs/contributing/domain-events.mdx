@@ -56,7 +56,10 @@ disagree, the earlier one wins.
    personal detail, even one that was true at the time. The activity log is append-only and nothing
    migrates a payload once written, so personal data in an event cannot be corrected or erased; the reader
    resolves the person when it displays the entry. `EventActor` and `RoleAssignmentChange` are shaped this
-   way.
+   way. A record that *is* a person keeps the same rule on its own events: `Employee` and
+   `ExternalIdentityMapping` carry ids and states, and a change to a name, address or handle is an event
+   carrying the record's id and no values (`EmployeeDetailsUpdatedEvent`,
+   `ExternalIdentityMappingProfileChangedEvent`).
 2. **What could a consumer not do without it?** Name the kind of consumer and what it would lose: the
    activity log rendering the entry, a handler reacting to the change ("tell the new Owner"), a replica
    keeping its copy. A kind of consumer, not a current subscriber — whether anything handles the event
@@ -109,6 +112,7 @@ looking it up by id, whenever the payload is read, give the consumer what it nee
 | `ScoringModelName` on a recorded score | Returns the model's current name, not the one scored against | Yes — frozen |
 | Previous and new lifecycle names on a lifecycle change | Returns current names, not the ones that applied | Yes — frozen |
 | An employee's name on a role change | Returns the current name | No — test 1 wins; carry the id |
+| An employee's old and new name on their own rename | Returns the current name | No — test 1 wins; the id alone records that it changed |
 
 The last row is why the tests are ordered. A person's name at the time is a frozen value too, and it still
 stays out, because personal data must remain correctable and erasable.
@@ -611,7 +615,7 @@ nothing.
 **Baselining an aggregate that gains events later** is a new migration of the same shape. Add its
 `{Aggregate}BaselinedEvent`, select the records with neither its creation nor its baseline entry, clear their
 entries, write the baselines, and give the migration a test that compares each row with the factory's entry
-(`BaselineActivityAssertions` holds the comparison). Do this only once the aggregate raises an event for every change.
+(`SecurityConfigurationBaselineBackfillTests` shows the comparison). Do this only once the aggregate raises an event for every change.
 `Backfill-Planning-Baseline-Activity` is the first: it baselined planning intervals, planning interval objectives and
 risks, skipping soft-deleted records and an interval's soft-deleted iterations along with the sprint mappings that
 still pointed at them. `Backfill-Scoring-Model-Baseline-Activity` baselined scoring models; it builds each scale's levels into a
@@ -622,7 +626,8 @@ A baseline may implement `IRelatedAggregateEvent` when its creation event does, 
 event would be; it still implements no module marker. A connection's settings are read out of its configuration JSON,
 where the default serializer stored enums as numbers, so the migration maps them to the names the events carry;
 `SecurityConfigurationBaselineBackfillTests` compares each row with the factory's entry by running the migration's SQL
-against the current schema.
+against the current schema. `Backfill-Employee-And-Identity-Mapping-Baseline-Activity` baselined employees and external
+identity mappings, skipping soft-deleted employees; both payloads are ids and states only, as their events are.
 
 **A seeder that creates an evented aggregate records its creation too.** The backfill runs once, before any seeder,
 so a record a seeder creates on a fresh install is never baselined. Seeders run during `InitializeDatabases`,

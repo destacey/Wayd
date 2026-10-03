@@ -27037,7 +27037,7 @@
           "Sprints"
         ],
         "summary": "Start a sprint.",
-        "description": "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.",
+        "description": "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.",
         "operationId": "Sprints_Start",
         "parameters": [
           {
@@ -56965,15 +56965,15 @@
       },
       "StartSprintRequest": {
         "type": "object",
-        "description": "Starts a sprint now.",
+        "description": "Starts a sprint.",
         "additionalProperties": false,
-        "required": [
-          "completeOpenSprint"
-        ],
         "properties": {
-          "completeOpenSprint": {
-            "type": "boolean",
-            "description": "Confirms completing the team's open sprint at the same instant. A team has one open sprint at a\ntime, so starting is refused while another is open unless this is set."
+          "completeOpenSprintId": {
+            "type": "string",
+            "description": "The team's open sprint, named to confirm completing it at the same moment. A team has one open sprint\nat a time, so starting is refused while another is open unless this names it — and refused if it names\na sprint that is no longer the open one.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
           },
           "startedAt": {
             "type": "string",

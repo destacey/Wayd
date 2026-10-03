@@ -54102,7 +54102,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Start a sprint.
         /// </summary>
         /// <remarks>
-        /// Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.
+        /// Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task StartAsync(System.Guid id, StartSprintRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -54639,7 +54639,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Start a sprint.
         /// </summary>
         /// <remarks>
-        /// Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.
+        /// Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprintId must name it to confirm completing it at the same moment.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task StartAsync(System.Guid id, StartSprintRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -93954,18 +93954,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Starts a sprint now.
+    /// Starts a sprint.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StartSprintRequest
     {
 
         /// <summary>
-        /// Confirms completing the team's open sprint at the same instant. A team has one open sprint at a
-        /// <br/>time, so starting is refused while another is open unless this is set.
+        /// The team's open sprint, named to confirm completing it at the same moment. A team has one open sprint
+        /// <br/>at a time, so starting is refused while another is open unless this names it — and refused if it names
+        /// <br/>a sprint that is no longer the open one.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("completeOpenSprint")]
-        public bool CompleteOpenSprint { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("completeOpenSprintId")]
+        public System.Guid? CompleteOpenSprintId { get; set; } = default!;
 
         /// <summary>
         /// When the team started the sprint, now or earlier. Omit to record it as starting now. It must fall in

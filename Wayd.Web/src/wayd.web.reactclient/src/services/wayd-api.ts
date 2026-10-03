@@ -49407,11 +49407,12 @@ export interface SprintWorkItemMetricsDto {
     cycleTime: CycleTimeSummary;
 }
 
-/** Starts a sprint now. */
+/** Starts a sprint. */
 export interface StartSprintRequest {
-    /** Confirms completing the team's open sprint at the same instant. A team has one open sprint at a
-time, so starting is refused while another is open unless this is set. */
-    completeOpenSprint: boolean;
+    /** The team's open sprint, named to confirm completing it at the same moment. A team has one open sprint
+at a time, so starting is refused while another is open unless this names it — and refused if it names
+a sprint that is no longer the open one. */
+    completeOpenSprintId?: string | undefined;
     /** When the team started the sprint, now or earlier. Omit to record it as starting now. It must fall in
 the sprint's start window, which the sprint details report. */
     startedAt?: Date | undefined;

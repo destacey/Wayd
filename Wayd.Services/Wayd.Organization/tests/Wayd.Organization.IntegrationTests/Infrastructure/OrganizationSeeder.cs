@@ -45,6 +45,7 @@ internal static class OrganizationSeeder
             managerId: null,
             isActive: true,
             employeeType: null,
+            EventActor.System,
             SqlServerDbContextFixture.FixedNow);
 
         await context.Employees.AddAsync(employee, cancellationToken);

@@ -1,13 +1,15 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Data;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Extensions;
 using Wayd.Common.Models;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Employees;
 
-public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndKey
+public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeActivatableArgs>, IHasIdAndKey
 {
     private readonly List<Employee> _directReports = [];
     private readonly List<EmployeeEmail> _emails = [];
@@ -47,7 +49,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     public PersonName Name
     {
         get;
-        private set => field = Guard.Against.Null(value, nameof(EmployeeNumber));
+        private set => field = Guard.Against.Null(value, nameof(Name));
     } = null!;
 
     /// <summary>Gets the employee number.</summary>
@@ -122,14 +124,13 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <summary>
     /// The process for activating an employee.
     /// </summary>
-    /// <param name="timestamp"></param>
     /// <returns>Result that indicates success or a list of errors</returns>
-    public Result Activate(Instant timestamp)
+    public Result Activate(EmployeeActivatableArgs args)
     {
         if (!IsActive)
         {
-            // TODO is there logic that would prevent activation?
             IsActive = true;
+            AddDomainEvent(new EmployeeActivatedEvent(Id, args.Actor, args.Timestamp));
         }
 
         return Result.Success();
@@ -138,14 +139,13 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <summary>
     /// The process for deactivating an employee.
     /// </summary>
-    /// <param name="timestamp"></param>
     /// <returns>Result that indicates success or a list of errors</returns>
-    public Result Deactivate(Instant timestamp)
+    public Result Deactivate(EmployeeActivatableArgs args)
     {
         if (IsActive)
         {
-            // TODO is there logic that would prevent deactivation?
             IsActive = false;
+            AddDomainEvent(new EmployeeDeactivatedEvent(Id, args.Actor, args.Timestamp));
         }
 
         return Result.Success();
@@ -161,6 +161,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <param name="officeLocation">The office location.</param>
     /// <param name="managerId">The manager identifier.</param>
     /// <param name="isActive">if set to <c>true</c> [is active].</param>
+    /// <param name="actor">Who made the change, for the events.</param>
     /// <param name="timestamp">The timestamp of the update.</param>
     /// <returns>Result</returns>
     public Result Update(
@@ -174,11 +175,16 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         Guid? managerId,
         bool isActive,
         string? employeeType,
+        EventActor actor,
         Instant timestamp
         )
     {
         try
         {
+            // Every caller sends every field, a sync on every run, so the events are raised only for what
+            // actually moved — compared after assignment, because the setters trim.
+            var previousDetails = Details();
+
             if (Name != name) Name = name;
             if (Email != email)
             {
@@ -196,15 +202,20 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
             OfficeLocation = officeLocation;
             EmployeeType = employeeType;
 
+            if (Details() != previousDetails)
+            {
+                AddDomainEvent(new EmployeeDetailsUpdatedEvent(Id, actor, timestamp));
+            }
+
             if (ManagerId != managerId)
             {
-                ManagerId = managerId;
-                Manager = null;
+                ChangeManager(managerId, actor, timestamp);
             }
 
             if (IsActive != isActive)
             {
-                var result = isActive ? Activate(timestamp) : Deactivate(timestamp);
+                var args = EmployeeActivatableArgs.Create(actor, timestamp);
+                var result = isActive ? Activate(args) : Deactivate(args);
                 if (result.IsFailure)
                 {
                     return Result.Failure(result.Error);
@@ -221,10 +232,35 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
 
     /// <summary>Updates the manager identifier.</summary>
     /// <param name="managerId">The manager identifier.</param>
-    public void UpdateManagerId(Guid? managerId, Instant timestamp)
+    /// <param name="actor">Who made the change, for the event.</param>
+    /// <param name="timestamp">The timestamp of the change.</param>
+    public void UpdateManagerId(Guid? managerId, EventActor actor, Instant timestamp)
     {
-        ManagerId = managerId;
+        if (ManagerId != managerId)
+        {
+            ChangeManager(managerId, actor, timestamp);
+        }
     }
+
+    /// <summary>
+    /// Raises the deletion event. The caller removes the employee in the same save, which is what drains the event.
+    /// </summary>
+    public void Delete(EventActor actor, Instant timestamp)
+    {
+        AddDomainEvent(new EmployeeDeletedEvent(Id, Key, actor, timestamp));
+    }
+
+    private void ChangeManager(Guid? managerId, EventActor actor, Instant timestamp)
+    {
+        var previousManagerId = ManagerId;
+        ManagerId = managerId;
+        Manager = null;
+
+        AddDomainEvent(new EmployeeManagerChangedEvent(Id, previousManagerId, ManagerId, actor, timestamp));
+    }
+
+    private (PersonName Name, string EmployeeNumber, Instant? HireDate, EmailAddress Email, string? JobTitle, string? Department, string? OfficeLocation, string? EmployeeType) Details() =>
+        (Name, EmployeeNumber, HireDate, Email, JobTitle, Department, OfficeLocation, EmployeeType);
 
     /// <summary>
     /// Replaces the work email collection with what the people source reported. This is a full
@@ -243,8 +279,27 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// </para>
     /// </remarks>
     /// <param name="emails">Every work address the source reported, primary included.</param>
+    /// <param name="actor">Who made the change, for the event.</param>
+    /// <param name="timestamp">The timestamp of the change.</param>
     /// <returns>Result that indicates success or the reason the collection was rejected.</returns>
-    public Result SyncEmails(IEnumerable<(EmailAddress Email, bool IsPrimary)> emails)
+    public Result SyncEmails(IEnumerable<(EmailAddress Email, bool IsPrimary)> emails, EventActor actor, Instant timestamp)
+    {
+        var previous = WorkAddresses();
+
+        var result = ReplaceEmails(emails);
+        if (result.IsSuccess && !WorkAddresses().SetEquals(previous))
+        {
+            AddDomainEvent(new EmployeeWorkAddressesChangedEvent(Id, actor, timestamp));
+        }
+
+        return result;
+    }
+
+    // Case-insensitive, as the reconciliation is, so a source changing only an address's casing is not a change.
+    private HashSet<(string Address, bool IsPrimary)> WorkAddresses() =>
+        _emails.Select(e => (e.Email.Value.ToUpperInvariant(), e.IsPrimary)).ToHashSet();
+
+    private Result ReplaceEmails(IEnumerable<(EmailAddress Email, bool IsPrimary)> emails)
     {
         if (emails is null)
             return Result.Failure("The email collection is required.");
@@ -313,6 +368,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <param name="department">The department.</param>
     /// <param name="officeLocation">The office location.</param>
     /// <param name="managerId">The manager identifier.</param>
+    /// <param name="actor">Who created the employee, for the event.</param>
     /// <param name="timestamp">The timestamp of the creation.</param>
     /// <param name="emails">
     /// Any additional work addresses the source reported. <paramref name="email"/> is seeded as the
@@ -330,17 +386,27 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         Guid? managerId,
         bool isActive,
         string? employeeType,
+        EventActor actor,
         Instant timestamp,
         IEnumerable<(EmailAddress Email, bool IsPrimary)>? emails = null)
     {
         Employee employee = new(personName, employeeNumber, hireDate, email, jobTitle, department, officeLocation, managerId, isActive, employeeType);
 
         // Create returns a bare Employee, so there is nowhere to surface a Result. The only way
-        // SyncEmails fails is a null entry — a caller bug rather than bad source data, which the
+        // the replace fails is a null entry — a caller bug rather than bad source data, which the
         // connectors filter out before they get here.
-        var result = employee.SyncEmails(emails ?? []);
+        var result = employee.ReplaceEmails(emails ?? []);
         if (result.IsFailure)
             throw new ArgumentException(result.Error, nameof(emails));
+
+        // Captured now, not when the action runs: the event records the employee as created, and the import
+        // links managers and deactivates leavers before the first save. Only Key waits for the save that
+        // assigns it.
+        var createdManagerId = employee.ManagerId;
+        var createdIsActive = employee.IsActive;
+
+        employee.AddPostPersistenceAction(() =>
+            employee.AddDomainEvent(new EmployeeCreatedEvent(employee.Id, employee.Key, createdManagerId, createdIsActive, actor, timestamp)));
 
         return employee;
     }

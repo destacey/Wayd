@@ -5,6 +5,7 @@ using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Common.Models;
@@ -27,7 +28,9 @@ public sealed class EmployeeImportDefinitionTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.SetupGet(c => c.Now).Returns(_now);
-        _definition = new EmployeeImportDefinition(_db, clock.Object, new ImportPayloadSerializer());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+        _definition = new EmployeeImportDefinition(_db, clock.Object, currentUser.Object, new ImportPayloadSerializer());
     }
 
     private static ImportEmployeeDto Dto(

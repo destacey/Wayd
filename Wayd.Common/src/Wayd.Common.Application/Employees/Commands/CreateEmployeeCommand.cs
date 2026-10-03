@@ -95,12 +95,14 @@ public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmploye
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<CreateEmployeeCommandHandler> _logger;
 
-    public CreateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateEmployeeCommandHandler> logger)
+    public CreateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<CreateEmployeeCommandHandler> logger)
     {
         _waydDbContext = waydDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -127,6 +129,7 @@ public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmploye
                 managerId,
                 true,
                 employeeType: null,
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now
                 );
 

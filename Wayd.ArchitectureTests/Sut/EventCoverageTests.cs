@@ -68,6 +68,8 @@ public partial class EventCoverageTests
         typeof(WorkdayConnection),
 
         // Common
+        typeof(Employee),
+        typeof(ExternalIdentityMapping),
         typeof(OidcProvider),
         typeof(PersonalAccessToken),
         typeof(ScoringModel),
@@ -212,8 +214,6 @@ public partial class EventCoverageTests
         [typeof(TeamMemberRole)] = "#952.",
         [typeof(WorkItemReference)] = "#952.",
         [typeof(Roadmap)] = "#953.",
-        [typeof(Employee)] = "#954.",
-        [typeof(ExternalIdentityMapping)] = "#954.",
         [typeof(Workflow)] = "#955.",
         [typeof(WorkStatus)] = "#955.",
         [typeof(WorkType)] = "#955.",

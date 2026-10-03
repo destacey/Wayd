@@ -102,12 +102,14 @@ public sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmploye
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<UpdateEmployeeCommandHandler> _logger;
 
-    public UpdateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateEmployeeCommandHandler> logger)
+    public UpdateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<UpdateEmployeeCommandHandler> logger)
     {
         _waydDbContext = waydDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -140,6 +142,7 @@ public sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmploye
                 request.ManagerId,
                 employee.IsActive,        // this command should not change IsActive
                 employee.EmployeeType,    // manual edits don't change classification
+                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 _dateTimeProvider.Now
                 );
 

@@ -4,6 +4,7 @@ using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
@@ -47,7 +48,10 @@ public sealed class EmployeeImportDefinitionTests
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
 
-        return new EmployeeImportDefinition(context, dateTimeProvider.Object, new ImportPayloadSerializer());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        return new EmployeeImportDefinition(context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
     }
 
     private static ImportEmployeeDto Employee(

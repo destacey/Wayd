@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using NodaTime.Serialization.SystemTextJson;
+using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Organization;
@@ -1653,6 +1654,52 @@ public sealed class DomainEventSerializationTests
         roundTripped.Description.Should().BeNull();
         roundTripped.Connector.Should().Be(Connector.AzureDevOps);
         roundTripped.Settings.Should().Equal(original.Settings);
+    }
+
+    [Fact]
+    public void ExternalIdentityMappingCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — two enums and a nullable employee id.
+        var original = new ExternalIdentityMappingCreatedEvent(
+            Guid.NewGuid(),
+            Connector.AzureDevOps,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            ExternalIdentityMappingStatus.AutoMatched,
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.Connector.Should().Be(Connector.AzureDevOps);
+        roundTripped.ConnectionId.Should().Be(original.ConnectionId);
+        roundTripped.EmployeeId.Should().Be(original.EmployeeId);
+        roundTripped.Status.Should().Be(ExternalIdentityMappingStatus.AutoMatched);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
+    [Fact]
+    public void EmployeeManagerChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — two nullable ids, one of them null.
+        var original = new EmployeeManagerChangedEvent(
+            Guid.NewGuid(),
+            null,
+            Guid.NewGuid(),
+            EventActor.User("admin-1"),
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.PreviousManagerId.Should().BeNull();
+        roundTripped.ManagerId.Should().Be(original.ManagerId);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
     }
 
     private static T RoundTrip<T>(T value)

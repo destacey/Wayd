@@ -114,15 +114,15 @@ export const sprintsApi = apiSlice.injectEndpoints({
       {
         id: string
         key: number
-        completeOpenSprint: boolean
+        completeOpenSprintId?: string
         startedAt?: Date
         openSprint?: NavigationDto
       }
     >({
-      queryFn: async ({ id, completeOpenSprint, startedAt }) => {
+      queryFn: async ({ id, completeOpenSprintId, startedAt }) => {
         try {
           const data = await getSprintsClient().start(id, {
-            completeOpenSprint,
+            completeOpenSprintId,
             startedAt,
           })
           return { data }

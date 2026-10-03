@@ -119,7 +119,7 @@ const ChangeSprintLifecycleForm = ({
           action === SprintLifecycleAction.Start
             ? await startSprint({
                 ...request,
-                completeOpenSprint: !!openSprint,
+                completeOpenSprintId: openSprint?.id,
                 startedAt: at,
                 openSprint,
               })

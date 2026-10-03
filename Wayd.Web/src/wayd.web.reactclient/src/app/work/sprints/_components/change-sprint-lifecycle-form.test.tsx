@@ -104,7 +104,7 @@ describe('ChangeSprintLifecycleForm', () => {
     expect(startSprint).toHaveBeenCalledWith({
       id: 'sprint-2',
       key: 202,
-      completeOpenSprint: false,
+      completeOpenSprintId: undefined,
       startedAt: expect.any(Date),
       openSprint: undefined,
     })
@@ -128,7 +128,7 @@ describe('ChangeSprintLifecycleForm', () => {
     expect(startSprint).toHaveBeenCalledWith({
       id: 'sprint-2',
       key: 202,
-      completeOpenSprint: true,
+      completeOpenSprintId: 'sprint-1',
       startedAt: expect.any(Date),
       openSprint,
     })

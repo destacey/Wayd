@@ -79,6 +79,17 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     public WorkTeam? Team { get; private set; }
 
     /// <summary>
+    /// When the team started the sprint, if it did. Recorded in Wayd and never synced, so the source
+    /// system's updates leave it alone.
+    /// </summary>
+    public Instant? Started { get; private set; }
+
+    /// <summary>
+    /// When the team completed the sprint, if it did. Recorded in Wayd and never synced.
+    /// </summary>
+    public Instant? Completed { get; private set; }
+
+    /// <summary>
     /// The ownership information for this iteration.
     /// </summary>
     public OwnershipInfo OwnershipInfo { get; private init; } = default!;
@@ -124,6 +135,82 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
             AddKeyedDomainEvent(() => new IterationTeamChangedEvent(Id, Key, previousTeamId, newTeamId, actor, timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Records that the team started the sprint now. A team has one open sprint at a time, so when another
+    /// is still open the team must confirm completing it, and it is completed at the same instant.
+    /// </summary>
+    public Result Start(TeamSprintTimeline timeline, bool completeOpenSprint, EventActor actor, Instant now)
+    {
+        var allowed = timeline.CanStart(this, now);
+        if (allowed.IsFailure)
+            return allowed;
+
+        if (timeline.OpenSprint is { } open)
+        {
+            if (!completeOpenSprint)
+                return Result.Failure($"{open.Name} is still open. Confirm completing it to start this sprint.");
+
+            open.RecordCompleted(now, actor);
+        }
+
+        Started = now;
+        AddDomainEvent(new SprintStartedEvent(Id, Key, now, actor, now));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Records that the team completed the sprint now. A sprint the team did not start can still be
+    /// completed once its default start has passed.
+    /// </summary>
+    public Result Complete(TeamSprintTimeline timeline, EventActor actor, Instant now)
+    {
+        var allowed = timeline.CanComplete(this, now);
+        if (allowed.IsFailure)
+            return allowed;
+
+        RecordCompleted(now, actor);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Clears the sprint's completion, while the team has not moved on to a later sprint.
+    /// </summary>
+    public Result Reopen(TeamSprintTimeline timeline, EventActor actor, Instant now)
+    {
+        var allowed = timeline.CanReopen(this);
+        if (allowed.IsFailure)
+            return allowed;
+
+        var previousCompleted = Completed!.Value;
+        Completed = null;
+        AddDomainEvent(new SprintReopenedEvent(Id, Key, previousCompleted, actor, now));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Completes an open sprint now because the source system moved it to a team that already has an open
+    /// sprint. Its actual dates are kept rather than cleared: they are the team's record, and a mistaken
+    /// path change in the source must not erase it.
+    /// </summary>
+    public Result CompleteOnTeamMove(EventActor actor, Instant now)
+    {
+        if (Started is null || Completed is not null)
+            return Result.Failure("Only an open sprint is completed when it moves to another team.");
+
+        RecordCompleted(now, actor);
+
+        return Result.Success();
+    }
+
+    private void RecordCompleted(Instant completed, EventActor actor)
+    {
+        Completed = completed;
+        AddDomainEvent(new SprintCompletedEvent(Id, Key, completed, actor, completed));
     }
 
     /// <summary>

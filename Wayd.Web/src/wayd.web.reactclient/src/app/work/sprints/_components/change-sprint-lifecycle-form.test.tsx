@@ -1,3 +1,6 @@
+// The picker compares and formats real moments; the global mock only stubs format.
+jest.unmock('dayjs')
+
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SprintDetailsDto } from '@/src/services/wayd-api'
@@ -38,6 +41,16 @@ jest.mock('@/src/store/features/work-management/sprints-api', () => ({
   useReopenSprintMutation: () => [reopenSprint],
 }))
 
+/** A window from `fromHours` to `toHours` relative to now. */
+function window(fromHours: number, toHours?: number) {
+  const now = Date.now()
+  return {
+    earliest: new Date(now + fromHours * 3_600_000),
+    latest:
+      toHours === undefined ? undefined : new Date(now + toHours * 3_600_000),
+  }
+}
+
 const sprint: SprintDetailsDto = {
   id: 'sprint-2',
   key: 202,
@@ -52,6 +65,7 @@ const sprint: SprintDetailsDto = {
   canStart: true,
   canComplete: false,
   canReopen: false,
+  startWindow: window(-48),
 }
 
 const openSprint = { id: 'sprint-1', key: 201, name: '26.3.2' }
@@ -91,6 +105,7 @@ describe('ChangeSprintLifecycleForm', () => {
       id: 'sprint-2',
       key: 202,
       completeOpenSprint: false,
+      startedAt: expect.any(Date),
       openSprint: undefined,
     })
     expect(onFormComplete).toHaveBeenCalled()
@@ -114,13 +129,17 @@ describe('ChangeSprintLifecycleForm', () => {
       id: 'sprint-2',
       key: 202,
       completeOpenSprint: true,
+      startedAt: expect.any(Date),
       openSprint,
     })
   })
 
   it('completes the sprint', async () => {
     // Arrange
-    renderForm(SprintLifecycleAction.Complete, { canComplete: true })
+    renderForm(SprintLifecycleAction.Complete, {
+      canComplete: true,
+      completeWindow: window(-24),
+    })
 
     // Act
     await userEvent.click(
@@ -128,7 +147,11 @@ describe('ChangeSprintLifecycleForm', () => {
     )
 
     // Assert
-    expect(completeSprint).toHaveBeenCalledWith({ id: 'sprint-2', key: 202 })
+    expect(completeSprint).toHaveBeenCalledWith({
+      id: 'sprint-2',
+      key: 202,
+      completedAt: expect.any(Date),
+    })
     expect(successMessage).toHaveBeenCalledWith(
       'Successfully completed sprint.',
     )
@@ -159,7 +182,11 @@ describe('ChangeSprintLifecycleForm', () => {
     completeSprint.mockResolvedValue({
       error: { status: 400, detail: 'The sprint has not started.' },
     })
-    renderForm(SprintLifecycleAction.Complete, {}, onFormComplete)
+    renderForm(
+      SprintLifecycleAction.Complete,
+      { completeWindow: window(-24) },
+      onFormComplete,
+    )
 
     // Act
     await userEvent.click(
@@ -169,5 +196,30 @@ describe('ChangeSprintLifecycleForm', () => {
     // Assert
     expect(errorMessage).toHaveBeenCalledWith('The sprint has not started.')
     expect(onFormComplete).not.toHaveBeenCalled()
+  })
+
+  it('defaults to the latest moment when the window closed before now', async () => {
+    // Arrange — the planned end has passed, so only an earlier start can be recorded.
+    const closed = window(-72, -24) as { earliest: Date; latest: Date }
+    renderForm(SprintLifecycleAction.Start, { startWindow: closed })
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Start Sprint' }))
+
+    // Assert
+    const { startedAt } = startSprint.mock.calls[0][0] as { startedAt: Date }
+    expect(startedAt.getTime()).toBeLessThanOrEqual(closed.latest.getTime())
+    expect(startedAt.getTime()).toBeGreaterThan(
+      closed.latest.getTime() - 60_000,
+    )
+  })
+
+  it('offers no moment when reopening', () => {
+    // Arrange / Act
+    renderForm(SprintLifecycleAction.Reopen, { canReopen: true })
+
+    // Assert
+    expect(screen.queryByLabelText('Started')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Completed')).not.toBeInTheDocument()
   })
 })

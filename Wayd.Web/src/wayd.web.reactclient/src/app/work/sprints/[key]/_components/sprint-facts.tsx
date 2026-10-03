@@ -23,7 +23,7 @@ interface ActualMomentProps {
 const ActualMoment = ({ value, recorded }: ActualMomentProps) => (
   <Flex gap={6} align="center" wrap>
     {dayjs(value).format(INSTANT_FORMAT)}
-    <Tag bordered={false} color={recorded ? 'processing' : 'default'}>
+    <Tag variant="filled" color={recorded ? 'processing' : 'default'}>
       {recorded ? 'Actual' : 'Default'}
     </Tag>
   </Flex>

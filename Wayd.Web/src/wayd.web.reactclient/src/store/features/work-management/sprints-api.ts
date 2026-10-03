@@ -115,13 +115,15 @@ export const sprintsApi = apiSlice.injectEndpoints({
         id: string
         key: number
         completeOpenSprint: boolean
+        startedAt?: Date
         openSprint?: NavigationDto
       }
     >({
-      queryFn: async ({ id, completeOpenSprint }) => {
+      queryFn: async ({ id, completeOpenSprint, startedAt }) => {
         try {
           const data = await getSprintsClient().start(id, {
             completeOpenSprint,
+            startedAt,
           })
           return { data }
         } catch (error) {
@@ -137,10 +139,13 @@ export const sprintsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    completeSprint: builder.mutation<void, { id: string; key: number }>({
-      queryFn: async ({ id }) => {
+    completeSprint: builder.mutation<
+      void,
+      { id: string; key: number; completedAt?: Date }
+    >({
+      queryFn: async ({ id, completedAt }) => {
         try {
-          const data = await getSprintsClient().complete(id)
+          const data = await getSprintsClient().complete(id, { completedAt })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

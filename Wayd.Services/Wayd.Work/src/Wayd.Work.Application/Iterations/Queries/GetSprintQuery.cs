@@ -1,7 +1,11 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Iterations.Dtos;
+using Wayd.Work.Application.Iterations.Sprints;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Application.Persistence;
 
@@ -17,10 +21,20 @@ public sealed record GetSprintQuery : IQuery<SprintDetailsDto?>
     public Expression<Func<Iteration, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetSprintQueryHandler(IWorkDbContext workDbContext)
+public sealed class GetSprintQueryHandler(
+    IWorkDbContext workDbContext,
+    IDispatcher dispatcher,
+    ISettings<SchedulingSettings> schedulingSettings,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetSprintQuery, SprintDetailsDto?>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+
     public async Task<SprintDetailsDto?> Handle(GetSprintQuery request, CancellationToken cancellationToken)
     {
         var sprint = await _workDbContext.Iterations
@@ -29,6 +43,40 @@ public sealed class GetSprintQueryHandler(IWorkDbContext workDbContext)
             .ProjectToType<SprintDetailsDto>()
             .FirstOrDefaultAsync(cancellationToken);
 
+        if (sprint?.Team is null)
+            return sprint;
+
+        await ResolveLifecycle(sprint, sprint.Team.Id, cancellationToken);
+
         return sprint;
+    }
+
+    /// <summary>
+    /// Fills the fields that depend on the team's other sprints and schedules, answered by the same timeline
+    /// rules the lifecycle commands enforce, so the page offers only the actions they would accept.
+    /// </summary>
+    private async Task ResolveLifecycle(SprintDetailsDto sprint, Guid teamId, CancellationToken cancellationToken)
+    {
+        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, teamId, tracked: false, cancellationToken);
+
+        var entity = timeline.Sprints.FirstOrDefault(s => s.Id == sprint.Id);
+        if (entity is null)
+            return;
+
+        var now = _dateTimeProvider.Now;
+
+        sprint.EffectiveStart = timeline.EffectiveStart(entity);
+        sprint.EffectiveEnd = timeline.EffectiveEnd(entity);
+        sprint.TimeZone = timeline.ScheduleFor(entity).TimeZone.Id;
+        sprint.OverlapsPreviousSprint = timeline.OverlapsPrevious(entity);
+        sprint.OverlapsNextSprint = timeline.OverlapsNext(entity);
+        sprint.CanStart = timeline.CanStart(entity, now).IsSuccess;
+        sprint.CanComplete = timeline.CanComplete(entity, now).IsSuccess;
+        sprint.CanReopen = timeline.CanReopen(entity).IsSuccess;
+
+        if (timeline.OpenSprint is { } open && open.Id != entity.Id)
+            sprint.OpenSprint = NavigationDto.Create(open.Id, open.Key, open.Name);
+
+        sprint.CanManageSprint = await _currentPrincipal.CanManageTeamSprints(_dispatcher, teamId, now.InUtc().Date, cancellationToken);
     }
 }

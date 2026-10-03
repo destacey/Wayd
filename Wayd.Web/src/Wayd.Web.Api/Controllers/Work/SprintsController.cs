@@ -2,6 +2,9 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Planning.Application.PlanningSprints.Queries;
+using Wayd.Web.Api.Extensions;
+using Wayd.Web.Api.Models.Work.Sprints;
+using Wayd.Work.Application.Iterations.Commands;
 using Wayd.Work.Application.Iterations.Dtos;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -84,6 +87,48 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
         return metrics is not null
             ? Ok(metrics)
             : NotFound();
+    }
+
+    [HttpPost("{id}/start")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
+    [OpenApiOperation("Start a sprint.", "Records that the team started the sprint now. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Start(Guid id, [FromBody] StartSprintRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new StartSprintCommand(id, request.CompleteOpenSprint), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/complete")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
+    [OpenApiOperation("Complete a sprint.", "Records that the team completed the sprint now. Requires membership of the sprint's team or its team of teams.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new CompleteSprintCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/reopen")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
+    [OpenApiOperation("Reopen a sprint.", "Clears a completed sprint's completion while the team has not started a later sprint. Requires membership of the sprint's team or its team of teams.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Reopen(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new ReopenSprintCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpGet("{key:int}/planning-intervals")]

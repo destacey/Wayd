@@ -5,9 +5,14 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Interfaces.Organization;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Work.Application.Iterations.Commands;
+using Wayd.Work.Domain.Models;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
 namespace Wayd.Work.IntegrationTests.Sut;
@@ -54,20 +59,58 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
         (await verify.Context.WorkItems.AsNoTracking().SingleAsync(w => w.Id == workItemId, ct)).IterationId.Should().BeNull();
     }
 
-    private async Task Sync(List<IExternalIteration<AzdoIterationMetadata>> iterations, CancellationToken ct)
+[Fact]
+    public async Task Handle_WhenAnOpenSprintMovesToATeamWithAnOpenSprint_CompletesTheMovedSprintAndKeepsItsStart()
+    {
+        // Arrange — each team has started its sprint; then the source moves sprint 2 onto team A
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (azdoTeamA, azdoTeamB) = (Guid.NewGuid(), Guid.NewGuid());
+        var teamA = await SeedTeam(ct);
+        var teamB = await SeedTeam(ct);
+        var mappings = new Dictionary<Guid, Guid?> { [azdoTeamA] = teamA, [azdoTeamB] = teamB };
+        await Sync([External(1, "Sprint 1", IterationType.Sprint, azdoTeamA), External(2, "Sprint 2", IterationType.Sprint, azdoTeamB)], ct, mappings);
+
+        var started = SqlServerDbContextFixture.FixedNow.Minus(Duration.FromHours(1));
+        await using (var start = new WaydDbContextAccessor(_fixture))
+        {
+            foreach (var teamId in new[] { teamA, teamB })
+            {
+                var sprints = await start.Context.Iterations.Where(i => i.TeamId == teamId).ToListAsync(ct);
+                var timeline = new TeamSprintTimeline(teamId, sprints, new TeamSprintSchedules([], new SprintSchedule(DateTimeZone.Utc, 1)));
+                sprints.Single().Start(timeline, completeOpenSprint: false, EventActor.System, started).IsSuccess.Should().BeTrue();
+            }
+            await start.Context.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await Sync([External(1, "Sprint 1", IterationType.Sprint, azdoTeamA), External(2, "Sprint 2", IterationType.Sprint, azdoTeamA)], ct, mappings);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var saved = await verify.Context.Iterations.AsNoTracking()
+            .Where(i => i.OwnershipInfo.SystemId == SystemId)
+            .ToDictionaryAsync(i => i.OwnershipInfo.ExternalId!, ct);
+        saved["1"].Completed.Should().BeNull();
+        saved["2"].TeamId.Should().Be(teamA);
+        saved["2"].Started.Should().Be(started);
+        saved["2"].Completed.Should().Be(SqlServerDbContextFixture.FixedNow);
+    }
+
+    private async Task Sync(List<IExternalIteration<AzdoIterationMetadata>> iterations, CancellationToken ct, Dictionary<Guid, Guid?>? teamMappings = null)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var handler = new SyncAzureDevOpsIterationsCommandHandler(accessor.Context,
             NullLogger<SyncAzureDevOpsIterationsCommandHandler>.Instance,
             Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow));
 
-        var result = await handler.Handle(new SyncAzureDevOpsIterationsCommand(SystemId, iterations, []), ct);
+        var result = await handler.Handle(new SyncAzureDevOpsIterationsCommand(SystemId, iterations, teamMappings ?? []), ct);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
     }
 
-    private static ExternalIteration External(int id, string name) =>
-        new(id, name, IterationType.Iteration, new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 18), IterationState.Completed, null,
+    private static ExternalIteration External(int id, string name, IterationType type = IterationType.Iteration, Guid? azdoTeamId = null) =>
+        new(id, name, type, new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 18), IterationState.Completed, azdoTeamId,
             new AzdoIterationMetadata { ProjectId = AzdoProjectId, Identifier = Guid.NewGuid(), Path = $"Project\\{name}" });
 
     // Straight through SQL: a valid WorkItem needs a workspace, process, type and status that this test
@@ -131,6 +174,20 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
 
         return id;
     }
+
+private async Task<Guid> SeedTeam(CancellationToken ct)
+    {
+        var key = Random.Shared.Next(100_000, 999_999);
+        var team = new WorkTeam(new SourceTeam(Guid.NewGuid(), key, $"Team {key}", new TeamCode($"T{key}"), TeamType.Team, true), SqlServerDbContextFixture.FixedNow);
+
+        await using var context = new WaydDbContextAccessor(_fixture);
+        context.Context.WorkTeams.Add(team);
+        await context.Context.SaveChangesAsync(ct);
+
+        return team.Id;
+    }
+
+    private sealed record SourceTeam(Guid Id, int Key, string Name, TeamCode Code, TeamType Type, bool IsActive) : ISimpleTeam;
 
     private sealed record ExternalIteration(int Id, string Name, IterationType Type, LocalDate? Start, LocalDate? End,
         IterationState State, Guid? TeamId, AzdoIterationMetadata Metadata) : IExternalIteration<AzdoIterationMetadata>;

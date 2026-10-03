@@ -35,6 +35,16 @@ public sealed record SprintListDto : IMapFrom<Iteration>
 
     public required WorkTeamNavigationDto Team { get; set; }
 
+    /// <summary>
+    /// When the team started the sprint, if it did.
+    /// </summary>
+    public Instant? Started { get; set; }
+
+    /// <summary>
+    /// When the team completed the sprint, if it did.
+    /// </summary>
+    public Instant? Completed { get; set; }
+
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<Iteration, SprintListDto>()

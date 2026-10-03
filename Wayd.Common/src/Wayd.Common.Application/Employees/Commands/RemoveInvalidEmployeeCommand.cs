@@ -9,12 +9,14 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<RemoveInvalidEmployeeCommandHandler> _logger;
 
-    public RemoveInvalidEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ILogger<RemoveInvalidEmployeeCommandHandler> logger)
+    public RemoveInvalidEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<RemoveInvalidEmployeeCommandHandler> logger)
     {
         _waydDbContext = waydDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -29,6 +31,7 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
                 return Result.Failure<int>("Employee not found.");
 
             var objectId = employee.EmployeeNumber;
+            var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
 
             var updateResult = employee.Update(
                 employee.Name,
@@ -41,6 +44,7 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
                 null,
                 false,  // this command should not change IsActive
                 employee.EmployeeType,
+                actor,
                 _dateTimeProvider.Now
                 );
 
@@ -57,11 +61,11 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
 
             foreach (var report in employee.DirectReports)
             {
-                report.UpdateManagerId(null, _dateTimeProvider.Now);
+                report.UpdateManagerId(null, actor, _dateTimeProvider.Now);
             }
 
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
+            // One save, so the removal and the blacklist entry commit with the changes recorded on the way there.
+            employee.Delete(actor, _dateTimeProvider.Now);
             _waydDbContext.Employees.Remove(employee);
 
             _waydDbContext.ExternalEmployeeBlacklistItems.Add(new ExternalEmployeeBlacklistItem { ObjectId = objectId });

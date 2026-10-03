@@ -104,6 +104,7 @@ public sealed class AuditTrailTypeTests(SqlServerDbContextFixture fixture)
             managerId: null,
             isActive: true,
             employeeType: null,
+            EventActor.System,
             CreatedAt);
 
         context.Employees.Add(employee);

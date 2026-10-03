@@ -27,10 +27,12 @@ namespace Wayd.Common.Application.Employees.Imports;
 public sealed class EmployeeImportDefinition(
     IWaydDbContext waydDbContext,
     IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportEmployeeDto>(serializer)
 {
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public const string ImportKey = "employees";
 
@@ -129,6 +131,7 @@ public sealed class EmployeeImportDefinition(
                 managerId: null,
                 isActive: true,
                 employeeType: row.Data.EmployeeType,
+                EventActor.Import(_currentUser.GetUserId()),
                 timestamp,
                 // The factory seeds the primary address itself; these are the extras.
                 emails: [.. (row.Data.AdditionalEmails ?? []).Select(e => (e, false))]);
@@ -179,7 +182,7 @@ public sealed class EmployeeImportDefinition(
                 continue;
             }
 
-            employee.UpdateManagerId(managerId, timestamp);
+            employee.UpdateManagerId(managerId, EventActor.Import(_currentUser.GetUserId()), timestamp);
         }
 
         return Result.Success();
@@ -208,7 +211,7 @@ public sealed class EmployeeImportDefinition(
 
         foreach (var employee in employees)
         {
-            employee.Deactivate(timestamp);
+            employee.Deactivate(EmployeeActivatableArgs.Create(EventActor.Import(_currentUser.GetUserId()), timestamp));
         }
 
         return Result.Success();

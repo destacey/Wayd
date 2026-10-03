@@ -94,6 +94,9 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<BulkUpsertEmployeesCommandHandler> _logger = logger;
 
+    // Only a people sync sends this command, and it does not carry who started the sync.
+    private static readonly EventActor SyncActor = EventActor.Sync(null);
+
     public async Task<Result<BulkUpsertEmployeesResult>> Handle(BulkUpsertEmployeesCommand request, CancellationToken cancellationToken)
     {
         string requestName = request.GetType().Name;
@@ -188,6 +191,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                         managerId,
                         externalEmployee.IsActive,
                         externalEmployee.EmployeeType,
+                        SyncActor,
                         _dateTimeProvider.Now
                         );
 
@@ -206,7 +210,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                     // Runs after Update so the collection reconciles against the new canonical
                     // address. The source owns this collection, so an address it stopped reporting
                     // is removed here.
-                    var emailsResult = existing.SyncEmails(ToDomainEmails(externalEmployee));
+                    var emailsResult = existing.SyncEmails(ToDomainEmails(externalEmployee), SyncActor, _dateTimeProvider.Now);
                     if (emailsResult.IsFailure)
                     {
                         await _waydDbContext.Entry(existing).ReloadAsync(cancellationToken);
@@ -239,6 +243,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                         managerId,
                         externalEmployee.IsActive,
                         externalEmployee.EmployeeType,
+                        SyncActor,
                         _dateTimeProvider.Now,
                         ToDomainEmails(externalEmployee)
                         );
@@ -485,7 +490,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             if (!managerLookup.TryGetValue(kvp.Value, out var managerId))
                 continue;
 
-            employee.UpdateManagerId(managerId, _dateTimeProvider.Now);
+            employee.UpdateManagerId(managerId, SyncActor, _dateTimeProvider.Now);
         }
 
         await _waydDbContext.SaveChangesAsync(cancellationToken);
@@ -506,7 +511,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
 
         foreach (var employee in toDeactivate)
         {
-            var result = employee.Deactivate(_dateTimeProvider.Now);
+            var result = employee.Deactivate(EmployeeActivatableArgs.Create(SyncActor, _dateTimeProvider.Now));
             if (result.IsFailure)
             {
                 _logger.LogError("Failed to deactivate employee {EmployeeNumber}. Error: {Error}", employee.EmployeeNumber, result.Error);

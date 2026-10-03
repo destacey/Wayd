@@ -248,6 +248,7 @@ Publishes `@wayd/mcp`, exposing the API as agent tools. Tool definitions live on
 - **Array query parameters** need `paramsSerializer: { indexes: null }` (set in `src/executor.ts`). Axios defaults to `status[]=1`, which ASP.NET's model binder ignores, so array filters silently become no-ops rather than erroring.
 - **Updates are whole-record overwrites**, matching the API's `PUT` semantics — an omitted field is cleared. Role lists (`sponsorIds`/`ownerIds`/`managerIds`/`memberIds`) replace that role's membership, and an omitted **or empty** list removes everyone in it. Tool descriptions must say so; the skill explains why it matters (wiping Owners/Managers can leave a record nobody is authorized to manage).
 - Tests use Node's built-in runner against `build/`, so `npm test` builds first. Nothing hits the network.
+- **Every shipped change needs a changeset** (`npx changeset` in the package; `--empty` for a deliberate no-release). Without one the change merges cleanly and is never published, so clients drift from the API. Shipped means `src/`, `scripts/`, `README.md`, `package.json`, or an API change to an import row class (the import formats are generated from the spec). CI and the `pre-push` hook enforce it — see [mcp-server.mdx](docs/contributing/mcp-server.mdx).
 
 ### Wolverine Handler Codegen (generated, not committed)
 
@@ -424,6 +425,7 @@ A factory is opaque to codegen, so the two cannot drift apart quietly: dropping 
   replacement.
 - **Main branch**: `main` (not master)
 - **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `commit-msg` rejects AI
-  attribution trailers; `.claude/settings.json` suppresses them at the source for Claude Code.
+  attribution trailers; `.claude/settings.json` suppresses them at the source for Claude Code. `pre-push`
+  refuses an MCP change that has no changeset.
 - **Docker Compose**: Environment variable changes require full teardown and rebuild (`docker compose down` then `up`)
 - **OpenTelemetry**: Configured in `Wayd.Infrastructure/src/Wayd.Infrastructure/OpenTelemetry/ConfigureServices.cs`. Frontend server-side only via `instrumentation.ts`.

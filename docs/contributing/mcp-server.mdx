@@ -1,0 +1,49 @@
+---
+title: MCP Server
+description: Changing and releasing the @wayd/mcp package.
+sidebar_position: 7.8
+audience: [developer, agent]
+---
+
+# MCP Server
+
+The `@wayd/mcp` package in `Wayd.Web/src/Wayd.Mcp` exposes the Wayd API as agent tools. It is published to npm separately from the application, so a deployed API and the MCP clients that call it can drift apart. For connecting a client to it, see [MCP Server](../getting-started/mcp-server.mdx).
+
+## Every shipped change needs a changeset
+
+The package is released with [changesets](https://github.com/changesets/changesets). A change merged to `main` without a changeset is **never released**: the release PR only picks up pending changesets. Nothing else fails, so a renamed or newly added tool can sit unreleased while the API it calls moves on. Clients on the published version then send fields the API no longer reads, or miss fields it now needs.
+
+A change needs a changeset when it touches what the package ships:
+
+- `src/` — tool definitions, the executor, the server
+- `scripts/` — the generators that produce `src/generated/` at build time
+- `README.md` and `package.json`
+- the API's OpenAPI document (`Wayd.Web.Api/wwwroot/api/v1/specification.json`), **when it changes an import endpoint**. The import file formats are generated from it, so changing an import row class changes the package even when no MCP file changes.
+
+Add one from `Wayd.Web/src/Wayd.Mcp`:
+
+```bash
+npx changeset          # choose patch / minor / major and describe the change
+npx changeset --empty  # the change ships nothing worth releasing, on purpose
+```
+
+The package is pre-1.0, so a breaking change to a tool's inputs (a renamed or removed field) is a `minor` bump, and fixes are `patch`. Write the summary for the people calling the tools: name the tools and fields that changed, and what a caller sends now.
+
+## How it is enforced
+
+`.github/scripts/mcp-changeset-check.sh` fails when a branch changes any of the above without adding a changeset. A spec change counts only when regenerating the import formats from it changes them, so most API changes are unaffected.
+
+- **CI** runs it as the `changeset` job of the MCP workflow on every pull request that touches the package or the spec. The release PR (`changeset-release/main`) is exempt, since it consumes the changesets.
+- **The `pre-push` hook** runs it before every push, so you see it before the pull request does. It is enabled with the other hooks: `git config core.hooksPath .githooks`, once per clone. It skips itself, with a note, until `npm ci` has run in `Wayd.Web/src/Wayd.Mcp`. Bypass it with `git push --no-verify`.
+
+Run it by hand against any base:
+
+```bash
+bash .github/scripts/mcp-changeset-check.sh origin/main
+```
+
+## Release flow
+
+1. A pull request merges to `main` with its changeset.
+2. The MCP workflow opens or updates the release PR, which bumps the version and writes `CHANGELOG.md`.
+3. Merging the release PR publishes the package to npm and tags it `wayd-mcp-v<version>`.

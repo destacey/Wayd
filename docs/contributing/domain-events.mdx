@@ -343,13 +343,17 @@ raised when it gained or lost anything, and carries both lists), a set differenc
 
 Once an aggregate raises events, its activity log is its history, and one change that raises nothing makes
 that history incomplete — silently, because the row still saves. `EventCoverageTests` (in
-`Wayd.ArchitectureTests`) holds two lines:
+`Wayd.ArchitectureTests`) holds three lines:
 
 - **Every public method that changes an evented aggregate's state raises.** The test reads the compiled
   domain code, following each public method, factory and constructor through the domain calls it makes, and
   fails naming any that writes state with no `AddDomainEvent` on any path. The aggregates it checks are listed
   in `EventedAggregates`, and that list must match the types that raise: a type raising its first event fails
-  the test until it is added.
+  the test until it is added. A child entity of an evented aggregate (`ChildEntities`) is part of its history,
+  so its public methods are checked the same way; one that only the aggregate should call is made `internal`.
+- **Every entity has a recorded decision.** Each type a DbSet exposes is on exactly one of `EventedAggregates`,
+  `UneventedAggregates` (with the reason, or the issue that will event it) and `ChildEntities` (with the
+  aggregate it belongs to), so a new table cannot arrive without one.
 - **Nothing writes an evented aggregate's table in bulk.** `ExecuteUpdate`, `ExecuteDelete` and raw
   `UPDATE`/`DELETE`/`INSERT`/`MERGE` never load the aggregate, so they cannot raise. The test fails on one in
   shipped code or in a migration newer than the guard; load the records and change them through the aggregate
@@ -361,6 +365,14 @@ the aggregate's history — `LastSeenWriter` stamping a personal access token's 
 request — goes on `SetBasedWriteSourcesOutsideHistory`. Both lists fail on an entry that no longer
 excuses anything. The method check is "raises somewhere", not "raises on every path": a method that raises in
 one branch and changes state unevented in another passes, so it is a floor, not a proof.
+
+**Synced data is not a reason to stay unevented.** The sync is the moment Wayd learns the fact, the source
+system's own history is not queryable from Wayd, and an aggregate that raises only on a real change raises in
+proportion to change, not to how often it syncs. The reasons that do hold are narrower: a record that is a copy
+built from another module's events (those events are its history), a record that is itself a log or the state
+of a run, and genuine change at a volume that would dominate the log where the source keeps a richer history
+(`WorkItem`). Making an aggregate evented starts with its creation event and baseline, and ends with the
+[baseline backfill](#backfilling-baselines) once every change raises.
 
 ### An aggregate that is not a BaseEntity
 

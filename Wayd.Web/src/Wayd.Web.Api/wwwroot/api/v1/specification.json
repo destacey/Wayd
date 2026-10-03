@@ -27187,6 +27187,48 @@
         ]
       }
     },
+    "/api/work/sprints/actual-dates": {
+      "put": {
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Correct sprints' actual dates.",
+        "description": "Replaces the actual start and completion of one or more of a team's sprints; an omitted value reverts to the sprint's default. Sprints corrected together are checked against each other's corrected dates, and the team's actual sprint periods may not overlap. Requires membership of the sprints' team or its team of teams.",
+        "operationId": "Sprints_CorrectActualDates",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectSprintActualDatesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/work/sprints/{key}/planning-intervals": {
       "get": {
         "tags": [
@@ -56991,6 +57033,51 @@
           "completedAt": {
             "type": "string",
             "description": "When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall\nin the sprint's completion window, which the sprint details report.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CorrectSprintActualDatesRequest": {
+        "type": "object",
+        "description": "Corrects the actual start and completion of one or more of a team's sprints.",
+        "additionalProperties": false,
+        "required": [
+          "sprints"
+        ],
+        "properties": {
+          "sprints": {
+            "type": "array",
+            "description": "The sprints to correct, all of one team. Correct neighbouring sprints together when moving one past the\nother.",
+            "items": {
+              "$ref": "#/components/schemas/SprintActualDatesRequest"
+            }
+          }
+        }
+      },
+      "SprintActualDatesRequest": {
+        "type": "object",
+        "description": "A sprint's corrected actual dates. Both values are replaced; omit one to revert it to the sprint's default.",
+        "additionalProperties": false,
+        "required": [
+          "sprintId"
+        ],
+        "properties": {
+          "sprintId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "started": {
+            "type": "string",
+            "description": "When the team actually started the sprint. Omit to take the default start.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completed": {
+            "type": "string",
+            "description": "When the team actually completed the sprint. Omit to take the default end.",
             "format": "date-time",
             "nullable": true
           }

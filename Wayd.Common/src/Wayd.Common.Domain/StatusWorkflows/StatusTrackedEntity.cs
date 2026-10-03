@@ -3,6 +3,7 @@ using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.StatusWorkflows;
@@ -168,12 +169,14 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
     /// <para>
     /// The move is recorded like any other status change, with the transition carrying the old
     /// workflow's status and the new one's — which is what makes a switch visible in the history rather
-    /// than a silent rewrite.
+    /// than a silent rewrite. It raises <see cref="StatusWorkflowSwitchedEvent"/> only when the record
+    /// actually moved, so a re-run stays silent.
     /// </para>
     /// </remarks>
     public Result SwitchWorkflow(StatusRemap remap, EventActor actor, Instant timestamp, string? reason = null)
     {
         Guard.Against.Null(remap, nameof(remap));
+        Guard.Against.Null(actor, nameof(actor));
 
         if (!remap.IsComplete)
         {
@@ -190,7 +193,22 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
                 : Result.Failure("This record's status is not in the workflow being moved from.");
         }
 
-        ApplyStatus(target, actor, timestamp, reason);
+        var from = new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
+
+        if (ApplyStatus(target, actor, timestamp, reason))
+        {
+            var transition = _statusTransitions[^1];
+
+            AddDomainEvent(new StatusWorkflowSwitchedEvent(
+                transition.Id,
+                StatusOwnerType,
+                Id,
+                from.WorkflowId, from.StatusId, from.Category, from.Alias,
+                target.WorkflowId, target.StatusId, target.Category, target.Alias,
+                transition.Reason,
+                actor,
+                timestamp));
+        }
 
         return Result.Success();
     }

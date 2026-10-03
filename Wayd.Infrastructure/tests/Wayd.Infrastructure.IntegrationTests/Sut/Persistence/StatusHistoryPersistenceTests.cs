@@ -3,6 +3,7 @@ using NodaTime;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -225,17 +226,7 @@ public sealed class StatusHistoryPersistenceTests(SqlServerDbContextFixture fixt
         await using var context = _fixture.CreateContext();
         var workflow = await ProductWorkflow(context);
         var productType = await SeedProductType(context);
-
-        var replacement = StatusWorkflow.Create(
-            $"Replacement {Guid.CreateVersion7()}", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
-
-        foreach (var status in workflow.Statuses.OrderBy(x => x.Order))
-        {
-            replacement.AddStatus(status.Name, null, status.Category, status.Alias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
-        }
-
-        replacement.Publish(EventActor.System, Timestamp);
-        context.StatusWorkflows.Add(replacement);
+        var replacement = await SaveReplacement(context, workflow);
 
         var product = Product.Create(
             $"Resumable {Guid.CreateVersion7()}",
@@ -269,6 +260,67 @@ public sealed class StatusHistoryPersistenceTests(SqlServerDbContextFixture fixt
         reloaded.StatusWorkflowId.Should().Be(replacement.Id, "the first pass moved it");
         result.IsSuccess.Should().BeTrue("re-running over an already-moved record is a no-op");
         reloaded.StatusTransitionCount.Should().Be(before, "a no-op records no transition");
+    }
+
+    [Fact]
+    public async Task SwitchWorkflow_ShouldRecordTheSwitchInTheRecordsActivity()
+    {
+        // Arrange
+        await using var context = _fixture.CreateContext();
+        var workflow = await ProductWorkflow(context);
+        var productType = await SeedProductType(context);
+        var replacement = await SaveReplacement(context, workflow);
+
+        var product = Product.Create(
+            $"Switched {Guid.CreateVersion7()}",
+            null,
+            productType,
+            null,
+            null,
+            StatusOf(workflow, 0),
+            EventActor.System,
+            Timestamp);
+
+        context.Products.Add(product);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var remap = StatusRemap.AutoMap(workflow, replacement).Value;
+
+        // Act
+        product.SwitchWorkflow(remap, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var transition = await context.StatusTransitions
+            .Where(t => t.RecordId == product.Id)
+            .OrderByDescending(t => t.Sequence)
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        var entry = await context.ActivityLogs
+            .SingleAsync(a => a.EventType == nameof(StatusWorkflowSwitchedEvent) && a.AggregateId == product.Id,
+                TestContext.Current.CancellationToken);
+
+        entry.AggregateType.Should().Be(nameof(Product));
+        entry.DomainArea.Should().Be("ProductManagement");
+        entry.Category.Should().Be(ActivityCategory.StatusChanged);
+        entry.EventId.Should().Be(transition.Id, "the transition and the event record one occurrence");
+    }
+
+    private static async Task<StatusWorkflow> SaveReplacement(WaydDbContext context, StatusWorkflow workflow)
+    {
+        var replacement = StatusWorkflow.Create(
+            $"Replacement {Guid.CreateVersion7()}", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+
+        foreach (var status in workflow.Statuses.OrderBy(x => x.Order))
+        {
+            replacement.AddStatus(status.Name, null, status.Category, status.Alias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        }
+
+        replacement.Publish(EventActor.System, Timestamp);
+        context.StatusWorkflows.Add(replacement);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return replacement;
     }
 
     private async Task<Guid> SeedProductType(WaydDbContext context)

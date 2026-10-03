@@ -10,13 +10,12 @@ namespace Wayd.Common.Domain.Events.AppIntegration;
 /// </summary>
 public sealed record ExternalIdentityMappingBaselinedEvent : BaselineEvent<ExternalIdentityMappingBaselinedEvent, ExternalIdentityMappingCreatedEvent>
 {
-    public ExternalIdentityMappingBaselinedEvent(Guid id, Connector connector, Guid connectionId, string externalId, Guid? employeeId, ExternalIdentityMappingStatus status, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
+    public ExternalIdentityMappingBaselinedEvent(Guid id, Connector connector, Guid connectionId, Guid? employeeId, ExternalIdentityMappingStatus status, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
         : base("ExternalIdentityMapping", id, recordCreatedOn, recordCreatedById, timestamp, "1.0")
     {
         Id = id;
         Connector = connector;
         ConnectionId = connectionId;
-        ExternalId = externalId;
         EmployeeId = employeeId;
         Status = status;
     }
@@ -24,7 +23,6 @@ public sealed record ExternalIdentityMappingBaselinedEvent : BaselineEvent<Exter
     public Guid Id { get; }
     public Connector Connector { get; }
     public Guid ConnectionId { get; }
-    public string ExternalId { get; }
     public Guid? EmployeeId { get; }
     public ExternalIdentityMappingStatus Status { get; }
 }

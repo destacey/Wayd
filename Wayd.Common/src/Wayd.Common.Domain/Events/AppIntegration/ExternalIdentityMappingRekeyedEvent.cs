@@ -8,24 +8,22 @@ namespace Wayd.Common.Domain.Events.AppIntegration;
 /// reported one.
 /// </summary>
 /// <remarks>
-/// Only the new id: the placeholder it replaced was the user's address.
+/// Carries neither id: the placeholder it replaced was the user's address, and the new id is read from the mapping.
 /// </remarks>
 public sealed record ExternalIdentityMappingRekeyedEvent : DomainEvent<ExternalIdentityMappingRekeyedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
     [JsonConstructor]
-    public ExternalIdentityMappingRekeyedEvent(Guid id, string externalId, EventActor actor, Instant timestamp)
+    public ExternalIdentityMappingRekeyedEvent(Guid id, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
         Id = id;
-        ExternalId = externalId;
 
         Timestamp = timestamp;
     }
 
     public Guid Id { get; }
-    public string ExternalId { get; }
 
     [JsonIgnore]
     public string AggregateType => "ExternalIdentityMapping";

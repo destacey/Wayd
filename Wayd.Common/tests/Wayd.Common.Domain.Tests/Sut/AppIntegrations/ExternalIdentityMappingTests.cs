@@ -54,7 +54,6 @@ public sealed class ExternalIdentityMappingTests
         created.Id.Should().Be(mapping.Id);
         created.Connector.Should().Be(Connector.AzureDevOps);
         created.ConnectionId.Should().Be(_connectionId);
-        created.ExternalId.Should().Be(IdentityGuid);
         created.EmployeeId.Should().BeNull();
         created.Status.Should().Be(ExternalIdentityMappingStatus.Unmapped);
         created.Actor.Should().Be(EventActor.System);
@@ -414,7 +413,6 @@ public sealed class ExternalIdentityMappingTests
         // Assert
         var rekeyed = mapping.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<ExternalIdentityMappingRekeyedEvent>().Subject;
         rekeyed.Id.Should().Be(mapping.Id);
-        rekeyed.ExternalId.Should().Be(IdentityGuid);
         rekeyed.Timestamp.Should().Be(_later);
     }
 

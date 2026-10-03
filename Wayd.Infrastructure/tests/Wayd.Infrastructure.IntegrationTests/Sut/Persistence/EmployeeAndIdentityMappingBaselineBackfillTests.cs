@@ -85,8 +85,26 @@ public sealed class EmployeeAndIdentityMappingBaselineBackfillTests(SqlServerDbC
 
         // Assert
         await AssertBaseline(mapping, (recordCreatedOn, timestamp) => new ExternalIdentityMappingBaselinedEvent(
-            mapping.Id, mapping.Connector, mapping.ConnectionId, mapping.ExternalId, mapping.EmployeeId, mapping.Status,
+            mapping.Id, mapping.Connector, mapping.ConnectionId, mapping.EmployeeId, mapping.Status,
             recordCreatedOn, null, timestamp), ct);
+    }
+
+    [Fact]
+    public async Task Backfill_MappingKeyedOnAnAddress_WritesNoAddress()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        const string address = "jordan.lee@acme.example";
+        var mapping = await Seed(ct, _ => Task.FromResult(ExternalIdentityMapping.CreateUnmapped(
+            Connector.AzureDevOps, Guid.NewGuid(), address, address, null, null, EventActor.System, Now)));
+
+        // Act
+        await RunBackfill(ct);
+
+        // Assert
+        await using var verify = _fixture.CreateContext();
+        var entry = await verify.ActivityLogs.AsNoTracking().SingleAsync(a => a.AggregateId == mapping.Id, ct);
+        entry.Payload.Should().NotContain("@");
     }
 
     [Fact]

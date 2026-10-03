@@ -59,7 +59,8 @@ disagree, the earlier one wins.
    way. A record that *is* a person keeps the same rule on its own events: `Employee` and
    `ExternalIdentityMapping` carry ids and states, and a change to a name, address or handle is an event
    carrying the record's id and no values (`EmployeeDetailsUpdatedEvent`,
-   `ExternalIdentityMappingProfileChangedEvent`).
+   `ExternalIdentityMappingProfileChangedEvent`). Check that an "id" really is one: a mapping's `ExternalId` is
+   the person's address until a sync re-keys it, so no mapping event carries it.
 2. **What could a consumer not do without it?** Name the kind of consumer and what it would lose: the
    activity log rendering the entry, a handler reacting to the change ("tell the new Owner"), a replica
    keeping its copy. A kind of consumer, not a current subscriber — whether anything handles the event

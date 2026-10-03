@@ -131,7 +131,7 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
     private static ExternalIdentityMapping Created(ExternalIdentityMapping mapping, EventActor actor)
     {
         mapping.AddDomainEvent(new ExternalIdentityMappingCreatedEvent(
-            mapping.Id, mapping.Connector, mapping.ConnectionId, mapping.ExternalId, mapping.EmployeeId, mapping.Status, actor, mapping.LastSeen));
+            mapping.Id, mapping.Connector, mapping.ConnectionId, mapping.EmployeeId, mapping.Status, actor, mapping.LastSeen));
 
         return mapping;
     }
@@ -227,7 +227,7 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
             return false;
 
         ExternalId = candidate;
-        AddDomainEvent(new ExternalIdentityMappingRekeyedEvent(Id, ExternalId, actor, timestamp));
+        AddDomainEvent(new ExternalIdentityMappingRekeyedEvent(Id, actor, timestamp));
 
         return true;
     }

@@ -14,7 +14,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         //
         // Each payload is written by hand, frozen at the shape its baseline type has when this ships, and has to
         // deserialize into that type exactly as the serializer would have written it. Enums are stored by name and
-        // mapped to the camel-case names the events carry.
+        // mapped to the camel-case names the events carry. A mapping's ExternalId is left out, as its events leave it
+        // out: a mapping seeded before syncs reported ids holds the person's address there.
         //
         // EventId is BaselineEventId.For: a version 5 UUID of "{AggregateType}:{id}" in the baseline namespace.
         // SQL Server reads the first three groups of a uniqueidentifier's bytes little-endian, so the big-endian hash
@@ -79,7 +80,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         WHEN 'Workday' THEN N'"workday"'
                       END
                     + N',"connectionId":' + {{Guid("m.[ConnectionId]")}}
-                    + N',"externalId":' + {{Str("m.[ExternalId]")}}
                     + N',"employeeId":' + {{Guid("m.[EmployeeId]")}}
                     + N',"status":' + CASE m.[Status]
                         WHEN 'Unmapped' THEN N'"unmapped"'
@@ -163,9 +163,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             DROP TABLE #Baseline;
             """;
-
-        private static string Str(string column) =>
-            $"CASE WHEN {column} IS NULL THEN N'null' ELSE N'\"' + STRING_ESCAPE({column}, 'json') + N'\"' END";
 
         private static string Guid(string column) =>
             $"CASE WHEN {column} IS NULL THEN N'null' ELSE N'\"' + LOWER(CONVERT(nvarchar(36), {column})) + N'\"' END";

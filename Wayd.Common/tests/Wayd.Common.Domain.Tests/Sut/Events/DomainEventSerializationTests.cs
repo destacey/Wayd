@@ -1643,7 +1643,6 @@ public sealed class DomainEventSerializationTests
             Guid.NewGuid(),
             Connector.AzureDevOps,
             Guid.NewGuid(),
-            "6f2a0c94-e5b8-4d17-9a63-2c8e1b74f052",
             Guid.NewGuid(),
             ExternalIdentityMappingStatus.AutoMatched,
             EventActor.System,
@@ -1656,7 +1655,6 @@ public sealed class DomainEventSerializationTests
         roundTripped.Id.Should().Be(original.Id);
         roundTripped.Connector.Should().Be(Connector.AzureDevOps);
         roundTripped.ConnectionId.Should().Be(original.ConnectionId);
-        roundTripped.ExternalId.Should().Be(original.ExternalId);
         roundTripped.EmployeeId.Should().Be(original.EmployeeId);
         roundTripped.Status.Should().Be(ExternalIdentityMappingStatus.AutoMatched);
         roundTripped.Timestamp.Should().Be(original.Timestamp);

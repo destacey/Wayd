@@ -11,20 +11,20 @@ namespace Wayd.Common.Domain.Events.AppIntegration;
 /// </summary>
 /// <remarks>
 /// Carries none of the external profile: an address, display name or handle is a person's, and the activity log
-/// cannot be corrected.
+/// cannot be corrected. Nor the external id, which a mapping seeded before syncs reported ids holds as the person's
+/// address until a sync re-keys it.
 /// </remarks>
 public sealed record ExternalIdentityMappingCreatedEvent : DomainEvent<ExternalIdentityMappingCreatedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;
 
     [JsonConstructor]
-    public ExternalIdentityMappingCreatedEvent(Guid id, Connector connector, Guid connectionId, string externalId, Guid? employeeId, ExternalIdentityMappingStatus status, EventActor actor, Instant timestamp)
+    public ExternalIdentityMappingCreatedEvent(Guid id, Connector connector, Guid connectionId, Guid? employeeId, ExternalIdentityMappingStatus status, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
         Id = id;
         Connector = connector;
         ConnectionId = connectionId;
-        ExternalId = externalId;
         EmployeeId = employeeId;
         Status = status;
 
@@ -34,9 +34,6 @@ public sealed record ExternalIdentityMappingCreatedEvent : DomainEvent<ExternalI
     public Guid Id { get; }
     public Connector Connector { get; }
     public Guid ConnectionId { get; }
-
-    /// <summary>The external system's stable id for the user.</summary>
-    public string ExternalId { get; }
 
     public Guid? EmployeeId { get; }
     public ExternalIdentityMappingStatus Status { get; }

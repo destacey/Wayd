@@ -298,10 +298,12 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
             .HasForeignKey(w => w.ParentProjectId)
             .OnDelete(DeleteBehavior.ClientSetNull);
 
+        // A sync deletes a sprint before the work item sync moves its items elsewhere, so the database clears
+        // their reference rather than refusing the delete.
         builder.HasOne(w => w.Iteration)
             .WithMany()
             .HasForeignKey(w => w.IterationId)
-            .OnDelete(DeleteBehavior.ClientSetNull);
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

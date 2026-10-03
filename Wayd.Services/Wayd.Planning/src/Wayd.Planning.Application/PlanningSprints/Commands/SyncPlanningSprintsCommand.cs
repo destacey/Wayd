@@ -47,18 +47,28 @@ public sealed class SyncPlanningSprintsCommandHandler(
                 deleteCount = sprintsToDelete.Count;
             }
 
+            HashSet<Guid> changedTeam = [];
             foreach (var sprint in request.Sprints)
             {
                 if (!existingSprints.TryGetValue(sprint.Id, out var existingSprint))
                 {
                     await _planningDbContext.PlanningSprints.AddAsync(new PlanningSprint(sprint, request.AsOf), cancellationToken);
                     createCount++;
+                    continue;
                 }
-                else if (existingSprint.Resync(sprint, request.AsOf))
+
+                var previousTeamId = existingSprint.TeamId;
+                if (existingSprint.Resync(sprint, request.AsOf))
                 {
                     updateCount++;
+                    if (existingSprint.TeamId != previousTeamId && mappedSprintIds.Contains(existingSprint.Id))
+                        changedTeam.Add(existingSprint.Id);
                 }
             }
+
+            // A mapping belongs to the sprint's team, so a sprint that changed team leaves its PIs, as it does
+            // when the change arrives as an event.
+            await _planningDbContext.UnmapFromPlanningIntervals(changedTeam, EventActor.System, request.AsOf, cancellationToken);
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
 

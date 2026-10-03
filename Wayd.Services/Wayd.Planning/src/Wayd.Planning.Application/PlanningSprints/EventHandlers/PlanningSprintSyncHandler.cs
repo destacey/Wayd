@@ -80,23 +80,13 @@ public sealed class PlanningSprintSyncHandler(
             return;
         }
 
-        // The sprint is gone at its source, so a PI can no longer count it. Unmapping goes through the PI, which
-        // records the change; the mapping's foreign key would otherwise refuse the delete, which is also why a
-        // soft-deleted PI is included.
-        var planningIntervals = await _planningDbContext.PlanningIntervals
-            .IgnoreQueryFilters()
-            .Include(pi => pi.IterationSprints)
-            .Where(pi => pi.IterationSprints.Any(s => s.SprintId == @event.Id))
-            .ToListAsync(cancellationToken);
-        foreach (var planningInterval in planningIntervals)
-        {
-            planningInterval.UnmapSprint(@event.Id, EventActor.System, @event.Timestamp);
-        }
+        // The sprint is gone at its source, so a PI can no longer count it.
+        var unmappedFrom = await _planningDbContext.UnmapFromPlanningIntervals([@event.Id], EventActor.System, @event.Timestamp, cancellationToken);
 
         _planningDbContext.PlanningSprints.Remove(sprint);
         await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Successful Planning {SystemActionType} for the Sprint {SprintId} deleted action. Unmapped from {PlanningIntervalCount} planning intervals.", SystemActionType.ServiceDataReplication, @event.Id, planningIntervals.Count);
+        _logger.LogInformation("Successful Planning {SystemActionType} for the Sprint {SprintId} deleted action. Unmapped from {PlanningIntervalCount} planning intervals.", SystemActionType.ServiceDataReplication, @event.Id, unmappedFrom);
     }
 
     private async Task Create(Guid sprintId, Instant timestamp, CancellationToken cancellationToken)
@@ -119,10 +109,18 @@ public sealed class PlanningSprintSyncHandler(
             return;
         }
 
+        var previousTeamId = sprint.TeamId;
         if (!apply(sprint))
         {
             _logger.LogInformation("Planning {SystemActionType} for a Sprint {Change} skipped: Sprint {SprintId} already holds this or a newer change.", SystemActionType.ServiceDataReplication, change, sprintId);
             return;
+        }
+
+        // A mapping is the team's: one sprint per team per PI iteration, for a team in the PI. A sprint that
+        // changes team no longer answers for the old one, so it leaves every PI it was mapped in.
+        if (sprint.TeamId != previousTeamId)
+        {
+            await _planningDbContext.UnmapFromPlanningIntervals([sprintId], EventActor.System, timestamp, cancellationToken);
         }
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);

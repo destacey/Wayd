@@ -267,6 +267,60 @@ public class IterationTests
     }
 
     [Fact]
+    public void CorrectActualDates_RecordsTheDatesAndCarriesBothEnds()
+    {
+        // Arrange — a past sprint the team never started or completed
+        var (sprint1, _, timeline) = TwoSprints();
+        var started = InChicago(Sprint1Start, 10);
+        var completed = InChicago(Sprint2Start.PlusDays(-3), 15);
+        var now = InChicago(Sprint2Start.PlusDays(5), 9);
+
+        var correction = timeline.ValidateCorrection(new Dictionary<Iteration, SprintActualDates> { [sprint1] = new(started, completed) }, now).Value;
+
+        // Act
+        sprint1.CorrectActualDates(correction, EventActor.System, now);
+
+        // Assert
+        sprint1.Started.Should().Be(started);
+        sprint1.Completed.Should().Be(completed);
+        var correctedEvent = sprint1.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<SprintActualDatesCorrectedEvent>().Subject;
+        correctedEvent.Previous.Should().Be(new SprintActualDates(null, null));
+        correctedEvent.Current.Should().Be(new SprintActualDates(started, completed));
+    }
+
+    [Fact]
+    public void CorrectActualDates_WhenUnchanged_RaisesNothing()
+    {
+        // Arrange
+        var started = InChicago(Sprint1Start, 10);
+        var (sprint1, _, timeline) = TwoSprints(sprint1Started: started);
+        var now = InChicago(Sprint1Start, 12);
+        var correction = timeline.ValidateCorrection(new Dictionary<Iteration, SprintActualDates> { [sprint1] = new(started, null) }, now).Value;
+
+        // Act
+        sprint1.CorrectActualDates(correction, EventActor.System, now);
+
+        // Assert
+        sprint1.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CorrectActualDates_ForASprintTheCorrectionLeavesOut_Throws()
+    {
+        // Arrange
+        var (sprint1, sprint2, timeline) = TwoSprints();
+        var now = InChicago(Sprint2Start, 9);
+        var correction = timeline.ValidateCorrection(new Dictionary<Iteration, SprintActualDates> { [sprint1] = new(InChicago(Sprint1Start, 10), null) }, now).Value;
+
+        // Act
+        var act = () => sprint2.CorrectActualDates(correction, EventActor.System, now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+        sprint2.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void CompleteOnTeamMove_CompletesAnOpenSprintAndKeepsItsStart()
     {
         // Arrange

@@ -189,6 +189,25 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     }
 
     /// <summary>
+    /// Sets the sprint's actual dates to its entry in <paramref name="correction"/>, which the team's timeline
+    /// checked together with the other sprints it corrects. A null value reverts to the sprint's default. Raises
+    /// nothing when the dates are unchanged.
+    /// </summary>
+    public void CorrectActualDates(TeamSprintCorrection correction, EventActor actor, Instant now)
+    {
+        if (!correction.Sprints.TryGetValue(this, out var current))
+            throw new ArgumentException($"The correction does not include sprint {Id}.", nameof(correction));
+
+        var previous = new SprintActualDates(Started, Completed);
+        if (current == previous)
+            return;
+
+        Started = current.Started;
+        Completed = current.Completed;
+        AddDomainEvent(new SprintActualDatesCorrectedEvent(Id, Key, previous, current, actor, now));
+    }
+
+    /// <summary>
     /// Completes an open sprint now because the source system moved it to a team that already has an open
     /// sprint. Its actual dates are kept rather than cleared: they are the team's record, and a mistaken
     /// path change in the source must not erase it.

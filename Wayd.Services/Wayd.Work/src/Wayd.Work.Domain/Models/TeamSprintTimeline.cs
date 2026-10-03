@@ -2,6 +2,7 @@ using System.Globalization;
 using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events.Planning.Iterations;
 
 namespace Wayd.Work.Domain.Models;
 
@@ -231,6 +232,99 @@ public sealed class TeamSprintTimeline
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Checks that the team's sprints may take the actual dates in <paramref name="corrections"/>, all at once,
+    /// deciding at <paramref name="now"/>, and returns them as the only form <see cref="Iteration.CorrectActualDates"/>
+    /// accepts. A corrected start keeps the live start's bounds, and the resulting actual periods may not overlap: a
+    /// completion can't pass the next sprint's actual or default start, and an open sprint can't be followed by one
+    /// with recorded dates. Sprints the corrections leave as they are aren't rechecked, nor is a boundary neither
+    /// side of which moves, so a quirk elsewhere in the team's history doesn't block a correction.
+    /// </summary>
+    public Result<TeamSprintCorrection> ValidateCorrection(IReadOnlyDictionary<Iteration, SprintActualDates> corrections, Instant now)
+    {
+        var allowed = CheckCorrection(corrections, now);
+        return allowed.IsSuccess
+            ? new TeamSprintCorrection(corrections)
+            : Result.Failure<TeamSprintCorrection>(allowed.Error);
+    }
+
+    private Result CheckCorrection(IReadOnlyDictionary<Iteration, SprintActualDates> corrections, Instant now)
+    {
+        var corrected = corrections
+            .Where(c => c.Value != ActualDates(c.Key))
+            .ToDictionary(c => c.Key, c => c.Value);
+
+        foreach (var sprint in corrected.Keys)
+        {
+            var eligible = CheckEligible(sprint);
+            if (eligible.IsFailure)
+                return eligible;
+        }
+
+        SprintActualDates Proposed(Iteration sprint) =>
+            corrected.TryGetValue(sprint, out var dates) ? dates : ActualDates(sprint);
+
+        Instant ProposedEffectiveStart(Iteration sprint) => Proposed(sprint).Started ?? DefaultStart(sprint);
+
+        foreach (var (sprint, dates) in corrected.OrderBy(c => IndexOf(c.Key)))
+        {
+            if (dates.Started > now || dates.Completed > now)
+                return Result.Failure($"{sprint.Name}: actual dates can't be in the future.");
+
+            if (dates.Started is { } started)
+            {
+                var previous = Previous(sprint);
+                var earliest = previous is null
+                    ? PlannedStartDate(sprint).PlusDays(-EarlyStartDays).AtStartOfDayInZone(ScheduleFor(sprint).TimeZone).ToInstant()
+                    : ProposedEffectiveStart(previous).Plus(ExcludedStep);
+                var latest = PlannedEnd(sprint).Minus(ExcludedStep);
+
+                if (started < earliest || started > latest)
+                    return Result.Failure($"{sprint.Name} can be started between {Describe(sprint, earliest)} and {Describe(sprint, latest)}.");
+            }
+
+            if (dates.Completed is { } completed && completed <= ProposedEffectiveStart(sprint))
+                return Result.Failure($"{sprint.Name} can't be completed before it starts, at {Describe(sprint, ProposedEffectiveStart(sprint))}.");
+        }
+
+        for (var i = 0; i < _sprints.Count; i++)
+        {
+            var sprint = _sprints[i];
+            var dates = Proposed(sprint);
+
+            // A sprint whose previous sprint's start moved later must still start after it.
+            if (i > 0 && dates.Started is { } started && corrected.ContainsKey(_sprints[i - 1]) && !corrected.ContainsKey(sprint)
+                && started <= ProposedEffectiveStart(_sprints[i - 1]))
+            {
+                return Result.Failure($"{_sprints[i - 1].Name} can't start after {sprint.Name} started, at {Describe(sprint, started)}.");
+            }
+
+            if (dates.Started is not null && dates.Completed is null
+                && _sprints.Skip(i + 1).FirstOrDefault(s => Proposed(s) != NoActualDates) is { } laterRecorded
+                && (corrected.ContainsKey(sprint) || corrected.ContainsKey(laterRecorded)))
+            {
+                return Result.Failure($"{sprint.Name} would still be open when {laterRecorded.Name} has actual dates. Complete it as well.");
+            }
+
+            // Checked only where the completion or the next start moves: the live Complete has no cap at the next
+            // sprint's default start, so a correction elsewhere must not trip over a late completion it left alone.
+            if (dates.Completed is { } completed && i < _sprints.Count - 1)
+            {
+                var next = _sprints[i + 1];
+                var nextStart = ProposedEffectiveStart(next);
+                var moved = completed != sprint.Completed || nextStart != EffectiveStart(next);
+                if (moved && completed > nextStart)
+                    return Result.Failure($"{sprint.Name} can't be completed after {next.Name} starts, at {Describe(next, nextStart)}. Correct both together.");
+            }
+        }
+
+        return Result.Success();
+    }
+
+    private static readonly SprintActualDates NoActualDates = new(null, null);
+
+    private static SprintActualDates ActualDates(Iteration sprint) => new(sprint.Started, sprint.Completed);
 
     // A bound that excludes a moment sits this far past it. A millisecond, not a tick: the API's clients
     // hold instants to the millisecond, so a tick-sized step would round back onto the excluded moment.

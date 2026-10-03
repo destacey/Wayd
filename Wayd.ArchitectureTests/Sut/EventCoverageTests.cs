@@ -103,7 +103,6 @@ public partial class EventCoverageTests
             "Hands the pending transition rows to BaseDbContext to insert; the saved record is unchanged.",
 
         // Known gaps: each changes state a reader of the history would expect to see.
-        ["StatusTrackedEntity.SwitchWorkflow(StatusRemap, EventActor, Instant, String)"] = "Gap: #896.",
         ["DeploymentEnvironment.Update(String, Int32)"] = "Gap: #897.",
         ["DeploymentEnvironment.Activate()"] = "Gap: #897.",
 

@@ -4,6 +4,7 @@ using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain;
@@ -96,6 +97,56 @@ public sealed class SwitchWorkflowTests
     }
 
     [Fact]
+    public void SwitchWorkflow_ShouldRaiseTheSwitch_CarryingBothEnds()
+    {
+        // Arrange
+        var old = VersionWorkflow("Old");
+        var replacement = VersionWorkflow("New");
+        var sut = VersionOn(old);
+        var remap = StatusRemap.AutoMap(old, replacement).Value;
+        var oldPlanned = old.Statuses.Single(s => s.Name == "Planned");
+        var newPlanned = replacement.Statuses.Single(s => s.Name == "Planned");
+
+        // Act
+        sut.SwitchWorkflow(remap, EventActor.System, _dateTimeProvider.Now, "Annual workflow change.");
+
+        // Assert
+        var raised = sut.DomainEvents.OfType<StatusWorkflowSwitchedEvent>().Should().ContainSingle().Subject;
+        raised.EventId.Should().Be(sut.StatusTransitions.Last().Id);
+        raised.OwnerType.Should().Be(ProductWorkflowOwners.Version.Key);
+        raised.RecordId.Should().Be(sut.Id);
+        raised.FromWorkflowId.Should().Be(old.Id);
+        raised.FromStatusId.Should().Be(oldPlanned.Id);
+        raised.FromCategory.Should().Be(StatusCategory.Proposed);
+        raised.ToWorkflowId.Should().Be(replacement.Id);
+        raised.ToStatusId.Should().Be(newPlanned.Id);
+        raised.ToCategory.Should().Be(StatusCategory.Proposed);
+        raised.Reason.Should().Be("Annual workflow change.");
+        raised.Timestamp.Should().Be(_dateTimeProvider.Now);
+    }
+
+    [Fact]
+    public void SwitchWorkflow_ShouldCarryTheAliases_WhenTheStatusHasOne()
+    {
+        // Arrange
+        var old = VersionWorkflow("Old");
+        var replacement = VersionWorkflow("New");
+        var sut = VersionOn(old);
+        sut.Cut(Instant.FromUtc(2026, 9, 1, 12, 0),
+            StatusRef.From(old.Statuses.Single(s => s.Name == "Ready")),
+            ProductName, EventActor.System, _dateTimeProvider.Now);
+        var remap = StatusRemap.AutoMap(old, replacement).Value;
+
+        // Act
+        sut.SwitchWorkflow(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = sut.DomainEvents.OfType<StatusWorkflowSwitchedEvent>().Should().ContainSingle().Subject;
+        raised.FromAlias.Should().Be((int)ProductStatusAlias.Ready);
+        raised.ToAlias.Should().Be((int)ProductStatusAlias.Ready);
+    }
+
+    [Fact]
     public void SwitchWorkflow_ShouldTranslateByAlias_WhenTheNewWorkflowRenamedTheStatus()
     {
         // Arrange
@@ -150,6 +201,7 @@ public sealed class SwitchWorkflowTests
         remap.IsComplete.Should().BeFalse();
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Every status must be mapped before records can be moved.");
+        sut.DomainEvents.OfType<StatusWorkflowSwitchedEvent>().Should().BeEmpty();
     }
 
     [Fact]
@@ -170,6 +222,7 @@ public sealed class SwitchWorkflowTests
         // Guessing would strand it silently.
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This record's status is not in the workflow being moved from.");
+        sut.DomainEvents.OfType<StatusWorkflowSwitchedEvent>().Should().BeEmpty();
     }
 
     #endregion Refusals
@@ -196,6 +249,26 @@ public sealed class SwitchWorkflowTests
         // record already moved must not record a second transition.
         result.IsSuccess.Should().BeTrue();
         sut.StatusTransitionCount.Should().Be(afterFirst);
+    }
+
+    [Fact]
+    public void SwitchWorkflow_ShouldNotRaise_ForARecordAlreadyMoved()
+    {
+        // Arrange
+        var old = VersionWorkflow("Old");
+        var replacement = VersionWorkflow("New");
+        var sut = VersionOn(old);
+        var remap = StatusRemap.AutoMap(old, replacement).Value;
+
+        sut.SwitchWorkflow(remap, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.SwitchWorkflow(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
     }
 
     #endregion Resumability

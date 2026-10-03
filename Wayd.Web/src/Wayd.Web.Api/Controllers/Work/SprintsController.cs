@@ -131,6 +131,22 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("actual-dates")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
+    [OpenApiOperation("Correct sprints' actual dates.", "Replaces the actual start and completion of one or more of a team's sprints; an omitted value reverts to the sprint's default. Sprints corrected together are checked against each other's corrected dates, and the team's actual sprint periods may not overlap. Requires membership of the sprints' team or its team of teams.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> CorrectActualDates([FromBody] CorrectSprintActualDatesRequest request, CancellationToken cancellationToken)
+    {
+        var command = new CorrectSprintActualDatesCommand(
+            [.. request.Sprints.Select(s => new SprintActualDatesCorrection(s.SprintId, s.Started, s.Completed))]);
+        var result = await _dispatcher.Send(command, cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{key:int}/planning-intervals")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
     [OpenApiOperation("Get planning intervals that this sprint is mapped to.", "")]

@@ -8,6 +8,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared;
 
@@ -326,7 +327,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
         [
             (new EmailAddress("jordan.blake@acme.example"), true),
             (new EmailAddress("jordan.blake@acme-legacy.example"), false),
-        ]);
+        ], EventActor.System, _dateTimeProvider.Now);
         Seed(existing);
 
         var record = FakeExternalEmployee("E-5002", "jordan.blake@acme.example", isActive: true) with
@@ -501,6 +502,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             managerId: null,
             isActive: true,
             employeeType: "Employee",
+            EventActor.System,
             _dateTimeProvider.Now);
 
     private static FakeExternalEmployeeRecord FakeExternalEmployee(string employeeNumber, string email, bool isActive) =>

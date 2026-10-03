@@ -8,6 +8,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared;
 
@@ -22,7 +23,9 @@ public sealed class ImportEmployeesCommandHandlerTests
     public ImportEmployeesCommandHandlerTests()
     {
         var clock = new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
-        _definition = new EmployeeImportDefinition(_dbContext, clock, new ImportPayloadSerializer());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+        _definition = new EmployeeImportDefinition(_dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
 
         _dispatcher
             .Setup(d => d.Send(It.IsAny<SubmitImportCommand>(), It.IsAny<CancellationToken>()))

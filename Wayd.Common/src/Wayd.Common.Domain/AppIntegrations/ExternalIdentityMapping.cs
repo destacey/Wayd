@@ -4,6 +4,8 @@ using NodaTime;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Extensions;
 
 namespace Wayd.Common.Domain.AppIntegrations;
@@ -107,8 +109,9 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
         string? email,
         string? displayName,
         string? handle,
+        EventActor actor,
         Instant lastSeen) =>
-        new(connector, connectionId, externalId, email, displayName, handle, null, ExternalIdentityMappingStatus.Unmapped, lastSeen);
+        Created(new(connector, connectionId, externalId, email, displayName, handle, null, ExternalIdentityMappingStatus.Unmapped, lastSeen), actor);
 
     /// <summary>Records an identity a sync resolved by matching its address to an employee.</summary>
     public static ExternalIdentityMapping CreateAutoMatched(
@@ -119,10 +122,19 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
         string? displayName,
         string? handle,
         Guid employeeId,
+        EventActor actor,
         Instant lastSeen) =>
-        new(connector, connectionId, externalId, email, displayName, handle,
+        Created(new(connector, connectionId, externalId, email, displayName, handle,
             Guard.Against.Default(employeeId, nameof(employeeId)),
-            ExternalIdentityMappingStatus.AutoMatched, lastSeen);
+            ExternalIdentityMappingStatus.AutoMatched, lastSeen), actor);
+
+    private static ExternalIdentityMapping Created(ExternalIdentityMapping mapping, EventActor actor)
+    {
+        mapping.AddDomainEvent(new ExternalIdentityMappingCreatedEvent(
+            mapping.Id, mapping.Connector, mapping.ConnectionId, mapping.ExternalId, mapping.EmployeeId, mapping.Status, actor, mapping.LastSeen));
+
+        return mapping;
+    }
 
     /// <summary>
     /// Refreshes what the external system reports about this identity, and re-points the employee
@@ -132,36 +144,60 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
     /// An admin-decided row keeps its employee and status — only the descriptive fields and
     /// <see cref="LastSeen"/> move. That is the whole reason this table exists separately from
     /// <see cref="EmployeeEmail"/>, so the guard lives in the domain where a caller cannot skip it.
+    /// <para>
+    /// Every sync calls this for every identity it meets, so it raises only for what actually moved. A new
+    /// <see cref="LastSeen"/> alone raises nothing: it is when the identity was last active, not a fact about it.
+    /// </para>
     /// </remarks>
     public void RefreshFromSync(
         string? email,
         string? displayName,
         string? handle,
         Guid? autoMatchedEmployeeId,
+        EventActor actor,
         Instant lastSeen)
     {
+        // Compared after assignment, never against the arguments: the setters trim.
+        var previousProfile = (Email, DisplayName, Handle);
+
         Email = email;
         DisplayName = displayName;
         Handle = handle;
         LastSeen = lastSeen;
 
+        if ((Email, DisplayName, Handle) != previousProfile)
+            AddDomainEvent(new ExternalIdentityMappingProfileChangedEvent(Id, actor, lastSeen));
+
         if (IsAdminDecided)
             return;
 
+        var previousStatus = Status;
+        var previousEmployeeId = EmployeeId;
+
         if (autoMatchedEmployeeId.HasValue)
         {
+            if (previousStatus == ExternalIdentityMappingStatus.AutoMatched && previousEmployeeId == autoMatchedEmployeeId)
+                return;
+
             EmployeeId = autoMatchedEmployeeId;
             Employee = null;
             Status = ExternalIdentityMappingStatus.AutoMatched;
+
+            AddDomainEvent(new ExternalIdentityMappingAutoMatchedEvent(Id, previousStatus, previousEmployeeId, EmployeeId, actor, lastSeen));
         }
         else
         {
+            if (previousStatus == ExternalIdentityMappingStatus.Unmapped)
+                return;
+
             // The address stopped resolving (the employee left, or the people connector dropped
             // the address). Fall back to unmapped so it re-enters the review queue rather than
             // silently keeping a stale attribution.
             EmployeeId = null;
             Employee = null;
             Status = ExternalIdentityMappingStatus.Unmapped;
+
+            AddDomainEvent(new ExternalIdentityMappingUnmatchedEvent(Id, previousStatus, previousEmployeeId, actor, lastSeen));
         }
     }
 
@@ -177,7 +213,7 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
     /// identity id is never silently rewritten by another.
     /// </remarks>
     /// <returns>True when the row was adopted; false when it is not an adoptable placeholder.</returns>
-    public bool TryAdoptExternalId(string externalId)
+    public bool TryAdoptExternalId(string externalId, EventActor actor, Instant timestamp)
     {
         if (string.IsNullOrWhiteSpace(externalId))
             return false;
@@ -191,18 +227,28 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
             return false;
 
         ExternalId = candidate;
+        AddDomainEvent(new ExternalIdentityMappingRekeyedEvent(Id, ExternalId, actor, timestamp));
+
         return true;
     }
 
     /// <summary>Points this identity at an employee by admin decision.</summary>
-    public Result MapToEmployee(Guid employeeId)
+    public Result MapToEmployee(Guid employeeId, EventActor actor, Instant timestamp)
     {
         if (employeeId == Guid.Empty)
             return Result.Failure("An employee is required to map an external identity.");
 
+        if (Status == ExternalIdentityMappingStatus.ManuallyMapped && EmployeeId == employeeId)
+            return Result.Success();
+
+        var previousStatus = Status;
+        var previousEmployeeId = EmployeeId;
+
         EmployeeId = employeeId;
         Employee = null;
         Status = ExternalIdentityMappingStatus.ManuallyMapped;
+
+        AddDomainEvent(new ExternalIdentityMappingMappedEvent(Id, previousStatus, previousEmployeeId, EmployeeId, actor, timestamp));
 
         return Result.Success();
     }
@@ -211,21 +257,37 @@ public sealed class ExternalIdentityMapping : BaseAuditableEntity
     /// Marks this identity as one that will never have an employee. Survives sync so it stays out
     /// of the review queue.
     /// </summary>
-    public void Ignore()
+    public void Ignore(EventActor actor, Instant timestamp)
     {
+        if (Status == ExternalIdentityMappingStatus.Ignored)
+            return;
+
+        var previousStatus = Status;
+        var previousEmployeeId = EmployeeId;
+
         EmployeeId = null;
         Employee = null;
         Status = ExternalIdentityMappingStatus.Ignored;
+
+        AddDomainEvent(new ExternalIdentityMappingIgnoredEvent(Id, previousStatus, previousEmployeeId, actor, timestamp));
     }
 
     /// <summary>
     /// Clears an admin decision, returning the row to the review queue. The next sync is free to
     /// auto-match it again.
     /// </summary>
-    public void ClearDecision()
+    public void ClearDecision(EventActor actor, Instant timestamp)
     {
+        if (Status == ExternalIdentityMappingStatus.Unmapped)
+            return;
+
+        var previousStatus = Status;
+        var previousEmployeeId = EmployeeId;
+
         EmployeeId = null;
         Employee = null;
         Status = ExternalIdentityMappingStatus.Unmapped;
+
+        AddDomainEvent(new ExternalIdentityMappingDecisionClearedEvent(Id, previousStatus, previousEmployeeId, actor, timestamp));
     }
 }

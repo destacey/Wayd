@@ -102,6 +102,7 @@ public sealed class StatusHistoryReaderIntegrationTests(SqlServerDbContextFixtur
             managerId: null,
             isActive: true,
             employeeType: null,
+            EventActor.System,
             Timestamp);
 
         context.Employees.Add(employee);

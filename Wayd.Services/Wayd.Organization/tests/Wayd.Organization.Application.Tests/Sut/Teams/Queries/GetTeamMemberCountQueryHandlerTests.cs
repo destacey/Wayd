@@ -57,7 +57,7 @@ public class GetTeamMemberCountQueryHandlerTests : IDisposable
         var inactive = NewEmployee();
         team.AddMember(inactive, [Guid.NewGuid()], EventActor.System, Timestamp);
         team.AddMember(NewEmployee(), [Guid.NewGuid()], EventActor.System, Timestamp);
-        inactive.Deactivate(Instant.FromUtc(2026, 9, 1, 0, 0));
+        inactive.Deactivate(EmployeeActivatableArgs.Create(EventActor.System, Instant.FromUtc(2026, 9, 1, 0, 0)));
 
         // Act
         var result = await _handler.Handle(new GetTeamMemberCountQuery(team.Id), TestContext.Current.CancellationToken);

@@ -80,7 +80,7 @@ public sealed class PlanningActivityTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
         var team = await PlanningSeed.Team(context, ct);
         var reporter = Employee.Create(new PersonName("Ada", null, "Lovelace"), "E" + Guid.NewGuid().ToString("N")[..11], now,
-            new EmailAddress($"ada.{Guid.NewGuid():N}@acme.example"), null, null, null, null, true, null, now);
+            new EmailAddress($"ada.{Guid.NewGuid():N}@acme.example"), null, null, null, null, true, null, EventActor.System, now);
         context.Employees.Add(reporter);
         await context.SaveChangesAsync(ct);
 

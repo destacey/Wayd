@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Employees.Queries;
@@ -43,7 +44,10 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
         dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
 
         await using var context = _fixture.CreateContext();
-        var definition = new EmployeeImportDefinition(context, dateTimeProvider.Object, new ImportPayloadSerializer());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        var definition = new EmployeeImportDefinition(context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
 
         var dto = new ImportEmployeeDto(
             "E-4001",

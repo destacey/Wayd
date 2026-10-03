@@ -502,7 +502,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
             {
                 if (seedByKey.TryGetValue(user.Email!.Trim(), out var seeded)
                     && claimed.Add(seeded.Id)
-                    && seeded.TryAdoptExternalId(user.ExternalId))
+                    && seeded.TryAdoptExternalId(user.ExternalId, EventActor.Sync(null), _dateTimeProvider.Now))
                 {
                     existingMappings[user.ExternalId] = seeded;
                 }
@@ -549,7 +549,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
             if (existingMappings.TryGetValue(externalId, out var mapping))
             {
-                mapping.RefreshFromSync(user.Email, user.DisplayName, user.Handle, autoMatched, now);
+                mapping.RefreshFromSync(user.Email, user.DisplayName, user.Handle, autoMatched, EventActor.Sync(null), now);
                 resolved[externalId] = mapping.EmployeeId;
 
                 if (mapping.Status == ExternalIdentityMappingStatus.Unmapped)
@@ -559,14 +559,14 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
             {
                 newMappings.Add(ExternalIdentityMapping.CreateAutoMatched(
                     request.Connector, request.ConnectionId, externalId,
-                    user.Email, user.DisplayName, user.Handle, autoMatched.Value, now));
+                    user.Email, user.DisplayName, user.Handle, autoMatched.Value, EventActor.Sync(null), now));
                 resolved[externalId] = autoMatched;
             }
             else
             {
                 newMappings.Add(ExternalIdentityMapping.CreateUnmapped(
                     request.Connector, request.ConnectionId, externalId,
-                    user.Email, user.DisplayName, user.Handle, now));
+                    user.Email, user.DisplayName, user.Handle, EventActor.Sync(null), now));
                 resolved[externalId] = null;
                 unmappedCount++;
             }

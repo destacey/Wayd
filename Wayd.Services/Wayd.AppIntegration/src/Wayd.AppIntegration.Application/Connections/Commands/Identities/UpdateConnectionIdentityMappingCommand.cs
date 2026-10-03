@@ -71,12 +71,16 @@ public sealed class UpdateConnectionIdentityMappingCommandValidator : CustomVali
 
 public sealed class UpdateConnectionIdentityMappingCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<UpdateConnectionIdentityMappingCommandHandler> logger)
     : ICommandHandler<UpdateConnectionIdentityMappingCommand, IdentityMappingDecision>
 {
     private const string AppRequestName = nameof(UpdateConnectionIdentityMappingCommand);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateConnectionIdentityMappingCommandHandler> _logger = logger;
 
     public async Task<Result<IdentityMappingDecision>> Handle(UpdateConnectionIdentityMappingCommand request, CancellationToken cancellationToken)
@@ -89,6 +93,9 @@ public sealed class UpdateConnectionIdentityMappingCommandHandler(
                 .FirstOrDefaultAsync(m => m.Id == request.MappingId && m.ConnectionId == request.ConnectionId, cancellationToken);
             if (mapping is null)
                 return Result.Failure<IdentityMappingDecision>("External identity mapping not found.");
+
+            var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+            var now = _dateTimeProvider.Now;
 
             switch (request.Action)
             {
@@ -103,17 +110,17 @@ public sealed class UpdateConnectionIdentityMappingCommandHandler(
                         return Result.Failure<IdentityMappingDecision>("The selected employee could not be found.");
                     }
 
-                    var mapResult = mapping.MapToEmployee(request.EmployeeId.Value);
+                    var mapResult = mapping.MapToEmployee(request.EmployeeId.Value, actor, now);
                     if (mapResult.IsFailure)
                         return Result.Failure<IdentityMappingDecision>(mapResult.Error);
                     break;
 
                 case IdentityMappingAction.Ignore:
-                    mapping.Ignore();
+                    mapping.Ignore(actor, now);
                     break;
 
                 case IdentityMappingAction.Clear:
-                    mapping.ClearDecision();
+                    mapping.ClearDecision(actor, now);
                     break;
 
                 default:

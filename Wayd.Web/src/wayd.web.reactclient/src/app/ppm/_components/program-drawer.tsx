@@ -83,7 +83,10 @@ const ProgramDrawer: FC<ProgramDrawerProps> = ({
           </LabeledContent>
           <LabeledContent label="Dates">
             <WaydDateRange
-              dateRange={{ start: programData?.start, end: programData?.end }}
+              dateRange={{
+                start: programData?.start,
+                end: programData?.end,
+              }}
             />
           </LabeledContent>
           {strategicThemeNames.length > 0 && (

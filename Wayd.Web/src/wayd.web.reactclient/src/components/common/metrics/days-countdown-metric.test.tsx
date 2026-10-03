@@ -16,8 +16,8 @@ const mockedPercentageElapsed = percentageElapsed as jest.MockedFunction<
 >
 
 describe('DaysCountdownMetric', () => {
-  const futureDate = new Date('2025-12-31')
-  const pastDate = new Date('2025-01-01')
+  const futureDate = '2025-12-31'
+  const pastDate = '2025-01-01'
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -105,28 +105,6 @@ describe('DaysCountdownMetric', () => {
     expect(screen.getByText('7')).toBeInTheDocument()
   })
 
-  it('handles Date objects for startDate and endDate', () => {
-    const startDateObj = new Date('2025-01-01')
-    const endDateObj = new Date('2025-12-31')
-    mockedDaysRemaining.mockReturnValue(20)
-    mockedPercentageElapsed.mockReturnValue(60.0)
-
-    render(
-      <DaysCountdownMetric
-        state={IterationState.Active}
-        startDate={startDateObj}
-        endDate={endDateObj}
-      />,
-    )
-
-    expect(screen.getByText('Days Remaining')).toBeInTheDocument()
-    expect(mockedDaysRemaining).toHaveBeenCalledWith(endDateObj)
-    expect(mockedPercentageElapsed).toHaveBeenCalledWith(
-      startDateObj,
-      endDateObj,
-    )
-  })
-
   it('recalculates when state changes', () => {
     mockedDaysRemaining.mockReturnValue(10)
 
@@ -156,8 +134,8 @@ describe('DaysCountdownMetric', () => {
 
   describe('Secondary percentage value', () => {
     it('displays percentage complete for active state', () => {
-      const startDate = new Date('2025-01-01T00:00:00')
-      const endDate = new Date('2025-01-15T00:00:00')
+      const startDate = '2025-01-01'
+      const endDate = '2025-01-15'
 
       mockedDaysRemaining.mockReturnValue(7)
       mockedPercentageElapsed.mockReturnValue(50.0)
@@ -177,8 +155,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('does not display percentage for future state', () => {
-      const startDate = new Date('2025-12-01T00:00:00')
-      const endDate = new Date('2025-12-15T00:00:00')
+      const startDate = '2025-12-01'
+      const endDate = '2025-12-15'
 
       mockedDaysRemaining.mockReturnValue(30)
 
@@ -199,8 +177,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('calculates percentage at start of iteration', () => {
-      const startDate = new Date('2025-01-01T00:00:00')
-      const endDate = new Date('2025-01-11T00:00:00')
+      const startDate = '2025-01-01'
+      const endDate = '2025-01-11'
 
       mockedDaysRemaining.mockReturnValue(10)
       mockedPercentageElapsed.mockReturnValue(0.0)
@@ -217,8 +195,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('calculates percentage near end of iteration', () => {
-      const startDate = new Date('2025-01-01T00:00:00')
-      const endDate = new Date('2025-01-11T00:00:00')
+      const startDate = '2025-01-01'
+      const endDate = '2025-01-11'
 
       mockedDaysRemaining.mockReturnValue(1)
       mockedPercentageElapsed.mockReturnValue(90)
@@ -235,8 +213,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('caps percentage at 100% if past end date', () => {
-      const startDate = new Date('2025-01-01T00:00:00')
-      const endDate = new Date('2025-01-11T00:00:00')
+      const startDate = '2025-01-01'
+      const endDate = '2025-01-11'
 
       mockedDaysRemaining.mockReturnValue(-4)
       mockedPercentageElapsed.mockReturnValue(100)
@@ -253,8 +231,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('includes tooltip explaining the percentage', () => {
-      const startDate = new Date('2025-01-01T00:00:00')
-      const endDate = new Date('2025-01-11T00:00:00')
+      const startDate = '2025-01-01'
+      const endDate = '2025-01-11'
 
       mockedDaysRemaining.mockReturnValue(5)
       mockedPercentageElapsed.mockReturnValue(50)
@@ -282,8 +260,8 @@ describe('DaysCountdownMetric', () => {
     const { container } = render(
       <DaysCountdownMetric
         state={IterationState.Active}
-        startDate={new Date('2026-08-17')}
-        endDate={new Date('2026-08-30')}
+        startDate="2026-08-17"
+        endDate="2026-08-30"
         cardStyle={{ minWidth: 150 }}
       />,
     )

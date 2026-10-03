@@ -6,17 +6,9 @@ import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { PlanningIntervalObjectiveDetailsDto } from '@/src/services/wayd-api'
 import { Divider, Flex } from 'antd'
+import { formatCalendarDate } from '@/src/utils'
 import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
 import Link from 'next/link'
-
-dayjs.extend(utc)
-
-/**
- * Objective dates are UTC calendar dates. Formatting them in local time shifts
- * them a day for anyone behind UTC — the convention the sprints grid documents.
- */
-const formatDate = (value: Date) => dayjs.utc(value).format('MMM D, YYYY')
 
 export interface PlanningIntervalObjectiveFactsProps {
   objective: PlanningIntervalObjectiveDetailsDto
@@ -52,19 +44,19 @@ const PlanningIntervalObjectiveFacts = ({
 
         {objective.startDate && (
           <LabeledContent label="Start">
-            {formatDate(objective.startDate)}
+            {formatCalendarDate(objective.startDate)}
           </LabeledContent>
         )}
 
         {objective.targetDate && (
           <LabeledContent label="Target">
-            {formatDate(objective.targetDate)}
+            {formatCalendarDate(objective.targetDate)}
           </LabeledContent>
         )}
 
         {objective.closedDate && (
           <LabeledContent label="Closed">
-            {formatDate(objective.closedDate)}
+            {dayjs(objective.closedDate).format('MMM D, YYYY')}
           </LabeledContent>
         )}
 

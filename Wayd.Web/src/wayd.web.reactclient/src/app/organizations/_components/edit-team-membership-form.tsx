@@ -6,10 +6,15 @@ import {
   TeamMembershipDto,
   UpdateTeamMembershipRequest,
 } from '@/src/services/wayd-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { useUpdateTeamMembershipMutation } from '@/src/store/features/organizations/team-api'
 import { TeamTypeName } from '../types'
-import dayjs, { type Dayjs } from 'dayjs'
+import { type Dayjs } from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 
@@ -40,7 +45,7 @@ const mapToRequestValues = (
     teamId: originalMembership.child.id,
     start: values.start?.format('YYYY-MM-DD'),
     end: values.end?.format('YYYY-MM-DD'),
-  } as unknown as UpdateTeamMembershipRequest
+  } as UpdateTeamMembershipRequest
   return {
     membership,
     parentTeamId: originalMembership.parent.id,
@@ -92,8 +97,8 @@ const EditTeamMembershipForm = ({
   useEffect(() => {
     if (!membership) return
     form.setFieldsValue({
-      start: membership.start ? dayjs(membership.start) : undefined,
-      end: membership.end ? dayjs(membership.end) : undefined,
+      start: membership.start ? parseCalendarDate(membership.start) : undefined,
+      end: membership.end ? parseCalendarDate(membership.end) : undefined,
     })
   }, [membership, form])
 

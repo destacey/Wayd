@@ -69,8 +69,8 @@ const mkPi = (
   id: 'pi-1',
   key: 7,
   name: '2026 PI 1',
-  start: new Date('2026-01-01') as unknown as Date,
-  end: new Date('2026-04-01') as unknown as Date,
+  start: '2026-01-01',
+  end: '2026-04-01',
   state: { id: overrides.stateId ?? ACTIVE, name: 'Active' },
   predictability: overrides.predictability ?? 0,
   // unused fields for the component
@@ -171,7 +171,9 @@ describe('PlanningIntervalAtAGlance', () => {
     )
 
     const objectivesCard = screen.getByText('Objectives').closest('.ant-card')!
-    expect(within(objectivesCard as HTMLElement).getByText('3')).toBeInTheDocument()
+    expect(
+      within(objectivesCard as HTMLElement).getByText('3'),
+    ).toBeInTheDocument()
     expect(
       within(objectivesCard as HTMLElement).getByLabelText('Regular')
         .nextSibling?.textContent,
@@ -316,4 +318,3 @@ describe('PlanningIntervalAtAGlance', () => {
     ).not.toBeInTheDocument()
   })
 })
-

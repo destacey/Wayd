@@ -11,8 +11,11 @@ import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-he
 import { LifecycleCategory } from '@/src/components/types'
 import { ProjectListDto, ProjectStageListDto } from '@/src/services/wayd-api'
 import {
+  CalendarDate,
+  formatCalendarDate,
   getLifecycleCategoryColor,
   getLifecycleCategoryColorFromStatus,
+  parseCalendarDate,
 } from '@/src/utils'
 import type { SemanticColorTokens } from '@/src/utils/color-helper'
 import { Flex, theme } from 'antd'
@@ -45,8 +48,8 @@ interface BarPayload {
 
 type Token = SemanticColorTokens
 
-const ms = (d: Date) => dayjs(d).valueOf()
-const fmt = (d: Date) => dayjs(d).format('MMM D, YYYY')
+const ms = (d: CalendarDate) => parseCalendarDate(d).valueOf()
+const fmt = (d: CalendarDate) => formatCalendarDate(d)
 
 /**
  * A stage's status as a lifecycle category, so stage bars take the same

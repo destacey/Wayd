@@ -79,7 +79,7 @@ const groups: ProjectGroup[] = [
             progress: 40,
           },
         ],
-        end: new Date(2026, 9, 5),
+        end: '2026-10-05',
         currentScore: { value: 72.456 } as ProjectListDto['currentScore'],
       }),
       project({ key: 'P2', name: 'Project Beta' }),

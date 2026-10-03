@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import SprintFacts from './sprint-facts'
+import { SprintDetailsDto } from '@/src/services/wayd-api'
 
 jest.unmock('dayjs')
 jest.mock('@/src/components/common/links/links-card', () => {
@@ -7,17 +8,15 @@ jest.mock('@/src/components/common/links/links-card', () => {
   return LinksCard
 })
 
-// The generated client types dates as Date, but the payload is never
-// revived: a planned date arrives as the calendar-date string the API sends.
-const sprint = {
+const sprint: SprintDetailsDto = {
   id: 'sprint-1',
   key: 21439,
   name: '26.3.2',
-  state: { id: '2', name: 'Active' },
+  state: { id: 2, name: 'Active' },
   start: '2026-08-17',
   end: '2026-08-30',
-  team: { id: 't1', key: 14, name: 'Core Services', type: 'Team' },
-} as any
+  team: { id: 't1', key: 14, name: 'Core Services', code: 'CS', type: 'Team' },
+}
 
 describe('SprintFacts', () => {
   it('renders the boundaries as the calendar dates they are', () => {

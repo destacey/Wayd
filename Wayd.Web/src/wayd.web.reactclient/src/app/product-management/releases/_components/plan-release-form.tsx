@@ -53,14 +53,16 @@ const PlanReleaseForm = ({
             version: values.version,
             name: values.name,
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
-          } as unknown as PlanReleaseRequest
+          } as PlanReleaseRequest
 
           const response = await planRelease(request)
           if (response.error) throw response.error
 
           const { key } = response.data!
 
-          messageApi.success(`Release created successfully. Release key: ${key}`)
+          messageApi.success(
+            `Release created successfully. Release key: ${key}`,
+          )
           return true
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
@@ -100,7 +102,9 @@ const PlanReleaseForm = ({
         size="small"
         layout="vertical"
         name="plan-release-form"
-        initialValues={defaultProductId ? { productId: defaultProductId } : undefined}
+        initialValues={
+          defaultProductId ? { productId: defaultProductId } : undefined
+        }
       >
         <Item
           label="Product"
@@ -123,7 +127,9 @@ const PlanReleaseForm = ({
         <Item
           label="Name"
           name="name"
-          rules={[{ max: 128, message: 'Name cannot be longer than 128 characters' }]}
+          rules={[
+            { max: 128, message: 'Name cannot be longer than 128 characters' },
+          ]}
         >
           <Input />
         </Item>

@@ -2,29 +2,29 @@
 
 import { useGetPlanningIntervalIterationsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { Card, Flex, Skeleton, Typography } from 'antd'
-import dayjs from 'dayjs'
+import {
+  calendarDaysBetween,
+  CalendarDate,
+  compareCalendarDates,
+  formatCalendarDate,
+} from '@/src/utils'
 import Link from 'next/link'
 import IterationHealthFlag from './iteration-health-flag'
 
 const { Text } = Typography
 
-const formatRange = (start: Date, end: Date) => {
-  const startD = dayjs(start)
-  const endD = dayjs(end)
-  const sameYear = startD.isSame(endD, 'year')
+const formatRange = (start: CalendarDate, end: CalendarDate) => {
+  const sameYear = start.slice(0, 4) === end.slice(0, 4)
   const format = sameYear ? 'MMM D' : 'MMM D, YYYY'
-  return `${startD.format(format)} – ${endD.format('MMM D, YYYY')}`
+  return `${formatCalendarDate(start, format)} – ${formatCalendarDate(end)}`
 }
 
 // Inclusive day counts so an iteration that starts and ends on the same day
 // reads as "Day 1 / 1" rather than "Day 0 / 0".
-const activeDayInfo = (start: Date, end: Date) => {
-  const startD = dayjs(start).startOf('day')
-  const endD = dayjs(end).startOf('day')
-  const today = dayjs(new Date()).startOf('day')
-  const totalDays = endD.diff(startD, 'day') + 1
+const activeDayInfo = (start: CalendarDate, end: CalendarDate) => {
+  const totalDays = calendarDaysBetween(start, end) + 1
   const currentDay = Math.min(
-    Math.max(today.diff(startD, 'day') + 1, 1),
+    Math.max(calendarDaysBetween(start, new Date()) + 1, 1),
     totalDays,
   )
   return { currentDay, totalDays }
@@ -42,8 +42,8 @@ const IterationCards = ({ piKey }: { piKey: number }) => {
     return null
   }
 
-  const ordered = [...iterations].sort(
-    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+  const ordered = [...iterations].sort((a, b) =>
+    compareCalendarDates(a.start, b.start),
   )
 
   return (
@@ -122,4 +122,3 @@ const IterationCards = ({ piKey }: { piKey: number }) => {
 }
 
 export default IterationCards
-

@@ -43,7 +43,7 @@ const MarkVersionReleasedForm = ({
           const request = {
             id: version.id,
             releasedAt: values.releasedAt.toDate(),
-          } as unknown as MarkVersionReleasedRequest
+          } as MarkVersionReleasedRequest
 
           const response = await markReleased({
             id: version.id,

@@ -14,6 +14,7 @@ import { Divider, Flex } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 import ProjectScoreCard from '@/src/app/ppm/projects/_components/scoring/project-score-card'
+import { parseCalendarDate } from '@/src/utils'
 import RecordRoleList from '../../../_components/record-role-list'
 
 export interface ProjectFactsProps {
@@ -38,12 +39,12 @@ const ProjectFacts = ({ project }: ProjectFactsProps) => {
   )
 
   const hasStarted =
-    project.start && dayjs(project.start).isBefore(dayjs(), 'day')
+    project.start && parseCalendarDate(project.start).isBefore(dayjs(), 'day')
 
   const timelineFormat =
     project.start &&
     project.end &&
-    new Date(project.start).getFullYear() === new Date().getFullYear()
+    parseCalendarDate(project.start).isSame(dayjs(), 'year')
       ? 'MMM D'
       : 'MMM D, YYYY'
 
@@ -52,7 +53,10 @@ const ProjectFacts = ({ project }: ProjectFactsProps) => {
       <Flex vertical gap={10}>
         <LabeledContent label="Dates">
           <WaydDateRange
-            dateRange={{ start: project.start, end: project.end }}
+            dateRange={{
+              start: project.start,
+              end: project.end,
+            }}
           />
         </LabeledContent>
 

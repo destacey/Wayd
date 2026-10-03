@@ -35,7 +35,10 @@ const ProgramFacts = ({ program }: ProgramFactsProps) => {
       <Flex vertical gap={10}>
         <LabeledContent label="Dates">
           <WaydDateRange
-            dateRange={{ start: program.start, end: program.end }}
+            dateRange={{
+              start: program.start,
+              end: program.end,
+            }}
           />
         </LabeledContent>
 

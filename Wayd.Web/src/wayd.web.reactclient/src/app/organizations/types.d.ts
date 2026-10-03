@@ -1,3 +1,4 @@
+import type { Dayjs } from 'dayjs'
 import { TeamNavigationDto } from '@/src/services/wayd-api'
 
 export interface TeamListItem extends TeamNavigationDto {
@@ -11,7 +12,7 @@ export interface CreateTeamFormValues {
   name: string
   code: string
   description: string
-  activeDate: Date
+  activeDate: Dayjs
 }
 
 export interface EditTeamFormValues {

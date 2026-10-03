@@ -5,14 +5,15 @@ import {
   calculateIterationHealth,
   IterationHealthStatus,
 } from '@/src/utils/iteration-health'
+import { CalendarDate } from '@/src/utils/calendar-date'
 import { Progress } from 'antd'
 import { FC } from 'react'
 
 export interface IterationProgressBarProps {
   /** Start date of the iteration */
-  startDate: Date
+  startDate: CalendarDate
   /** End date of the iteration */
-  endDate: Date
+  endDate: CalendarDate
   /** Total planned points/items */
   total: number
   /** Completed points/items */

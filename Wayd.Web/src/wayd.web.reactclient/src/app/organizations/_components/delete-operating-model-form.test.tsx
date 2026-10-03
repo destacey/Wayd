@@ -30,17 +30,17 @@ jest.mock('@/src/components/contexts/auth', () => ({
 }))
 
 const current = {
-  start: new Date(2025, 6, 1),
+  start: '2025-07-01',
   timeZone: 'America/Chicago',
   isCurrent: true,
 }
 const previous = {
-  start: new Date(2025, 0, 1),
+  start: '2025-01-01',
   timeZone: 'UTC',
   isCurrent: false,
 }
 const oldest = {
-  start: new Date(2024, 0, 1),
+  start: '2024-01-01',
   timeZone: 'Europe/London',
   isCurrent: false,
 }

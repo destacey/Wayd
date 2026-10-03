@@ -5,17 +5,20 @@ import {
   calculateIterationHealth,
   IterationHealthStatus,
 } from '@/src/utils/iteration-health'
+import { CalendarDate } from '@/src/utils/calendar-date'
 import { FlagFilled } from '@ant-design/icons'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 
 interface IterationHealthFlagProps {
   piKey: number
   iterationKey: number
-  start: Date
-  end: Date
+  start: CalendarDate
+  end: CalendarDate
 }
 
-const statusToColorVar = (status: IterationHealthStatus): string | undefined => {
+const statusToColorVar = (
+  status: IterationHealthStatus,
+): string | undefined => {
   switch (status) {
     case IterationHealthStatus.OnTrack:
     case IterationHealthStatus.Completed:

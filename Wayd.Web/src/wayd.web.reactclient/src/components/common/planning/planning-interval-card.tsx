@@ -1,9 +1,8 @@
 'use client'
 
 import { PlanningIntervalListDto } from '@/src/services/wayd-api'
-import { daysRemaining } from '@/src/utils'
+import { daysRemaining, formatCalendarDate } from '@/src/utils'
 import { Card, Space, Typography } from 'antd'
-import dayjs from 'dayjs'
 import Link from 'next/link'
 import { IterationState } from '../../types'
 import { useGetPlanningIntervalIterationsQuery } from '@/src/store/features/planning/planning-interval-api'
@@ -51,9 +50,9 @@ const PlanningIntervalCard = ({
     <Card size="small" title={planningInterval.name}>
       <Space vertical>
         <Space wrap>
-          {dayjs(planningInterval.start).format('MMM D, YYYY')}
+          {formatCalendarDate(planningInterval.start)}
           <Text type="secondary"> - </Text>
-          {dayjs(planningInterval.end).format('MMM D, YYYY')}
+          {formatCalendarDate(planningInterval.end)}
           <DaysCountdownLabel planningInterval={planningInterval} />
         </Space>
         <Space>

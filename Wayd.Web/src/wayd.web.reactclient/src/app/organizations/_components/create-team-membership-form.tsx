@@ -37,7 +37,7 @@ const mapToRequestValues = (
     parentTeamId: values.parentTeamId,
     start: values.start?.format('YYYY-MM-DD'),
     end: values.end?.format('YYYY-MM-DD'),
-  } as unknown as AddTeamMembershipRequest
+  } as AddTeamMembershipRequest
   return { membership, teamType }
 }
 

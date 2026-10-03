@@ -35,12 +35,7 @@ export const ROADMAP_STATE = {
 } as const
 
 // Walks the roadmap-items tree (children live under activities) and mutates
-// the item whose id matches the date-update request. The NSwag-generated client
-// types these fields as `Date` but does not convert them — `processGetItems`
-// returns raw JSON, so date fields are actually ISO strings at runtime. Write
-// strings here to match the post-refetch shape; downstream consumers parse with
-// dayjs() which accepts both. (Storing Dates would also trip the Redux
-// serializability check on the patch action.)
+// the item whose id matches the date-update request.
 function applyOptimisticDates(
   items: RoadmapItemListDto[] | undefined,
   request:
@@ -52,15 +47,15 @@ function applyOptimisticDates(
   for (const item of items) {
     if (item.id === request.itemId) {
       if ('date' in request && request.date !== undefined) {
-        ;(item as RoadmapMilestoneListDto).date = toIsoDateString(request.date)
+        ;(item as RoadmapMilestoneListDto).date = request.date
       }
       if ('start' in request && request.start !== undefined) {
         ;(item as RoadmapActivityListDto | RoadmapTimeboxListDto).start =
-          toIsoDateString(request.start)
+          request.start
       }
       if ('end' in request && request.end !== undefined) {
         ;(item as RoadmapActivityListDto | RoadmapTimeboxListDto).end =
-          toIsoDateString(request.end)
+          request.end
       }
       return true
     }
@@ -70,17 +65,6 @@ function applyOptimisticDates(
     }
   }
   return false
-}
-
-// The DTO fields are typed as `Date` but at runtime hold ISO strings. The
-// request may carry either a real Date (rare) or a YYYY-MM-DD string cast to
-// Date by the timeline consumer. Normalize to a string dayjs can parse, and
-// cast back to `Date` to satisfy the DTO type.
-function toIsoDateString(value: Date | string): Date {
-  if (typeof value === 'string') return value as unknown as Date
-  if (value instanceof Date)
-    return value.toISOString() as unknown as Date
-  return value
 }
 
 export const roadmapApi = apiSlice.injectEndpoints({
@@ -178,7 +162,10 @@ export const roadmapApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ roadmapId, request }) => {
         try {
-          const data = await getRoadmapsClient().updateColors(roadmapId, request)
+          const data = await getRoadmapsClient().updateColors(
+            roadmapId,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -463,10 +450,7 @@ export const roadmapApi = apiSlice.injectEndpoints({
         ]
       },
     }),
-    archiveRoadmap: builder.mutation<
-      void,
-      { id: string; cacheKey: number }
-    >({
+    archiveRoadmap: builder.mutation<void, { id: string; cacheKey: number }>({
       queryFn: async ({ id }) => {
         try {
           const data = await getRoadmapsClient().archive(id)
@@ -481,10 +465,7 @@ export const roadmapApi = apiSlice.injectEndpoints({
         { type: QueryTags.Roadmap, id: cacheKey },
       ],
     }),
-    activateRoadmap: builder.mutation<
-      void,
-      { id: string; cacheKey: number }
-    >({
+    activateRoadmap: builder.mutation<void, { id: string; cacheKey: number }>({
       queryFn: async ({ id }) => {
         try {
           const data = await getRoadmapsClient().activate(id)

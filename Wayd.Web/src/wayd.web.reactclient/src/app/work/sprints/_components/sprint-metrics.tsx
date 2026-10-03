@@ -75,8 +75,8 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
     if (!isLoading && metrics && onHealthIndicatorReady) {
       onHealthIndicatorReady(
         <IterationHealthIndicator
-          startDate={new Date(sprint.start)}
-          endDate={new Date(sprint.end)}
+          startDate={sprint.start}
+          endDate={sprint.end}
           total={displayValues.total}
           completed={displayValues.completed}
         />,

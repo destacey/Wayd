@@ -5,16 +5,7 @@ import LinksCard from '@/src/components/common/links/links-card'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { PlanningIntervalDetailsDto } from '@/src/services/wayd-api'
 import { Divider, Flex } from 'antd'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-
-dayjs.extend(utc)
-
-/**
- * PI boundaries are UTC calendar dates. Formatting them in local time shifts
- * them a day for anyone behind UTC — the convention the sprints grid documents.
- */
-const formatDate = (value: Date) => dayjs.utc(value).format('MMM D, YYYY')
+import { calendarDaysBetween, formatCalendarDate } from '@/src/utils'
 
 export interface PlanningIntervalFactsProps {
   planningInterval: PlanningIntervalDetailsDto
@@ -31,17 +22,17 @@ const PlanningIntervalFacts = ({
 }: PlanningIntervalFactsProps) => {
   // Inclusive of both endpoints: a PI running the 5th to the 18th is 14 days.
   const days =
-    dayjs.utc(planningInterval.end).diff(dayjs.utc(planningInterval.start), 'day') + 1
+    calendarDaysBetween(planningInterval.start, planningInterval.end) + 1
 
   return (
     <>
       <Flex vertical gap={10}>
         <LabeledContent label="Start">
-          {formatDate(planningInterval.start)}
+          {formatCalendarDate(planningInterval.start)}
         </LabeledContent>
 
         <LabeledContent label="End">
-          {formatDate(planningInterval.end)}
+          {formatCalendarDate(planningInterval.end)}
         </LabeledContent>
 
         {days > 0 && (

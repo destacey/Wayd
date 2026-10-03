@@ -1,13 +1,15 @@
 'use client'
 
 import { MoreOutlined, PlusOutlined } from '@ant-design/icons'
-import {
-  LabeledContent,
-} from '@/src/components/common/content'
+import { LabeledContent } from '@/src/components/common/content'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useGetProjectTaskQuery } from '@/src/store/features/ppm/project-tasks-api'
-import { getDrawerWidthPixels, isApiError } from '@/src/utils'
+import {
+  formatCalendarDate,
+  getDrawerWidthPixels,
+  isApiError,
+} from '@/src/utils'
 import { Button, Divider, Drawer, Dropdown, Flex } from 'antd'
 import Link from 'next/link'
 import { FC, useEffect, useState } from 'react'
@@ -23,15 +25,6 @@ export interface ProjectPlanItemDrawerProps {
   onDeleteTask: (taskId: string) => void
   onAddChildTask: (taskId: string) => void
 }
-
-const formatDate = (value?: Date) =>
-  value
-    ? new Date(value).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : ''
 
 const ProjectPlanItemDrawer: FC<ProjectPlanItemDrawerProps> = ({
   projectKey,
@@ -112,23 +105,29 @@ const ProjectPlanItemDrawer: FC<ProjectPlanItemDrawerProps> = ({
     >
       <Flex vertical gap={10}>
         <LabeledContent label="Key">{taskData?.key ?? '-'}</LabeledContent>
-        <LabeledContent label="Type">{taskData?.type?.name ?? '-'}</LabeledContent>
-        <LabeledContent label="Status">{taskData?.status?.name ?? '-'}</LabeledContent>
-        <LabeledContent label="Priority">{taskData?.priority?.name ?? '-'}</LabeledContent>
+        <LabeledContent label="Type">
+          {taskData?.type?.name ?? '-'}
+        </LabeledContent>
+        <LabeledContent label="Status">
+          {taskData?.status?.name ?? '-'}
+        </LabeledContent>
+        <LabeledContent label="Priority">
+          {taskData?.priority?.name ?? '-'}
+        </LabeledContent>
         <LabeledContent label="Progress">
           {taskData?.progress !== undefined ? `${taskData.progress}%` : '-'}
         </LabeledContent>
         {isMilestone ? (
           <LabeledContent label="Planned Date">
-            {formatDate(taskData?.plannedDate) || '-'}
+            {formatCalendarDate(taskData?.plannedDate) || '-'}
           </LabeledContent>
         ) : (
           <>
             <LabeledContent label="Planned Start">
-              {formatDate(taskData?.plannedStart) || '-'}
+              {formatCalendarDate(taskData?.plannedStart) || '-'}
             </LabeledContent>
             <LabeledContent label="Planned End">
-              {formatDate(taskData?.plannedEnd) || '-'}
+              {formatCalendarDate(taskData?.plannedEnd) || '-'}
             </LabeledContent>
           </>
         )}

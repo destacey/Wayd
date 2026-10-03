@@ -28,8 +28,8 @@ const createPlanningInterval = (overrides: Record<string, unknown> = {}) =>
     id: 'pi-1',
     key: 42,
     name: '23.4',
-    start: new Date('2026-01-01'),
-    end: new Date('2026-03-31'),
+    start: '2026-01-01',
+    end: '2026-03-31',
     state: { id: IterationState.Active, name: 'Active' },
     ...overrides,
   }) as any
@@ -81,4 +81,3 @@ describe('PlanningIntervalCard', () => {
     )
   })
 })
-

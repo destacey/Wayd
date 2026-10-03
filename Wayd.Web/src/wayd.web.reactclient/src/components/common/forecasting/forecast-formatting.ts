@@ -1,17 +1,14 @@
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
+import {
+  CalendarDate,
+  compareCalendarDates,
+  formatCalendarDate,
+} from '@/src/utils/calendar-date'
 
-dayjs.extend(utc)
+export const formatForecastDate = (value: CalendarDate) =>
+  formatCalendarDate(value)
 
-/**
- * Forecast dates are UTC calendar dates; formatting them in local time would
- * shift them a day for anyone behind UTC.
- */
-export const formatForecastDate = (value: Date | string) =>
-  dayjs.utc(value).format('MMM D, YYYY')
-
-export const formatShortForecastDate = (value: Date | string) =>
-  dayjs.utc(value).format('MMM D')
+export const formatShortForecastDate = (value: CalendarDate) =>
+  formatCalendarDate(value, 'MMM D')
 
 export const formatPercent = (share: number) => `${Math.round(share * 100)}%`
 
@@ -22,14 +19,13 @@ export const formatPercent = (share: number) => `${Math.round(share * 100)}%`
  * beyond the horizon count against it through `trials`.
  */
 export const chanceOfFinishingBy = (
-  histogram: { date: Date | string; trials: number }[],
+  histogram: { date: CalendarDate; trials: number }[],
   trials: number,
-  targetDate: Date | string,
+  targetDate: CalendarDate,
 ): number => {
   if (trials === 0) return 0
-  const target = dayjs.utc(targetDate)
   const finished = histogram
-    .filter((bucket) => !dayjs.utc(bucket.date).isAfter(target, 'day'))
+    .filter((bucket) => compareCalendarDates(bucket.date, targetDate) <= 0)
     .reduce((sum, bucket) => sum + bucket.trials, 0)
   return finished / trials
 }

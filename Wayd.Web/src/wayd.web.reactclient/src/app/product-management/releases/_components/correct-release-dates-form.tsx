@@ -4,9 +4,14 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { CorrectReleaseDatesRequest, ReleaseDto } from '@/src/services/wayd-api'
 import { useCorrectReleaseDatesMutation } from '@/src/store/features/product-management/releases-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal } from 'antd'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
 
 const { Item } = Form
 
@@ -50,7 +55,7 @@ const CorrectReleaseDatesForm = ({
           const request = {
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
             releasedDate: values.releasedDate?.format('YYYY-MM-DD'),
-          } as unknown as CorrectReleaseDatesRequest
+          } as CorrectReleaseDatesRequest
 
           const response = await correctReleaseDates({
             id: release.id,
@@ -106,9 +111,11 @@ const CorrectReleaseDatesForm = ({
           layout="vertical"
           name="correct-release-dates-form"
           initialValues={{
-            targetDate: release.targetDate ? dayjs(release.targetDate) : undefined,
+            targetDate: release.targetDate
+              ? parseCalendarDate(release.targetDate)
+              : undefined,
             releasedDate: release.releasedDate
-              ? dayjs(release.releasedDate)
+              ? parseCalendarDate(release.releasedDate)
               : undefined,
           }}
         >

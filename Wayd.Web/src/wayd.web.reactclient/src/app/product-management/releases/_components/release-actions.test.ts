@@ -24,7 +24,7 @@ const planned = () => release()
 
 const announced = () =>
   release({
-    releasedDate: '2026-07-31' as unknown as Date,
+    releasedDate: '2026-07-31',
     status: {
       id: 's',
       name: 'Released',

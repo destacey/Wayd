@@ -4,6 +4,7 @@ import {
   InteractionStyle,
   ProductDependencyDto,
 } from '@/src/services/wayd-api'
+import { todayCalendarDate } from '@/src/utils'
 import ChangeProductDependencyTermsForm from './change-product-dependency-terms-form'
 
 jest.unmock('dayjs')
@@ -63,7 +64,7 @@ const dependency = {
   product: { id: 'web', key: 2, name: 'Storefront Web' },
   dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
   strength: DependencyStrength.Soft,
-  startsOn: new Date('2026-03-01T00:00:00Z'),
+  startsOn: '2026-03-01',
 } as ProductDependencyDto
 
 const submit = async () => {
@@ -136,7 +137,7 @@ describe('ChangeProductDependencyTermsForm', () => {
   it('lets a dependency started today record its styles, since that changes nothing', async () => {
     // Arrange — a real change would have to end the dependency the day before it started, but recording
     // styles keeps one period, so the day-after rule does not apply
-    const startedToday = { ...dependency, startsOn: new Date() }
+    const startedToday = { ...dependency, startsOn: todayCalendarDate() }
 
     render(
       <ChangeProductDependencyTermsForm
@@ -183,7 +184,7 @@ describe('ChangeProductDependencyTermsForm', () => {
 
   it('explains that a dependency started today cannot change terms until tomorrow', async () => {
     // Arrange — the current dependency would have to end the day before it started
-    const startedToday = { ...dependency, startsOn: new Date() }
+    const startedToday = { ...dependency, startsOn: todayCalendarDate() }
 
     // Act
     render(

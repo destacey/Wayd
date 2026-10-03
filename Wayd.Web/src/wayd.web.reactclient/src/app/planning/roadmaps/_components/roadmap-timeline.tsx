@@ -9,7 +9,6 @@
 // timebox   -> kind 'background' (chart-wide band for now)
 
 import { FC, ReactNode, useState } from 'react'
-import dayjs from 'dayjs'
 import {
   RoadmapActivityListDto,
   RoadmapDetailsDto,
@@ -25,7 +24,14 @@ import type {
 } from '@/src/components/common/timeline'
 import { useUpdateRoadmapItemDatesMutation } from '@/src/store/features/planning/roadmaps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { isApiError, type ApiError } from '@/src/utils'
+import {
+  CalendarDate,
+  formatCalendarDate,
+  isApiError,
+  parseCalendarDate,
+  toCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import RoadmapColorLegend from './roadmap-color-legend'
 
 export interface RoadmapTimelineProps {
@@ -44,16 +50,14 @@ enum RoadmapItemType {
   Timebox = 'timebox',
 }
 
-const ms = (d: unknown) => dayjs(d as string).valueOf()
-const formatTooltipDate = (d: unknown) =>
-  dayjs(d as string).format('MMM D, YYYY')
+const ms = (d: CalendarDate) => parseCalendarDate(d).valueOf()
 const formatRangeTooltip = (
   name: string | undefined,
-  start: unknown,
-  end: unknown,
-) => `${name ?? ''}\n${formatTooltipDate(start)} - ${formatTooltipDate(end)}`
-const formatDateTooltip = (name: string | undefined, date: unknown) =>
-  `${name ?? ''}\n${formatTooltipDate(date)}`
+  start: CalendarDate,
+  end: CalendarDate,
+) => `${name ?? ''}\n${formatCalendarDate(start)} - ${formatCalendarDate(end)}`
+const formatDateTooltip = (name: string | undefined, date: CalendarDate) =>
+  `${name ?? ''}\n${formatCalendarDate(date)}`
 
 interface RoadmapPayload {
   dto: RoadmapItemListDto
@@ -227,8 +231,8 @@ const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
         $type: dto.$type,
         roadmapId: dto.roadmapId,
         itemId: change.id,
-        start: dayjs(change.start).format('YYYY-MM-DD') as unknown as Date,
-        end: dayjs(change.end).format('YYYY-MM-DD') as unknown as Date,
+        start: toCalendarDate(new Date(change.start)),
+        end: toCalendarDate(new Date(change.end)),
       })
       if ('error' in response && response.error) throw response.error
     } catch (error) {

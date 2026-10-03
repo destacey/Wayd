@@ -49,7 +49,7 @@ const MarkReleaseReleasedForm = ({
         try {
           const request = {
             releasedDate: values.releasedDate.format('YYYY-MM-DD'),
-          } as unknown as MarkReleaseReleasedRequest
+          } as MarkReleaseReleasedRequest
 
           const response = await markReleased({
             id: release.id,

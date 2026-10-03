@@ -2,12 +2,13 @@ import {
   calculateIterationHealth,
   IterationHealthStatus,
 } from './iteration-health'
+import { toCalendarDate } from './calendar-date'
 
 describe('calculateIterationHealth', () => {
   // Base sprint: 40 SP, 14 days (Jan 1-14)
   const baseParams = {
-    startDate: new Date('2024-01-01'),
-    endDate: new Date('2024-01-15'), // 14 days total
+    startDate: '2024-01-01',
+    endDate: '2024-01-15', // 14 days total
     total: 40,
   }
 
@@ -17,7 +18,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 30,
-        referenceDate: new Date('2024-01-11'), // Day 10
+        referenceDate: '2024-01-11', // Day 10
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -29,7 +30,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 20,
-        referenceDate: new Date('2024-01-08'), // Day 7
+        referenceDate: '2024-01-08', // Day 7
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -43,7 +44,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 26,
-        referenceDate: new Date('2024-01-11'),
+        referenceDate: '2024-01-11',
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -59,7 +60,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 24,
-        referenceDate: new Date('2024-01-11'),
+        referenceDate: '2024-01-11',
       })
 
       expect(result.status).toBe(IterationHealthStatus.AtRisk)
@@ -76,7 +77,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 18,
-        referenceDate: new Date('2024-01-11'),
+        referenceDate: '2024-01-11',
       })
 
       expect(result.status).toBe(IterationHealthStatus.OffTrack)
@@ -88,7 +89,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 0,
-        referenceDate: new Date('2024-01-13'),
+        referenceDate: '2024-01-13',
       })
 
       expect(result.status).toBe(IterationHealthStatus.OffTrack)
@@ -101,7 +102,7 @@ describe('calculateIterationHealth', () => {
         ...baseParams,
         total: 0,
         completed: 0,
-        referenceDate: new Date('2024-01-08'),
+        referenceDate: '2024-01-08',
       })
 
       expect(result.status).toBe(IterationHealthStatus.Unknown)
@@ -112,7 +113,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 0,
-        referenceDate: new Date('2023-12-31'), // Before start
+        referenceDate: '2023-12-31', // Before start
       })
 
       expect(result.status).toBe(IterationHealthStatus.NotStarted)
@@ -122,7 +123,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 32,
-        referenceDate: new Date('2024-01-20'), // After end
+        referenceDate: '2024-01-20', // After end
       })
 
       expect(result.status).toBe(IterationHealthStatus.Completed)
@@ -132,7 +133,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 40,
-        referenceDate: new Date('2024-01-11'),
+        referenceDate: '2024-01-11',
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -142,8 +143,8 @@ describe('calculateIterationHealth', () => {
     it('should use current date when referenceDate not provided', () => {
       // This test just ensures no error is thrown
       const result = calculateIterationHealth({
-        startDate: new Date(Date.now() - 7 * 24 * 3600 * 1000), // 7 days ago
-        endDate: new Date(Date.now() + 7 * 24 * 3600 * 1000), // 7 days from now
+        startDate: toCalendarDate(new Date(Date.now() - 7 * 24 * 3600 * 1000)),
+        endDate: toCalendarDate(new Date(Date.now() + 7 * 24 * 3600 * 1000)),
         total: 40,
         completed: 20,
       })

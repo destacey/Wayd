@@ -43,6 +43,7 @@ import {
   WorkItemBacklogItemDto,
 } from '@/src/services/wayd-api'
 import { OptionModel } from '@/src/components/types'
+import { CalendarDate, toCalendarDate } from '@/src/utils'
 
 export interface GetTeamBacklogHealthRequest {
   teamIdOrCode: string
@@ -64,6 +65,14 @@ export interface GetTeamAllocationRequest {
   unestimated: UnestimatedHandling
   themeCounting: ThemeCounting
 }
+
+/**
+ * The operating-model `asOfDate` parameters are bound as a `DateTime` and read
+ * as its UTC date, and the client sends `toISOString()`. UTC midnight of the
+ * day is the only instant that names the same day in every viewer's zone.
+ */
+const asOfDateParam = (asOfDate?: CalendarDate): Date | undefined =>
+  asOfDate ? new Date(`${asOfDate}T00:00:00Z`) : undefined
 
 export const teamApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -687,20 +696,13 @@ export const teamApi = apiSlice.injectEndpoints({
 
     getTeamOperatingModelAsOf: builder.query<
       TeamOperatingModelDetailsDto | null,
-      { teamId: string; asOfDate?: Date | string }
+      { teamId: string; asOfDate?: CalendarDate }
     >({
       queryFn: async ({ teamId, asOfDate }) => {
         try {
-          // Convert string to Date if needed
-          const date = asOfDate
-            ? asOfDate instanceof Date
-              ? asOfDate
-              : new Date(asOfDate)
-            : undefined
-
           const data = await getTeamsClient().getOperatingModelAsOf(
             teamId,
-            date,
+            asOfDateParam(asOfDate),
           )
           return { data }
         } catch (error: any) {
@@ -982,7 +984,7 @@ export const teamApi = apiSlice.injectEndpoints({
             newTeam.type === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
           const request = {
             ...newTeam,
-            activeDate: (newTeam.activeDate as any)?.format('YYYY-MM-DD'),
+            activeDate: toCalendarDate(newTeam.activeDate),
           }
           const created = await teamClient.create(request)
           const data = await teamClient.getById(created.key)
@@ -1033,20 +1035,13 @@ export const teamApi = apiSlice.injectEndpoints({
 
     getTeamOperatingModelsForTeams: builder.query<
       TeamOperatingModelDetailsDto[],
-      { teamIds: string[]; asOfDate?: Date | string }
+      { teamIds: string[]; asOfDate?: CalendarDate }
     >({
       queryFn: async ({ teamIds, asOfDate }) => {
         try {
-          // Convert string to Date if needed
-          const date = asOfDate
-            ? asOfDate instanceof Date
-              ? asOfDate
-              : new Date(asOfDate)
-            : undefined
-
           const data = await getTeamsClient().getOperatingModelsForTeams(
             teamIds,
-            date,
+            asOfDateParam(asOfDate),
           )
           return { data }
         } catch (error) {

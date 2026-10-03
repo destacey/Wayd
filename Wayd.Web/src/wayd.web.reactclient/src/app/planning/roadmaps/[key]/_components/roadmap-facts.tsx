@@ -9,19 +9,9 @@ import {
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { RoadmapDetailsDto } from '@/src/services/wayd-api'
 import { Divider, Flex, Typography } from 'antd'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-
-dayjs.extend(utc)
+import { formatCalendarDate } from '@/src/utils'
 
 const { Text } = Typography
-
-/**
- * Roadmap boundaries are UTC calendar dates. Formatting them in local time
- * shifts them a day for anyone behind UTC — the convention the sprints grid
- * documents.
- */
-const formatDate = (value: Date) => dayjs.utc(value).format('MMM D, YYYY')
 
 export interface RoadmapFactsProps {
   roadmap: RoadmapDetailsDto
@@ -43,10 +33,12 @@ const RoadmapFacts = ({ roadmap }: RoadmapFactsProps) => {
     <>
       <Flex vertical gap={10}>
         <LabeledContent label="Start">
-          {formatDate(roadmap.start)}
+          {formatCalendarDate(roadmap.start)}
         </LabeledContent>
 
-        <LabeledContent label="End">{formatDate(roadmap.end)}</LabeledContent>
+        <LabeledContent label="End">
+          {formatCalendarDate(roadmap.end)}
+        </LabeledContent>
 
         <LabeledContent label="Visibility">
           {roadmap.visibility?.name}

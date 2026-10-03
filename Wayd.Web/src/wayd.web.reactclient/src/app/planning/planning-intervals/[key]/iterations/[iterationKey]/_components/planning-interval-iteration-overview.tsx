@@ -88,8 +88,8 @@ const PlanningIntervalIterationOverview: FC<
     if (!isLoading && metrics && onHealthIndicatorReady) {
       onHealthIndicatorReady(
         <IterationHealthIndicator
-          startDate={new Date(iteration.start)}
-          endDate={new Date(iteration.end)}
+          startDate={iteration.start}
+          endDate={iteration.end}
           total={displayValues.total}
           completed={displayValues.completed}
         />,

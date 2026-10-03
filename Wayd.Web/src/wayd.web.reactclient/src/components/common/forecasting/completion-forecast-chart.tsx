@@ -2,8 +2,7 @@
 
 import { ColumnConfig } from '@ant-design/charts'
 import { WorkItemForecastDto } from '@/src/services/wayd-api'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
+import { CalendarDate, compareCalendarDates } from '@/src/utils/calendar-date'
 import dynamic from 'next/dynamic'
 import { FC } from 'react'
 import useTheme from '../../contexts/theme'
@@ -13,8 +12,6 @@ import {
   formatShortForecastDate,
 } from './forecast-formatting'
 
-dayjs.extend(utc)
-
 const Column = dynamic(
   () => import('@ant-design/charts').then((mod) => mod.Column) as any,
   { ssr: false },
@@ -23,7 +20,7 @@ const Column = dynamic(
 export interface CompletionForecastChartProps {
   forecast: WorkItemForecastDto
   /** The date the report measures against, when there is one. */
-  targetDate?: Date | string
+  targetDate?: CalendarDate
 }
 
 interface ChartDatum {
@@ -41,17 +38,14 @@ interface ChartDatum {
  */
 const CompletionForecastChart: FC<CompletionForecastChartProps> = ({
   forecast,
-  targetDate: target,
+  targetDate,
 }) => {
   const { antDesignChartsTheme, token } = useTheme()
 
-  const targetDate = target ? dayjs.utc(target) : undefined
-
   const data = [...forecast.histogram]
-    .sort((a, b) => dayjs.utc(a.date).diff(dayjs.utc(b.date)))
+    .sort((a, b) => compareCalendarDates(a.date, b.date))
     .reduce<ChartDatum[]>((points, bucket) => {
       const share = bucket.trials / forecast.trials
-      const date = dayjs.utc(bucket.date)
       return [
         ...points,
         {
@@ -59,7 +53,8 @@ const CompletionForecastChart: FC<CompletionForecastChartProps> = ({
           date: formatForecastDate(bucket.date),
           share: share * 100,
           cumulative: (points.at(-1)?.cumulative ?? 0) + share,
-          byTargetDate: !targetDate || !date.isAfter(targetDate, 'day'),
+          byTargetDate:
+            !targetDate || compareCalendarDates(bucket.date, targetDate) <= 0,
         },
       ]
     }, [])

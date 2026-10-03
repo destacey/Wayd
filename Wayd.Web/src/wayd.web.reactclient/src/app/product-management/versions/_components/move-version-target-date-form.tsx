@@ -2,11 +2,19 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { MoveVersionTargetDateRequest, VersionDto } from '@/src/services/wayd-api'
+import {
+  MoveVersionTargetDateRequest,
+  VersionDto,
+} from '@/src/services/wayd-api'
 import { useMoveVersionTargetDateMutation } from '@/src/store/features/product-management/versions-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
 
 const { Item } = Form
 
@@ -44,9 +52,13 @@ const MoveVersionTargetDateForm = ({
             targetDate: values.targetDate
               ? values.targetDate.format('YYYY-MM-DD')
               : undefined,
-          } as unknown as MoveVersionTargetDateRequest
+          } as MoveVersionTargetDateRequest
 
-          const response = await moveTargetDate({ id: version.id, cacheKey: version.key, request })
+          const response = await moveTargetDate({
+            id: version.id,
+            cacheKey: version.key,
+            request,
+          })
           if (response.error) throw response.error
 
           messageApi.success(
@@ -91,7 +103,9 @@ const MoveVersionTargetDateForm = ({
         layout="vertical"
         name="move-version-target-date-form"
         initialValues={{
-          targetDate: version.targetDate ? dayjs(version.targetDate) : null,
+          targetDate: version.targetDate
+            ? parseCalendarDate(version.targetDate)
+            : null,
         }}
       >
         <Item

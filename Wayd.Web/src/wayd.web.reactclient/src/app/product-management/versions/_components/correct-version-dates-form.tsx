@@ -4,7 +4,12 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { CorrectVersionDatesRequest, VersionDto } from '@/src/services/wayd-api'
 import { useCorrectVersionDatesMutation } from '@/src/store/features/product-management/versions-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 
@@ -57,7 +62,7 @@ const CorrectVersionDatesForm = ({
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
             cutAt: values.cutAt?.toDate(),
             releasedAt: values.releasedAt?.toDate(),
-          } as unknown as CorrectVersionDatesRequest
+          } as CorrectVersionDatesRequest
 
           const response = await correctVersionDates({
             id: version.id,
@@ -116,7 +121,7 @@ const CorrectVersionDatesForm = ({
           name="correct-version-dates-form"
           initialValues={{
             targetDate: version.targetDate
-              ? dayjs(version.targetDate)
+              ? parseCalendarDate(version.targetDate)
               : undefined,
             cutAt: version.cutAt ? dayjs(version.cutAt) : undefined,
             releasedAt: version.releasedAt

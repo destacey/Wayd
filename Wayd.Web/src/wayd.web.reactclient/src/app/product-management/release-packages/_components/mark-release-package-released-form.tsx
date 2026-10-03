@@ -44,7 +44,7 @@ const MarkReleasePackageReleasedForm = ({
         try {
           const request = {
             releasedAt: values.releasedAt.toDate(),
-          } as unknown as MarkReleasePackageReleasedRequest
+          } as MarkReleasePackageReleasedRequest
 
           const response = await markReleased({
             id: releasePackage.id,

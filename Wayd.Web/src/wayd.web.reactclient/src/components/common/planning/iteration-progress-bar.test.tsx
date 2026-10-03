@@ -29,8 +29,8 @@ jest.mock('../../contexts/theme', () => ({
 
 describe('IterationProgressBar', () => {
   const baseProps = {
-    startDate: new Date('2026-01-01'),
-    endDate: new Date('2026-01-15'),
+    startDate: '2026-01-01',
+    endDate: '2026-01-15',
     total: 100,
     completed: 50,
   }

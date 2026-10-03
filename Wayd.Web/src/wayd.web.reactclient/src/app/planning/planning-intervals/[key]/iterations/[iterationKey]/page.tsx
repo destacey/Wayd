@@ -9,6 +9,7 @@ import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import { authorizePage } from '@/src/components/hoc'
 import { IterationState } from '@/src/components/types'
 import { useDocumentTitle } from '@/src/hooks'
+import { compareCalendarDates } from '@/src/utils'
 import {
   useGetPlanningIntervalIterationBacklogQuery,
   useGetPlanningIntervalIterationQuery,
@@ -79,9 +80,7 @@ const PlanningIntervalIterationPage = (props: {
   const iterationItems = !piIterations
     ? []
     : [...piIterations]
-        .sort(
-          (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
-        )
+        .sort((a, b) => compareCalendarDates(b.start, a.start))
         .map((option) => ({ label: option.name, value: option.key }))
 
   const switchIterations = !iterationItems.length ? null : (

@@ -3,6 +3,7 @@
 import { IconMenu } from '@/src/components/common'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
+import { compareCalendarDates } from '@/src/utils'
 import {
   useGetSprintActivitiesQuery,
   useGetSprintBacklogQuery,
@@ -101,9 +102,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sprintsItems = !teamSprints
     ? []
     : [...teamSprints]
-        .sort(
-          (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
-        )
+        .sort((a, b) => compareCalendarDates(b.start, a.start))
         .map((option) => ({
           label: option.name,
           extra: option.state.name,

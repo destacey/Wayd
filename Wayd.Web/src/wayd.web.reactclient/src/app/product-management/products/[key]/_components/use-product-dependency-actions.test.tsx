@@ -29,7 +29,7 @@ const link = (
     product: { id: 'web', key: 2, name: 'Storefront Web' },
     dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
     strength: DependencyStrength.Hard,
-    startsOn: new Date('2026-03-01T00:00:00Z'),
+    startsOn: '2026-03-01',
     ...overrides,
   }) as ProductDependencyDto
 
@@ -62,9 +62,7 @@ describe('useProductDependencyActions', () => {
     const { result } = renderHook(() => useProductDependencyActions())
 
     // Act
-    const items = result.current.getActionItems(
-      link({ endsOn: new Date('2026-04-01T00:00:00Z') }),
-    )
+    const items = result.current.getActionItems(link({ endsOn: '2026-04-01' }))
 
     // Assert
     expect(keys(items as { key?: unknown }[])).toEqual([

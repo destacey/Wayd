@@ -3,7 +3,7 @@
 import { TeamMembershipDto } from '@/src/services/wayd-api'
 import { TeamTypeName } from '../types'
 import { Descriptions, Modal } from 'antd'
-import dayjs from 'dayjs'
+import { formatCalendarDate } from '@/src/utils'
 import { useDeleteTeamMembershipMutation } from '@/src/store/features/organizations/team-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
@@ -77,12 +77,10 @@ const DeleteTeamMembershipForm = ({
         <Item label="Team">{membership?.child.name}</Item>
         <Item label="Parent Team">{membership?.parent.name}</Item>
         <Item label="Start">
-          {dayjs(membership?.start).format('M/D/YYYY')}
+          {formatCalendarDate(membership?.start, 'M/D/YYYY')}
         </Item>
         <Item label="End">
-          {membership?.end
-            ? dayjs(membership?.end).format('M/D/YYYY')
-            : null}
+          {formatCalendarDate(membership?.end, 'M/D/YYYY') || null}
         </Item>
       </Descriptions>
     </Modal>

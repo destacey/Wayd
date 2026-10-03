@@ -32,7 +32,7 @@ const mapToRequestValues = (
   return {
     startDate: values.startDate?.format('YYYY-MM-DD'),
     timeZone: values.timeZone,
-  } as unknown as SetTeamOfTeamsOperatingModelRequest
+  } as SetTeamOfTeamsOperatingModelRequest
 }
 
 const SetTeamOfTeamsOperatingModelForm = ({

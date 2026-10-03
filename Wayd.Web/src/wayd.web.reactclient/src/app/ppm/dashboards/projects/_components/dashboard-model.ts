@@ -4,7 +4,13 @@ import {
   ProjectListDto,
   ProjectPlanSummaryDto,
 } from '@/src/services/wayd-api'
-import dayjs, { Dayjs } from 'dayjs'
+import {
+  CalendarDate,
+  compareCalendarDates,
+  formatCalendarDate,
+  parseCalendarDate,
+} from '@/src/utils'
+import { Dayjs } from 'dayjs'
 
 /**
  * Who or what the dashboard is looking at. `me` is the signed-in user's linked
@@ -167,7 +173,7 @@ const isClosed = (project: ProjectListDto) =>
  */
 export const isEndingSoon = (project: ProjectListDto, today: Dayjs) => {
   if (!project.end || isClosed(project)) return false
-  const end = dayjs(project.end)
+  const end = parseCalendarDate(project.end)
   return (
     !end.isBefore(today, 'day') &&
     end.diff(today.startOf('day'), 'day') <= ENDING_SOON_DAYS
@@ -257,8 +263,8 @@ export const STATUS_ORDER: Record<string, number> = {
 /** Active first, then the pipeline, then the closed states; unknown last. */
 export const statusRank = (name: string): number => STATUS_ORDER[name] ?? 99
 
-export const formatEnd = (end: Date | undefined) =>
-  end ? dayjs(end).format('MMM D, YYYY') : null
+export const formatEnd = (end: CalendarDate | undefined) =>
+  end ? formatCalendarDate(end) : null
 
 const compareName = (a: ProjectListDto, b: ProjectListDto) => {
   const byName = caseInsensitiveCompare(a.name, b.name)
@@ -271,7 +277,7 @@ const compareEnd = (a: ProjectListDto, b: ProjectListDto) => {
   if (!a.end && !b.end) return 0
   if (!a.end) return 1
   if (!b.end) return -1
-  return dayjs(a.end).valueOf() - dayjs(b.end).valueOf()
+  return compareCalendarDates(a.end, b.end)
 }
 
 /**

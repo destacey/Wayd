@@ -8,20 +8,18 @@ import {
 } from '@/src/components/common/record'
 import { RiskDetailsDto } from '@/src/services/wayd-api'
 import { Divider, Flex, Typography } from 'antd'
+import {
+  calendarDaysBetween,
+  CalendarDate,
+  daysRemaining,
+  formatCalendarDate,
+} from '@/src/utils'
 import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
 import Link from 'next/link'
-
-dayjs.extend(utc)
 
 const { Text } = Typography
 
-/**
- * Risk dates are UTC calendar dates. Formatting them in local time shifts them
- * a day earlier for anyone behind UTC, so they are rendered via `dayjs.utc` —
- * the same convention the sprints grid documents.
- */
-const formatDate = (value: Date) => dayjs.utc(value).format('MMM D, YYYY')
+const formatInstantDate = (value: Date) => dayjs(value).format('MMM D, YYYY')
 
 export interface RiskFactsProps {
   risk: RiskDetailsDto
@@ -40,12 +38,15 @@ export interface RiskFactsProps {
  * is the part that says whether a risk is being sat on.
  */
 const ageOf = (reportedOn: Date, closedDate?: Date) => {
-  const end = closedDate ? dayjs.utc(closedDate) : dayjs.utc()
-  const days = end.diff(dayjs.utc(reportedOn), 'day')
+  const days = calendarDaysBetween(reportedOn, closedDate ?? new Date())
   if (days < 0) return null
 
   const span =
-    days === 0 ? 'today' : days === 1 ? '1 day' : `${days.toLocaleString()} days`
+    days === 0
+      ? 'today'
+      : days === 1
+        ? '1 day'
+        : `${days.toLocaleString()} days`
 
   if (closedDate) {
     return days === 0 ? 'Closed same day' : `Open ${span}`
@@ -60,11 +61,11 @@ const ageOf = (reportedOn: Date, closedDate?: Date) => {
  * and it is coloured, since a date alone leaves the reader to work out that
  * it has passed.
  */
-const followUpStatus = (followUpDate: Date, closedDate?: Date) => {
+const followUpStatus = (followUpDate: CalendarDate, closedDate?: Date) => {
   // A closed risk is not chased, so its follow-up date is just history.
   if (closedDate) return null
 
-  const days = dayjs.utc(followUpDate).diff(dayjs.utc().startOf('day'), 'day')
+  const days = daysRemaining(followUpDate)
 
   if (days < 0) {
     const overdue = Math.abs(days)
@@ -118,7 +119,7 @@ const RiskFacts = ({ risk }: RiskFactsProps) => {
         {risk.followUpDate && (
           <LabeledContent label="Follow-Up Date">
             <Flex vertical>
-              {formatDate(risk.followUpDate)}
+              {formatCalendarDate(risk.followUpDate)}
               {followUp && (
                 <Text
                   type={followUp.overdue ? 'danger' : 'secondary'}
@@ -140,7 +141,7 @@ const RiskFacts = ({ risk }: RiskFactsProps) => {
 
         <LabeledContent label="Reported On">
           <Flex vertical>
-            {formatDate(risk.reportedOn)}
+            {formatInstantDate(risk.reportedOn)}
             {ageLabel && (
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {ageLabel}
@@ -151,7 +152,7 @@ const RiskFacts = ({ risk }: RiskFactsProps) => {
 
         {risk.closedDate && (
           <LabeledContent label="Closed">
-            {formatDate(risk.closedDate)}
+            {formatInstantDate(risk.closedDate)}
           </LabeledContent>
         )}
       </Flex>

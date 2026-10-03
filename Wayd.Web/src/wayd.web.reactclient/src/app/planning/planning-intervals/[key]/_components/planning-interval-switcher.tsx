@@ -2,6 +2,7 @@
 
 import { IconMenu } from '@/src/components/common'
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
+import { compareCalendarDates } from '@/src/utils'
 import { SwapOutlined } from '@ant-design/icons'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
@@ -23,9 +24,7 @@ const PlanningIntervalSwitcher = ({ piKey }: { piKey: number }) => {
   const piItems = !piListData
     ? []
     : [...piListData]
-        .sort(
-          (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
-        )
+        .sort((a, b) => compareCalendarDates(b.start, a.start))
         .map((option) => ({
           label: option.name,
           extra: option.state.name,

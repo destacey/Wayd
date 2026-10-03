@@ -1,0 +1,27 @@
+{%- comment -%}
+  Overrides NJsonSchema's TypeScript Interface template. Identical to the stock template except that a
+  `format: date` property (a NodaTime LocalDate) is typed `string`: the generator's one DateTimeType
+  setting covers both `date` and `date-time`, and with interface types nothing parses a response, so a
+  calendar date arrives as a plain "2026-09-28" string. Instants (`date-time`) keep the configured type.
+{%- endcomment -%}
+{%- if HasDescription -%}
+/** {{ Description }} */
+{%- endif -%}
+{% if ExportTypes %}export {% endif %}interface {{ ClassName }}{{ Inheritance }} {
+{%- for property in Properties -%}
+{%-     if property.HasDescription -%}
+    /** {{ property.Description }} */
+{%-     endif -%}
+    {% if property.IsReadOnly %}readonly {% endif %}{{ property.InterfaceName }}{% if property.IsOptional %}?{% endif %}: {% if property.Format == "date" %}string{% else %}{{ property.Type }}{% endif %}{{ property.TypePostfix }};
+{%- endfor -%}
+{%- if HasIndexerProperty -%}
+
+    [key: string]: {{ IndexerPropertyValueType }};
+{%- endif -%}
+}
+{%- if GenerateTypeCheckFunctions and HasInheritance -%}
+
+{% if ExportTypes %}export {% endif %}function is{{ ClassName }}(object: any): object is {{ ClassName }} {
+    return object && object['{{ BaseDiscriminator }}'] === '{{ DiscriminatorName }}';
+}
+{%- endif -%}

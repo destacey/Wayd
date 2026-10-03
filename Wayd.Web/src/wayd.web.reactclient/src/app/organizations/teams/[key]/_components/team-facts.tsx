@@ -14,9 +14,8 @@ import {
   TeamOfTeamsDetailsDto,
 } from '@/src/services/wayd-api'
 import { useGetTeamOfTeamsMembershipsQuery } from '@/src/store/features/organizations/team-api'
-import { teamUrl } from '@/src/utils'
+import { formatCalendarDate, teamUrl } from '@/src/utils'
 import { Divider, Flex, Typography } from 'antd'
-import dayjs from 'dayjs'
 import Link from 'next/link'
 
 const { Text } = Typography
@@ -79,12 +78,12 @@ const TeamFacts = ({
         )}
 
         <LabeledContent label="Active">
-          {dayjs(team.activeDate).format('MMM D, YYYY')}
+          {formatCalendarDate(team.activeDate)}
         </LabeledContent>
 
         {team.isActive === false && (
           <LabeledContent label="Inactive">
-            {dayjs(team.inactiveDate).format('MMM D, YYYY')}
+            {formatCalendarDate(team.inactiveDate)}
           </LabeledContent>
         )}
 

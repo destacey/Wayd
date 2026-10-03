@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import RiskFacts from './risk-facts'
 
-// The global setup mocks dayjs and formats in local time, which is the very
-// bug these date assertions exist to catch — a UTC calendar date rendered
-// locally shifts a day earlier for anyone behind UTC. Use the real dayjs here.
+// The follow-up date is a calendar date and must render as written; the global
+// dayjs mock parses it as UTC midnight, which would hide a day shift.
+// Instants sit at midday UTC so they land on the same local day in any zone.
 jest.unmock('dayjs')
 
 jest.mock('@/src/components/common/links/links-card', () => {
@@ -15,7 +15,7 @@ const risk = {
   id: 'risk-1',
   key: 214,
   summary: 'Token refresh may exceed the service cap',
-  reportedOn: new Date('2026-03-04'),
+  reportedOn: new Date('2026-03-04T12:00:00Z'),
   reportedBy: { id: 'e1', key: 1042, name: 'Priya Raghunathan' },
   status: { id: '1', name: 'Open' },
   category: { id: '2', name: 'Technical' },
@@ -104,7 +104,11 @@ describe('RiskFacts', () => {
 
   it('shows the closed date once the risk is closed', () => {
     // Arrange / Act
-    render(<RiskFacts risk={{ ...risk, closedDate: new Date('2026-05-20') }} />)
+    render(
+      <RiskFacts
+        risk={{ ...risk, closedDate: new Date('2026-05-20T12:00:00Z') }}
+      />,
+    )
 
     // Assert
     expect(screen.getByText('May 20, 2026')).toBeInTheDocument()
@@ -130,7 +134,9 @@ describe('RiskFacts', () => {
       // Arrange / Act — a closed risk was open for a fixed span; counting to
       // today would keep growing forever.
       render(
-        <RiskFacts risk={{ ...risk, closedDate: new Date('2026-03-18') }} />,
+        <RiskFacts
+          risk={{ ...risk, closedDate: new Date('2026-03-18T12:00:00Z') }}
+        />,
       )
 
       // Assert
@@ -139,7 +145,11 @@ describe('RiskFacts', () => {
 
     it('reads naturally on the day it was reported', () => {
       // Arrange / Act
-      render(<RiskFacts risk={{ ...risk, reportedOn: new Date('2026-06-06') }} />)
+      render(
+        <RiskFacts
+          risk={{ ...risk, reportedOn: new Date('2026-06-06T12:00:00Z') }}
+        />,
+      )
 
       // Assert
       expect(screen.getByText('Opened today')).toBeInTheDocument()
@@ -154,9 +164,7 @@ describe('RiskFacts', () => {
 
     it('counts down to a follow-up still ahead', () => {
       // Arrange / Act
-      render(
-        <RiskFacts risk={{ ...risk, followUpDate: new Date('2026-06-16') }} />,
-      )
+      render(<RiskFacts risk={{ ...risk, followUpDate: '2026-06-16' }} />)
 
       // Assert
       expect(screen.getByText('Due in 10 days')).toBeInTheDocument()
@@ -164,9 +172,7 @@ describe('RiskFacts', () => {
 
     it('calls out an overdue follow-up, which is the actionable state', () => {
       // Arrange / Act
-      render(
-        <RiskFacts risk={{ ...risk, followUpDate: new Date('2026-05-27') }} />,
-      )
+      render(<RiskFacts risk={{ ...risk, followUpDate: '2026-05-27' }} />)
 
       // Assert
       expect(screen.getByText('Overdue by 10 days')).toBeInTheDocument()
@@ -174,9 +180,7 @@ describe('RiskFacts', () => {
 
     it('says due today rather than "in 0 days"', () => {
       // Arrange / Act
-      render(
-        <RiskFacts risk={{ ...risk, followUpDate: new Date('2026-06-06') }} />,
-      )
+      render(<RiskFacts risk={{ ...risk, followUpDate: '2026-06-06' }} />)
 
       // Assert
       expect(screen.getByText('Due today')).toBeInTheDocument()
@@ -189,8 +193,8 @@ describe('RiskFacts', () => {
         <RiskFacts
           risk={{
             ...risk,
-            followUpDate: new Date('2026-05-27'),
-            closedDate: new Date('2026-06-01'),
+            followUpDate: '2026-05-27',
+            closedDate: new Date('2026-06-01T12:00:00Z'),
           }}
         />,
       )

@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react'
-import dayjs from 'dayjs'
 import TimelineProgress from './timeline-progress'
 
 // Mock Ant Design Grid useBreakpoint hook
@@ -27,29 +26,43 @@ const mockUseBreakpoint = Grid.useBreakpoint as jest.MockedFunction<
   typeof Grid.useBreakpoint
 >
 
-// Mock dayjs to control "now" for consistent tests
-jest.mock('dayjs', () => {
-  const originalDayjs = jest.requireActual('dayjs')
-  const mockDayjs = (date?: string | Date) => {
-    if (date === undefined) {
-      // Return mocked "now"
-      return originalDayjs(mockDayjs.mockedNow)
-    }
-    return originalDayjs(date)
-  }
-  mockDayjs.mockedNow = '2025-11-01T12:00:00'
-  Object.assign(mockDayjs, originalDayjs)
-  return mockDayjs
-})
+// Real dayjs for parsing and formatting; the global mock only stubs format.
+jest.unmock('dayjs')
+
+// Only Date is faked, so antd's timers still run.
+const setNow = (value: string) => {
+  jest.useFakeTimers({
+    doNotFake: [
+      'hrtime',
+      'nextTick',
+      'performance',
+      'queueMicrotask',
+      'requestAnimationFrame',
+      'cancelAnimationFrame',
+      'requestIdleCallback',
+      'cancelIdleCallback',
+      'setImmediate',
+      'clearImmediate',
+      'setInterval',
+      'clearInterval',
+      'setTimeout',
+      'clearTimeout',
+    ],
+  })
+  jest.setSystemTime(new Date(value))
+}
 
 describe('TimelineProgress', () => {
-  const startDate = new Date('2025-10-26T17:00:00')
-  const endDate = new Date('2025-11-08T16:00:00')
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  const startDate = '2025-10-26'
+  const endDate = '2025-11-08'
 
   beforeEach(() => {
     // Set "now" to Nov 1, which is day 7 of 14 (50%)
-    ;(dayjs as unknown as { mockedNow: string }).mockedNow =
-      '2025-11-01T12:00:00'
+    setNow('2025-11-01T12:00:00')
 
     // Reset the mock to default desktop breakpoints
     mockUseBreakpoint.mockReturnValue({
@@ -110,7 +123,7 @@ describe('TimelineProgress', () => {
   })
 
   it('handles single day duration', () => {
-    const sameDate = new Date('2025-11-01T17:00:00')
+    const sameDate = '2025-11-01'
     render(<TimelineProgress start={sameDate} end={sameDate} />)
 
     expect(screen.getByText('Day 1 of 1 (100%)')).toBeInTheDocument()
@@ -118,8 +131,7 @@ describe('TimelineProgress', () => {
 
   it('renders future timeline with 0% progress and starts-in text', () => {
     // Set "now" to 6 days before the start date
-    ;(dayjs as unknown as { mockedNow: string }).mockedNow =
-      '2025-10-20T12:00:00'
+    setNow('2025-10-20T12:00:00')
 
     render(<TimelineProgress start={startDate} end={endDate} />)
 
@@ -133,8 +145,7 @@ describe('TimelineProgress', () => {
 
   it('renders singular day for future timeline starting tomorrow', () => {
     // Set "now" to 1 day before the start date
-    ;(dayjs as unknown as { mockedNow: string }).mockedNow =
-      '2025-10-25T12:00:00'
+    setNow('2025-10-25T12:00:00')
 
     render(<TimelineProgress start={startDate} end={endDate} />)
 
@@ -145,8 +156,7 @@ describe('TimelineProgress', () => {
 
   it('clamps current day to total when after end date', () => {
     // Set "now" to after the end date
-    ;(dayjs as unknown as { mockedNow: string }).mockedNow =
-      '2025-11-15T12:00:00'
+    setNow('2025-11-15T12:00:00')
 
     render(<TimelineProgress start={startDate} end={endDate} />)
 
@@ -155,8 +165,7 @@ describe('TimelineProgress', () => {
 
   it('calculates progress at start of timeline', () => {
     // Set "now" to start date
-    ;(dayjs as unknown as { mockedNow: string }).mockedNow =
-      '2025-10-26T12:00:00'
+    setNow('2025-10-26T12:00:00')
 
     render(<TimelineProgress start={startDate} end={endDate} />)
 
@@ -165,8 +174,7 @@ describe('TimelineProgress', () => {
 
   it('calculates progress at end of timeline', () => {
     // Set "now" to end date
-    ;(dayjs as unknown as { mockedNow: string }).mockedNow =
-      '2025-11-08T12:00:00'
+    setNow('2025-11-08T12:00:00')
 
     render(<TimelineProgress start={startDate} end={endDate} />)
 
@@ -178,12 +186,12 @@ describe('TimelineProgress', () => {
       <TimelineProgress
         start={startDate}
         end={endDate}
-        dateFormat="MMM D - h:mm A"
+        dateFormat="MMM D, YYYY"
       />,
     )
 
-    expect(screen.getByText('Oct 26 - 5:00 PM')).toBeInTheDocument()
-    expect(screen.getByText('Nov 8 - 4:00 PM')).toBeInTheDocument()
+    expect(screen.getByText('Oct 26, 2025')).toBeInTheDocument()
+    expect(screen.getByText('Nov 8, 2025')).toBeInTheDocument()
   })
 
   it('uses default date format without time', () => {
@@ -192,22 +200,6 @@ describe('TimelineProgress', () => {
     // Default format is 'MMM D'
     expect(screen.getByText('Oct 26')).toBeInTheDocument()
     expect(screen.getByText('Nov 8')).toBeInTheDocument()
-  })
-
-  it('preserves time in date display when format includes time', () => {
-    const morningStart = new Date('2025-10-26T09:30:00')
-    const afternoonEnd = new Date('2025-11-08T14:45:00')
-
-    render(
-      <TimelineProgress
-        start={morningStart}
-        end={afternoonEnd}
-        dateFormat="MMM D h:mm A"
-      />,
-    )
-
-    expect(screen.getByText('Oct 26 9:30 AM')).toBeInTheDocument()
-    expect(screen.getByText('Nov 8 2:45 PM')).toBeInTheDocument()
   })
 
   it('applies default minWidth style on desktop', () => {

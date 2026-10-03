@@ -2,11 +2,19 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { MoveReleaseTargetDateRequest, ReleaseDto } from '@/src/services/wayd-api'
+import {
+  MoveReleaseTargetDateRequest,
+  ReleaseDto,
+} from '@/src/services/wayd-api'
 import { useMoveReleaseTargetDateMutation } from '@/src/store/features/product-management/releases-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
 
 const { Item } = Form
 
@@ -43,7 +51,7 @@ const MoveReleaseTargetDateForm = ({
             targetDate: values.targetDate
               ? values.targetDate.format('YYYY-MM-DD')
               : undefined,
-          } as unknown as MoveReleaseTargetDateRequest
+          } as MoveReleaseTargetDateRequest
 
           const response = await moveTargetDate({
             id: release.id,
@@ -94,7 +102,9 @@ const MoveReleaseTargetDateForm = ({
         layout="vertical"
         name="move-release-target-date-form"
         initialValues={{
-          targetDate: release.targetDate ? dayjs(release.targetDate) : null,
+          targetDate: release.targetDate
+            ? parseCalendarDate(release.targetDate)
+            : null,
         }}
       >
         <Item

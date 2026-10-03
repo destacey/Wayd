@@ -7,7 +7,12 @@ import {
   ProductDependencyDto,
 } from '@/src/services/wayd-api'
 import { useEndProductDependencyMutation } from '@/src/store/features/product-management/products-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  parseCalendarDate,
+  type ApiError,
+} from '@/src/utils'
 import { Alert, DatePicker, Form, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 
@@ -75,7 +80,7 @@ const EndProductDependencyForm = ({
       permission: 'Permissions.Products.Update',
     })
 
-  const startedOn = dayjs(dependency.startsOn)
+  const startedOn = parseCalendarDate(dependency.startsOn)
 
   return (
     <Modal

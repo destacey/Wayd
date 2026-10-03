@@ -45483,8 +45483,8 @@ export interface StrategyListDto {
     key: number;
     name: string;
     status: SimpleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
 }
 
 export interface StrategyDetailsDto {
@@ -45493,8 +45493,8 @@ export interface StrategyDetailsDto {
     name: string;
     description: string;
     status: SimpleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
 }
 
 export interface CreateStrategyRequest {
@@ -45505,9 +45505,9 @@ export interface CreateStrategyRequest {
     /** The current status id of the strategy. */
     statusId: number;
     /** The start date of when the strategy became active. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** The end date of when the strategy became archived. */
-    end?: Date | undefined;
+    end?: string | undefined;
 }
 
 export interface UpdateStrategyRequest {
@@ -45520,9 +45520,9 @@ export interface UpdateStrategyRequest {
     /** The current status id of the strategy. */
     statusId: number;
     /** The start date of when the strategy became active. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** The end date of when the strategy became archived. */
-    end?: Date | undefined;
+    end?: string | undefined;
 }
 
 export interface StrategyStatusDto extends CommonEnumDto {
@@ -45612,7 +45612,7 @@ export interface ProductActivityDto {
 }
 
 export interface DailyReleaseCountDto {
-    date: Date;
+    date: string;
     released: number;
     withdrawn: number;
 }
@@ -45935,9 +45935,9 @@ are none. */
     /** What the product relies on it for. Max 1024 chars. */
     description?: string | undefined;
     /** The day it began. Blank means today, so an EndsOn before today is refused. */
-    startsOn?: Date | undefined;
+    startsOn?: string | undefined;
     /** The last day it held. Blank means it still holds. */
-    endsOn?: Date | undefined;
+    endsOn?: string | undefined;
 }
 
 /** A whole-record update of a product's descriptive fields. */
@@ -45993,8 +45993,8 @@ export interface ProductDependencyDto {
     strength: DependencyStrength;
     interactionStyles?: InteractionStyle[] | undefined;
     description?: string | undefined;
-    startsOn: Date;
-    endsOn?: Date | undefined;
+    startsOn: string;
+    endsOn?: string | undefined;
     productPath: NavigationDto[];
     dependsOnProductPath: NavigationDto[];
 }
@@ -46021,7 +46021,7 @@ send an empty list to record none, which is not the same as recording that there
     /** What the dependency is for. */
     description?: string | undefined;
     /** The day the dependency began. Defaults to today, may be backdated, and cannot be in the future. */
-    startsOn?: Date | undefined;
+    startsOn?: string | undefined;
 }
 
 /** Rewords what a product's dependency is for, and records the styles it uses where none were recorded. */
@@ -46038,7 +46038,7 @@ clears. Changing styles already recorded is refused: that is a change of terms, 
 export interface EndProductDependencyRequest {
     /** The last day the dependency held. Defaults to today, may be the day it started, and cannot be in the
 future. */
-    endsOn?: Date | undefined;
+    endsOn?: string | undefined;
 }
 
 /** Changes the terms a product's dependency holds on — whether the product stops working without the one it depends on, how it reaches it, or both. */
@@ -46050,7 +46050,7 @@ styles onto the new dependency rather than clearing them. */
     interactionStyles?: InteractionStyle[] | undefined;
     /** The first day the new terms hold; the current dependency ends the day before. Defaults to today,
 must be after the day the dependency started, and cannot be in the future. */
-    changedOn?: Date | undefined;
+    changedOn?: string | undefined;
 }
 
 /** Deletes a dependency that was recorded by mistake. */
@@ -46187,7 +46187,7 @@ export interface ReleasePackageDto {
     key: number;
     version: string;
     name?: string | undefined;
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     releasedAt?: Date | undefined;
     status: StatusNavigationDto;
     components: ReleasePackageComponentDto[];
@@ -46212,7 +46212,7 @@ export interface AssembleReleasePackageRequest {
     /** An optional human name for the package. */
     name?: string | undefined;
     /** When the package is expected to ship. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     /** Every component version in this package. A component may appear only once. */
     components: ManifestEntryRequest[];
 }
@@ -46240,7 +46240,7 @@ Falls back to the row's position when the column is absent. */
     version: string;
     name?: string | undefined;
     /** When the package is expected to ship. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     /** When the package shipped, with its offset — copy the completion time of the pipeline run that
 shipped it as-is. Supplying it makes the package Released. */
     releasedAt?: string | undefined;
@@ -46270,15 +46270,15 @@ export interface MarkReleasePackageReleasedRequest {
 recorded after the fact. Required unless the deprecated ReleasedDate is sent instead. */
     releasedAt?: Date | undefined;
     /** The day it shipped, read as 12:00 in the organization's default time zone. */
-    releasedDate?: Date | undefined;
+    releasedDate?: string | undefined;
 }
 
 /** Corrects a package's recorded target date and released moment. */
 export interface CorrectReleasePackageDatesRequest {
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     releasedAt?: Date | undefined;
     /** The released day, read as 12:00 in the organization's default time zone. */
-    releasedDate?: Date | undefined;
+    releasedDate?: string | undefined;
 }
 
 /** Pulls a package after it was assembled. The package is kept — deployments may reference it. */
@@ -46295,8 +46295,8 @@ export interface ReleaseDto {
     name?: string | undefined;
     notes?: string | undefined;
     sequence?: number | undefined;
-    targetDate?: Date | undefined;
-    releasedDate?: Date | undefined;
+    targetDate?: string | undefined;
+    releasedDate?: string | undefined;
     status: StatusNavigationDto;
     versions: ReleaseVersionDto[];
     packages: ReleasePackageSummaryDto[];
@@ -46324,7 +46324,7 @@ Free text, never parsed: nothing sorts or compares it. */
     /** An optional human name, where a team gives one. */
     name?: string | undefined;
     /** When the release is expected to be announced. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
 }
@@ -46341,10 +46341,10 @@ Falls back to the row's position when the column is absent. */
     /** The product this release is announced under, if any, by id. Usually a product line. */
     productId?: string | undefined;
     /** When the release is expected to be announced. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     /** When it was announced. Supplying it makes the release Released — and is refused while anything
 it carries has not shipped. */
-    releasedDate?: Date | undefined;
+    releasedDate?: string | undefined;
     /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
     /** Product notes for this release, written for customers. */
@@ -46389,18 +46389,18 @@ export interface SetReleaseContentsRequest {
 
 /** Moves or clears a release's target date. */
 export interface MoveReleaseTargetDateRequest {
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
 }
 
 /** Corrects a release's recorded target and released dates. */
 export interface CorrectReleaseDatesRequest {
-    targetDate?: Date | undefined;
-    releasedDate?: Date | undefined;
+    targetDate?: string | undefined;
+    releasedDate?: string | undefined;
 }
 
 /** Records that a release was announced to customers. */
 export interface MarkReleaseReleasedRequest {
-    releasedDate: Date;
+    releasedDate: string;
 }
 
 /** Retracts a release after it was announced. */
@@ -46424,7 +46424,7 @@ export interface VersionDto {
     name?: string | undefined;
     notes?: string | undefined;
     sequence?: number | undefined;
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     cutAt?: Date | undefined;
     releasedAt?: Date | undefined;
     status: StatusNavigationDto;
@@ -46439,7 +46439,7 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
     /** An optional human name, where a team gives one. */
     name?: string | undefined;
     /** When the version is expected to ship. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     /** A manual ordering override, for the rare case where chronology misleads. */
     sequence?: number | undefined;
 }
@@ -46456,7 +46456,7 @@ hand-authored file still works. */
     number: string;
     name?: string | undefined;
     /** When the version is expected to ship. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     /** When scope froze — the build or tag — with its offset. Supplying it makes the version Ready. */
     cutAt?: string | undefined;
     /** When it shipped, with its offset. Supplying it makes the version Released. */
@@ -46484,14 +46484,14 @@ export interface UpdateVersionRequest {
 /** Moves or clears a version's target date. */
 export interface MoveVersionTargetDateRequest {
     /** The new target date, or null to clear it. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
 }
 
 /** Corrects a version's recorded target date and cut and released moments. */
 export interface CorrectVersionDatesRequest {
     /** The corrected target date, or null to clear it. A target date is a statement of intent that was
 written down; correcting or removing it changes no lifecycle state. */
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     /** The corrected cut moment, or null to clear it. May be added to a version that was never cut: a
 version can be marked released without being cut, so a cut moment discovered later is a
 correction rather than a lifecycle step. */
@@ -46501,9 +46501,9 @@ one — emptying it would leave the status contradicting the record. Use the rev
 record that a version did not ship. */
     releasedAt?: Date | undefined;
     /** The cut day, read as 12:00 in the organization's default time zone. */
-    cutDate?: Date | undefined;
+    cutDate?: string | undefined;
     /** The released day, read as 12:00 in the organization's default time zone. */
-    releasedDate?: Date | undefined;
+    releasedDate?: string | undefined;
 }
 
 /** Freezes scope and marks a version ready to ship. */
@@ -46513,7 +46513,7 @@ clock, because cutting is often recorded after the fact. Required unless the dep
 CutDate is sent instead. */
     cutAt?: Date | undefined;
     /** The day it was cut, read as 12:00 in the organization's default time zone. */
-    cutDate?: Date | undefined;
+    cutDate?: string | undefined;
 }
 
 /** Records that a version shipped. */
@@ -46522,7 +46522,7 @@ export interface MarkVersionReleasedRequest {
 taken from the clock. Required unless the deprecated ReleasedDate is sent instead. */
     releasedAt?: Date | undefined;
     /** The day it shipped, read as 12:00 in the organization's default time zone. */
-    releasedDate?: Date | undefined;
+    releasedDate?: string | undefined;
 }
 
 /** Pulls a version after it was cut. The version is kept — deployments may reference it. */
@@ -46646,10 +46646,10 @@ hand-authored file still works. */
     /** The date the portfolio was proposed. Required on every row. Nothing stores it yet — a portfolio
 keeps no creation date beyond the audit stamp, which records when the file was uploaded — but the
 column is required now so that no file has to change on the day one is kept. */
-    createdOn: Date;
+    createdOn: string;
     /** The date the portfolio was activated. Required unless the portfolio is Proposed. There is no
 closing date here: an import cannot close a portfolio, so the finalize import carries that one. */
-    activatedOn?: Date | undefined;
+    activatedOn?: string | undefined;
     /** Semicolon-separated employee numbers. */
     sponsors?: string | undefined;
     /** Semicolon-separated employee numbers. */
@@ -46671,7 +46671,7 @@ hand-authored file still works. */
     /** Programs: 'Completed' or 'Canceled'. Portfolios: 'Closed' or 'Archived'. */
     status: string;
     /** The portfolio's end date. Required for portfolio rows, ignored for program rows. */
-    endDate?: Date | undefined;
+    endDate?: string | undefined;
 }
 
 export interface UpdatePortfolioRequest {
@@ -46782,8 +46782,8 @@ export interface ProgramListDto {
     key: number;
     name: string;
     status: LifecycleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     portfolio: NavigationDto;
     programSponsors: EmployeeNavigationDto[];
     programOwners: EmployeeNavigationDto[];
@@ -46796,8 +46796,8 @@ export interface ProjectListDto {
     key: string;
     name: string;
     status: LifecycleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     portfolio: NavigationDto;
     program?: NavigationDto | undefined;
     projectSponsors: EmployeeNavigationDto[];
@@ -46819,8 +46819,8 @@ export interface ProjectStageListDto {
     name: string;
     status: SimpleNavigationDto;
     order: number;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     progress: number;
 }
 
@@ -46842,8 +46842,8 @@ export interface StrategicInitiativeListDto {
     key: number;
     name: string;
     status: LifecycleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     portfolio: NavigationDto;
     strategicInitiativeSponsors: EmployeeNavigationDto[];
     strategicInitiativeOwners: EmployeeNavigationDto[];
@@ -46868,8 +46868,8 @@ export interface ProgramDetailsDto {
     name: string;
     description: string;
     status: LifecycleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     portfolio: NavigationDto;
     programSponsors: EmployeeNavigationDto[];
     programOwners: EmployeeNavigationDto[];
@@ -46884,9 +46884,9 @@ export interface CreateProgramRequest {
     /** A detailed description of the program's purpose. */
     description: string;
     /** The Program start date. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** The Program end date. */
-    end?: Date | undefined;
+    end?: string | undefined;
     /** The ID of the portfolio to which this program belongs. */
     portfolioId: string;
     /** The sponsors of the program. */
@@ -46912,17 +46912,17 @@ hand-authored file still works. */
     /** The program's status. Defaults to Active when the column is absent. */
     status: string;
     /** The timeline the program plans to run over. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** On or after Start. Start and End are both empty or both set. */
-    end?: Date | undefined;
+    end?: string | undefined;
     /** The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps
 no transition dates beyond the audit stamp, which records when the file was uploaded — but the
 column is required now so that no file has to change on the day one is kept. */
-    createdOn: Date;
+    createdOn: string;
     /** The date the program became active. Required once the status is Active or Completed, optional on a
 canceled program, and rejected on one that never got that far. There is no closing date here: an
 import cannot complete or cancel a program, so the finalize import carries that one. */
-    activatedOn?: Date | undefined;
+    activatedOn?: string | undefined;
     /** Semicolon-separated strategic theme ids. */
     strategicThemes?: string | undefined;
     /** Semicolon-separated employee numbers. */
@@ -46941,9 +46941,9 @@ export interface UpdateProgramRequest {
     /** A detailed description of the program's purpose. */
     description: string;
     /** The Program start date. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** The Program end date. */
-    end?: Date | undefined;
+    end?: string | undefined;
     /** The sponsors of the program. */
     sponsorIds?: string[] | undefined;
     /** The owners of the program. */
@@ -47080,8 +47080,8 @@ export interface ProjectDetailsDto {
     expectedBenefits?: string | undefined;
     status: LifecycleNavigationDto;
     expenditureCategory: SimpleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     portfolio: NavigationDto;
     program?: NavigationDto | undefined;
     projectSponsors: EmployeeNavigationDto[];
@@ -47148,9 +47148,9 @@ Examples: revenue growth, cost savings, compliance achievement, efficiency impro
     /** The ID of the expenditure category associated with the project. */
     expenditureCategoryId: number;
     /** The Project start date. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** The Project end date. */
-    end?: Date | undefined;
+    end?: string | undefined;
     /** The ID of the portfolio to which this project belongs. */
     portfolioId: string;
     /** The ID of the program to which this project belongs (optional). */
@@ -47192,19 +47192,19 @@ hand-authored file still works. */
     businessCase?: string | undefined;
     expectedBenefits?: string | undefined;
     /** The timeline the project plans to run over. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** On or after Start. Start and End are both empty or both set. */
-    end?: Date | undefined;
+    end?: string | undefined;
     /** The date the project was proposed. Required on every row, and what the project's opening status
 history entry is dated — the audit stamp records when the file was uploaded, which is not the
 same thing. */
-    createdOn: Date;
+    createdOn: string;
     /** The date the project became active. Required once the status is Active or Completed, optional on
 a canceled project, and rejected on one that never got that far. */
-    activatedOn?: Date | undefined;
+    activatedOn?: string | undefined;
     /** The date the project was completed or canceled — the status says which. Required on those two
 statuses and rejected on the rest. */
-    closedOn?: Date | undefined;
+    closedOn?: string | undefined;
     /** Semicolon-separated strategic theme ids. */
     strategicThemes?: string | undefined;
     /** Semicolon-separated employee numbers. */
@@ -47240,11 +47240,11 @@ position when the column is absent, so a hand-authored file still works. */
     /** Percent complete (0-100). Required for tasks, not allowed for milestones. */
     progress?: number | undefined;
     /** Planned start, for tasks. Milestones use PlannedDate instead. */
-    plannedStart?: Date | undefined;
+    plannedStart?: string | undefined;
     /** Planned end, for tasks. On or after PlannedStart. */
-    plannedEnd?: Date | undefined;
+    plannedEnd?: string | undefined;
     /** The milestone's date. Only for milestones. */
-    plannedDate?: Date | undefined;
+    plannedDate?: string | undefined;
     /** Estimated effort in hours. Greater than 0 when present. */
     estimatedEffortHours?: number | undefined;
     /** Semicolon-separated employee numbers assigned to the task. */
@@ -47282,9 +47282,9 @@ Examples: revenue growth, cost savings, compliance achievement, efficiency impro
     /** The ID of the expenditure category associated with the project. */
     expenditureCategoryId: number;
     /** The Project start date. */
-    start?: Date | undefined;
+    start?: string | undefined;
     /** The Project end date. */
-    end?: Date | undefined;
+    end?: string | undefined;
     /** The sponsors of the project. */
     sponsorIds?: string[] | undefined;
     /** The owners of the project. */
@@ -47403,7 +47403,7 @@ export interface WorkProjectNavigationDto {
 
 export interface WorkItemForecastDto {
     outcome: SimpleNavigationDto;
-    forecastStart: Date;
+    forecastStart: string;
     lookbackDays: number;
     ignoreDependencies: boolean;
     startedWorkFirst: boolean;
@@ -47411,7 +47411,7 @@ export interface WorkItemForecastDto {
     remainingWorkItems: number;
     excludedWorkItems: ForecastWorkItemDto[];
     teams: ForecastTeamDto[];
-    targetDate?: Date | undefined;
+    targetDate?: string | undefined;
     chanceOfFinishingByTargetDate?: number | undefined;
     trials: number;
     trialsBeyondHorizon: number;
@@ -47431,18 +47431,18 @@ export interface ForecastWorkItemDto {
 
 export interface ForecastTeamDto {
     team: WorkTeamNavigationDto;
-    from: Date;
-    to: Date;
+    from: string;
+    to: string;
     itemsCompleted: number;
 }
 
 export interface ForecastPercentileDto {
     confidence: number;
-    date?: Date | undefined;
+    date?: string | undefined;
 }
 
 export interface ForecastHistogramBucketDto {
-    date: Date;
+    date: string;
     trials: number;
 }
 
@@ -47480,8 +47480,8 @@ export interface ProjectPlanNodeDto {
     status: SimpleNavigationDto;
     order: number;
     wbs: string;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     progress: number;
     assignees: EmployeeNavigationDto[];
     children: ProjectPlanNodeDto[];
@@ -47490,7 +47490,7 @@ export interface ProjectPlanNodeDto {
     priority?: SimpleNavigationDto | undefined;
     parentId?: string | undefined;
     projectStageId?: string | undefined;
-    plannedDate?: Date | undefined;
+    plannedDate?: string | undefined;
     estimatedEffortHours?: number | undefined;
 }
 
@@ -47507,8 +47507,8 @@ export interface ProjectStageDetailsDto {
     description: string;
     status: SimpleNavigationDto;
     order: number;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     progress: number;
     assignees: EmployeeNavigationDto[];
 }
@@ -47516,8 +47516,8 @@ export interface ProjectStageDetailsDto {
 export interface UpdateProjectStageRequest {
     description: string;
     status: number;
-    plannedStart?: Date | undefined;
-    plannedEnd?: Date | undefined;
+    plannedStart?: string | undefined;
+    plannedEnd?: string | undefined;
     progress: number;
     assigneeIds?: string[] | undefined;
 }
@@ -47594,9 +47594,9 @@ export interface ProjectTaskListDto {
     order: number;
     parentId?: string | undefined;
     parent?: ProjectTaskNavigationDto | undefined;
-    plannedStart?: Date | undefined;
-    plannedEnd?: Date | undefined;
-    plannedDate?: Date | undefined;
+    plannedStart?: string | undefined;
+    plannedEnd?: string | undefined;
+    plannedDate?: string | undefined;
     estimatedEffortHours?: number | undefined;
 }
 
@@ -47621,9 +47621,9 @@ export interface ProjectTaskDto {
     parentId?: string | undefined;
     projectStageId: string;
     parent?: ProjectTaskNavigationDto | undefined;
-    plannedStart?: Date | undefined;
-    plannedEnd?: Date | undefined;
-    plannedDate?: Date | undefined;
+    plannedStart?: string | undefined;
+    plannedEnd?: string | undefined;
+    plannedDate?: string | undefined;
     estimatedEffortHours?: number | undefined;
 }
 
@@ -47651,11 +47651,11 @@ export interface CreateProjectTaskRequest {
 If it matches a task, the new task becomes a child of that task and inherits the stage. */
     parentId: string;
     /** The planned start date for the task (for tasks, not milestones). */
-    plannedStart?: Date | undefined;
+    plannedStart?: string | undefined;
     /** The planned end date for the task (for tasks, not milestones). */
-    plannedEnd?: Date | undefined;
+    plannedEnd?: string | undefined;
     /** The planned date for a milestone (for milestones only). */
-    plannedDate: Date;
+    plannedDate: string;
     /** The estimated effort in hours (optional). */
     estimatedEffortHours?: number | undefined;
 }
@@ -47678,11 +47678,11 @@ export interface UpdateProjectTaskRequest {
     /** The ID of the parent stage or task. */
     parentId: string;
     /** The planned start date for the task. */
-    plannedStart?: Date | undefined;
+    plannedStart?: string | undefined;
     /** The planned end date for the task. */
-    plannedEnd?: Date | undefined;
+    plannedEnd?: string | undefined;
     /** The planned date for a milestone. */
-    plannedDate?: Date | undefined;
+    plannedDate?: string | undefined;
     /** The estimated effort in hours (optional). */
     estimatedEffortHours?: number | undefined;
 }
@@ -47738,8 +47738,8 @@ export interface StrategicInitiativeDetailsDto {
     name: string;
     description: string;
     status: LifecycleNavigationDto;
-    start?: Date | undefined;
-    end?: Date | undefined;
+    start?: string | undefined;
+    end?: string | undefined;
     portfolio: NavigationDto;
     strategicInitiativeSponsors: EmployeeNavigationDto[];
     strategicInitiativeOwners: EmployeeNavigationDto[];
@@ -47751,9 +47751,9 @@ export interface CreateStrategicInitiativeRequest {
     /** A detailed explanation of what the strategic initiative aims to achieve. */
     description: string;
     /** The start date of the strategic initiative. */
-    start: Date;
+    start: string;
     /** The end date of the strategic initiative. */
-    end: Date;
+    end: string;
     /** The ID of the portfolio to which this strategic initiative belongs. */
     portfolioId: string;
     /** The sponsors of the strategic initiative. */
@@ -47775,9 +47775,9 @@ to the row's position when the column is absent, so a hand-authored file still w
     /** The initiative's status. Defaults to Active when the column is absent. */
     status: string;
     /** The initiative's start date. */
-    start: Date;
+    start: string;
     /** The initiative's end date. On or after Start. */
-    end: Date;
+    end: string;
     /** Semicolon-separated project keys the initiative delivers through. */
     projectKeys?: string | undefined;
     /** Semicolon-separated employee numbers. */
@@ -47813,9 +47813,9 @@ export interface UpdateStrategicInitiativeRequest {
     /** A detailed explanation of what the strategic initiative aims to achieve. */
     description: string;
     /** The start date of the strategic initiative. */
-    start: Date;
+    start: string;
     /** The end date of the strategic initiative. */
-    end: Date;
+    end: string;
     /** The sponsors of the strategic initiative. */
     sponsorIds?: string[] | undefined;
     /** The Owners of the strategic initiative. */
@@ -48021,8 +48021,8 @@ export interface PlanningIntervalListDto {
     id: string;
     key: number;
     name: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     state: SimpleNavigationDto;
 }
 
@@ -48031,8 +48031,8 @@ export interface PlanningIntervalDetailsDto {
     key: number;
     name: string;
     description?: string | undefined;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     state: SimpleNavigationDto;
     objectivesLocked: boolean;
     predictability?: number | undefined;
@@ -48042,8 +48042,8 @@ export interface PlanningIntervalCalendarDto {
     id: string;
     key: number;
     name: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     iterationSchedules: LocalScheduleDto[];
 }
 
@@ -48051,8 +48051,8 @@ export interface LocalScheduleDto {
     id: string;
     key: number;
     name: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
 }
 
 export interface PlanningIntervalPredictabilityDto {
@@ -48079,9 +48079,9 @@ export interface CreatePlanningIntervalRequest {
     /** Gets the team description. */
     description?: string | undefined;
     /** Gets or sets the start. */
-    start: Date;
+    start: string;
     /** Gets or sets the end. */
-    end: Date;
+    end: string;
     /** Gets or sets the length of iterations in weeks. */
     iterationWeeks: number;
     /** Gets or sets the iteration prefix. */
@@ -48097,9 +48097,9 @@ hand-authored file still works. */
     name: string;
     description?: string | undefined;
     /** The dates the interval ran over. Its iterations are generated inside this range. */
-    start: Date;
+    start: string;
     /** The last date the interval ran over. On or after Start. */
-    end: Date;
+    end: string;
     /** The cadence the interval's iterations are generated from. There is no column for the iterations
 themselves: an interval whose real history had irregular lengths or names is corrected afterwards
 on its own dates screen. */
@@ -48147,9 +48147,9 @@ export interface TeamNavigationDto extends NavigationDto {
 export interface ManagePlanningIntervalDatesRequest {
     id: string;
     /** Gets or sets the start. */
-    start: Date;
+    start: string;
     /** Gets or sets the end. */
-    end: Date;
+    end: string;
     /** The iterations for the Planning Interval. */
     iterations: PlanningIntervalIterationUpsertRequest[];
 }
@@ -48161,9 +48161,9 @@ export interface PlanningIntervalIterationUpsertRequest {
     /** The category of iteration. */
     categoryId: number;
     /** Gets or sets the start. */
-    start: Date;
+    start: string;
     /** Gets or sets the end. */
-    end: Date;
+    end: string;
 }
 
 export interface ManagePlanningIntervalTeamsRequest {
@@ -48177,8 +48177,8 @@ export interface PlanningIntervalIterationListDto {
     id: string;
     key: number;
     name: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     state: string;
     category: SimpleNavigationDto;
 }
@@ -48187,8 +48187,8 @@ export interface PlanningIntervalIterationDetailsDto {
     id: string;
     key: number;
     name: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     state: string;
     category: SimpleNavigationDto;
     planningInterval: NavigationDto;
@@ -48205,8 +48205,8 @@ export interface PlanningIntervalIterationSprintsDto {
     id: string;
     key: number;
     name: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     category: SimpleNavigationDto;
     sprints: PlanningSprintListDto[];
 }
@@ -48216,8 +48216,8 @@ export interface PlanningSprintListDto {
     key: number;
     name: string;
     state: SimpleNavigationDto;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     team: PlanningTeamNavigationDto;
 }
 
@@ -48273,8 +48273,8 @@ export interface PlanningIntervalIterationMetricsResponse {
     iterationId: string;
     iterationKey: number;
     iterationName: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     category: SimpleNavigationDto;
     teamCount: number;
     sprintCount: number;
@@ -48298,8 +48298,8 @@ export interface SprintMetricsSummary {
     sprintKey: number;
     sprintName: string;
     state: SimpleNavigationDto;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     team: NavigationDto;
     totalWorkItems: number;
     totalStoryPoints: number;
@@ -48349,8 +48349,8 @@ export interface PlanningIntervalObjectiveListDto {
     team: PlanningTeamNavigationDto;
     progress: number;
     type: SimpleNavigationDto;
-    startDate?: Date | undefined;
-    targetDate?: Date | undefined;
+    startDate?: string | undefined;
+    targetDate?: string | undefined;
     isStretch: boolean;
     order?: number | undefined;
 }
@@ -48375,8 +48375,8 @@ export interface PlanningIntervalObjectiveDetailsDto {
     planningInterval: NavigationDto;
     team: PlanningTeamNavigationDto;
     type: SimpleNavigationDto;
-    startDate?: Date | undefined;
-    targetDate?: Date | undefined;
+    startDate?: string | undefined;
+    targetDate?: string | undefined;
     closedDate?: Date | undefined;
     isStretch: boolean;
 }
@@ -48386,8 +48386,8 @@ export interface CreatePlanningIntervalObjectiveRequest {
     teamId: string;
     name: string;
     description?: string | undefined;
-    startDate?: Date | undefined;
-    targetDate?: Date | undefined;
+    startDate?: string | undefined;
+    targetDate?: string | undefined;
     isStretch: boolean;
     order?: number | undefined;
 }
@@ -48399,8 +48399,8 @@ export interface UpdatePlanningIntervalObjectiveRequest {
     description?: string | undefined;
     statusId: number;
     progress: number;
-    startDate?: Date | undefined;
-    targetDate?: Date | undefined;
+    startDate?: string | undefined;
+    targetDate?: string | undefined;
     isStretch: boolean;
 }
 
@@ -48450,7 +48450,7 @@ export interface WorkItemProgressRollupDto {
 }
 
 export interface WorkItemProgressDailyRollupDto extends WorkItemProgressRollupDto {
-    date?: Date;
+    date?: string;
 }
 
 export interface ManagePlanningIntervalObjectiveWorkItemsRequest {
@@ -48475,8 +48475,8 @@ hand-authored file still works. */
     /** Percent complete, 0–100. */
     progress: number;
     /** Before TargetDate where both are given. */
-    startDate?: Date | undefined;
-    targetDate?: Date | undefined;
+    startDate?: string | undefined;
+    targetDate?: string | undefined;
     /** Whether the objective is a stretch goal. */
     isStretch: boolean;
     /** When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise. */
@@ -48527,7 +48527,7 @@ export interface RiskListDto {
     category: string;
     exposure: string;
     assignee?: EmployeeNavigationDto | undefined;
-    followUpDate?: Date | undefined;
+    followUpDate?: string | undefined;
 }
 
 export interface PokerSessionListDto {
@@ -48613,7 +48613,7 @@ export interface RiskDetailsDto {
     likelihood: SimpleNavigationDto;
     exposure: SimpleNavigationDto;
     assignee?: NavigationDto | undefined;
-    followUpDate?: Date | undefined;
+    followUpDate?: string | undefined;
     response?: string | undefined;
     closedDate?: Date | undefined;
 }
@@ -48626,7 +48626,7 @@ export interface CreateRiskRequest {
     impactId: number;
     likelihoodId: number;
     assigneeId?: string | undefined;
-    followUpDate?: Date | undefined;
+    followUpDate?: string | undefined;
     response?: string | undefined;
 }
 
@@ -48640,7 +48640,7 @@ export interface UpdateRiskRequest {
     impactId: number;
     likelihoodId: number;
     assigneeId?: string | undefined;
-    followUpDate?: Date | undefined;
+    followUpDate?: string | undefined;
     response?: string | undefined;
 }
 
@@ -48667,7 +48667,7 @@ hand-authored file still works. */
     likelihoodId: number;
     /** The employee the risk is assigned to, by id. */
     assigneeId?: string | undefined;
-    followUpDate?: Date | undefined;
+    followUpDate?: string | undefined;
     response?: string | undefined;
     /** When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past. */
     closedDateUtc?: Date | undefined;
@@ -48698,8 +48698,8 @@ export interface RoadmapListDto {
     id: string;
     key: number;
     name: string;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     visibility: SimpleNavigationDto;
     state: SimpleNavigationDto;
     color?: string | undefined;
@@ -48711,8 +48711,8 @@ export interface RoadmapDetailsDto {
     key: number;
     name: string;
     description?: string | undefined;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     visibility: SimpleNavigationDto;
     state: SimpleNavigationDto;
     roadmapManagers: EmployeeNavigationDto[];
@@ -48732,9 +48732,9 @@ export interface CreateRoadmapRequest {
     /** The description of the Roadmap. */
     description?: string | undefined;
     /** The Roadmap start date. */
-    start: Date;
+    start: string;
     /** The Roadmap end date. */
-    end: Date;
+    end: string;
     /** The managers of the Roadmap. */
     roadmapManagerIds: string[];
     /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
@@ -48760,9 +48760,9 @@ export interface UpdateRoadmapRequest {
     /** The description of the Roadmap. */
     description?: string | undefined;
     /** The Roadmap start date. */
-    start: Date;
+    start: string;
     /** The Roadmap end date. */
-    end: Date;
+    end: string;
     /** The managers of the Roadmap. */
     roadmapManagerIds: string[];
     /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
@@ -48803,19 +48803,19 @@ export interface RoadmapActivityNavigationDto {
 }
 
 export interface RoadmapActivityListDto extends RoadmapItemListDto {
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     order?: number;
     children?: RoadmapItemListDto[];
 }
 
 export interface RoadmapMilestoneListDto extends RoadmapItemListDto {
-    date: Date;
+    date: string;
 }
 
 export interface RoadmapTimeboxListDto extends RoadmapItemListDto {
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
 }
 
 export interface RoadmapItemDetailsDto {
@@ -48830,19 +48830,19 @@ export interface RoadmapItemDetailsDto {
 }
 
 export interface RoadmapActivityDetailsDto extends RoadmapItemDetailsDto {
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     order?: number;
     children?: RoadmapItemDetailsDto[];
 }
 
 export interface RoadmapMilestoneDetailsDto extends RoadmapItemDetailsDto {
-    date: Date;
+    date: string;
 }
 
 export interface RoadmapTimeboxDetailsDto extends RoadmapItemDetailsDto {
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
 }
 
 export interface CreateRoadmapItemRequest {
@@ -48861,21 +48861,21 @@ export interface CreateRoadmapItemRequest {
 
 export interface CreateRoadmapActivityRequest extends CreateRoadmapItemRequest {
     /** The Activity start date. */
-    start?: Date;
+    start?: string;
     /** The Activity end date. */
-    end?: Date;
+    end?: string;
 }
 
 export interface CreateRoadmapMilestoneRequest extends CreateRoadmapItemRequest {
     /** The Milestone date. */
-    date: Date;
+    date: string;
 }
 
 export interface CreateRoadmapTimeboxRequest extends CreateRoadmapItemRequest {
     /** The Timebox start date. */
-    start?: Date;
+    start?: string;
     /** The Timebox end date. */
-    end?: Date;
+    end?: string;
 }
 
 export interface UpdateRoadmapItemRequest {
@@ -48896,21 +48896,21 @@ export interface UpdateRoadmapItemRequest {
 
 export interface UpdateRoadmapActivityRequest extends UpdateRoadmapItemRequest {
     /** The Roadmap Item start date. */
-    start?: Date;
+    start?: string;
     /** The Roadmap Item end date. */
-    end?: Date;
+    end?: string;
 }
 
 export interface UpdateRoadmapMilestoneRequest extends UpdateRoadmapItemRequest {
     /** The Milestone date. */
-    date?: Date;
+    date?: string;
 }
 
 export interface UpdateRoadmapTimeboxRequest extends UpdateRoadmapItemRequest {
     /** The Roadmap Item start date. */
-    start?: Date;
+    start?: string;
     /** The Roadmap Item end date. */
-    end?: Date;
+    end?: string;
 }
 
 export interface JsonPatchDocumentOfUpdateRoadmapItemRequest {
@@ -48930,21 +48930,21 @@ export interface UpdateRoadmapItemDatesRequest {
 
 export interface UpdateRoadmapActivityDatesRequest extends UpdateRoadmapItemDatesRequest {
     /** The Roadmap Item start date. */
-    start?: Date;
+    start?: string;
     /** The Roadmap Item end date. */
-    end?: Date;
+    end?: string;
 }
 
 export interface UpdateRoadmapMilestoneDatesRequest extends UpdateRoadmapItemDatesRequest {
     /** The Milestone date. */
-    date?: Date;
+    date?: string;
 }
 
 export interface UpdateRoadmapTimeboxDatesRequest extends UpdateRoadmapItemDatesRequest {
     /** The Roadmap Item start date. */
-    start?: Date;
+    start?: string;
     /** The Roadmap Item end date. */
-    end?: Date;
+    end?: string;
 }
 
 export interface UpdateRoadmapActivityPlacementRequest {
@@ -49024,8 +49024,8 @@ export interface StoryMapSwimLaneDto {
     name: string;
     order: number;
     isDefault: boolean;
-    startDate?: Date | undefined;
-    endDate?: Date | undefined;
+    startDate?: string | undefined;
+    endDate?: string | undefined;
 }
 
 export interface StoryMapPersonaDto {
@@ -49134,8 +49134,8 @@ export interface RenameSwimLaneRequest {
 }
 
 export interface SetSwimLaneDatesRequest {
-    startDate?: Date | undefined;
-    endDate?: Date | undefined;
+    startDate?: string | undefined;
+    endDate?: string | undefined;
 }
 
 export interface ReorderSwimLaneRequest {
@@ -49178,8 +49178,8 @@ export interface SprintListDto {
     key: number;
     name: string;
     state: SimpleNavigationDto;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     team: WorkTeamNavigationDto;
 }
 
@@ -49188,8 +49188,8 @@ export interface SprintDetailsDto {
     key: number;
     name: string;
     state: SimpleNavigationDto;
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     team: WorkTeamNavigationDto;
 }
 
@@ -49617,8 +49617,8 @@ export interface TeamDetailsDto {
     code: string;
     description?: string | undefined;
     type: string;
-    activeDate: Date;
-    inactiveDate?: Date | undefined;
+    activeDate: string;
+    inactiveDate?: string | undefined;
     isActive: boolean;
     teamOfTeams?: TeamNavigationDto | undefined;
     operatingModel: TeamOperatingModelListDto;
@@ -49648,7 +49648,7 @@ export interface CreateTeamRequest {
     /** Gets the team description. */
     description?: string | undefined;
     /** The active date for the team. */
-    activeDate: Date;
+    activeDate: string;
 }
 
 /** A single CSV row for the unified team import. Type discriminates between a Team and a Team of Teams (case-insensitive: "Team" / "TeamOfTeams"). Both share the same create shape. */
@@ -49663,11 +49663,11 @@ hand-authored file still works. */
     code: string;
     description?: string | undefined;
     /** The date the team became active. */
-    activeDate: Date;
+    activeDate: string;
     /** Whether the team is currently active. Defaults to true when the column is absent. */
     isActive: boolean;
     /** When the team was retired. Required when IsActive is false; must be after ActiveDate. */
-    inactiveDate?: Date | undefined;
+    inactiveDate?: string | undefined;
 }
 
 /** A single CSV row for team staffing: places one employee on one team in one role, all by natural key. Multiple roles for the same employee on the same team are expressed as multiple rows. */
@@ -49695,9 +49695,9 @@ hand-authored file still works. */
     /** The parent's code. Must be a Team of Teams, and cannot equal ChildCode. */
     parentCode: string;
     /** When the membership begins. On or after both teams' active dates. */
-    start: Date;
+    start: string;
     /** When the membership ends. On or after Start; blank for one still in place. */
-    end?: Date | undefined;
+    end?: string | undefined;
 }
 
 export interface UpdateTeamRequest {
@@ -49712,30 +49712,30 @@ export interface UpdateTeamRequest {
 
 export interface DeactivateTeamRequest {
     id: string;
-    inactiveDate: Date;
+    inactiveDate: string;
 }
 
 export interface TeamMembershipDto {
     id: string;
     child: TeamNavigationDto;
     parent: TeamNavigationDto;
-    start: Date;
-    end?: Date | undefined;
+    start: string;
+    end?: string | undefined;
     state: string;
 }
 
 export interface AddTeamMembershipRequest {
     teamId: string;
     parentTeamId: string;
-    start: Date;
-    end?: Date | undefined;
+    start: string;
+    end?: string | undefined;
 }
 
 export interface UpdateTeamMembershipRequest {
     teamId: string;
     teamMembershipId: string;
-    start: Date;
-    end?: Date | undefined;
+    start: string;
+    end?: string | undefined;
 }
 
 export interface WorkItemBacklogItemDto {
@@ -49764,8 +49764,8 @@ export interface TeamBacklogHealthDto {
     team: WorkTeamNavigationDto;
     thresholds: BacklogHealthThresholds;
     lookbackDays: number;
-    from: Date;
-    to: Date;
+    from: string;
+    to: string;
     totalWorkItems: number;
     totalStoryPoints: number;
     proposedWorkItems: number;
@@ -49831,8 +49831,8 @@ export interface BacklogHealthWorkItemDto {
 
 export interface TeamAllocationDto {
     team: WorkTeamNavigationDto;
-    from: Date;
-    to: Date;
+    from: string;
+    to: string;
     summary: AllocationSummaryDto;
     groups: AllocationGroupDto[];
     teams: AllocationTeamRowDto[];
@@ -49915,8 +49915,8 @@ export interface AllocationCellDto {
 }
 
 export interface AllocationPeriodDto {
-    start: Date;
-    end: Date;
+    start: string;
+    end: string;
     items: number;
     value: number;
     values: number[];
@@ -49951,8 +49951,8 @@ export enum ThemeCounting {
 export interface TeamThroughputForecastDto {
     outcome: SimpleNavigationDto;
     team: ForecastTeamDto;
-    forecastStart: Date;
-    targetDate: Date;
+    forecastStart: string;
+    targetDate: string;
     lookbackDays: number;
     startedWorkFirst: boolean;
     days: number;
@@ -49989,8 +49989,8 @@ export interface DependencyDto {
 export interface TeamOperatingModelDetailsDto {
     id: string;
     teamId: string;
-    start: Date;
-    end?: Date | undefined;
+    start: string;
+    end?: string | undefined;
     methodology: Methodology;
     sizingMethod: SizingMethod;
     timeZone: string;
@@ -50006,7 +50006,7 @@ export interface OperatingModelDefaultsDto {
 
 export interface SetTeamOperatingModelRequest {
     /** The start date for this operating model. */
-    startDate: Date;
+    startDate: string;
     /** The methodology the team uses (e.g., Scrum, Kanban). */
     methodology: Methodology;
     /** The sizing method the team uses (e.g., StoryPoints, Count). */
@@ -50029,7 +50029,7 @@ export interface UpdateTeamOperatingModelRequest {
 }
 
 export interface FunctionalOrganizationChartDto {
-    asOfDate: Date;
+    asOfDate: string;
     organization: OrganizationalUnitDto[];
     total: number;
     maxDepth: number;
@@ -50072,8 +50072,8 @@ export interface TeamOfTeamsDetailsDto {
     code: string;
     description?: string | undefined;
     type: string;
-    activeDate: Date;
-    inactiveDate?: Date | undefined;
+    activeDate: string;
+    inactiveDate?: string | undefined;
     isActive: boolean;
     teamOfTeams?: TeamNavigationDto | undefined;
 }
@@ -50086,7 +50086,7 @@ export interface CreateTeamOfTeamsRequest {
     /** Gets the team description. */
     description?: string | undefined;
     /** The active date for the team. */
-    activeDate: Date;
+    activeDate: string;
 }
 
 export interface UpdateTeamOfTeamsRequest {
@@ -50101,21 +50101,21 @@ export interface UpdateTeamOfTeamsRequest {
 
 export interface DeactivateTeamOfTeamsRequest {
     id: string;
-    inactiveDate: Date;
+    inactiveDate: string;
 }
 
 export interface TeamOfTeamsOperatingModelDetailsDto {
     id: string;
     teamId: string;
-    start: Date;
-    end?: Date | undefined;
+    start: string;
+    end?: string | undefined;
     timeZone: string;
     isCurrent: boolean;
 }
 
 export interface SetTeamOfTeamsOperatingModelRequest {
     /** The start date for this operating model. */
-    startDate: Date;
+    startDate: string;
     /** The IANA id of the time zone the team of teams' own rollups count days in. */
     timeZone: string;
 }

@@ -37,7 +37,7 @@ const link = (
   product: from,
   dependsOnProduct: to,
   strength: DependencyStrength.Hard,
-  startsOn: new Date('2026-01-01'),
+  startsOn: '2026-01-01',
   productPath: [],
   dependsOnProductPath: [],
   ...overrides,
@@ -125,9 +125,7 @@ describe('buildProductDependencyNeighbourhood', () => {
     // Act
     // The Dependencies section's Show ended switch feeds the same query, so the map must filter for itself.
     const graph = build(
-      dependencies([
-        link('a', self, retired, { endsOn: new Date('2026-03-01') }),
-      ]),
+      dependencies([link('a', self, retired, { endsOn: '2026-03-01' })]),
     )
 
     // Assert

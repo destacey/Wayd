@@ -1,16 +1,20 @@
 'use client'
 
 import { Descriptions, Modal, Typography } from 'antd'
-import dayjs from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { isApiError } from '@/src/utils'
+import {
+  CalendarDate,
+  compareCalendarDates,
+  formatCalendarDate,
+  isApiError,
+} from '@/src/utils'
 
 const { Item } = Descriptions
 const { Paragraph } = Typography
 
 export interface OperatingModelSummary {
-  start: Date
+  start: CalendarDate
   timeZone: string
 }
 
@@ -33,11 +37,11 @@ export const findReinstatedModel = <
     ?.filter((m) => !m.isCurrent)
     .reduce<T | undefined>(
       (latest, m) =>
-        !latest || dayjs(m.start).isAfter(dayjs(latest.start)) ? m : latest,
+        !latest || compareCalendarDates(m.start, latest.start) > 0 ? m : latest,
       undefined,
     )
 
-const formatDate = (date: Date) => dayjs(date).format('M/D/YYYY')
+const formatDate = (date: CalendarDate) => formatCalendarDate(date, 'M/D/YYYY')
 
 const DeleteOperatingModelForm = ({
   operatingModel,

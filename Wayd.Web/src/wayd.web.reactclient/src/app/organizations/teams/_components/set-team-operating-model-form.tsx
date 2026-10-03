@@ -56,7 +56,7 @@ const mapToRequestValues = (
     sizingMethod: values.sizingMethod,
     timeZone: values.timeZone,
     commitmentGraceDays: values.commitmentGraceDays,
-  } as unknown as SetTeamOperatingModelRequest
+  } as SetTeamOperatingModelRequest
 }
 
 const SetTeamOperatingModelForm = ({

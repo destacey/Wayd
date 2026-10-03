@@ -2,18 +2,19 @@
 
 import { Col, Row, Space, Typography } from 'antd'
 import PlanningIntervalCard from './planning-interval-card'
-import dayjs from 'dayjs'
+import {
+  calendarDaysBetween,
+  CalendarDate,
+  compareCalendarDates,
+  todayCalendarDate,
+} from '@/src/utils'
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { IterationState } from '../../types'
 
 const { Title } = Typography
 
-const isWithinTwoWeeks = (date: Date) => {
-  const twoWeeksFromNow = dayjs().add(14, 'day')
-  return (
-    dayjs(date).isBefore(twoWeeksFromNow) || dayjs(date).isSame(twoWeeksFromNow)
-  )
-}
+const isWithinTwoWeeks = (date: CalendarDate) =>
+  calendarDaysBetween(todayCalendarDate(), date) <= 14
 
 const ActivePlanningIntervals = () => {
   const { data: piData } = useGetPlanningIntervalsQuery()
@@ -26,7 +27,7 @@ const ActivePlanningIntervals = () => {
           ((pi.state.id as IterationState) === IterationState.Future &&
             isWithinTwoWeeks(pi.start)),
       )
-      ?.sort((a, b) => dayjs(a.start).unix() - dayjs(b.start).unix()) || []
+      ?.sort((a, b) => compareCalendarDates(a.start, b.start)) || []
 
   if (activePlanningIntervals.length === 0) {
     return <div>No active planning intervals found.</div>

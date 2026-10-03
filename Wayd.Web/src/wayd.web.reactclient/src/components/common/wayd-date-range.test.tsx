@@ -1,3 +1,6 @@
+// Calendar dates must parse as local days; the global mock only stubs format.
+jest.unmock('dayjs')
+
 import { render, screen } from '@testing-library/react'
 import WaydDateRange from './wayd-date-range'
 import { DateRange } from '../types'
@@ -163,6 +166,30 @@ describe('WaydDateRange', () => {
       const text = screen.getByText(/Mar 15 - Jun 20, 2024/)
       expect(text).toBeInTheDocument()
       expect(screen.queryByText(/PM/)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('calendar dates', () => {
+    it('shows calendar dates as written', () => {
+      // Arrange
+      const dateRange: DateRange = { start: '2024-03-15', end: '2024-06-20' }
+
+      // Act
+      render(<WaydDateRange dateRange={dateRange} />)
+
+      // Assert
+      expect(screen.getByText('Mar 15 - Jun 20, 2024')).toBeInTheDocument()
+    })
+
+    it('shows both years for calendar dates in different years', () => {
+      // Arrange
+      const dateRange: DateRange = { start: '2023-12-31', end: '2024-01-01' }
+
+      // Act
+      render(<WaydDateRange dateRange={dateRange} />)
+
+      // Assert
+      expect(screen.getByText('Dec 31, 2023 - Jan 1, 2024')).toBeInTheDocument()
     })
   })
 

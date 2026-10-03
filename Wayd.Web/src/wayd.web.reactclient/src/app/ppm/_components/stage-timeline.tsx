@@ -4,7 +4,11 @@ import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons'
 import { ProjectStageListDto } from '@/src/services/wayd-api'
 import { Steps } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
-import dayjs from 'dayjs'
+import {
+  CalendarDate,
+  formatCalendarDate,
+  parseCalendarDate,
+} from '@/src/utils'
 import { FC, useEffect, useRef, useState } from 'react'
 import styles from './stage-timeline.module.css'
 
@@ -67,17 +71,22 @@ function getIcon(status: StageStatus, tooltipContent: React.ReactNode) {
   }
 }
 
-function formatDateRange(start?: Date, end?: Date): string | null {
+function formatDateRange(
+  start?: CalendarDate,
+  end?: CalendarDate,
+): string | null {
   if (!start && !end) return null
-  const format = 'MMM D, YYYY'
   if (start && end) {
-    const startStr = dayjs(start).isSame(dayjs(end), 'year')
-      ? dayjs(start).format('MMM D')
-      : dayjs(start).format(format)
-    return `${startStr} - ${dayjs(end).format(format)}`
+    const startStr = parseCalendarDate(start).isSame(
+      parseCalendarDate(end),
+      'year',
+    )
+      ? formatCalendarDate(start, 'MMM D')
+      : formatCalendarDate(start)
+    return `${startStr} - ${formatCalendarDate(end)}`
   }
-  if (start) return `Starts ${dayjs(start).format(format)}`
-  return `Ends ${dayjs(end).format(format)}`
+  if (start) return `Starts ${formatCalendarDate(start)}`
+  return `Ends ${formatCalendarDate(end)}`
 }
 
 /**

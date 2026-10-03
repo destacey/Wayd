@@ -6,9 +6,9 @@ using Wayd.Work.Application.Persistence;
 namespace Wayd.Work.Application.Iterations.Commands;
 
 /// <summary>
-/// Records that the team completed the sprint now.
+/// Records that the team completed the sprint at <paramref name="CompletedAt"/>, or now when it is omitted.
 /// </summary>
-public sealed record CompleteSprintCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
+public sealed record CompleteSprintCommand(Guid Id, Instant? CompletedAt = null) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CompleteSprintCommandValidator : AbstractValidator<CompleteSprintCommand>
 {
@@ -47,7 +47,7 @@ public sealed class CompleteSprintCommandHandler(
                 _workDbContext, _dispatcher, _schedulingSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _logger,
                 request.Id,
                 "complete",
-                (sprint, timeline, actor, now) => sprint.Complete(timeline, actor, now),
+                (sprint, timeline, actor, now) => [() => sprint.Complete(timeline, request.CompletedAt ?? now, actor, now)],
                 cancellationToken);
         }
         catch (Exception ex)

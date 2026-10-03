@@ -47,7 +47,7 @@ public sealed class ReopenSprintCommandHandler(
                 _workDbContext, _dispatcher, _schedulingSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _logger,
                 request.Id,
                 "reopen",
-                (sprint, timeline, actor, now) => sprint.Reopen(timeline, actor, now),
+                (sprint, timeline, actor, now) => [() => sprint.Reopen(timeline, actor, now)],
                 cancellationToken);
         }
         catch (Exception ex)

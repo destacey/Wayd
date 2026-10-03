@@ -148,7 +148,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint);
 
         // Act
-        var result = timeline.CanStart(sprint, At(Sprint1Start.PlusDays(-3)));
+        var result = timeline.CanStart(sprint, At(Sprint1Start.PlusDays(-3)), At(Sprint1Start.PlusDays(-3)));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -162,7 +162,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint);
 
         // Act
-        var result = timeline.CanStart(sprint, At(Sprint1Start.PlusDays(-3)).Minus(Duration.FromMinutes(1)));
+        var result = timeline.CanStart(sprint, At(Sprint1Start.PlusDays(-3)).Minus(Duration.FromMinutes(1)), At(Sprint1Start.PlusDays(-3)).Minus(Duration.FromMinutes(1)));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -177,7 +177,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint1, sprint2);
 
         // Act
-        var result = timeline.CanStart(sprint2, At(Sprint1Start, 12));
+        var result = timeline.CanStart(sprint2, At(Sprint1Start, 12), At(Sprint1Start, 12));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -193,27 +193,28 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint1, sprint2);
 
         // Act
-        var result = timeline.CanStart(sprint2, At(Sprint2Start.PlusDays(-3), 15));
+        var result = timeline.CanStart(sprint2, At(Sprint2Start.PlusDays(-3), 15), At(Sprint2Start.PlusDays(-3), 15));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
-    public void CanStart_ASprintTwoBehindTheOneInEffect_Fails()
+    public void CanStart_AfterTheNextSprintHasStarted_Fails()
     {
         // Arrange — the source plans sprint 1 to run across sprints 2 and 3
         var sprint1 = NewSprint(Sprint1Start, 1, days: 42);
         var sprint2 = NewSprint(Sprint2Start, 2);
         var sprint3 = NewSprint(Sprint3Start, 3);
         var timeline = Timeline(sprint1, sprint2, sprint3);
+        var now = At(Sprint3Start.PlusDays(2));
 
-        // Act — sprint 3's default start has passed, so it is the one in effect
-        var result = timeline.CanStart(sprint1, At(Sprint3Start.PlusDays(2)));
+        // Act — sprint 2's default start has passed, so starting sprint 1 now would skip over it
+        var result = timeline.CanStart(sprint1, now, now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("next sprint");
+        result.Error.Should().Contain("between");
     }
 
     [Fact]
@@ -226,25 +227,138 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint1, sprint2, sprint3);
 
         // Act
-        var result = timeline.CanStart(sprint3, At(Sprint3Start, 9));
+        var result = timeline.CanStart(sprint3, At(Sprint3Start, 9), At(Sprint3Start, 9));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
-    public void CanStart_AfterThePlannedEnd_Fails()
+    public void CanStart_AtThePlannedEnd_Fails()
     {
         // Arrange
         var sprint = NewSprint(Sprint1Start, 1);
         var timeline = Timeline(sprint);
 
         // Act
-        var result = timeline.CanStart(sprint, At(Sprint2Start));
+        var result = timeline.CanStart(sprint, At(Sprint2Start), At(Sprint2Start));
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("planned end");
+        result.Error.Should().Contain("between");
+    }
+
+    [Fact]
+    public void CanStart_BackdatedBeforeThePlannedEnd_AfterItPassed_Succeeds()
+    {
+        // Arrange — the team forgot to press Start and records it afterwards
+        var sprint = NewSprint(Sprint1Start, 1);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var result = timeline.CanStart(sprint, At(Sprint1Start, 10), At(Sprint2Start, 9));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanStart_InTheFuture_Fails()
+    {
+        // Arrange
+        var sprint = NewSprint(Sprint1Start, 1);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var result = timeline.CanStart(sprint, At(Sprint1Start, 11), At(Sprint1Start, 10));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("future");
+    }
+
+    [Fact]
+    public void StartWindow_RunsFromThePreviousSprintsCompletionToBeforeThePlannedEnd()
+    {
+        // Arrange — sprint 1 started and was completed on its last Friday
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 10), completed: At(Sprint2Start.PlusDays(-3), 15));
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var sprint3 = NewSprint(Sprint3Start, 3);
+        var timeline = Timeline(sprint1, sprint2, sprint3);
+
+        // Act
+        var result = timeline.StartWindow(sprint2, At(Sprint3Start.PlusDays(5)));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Earliest.Should().Be(At(Sprint2Start.PlusDays(-3), 15));
+        result.Value.Latest.Should().Be(timeline.PlannedEnd(sprint2).Minus(Duration.FromMilliseconds(1)));
+    }
+
+    [Fact]
+    public void StartWindow_WhenTheNextSprintStartsBeforeThePlannedEnd_EndsBeforeIt()
+    {
+        // Arrange — the source plans sprint 2 two days into sprint 3
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 10), completed: At(Sprint2Start.PlusDays(-3), 15));
+        var sprint2 = NewSprint(Sprint2Start, 2, days: 16);
+        var sprint3 = NewSprint(Sprint3Start, 3);
+        var timeline = Timeline(sprint1, sprint2, sprint3);
+
+        // Act
+        var result = timeline.StartWindow(sprint2, At(Sprint3Start.PlusDays(5)));
+
+        // Assert
+        result.Value.Latest.Should().Be(timeline.DefaultStart(sprint3).Minus(Duration.FromMilliseconds(1)));
+    }
+
+    [Fact]
+    public void StartWindow_WhenAnotherSprintIsOpen_StartsAfterItsStart()
+    {
+        // Arrange — sprint 1 is open, started later than its default start
+        var openStarted = At(Sprint1Start.PlusDays(2), 10);
+        var sprint1 = NewSprint(Sprint1Start, 1, started: openStarted);
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint1, sprint2);
+        var now = At(Sprint2Start, 9);
+
+        // Act
+        var result = timeline.StartWindow(sprint2, now);
+
+        // Assert
+        result.Value.Earliest.Should().Be(openStarted.Plus(Duration.FromMilliseconds(1)));
+        result.Value.Latest.Should().Be(now);
+    }
+
+    [Fact]
+    public void CompleteWindow_RunsFromTheStartToNow()
+    {
+        // Arrange
+        var started = At(Sprint1Start, 10);
+        var sprint = NewSprint(Sprint1Start, 1, started: started);
+        var timeline = Timeline(sprint);
+        var now = At(Sprint2Start, 9);
+
+        // Act
+        var result = timeline.CompleteWindow(sprint, now);
+
+        // Assert
+        result.Value.Should().Be(new InstantWindow(started.Plus(Duration.FromMilliseconds(1)), now));
+    }
+
+    [Fact]
+    public void CanComplete_BeforeTheStart_FailsWithTheWindow()
+    {
+        // Arrange
+        var started = At(Sprint1Start, 10);
+        var sprint = NewSprint(Sprint1Start, 1, started: started);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var result = timeline.CanComplete(sprint, At(Sprint1Start, 9), At(Sprint2Start, 9));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("between");
     }
 
     [Fact]
@@ -256,7 +370,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint1, sprint2);
 
         // Act
-        var result = timeline.CanStart(sprint1, At(Sprint2Start, 10));
+        var result = timeline.CanStart(sprint1, At(Sprint2Start, 10), At(Sprint2Start, 10));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -274,7 +388,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline();
 
         // Act
-        var result = timeline.CanStart(sprint, At(Sprint1Start, 9));
+        var result = timeline.CanStart(sprint, At(Sprint1Start, 9), At(Sprint1Start, 9));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -289,7 +403,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint);
 
         // Act
-        var result = timeline.CanComplete(sprint, At(Sprint1Start, 12));
+        var result = timeline.CanComplete(sprint, At(Sprint1Start, 12), At(Sprint1Start, 12));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -303,7 +417,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint);
 
         // Act
-        var result = timeline.CanComplete(sprint, At(Sprint1Start.PlusDays(1), 1));
+        var result = timeline.CanComplete(sprint, At(Sprint1Start.PlusDays(1), 1), At(Sprint1Start.PlusDays(1), 1));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -318,7 +432,7 @@ public class TeamSprintTimelineTests
         var timeline = Timeline(sprint1, sprint2);
 
         // Act
-        var result = timeline.CanComplete(sprint2, At(Sprint3Start, 9));
+        var result = timeline.CanComplete(sprint2, At(Sprint3Start, 9), At(Sprint3Start, 9));
 
         // Assert
         result.IsFailure.Should().BeTrue();

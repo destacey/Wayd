@@ -82,8 +82,18 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     /// <summary>Whether the sprint's lifecycle allows starting it now, whoever asks.</summary>
     public bool CanStart { get; set; }
 
+    /// <summary>
+    /// The moments the sprint can be recorded as started, now or earlier. Null when it can't be started.
+    /// </summary>
+    public InstantWindowDto? StartWindow { get; set; }
+
     /// <summary>Whether the sprint's lifecycle allows completing it now, whoever asks.</summary>
     public bool CanComplete { get; set; }
+
+    /// <summary>
+    /// The moments the sprint can be recorded as completed, now or earlier. Null when it can't be completed.
+    /// </summary>
+    public InstantWindowDto? CompleteWindow { get; set; }
 
     /// <summary>Whether the sprint's lifecycle allows reopening it now, whoever asks.</summary>
     public bool CanReopen { get; set; }
@@ -107,7 +117,9 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
             .Ignore(dest => dest.OverlapsNextSprint)
             .Ignore(dest => dest.CanManageSprint)
             .Ignore(dest => dest.CanStart)
+            .Ignore(dest => dest.StartWindow!)
             .Ignore(dest => dest.CanComplete)
+            .Ignore(dest => dest.CompleteWindow!)
             .Ignore(dest => dest.CanReopen)
             .Ignore(dest => dest.OpenSprint!);
     }

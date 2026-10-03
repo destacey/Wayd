@@ -179,14 +179,15 @@ public class IterationTests
     }
 
     [Fact]
-    public void Start_OnTheFridayBeforeAHoliday_CompletesTheOpenSprintAtTheSameInstant()
+    public void Start_OnTheFridayBeforeAHoliday_AtTheMomentTheOpenSprintCompleted_Succeeds()
     {
         // Arrange — Monday is a holiday, so the team plans on Friday afternoon
         var (sprint1, sprint2, timeline) = TwoSprints(sprint1Started: InChicago(Sprint1Start, 10));
         var friday = InChicago(Sprint2Start.PlusDays(-3), 15);
+        sprint1.Complete(timeline, friday, EventActor.System, friday).IsSuccess.Should().BeTrue();
 
         // Act
-        var result = sprint2.Start(timeline, completeOpenSprint: true, EventActor.System, friday);
+        var result = sprint2.Start(timeline, friday, EventActor.System, friday);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -199,13 +200,13 @@ public class IterationTests
     }
 
     [Fact]
-    public void Start_WhenAnotherSprintIsOpenAndNotConfirmed_FailsAndChangesNothing()
+    public void Start_WhileAnotherSprintIsOpen_FailsAndChangesNothing()
     {
         // Arrange
         var (sprint1, sprint2, timeline) = TwoSprints(sprint1Started: InChicago(Sprint1Start, 10));
 
         // Act
-        var result = sprint2.Start(timeline, completeOpenSprint: false, EventActor.System, InChicago(Sprint2Start, 9));
+        var result = sprint2.Start(timeline, InChicago(Sprint2Start, 9), EventActor.System, InChicago(Sprint2Start, 9));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -223,7 +224,7 @@ public class IterationTests
         var (_, sprint2, timeline) = TwoSprints();
 
         // Act
-        var result = sprint2.Start(timeline, completeOpenSprint: true, EventActor.System, InChicago(Sprint1Start, 9));
+        var result = sprint2.Start(timeline, InChicago(Sprint1Start, 9), EventActor.System, InChicago(Sprint1Start, 9));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -239,7 +240,7 @@ public class IterationTests
         var now = InChicago(Sprint2Start, 9);
 
         // Act
-        var result = sprint1.Complete(timeline, EventActor.System, now);
+        var result = sprint1.Complete(timeline, now, EventActor.System, now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

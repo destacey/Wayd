@@ -70,8 +70,13 @@ public sealed class GetSprintQueryHandler(
         sprint.TimeZone = timeline.ScheduleFor(entity).TimeZone.Id;
         sprint.OverlapsPreviousSprint = timeline.OverlapsPrevious(entity);
         sprint.OverlapsNextSprint = timeline.OverlapsNext(entity);
-        sprint.CanStart = timeline.CanStart(entity, now).IsSuccess;
-        sprint.CanComplete = timeline.CanComplete(entity, now).IsSuccess;
+        var startWindow = timeline.StartWindow(entity, now);
+        sprint.CanStart = startWindow.IsSuccess;
+        sprint.StartWindow = startWindow.IsSuccess ? InstantWindowDto.From(startWindow.Value, now) : null;
+
+        var completeWindow = timeline.CompleteWindow(entity, now);
+        sprint.CanComplete = completeWindow.IsSuccess;
+        sprint.CompleteWindow = completeWindow.IsSuccess ? InstantWindowDto.From(completeWindow.Value, now) : null;
         sprint.CanReopen = timeline.CanReopen(entity).IsSuccess;
 
         if (timeline.OpenSprint is { } open && open.Id != entity.Id)

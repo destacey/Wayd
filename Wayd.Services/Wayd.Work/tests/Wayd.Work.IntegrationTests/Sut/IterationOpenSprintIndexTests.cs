@@ -48,9 +48,9 @@ public sealed class IterationOpenSprintIndexTests(SqlServerDbContextFixture fixt
         var secondTimeline = await Timeline(second, teamId, cancellationToken);
 
         var startA = firstTimeline.Sprints.Single(s => s.Id == sprintAId)
-            .Start(firstTimeline, completeOpenSprint: false, EventActor.System, Now);
+            .Start(firstTimeline, Now, EventActor.System, Now);
         var startB = secondTimeline.Sprints.Single(s => s.Id == sprintBId)
-            .Start(secondTimeline, completeOpenSprint: false, EventActor.System, Now);
+            .Start(secondTimeline, Now, EventActor.System, Now);
 
         // Act
         await first.Context.SaveChangesAsync(cancellationToken);
@@ -85,7 +85,7 @@ public sealed class IterationOpenSprintIndexTests(SqlServerDbContextFixture fixt
             foreach (var teamId in new[] { firstTeamId, secondTeamId })
             {
                 var timeline = await Timeline(start, teamId, cancellationToken);
-                timeline.Sprints.Single().Start(timeline, completeOpenSprint: false, EventActor.System, Now).IsSuccess.Should().BeTrue();
+                timeline.Sprints.Single().Start(timeline, Now, EventActor.System, Now).IsSuccess.Should().BeTrue();
             }
             await start.Context.SaveChangesAsync(cancellationToken);
         }

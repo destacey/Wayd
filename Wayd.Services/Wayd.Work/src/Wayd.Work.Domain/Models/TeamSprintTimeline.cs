@@ -1,3 +1,4 @@
+using System.Globalization;
 using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.Planning;
@@ -101,64 +102,116 @@ public sealed class TeamSprintTimeline
     public bool OverlapsNext(Iteration sprint) =>
         Next(sprint) is { } next && PlannedEndDate(sprint) >= PlannedStartDate(next);
 
-    public Result CanStart(Iteration sprint, Instant now)
+    /// <summary>
+    /// The moments, up to <paramref name="now"/>, the sprint could be recorded as started. It starts after the
+    /// previous sprint started and before the next one does, so the team moves on one sprint at a time; never
+    /// before the previous sprint's recorded completion, nor before the open sprint's start, since starting
+    /// completes that sprint at the same moment.
+    /// </summary>
+    public Result<InstantWindow> StartWindow(Iteration sprint, Instant now)
     {
         var eligible = CheckEligible(sprint);
         if (eligible.IsFailure)
-            return eligible;
+            return Result.Failure<InstantWindow>(eligible.Error);
 
         if (sprint.Started is not null)
-            return Result.Failure("The sprint has already been started.");
+            return Result.Failure<InstantWindow>("The sprint has already been started.");
 
         if (HasLaterStarted(sprint))
-            return Result.Failure("A later sprint for this team has already been started.");
-
-        if (now >= PlannedEnd(sprint))
-            return Result.Failure("The sprint's planned end has passed.");
+            return Result.Failure<InstantWindow>("A later sprint for this team has already been started.");
 
         var previous = Previous(sprint);
+        Instant earliest;
         if (previous is null)
         {
-            var schedule = ScheduleFor(sprint);
-            var earliest = PlannedStartDate(sprint).PlusDays(-EarlyStartDays)
-                .AtStartOfDayInZone(schedule.TimeZone)
+            earliest = PlannedStartDate(sprint).PlusDays(-EarlyStartDays)
+                .AtStartOfDayInZone(ScheduleFor(sprint).TimeZone)
                 .ToInstant();
-            if (now < earliest)
-                return Result.Failure($"The team's first sprint can be started at most {EarlyStartDays} days before its planned start.");
         }
-        else if (now <= EffectiveStart(previous))
+        else
         {
-            return Result.Failure("The sprint can't be started until the previous sprint has started.");
+            earliest = EffectiveStart(previous).Plus(ExcludedStep);
+            if (previous.Completed is { } previousCompleted && previousCompleted > earliest)
+                earliest = previousCompleted;
         }
 
-        // The sprint in effect may be started late, or the one after it early; anything further ahead
-        // would skip the sprint between them.
-        var current = Current(now);
-        if (current is not null && current != sprint && Next(current) != sprint)
-            return Result.Failure("Only the team's next sprint can be started.");
+        if (OpenSprint is { Started: { } openStarted } open && open != sprint && openStarted.Plus(ExcludedStep) > earliest)
+            earliest = openStarted.Plus(ExcludedStep);
 
-        return Result.Success();
+        var plannedEnd = PlannedEnd(sprint);
+        var latest = Min(now, plannedEnd.Minus(ExcludedStep));
+        Instant? nextStart = Next(sprint) is { } next ? EffectiveStart(next) : null;
+        if (nextStart is { } beforeNext)
+            latest = Min(latest, beforeNext.Minus(ExcludedStep));
+
+        if (earliest <= latest)
+            return new InstantWindow(earliest, latest);
+
+        if (nextStart <= earliest)
+            return Result.Failure<InstantWindow>("Only the team's next sprint can be started.");
+
+        if (plannedEnd <= earliest)
+            return Result.Failure<InstantWindow>("The sprint's planned end has passed.");
+
+        return previous is null
+            ? Result.Failure<InstantWindow>($"The team's first sprint can be started at most {EarlyStartDays} days before its planned start.")
+            : Result.Failure<InstantWindow>("The sprint can't be started until the previous sprint has started.");
     }
 
-    public Result CanComplete(Iteration sprint, Instant now)
+    /// <summary>Whether the sprint may be recorded as started at <paramref name="at"/>, deciding at <paramref name="now"/>.</summary>
+    public Result CanStart(Iteration sprint, Instant at, Instant now)
+    {
+        var window = StartWindow(sprint, now);
+        if (window.IsFailure)
+            return Result.Failure(window.Error);
+
+        if (at > now)
+            return Result.Failure("A start can't be recorded in the future.");
+
+        return window.Value.Contains(at)
+            ? Result.Success()
+            : Result.Failure($"The sprint can be started between {Describe(sprint, window.Value.Earliest)} and {Describe(sprint, window.Value.Latest)}.");
+    }
+
+    /// <summary>
+    /// The moments, up to <paramref name="now"/>, the sprint could be recorded as completed: after its actual or
+    /// default start.
+    /// </summary>
+    public Result<InstantWindow> CompleteWindow(Iteration sprint, Instant now)
     {
         var eligible = CheckEligible(sprint);
         if (eligible.IsFailure)
-            return eligible;
+            return Result.Failure<InstantWindow>(eligible.Error);
 
         if (sprint.Completed is not null)
-            return Result.Failure("The sprint has already been completed.");
+            return Result.Failure<InstantWindow>("The sprint has already been completed.");
 
         if (HasLaterStarted(sprint))
-            return Result.Failure("A later sprint for this team has already been started, which ended this one.");
+            return Result.Failure<InstantWindow>("A later sprint for this team has already been started, which ended this one.");
 
         if (_sprints.Take(IndexOf(sprint)).Any(s => s.Started is not null && s.Completed is null))
-            return Result.Failure("An earlier sprint for this team is still open. Complete it first.");
+            return Result.Failure<InstantWindow>("An earlier sprint for this team is still open. Complete it first.");
 
-        if (now <= EffectiveStart(sprint))
-            return Result.Failure("The sprint can't be completed before it starts.");
+        var earliest = EffectiveStart(sprint).Plus(ExcludedStep);
+        if (earliest > now)
+            return Result.Failure<InstantWindow>("The sprint can't be completed before it starts.");
 
-        return Result.Success();
+        return new InstantWindow(earliest, now);
+    }
+
+    /// <summary>Whether the sprint may be recorded as completed at <paramref name="at"/>, deciding at <paramref name="now"/>.</summary>
+    public Result CanComplete(Iteration sprint, Instant at, Instant now)
+    {
+        var window = CompleteWindow(sprint, now);
+        if (window.IsFailure)
+            return Result.Failure(window.Error);
+
+        if (at > now)
+            return Result.Failure("A completion can't be recorded in the future.");
+
+        return window.Value.Contains(at)
+            ? Result.Success()
+            : Result.Failure($"The sprint can be completed between {Describe(sprint, window.Value.Earliest)} and {Describe(sprint, window.Value.Latest)}.");
     }
 
     public Result CanReopen(Iteration sprint)
@@ -179,15 +232,16 @@ public sealed class TeamSprintTimeline
         return Result.Success();
     }
 
-    /// <summary>The latest sprint whose actual or default start has passed.</summary>
-    private Iteration? Current(Instant now)
+    // A bound that excludes a moment sits this far past it. A millisecond, not a tick: the API's clients
+    // hold instants to the millisecond, so a tick-sized step would round back onto the excluded moment.
+    private static readonly Duration ExcludedStep = Duration.FromMilliseconds(1);
+
+    private static Instant Min(Instant a, Instant b) => a < b ? a : b;
+
+    private string Describe(Iteration sprint, Instant instant)
     {
-        for (var i = _sprints.Count - 1; i >= 0; i--)
-        {
-            if (EffectiveStart(_sprints[i]) <= now)
-                return _sprints[i];
-        }
-        return null;
+        var zone = ScheduleFor(sprint).TimeZone;
+        return $"{instant.InZone(zone).ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)} ({zone.Id})";
     }
 
     private bool HasLaterStarted(Iteration sprint) =>

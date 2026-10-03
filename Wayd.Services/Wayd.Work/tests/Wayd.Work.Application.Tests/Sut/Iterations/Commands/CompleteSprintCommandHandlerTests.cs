@@ -46,6 +46,32 @@ public class CompleteSprintCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithAnEarlierCompletion_RecordsIt()
+    {
+        // Arrange
+        var completedAt = InChicago(Sprint2Start.PlusDays(-4), 17);
+
+        // Act
+        var result = await _handler.Handle(new CompleteSprintCommand(_scenario.Sprint1.Id, completedAt), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _scenario.Sprint1.Completed.Should().Be(completedAt);
+    }
+
+    [Fact]
+    public async Task Handle_WithACompletionBeforeTheStart_Fails()
+    {
+        // Act
+        var result = await _handler.Handle(new CompleteSprintCommand(_scenario.Sprint1.Id, InChicago(Sprint1Start, 9)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _scenario.Sprint1.Completed.Should().BeNull();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_WhenTheSprintHasNotReachedItsStart_FailsAndSavesNothing()
     {
         // Act — sprint 2's default start is the end of its first planned day, still three days away

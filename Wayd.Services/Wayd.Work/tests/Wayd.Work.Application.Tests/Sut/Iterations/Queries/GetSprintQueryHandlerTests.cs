@@ -42,6 +42,9 @@ public class GetSprintQueryHandlerTests : IDisposable
         result.CanComplete.Should().BeFalse();
         result.CanReopen.Should().BeFalse();
         result.OpenSprint!.Id.Should().Be(_scenario.Sprint1.Id);
+        result.StartWindow!.Earliest.Should().Be(InChicago(Sprint1Start, 10).Plus(Duration.FromMilliseconds(1)));
+        result.StartWindow.Latest.Should().BeNull();
+        result.CompleteWindow.Should().BeNull();
         result.CanManageSprint.Should().BeTrue();
         result.OverlapsPreviousSprint.Should().BeFalse();
     }

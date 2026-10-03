@@ -91,12 +91,12 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPost("{id}/start")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Start a sprint.", "Records that the team started the sprint now. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.")]
+    [OpenApiOperation("Start a sprint.", "Records that the team started the sprint, now or at an earlier startedAt inside its start window. Requires membership of the sprint's team or its team of teams. When another of the team's sprints is open, completeOpenSprint must confirm completing it at the same instant.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Start(Guid id, [FromBody] StartSprintRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new StartSprintCommand(id, request.CompleteOpenSprint), cancellationToken);
+        var result = await _dispatcher.Send(new StartSprintCommand(id, request.CompleteOpenSprint, request.StartedAt), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -105,12 +105,12 @@ public class SprintsController(ILogger<SprintsController> logger, IDispatcher di
 
     [HttpPost("{id}/complete")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Iterations)]
-    [OpenApiOperation("Complete a sprint.", "Records that the team completed the sprint now. Requires membership of the sprint's team or its team of teams.")]
+    [OpenApiOperation("Complete a sprint.", "Records that the team completed the sprint, now or at an earlier completedAt inside its completion window. Requires membership of the sprint's team or its team of teams.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult> Complete(Guid id, [FromBody] CompleteSprintRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new CompleteSprintCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CompleteSprintCommand(id, request.CompletedAt), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

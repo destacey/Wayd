@@ -138,40 +138,36 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     }
 
     /// <summary>
-    /// Records that the team started the sprint now. A team has one open sprint at a time, so when another
-    /// is still open the team must confirm completing it, and it is completed at the same instant.
+    /// Records that the team started the sprint at <paramref name="startedAt"/>, now or earlier. A team has one
+    /// open sprint at a time, so another that is still open must be completed first — at the same moment, for
+    /// a team moving straight on.
     /// </summary>
-    public Result Start(TeamSprintTimeline timeline, bool completeOpenSprint, EventActor actor, Instant now)
+    public Result Start(TeamSprintTimeline timeline, Instant startedAt, EventActor actor, Instant now)
     {
-        var allowed = timeline.CanStart(this, now);
+        if (timeline.OpenSprint is { } open && open != this)
+            return Result.Failure($"{open.Name} is still open. Complete it to start this sprint.");
+
+        var allowed = timeline.CanStart(this, startedAt, now);
         if (allowed.IsFailure)
             return allowed;
 
-        if (timeline.OpenSprint is { } open)
-        {
-            if (!completeOpenSprint)
-                return Result.Failure($"{open.Name} is still open. Confirm completing it to start this sprint.");
-
-            open.RecordCompleted(now, actor);
-        }
-
-        Started = now;
-        AddDomainEvent(new SprintStartedEvent(Id, Key, now, actor, now));
+        Started = startedAt;
+        AddDomainEvent(new SprintStartedEvent(Id, Key, startedAt, actor, now));
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Records that the team completed the sprint now. A sprint the team did not start can still be
-    /// completed once its default start has passed.
+    /// Records that the team completed the sprint at <paramref name="completedAt"/>, now or earlier. A sprint
+    /// the team did not start can still be completed once its default start has passed.
     /// </summary>
-    public Result Complete(TeamSprintTimeline timeline, EventActor actor, Instant now)
+    public Result Complete(TeamSprintTimeline timeline, Instant completedAt, EventActor actor, Instant now)
     {
-        var allowed = timeline.CanComplete(this, now);
+        var allowed = timeline.CanComplete(this, completedAt, now);
         if (allowed.IsFailure)
             return allowed;
 
-        RecordCompleted(now, actor);
+        RecordCompleted(completedAt, actor, now);
 
         return Result.Success();
     }
@@ -202,15 +198,15 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
         if (Started is null || Completed is not null)
             return Result.Failure("Only an open sprint is completed when it moves to another team.");
 
-        RecordCompleted(now, actor);
+        RecordCompleted(now, actor, now);
 
         return Result.Success();
     }
 
-    private void RecordCompleted(Instant completed, EventActor actor)
+    private void RecordCompleted(Instant completed, EventActor actor, Instant timestamp)
     {
         Completed = completed;
-        AddDomainEvent(new SprintCompletedEvent(Id, Key, completed, actor, completed));
+        AddDomainEvent(new SprintCompletedEvent(Id, Key, completed, actor, timestamp));
     }
 
     /// <summary>

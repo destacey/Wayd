@@ -45,7 +45,39 @@ public class StartSprintCommandHandlerTests : IDisposable
         _scenario.Sprint1.Completed.Should().Be(now);
         _scenario.Sprint2.DomainEvents.OfType<SprintStartedEvent>().Should().ContainSingle()
             .Which.Actor.EmployeeId.Should().Be(_scenario.EmployeeId);
-        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(2);
+        _scenario.DbContext.UnitOfWorkCommitCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithAnEarlierStart_RecordsItAndCompletesTheOpenSprintAtThatMoment()
+    {
+        // Arrange — the team planned on Friday morning and records it that afternoon
+        var startedAt = InChicago(Sprint2Start.PlusDays(-3), 10);
+
+        // Act
+        var result = await _handler.Handle(new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true, startedAt), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _scenario.Sprint2.Started.Should().Be(startedAt);
+        _scenario.Sprint1.Completed.Should().Be(startedAt);
+        _scenario.Sprint2.DomainEvents.OfType<SprintStartedEvent>().Should().ContainSingle()
+            .Which.Timestamp.Should().Be(_scenario.DateTimeProvider.Now);
+    }
+
+    [Fact]
+    public async Task Handle_WithAStartInTheFuture_Fails()
+    {
+        // Act
+        var result = await _handler.Handle(
+            new StartSprintCommand(_scenario.Sprint2.Id, CompleteOpenSprint: true, _scenario.DateTimeProvider.Now.Plus(Duration.FromMinutes(5))),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _scenario.Sprint2.Started.Should().BeNull();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

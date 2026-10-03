@@ -10,4 +10,10 @@ public sealed record StartSprintRequest
     /// time, so starting is refused while another is open unless this is set.
     /// </summary>
     public bool CompleteOpenSprint { get; set; }
+
+    /// <summary>
+    /// When the team started the sprint, now or earlier. Omit to record it as starting now. It must fall in
+    /// the sprint's start window, which the sprint details report.
+    /// </summary>
+    public Instant? StartedAt { get; set; }
 }

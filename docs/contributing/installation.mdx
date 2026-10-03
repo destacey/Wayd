@@ -14,6 +14,17 @@ git clone https://github.com/destacey/Wayd.git
 cd Wayd
 ```
 
+## Enable the Git Hooks
+
+Once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+- `commit-msg` rejects AI attribution trailers and footers.
+- `pre-push` refuses a push that changes the `@wayd/mcp` package without a changeset, the same check CI runs on the pull request. See [MCP Server](./mcp-server.mdx#every-shipped-change-needs-a-changeset).
+
 ## Build the Backend
 
 ```bash

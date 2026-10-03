@@ -119,6 +119,7 @@ const sidebars: SidebarsConfig = {
             'contributing/frontend',
             'contributing/wayd-grid',
             'contributing/api',
+            'contributing/mcp-server',
           ],
         },
         {

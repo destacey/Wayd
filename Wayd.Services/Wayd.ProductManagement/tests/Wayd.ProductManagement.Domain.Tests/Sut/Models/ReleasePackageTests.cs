@@ -382,7 +382,7 @@ public sealed class ReleasePackageTests
         // Assert
         // Clearing it would unlock the manifest of a package that already shipped.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A released package cannot have its released moment removed.");
+        result.Error.Should().Be("A released package cannot have its released moment removed. Send the released moment with the correction.");
         sut.ReleasedAt.Should().Be(Instant.FromUtc(2026, 9, 18, 2, 30));
     }
 

@@ -440,6 +440,21 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
             .HasColumnType("varchar")
             .HasMaxLength(32);
 
+        builder.Property(i => i.Started);
+        builder.Property(i => i.Completed);
+
+        // The aggregate allows one open sprint per team; this stops two concurrent starts from both
+        // passing that check and saving.
+        // Declared because EF otherwise drops the foreign key's index as covered by the filtered one below,
+        // which only holds open sprints.
+        builder.HasIndex(i => i.TeamId);
+
+        // TeamId is in the filter because SQL Server treats nulls as equal in a unique index: a sync that
+        // unmaps the team of two open sprints would otherwise fail on the second.
+        builder.HasIndex(i => i.TeamId, "IX_Iterations_TeamId_Open")
+            .IsUnique()
+            .WhereNotNullAndNull([nameof(Iteration.TeamId), nameof(Iteration.Started)], nameof(Iteration.Completed));
+
         // Value Objects
         builder.ComplexProperty(i => i.DateRange, options =>
         {

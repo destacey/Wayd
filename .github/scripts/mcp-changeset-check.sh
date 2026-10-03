@@ -9,30 +9,36 @@
 # The import formats are generated from the API's OpenAPI document, so a spec change counts only when
 # it changes the generated output; most API changes touch no import endpoint and need nothing here.
 #
-#   usage: mcp-changeset-check.sh [base-ref]    (default origin/main)
+# The commit checked is an argument rather than always HEAD, because a push can send a branch other
+# than the one checked out. Both specs are read from git, never the working tree, for the same reason.
+#
+#   usage: mcp-changeset-check.sh [base-ref] [commit]    (defaults origin/main, HEAD)
 set -euo pipefail
 
 base_ref="${1:-origin/main}"
+head="${2:-HEAD}"
 cd "$(dirname "$0")/../.."
 
 mcp="Wayd.Web/src/Wayd.Mcp"
 spec="Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json"
-base="$(git merge-base "$base_ref" HEAD)"
+base="$(git merge-base "$base_ref" "$head")"
 
-if git diff --name-only --diff-filter=A "$base" HEAD -- "$mcp/.changeset/*.md" \
+if git diff --name-only --diff-filter=A "$base" "$head" -- "$mcp/.changeset/*.md" \
     | grep -qvx "$mcp/.changeset/README.md"; then
   echo "Changeset found."
   exit 0
 fi
 
-shipped="$(git diff --name-only "$base" HEAD -- "$mcp/src" "$mcp/scripts" "$mcp/README.md" "$mcp/package.json")"
+shipped="$(git diff --name-only "$base" "$head" -- "$mcp/src" "$mcp/scripts" "$mcp/README.md" "$mcp/package.json")"
 
-if [ -z "$shipped" ] && ! git diff --quiet "$base" HEAD -- "$spec"; then
+if [ -z "$shipped" ] && ! git diff --quiet "$base" "$head" -- "$spec"; then
   generated="$mcp/src/generated/import-formats.ts"
   work="$(mktemp -d)"
   cp "$spec" "$work/spec.json"
-  trap 'cp "$work/spec.json" "$spec"; rm -rf "$work"' EXIT
+  [ -f "$generated" ] && cp "$generated" "$work/generated.ts"
+  trap 'cp "$work/spec.json" "$spec"; [ -f "$work/generated.ts" ] && cp "$work/generated.ts" "$generated"; rm -rf "$work"' EXIT
 
+  git show "$head:$spec" > "$spec"
   (cd "$mcp" && npx tsx scripts/generate-import-formats.ts > /dev/null)
   cp "$generated" "$work/head.ts"
   git show "$base:$spec" > "$spec"
@@ -41,7 +47,6 @@ if [ -z "$shipped" ] && ! git diff --quiet "$base" HEAD -- "$spec"; then
   if ! cmp -s "$generated" "$work/head.ts"; then
     shipped="$spec (changes the generated import formats)"
   fi
-  cp "$work/head.ts" "$generated"
 fi
 
 if [ -n "$shipped" ]; then

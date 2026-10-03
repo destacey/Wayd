@@ -15,9 +15,24 @@ if [ ! -d "$root/Wayd.Web/src/Wayd.Mcp/node_modules" ]; then
     exit 0
 fi
 
-if ! output="$(bash "$root/.github/scripts/mcp-changeset-check.sh" origin/main 2>/dev/null)"; then
-    echo "pre-push: $output" | sed 's/::error:://' >&2
-    exit 1
-fi
+status=0
 
-exit 0
+# Git passes each pushed ref on stdin, and it need not be the checked-out branch.
+while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$local_ref" in
+        refs/heads/*) ;;
+        *) continue ;;
+    esac
+
+    # An all-zero sha is a branch deletion; there is nothing to check.
+    if [ -z "$(echo "$local_sha" | tr -d 0)" ]; then
+        continue
+    fi
+
+    if ! output="$(bash "$root/.github/scripts/mcp-changeset-check.sh" origin/main "$local_sha" 2>/dev/null)"; then
+        echo "pre-push: ${local_ref#refs/heads/}: $output" | sed 's/::error:://' >&2
+        status=1
+    fi
+done
+
+exit $status

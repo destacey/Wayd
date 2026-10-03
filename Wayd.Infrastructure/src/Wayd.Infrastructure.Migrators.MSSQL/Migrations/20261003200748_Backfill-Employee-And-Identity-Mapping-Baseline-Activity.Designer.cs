@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20261003184934_Backfill-Employee-And-Identity-Mapping-Baseline-Activity")]
+    [Migration("20261003200748_Backfill-Employee-And-Identity-Mapping-Baseline-Activity")]
     partial class BackfillEmployeeAndIdentityMappingBaselineActivity
     {
         /// <inheritdoc />
@@ -5939,6 +5939,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("Completed")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -5949,6 +5953,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("Started")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -6021,6 +6029,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasAlternateKey("Key");
 
                     b.HasIndex("TeamId");
+
+                    b.HasIndex(new[] { "TeamId" }, "IX_Iterations_TeamId_Open")
+                        .IsUnique()
+                        .HasFilter("[TeamId] IS NOT NULL AND [Started] IS NOT NULL AND [Completed] IS NULL");
 
                     b.ToTable("Iterations", "Work");
                 });

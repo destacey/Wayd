@@ -13,17 +13,17 @@ public sealed class GetIterationStatesQueryHandler(
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
     IDateTimeProvider dateTimeProvider)
-    : IQueryHandler<GetIterationStatesQuery, IReadOnlyDictionary<Guid, IterationState>>
+    : IQueryHandler<GetIterationStatesQuery, IReadOnlyDictionary<Guid, IterationStateDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<IReadOnlyDictionary<Guid, IterationState>> Handle(GetIterationStatesQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyDictionary<Guid, IterationStateDto>> Handle(GetIterationStatesQuery request, CancellationToken cancellationToken)
     {
         if (request.Ids.Count == 0)
-            return new Dictionary<Guid, IterationState>();
+            return new Dictionary<Guid, IterationStateDto>();
 
         var iterations = await _workDbContext.Iterations
             .Where(i => request.Ids.Contains(i.Id))
@@ -37,6 +37,14 @@ public sealed class GetIterationStatesQueryHandler(
             _dateTimeProvider.Now,
             cancellationToken);
 
-        return iterations.ToDictionary(i => i.Id, i => states.StateOf(i.Id, new IterationDateRange(i.Start, i.End)));
+        return iterations.ToDictionary(i => i.Id, i =>
+        {
+            var active = states.ActivePeriodOf(i.Id);
+            return new IterationStateDto(
+                states.StateOf(i.Id, new IterationDateRange(i.Start, i.End)),
+                active?.From,
+                active?.Until,
+                active?.TimeZone.Id);
+        });
     }
 }

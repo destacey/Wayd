@@ -32,4 +32,13 @@ public sealed class IterationStateReader
             : plannedDays.StateOn(_defaultToday);
 
     public IterationState StateOf(Iteration iteration) => StateOf(iteration.Id, iteration.DateRange);
+
+    /// <summary>
+    /// When the sprint is Active, end exclusive, and the zone its days are counted in. Null when it is in none
+    /// of the timelines and only has planned days.
+    /// </summary>
+    public (Instant From, Instant Until, DateTimeZone TimeZone)? ActivePeriodOf(Guid id) =>
+        _sprints.TryGetValue(id, out var entry)
+            ? (entry.Timeline.ActiveFrom(entry.Sprint), entry.Timeline.EffectiveEnd(entry.Sprint), entry.Timeline.ScheduleFor(entry.Sprint).TimeZone)
+            : null;
 }

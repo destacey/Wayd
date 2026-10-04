@@ -767,6 +767,35 @@ public class TeamSprintTimelineTests
     }
 
     [Fact]
+    public void ActiveFrom_WhenNotStarted_IsTheStartOfTheFirstPlannedDayInTheTeamsZone()
+    {
+        // Arrange
+        var sprint = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var result = timeline.ActiveFrom(sprint);
+
+        // Assert
+        result.Should().Be(At(Sprint2Start));
+    }
+
+    [Fact]
+    public void ActiveFrom_WhenStarted_IsTheActualStart()
+    {
+        // Arrange
+        var started = At(Sprint2Start.PlusDays(1), 14);
+        var sprint = NewSprint(Sprint2Start, 2, started: started);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var result = timeline.ActiveFrom(sprint);
+
+        // Assert
+        result.Should().Be(started);
+    }
+
+    [Fact]
     public void StateAt_WhenTheSourcePlansTheSprintsToOverlap_OnlyOneIsActive()
     {
         // Arrange — the source plans sprint 2 two days into sprint 3

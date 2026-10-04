@@ -27,8 +27,8 @@ public static class SprintDetailsLifecycle
         if (entity is null)
             return;
 
-        details.EffectiveStart = timeline.EffectiveStart(entity);
-        details.EffectiveEnd = timeline.EffectiveEnd(entity);
+        details.ActiveFrom = timeline.ActiveFrom(entity);
+        details.ActiveUntil = timeline.EffectiveEnd(entity);
         details.TimeZone = timeline.ScheduleFor(entity).TimeZone.Id;
         details.OverlapsPreviousSprint = timeline.OverlapsPrevious(entity);
         details.OverlapsNextSprint = timeline.OverlapsNext(entity);

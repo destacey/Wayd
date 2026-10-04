@@ -40,8 +40,10 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
 
         // Assert
         result.Should().HaveCount(2);
-        result[_scenario.Sprint1.Id].Should().Be(IterationState.Active);
-        result[_scenario.Sprint2.Id].Should().Be(IterationState.Future);
+        result[_scenario.Sprint1.Id].Should().Be(new IterationStateDto(
+            IterationState.Active, InChicago(Sprint1Start, 10), InChicago(Sprint2Start, 0), "America/Chicago"));
+        result[_scenario.Sprint2.Id].Should().Be(new IterationStateDto(
+            IterationState.Future, InChicago(Sprint2Start, 0), InChicago(Sprint2Start.PlusDays(14), 0), "America/Chicago"));
     }
 
     [Fact]
@@ -60,8 +62,9 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
             TestContext.Current.CancellationToken);
 
         // Assert
-        result[scenario.Sprint1.Id].Should().Be(IterationState.Completed);
-        result[scenario.Sprint2.Id].Should().Be(IterationState.Future);
+        result[scenario.Sprint1.Id].State.Should().Be(IterationState.Completed);
+        result[scenario.Sprint1.Id].ActiveUntil.Should().Be(InChicago(Sprint2Start.PlusDays(-3), 11));
+        result[scenario.Sprint2.Id].State.Should().Be(IterationState.Future);
     }
 
     [Fact]
@@ -79,8 +82,8 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
         var result = await _handler.Handle(new GetIterationStatesQuery([release.Id, openEnded.Id]), TestContext.Current.CancellationToken);
 
         // Assert
-        result[release.Id].Should().Be(IterationState.Active);
-        result[openEnded.Id].Should().Be(IterationState.Future);
+        result[release.Id].Should().Be(new IterationStateDto(IterationState.Active, null, null, null));
+        result[openEnded.Id].Should().Be(new IterationStateDto(IterationState.Future, null, null, null));
     }
 
     [Fact]

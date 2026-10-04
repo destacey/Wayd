@@ -48,7 +48,13 @@ public sealed class GetPlanningIntervalIterationSprintsQueryHandler(IPlanningDbC
         var sprints = iterations.SelectMany(i => i.Sprints).ToList();
         var states = await _dispatcher.Send(new GetIterationStatesQuery([.. sprints.Select(s => s.Id).Distinct()]), cancellationToken);
         foreach (var sprint in sprints)
-            sprint.State = SimpleNavigationDto.FromEnum(states.GetValueOrDefault(sprint.Id, IterationState.Unknown));
+        {
+            var state = states.GetValueOrDefault(sprint.Id);
+            sprint.State = SimpleNavigationDto.FromEnum(state?.State ?? IterationState.Unknown);
+            sprint.ActiveFrom = state?.ActiveFrom;
+            sprint.ActiveUntil = state?.ActiveUntil;
+            sprint.TimeZone = state?.TimeZone;
+        }
 
         return iterations;
     }

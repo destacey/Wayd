@@ -37,8 +37,8 @@ public class GetSprintQueryHandlerTests : IDisposable
         result.Should().NotBeNull();
         result!.State.Id.Should().Be((int)IterationState.Future);
         result.Started.Should().BeNull();
-        result.EffectiveStart.Should().Be(InChicago(Sprint2Start.PlusDays(1), 0));
-        result.EffectiveEnd.Should().Be(InChicago(Sprint2Start.PlusDays(14), 0));
+        result.ActiveFrom.Should().Be(InChicago(Sprint2Start, 0));
+        result.ActiveUntil.Should().Be(InChicago(Sprint2Start.PlusDays(14), 0));
         result.TimeZone.Should().Be("America/Chicago");
         result.CanStart.Should().BeTrue();
         result.CanComplete.Should().BeFalse();
@@ -60,7 +60,7 @@ public class GetSprintQueryHandlerTests : IDisposable
         // Assert
         result!.State.Id.Should().Be((int)IterationState.Active);
         result.Started.Should().Be(InChicago(Sprint1Start, 10));
-        result.EffectiveStart.Should().Be(result.Started);
+        result.ActiveFrom.Should().Be(result.Started);
         result.CanComplete.Should().BeTrue();
         result.CanStart.Should().BeFalse();
         result.OpenSprint.Should().BeNull();

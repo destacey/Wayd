@@ -36,8 +36,8 @@ public class GetTeamActiveSprintQueryHandlerTests : IDisposable
         result!.Id.Should().Be(_scenario.Sprint1.Id);
         result.Team.Id.Should().Be(_scenario.Team.Id);
         result.State.Id.Should().Be((int)IterationState.Active);
-        result.EffectiveStart.Should().Be(InChicago(Sprint1Start.PlusDays(1), 0));
-        result.EffectiveEnd.Should().Be(InChicago(Sprint2Start, 0));
+        result.ActiveFrom.Should().Be(InChicago(Sprint1Start, 0));
+        result.ActiveUntil.Should().Be(InChicago(Sprint2Start, 0));
         result.TimeZone.Should().Be("America/Chicago");
         result.CanComplete.Should().BeTrue();
         result.CanManageSprint.Should().BeTrue();

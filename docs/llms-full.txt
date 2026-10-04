@@ -167,7 +167,7 @@ Permissions: all child mutations (goals, steps, tasks, lanes, personas, checklis
 ### Sprints
 
 Short time-boxed periods (typically 2 weeks) owned by teams. Properties:
-- Name, Type (Sprint/Iteration), State (Future/Active/Completed), Date Range
+- Name, Type (Sprint/Iteration), State (Future/Active/Completed, worked out when read from the actual or planned dates in the team's time zone), Date Range
 - Team (optional), Ownership (Owned/Managed)
 - Managed sprints have External Metadata (e.g., Azure DevOps iteration path)
 - Actual Started/Completed instants, recorded by the team in Wayd and never synced. Defaults when absent: start = end of the commitment grace period after the planned start, end = end of the last planned day (cut to the next sprint's start on overlapping AzDO dates), in the team's zone from the operating model in effect on the planned start

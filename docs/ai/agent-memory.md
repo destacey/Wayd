@@ -1,13 +1,12 @@
 # Agent Memory
 
-This file captures compact repo-specific lessons that future coding agents should read early. Keep it short and practical. Use `CLAUDE.md`, `AGENTS.md`, `docs/llms-full.txt`, and `docs/ai/domain-glossary.mdx` for full architecture and domain context.
+This file captures compact repo-specific lessons that future coding agents should read early. Keep it short and practical. Use `AGENTS.md`, `docs/llms-full.txt`, and `docs/ai/domain-glossary.mdx` for full architecture and domain context.
 
 ## Startup Checklist
 
-1. Read root `AGENTS.md` first.
-2. Read `CLAUDE.md` for build commands, architecture conventions, and generated-client rules.
-3. Read this file for recent implementation lessons and repo habits.
-4. For domain work, use `docs/llms-full.txt` and `docs/ai/domain-glossary.mdx`.
+1. Read root `AGENTS.md` first — build commands, architecture conventions, and generated-client rules — and the `AGENTS.md` of any directory you change.
+2. Read this file for recent implementation lessons and repo habits.
+3. For domain work, use `docs/llms-full.txt` and `docs/ai/domain-glossary.mdx`.
 
 ## Databases
 

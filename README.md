@@ -230,7 +230,7 @@ Wayd follows **Clean Architecture** with **Domain-Driven Design** principles:
 - Vertical slice architecture per domain
 - Functional error handling with Result pattern
 
-See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation.
+See [AGENTS.md](AGENTS.md) for detailed architecture documentation.
 
 ## 🔧 Troubleshooting
 
@@ -281,12 +281,12 @@ See our [Contributing Guide](CONTRIBUTING.md) for detailed instructions on how t
 
 - Run tests: `dotnet test Wayd.slnx`
 - Run architecture tests: `dotnet test Wayd.ArchitectureTests/Wayd.ArchitectureTests.csproj`
-- Ensure code follows existing patterns (see [CLAUDE.md](CLAUDE.md))
+- Ensure code follows existing patterns (see [AGENTS.md](AGENTS.md))
 
 ## 📖 Additional Resources
 
 - **Full Documentation**: <https://wayd.dev>
-- **Architecture Guide**: [CLAUDE.md](CLAUDE.md)
+- **Architecture Guide**: [AGENTS.md](AGENTS.md)
 - **API Documentation**: Available at `/swagger` when API is running
 
 ## Deployment

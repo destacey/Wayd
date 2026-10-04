@@ -126,7 +126,7 @@ Omitting `.Include(p => p.Roles)` denies an Owner/Manager on the record itself. 
 
 So this one is a **read-the-query check, not a test check**. When touching a PPM mutating handler, verify the `.Include` chain by eye, and cover the authorization rule itself in the aggregate's own domain tests (where roles are real objects) rather than trusting the handler test.
 
-See [CLAUDE.md](../../CLAUDE.md) and [docs/contributing/architecture.mdx](../../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization).
+See [AGENTS.md](../../AGENTS.md) and [docs/contributing/architecture.mdx](../../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization).
 
 ### Other repo rules that reach into tests
 

@@ -3,10 +3,17 @@
     "aspire": {
       "type": "stdio",
       "command": "aspire",
-      "args": [
-        "mcp",
-        "start"
-      ]
+      "args": ["mcp", "start"]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "antd": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@ant-design/cli", "mcp"]
     }
   }
 }

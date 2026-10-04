@@ -1,6 +1,6 @@
 # .NET tests
 
-What [docs/contributing/testing.mdx](../../docs/contributing/testing.mdx) does not already cover. Read that page first for the stack, layout, fakers, the fake DbContext, and the collection fixture.
+What [docs/contributing/testing.mdx](../../../docs/contributing/testing.mdx) does not already cover. Read that page first for the stack, layout, fakers, the fake DbContext, and the collection fixture.
 
 ## Contents
 
@@ -84,7 +84,7 @@ The fakes back each `DbSet` with an in-memory list. Anything that depends on EF'
 
 ### A missing `.Include`
 
-`.Include` is a no-op in memory, so deleting one changes no unit-test outcome. The case that matters is PPM authorization: a handler mutating a project, program, or portfolio must load the record's own roles **and** its ancestors' (the rule and the required chain are in [AGENTS.md](../../AGENTS.md) under Authorization). Omitting `.Include(p => p.Roles)` denies an Owner or Manager on the record itself; omitting an ancestor's denies everyone who leads from above. `UpdateProjectCommand.cs` has the full chain.
+`.Include` is a no-op in memory, so deleting one changes no unit-test outcome. The case that matters is PPM authorization: a handler mutating a project, program, or portfolio must load the record's own roles **and** its ancestors' (the rule and the required chain are in [AGENTS.md](../../../AGENTS.md) under Authorization). Omitting `.Include(p => p.Roles)` denies an Owner or Manager on the record itself; omitting an ancestor's denies everyone who leads from above. `UpdateProjectCommand.cs` has the full chain.
 
 So this is a **read-the-query check, not a test check**:
 

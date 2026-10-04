@@ -1,6 +1,6 @@
 # React client tests
 
-Jest with React Testing Library, in `Wayd.Web/src/wayd.web.reactclient`. The commands are in the Frontend Tests section of [docs/contributing/testing.mdx](../../docs/contributing/testing.mdx). Run them from that directory — there is no `package.json` at the repository root.
+Jest with React Testing Library, in `Wayd.Web/src/wayd.web.reactclient`. The commands are in the Frontend Tests section of [docs/contributing/testing.mdx](../../../docs/contributing/testing.mdx). Run them from that directory — there is no `package.json` at the repository root.
 
 ## Writing the test
 

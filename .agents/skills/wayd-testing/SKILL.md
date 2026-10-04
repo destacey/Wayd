@@ -15,7 +15,7 @@ A "no" is a strong smell of weak assertions — most such tests are coverage the
 
 ## Reference files
 
-The general conventions — project layout, stack, naming, Arrange/Act/Assert, cancellation tokens, fakers, the fake DbContext, the collection fixture, running tests, traits — are in [docs/contributing/testing.mdx](../../docs/contributing/testing.mdx). Read it before writing tests in an area you have not worked in. This skill adds only what that page does not cover.
+The general conventions — project layout, stack, naming, Arrange/Act/Assert, cancellation tokens, fakers, the fake DbContext, the collection fixture, running tests, traits — are in [docs/contributing/testing.mdx](../../../docs/contributing/testing.mdx). Read it before writing tests in an area you have not worked in. This skill adds only what that page does not cover.
 
 | File | Read it when |
 |---|---|

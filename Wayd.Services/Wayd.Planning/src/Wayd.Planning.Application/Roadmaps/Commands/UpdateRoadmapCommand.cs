@@ -45,12 +45,14 @@ public sealed class UpdateRoadmapCommandValidator : AbstractValidator<UpdateRoad
     }
 }
 
-public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapCommandHandler> logger) : ICommandHandler<UpdateRoadmapCommand>
+public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRoadmapCommandHandler> logger) : ICommandHandler<UpdateRoadmapCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapCommand request, CancellationToken cancellationToken)
@@ -79,8 +81,9 @@ public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbCon
                 request.DateRange,
                 request.RoadmapManagerIds,
                 request.Visibility,
-                currentUserEmployeeId.Value
-                );
+                currentUserEmployeeId.Value,
+                EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
+                _dateTimeProvider.Now);
 
             if (updateResult.IsFailure)
             {

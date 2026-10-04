@@ -50,10 +50,12 @@ public sealed class CreateRoadmapItemCommandValidator : AbstractValidator<Create
     }
 }
 
-public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<CreateRoadmapItemCommandHandler> logger) : ICommandHandler<CreateRoadmapItemCommand, Guid>
+public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateRoadmapItemCommandHandler> logger) : ICommandHandler<CreateRoadmapItemCommand, Guid>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateRoadmapItemCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateRoadmapItemCommand request, CancellationToken cancellationToken)
@@ -76,9 +78,9 @@ public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningD
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
             Result<BaseRoadmapItem> result = request.Item.Match(
-               activity => roadmap.CreateActivity(activity, currentUserEmployeeId.Value).Map(x => (BaseRoadmapItem)x),
-               milestone => roadmap.CreateMilestone(milestone, currentUserEmployeeId.Value).Map(x => (BaseRoadmapItem)x),
-               timebox => roadmap.CreateTimebox(timebox, currentUserEmployeeId.Value).Map(x => (BaseRoadmapItem)x)
+               activity => roadmap.CreateActivity(activity, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
+               milestone => roadmap.CreateMilestone(milestone, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
+               timebox => roadmap.CreateTimebox(timebox, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x)
             );
 
             if (result.IsFailure)

@@ -43,10 +43,14 @@ public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapC
 public sealed class CopyRoadmapCommandHandler(
     IPlanningDbContext planningDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<CopyRoadmapCommandHandler> logger) : ICommandHandler<CopyRoadmapCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CopyRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CopyRoadmapCommand request, CancellationToken cancellationToken)
@@ -79,7 +83,7 @@ public sealed class CopyRoadmapCommandHandler(
             }
 
             // Copy the roadmap
-            var copyResult = sourceRoadmap.Copy(request.Name, request.RoadmapManagerIds, request.Visibility);
+            var copyResult = sourceRoadmap.Copy(request.Name, request.RoadmapManagerIds, request.Visibility, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
 
             if (copyResult.IsFailure)
             {

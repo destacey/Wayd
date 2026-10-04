@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Wayd.Planning.Domain.Enums;
+namespace Wayd.Common.Domain.Enums.Planning;
 
 public enum RoadmapItemType
 {

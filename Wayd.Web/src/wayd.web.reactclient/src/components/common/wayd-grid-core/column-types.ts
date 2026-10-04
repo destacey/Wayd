@@ -14,7 +14,7 @@ import type { RowData } from '@tanstack/react-table'
  */
 
 const DATE_ONLY_FORMAT = 'MMM D, YYYY'
-const DATE_TIME_FORMAT = 'MMM D, YYYY hh:mm A'
+const DATE_TIME_FORMAT = 'MMM D, YYYY h:mm A'
 
 /** Formats a date-ish value with the grid's dateOnly display format ('' when empty). */
 export const formatDateOnly = (value: unknown): string =>

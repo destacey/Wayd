@@ -79,7 +79,7 @@ const StatusHistoryTimeline: FC<StatusHistoryTimelineProps> = ({
           />
         </Flex>
         <Text type="secondary">
-          {dayjs(entry.changedOn).format('MMM D, YYYY hh:mm A')} by{' '}
+          {dayjs(entry.changedOn).format('MMM D, YYYY h:mm A')} by{' '}
           {changedByLabel(entry)}
         </Text>
         {entry.reason && <Text>{entry.reason}</Text>}

@@ -117,7 +117,7 @@ describe('applyColumnType', () => {
       // Act / Assert — same formats the dateOnly/dateTime cells use
       expect(formatDateOnly(when)).toBe(formatDateOnly(new Date(when)))
       expect(formatDateTime(when)).toMatch(
-        /^[A-Z][a-z]{2} \d{1,2}, \d{4} \d{2}:\d{2} [AP]M$/,
+        /^[A-Z][a-z]{2} \d{1,2}, \d{4} [1-9]\d?:\d{2} [AP]M$/,
       )
       expect(formatDateOnly(null)).toBe('')
       expect(formatDateTime(undefined)).toBe('')

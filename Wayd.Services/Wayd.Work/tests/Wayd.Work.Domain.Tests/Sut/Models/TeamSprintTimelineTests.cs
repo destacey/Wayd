@@ -119,8 +119,8 @@ public class TeamSprintTimelineTests
         // Act
         var result = timeline.EffectiveEnd(sprint2);
 
-        // Assert
-        result.Should().Be(timeline.DefaultStart(sprint3));
+        // Assert — the start of sprint 3's first planned day, not its commitment point
+        result.Should().Be(At(Sprint3Start));
         timeline.OverlapsNext(sprint2).Should().BeTrue();
         timeline.OverlapsPrevious(sprint3).Should().BeTrue();
     }
@@ -802,16 +802,20 @@ public class TeamSprintTimelineTests
         var sprint2 = NewSprint(Sprint2Start, 2, days: 16);
         var sprint3 = NewSprint(Sprint3Start, 3);
         var timeline = Timeline(sprint2, sprint3);
+        var beforeTheOverlap = At(Sprint3Start).Minus(Duration.FromMinutes(1));
         var duringTheOverlap = At(Sprint3Start, 12);
 
         // Act
-        var state2 = timeline.StateAt(sprint2, duringTheOverlap);
-        var state3 = timeline.StateAt(sprint3, duringTheOverlap);
+        var before2 = timeline.StateAt(sprint2, beforeTheOverlap);
+        var before3 = timeline.StateAt(sprint3, beforeTheOverlap);
+        var during2 = timeline.StateAt(sprint2, duringTheOverlap);
+        var during3 = timeline.StateAt(sprint3, duringTheOverlap);
 
-        // Assert — sprint 2 ends at sprint 3's default start, the end of its first day
-        state2.Should().Be(IterationState.Active);
-        state3.Should().Be(IterationState.Future);
-        timeline.StateAt(sprint3, timeline.DefaultStart(sprint3)).Should().Be(IterationState.Active);
-        timeline.StateAt(sprint2, timeline.DefaultStart(sprint3)).Should().Be(IterationState.Completed);
+        // Assert — sprint 2 hands over at the start of sprint 3's first planned day
+        before2.Should().Be(IterationState.Active);
+        before3.Should().Be(IterationState.Future);
+        during2.Should().Be(IterationState.Completed);
+        during3.Should().Be(IterationState.Active);
+        timeline.ActiveFrom(sprint3).Should().Be(timeline.EffectiveEnd(sprint2));
     }
 }

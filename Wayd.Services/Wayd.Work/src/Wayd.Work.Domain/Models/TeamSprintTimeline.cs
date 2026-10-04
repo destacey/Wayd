@@ -11,11 +11,11 @@ namespace Wayd.Work.Domain.Models;
 /// starts and ends, and which of them may be started, completed or reopened.
 /// </summary>
 /// <remarks>
-/// A sprint the team did not start or complete takes default actual dates from its schedule: it starts at
-/// the end of the commitment grace period after its planned start and ends at the end of its last planned
-/// day, both in the team's zone. Azure DevOps lets one team's sprints overlap and Wayd keeps the source
-/// dates, so a default end is cut to the next sprint's start, which is what keeps the team's actual periods
-/// from overlapping.
+/// A sprint the team did not start or complete follows its schedule: it is Active from the start of its first
+/// planned day to the end of its last, in the team's zone, and its commitment is taken at the end of the
+/// commitment grace period after its planned start. Azure DevOps lets one team's sprints overlap and Wayd keeps
+/// the source dates, so an end the team did not record is cut to the next sprint's start — its recorded start,
+/// or else the start of its first planned day — which is what keeps the team's Active periods from overlapping.
 /// </remarks>
 public sealed class TeamSprintTimeline
 {
@@ -82,8 +82,22 @@ public sealed class TeamSprintTimeline
             .ToInstant();
     }
 
+    /// <summary>The start of the sprint's first planned day, in its team's zone.</summary>
+    public Instant PlannedStart(Iteration sprint) =>
+        PlannedStartDate(sprint)
+            .AtStartOfDayInZone(ScheduleFor(sprint).TimeZone)
+            .ToInstant();
+
+    /// <summary>
+    /// The sprint's commitment point: its actual start, or else <see cref="DefaultStart"/>. Metrics and the
+    /// lifecycle windows count from it; whether the sprint is Active does not (see <see cref="ActiveFrom"/>).
+    /// </summary>
     public Instant EffectiveStart(Iteration sprint) => sprint.Started ?? DefaultStart(sprint);
 
+    /// <summary>
+    /// When the sprint stops being Active: its actual completion, or else the end of its last planned day, cut
+    /// to the next sprint's recorded start or first planned day where the source plans the two to overlap.
+    /// </summary>
     public Instant EffectiveEnd(Iteration sprint)
     {
         if (sprint.Completed is { } completed)
@@ -94,7 +108,8 @@ public sealed class TeamSprintTimeline
         if (next is null)
             return plannedEnd;
 
-        var nextStart = EffectiveStart(next);
+        // Not the next sprint's ActiveFrom, which is itself bounded by this end.
+        var nextStart = next.Started ?? PlannedStart(next);
         return nextStart < plannedEnd ? nextStart : plannedEnd;
     }
 
@@ -109,9 +124,7 @@ public sealed class TeamSprintTimeline
         if (sprint.Started is { } started)
             return started;
 
-        var plannedStart = PlannedStartDate(sprint)
-            .AtStartOfDayInZone(ScheduleFor(sprint).TimeZone)
-            .ToInstant();
+        var plannedStart = PlannedStart(sprint);
 
         return Previous(sprint) is { } previous && EffectiveEnd(previous) > plannedStart
             ? EffectiveEnd(previous)

@@ -8,14 +8,14 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Dtos;
 /// (used to build a column per criterion and per output) plus, per project, the criterion ratings and
 /// output values from that project's current score — but only when the current score was produced by
 /// the portfolio's current model. Projects scored under a different/older model, or not yet scored,
-/// appear with empty Ratings/Outputs so their breakdown cells render blank.
+/// are left out, so their breakdown cells render blank.
 /// </summary>
 public sealed record PortfolioRankingScoreboardDto
 {
     /// <summary>The portfolio's current scoring model definition, or null if no model is assigned.</summary>
     public ScoringModelDetailsDto? ScoringModel { get; set; }
 
-    /// <summary>Per-project score breakdown for the current model (empty entries for non-matching/unscored).</summary>
+    /// <summary>Per-project score breakdown for the current model; projects with no current-model score are omitted.</summary>
     public List<ProjectRankingScoreDto> Projects { get; set; } = [];
 }
 

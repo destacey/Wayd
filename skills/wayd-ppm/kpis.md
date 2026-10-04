@@ -23,7 +23,7 @@ Through MCP, initiatives and KPI definitions are read-only: they cannot be creat
 
 For "is this KPI on track?", use `StrategicInitiatives_GetKpiCheckpointPlan` — it is the one call that sets actuals against the plan.
 
-Read tools accept an id or a key for both the initiative and the KPI. The two measurement write tools take **UUIDs only**; `StrategicInitiatives_GetKpis` returns both UUIDs.
+Read tools accept an id or a key for both the initiative and the KPI. The two measurement write tools take **UUIDs only**: the initiative's from `StrategicInitiatives_GetStrategicInitiative`, the KPI's from `StrategicInitiatives_GetKpis`.
 
 ## Reading a KPI
 
@@ -36,7 +36,7 @@ Read tools accept an id or a key for both the initiative and the KPI. The two me
 
 ## Recording a measurement
 
-1. Resolve the initiative and KPI UUIDs with `StrategicInitiatives_GetKpis`.
+1. Resolve the initiative UUID with `StrategicInitiatives_GetStrategicInitiative` and the KPI UUID with `StrategicInitiatives_GetKpis`.
 2. Check `StrategicInitiatives_GetKpiMeasurements` for an existing measurement on the same date. Dates are unique within a KPI, so a duplicate is rejected rather than treated as an update.
 3. Call `StrategicInitiatives_AddKpiMeasurement`. The body's `strategicInitiativeId` and `kpiId` must match the path parameters. `actualValue` must be non-zero; `measurementDate` is an ISO 8601 UTC datetime; `note` is optional (max 1024 characters).
 4. Re-read the KPI and report the new `actualValue` and `progress` — remembering they change only if this measurement has the latest date.

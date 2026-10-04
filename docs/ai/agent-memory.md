@@ -28,7 +28,7 @@ This file captures compact repo-specific lessons that future coding agents shoul
 - Controllers should stay thin and delegate to commands/queries via `IDispatcher` (Wolverine). Handlers must be `public`.
 - Business validation should use `Result<T>` and FluentValidation where appropriate, not business exceptions.
 - Types in `Wayd.Web.Api/Models` are named `*Request` / `*Response`. "Dto" means a type defined in an Application project's `Dtos/` folder.
-- Do not add `AsNoTracking()` to a query that ends in a projection (`Select`, `ProjectToType`): it materializes no entities, so there is nothing to track. Reserve it for queries returning entities that are read but not saved.
+- Do not add `AsNoTracking()` to a query that projects to DTOs, scalars, or anonymous types holding no entity instances (`Select`, `ProjectToType`): there is nothing to track. A projection that returns an entity instance is tracked, so it, like a query returning entities read but not saved, still takes `AsNoTracking()`.
 - With a primary constructor, assign each parameter to a `private readonly _field` and use the field in method bodies.
 - AI provider connectors (Azure OpenAI, OpenAI) are called on demand and have nothing to sync. Sync runners, sync buttons and sync dispatch gate on `ConnectorCategory.WorkSync` / `PeopleSync`; `RunSync` answers 400 for an AI provider.
 

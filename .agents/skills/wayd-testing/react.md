@@ -5,7 +5,7 @@ Jest with React Testing Library, in `Wayd.Web/src/wayd.web.reactclient`. The com
 ## Writing the test
 
 - Assert rendered output and behaviour, not implementation detail. Query by role or visible text; a class-name query breaks on refactors that change nothing a user sees.
-- **WaydGrid and the other TanStack Table consumers carry a `'use no memo'` directive**, opting them out of React Compiler memoization. Manual `useMemo`/`useCallback` in those components is deliberate — do not remove it as a leftover.
+- **Only `GridHeaderCell` and `ColumnMenuTrigger` carry a `'use no memo'` directive** (they read sort and pin state off `header.column`, which TanStack Table v9 reuses). Manual `useMemo`/`useCallback` belongs only in components with that directive; elsewhere the React Compiler memoizes. See the client's `AGENTS.md`.
 - **Grid tests see a fixed window of rows, not the full data set.** jsdom has no layout, so the virtualizer would render nothing; the `data-grid-body-viewport` mock in `src/jest.setup.ts` gives the grid body a fixed size. Read that mock for the row count before asserting on rendered rows, and keep a test's data within the window unless it is testing virtualization.
 
 ## Running the mutation gate on a Jest suite

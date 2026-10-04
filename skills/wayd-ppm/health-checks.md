@@ -15,7 +15,7 @@ A health check is a point-in-time assessment of a project — Healthy, At Risk, 
 All five take the project's **UUID**, not its key. The current active check is also embedded as `healthCheck` on `Projects_GetProject` and `Projects_GetProjects`; use that when only the latest status matters.
 
 - **Read and write shapes differ.** A check read back has `status` as an object (`{ id, name }`, with `name` `"At Risk"`); a write takes the string `"Healthy"`, `"AtRisk"`, or `"Unhealthy"`.
-- **`expiration` must be in the future** on both create and update (ISO 8601 UTC datetime). An expired check cannot be corrected without also extending it.
+- **`expiration` must be in the future** on both create and update (ISO 8601 UTC datetime). An expired check cannot be updated at all — log a new one instead.
 - **`note`** is optional, at most 1024 characters.
 - All three writes require delivery leadership (see SKILL.md).
 
@@ -45,7 +45,7 @@ Copy this checklist and work through it in order:
 
 1. **Project and timeline** — `Projects_GetProject`: status, `start` and `end` (the committed window), current `healthCheck`, and the role lists. The project has no overall progress field; progress comes from steps 2 and 4.
 2. **Plan metrics and task progress** — `Projects_GetProjectPlanSummary` (`overdue`, `dueThisWeek`, `upcoming`, `totalLeafTasks`). Then `Tasks_GetProjectTasks` for each task's `status`, `progress`, and planned dates, to name the overdue tasks.
-3. **Critical path** — `Tasks_GetCriticalPath` returns ordered task ids; match them to the task list from step 2. A critical-path task that is overdue or behind its planned dates delays the project end.
+3. **Critical path** — `Tasks_GetCriticalPath` is not implemented yet and always returns an empty list. Treat critical-path evidence as unavailable and say so in the note; never read an empty list as "no critical tasks".
 4. **Stages** — if a lifecycle is assigned, `Projects_GetProjectStages`: each stage's status, `progress`, and `start`/`end`. Flag a stage past its end and not complete.
 5. **Delivery forecast** — `Projects_GetForecast` (needs the `delivery-forecasting` flag; read it as the `wayd-teams` skill describes). Note `outcome`, `chanceOfFinishingByTargetDate` against the project's `end`, the 50% and 85% dates, and the predecessor with the highest `shareOfTrialsSettingFinish`. `Blocked by Dependency` is itself a signal; any other outcome without dates leaves the forecast out of the classification rather than counting against the project.
 6. **Previous checks and changes since** — `Projects_GetProjectHealthChecks`: the latest check's status, `reportedOn`, reporter, and `note`. Then `Projects_GetActivities` for entries after that `reportedOn`: schedule changes (`PreviousDateRange` against the new range), status changes, and role changes. Project activity does **not** include tasks or stages; task progress comes only from step 2. Tasks carry no completion date, so "tasks finished since the last check" can only be inferred by comparing against what the previous note recorded — say so rather than inventing a count.

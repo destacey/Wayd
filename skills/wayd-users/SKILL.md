@@ -12,7 +12,7 @@ A user is a sign-in account; an employee is the person record that holds roles a
 - Project, program, and portfolio role lists: `sponsorIds`, `ownerIds`, `managerIds`, `memberIds`
 - Task `assigneeIds`
 - `employeeId` filters on the project tools
-- People in an activity-history `payload`
+- People in most activity-history payloads — identity events (users created, locked out, linked to an employee) carry user ids instead
 
 A user `id` in any of these does not identify the person.
 

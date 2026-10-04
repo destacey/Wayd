@@ -20,6 +20,6 @@ For the headline number alone, read `currentScore` on `Projects_GetProject` or `
 ## Traps
 
 - **A null `scoringModel` from `Projects_GetScoringContext` means the portfolio has no model assigned**, so the project cannot be scored at all.
-- **Empty `ratings` and `outputs` on the scoreboard do not mean "scored zero".** The project is either unscored or was last scored under a different or older model than the portfolio's current one.
+- **A project missing from the scoreboard is not "scored zero".** It is either unscored or was last scored under a different or older model than the portfolio's current one; the scoreboard lists only projects whose current score uses the current model.
 - **The scoreboard has no names or positions** — only project ids. Join it against `Portfolios_GetPortfolioProjects` to label rows.
 - **Never show `rank` to a user.** On project DTOs it is an opaque fractional sort key. The 1-based display position is `position`, populated only when results are scoped to a single portfolio.

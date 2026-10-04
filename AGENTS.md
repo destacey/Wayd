@@ -513,11 +513,10 @@ Visions (one Active at a time), Strategies, Strategic Themes (cross-domain tags 
   - Subject `type(scope): summary (#issue)`, 72 characters at most, imperative, no full stop. Types:
     `feat` `fix` `docs` `refactor` `test` `perf` `chore` `ci` `build`. Scopes come from a fixed list in that
     doc; leave the scope out when a change spans areas.
-  - Body optional: why, never narrative. No AI attribution trailers or "Generated with …" lines, in commits
-    or PR descriptions.
-- **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `commit-msg` rejects a subject
-  that breaks the convention and any AI attribution; `pre-push` rejects a misnamed branch and an MCP change
-  that has no changeset.
+  - Body optional: why, never narrative.
+- **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `pre-push` rejects a misnamed
+  branch and an MCP change that has no changeset. `commit-msg` warns — without blocking — about a subject
+  that breaks the convention; follow it anyway.
 - **Docker Compose**: Environment variable changes require full teardown and rebuild (`docker compose down` then `up`)
 - **OpenTelemetry**: Configured in `Wayd.Infrastructure/src/Wayd.Infrastructure/OpenTelemetry/ConfigureServices.cs`. Frontend server-side only via `instrumentation.ts`.
 

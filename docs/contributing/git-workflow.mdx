@@ -7,9 +7,10 @@ audience: [developer, agent]
 
 # Branches and Commits
 
-One convention for every contributor and every coding agent. The `commit-msg` and `pre-push` hooks enforce
-it once the hooks are enabled (`git config core.hooksPath .githooks`, once per clone); the checks live in
-`.github/scripts/commit-message-check.sh` and `.github/scripts/branch-name-check.sh`.
+One convention for every contributor and every coding agent. Once the hooks are enabled
+(`git config core.hooksPath .githooks`, once per clone), `pre-push` **refuses** a branch whose name breaks the
+convention, and `commit-msg` **warns** about a message that does but keeps the commit. The checks live in
+`.github/scripts/branch-name-check.sh` and `.github/scripts/commit-message-check.sh`.
 
 ## Branches
 
@@ -42,7 +43,6 @@ Optional body: why the change was made, and any constraint the diff does not sho
   [code comments](./coding-standards.mdx#comments): no narrative, no history of how the fix was found.
   Write each paragraph as one unwrapped line.
 - **One logical change per commit.** Keep a refactor apart from the behaviour change it enables.
-- **No AI attribution** — no `Co-Authored-By` trailer for a tool and no "Generated with …" line.
 
 ```text
 feat(mcp): advertise complete tool annotations (#964)

@@ -1,5 +1,10 @@
 import { SizingMethod } from '@/src/services/wayd-api'
-import { sizingMethodLabel, sizingMethodOptions } from './sizing-method'
+import {
+  isSizingMethod,
+  sizingMethodLabel,
+  sizingMethodMeasure,
+  sizingMethodOptions,
+} from './sizing-method'
 
 describe('sizingMethodLabel', () => {
   it.each([
@@ -13,6 +18,35 @@ describe('sizingMethodLabel', () => {
 
     // Assert
     expect(result).toBe(label)
+  })
+})
+
+describe('sizingMethodMeasure', () => {
+  it.each([
+    [SizingMethod.StoryPoints, 'story points'],
+    [SizingMethod.Count, 'work items'],
+    [SizingMethod.Effort, 'effort'],
+    [SizingMethod.Size, 'size'],
+  ])('describes %s as %s', (sizingMethod, measure) => {
+    // Act
+    const result = sizingMethodMeasure(sizingMethod)
+
+    // Assert
+    expect(result).toBe(measure)
+  })
+})
+
+describe('isSizingMethod', () => {
+  it.each([
+    [SizingMethod.Effort, true],
+    ['Custom tooltip text', false],
+    [undefined, false],
+  ])('recognises %s as %s', (value, expected) => {
+    // Act
+    const result = isSizingMethod(value)
+
+    // Assert
+    expect(result).toBe(expected)
   })
 })
 

@@ -64,7 +64,7 @@ public sealed class IterationConcurrencyTokenTests(SqlServerDbContextFixture fix
             .Where(i => i.TeamId == teamId)
             .ToListAsync(cancellationToken);
 
-        return new TeamSprintTimeline(teamId, sprints, new TeamSprintSchedules([], new SprintSchedule(DateTimeZone.Utc, 1)));
+        return new TeamSprintTimeline(teamId, sprints, new TeamSprintSchedules([], new SprintSchedule(DateTimeZone.Utc, 1, SizingMethod.Count)));
     }
 
     private async Task<Guid> SeedTeam(CancellationToken cancellationToken)

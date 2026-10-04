@@ -86,6 +86,8 @@ Planning Interval (PI)
 | Aggregated metrics for an iteration | `PlanningIntervals_GetIterationMetrics` | `idOrKey`, `iterationIdOrKey`   |
 | Combined backlog for an iteration   | `PlanningIntervals_GetIterationBacklog` | `idOrKey`, `iterationIdOrKey`   |
 
+Reading iteration metrics: each sprint in `sprintMetrics` is measured in its team's `sizingMethod` (StoryPoints, Effort, Size or Count), so its `*Estimate` fields are in that unit; the `*WorkItems` fields are always item counts. The iteration's own `*Estimate` totals and `sizingMethod` are null when the teams size in different units — report counts then, and never add estimates across units yourself. `unestimatedWorkItems` counts items with no value in their team's unit (0 is an estimate).
+
 ### Objectives
 
 - List objectives (all teams): `PlanningIntervals_GetObjectives` with `idOrKey`

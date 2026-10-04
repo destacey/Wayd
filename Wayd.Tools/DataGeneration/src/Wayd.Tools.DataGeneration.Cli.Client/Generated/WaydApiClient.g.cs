@@ -91387,32 +91387,44 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("sprintCount")]
         public int SprintCount { get; set; } = default!;
 
+        /// <summary>
+        /// The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null
+        /// <br/>when the sprints use different sizing methods, or there are none: estimates in different units are never
+        /// <br/>added, so the estimate totals are null too and only the counts roll up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod? SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double? TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
         public int CompletedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("completedStoryPoints")]
-        public double CompletedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double? CompletedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
         public int InProgressWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("inProgressStoryPoints")]
-        public double InProgressStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
+        public double? InProgressEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("notStartedWorkItems")]
         public int NotStartedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("notStartedStoryPoints")]
-        public double NotStartedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("notStartedEstimate")]
+        public double? NotStartedEstimate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("missingStoryPointsCount")]
-        public int MissingStoryPointsCount { get; set; } = default!;
+        /// <summary>
+        /// Items with no value in their own sprint's sizing method, across every sprint.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
+        public int UnestimatedWorkItems { get; set; } = default!;
 
         /// <summary>
         /// Cycle-time rollup across all sprints in this iteration.
@@ -91424,6 +91436,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("sprintMetrics")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<SprintMetricsSummary> SprintMetrics { get; set; } = new System.Collections.ObjectModel.Collection<SprintMetricsSummary>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum SizingMethod
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StoryPoints")]
+        StoryPoints = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Count")]
+        Count = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Effort")]
+        Effort = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Size")]
+        Size = 3,
 
     }
 
@@ -91483,32 +91513,44 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The estimate the sprint is measured in: its team's sizing method on the sprint's planned start. Under
+        /// <br/>Count every estimate equals its item count.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
         public int CompletedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("completedStoryPoints")]
-        public double CompletedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double CompletedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
         public int InProgressWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("inProgressStoryPoints")]
-        public double InProgressStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
+        public double InProgressEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("notStartedWorkItems")]
         public int NotStartedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("notStartedStoryPoints")]
-        public double NotStartedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("notStartedEstimate")]
+        public double NotStartedEstimate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("missingStoryPointsCount")]
-        public int MissingStoryPointsCount { get; set; } = default!;
+        /// <summary>
+        /// Items with no value in SizingMethod. An estimate of 0 is an estimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
+        public int UnestimatedWorkItems { get; set; } = default!;
 
         /// <summary>
         /// Cycle-time rollup for this sprint.
@@ -94272,32 +94314,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid SprintId { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("completedWorkItems")]
         public int CompletedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("completedStoryPoints")]
-        public double CompletedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("completedEstimate")]
+        public double CompletedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inProgressWorkItems")]
         public int InProgressWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("inProgressStoryPoints")]
-        public double InProgressStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressEstimate")]
+        public double InProgressEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("notStartedWorkItems")]
         public int NotStartedWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("notStartedStoryPoints")]
-        public double NotStartedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("notStartedEstimate")]
+        public double NotStartedEstimate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("missingStoryPointsCount")]
-        public int MissingStoryPointsCount { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedWorkItems")]
+        public int UnestimatedWorkItems { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("cycleTime")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -95708,24 +95755,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Kanban")]
         Kanban = 1,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum SizingMethod
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"StoryPoints")]
-        StoryPoints = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Count")]
-        Count = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Effort")]
-        Effort = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Size")]
-        Size = 3,
 
     }
 

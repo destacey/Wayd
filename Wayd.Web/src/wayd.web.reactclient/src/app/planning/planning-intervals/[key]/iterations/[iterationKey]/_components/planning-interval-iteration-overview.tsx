@@ -9,10 +9,7 @@ import {
 } from '@/src/components/common/metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import useTheme from '@/src/components/contexts/theme'
-import {
-  PlanningIntervalIterationDetailsDto,
-  SizingMethod,
-} from '@/src/services/wayd-api'
+import { PlanningIntervalIterationDetailsDto } from '@/src/services/wayd-api'
 import { useGetPlanningIntervalIterationMetricsQuery } from '@/src/store/features/planning/planning-interval-api'
 import {
   Col,
@@ -27,7 +24,9 @@ import {
 import { FC, ReactNode, useEffect, useState } from 'react'
 import { SprintCard } from '.'
 import { IterationHealthIndicator } from '@/src/components/common/planning'
-import { useGetTeamOperatingModelsForTeamsQuery } from '@/src/store/features/organizations/team-api'
+
+const TEAM_SIZING = 'Team Sizing'
+const COUNT = 'Count'
 
 const { Title } = Typography
 
@@ -39,9 +38,7 @@ export interface PlanningIntervalIterationOverviewProps {
 const PlanningIntervalIterationOverview: FC<
   PlanningIntervalIterationOverviewProps
 > = ({ iteration, onHealthIndicatorReady }) => {
-  const [sizingMethod, setSizingMethod] = useState<SizingMethod>(
-    SizingMethod.StoryPoints,
-  )
+  const [byCount, setByCount] = useState(false)
   const { token } = useTheme()
 
   const { data: metrics, isLoading } =
@@ -50,24 +47,11 @@ const PlanningIntervalIterationOverview: FC<
       iterationKey: iteration.key,
     })
 
-  const { data: operatingModels, isLoading: isOperatingModelsLoading } =
-    useGetTeamOperatingModelsForTeamsQuery(
-      {
-        teamIds: metrics?.sprintMetrics.map((s) => s.team.id) ?? [],
-        asOfDate: iteration.start,
-      },
-      { skip: !metrics || metrics.sprintMetrics.length === 0 },
-    )
-
   const sortedSprints = !metrics
     ? []
     : [...metrics.sprintMetrics].sort((a, b) =>
         a.team.name.localeCompare(b.team.name),
       )
-
-  const operatingModelMap = !operatingModels
-    ? new Map()
-    : new Map(operatingModels.map((m) => [m.teamId, m]))
 
   const displayValues = !metrics
     ? {
@@ -105,7 +89,7 @@ const PlanningIntervalIterationOverview: FC<
     iteration.start,
   ])
 
-  if (isLoading || !metrics || isOperatingModelsLoading) {
+  if (isLoading || !metrics) {
     return <Skeleton active />
   }
 
@@ -189,21 +173,11 @@ const PlanningIntervalIterationOverview: FC<
             <Title level={5} style={{ margin: 0 }}>
               Team Sprints
             </Title>
-            <Tooltip title="Switch between summing story points and counting work items for metrics">
+            <Tooltip title="Switch between showing each team's sprint in its own sizing method and counting work items">
               <Segmented<string>
-                options={['Count', 'Story Points']}
-                value={
-                  sizingMethod === SizingMethod.StoryPoints
-                    ? 'Story Points'
-                    : 'Count'
-                }
-                onChange={(value) =>
-                  setSizingMethod(
-                    value === 'Story Points'
-                      ? SizingMethod.StoryPoints
-                      : SizingMethod.Count,
-                  )
-                }
+                options={[TEAM_SIZING, COUNT]}
+                value={byCount ? COUNT : TEAM_SIZING}
+                onChange={(value) => setByCount(value === COUNT)}
               />
             </Tooltip>
           </Flex>
@@ -212,8 +186,7 @@ const PlanningIntervalIterationOverview: FC<
               <SprintCard
                 key={sprint.sprintId}
                 sprint={sprint}
-                operatingModel={operatingModelMap.get(sprint.team.id)}
-                sizingMethod={sizingMethod}
+                byCount={byCount}
               />
             ))}
           </Flex>

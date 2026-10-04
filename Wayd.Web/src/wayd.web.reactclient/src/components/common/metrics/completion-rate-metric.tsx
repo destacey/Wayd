@@ -4,12 +4,10 @@ import { CSSProperties, FC } from 'react'
 import { MetricCard } from '.'
 import useTheme from '@/src/components/contexts/theme'
 import { SizingMethod } from '@/src/services/wayd-api'
+import { isSizingMethod, sizingMethodMeasure } from '@/src/utils'
 
-const getTooltipText = (sizingMethod: SizingMethod): string => {
-  const unit =
-    sizingMethod === SizingMethod.StoryPoints ? 'story points' : 'work items'
-  return `Percentage of ${unit} that are completed (Done or Removed).`
-}
+const getTooltipText = (sizingMethod: SizingMethod): string =>
+  `Percentage of work that is completed (Done or Removed), measured in ${sizingMethodMeasure(sizingMethod)}.`
 
 export interface CompletionRateMetricProps {
   completed: number
@@ -33,10 +31,9 @@ const CompletionRateMetric: FC<CompletionRateMetricProps> = ({
   const completionRate =
     total > 0 ? Number(((completed / total) * 100).toFixed(1)) : 0
 
-  const resolvedTooltip =
-    tooltip === SizingMethod.StoryPoints || tooltip === SizingMethod.Count
-      ? getTooltipText(tooltip)
-      : tooltip
+  const resolvedTooltip = isSizingMethod(tooltip)
+    ? getTooltipText(tooltip)
+    : tooltip
 
   return (
     <MetricCard

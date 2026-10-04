@@ -191,6 +191,27 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
+    public static WorkItemFaker WithStoryPoints(this WorkItemFaker faker, double? storyPoints)
+    {
+        faker.RuleFor(x => x.StoryPoints, storyPoints);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithEffort(this WorkItemFaker faker, double? effort)
+    {
+        faker.RuleFor(x => x.Effort, effort);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithSize(this WorkItemFaker faker, double? size)
+    {
+        faker.RuleFor(x => x.Size, size);
+
+        return faker;
+    }
+
     public static WorkItemFaker WithTeamId(this WorkItemFaker faker, Guid? teamId)
     {
         faker.RuleFor(x => x.TeamId, teamId);

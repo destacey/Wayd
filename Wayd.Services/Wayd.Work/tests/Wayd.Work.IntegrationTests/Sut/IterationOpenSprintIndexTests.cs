@@ -28,7 +28,7 @@ public sealed class IterationOpenSprintIndexTests(SqlServerDbContextFixture fixt
     // Sprint A has passed its default start, so it may be started late and sprint B early.
     private static readonly Instant Now = Instant.FromUtc(2026, 9, 26, 12, 0);
 
-    private static readonly SprintSchedule Utc = new(DateTimeZone.Utc, 1);
+    private static readonly SprintSchedule Utc = new(DateTimeZone.Utc, 1, SizingMethod.Count);
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
 

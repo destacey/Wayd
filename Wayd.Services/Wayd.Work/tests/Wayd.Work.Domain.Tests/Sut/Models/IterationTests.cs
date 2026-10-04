@@ -1,6 +1,7 @@
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Planning.Iterations;
@@ -157,7 +158,7 @@ public class IterationTests
             .WithStarted(sprint1Started).WithCompleted(sprint1Completed).Generate();
         var sprint2 = new IterationFaker().AsSprint().WithKey(2).WithTeamId(teamId)
             .WithDateRange(new IterationDateRange(Sprint2Start, Sprint2Start.PlusDays(13))).Generate();
-        var schedules = new TeamSprintSchedules([new SprintSchedulePeriod(new LocalDate(2026, 1, 1), null, new SprintSchedule(Chicago, 1))], new SprintSchedule(DateTimeZone.Utc, 1));
+        var schedules = new TeamSprintSchedules([new SprintSchedulePeriod(new LocalDate(2026, 1, 1), null, new SprintSchedule(Chicago, 1, SizingMethod.Count))], new SprintSchedule(DateTimeZone.Utc, 1, SizingMethod.Count));
 
         return (sprint1, sprint2, new TeamSprintTimeline(teamId, [sprint1, sprint2], schedules));
     }

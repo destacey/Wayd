@@ -132,7 +132,7 @@ public sealed class CorrectSprintActualDatesCommandHandlerTests(SqlServerDbConte
 
         if (started is { } at)
         {
-            var timeline = new TeamSprintTimeline(teamId, [sprint], new TeamSprintSchedules([], new SprintSchedule(DateTimeZone.Utc, 1)));
+            var timeline = new TeamSprintTimeline(teamId, [sprint], new TeamSprintSchedules([], new SprintSchedule(DateTimeZone.Utc, 1, SizingMethod.Count)));
             sprint.Start(timeline, at, EventActor.System, at).IsSuccess.Should().BeTrue();
             await context.Context.SaveChangesAsync(cancellationToken);
         }

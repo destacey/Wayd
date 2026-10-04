@@ -1,9 +1,6 @@
 'use client'
 
-import {
-  useGetActiveSprintQuery,
-  useGetTeamDetailsQuery,
-} from '@/src/store/features/organizations/team-api'
+import { useGetActiveSprintQuery } from '@/src/store/features/organizations/team-api'
 import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
 import { SizingMethod } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd'
@@ -14,24 +11,23 @@ import {
   CycleTimeMetric,
   StatusMetric,
   VelocityMetric,
+  sprintMetricValues,
 } from '../metrics'
 import useTheme from '@/src/components/contexts/theme'
 import SprintPiPredictability from './sprint-pi-predictability'
 import TimelineProgress from './timeline-progress'
 import IterationHealthIndicator from './iteration-health-indicator'
-import { sprintActiveDays } from '@/src/utils'
+import { sizingMethodMeasure, sprintActiveDays } from '@/src/utils'
 
 const { Text } = Typography
 
 export interface ActiveTeamSprintProps {
   teamId: string
-  sizingMethod?: SizingMethod
   showTeamLink?: boolean
 }
 
 const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
   teamId,
-  sizingMethod,
   showTeamLink = false,
 }) => {
   const { token } = useTheme()
@@ -39,41 +35,15 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
   const { data: sprintData, isLoading: sprintIsLoading } =
     useGetActiveSprintQuery(teamId)
 
-  const { data: teamDetails } = useGetTeamDetailsQuery(
-    sprintData?.team.key ?? 0,
-    {
-      skip: sizingMethod !== undefined || !sprintData?.team.key,
-    },
-  )
-
-  const resolvedSizingMethod =
-    sizingMethod ??
-    teamDetails?.operatingModel?.sizingMethod ??
-    SizingMethod.StoryPoints
-  const useStoryPoints = resolvedSizingMethod === SizingMethod.StoryPoints
-
   const sprintKey = sprintData?.key
   const { data: metrics, isLoading: metricsIsLoading } =
     useGetSprintMetricsQuery(sprintKey!, {
       skip: !sprintKey,
     })
 
-  const displayValues = (() => {
-    if (!metrics)
-      return { total: 0, completed: 0, inProgress: 0, notStarted: 0 }
-    return {
-      total: useStoryPoints ? metrics.totalStoryPoints : metrics.totalWorkItems,
-      completed: useStoryPoints
-        ? metrics.completedStoryPoints
-        : metrics.completedWorkItems,
-      inProgress: useStoryPoints
-        ? metrics.inProgressStoryPoints
-        : metrics.inProgressWorkItems,
-      notStarted: useStoryPoints
-        ? metrics.notStartedStoryPoints
-        : metrics.notStartedWorkItems,
-    }
-  })()
+  // Shown in the sizing method the sprint is measured in, which the metrics report.
+  const sizingMethod = metrics?.sizingMethod ?? SizingMethod.Count
+  const displayValues = sprintMetricValues(metrics, false)
 
   if (sprintIsLoading) {
     return <Skeleton active paragraph={{ rows: 3 }} />
@@ -124,14 +94,14 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
             <CompletionRateMetric
               completed={displayValues.completed}
               total={displayValues.total}
-              tooltip={resolvedSizingMethod}
+              tooltip={sizingMethod}
             />
           </Col>
           <Col xs={12}>
             <VelocityMetric
               completed={displayValues.completed}
               total={displayValues.total}
-              tooltip={resolvedSizingMethod}
+              tooltip={sizingMethod}
             />
           </Col>
           <Col xs={12}>
@@ -140,7 +110,7 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
               value={displayValues.inProgress}
               total={displayValues.total}
               color={token.colorInfo}
-              tooltip="Total number of story points or items currently in the sprint that are in progress (Status Category: Active). Percentage shown represents the portion of total sprint work that is in progress."
+              tooltip={`Total ${sizingMethodMeasure(sizingMethod)} currently in the sprint that are in progress (Status Category: Active). Percentage shown represents the portion of total sprint work that is in progress.`}
             />
           </Col>
           <Col xs={12}>

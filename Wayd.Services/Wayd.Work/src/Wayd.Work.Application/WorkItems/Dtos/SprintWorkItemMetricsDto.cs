@@ -1,27 +1,37 @@
-﻿using Wayd.Common.Domain.Enums.Work;
+﻿using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Work;
 
 namespace Wayd.Work.Application.WorkItems.Dtos;
 
 /// <summary>
-/// Work item metrics for a single sprint.
+/// Work item metrics for a single sprint, as item counts and as estimates in the sprint's sizing method.
 /// </summary>
 public sealed record SprintWorkItemMetricsDto
 {
     public Guid SprintId { get; init; }
 
+    /// <summary>
+    /// The estimate the sprint is measured in: its team's sizing method on the sprint's planned start, or
+    /// Count for a sprint with no team. Under Count every estimate equals its item count.
+    /// </summary>
+    public SizingMethod SizingMethod { get; init; }
+
     public int TotalWorkItems { get; init; }
-    public double TotalStoryPoints { get; init; }
+
+    /// <summary>The sum of every item's estimate in <see cref="SizingMethod"/>; unestimated items add nothing.</summary>
+    public double TotalEstimate { get; init; }
 
     public int CompletedWorkItems { get; init; }
-    public double CompletedStoryPoints { get; init; }
+    public double CompletedEstimate { get; init; }
 
     public int InProgressWorkItems { get; init; }
-    public double InProgressStoryPoints { get; init; }
+    public double InProgressEstimate { get; init; }
 
     public int NotStartedWorkItems { get; init; }
-    public double NotStartedStoryPoints { get; init; }
+    public double NotStartedEstimate { get; init; }
 
-    public int MissingStoryPointsCount { get; init; }
+    /// <summary>Items with no value in <see cref="SizingMethod"/>. An estimate of 0 is an estimate.</summary>
+    public int UnestimatedWorkItems { get; init; }
 
     /// <summary>
     /// Cycle-time rollup for the sprint. Carries count and total so callers can
@@ -30,11 +40,12 @@ public sealed record SprintWorkItemMetricsDto
     public required CycleTimeSummary CycleTime { get; init; }
 
     /// <summary>
-    /// Creates metrics from a list of work items for a specific sprint.
+    /// Creates metrics from a list of work items for a specific sprint, measured in <paramref name="sizingMethod"/>.
     /// </summary>
-    public static SprintWorkItemMetricsDto FromWorkItems(Guid sprintId, IEnumerable<WorkItem> workItems)
+    public static SprintWorkItemMetricsDto FromWorkItems(Guid sprintId, SizingMethod sizingMethod, IEnumerable<WorkItem> workItems)
     {
         var items = workItems.ToList();
+        double Estimate(IEnumerable<WorkItem> bucket) => bucket.Sum(w => WorkItemEstimate.Of(sizingMethod, w) ?? 0);
 
         var completed = items.Where(w =>
             w.StatusCategory == WorkStatusCategory.Done ||
@@ -56,15 +67,16 @@ public sealed record SprintWorkItemMetricsDto
         return new SprintWorkItemMetricsDto
         {
             SprintId = sprintId,
+            SizingMethod = sizingMethod,
             TotalWorkItems = items.Count,
-            TotalStoryPoints = items.Sum(w => w.StoryPoints ?? 0),
+            TotalEstimate = Estimate(items),
             CompletedWorkItems = completed.Count,
-            CompletedStoryPoints = completed.Sum(w => w.StoryPoints ?? 0),
+            CompletedEstimate = Estimate(completed),
             InProgressWorkItems = inProgress.Count,
-            InProgressStoryPoints = inProgress.Sum(w => w.StoryPoints ?? 0),
+            InProgressEstimate = Estimate(inProgress),
             NotStartedWorkItems = notStarted.Count,
-            NotStartedStoryPoints = notStarted.Sum(w => w.StoryPoints ?? 0),
-            MissingStoryPointsCount = items.Count(w => !w.StoryPoints.HasValue || w.StoryPoints == 0),
+            NotStartedEstimate = Estimate(notStarted),
+            UnestimatedWorkItems = items.Count(w => WorkItemEstimate.Of(sizingMethod, w) is null),
             CycleTime = new CycleTimeSummary
             {
                 WorkItemsCount = doneItems.Count,

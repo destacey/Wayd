@@ -8,5 +8,8 @@ export { default as MetricCard, METRIC_CARD_FLEX } from './metric-card'
 export { default as WaydStatisticNumber } from './wayd-statistic-number'
 export { default as StatusMetric } from './status-metric'
 export { default as VelocityMetric } from './velocity-metric'
-
-
+export {
+  sprintMetricValues,
+  type SprintMetricFigures,
+  type SprintMetricValues,
+} from './sprint-metric-values'

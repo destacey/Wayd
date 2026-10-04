@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
@@ -10,8 +11,8 @@ namespace Wayd.Work.Domain.Tests.Sut.Models;
 public class TeamSprintTimelineTests
 {
     private static readonly DateTimeZone Chicago = DateTimeZoneProviders.Tzdb["America/Chicago"];
-    private static readonly SprintSchedule ChicagoSchedule = new(Chicago, CommitmentGraceDays: 1);
-    private static readonly SprintSchedule UtcSchedule = new(DateTimeZone.Utc, CommitmentGraceDays: 2);
+    private static readonly SprintSchedule ChicagoSchedule = new(Chicago, CommitmentGraceDays: 1, SizingMethod.StoryPoints);
+    private static readonly SprintSchedule UtcSchedule = new(DateTimeZone.Utc, CommitmentGraceDays: 2, SizingMethod.Count);
 
     private readonly Guid _teamId = Guid.NewGuid();
 

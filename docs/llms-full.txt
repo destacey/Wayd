@@ -180,17 +180,19 @@ Short time-boxed periods (typically 2 weeks) owned by teams. Properties:
 
 | Metric | Formula |
 |--------|---------|
-| Total | Sum of all items/story points in sprint |
+| Total | Number of items, and sum of their estimates in the sprint's sizing method |
 | Completed | Items where status category is Done OR Removed |
 | In Progress | Items where status category is Active |
 | Not Started | Items where status category is Proposed |
 | Remaining | Total − Completed |
 | Completion Rate | (Completed / Total) × 100 |
-| Velocity | Completed count (story points or items) |
+| Velocity | Completed estimate (or completed item count) |
 | Avg Cycle Time | Sum(Done − Activated) / Count for Done items with both timestamps |
-| Missing Story Points | Count of items with null or zero story points |
+| Unestimated | Count of items with no value (null) in the sprint's sizing method; 0 is an estimate |
 
 "Completed" includes Done + Removed. Cycle time only calculated for Done items (not Removed) with both Activated and Done timestamps.
+
+A sprint is measured in its team's sizing method on its planned start (`SprintSchedule.SizingMethod`, read through `WorkItemEstimate.Of`); a sprint with no team, or a day with no operating model, counts items. Responses carry counts always and `*Estimate` fields plus `SizingMethod`. A PI iteration rollup sums estimates only when every sprint shares one sizing method, otherwise its estimate fields and `SizingMethod` are null.
 
 ### Workspaces
 

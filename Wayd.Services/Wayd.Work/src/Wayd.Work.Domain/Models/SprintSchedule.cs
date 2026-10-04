@@ -1,13 +1,14 @@
 using NodaTime;
+using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Work.Domain.Models;
 
 /// <summary>
-/// The time zone a sprint's planned days are counted in, and how many days after its planned start the
-/// team's commitment is taken when the team does not start the sprint itself (1 is the end of the first
-/// planned day).
+/// The time zone a sprint's planned days are counted in, how many days after its planned start the team's
+/// commitment is taken when the team does not start the sprint itself (1 is the end of the first planned
+/// day), and which of a work item's estimates the sprint is measured in.
 /// </summary>
-public sealed record SprintSchedule(DateTimeZone TimeZone, int CommitmentGraceDays);
+public sealed record SprintSchedule(DateTimeZone TimeZone, int CommitmentGraceDays, SizingMethod SizingMethod);
 
 /// <summary>A schedule and the days it was in effect for a team, end inclusive.</summary>
 public sealed record SprintSchedulePeriod(LocalDate Start, LocalDate? End, SprintSchedule Schedule);

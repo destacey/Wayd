@@ -2,6 +2,7 @@
 using CsvHelper;
 using Mapster;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
@@ -510,18 +511,23 @@ public class PlanningIntervalsController : ControllerBase
                 ActiveUntil = sprint.ActiveUntil,
                 TimeZone = sprint.TimeZone,
                 Team = new Common.Application.Dtos.NavigationDto { Id = sprint.Team.Id, Key = sprint.Team.Key, Name = sprint.Team.Name },
+                SizingMethod = metrics?.SizingMethod ?? SizingMethod.Count,
                 TotalWorkItems = metrics?.TotalWorkItems ?? 0,
-                TotalStoryPoints = metrics?.TotalStoryPoints ?? 0,
+                TotalEstimate = metrics?.TotalEstimate ?? 0,
                 CompletedWorkItems = metrics?.CompletedWorkItems ?? 0,
-                CompletedStoryPoints = metrics?.CompletedStoryPoints ?? 0,
+                CompletedEstimate = metrics?.CompletedEstimate ?? 0,
                 InProgressWorkItems = metrics?.InProgressWorkItems ?? 0,
-                InProgressStoryPoints = metrics?.InProgressStoryPoints ?? 0,
+                InProgressEstimate = metrics?.InProgressEstimate ?? 0,
                 NotStartedWorkItems = metrics?.NotStartedWorkItems ?? 0,
-                NotStartedStoryPoints = metrics?.NotStartedStoryPoints ?? 0,
-                MissingStoryPointsCount = metrics?.MissingStoryPointsCount ?? 0,
+                NotStartedEstimate = metrics?.NotStartedEstimate ?? 0,
+                UnestimatedWorkItems = metrics?.UnestimatedWorkItems ?? 0,
                 CycleTime = metrics?.CycleTime ?? CycleTimeSummary.Empty,
             };
         }).ToList();
+
+        var sizingMethod = SprintMetricsSummary.CommonSizingMethod(sprintMetricsSummaries);
+        double? EstimateTotal(Func<SprintMetricsSummary, double> estimate) =>
+            sizingMethod is null ? null : sprintMetricsSummaries.Sum(estimate);
 
         return Ok(new PlanningIntervalIterationMetricsResponse
         {
@@ -533,15 +539,16 @@ public class PlanningIntervalsController : ControllerBase
             Category = iteration.Category,
             TeamCount = iteration.Sprints.Select(s => s.Team.Id).Distinct().Count(),
             SprintCount = iteration.Sprints.Count,
+            SizingMethod = sizingMethod,
             TotalWorkItems = sprintMetricsSummaries.Sum(s => s.TotalWorkItems),
-            TotalStoryPoints = sprintMetricsSummaries.Sum(s => s.TotalStoryPoints),
+            TotalEstimate = EstimateTotal(s => s.TotalEstimate),
             CompletedWorkItems = sprintMetricsSummaries.Sum(s => s.CompletedWorkItems),
-            CompletedStoryPoints = sprintMetricsSummaries.Sum(s => s.CompletedStoryPoints),
+            CompletedEstimate = EstimateTotal(s => s.CompletedEstimate),
             InProgressWorkItems = sprintMetricsSummaries.Sum(s => s.InProgressWorkItems),
-            InProgressStoryPoints = sprintMetricsSummaries.Sum(s => s.InProgressStoryPoints),
+            InProgressEstimate = EstimateTotal(s => s.InProgressEstimate),
             NotStartedWorkItems = sprintMetricsSummaries.Sum(s => s.NotStartedWorkItems),
-            NotStartedStoryPoints = sprintMetricsSummaries.Sum(s => s.NotStartedStoryPoints),
-            MissingStoryPointsCount = sprintMetricsSummaries.Sum(s => s.MissingStoryPointsCount),
+            NotStartedEstimate = EstimateTotal(s => s.NotStartedEstimate),
+            UnestimatedWorkItems = sprintMetricsSummaries.Sum(s => s.UnestimatedWorkItems),
             CycleTime = CycleTimeSummary.Combine(sprintMetricsSummaries.Select(s => s.CycleTime)),
             SprintMetrics = sprintMetricsSummaries
         });

@@ -9,6 +9,7 @@ import {
   MetricCard,
   StatusMetric,
   VelocityMetric,
+  sprintMetricValues,
 } from '@/src/components/common/metrics'
 import { IterationHealthIndicator } from '@/src/components/common/planning'
 import useTheme from '@/src/components/contexts/theme'
@@ -17,60 +18,39 @@ import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
 import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
 import { Flex, Segmented, Skeleton } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
-import { sprintActiveDays } from '@/src/utils'
+import {
+  sizingMethodLabel,
+  sizingMethodMeasure,
+  sprintActiveDays,
+} from '@/src/utils'
 import { FC, ReactNode, useEffect, useState } from 'react'
+
+const COUNT = 'Count'
 
 export interface SprintMetricsProps {
   sprint: SprintDetailsDto
-  sizingMethod?: SizingMethod
   onHealthIndicatorReady?: (indicator: ReactNode) => void
 }
 
 const SprintMetrics: FC<SprintMetricsProps> = ({
   sprint,
-  sizingMethod = SizingMethod.Count,
   onHealthIndicatorReady,
 }) => {
-  const [sizingMethodState, setSizingMethodState] =
-    useState<SizingMethod>(sizingMethod)
+  const [byCount, setByCount] = useState(false)
   const { token } = useTheme()
-
-  const useStoryPoints = sizingMethodState === SizingMethod.StoryPoints
 
   const { data: metrics, isLoading } = useGetSprintMetricsQuery(sprint.key)
   const activeDays = sprintActiveDays(sprint)
 
-  // Update local state when sizingMethod prop changes
-  // This allows the component to be both controlled (responds to prop changes)
-  // and uncontrolled (maintains local state for user interactions)
-  useEffect(() => {
-    if (sizingMethod) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSizingMethodState(sizingMethod)
-    }
-  }, [sizingMethod])
+  // The sprint is measured in its team's sizing method on its planned start, which the metrics report.
+  const sizingMethod = metrics?.sizingMethod ?? SizingMethod.Count
+  const isCountSized = sizingMethod === SizingMethod.Count
+  const showsCount = byCount || isCountSized
+  const measure = sizingMethodMeasure(
+    showsCount ? SizingMethod.Count : sizingMethod,
+  )
 
-  const displayValues = !metrics
-    ? {
-        total: 0,
-        completed: 0,
-        inProgress: 0,
-        notStarted: 0,
-      }
-    : {
-        total: useStoryPoints
-          ? metrics.totalStoryPoints
-          : metrics.totalWorkItems,
-        completed: useStoryPoints
-          ? metrics.completedStoryPoints
-          : metrics.completedWorkItems,
-        inProgress: useStoryPoints
-          ? metrics.inProgressStoryPoints
-          : metrics.inProgressWorkItems,
-        notStarted: useStoryPoints
-          ? metrics.notStartedStoryPoints
-          : metrics.notStartedWorkItems,
-      }
+  const displayValues = sprintMetricValues(metrics, showsCount)
 
   // Notify parent when health indicator is ready
   useEffect(() => {
@@ -98,20 +78,23 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
     return <Skeleton active />
   }
 
+  const unitLabel = sizingMethodLabel(sizingMethod)
+
   return (
     <Flex vertical gap="small">
       <Flex gap="small" justify="flex-end">
-        <WaydTooltip title="Switch between counting work items and summing story points for metrics">
+        <WaydTooltip
+          title={
+            isCountSized
+              ? "This sprint's team sizes by count, so its metrics count work items."
+              : `Switch between summing ${sizingMethodMeasure(sizingMethod)}, the team's sizing method for this sprint, and counting work items`
+          }
+        >
           <Segmented<string>
-            options={['Count', 'Story Points']}
-            value={useStoryPoints ? 'Story Points' : 'Count'}
-            onChange={(value) =>
-              setSizingMethodState(
-                value === 'Story Points'
-                  ? SizingMethod.StoryPoints
-                  : SizingMethod.Count,
-              )
-            }
+            options={isCountSized ? [COUNT] : [unitLabel, COUNT]}
+            value={showsCount ? COUNT : unitLabel}
+            disabled={isCountSized}
+            onChange={(value) => setByCount(value === COUNT)}
           />
         </WaydTooltip>
       </Flex>
@@ -134,19 +117,19 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
         <CompletionRateMetric
           completed={displayValues.completed}
           total={displayValues.total}
-          tooltip={sizingMethodState}
+          tooltip={showsCount ? SizingMethod.Count : sizingMethod}
           cardStyle={METRIC_CARD_FLEX}
         />
         <MetricCard
           title="Total"
           value={displayValues.total}
-          tooltip="Total number of story points or items currently in the sprint."
+          tooltip={`Total ${measure} currently in the sprint.`}
           cardStyle={METRIC_CARD_FLEX}
         />
         <VelocityMetric
           completed={displayValues.completed}
           total={displayValues.total}
-          tooltip={sizingMethodState}
+          tooltip={showsCount ? SizingMethod.Count : sizingMethod}
           cardStyle={METRIC_CARD_FLEX}
         />
         <StatusMetric
@@ -154,22 +137,22 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
           value={displayValues.inProgress}
           total={displayValues.total}
           color={token.colorInfo}
-          tooltip="Total number of story points or items currently in the sprint that are in progress (Status Category: Active). Percentage shown represents the portion of total sprint work that is in progress."
+          tooltip={`Total ${measure} currently in the sprint that are in progress (Status Category: Active). Percentage shown represents the portion of total sprint work that is in progress.`}
           cardStyle={METRIC_CARD_FLEX}
         />
         <StatusMetric
           title="Not Started"
           value={displayValues.notStarted}
           total={displayValues.total}
-          tooltip="Total number of story points or items currently in the sprint that are not started (Status Category: Proposed). Percentage shown represents the portion of total sprint work that has not been started."
+          tooltip={`Total ${measure} currently in the sprint that are not started (Status Category: Proposed). Percentage shown represents the portion of total sprint work that has not been started.`}
           cardStyle={METRIC_CARD_FLEX}
         />
         {sprint.state.id === IterationState.Active && metrics && (
           <StatusMetric
             title="WIP"
             value={metrics.inProgressWorkItems}
-            total={displayValues.total}
-            tooltip="Work In Progress - Count of active work items (Status Category: Active). Percentage shown represents the portion of total sprint work that is currently in progress."
+            total={metrics.totalWorkItems}
+            tooltip="Work In Progress - Count of active work items (Status Category: Active). Percentage shown represents the portion of the sprint's work items that are currently in progress."
             cardStyle={METRIC_CARD_FLEX}
           />
         )}
@@ -180,11 +163,11 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
             cardStyle={METRIC_CARD_FLEX}
           />
         )}
-        {useStoryPoints && metrics && (
+        {!showsCount && metrics && (
           <HealthMetric
-            title="Missing SPs"
-            value={metrics.missingStoryPointsCount}
-            tooltip="Number of work items in the sprint that don't have story points assigned."
+            title="Unestimated"
+            value={metrics.unestimatedWorkItems}
+            tooltip={`Number of work items in the sprint with no ${sizingMethodMeasure(sizingMethod)}. An estimate of 0 counts as estimated.`}
             cardStyle={METRIC_CARD_FLEX}
           />
         )}

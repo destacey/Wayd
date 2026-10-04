@@ -46,5 +46,10 @@ export {
 } from './problem-details'
 export { getDrawerWidthPixels, navigateWithFullReload } from './window-utils'
 export { teamUrl, type TeamUrlTarget } from './team-url'
-export { sizingMethodLabel, sizingMethodOptions } from './sizing-method'
+export {
+  isSizingMethod,
+  sizingMethodLabel,
+  sizingMethodMeasure,
+  sizingMethodOptions,
+} from './sizing-method'
 export { downloadJson, downloadJsonWithTimestamp } from './json-utils'

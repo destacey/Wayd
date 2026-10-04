@@ -1,4 +1,8 @@
-﻿using Wayd.Work.Application.Persistence;
+﻿using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Settings;
+using Wayd.Work.Application.Iterations.Sprints;
+using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 
 namespace Wayd.Work.Application.WorkItems.Queries;
@@ -11,10 +15,14 @@ public sealed record GetSprintsWorkItemMetricsQuery(IEnumerable<Guid> SprintIds)
 
 public sealed class GetSprintsWorkItemMetricsQueryHandler(
     IWorkDbContext workDbContext,
+    IDispatcher dispatcher,
+    ISettings<SchedulingSettings> schedulingSettings,
     ILogger<GetSprintsWorkItemMetricsQueryHandler> logger)
     : IQueryHandler<GetSprintsWorkItemMetricsQuery, List<SprintWorkItemMetricsDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
     private readonly ILogger<GetSprintsWorkItemMetricsQueryHandler> _logger = logger;
 
     public async Task<List<SprintWorkItemMetricsDto>> Handle(
@@ -27,6 +35,16 @@ public sealed class GetSprintsWorkItemMetricsQueryHandler(
         {
             return [];
         }
+
+        var sprints = await _workDbContext.Iterations
+            .Where(i => sprintIdsList.Contains(i.Id))
+            .Select(i => new { i.Id, i.TeamId, i.DateRange.Start })
+            .ToListAsync(cancellationToken);
+
+        var schedules = await _dispatcher.LoadSprintSchedules(
+            _schedulingSettings,
+            [.. sprints.Select(s => (s.Id, s.TeamId, s.Start))],
+            cancellationToken);
 
         // Get all work items for the sprints in a single query
         var workItemsBySprintId = await _workDbContext.WorkItems
@@ -44,7 +62,8 @@ public sealed class GetSprintsWorkItemMetricsQueryHandler(
                 var workItems = workItemsBySprintId.TryGetValue(sprintId, out var items)
                     ? items
                     : [];
-                return SprintWorkItemMetricsDto.FromWorkItems(sprintId, workItems);
+                var sizingMethod = schedules.TryGetValue(sprintId, out var schedule) ? schedule.SizingMethod : SizingMethod.Count;
+                return SprintWorkItemMetricsDto.FromWorkItems(sprintId, sizingMethod, workItems);
             })
             .ToList();
 

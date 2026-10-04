@@ -53136,14 +53136,10 @@
           "teamCount",
           "sprintCount",
           "totalWorkItems",
-          "totalStoryPoints",
           "completedWorkItems",
-          "completedStoryPoints",
           "inProgressWorkItems",
-          "inProgressStoryPoints",
           "notStartedWorkItems",
-          "notStartedStoryPoints",
-          "missingStoryPointsCount"
+          "unestimatedWorkItems"
         ],
         "properties": {
           "iterationId": {
@@ -53178,40 +53174,54 @@
             "type": "integer",
             "format": "int32"
           },
+          "sizingMethod": {
+            "description": "The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null\nwhen the sprints use different sizing methods, or there are none: estimates in different units are never\nadded, so the estimate totals are null too and only the counts roll up.",
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SizingMethod"
+              }
+            ]
+          },
           "totalWorkItems": {
             "type": "integer",
             "format": "int32"
           },
-          "totalStoryPoints": {
+          "totalEstimate": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "completedWorkItems": {
             "type": "integer",
             "format": "int32"
           },
-          "completedStoryPoints": {
+          "completedEstimate": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "inProgressWorkItems": {
             "type": "integer",
             "format": "int32"
           },
-          "inProgressStoryPoints": {
+          "inProgressEstimate": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "notStartedWorkItems": {
             "type": "integer",
             "format": "int32"
           },
-          "notStartedStoryPoints": {
+          "notStartedEstimate": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
-          "missingStoryPointsCount": {
+          "unestimatedWorkItems": {
             "type": "integer",
+            "description": "Items with no value in their own sprint's sizing method, across every sprint.",
             "format": "int32"
           },
           "cycleTime": {
@@ -53230,6 +53240,22 @@
           }
         }
       },
+      "SizingMethod": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "StoryPoints",
+          "Count",
+          "Effort",
+          "Size"
+        ],
+        "enum": [
+          "StoryPoints",
+          "Count",
+          "Effort",
+          "Size"
+        ]
+      },
       "SprintMetricsSummary": {
         "type": "object",
         "description": "Metrics summary for an individual sprint within the PI Iteration.",
@@ -53243,15 +53269,16 @@
           "sprintKey",
           "start",
           "end",
+          "sizingMethod",
           "totalWorkItems",
-          "totalStoryPoints",
+          "totalEstimate",
           "completedWorkItems",
-          "completedStoryPoints",
+          "completedEstimate",
           "inProgressWorkItems",
-          "inProgressStoryPoints",
+          "inProgressEstimate",
           "notStartedWorkItems",
-          "notStartedStoryPoints",
-          "missingStoryPointsCount"
+          "notStartedEstimate",
+          "unestimatedWorkItems"
         ],
         "properties": {
           "sprintId": {
@@ -53298,11 +53325,19 @@
           "team": {
             "$ref": "#/components/schemas/NavigationDto"
           },
+          "sizingMethod": {
+            "description": "The estimate the sprint is measured in: its team's sizing method on the sprint's planned start. Under\nCount every estimate equals its item count.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SizingMethod"
+              }
+            ]
+          },
           "totalWorkItems": {
             "type": "integer",
             "format": "int32"
           },
-          "totalStoryPoints": {
+          "totalEstimate": {
             "type": "number",
             "format": "double"
           },
@@ -53310,7 +53345,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "completedStoryPoints": {
+          "completedEstimate": {
             "type": "number",
             "format": "double"
           },
@@ -53318,7 +53353,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "inProgressStoryPoints": {
+          "inProgressEstimate": {
             "type": "number",
             "format": "double"
           },
@@ -53326,12 +53361,13 @@
             "type": "integer",
             "format": "int32"
           },
-          "notStartedStoryPoints": {
+          "notStartedEstimate": {
             "type": "number",
             "format": "double"
           },
-          "missingStoryPointsCount": {
+          "unestimatedWorkItems": {
             "type": "integer",
+            "description": "Items with no value in SizingMethod. An estimate of 0 is an estimate.",
             "format": "int32"
           },
           "cycleTime": {
@@ -57212,15 +57248,16 @@
         "required": [
           "cycleTime",
           "sprintId",
+          "sizingMethod",
           "totalWorkItems",
-          "totalStoryPoints",
+          "totalEstimate",
           "completedWorkItems",
-          "completedStoryPoints",
+          "completedEstimate",
           "inProgressWorkItems",
-          "inProgressStoryPoints",
+          "inProgressEstimate",
           "notStartedWorkItems",
-          "notStartedStoryPoints",
-          "missingStoryPointsCount"
+          "notStartedEstimate",
+          "unestimatedWorkItems"
         ],
         "properties": {
           "sprintId": {
@@ -57229,11 +57266,14 @@
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
           },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
           "totalWorkItems": {
             "type": "integer",
             "format": "int32"
           },
-          "totalStoryPoints": {
+          "totalEstimate": {
             "type": "number",
             "format": "double"
           },
@@ -57241,7 +57281,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "completedStoryPoints": {
+          "completedEstimate": {
             "type": "number",
             "format": "double"
           },
@@ -57249,7 +57289,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "inProgressStoryPoints": {
+          "inProgressEstimate": {
             "type": "number",
             "format": "double"
           },
@@ -57257,11 +57297,11 @@
             "type": "integer",
             "format": "int32"
           },
-          "notStartedStoryPoints": {
+          "notStartedEstimate": {
             "type": "number",
             "format": "double"
           },
-          "missingStoryPointsCount": {
+          "unestimatedWorkItems": {
             "type": "integer",
             "format": "int32"
           },
@@ -59056,22 +59096,6 @@
         "enum": [
           "Scrum",
           "Kanban"
-        ]
-      },
-      "SizingMethod": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "StoryPoints",
-          "Count",
-          "Effort",
-          "Size"
-        ],
-        "enum": [
-          "StoryPoints",
-          "Count",
-          "Effort",
-          "Size"
         ]
       },
       "CreateTeamRequest": {

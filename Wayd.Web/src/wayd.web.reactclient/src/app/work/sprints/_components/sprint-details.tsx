@@ -1,7 +1,7 @@
 'use client'
 
 import { IterationState } from '@/src/components/types'
-import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
+import { SprintDetailsDto } from '@/src/services/wayd-api'
 import { Alert, Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
@@ -10,7 +10,6 @@ import { FC, ReactNode } from 'react'
 
 export interface SprintDetailsProps {
   sprint: SprintDetailsDto
-  sizingMethod?: SizingMethod
   onHealthIndicatorReady?: (indicator: ReactNode) => void
 }
 
@@ -40,7 +39,6 @@ export const sprintOverlapWarning = (
 
 const SprintDetails: FC<SprintDetailsProps> = ({
   sprint,
-  sizingMethod,
   onHealthIndicatorReady,
 }: SprintDetailsProps) => {
   if (!sprint) return null
@@ -73,7 +71,6 @@ const SprintDetails: FC<SprintDetailsProps> = ({
       {showMetrics && (
         <SprintMetrics
           sprint={sprint}
-          sizingMethod={sizingMethod}
           onHealthIndicatorReady={onHealthIndicatorReady}
         />
       )}

@@ -4,12 +4,10 @@ import { CSSProperties, FC } from 'react'
 import { MetricCard } from '.'
 import useTheme from '@/src/components/contexts/theme'
 import { SizingMethod } from '@/src/services/wayd-api'
+import { isSizingMethod, sizingMethodMeasure } from '@/src/utils'
 
-const getTooltipText = (sizingMethod: SizingMethod): string => {
-  const unit =
-    sizingMethod === SizingMethod.StoryPoints ? 'story points' : 'work items'
-  return `Total ${unit} in the sprint that are completed (Done or Removed). Percentage shown represents the portion of total sprint work that is complete.`
-}
+const getTooltipText = (sizingMethod: SizingMethod): string =>
+  `Work in the sprint that is completed (Done or Removed), measured in ${sizingMethodMeasure(sizingMethod)}. Percentage shown represents the portion of total sprint work that is complete.`
 
 export interface VelocityMetricProps {
   completed: number
@@ -29,10 +27,9 @@ const VelocityMetric: FC<VelocityMetricProps> = ({
   const velocityPercentage =
     total > 0 ? `${((completed / total) * 100).toFixed(1)}%` : '0%'
 
-  const resolvedTooltip =
-    tooltip === SizingMethod.StoryPoints || tooltip === SizingMethod.Count
-      ? getTooltipText(tooltip)
-      : tooltip
+  const resolvedTooltip = isSizingMethod(tooltip)
+    ? getTooltipText(tooltip)
+    : tooltip
 
   return (
     <MetricCard

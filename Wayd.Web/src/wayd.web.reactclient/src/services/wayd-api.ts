@@ -48592,18 +48592,30 @@ export interface PlanningIntervalIterationMetricsResponse {
     category: SimpleNavigationDto;
     teamCount: number;
     sprintCount: number;
+    /** The sizing method every sprint in the iteration is measured in, which the estimate totals are in. Null
+when the sprints use different sizing methods, or there are none: estimates in different units are never
+added, so the estimate totals are null too and only the counts roll up. */
+    sizingMethod?: SizingMethod | undefined;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate?: number | undefined;
     completedWorkItems: number;
-    completedStoryPoints: number;
+    completedEstimate?: number | undefined;
     inProgressWorkItems: number;
-    inProgressStoryPoints: number;
+    inProgressEstimate?: number | undefined;
     notStartedWorkItems: number;
-    notStartedStoryPoints: number;
-    missingStoryPointsCount: number;
+    notStartedEstimate?: number | undefined;
+    /** Items with no value in their own sprint's sizing method, across every sprint. */
+    unestimatedWorkItems: number;
     /** Cycle-time rollup across all sprints in this iteration. */
     cycleTime: CycleTimeSummary;
     sprintMetrics: SprintMetricsSummary[];
+}
+
+export enum SizingMethod {
+    StoryPoints = "StoryPoints",
+    Count = "Count",
+    Effort = "Effort",
+    Size = "Size",
 }
 
 /** Metrics summary for an individual sprint within the PI Iteration. */
@@ -48623,15 +48635,19 @@ midnight, so its last day is the one before. */
     /** The IANA time zone the sprint's days are counted in: its team's. */
     timeZone?: string | undefined;
     team: NavigationDto;
+    /** The estimate the sprint is measured in: its team's sizing method on the sprint's planned start. Under
+Count every estimate equals its item count. */
+    sizingMethod: SizingMethod;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate: number;
     completedWorkItems: number;
-    completedStoryPoints: number;
+    completedEstimate: number;
     inProgressWorkItems: number;
-    inProgressStoryPoints: number;
+    inProgressEstimate: number;
     notStartedWorkItems: number;
-    notStartedStoryPoints: number;
-    missingStoryPointsCount: number;
+    notStartedEstimate: number;
+    /** Items with no value in SizingMethod. An estimate of 0 is an estimate. */
+    unestimatedWorkItems: number;
     /** Cycle-time rollup for this sprint. */
     cycleTime: CycleTimeSummary;
 }
@@ -49547,15 +49563,16 @@ export interface InstantWindowDto {
 
 export interface SprintWorkItemMetricsDto {
     sprintId: string;
+    sizingMethod: SizingMethod;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate: number;
     completedWorkItems: number;
-    completedStoryPoints: number;
+    completedEstimate: number;
     inProgressWorkItems: number;
-    inProgressStoryPoints: number;
+    inProgressEstimate: number;
     notStartedWorkItems: number;
-    notStartedStoryPoints: number;
-    missingStoryPointsCount: number;
+    notStartedEstimate: number;
+    unestimatedWorkItems: number;
     cycleTime: CycleTimeSummary;
 }
 
@@ -50021,13 +50038,6 @@ export interface TeamOperatingModelListDto {
 export enum Methodology {
     Scrum = "Scrum",
     Kanban = "Kanban",
-}
-
-export enum SizingMethod {
-    StoryPoints = "StoryPoints",
-    Count = "Count",
-    Effort = "Effort",
-    Size = "Size",
 }
 
 export interface CreateTeamRequest {

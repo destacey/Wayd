@@ -5,6 +5,7 @@ import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
 import { Alert, Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
+import { sprintActiveDays } from '@/src/utils'
 import { FC, ReactNode } from 'react'
 
 export interface SprintDetailsProps {
@@ -50,6 +51,7 @@ const SprintDetails: FC<SprintDetailsProps> = ({
     sprintState === IterationState.Completed
 
   const overlapWarning = sprintOverlapWarning(sprint)
+  const activeDays = sprintActiveDays(sprint)
 
   return (
     <Flex vertical gap={16}>
@@ -64,8 +66,8 @@ const SprintDetails: FC<SprintDetailsProps> = ({
       {/* Team and dates live in the record's details panel — repeating them
           here would duplicate the panel beside it. */}
       <TimelineProgress
-        start={sprint.start}
-        end={sprint.end}
+        start={activeDays.start}
+        end={activeDays.end}
         dateFormat="MMM D, YYYY"
       />
       {showMetrics && (

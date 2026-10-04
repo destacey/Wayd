@@ -1,4 +1,8 @@
-import { calendarDaysBetween, CalendarDate } from './calendar-date'
+import {
+  calendarDateInZone,
+  calendarDaysBetween,
+  CalendarDate,
+} from './calendar-date'
 
 /**
  * Represents the health status of an iteration (sprint or PI iteration).
@@ -34,6 +38,41 @@ export interface IterationHealthParams {
   completed: number
   /** Optional reference day (defaults to today in the viewer's calendar) */
   referenceDate?: CalendarDate | Date
+}
+
+/**
+ * A sprint's planned days, and the period it is Active when the API knows it.
+ */
+export interface SprintDays {
+  start: CalendarDate
+  end: CalendarDate
+  activeFrom?: Date
+  activeUntil?: Date
+  timeZone?: string
+}
+
+/**
+ * The days a sprint's timeline, countdown and health run over: the days it is
+ * Active, in its team's zone. A sprint whose team is not mapped has no Active
+ * period and falls back to its planned days.
+ */
+export function sprintActiveDays(sprint: SprintDays): {
+  start: CalendarDate
+  end: CalendarDate
+} {
+  const { activeFrom, activeUntil, timeZone } = sprint
+  if (!activeFrom || !activeUntil || !timeZone) {
+    return { start: sprint.start, end: sprint.end }
+  }
+
+  const start = calendarDateInZone(activeFrom, timeZone)
+  // activeUntil is exclusive: a sprint that runs to the end of Friday ends at
+  // Saturday midnight, so its last day is the one the moment before falls on.
+  const end = calendarDateInZone(
+    new Date(new Date(activeUntil).getTime() - 1),
+    timeZone,
+  )
+  return { start, end: end < start ? start : end }
 }
 
 /**

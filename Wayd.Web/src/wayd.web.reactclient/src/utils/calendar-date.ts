@@ -35,6 +35,24 @@ export function formatCalendarDate(
   return value ? parseCalendarDate(value).format(format) : ''
 }
 
+/**
+ * The day an instant falls on in `timeZone`, an IANA id such as a team's,
+ * whatever the viewer's zone. Takes the ISO string a `Date`-typed field really
+ * holds as well as a `Date`.
+ */
+export function calendarDateInZone(
+  instant: Date | string,
+  timeZone: string,
+): CalendarDate {
+  // en-CA formats a date as YYYY-MM-DD.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(instant))
+}
+
 /** Today in the viewer's calendar. */
 export function todayCalendarDate(): CalendarDate {
   return toCalendarDate(new Date())

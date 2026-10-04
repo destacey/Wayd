@@ -66,25 +66,25 @@ const SprintFacts = ({ sprint }: SprintFactsProps) => {
           </LabeledContent>
         )}
 
-        {sprint.effectiveStart && (
+        {sprint.activeFrom && (
           <LabeledContent label="Actual start">
             <ActualMoment
-              value={sprint.effectiveStart}
+              value={sprint.activeFrom}
               recorded={!!sprint.started}
             />
           </LabeledContent>
         )}
 
-        {sprint.effectiveStart && sprint.effectiveEnd && (
+        {sprint.activeFrom && sprint.activeUntil && (
           <LabeledContent label="Actual end">
             <ActualMoment
-              value={sprint.effectiveEnd}
+              value={sprint.activeUntil}
               recorded={!!sprint.completed}
             />
           </LabeledContent>
         )}
 
-        {sprint.effectiveStart && showTeamTimeZone && (
+        {sprint.activeFrom && showTeamTimeZone && (
           <Text type="secondary">Team time zone: {sprint.timeZone}</Text>
         )}
       </Flex>

@@ -72,7 +72,7 @@ describe('SprintFacts', () => {
     )
   })
 
-  it('hides the actual rows when the sprint has no effective start', () => {
+  it('hides the actual rows when the sprint has no active period', () => {
     // Arrange / Act
     render(<SprintFacts sprint={sprint} />)
 
@@ -91,8 +91,8 @@ describe('SprintFacts', () => {
         sprint={{
           ...sprint,
           started: instant(started),
-          effectiveStart: instant(started),
-          effectiveEnd: instant('2026-08-31T04:59:59Z'),
+          activeFrom: instant(started),
+          activeUntil: instant('2026-08-31T04:59:59Z'),
           timeZone: viewerTimeZone,
         }}
       />,
@@ -105,7 +105,7 @@ describe('SprintFacts', () => {
     expect(screen.getByText('Default')).toBeInTheDocument()
   })
 
-  it('shows the effective moment in the viewer zone', () => {
+  it('shows the active moment in the viewer zone', () => {
     // Arrange
     const started = '2026-08-17T15:00:00Z'
 
@@ -115,7 +115,7 @@ describe('SprintFacts', () => {
         sprint={{
           ...sprint,
           started: instant(started),
-          effectiveStart: instant(started),
+          activeFrom: instant(started),
           timeZone: viewerTimeZone,
         }}
       />,
@@ -139,7 +139,7 @@ describe('SprintFacts', () => {
       <SprintFacts
         sprint={{
           ...sprint,
-          effectiveStart: instant('2026-08-17T15:00:00Z'),
+          activeFrom: instant('2026-08-17T15:00:00Z'),
           timeZone: teamTimeZone,
         }}
       />,
@@ -157,7 +157,7 @@ describe('SprintFacts', () => {
       <SprintFacts
         sprint={{
           ...sprint,
-          effectiveStart: instant('2026-08-17T15:00:00Z'),
+          activeFrom: instant('2026-08-17T15:00:00Z'),
           timeZone: viewerTimeZone,
         }}
       />,

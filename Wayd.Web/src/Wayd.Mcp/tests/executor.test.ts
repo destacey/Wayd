@@ -284,6 +284,43 @@ describe('executeApiTool', () => {
     assert.equal(firstBlock.type, 'text');
   });
 
+  /** Runs a GET against an adapter that answers with `data` under `contentType`, and returns the result text. */
+  async function textForResponse(data: unknown, contentType: string): Promise<string> {
+    const previousAdapter = axios.defaults.adapter;
+    axios.defaults.adapter = async (config) =>
+      ({ data, status: 200, statusText: 'OK', headers: { 'content-type': contentType }, config });
+    try {
+      const result = await executeApiTool('Test_Unreachable', unreachableTool, {}, securitySchemes);
+      const [firstBlock] = result.content;
+      return (firstBlock as { text: string }).text;
+    } finally {
+      axios.defaults.adapter = previousAdapter;
+    }
+  }
+
+  test('returns a JSON body as compact JSON', async () => {
+    // Arrange
+    const body = { id: 'P-1', roles: [{ role: 'Owner', employeeId: 'E-1' }] };
+
+    // Act
+    const text = await textForResponse(body, 'application/json; charset=utf-8');
+
+    // Assert
+    assert.equal(text, JSON.stringify(body), 'indentation is token cost with no information');
+  });
+
+  test('renders a parsed body as JSON whatever its +json media type', async () => {
+    // Arrange
+    const body = { title: 'Merged', status: 200 };
+
+    // Act
+    const text = await textForResponse(body, 'application/problem+json');
+
+    // Assert
+    assert.equal(text, JSON.stringify(body));
+    assert.doesNotMatch(text, /\[object Object\]/);
+  });
+
   test('serialises array query parameters as repeated bare keys', async () => {
     // Arrange
     // ASP.NET's model binder reads `status=1&status=2`; axios defaults to

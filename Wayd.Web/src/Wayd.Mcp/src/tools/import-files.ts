@@ -60,7 +60,7 @@ export const definitions: [string, McpToolDefinition][] = [
           columns: file.columns,
         })),
       };
-      return { content: [{ type: 'text', text: JSON.stringify(answer, null, 2) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(answer) }] };
     },
   }],
 

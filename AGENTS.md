@@ -229,6 +229,7 @@ Every comment must be valuable, never narrative. Full rules and examples:
 - **Async naming**: Do NOT use `Async` suffix for new async methods.
 - **Validation**: FluentValidation, run by the Wolverine handler pipeline (`WolverineFx.FluentValidation`).
 - **Mapping**: Mapster for DTOs.
+- **Closed sets** (statuses, roles, categories the code branches on) cross the API as enum codes, never `int`: type the parameter as the enum, and give its lookup DTO a `Code`. User-defined values are entities referenced by id. See [Closed sets and entities](docs/contributing/api.mdx#closed-sets-and-entities).
 - **Entity configuration**: Fluent API in `IEntityTypeConfiguration<T>` classes. No data annotations.
 - **Package management**: Central Package Management via `Directory.Packages.props`.
 

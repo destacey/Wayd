@@ -127,3 +127,27 @@ values; a new kind of pass that writes differently needs its own case there.
 - Return appropriate HTTP status codes
 - Use `CancellationToken` in all async endpoints
 - Validate input through FluentValidation (run automatically by the Wolverine handler pipeline)
+
+### Closed sets and entities
+
+Before exposing a set of values, decide which kind it is. The question is whether code branches on
+particular values, not whether it is stored in an enum or a table today.
+
+| The set | In the domain | In the contract |
+| --- | --- | --- |
+| **Closed**: code branches on specific values (lifecycle statuses, member roles, categories) | an enum | its stable code, e.g. `"Active"` |
+| **Open**: users or admins create the values, and code treats them all alike (work types, tags, product types) | an entity | its id and name, with a lookup endpoint |
+| **Open, but behaviour depends on it** (Product Management statuses) | an entity carrying a closed category | the entity's id, plus the category's code |
+
+A closed set travels as its code, never its number:
+
+- Type the action parameter or request property as the enum (`[FromQuery] ProjectStatus[]? status`), not
+  `int`. The document then lists the accepted codes, an undefined value is rejected with a 400, and the binder
+  still accepts the number from older callers.
+- A lookup endpoint for the set returns each value's `Code` beside its display name (`CommonEnumDto<TEnum>`
+  does this), so a client builds its options from the server and never keeps its own id map.
+- The commitment is that the codes are stable, not that the set is a C# enum. If a closed set later gains
+  user-defined members, it becomes an entity with the closed set as its category, and the codes stay valid.
+
+`OpenApiSpecificationTests` fails when an enum is published by number or a status, state, role or category
+field is a bare integer. A field that only looks like one (`ProblemDetails.status`) goes in its allow-list.

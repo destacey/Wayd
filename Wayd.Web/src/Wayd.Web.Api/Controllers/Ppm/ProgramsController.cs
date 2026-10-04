@@ -31,17 +31,13 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
 
-    public async Task<ActionResult<IEnumerable<ProgramListDto>>> GetPrograms([FromQuery] int[]? status, [FromQuery] Guid? portfolioId, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<ProgramListDto>>> GetPrograms([FromQuery] ProgramStatus[]? status, [FromQuery] Guid? portfolioId, CancellationToken cancellationToken)
     {
-        ProgramStatus[]? filter = status is { Length: > 0 }
-            ? [.. status.Select(s => (ProgramStatus)s)]
-            : null;
-
         IdOrKey? portfolioIdOrKey = portfolioId.HasValue
             ? new IdOrKey(portfolioId.Value)
             : null;
 
-        var programs = await _dispatcher.Send(new GetProgramsQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey), cancellationToken);
+        var programs = await _dispatcher.Send(new GetProgramsQuery(StatusFilter: status, PortfolioIdOrKey: portfolioIdOrKey), cancellationToken);
 
         return programs is not null
             ? Ok(programs)
@@ -228,13 +224,9 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<ProjectListDto>>> GetProjects(string idOrKey, [FromQuery] int[]? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<ProjectListDto>>> GetProjects(string idOrKey, [FromQuery] ProjectStatus[]? status, CancellationToken cancellationToken)
     {
-        ProjectStatus[]? filter = status is { Length: > 0 }
-            ? [.. status.Select(s => (ProjectStatus)s)]
-            : null;
-
-        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: filter, ProgramIdOrKey: idOrKey), cancellationToken);
+        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: status, ProgramIdOrKey: idOrKey), cancellationToken);
 
         return projects is not null
             ? Ok(projects)

@@ -1,9 +1,12 @@
 import { renderHook, act } from '@testing-library/react'
-import { useStatusFilter } from './use-status-filter'
+import { keepValidCodes, useStatusFilter } from './use-status-filter'
+import { ProjectStatus } from '@/src/services/wayd-api'
 
-const DEFAULTS = [5, 2]
+const { Proposed, Approved, Active, Completed } = ProjectStatus
+
+const DEFAULTS = [Approved, Active]
 const KEY = 'portfolio:12:projectStatus'
-const STORAGE_KEY = `wayd-ppm-filter:${KEY}:v1`
+const STORAGE_KEY = `wayd-ppm-filter:${KEY}:v2`
 
 const renderFilter = (key = KEY) =>
   renderHook(() => useStatusFilter(key, DEFAULTS))
@@ -35,7 +38,7 @@ describe('useStatusFilter', () => {
     const { result } = renderFilter()
 
     // Assert
-    expect(result.current.selected).toEqual([5, 2])
+    expect(result.current.selected).toEqual([Approved, Active])
   })
 
   it('remembers a selection across mounts, so it survives a refresh', () => {
@@ -43,12 +46,12 @@ describe('useStatusFilter', () => {
     const first = renderFilter()
 
     // Act
-    act(() => first.result.current.setSelected([1, 3]))
+    act(() => first.result.current.setSelected([Proposed, Completed]))
     first.unmount()
     const second = renderFilter()
 
     // Assert
-    expect(second.result.current.selected).toEqual([1, 3])
+    expect(second.result.current.selected).toEqual([Proposed, Completed])
   })
 
   it('keeps an empty selection, which means every status', () => {
@@ -70,11 +73,14 @@ describe('useStatusFilter', () => {
     const portfolioTwelve = renderFilter('portfolio:12:projectStatus')
 
     // Act
-    act(() => portfolioTwelve.result.current.setSelected([1]))
+    act(() => portfolioTwelve.result.current.setSelected([Proposed]))
     const portfolioThirteen = renderFilter('portfolio:13:projectStatus')
 
     // Assert — filtering one portfolio must not change what another opens on.
-    expect(portfolioThirteen.result.current.selected).toEqual([5, 2])
+    expect(portfolioThirteen.result.current.selected).toEqual([
+      Approved,
+      Active,
+    ])
   })
 
   it('keeps each collection on a record separate', () => {
@@ -82,11 +88,11 @@ describe('useStatusFilter', () => {
     const programs = renderFilter('portfolio:12:programStatus')
 
     // Act
-    act(() => programs.result.current.setSelected([1]))
+    act(() => programs.result.current.setSelected([Proposed]))
     const projects = renderFilter('portfolio:12:projectStatus')
 
     // Assert
-    expect(projects.result.current.selected).toEqual([5, 2])
+    expect(projects.result.current.selected).toEqual([Approved, Active])
   })
 
   it('namespaces what it stores, so it cannot collide with other state', () => {
@@ -94,9 +100,57 @@ describe('useStatusFilter', () => {
     const { result } = renderFilter()
 
     // Act
-    act(() => result.current.setSelected([1, 3]))
+    act(() => result.current.setSelected([Proposed, Completed]))
 
     // Assert
-    expect(window.localStorage.getItem(STORAGE_KEY)).toEqual('[1,3]')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toEqual(
+      '["Proposed","Completed"]',
+    )
+  })
+
+  it('drops a selection stored as numeric ids for the defaults', () => {
+    // Arrange — what the filter stored when it held status ids.
+    window.localStorage.setItem(`wayd-ppm-filter:${KEY}:v1`, '[1,3]')
+
+    // Act
+    const { result } = renderFilter()
+
+    // Assert
+    expect(result.current.selected).toEqual([Approved, Active])
+    expect(window.localStorage.getItem(`wayd-ppm-filter:${KEY}:v1`)).toBeNull()
+  })
+})
+
+describe('keepValidCodes', () => {
+  it('keeps a selection of valid codes as it is', () => {
+    // Arrange / Act
+    const kept = keepValidCodes([Proposed, Completed], ProjectStatus, DEFAULTS)
+
+    // Assert
+    expect(kept).toEqual([Proposed, Completed])
+  })
+
+  it('keeps an empty selection, which means every status', () => {
+    // Arrange / Act
+    const kept = keepValidCodes([], ProjectStatus, DEFAULTS)
+
+    // Assert
+    expect(kept).toEqual([])
+  })
+
+  it('falls back to the defaults for a selection stored as numeric ids', () => {
+    // Arrange / Act — dropping every id would leave the empty selection, which reads as all.
+    const kept = keepValidCodes([5, 2], ProjectStatus, DEFAULTS)
+
+    // Assert
+    expect(kept).toEqual([Approved, Active])
+  })
+
+  it('drops only the values that are not codes', () => {
+    // Arrange / Act
+    const kept = keepValidCodes([Active, 3, 'Unknown'], ProjectStatus, DEFAULTS)
+
+    // Assert
+    expect(kept).toEqual([Active])
   })
 })

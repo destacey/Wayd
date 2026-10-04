@@ -10,11 +10,12 @@ import {
   StatusTransitionDto,
   WithdrawReleasePackageRequest,
   PagedResponseOfActivityLogDto,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
 export interface GetReleasePackagesRequest {
-  statusCategory?: number[]
+  statusCategory?: StatusCategory[]
   /** Packages naming this product in any version — what a component has ever shipped in. */
   containingProductId?: string
   /**

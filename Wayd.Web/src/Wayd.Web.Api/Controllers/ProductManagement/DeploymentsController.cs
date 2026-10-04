@@ -44,7 +44,7 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
         [FromQuery] Guid? versionId,
         [FromQuery] Guid? packageId,
         [FromQuery] Guid? environmentId,
-        [FromQuery] int? environmentCategory,
+        [FromQuery] EnvironmentCategory? environmentCategory,
         [FromQuery] Instant? startedOnOrAfter,
         CancellationToken cancellationToken)
     {
@@ -53,7 +53,7 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
                 versionId,
                 packageId,
                 environmentId,
-                (EnvironmentCategory?)environmentCategory,
+                environmentCategory,
                 startedOnOrAfter),
             cancellationToken);
 

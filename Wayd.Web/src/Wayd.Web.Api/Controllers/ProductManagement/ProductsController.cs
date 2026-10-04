@@ -44,16 +44,12 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts(
         [FromQuery] Guid? parentId,
         [FromQuery] Guid? productTypeId,
-        [FromQuery] int[]? statusCategory,
+        [FromQuery] StatusCategory[]? statusCategory,
         [FromQuery] Guid[]? tagId,
         CancellationToken cancellationToken)
     {
-        StatusCategory[]? categories = statusCategory is { Length: > 0 }
-            ? [.. statusCategory.Select(c => (StatusCategory)c)]
-            : null;
-
         var products = await _dispatcher.Send(
-            new GetProductsQuery(parentId, productTypeId, categories, tagId), cancellationToken);
+            new GetProductsQuery(parentId, productTypeId, statusCategory, tagId), cancellationToken);
 
         return Ok(products);
     }

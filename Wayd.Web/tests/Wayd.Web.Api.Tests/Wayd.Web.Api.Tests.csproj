@@ -22,4 +22,8 @@
         <Using Include="Xunit" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="..\..\src\Wayd.Web.Api\wwwroot\api\v1\specification.json" Link="OpenApi\specification.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

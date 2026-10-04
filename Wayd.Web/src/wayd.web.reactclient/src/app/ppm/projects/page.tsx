@@ -10,41 +10,45 @@ import { FC, useEffect, useState } from 'react'
 import { CreateProjectForm } from './_components'
 import { ProjectsFilterBar, ProjectsGrid } from '../_components'
 import { useMessage } from '@/src/components/contexts/messaging'
+import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
+import { keepValidCodes } from '../_components/use-status-filter'
 
-// Project status enum values matching the backend
-const PROJECT_STATUS = {
-  Proposed: 1,
-  Approved: 5,
-  Active: 2,
-  Completed: 3,
-  Canceled: 4,
-} as const
+const DEFAULT_STATUSES = [ProjectStatus.Approved, ProjectStatus.Active]
 
-const DEFAULT_STATUSES = [PROJECT_STATUS.Approved, PROJECT_STATUS.Active]
-
-const ALL_ROLES = [1, 2, 3, 4, 5]
+const ALL_ROLES = Object.values(ProjectMemberRole)
 
 const getRoleFilterValues = (
   selectedRole: string | undefined,
-): number[] | undefined => {
+): ProjectMemberRole[] | undefined => {
   if (!selectedRole) return undefined
   if (selectedRole === 'all') return ALL_ROLES
-  return [parseInt(selectedRole)]
+  return [selectedRole as ProjectMemberRole]
 }
 
 const ProjectsPage: FC = () => {
   useDocumentTitle('Projects')
   const [openCreateProjectForm, setOpenCreateProjectForm] =
     useState<boolean>(false)
-  const [selectedStatuses, setSelectedStatuses] = useLocalStorageState<
-    number[]
+  const [storedStatuses, setSelectedStatuses] = useLocalStorageState<
+    ProjectStatus[]
   >('projects-filter-statuses', DEFAULT_STATUSES)
+  const selectedStatuses = keepValidCodes(
+    storedStatuses,
+    ProjectStatus,
+    DEFAULT_STATUSES,
+  )
   const [selectedPortfolioId, setSelectedPortfolioId] = useLocalStorageState<
     string | null
   >('projects-filter-portfolio', null)
-  const [selectedRole, setSelectedRole] = useLocalStorageState<
-    string | null
-  >('projects-filter-role', null)
+  const [storedRole, setSelectedRole] = useLocalStorageState<string | null>(
+    'projects-filter-role',
+    null,
+  )
+  // A role stored as its numeric id names no option, so it reads as no filter.
+  const selectedRole =
+    storedRole === 'all' || ALL_ROLES.includes(storedRole as ProjectMemberRole)
+      ? storedRole
+      : null
   const messageApi = useMessage()
 
   const { hasPermissionClaim } = useAuth()

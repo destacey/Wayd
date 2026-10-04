@@ -13,6 +13,7 @@ public sealed class GetProgramStatusesQueryHandler : IQueryHandler<GetProgramSta
         IReadOnlyList<ProgramStatusDto> values = [.. Enum.GetValues<ProgramStatus>().Select(c => new ProgramStatusDto
         {
             Id = (int)c,
+            Code = c,
             Name = c.GetDisplayName(),
             Description = c.GetDisplayDescription(),
             Order = c.GetDisplayOrder(),

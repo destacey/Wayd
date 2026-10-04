@@ -10,23 +10,16 @@ import { FC, useEffect, useState } from 'react'
 import { CreateProgramForm } from './_components'
 import { ProgramsFilterBar, ProgramsGrid } from '../_components'
 import { useMessage } from '@/src/components/contexts/messaging'
+import { ProgramStatus } from '@/src/services/wayd-api'
 
-// Program status enum values matching the backend
-const PROGRAM_STATUS = {
-  Proposed: 1,
-  Active: 2,
-  Completed: 3,
-  Canceled: 4,
-} as const
-
-const DEFAULT_STATUSES = [PROGRAM_STATUS.Active]
+const DEFAULT_STATUSES = [ProgramStatus.Active]
 
 const ProgramsPage: FC = () => {
   useDocumentTitle('Programs')
   const [openCreateProgramForm, setOpenCreateProgramForm] =
     useState<boolean>(false)
   const [selectedStatuses, setSelectedStatuses] =
-    useState<number[]>(DEFAULT_STATUSES)
+    useState<ProgramStatus[]>(DEFAULT_STATUSES)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<
     string | null
   >(null)
@@ -58,7 +51,7 @@ const ProgramsPage: FC = () => {
     setSelectedPortfolioId(null)
   }
 
-  const handleStatusChange = (statuses: number[]) => {
+  const handleStatusChange = (statuses: ProgramStatus[]) => {
     setSelectedStatuses(statuses)
   }
 

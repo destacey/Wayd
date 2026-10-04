@@ -4,8 +4,8 @@ import { ClearOutlined } from '@ant-design/icons'
 import { Button, Card, Flex, Select, Skeleton, Space, theme } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import { BaseOptionType } from 'antd/es/select'
-import { FC } from 'react'
 import { StatusOptionModel } from '@/src/components/types'
+import { ProjectMemberRole } from '@/src/services/wayd-api'
 import {
   getLifecycleCategoryStatusSurface,
   type StatusSurface,
@@ -14,10 +14,10 @@ import {
 import { LifecycleCategory } from '@/src/components/types'
 import styles from './ppm-filter-bar.module.css'
 
-export interface PpmFilterBarProps {
-  statusOptions: StatusOptionModel[] | undefined
-  selectedStatuses: number[]
-  onStatusChange: (statuses: number[]) => void
+export interface PpmFilterBarProps<TStatus extends string = string> {
+  statusOptions: StatusOptionModel<TStatus>[] | undefined
+  selectedStatuses: TStatus[]
+  onStatusChange: (statuses: TStatus[]) => void
   portfolioOptions?: BaseOptionType[] | undefined
   selectedPortfolioId?: string | null
   onPortfolioChange?: (portfolioId: string | null) => void
@@ -30,11 +30,11 @@ export interface PpmFilterBarProps {
 
 const ROLE_OPTIONS: BaseOptionType[] = [
   { label: 'All', value: 'all' },
-  { label: 'Sponsor', value: '1' },
-  { label: 'Owner', value: '2' },
-  { label: 'PM', value: '3' },
-  { label: 'Member', value: '4' },
-  { label: 'Task Assignee', value: '5' },
+  { label: 'Sponsor', value: ProjectMemberRole.Sponsor },
+  { label: 'Owner', value: ProjectMemberRole.Owner },
+  { label: 'PM', value: ProjectMemberRole.Manager },
+  { label: 'Member', value: ProjectMemberRole.Member },
+  { label: 'Task Assignee', value: ProjectMemberRole.Assignee },
 ]
 
 /**
@@ -54,11 +54,11 @@ const getSelectedStatusSurface = (
     : getLifecycleCategoryStatusSurface(category, token)
 }
 
-const hasPortfolioFilter = (
-  props: PpmFilterBarProps,
-): props is PpmFilterBarProps &
+const hasPortfolioFilter = <TStatus extends string>(
+  props: PpmFilterBarProps<TStatus>,
+): props is PpmFilterBarProps<TStatus> &
   Required<
-    Pick<PpmFilterBarProps, 'portfolioOptions' | 'onPortfolioChange'>
+    Pick<PpmFilterBarProps<TStatus>, 'portfolioOptions' | 'onPortfolioChange'>
   > => {
   return (
     props.onPortfolioChange !== undefined &&
@@ -66,14 +66,16 @@ const hasPortfolioFilter = (
   )
 }
 
-const hasRoleFilter = (
-  props: PpmFilterBarProps,
-): props is PpmFilterBarProps &
-  Required<Pick<PpmFilterBarProps, 'onRoleChange'>> => {
+const hasRoleFilter = <TStatus extends string>(
+  props: PpmFilterBarProps<TStatus>,
+): props is PpmFilterBarProps<TStatus> &
+  Required<Pick<PpmFilterBarProps<TStatus>, 'onRoleChange'>> => {
   return props.showRoleFilter === true && props.onRoleChange !== undefined
 }
 
-const PpmFilterBar: FC<PpmFilterBarProps> = (props) => {
+const PpmFilterBar = <TStatus extends string>(
+  props: PpmFilterBarProps<TStatus>,
+) => {
   const { statusOptions, selectedStatuses, onStatusChange, loading } = props
   const { token } = theme.useToken()
 

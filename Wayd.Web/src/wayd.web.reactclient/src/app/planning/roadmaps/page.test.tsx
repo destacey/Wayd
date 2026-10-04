@@ -35,7 +35,6 @@ jest.mock('@/src/components/hoc', () => ({
 }))
 
 jest.mock('@/src/store/features/planning/roadmaps-api', () => ({
-  ROADMAP_STATE: { Active: 2 },
   useGetRoadmapsQuery: () => ({
     data: [],
     isLoading: false,

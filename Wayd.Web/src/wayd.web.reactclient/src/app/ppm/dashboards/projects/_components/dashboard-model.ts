@@ -2,7 +2,9 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import {
   EmployeeNavigationDto,
   ProjectListDto,
+  ProjectMemberRole,
   ProjectPlanSummaryDto,
+  ProjectStatus,
 } from '@/src/services/wayd-api'
 import {
   CalendarDate,
@@ -100,27 +102,19 @@ export const scopeIsComplete = (scope: DashboardScope) => {
   }
 }
 
-export const PROJECT_STATUS = {
-  Proposed: 1,
-  Active: 2,
-  Completed: 3,
-  Canceled: 4,
-  Approved: 5,
-} as const
-
-export const DEFAULT_STATUSES: number[] = [
-  PROJECT_STATUS.Approved,
-  PROJECT_STATUS.Active,
+export const DEFAULT_STATUSES: ProjectStatus[] = [
+  ProjectStatus.Approved,
+  ProjectStatus.Active,
 ]
 
-export const ALL_ROLES: number[] = [1, 2, 3, 4, 5]
+export const ALL_ROLES: ProjectMemberRole[] = Object.values(ProjectMemberRole)
 
 export const ROLE_OPTIONS = [
-  { label: 'Sponsor', value: 1 },
-  { label: 'Owner', value: 2 },
-  { label: 'PM', value: 3 },
-  { label: 'Member', value: 4 },
-  { label: 'Task Assignee', value: 5 },
+  { label: 'Sponsor', value: ProjectMemberRole.Sponsor },
+  { label: 'Owner', value: ProjectMemberRole.Owner },
+  { label: 'PM', value: ProjectMemberRole.Manager },
+  { label: 'Member', value: ProjectMemberRole.Member },
+  { label: 'Task Assignee', value: ProjectMemberRole.Assignee },
 ] as const
 
 export type AttentionFilter =

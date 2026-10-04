@@ -8,6 +8,8 @@ import {
   UpdateProgramRequest,
   ProjectListDto,
   PagedResponseOfActivityLogDto,
+  ProgramStatus,
+  ProjectStatus,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
@@ -18,7 +20,7 @@ export const programsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getPrograms: builder.query<
       ProgramListDto[],
-      { status?: number[]; portfolioId?: string } | undefined
+      { status?: ProgramStatus[]; portfolioId?: string } | undefined
     >({
       queryFn: async (request = undefined) => {
         try {
@@ -163,7 +165,7 @@ export const programsApi = apiSlice.injectEndpoints({
     }),
     getProgramProjects: builder.query<
       ProjectListDto[],
-      { programIdOrKey: string; status?: number[] }
+      { programIdOrKey: string; status?: ProjectStatus[] }
     >({
       queryFn: async ({ programIdOrKey, status }) => {
         try {
@@ -182,15 +184,18 @@ export const programsApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProgramProjects, id: programIdOrKey },
       ],
     }),
-    getProgramStatusOptions: builder.query<StatusOptionModel[], void>({
+    getProgramStatusOptions: builder.query<
+      StatusOptionModel<ProgramStatus>[],
+      void
+    >({
       queryFn: async () => {
         try {
           const statuses = await getProgramsClient().getProgramStatuses()
 
-          const data: StatusOptionModel[] = statuses
+          const data: StatusOptionModel<ProgramStatus>[] = statuses
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
-              value: s.id,
+              value: s.code,
               label: s.name,
               lifecycleCategory: s.lifecycleCategory,
             }))

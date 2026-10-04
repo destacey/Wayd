@@ -36,6 +36,7 @@ import { canActOnPpmRecord } from '../../_components/ppm-authorization'
 import ProgramDetailsLoading from './loading'
 import ProgramFacts from './_components/program-facts'
 import ProgramOverview from './_components/program-overview'
+import { ProjectStatus } from '@/src/services/wayd-api'
 
 enum ProgramSections {
   Overview = 'overview',
@@ -49,8 +50,8 @@ const sections: RecordSection[] = [
   { id: ProgramSections.Activities, label: 'Activity' },
 ]
 
-/** Approved(5), Active(2) — what a program's delivery is usually about. */
-const DEFAULT_PROJECT_STATUSES = [5, 2]
+/** What a program's delivery is usually about. */
+const DEFAULT_PROJECT_STATUSES = [ProjectStatus.Approved, ProjectStatus.Active]
 
 enum ProgramAction {
   Edit = 'Edit',

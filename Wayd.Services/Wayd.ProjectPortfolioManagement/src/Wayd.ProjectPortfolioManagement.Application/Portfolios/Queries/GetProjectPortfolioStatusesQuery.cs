@@ -13,6 +13,7 @@ public sealed class GetProjectPortfolioStatusesQueryHandler : IQueryHandler<GetP
         IReadOnlyList<ProjectPortfolioStatusDto> values = [.. Enum.GetValues<ProjectPortfolioStatus>().Select(c => new ProjectPortfolioStatusDto
         {
             Id = (int)c,
+            Code = c,
             Name = c.GetDisplayName(),
             Description = c.GetDisplayDescription(),
             Order = c.GetDisplayOrder(),

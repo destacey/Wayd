@@ -9,8 +9,8 @@ public sealed class GetStrategyStatusesQueryHandler : IQueryHandler<GetStrategyS
 {
     public Task<List<StrategyStatusDto>> Handle(GetStrategyStatusesQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(CommonEnumDto.GetValues<StrategyStatus, StrategyStatusDto>());
+        return Task.FromResult(CommonEnumDto<StrategyStatus>.GetValues<StrategyStatusDto>());
     }
 }
 
-public sealed record StrategyStatusDto : CommonEnumDto { }
+public sealed record StrategyStatusDto : CommonEnumDto<StrategyStatus> { }

@@ -21,6 +21,7 @@ import {
   CreateRoadmapRequest,
   RoadmapDetailsDto,
   RoadmapListDto,
+  RoadmapState,
   UpdateRoadmapColorsRequest,
   UpdateRoadmapRequest,
 } from '@/src/services/wayd-api'
@@ -71,7 +72,7 @@ export const roadmapApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getRoadmaps: builder.query<
       RoadmapListDto[],
-      { state?: number[] } | undefined
+      { state?: RoadmapState[] } | undefined
     >({
       queryFn: async (request = undefined) => {
         try {
@@ -480,14 +481,14 @@ export const roadmapApi = apiSlice.injectEndpoints({
         { type: QueryTags.Roadmap, id: cacheKey },
       ],
     }),
-    getRoadmapStateOptions: builder.query<OptionModel<number>[], void>({
+    getRoadmapStateOptions: builder.query<OptionModel<RoadmapState>[], void>({
       queryFn: async () => {
         try {
           const states = await getRoadmapsClient().getStateOptions()
-          const data: OptionModel<number>[] = states
+          const data: OptionModel<RoadmapState>[] = states
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
-              value: s.id,
+              value: s.code,
               label: s.name,
             }))
           return { data }

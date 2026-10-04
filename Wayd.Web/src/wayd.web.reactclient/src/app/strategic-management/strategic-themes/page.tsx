@@ -13,22 +13,17 @@ import {
   StrategicThemesGrid,
 } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
+import { StrategicThemeState } from '@/src/services/wayd-api'
 
-// Strategic Theme state enum values matching the backend
-const THEME_STATE = {
-  Proposed: 1,
-  Active: 2,
-  Archived: 3,
-} as const
-
-const DEFAULT_STATES = [THEME_STATE.Active]
+const DEFAULT_STATES = [StrategicThemeState.Active]
 
 const StrategicThemesPage: FC = () => {
   useDocumentTitle('Strategic Themes')
 
   const [openCreateStrategicThemeForm, setOpenCreateStrategicThemeForm] =
     useState<boolean>(false)
-  const [selectedStates, setSelectedStates] = useState<number[]>(DEFAULT_STATES)
+  const [selectedStates, setSelectedStates] =
+    useState<StrategicThemeState[]>(DEFAULT_STATES)
 
   const messageApi = useMessage()
 
@@ -54,7 +49,7 @@ const StrategicThemesPage: FC = () => {
     }
   }, [error, messageApi])
 
-  const handleStateChange = (states: number[]) => {
+  const handleStateChange = (states: StrategicThemeState[]) => {
     setSelectedStates(states)
   }
 

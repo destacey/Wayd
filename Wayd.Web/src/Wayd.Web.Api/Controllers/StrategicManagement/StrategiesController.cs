@@ -21,11 +21,9 @@ public class StrategiesController(ILogger<StrategiesController> logger, IDispatc
     [OpenApiOperation("Get a list of strategies.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<StrategyListDto>>> GetStrategies([FromQuery] int? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<StrategyListDto>>> GetStrategies([FromQuery] StrategyStatus? status, CancellationToken cancellationToken)
     {
-        StrategyStatus? filter = status.HasValue ? (StrategyStatus)status.Value : null;
-
-        var strategies = await _dispatcher.Send(new GetStrategiesQuery(filter), cancellationToken);
+        var strategies = await _dispatcher.Send(new GetStrategiesQuery(status), cancellationToken);
 
         return Ok(strategies);
     }

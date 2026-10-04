@@ -18,6 +18,7 @@ import {
   ProjectsTaskMetricsDto,
   ProjectStatusHistoryDto,
   ProjectStatus,
+  ProjectMemberRole,
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
@@ -35,9 +36,9 @@ import { chunk } from '@/src/utils'
 const PLAN_SUMMARIES_CHUNK_SIZE = 50
 
 export interface GetProjectsRequest {
-  status?: number[]
+  status?: ProjectStatus[]
   portfolioId?: string
-  role?: number[]
+  role?: ProjectMemberRole[]
   /**
    * The employee the role filter applies to. Omitted, the server uses the
    * signed-in user's linked employee.
@@ -357,15 +358,18 @@ export const projectsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    getProjectStatusOptions: builder.query<StatusOptionModel[], void>({
+    getProjectStatusOptions: builder.query<
+      StatusOptionModel<ProjectStatus>[],
+      void
+    >({
       queryFn: async () => {
         try {
           const statuses = await getProjectsClient().getProjectStatuses()
 
-          const data: StatusOptionModel[] = statuses
+          const data: StatusOptionModel<ProjectStatus>[] = statuses
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
-              value: s.id,
+              value: s.code,
               label: s.name,
               lifecycleCategory: s.lifecycleCategory,
             }))
@@ -556,7 +560,7 @@ export const projectsApi = apiSlice.injectEndpoints({
       Record<string, ProjectPlanSummaryDto>,
       {
         projectIds: string[]
-        role?: number[]
+        role?: ProjectMemberRole[]
         employeeId?: string
         /** Count every task rather than the ones the employee can see. */
         allTasks?: boolean
@@ -595,7 +599,7 @@ export const projectsApi = apiSlice.injectEndpoints({
 
     getMyProjectsSummary: builder.query<
       MyProjectsSummaryDto,
-      { status?: number[] } | void
+      { status?: ProjectStatus[] } | void
     >({
       queryFn: async (request = undefined) => {
         try {
@@ -613,7 +617,11 @@ export const projectsApi = apiSlice.injectEndpoints({
 
     getProjectsTaskMetrics: builder.query<
       ProjectsTaskMetricsDto,
-      { status?: number[]; role?: number[]; employeeId?: string } | void
+      {
+        status?: ProjectStatus[]
+        role?: ProjectMemberRole[]
+        employeeId?: string
+      } | void
     >({
       queryFn: async (request = undefined) => {
         try {

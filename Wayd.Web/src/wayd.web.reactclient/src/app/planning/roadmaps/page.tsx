@@ -6,10 +6,8 @@ import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
 import { Alert, Button } from 'antd'
 import { authorizePage } from '@/src/components/hoc'
-import {
-  ROADMAP_STATE,
-  useGetRoadmapsQuery,
-} from '@/src/store/features/planning/roadmaps-api'
+import { useGetRoadmapsQuery } from '@/src/store/features/planning/roadmaps-api'
+import { RoadmapState } from '@/src/services/wayd-api'
 import {
   CreateRoadmapForm,
   RoadmapsFilterBar,
@@ -18,14 +16,15 @@ import {
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useLinkedEmployee } from '@/src/hooks'
 
-const DEFAULT_STATES = [ROADMAP_STATE.Active]
+const DEFAULT_STATES = [RoadmapState.Active]
 
 const RoadmapsPage: FC = () => {
   useDocumentTitle('Roadmaps')
 
   const [openCreateRoadmapForm, setOpenCreateRoadmapForm] =
     useState<boolean>(false)
-  const [selectedStates, setSelectedStates] = useState<number[]>(DEFAULT_STATES)
+  const [selectedStates, setSelectedStates] =
+    useState<RoadmapState[]>(DEFAULT_STATES)
 
   const messageApi = useMessage()
 
@@ -57,7 +56,7 @@ const RoadmapsPage: FC = () => {
   const canCreateRoadmap = hasCreateRoadmapPermission && hasLinkedEmployee
   const showActions = canCreateRoadmap
 
-  const handleStateChange = (states: number[]) => {
+  const handleStateChange = (states: RoadmapState[]) => {
     setSelectedStates(states)
   }
 

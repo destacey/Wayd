@@ -13,18 +13,13 @@ import {
   StrategicInitiativesGrid,
 } from '../_components'
 import { useMessage } from '@/src/components/contexts/messaging'
+import { StrategicInitiativeStatus } from '@/src/services/wayd-api'
 
-// Strategic Initiative status enum values matching the backend
-const SI_STATUS = {
-  Proposed: 1,
-  Approved: 2,
-  Active: 3,
-  OnHold: 4,
-  Completed: 5,
-  Canceled: 6,
-} as const
-
-const DEFAULT_STATUSES = [SI_STATUS.Approved, SI_STATUS.Active, SI_STATUS.OnHold]
+const DEFAULT_STATUSES = [
+  StrategicInitiativeStatus.Approved,
+  StrategicInitiativeStatus.Active,
+  StrategicInitiativeStatus.OnHold,
+]
 
 const StrategicInitiativesPage: FC = () => {
   useDocumentTitle('Strategic Initiatives')
@@ -33,7 +28,7 @@ const StrategicInitiativesPage: FC = () => {
     setOpenCreateStrategicInitiativeForm,
   ] = useState<boolean>(false)
   const [selectedStatuses, setSelectedStatuses] =
-    useState<number[]>(DEFAULT_STATUSES)
+    useState<StrategicInitiativeStatus[]>(DEFAULT_STATUSES)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<
     string | null
   >(null)
@@ -68,7 +63,7 @@ const StrategicInitiativesPage: FC = () => {
     setSelectedPortfolioId(null)
   }
 
-  const handleStatusChange = (statuses: number[]) => {
+  const handleStatusChange = (statuses: StrategicInitiativeStatus[]) => {
     setSelectedStatuses(statuses)
   }
 

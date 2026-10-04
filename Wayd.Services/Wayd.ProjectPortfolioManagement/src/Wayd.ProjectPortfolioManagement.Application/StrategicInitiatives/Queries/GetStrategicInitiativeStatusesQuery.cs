@@ -13,6 +13,7 @@ public sealed class GetStrategicInitiativeStatusesQueryHandler : IQueryHandler<G
         IReadOnlyList<StrategicInitiativeStatusDto> values = [.. Enum.GetValues<StrategicInitiativeStatus>().Select(c => new StrategicInitiativeStatusDto
         {
             Id = (int)c,
+            Code = c,
             Name = c.GetDisplayName(),
             Description = c.GetDisplayDescription(),
             Order = c.GetDisplayOrder(),

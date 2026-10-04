@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import ScopeBar from './scope-bar'
+import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
 
 global.ResizeObserver = class {
   observe() {}
@@ -38,9 +39,9 @@ const defaultProps = {
   scope: { kind: 'me' } as const,
   onScopeChange: jest.fn(),
   hasLinkedEmployee: true,
-  selectedRoles: [] as number[],
+  selectedRoles: [] as ProjectMemberRole[],
   onRoleChange: jest.fn(),
-  selectedStatuses: [] as number[],
+  selectedStatuses: [] as ProjectStatus[],
   onStatusChange: jest.fn(),
   onReset: jest.fn(),
   onRefresh: jest.fn(),
@@ -51,8 +52,16 @@ describe('ScopeBar', () => {
     jest.clearAllMocks()
     mockStatusQuery.mockReturnValue({
       data: [
-        { value: 1, label: 'Proposed', lifecycleCategory: 'NotStarted' },
-        { value: 2, label: 'Active', lifecycleCategory: 'Active' },
+        {
+          value: ProjectStatus.Proposed,
+          label: 'Proposed',
+          lifecycleCategory: 'NotStarted',
+        },
+        {
+          value: ProjectStatus.Active,
+          label: 'Active',
+          lifecycleCategory: 'Active',
+        },
       ],
       isLoading: false,
     })
@@ -179,20 +188,27 @@ describe('ScopeBar', () => {
 
   it('toggles a role chip and clears roles with All', async () => {
     // Arrange
-    render(<ScopeBar {...defaultProps} selectedRoles={[2]} />)
+    render(
+      <ScopeBar {...defaultProps} selectedRoles={[ProjectMemberRole.Owner]} />,
+    )
 
     // Act
     await userEvent.click(screen.getByRole('button', { name: 'PM' }))
     await userEvent.click(screen.getByRole('button', { name: 'All' }))
 
     // Assert
-    expect(defaultProps.onRoleChange).toHaveBeenNthCalledWith(1, [2, 3])
+    expect(defaultProps.onRoleChange).toHaveBeenNthCalledWith(1, [
+      ProjectMemberRole.Owner,
+      ProjectMemberRole.Manager,
+    ])
     expect(defaultProps.onRoleChange).toHaveBeenNthCalledWith(2, [])
   })
 
   it('dashes the unlit status buttons and colors only the lit ones', () => {
     // Arrange / Act
-    render(<ScopeBar {...defaultProps} selectedStatuses={[2]} />)
+    render(
+      <ScopeBar {...defaultProps} selectedStatuses={[ProjectStatus.Active]} />,
+    )
 
     // Assert — the dash, not the color, carries selection
     const active = screen.getByRole('button', { name: 'Active' })

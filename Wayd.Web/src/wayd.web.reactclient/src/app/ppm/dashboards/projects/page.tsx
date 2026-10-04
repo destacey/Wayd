@@ -40,6 +40,8 @@ import ProjectsDashboardGrid from './_components/projects-dashboard-grid'
 import ProjectsDashboardTimeline from './_components/projects-dashboard-timeline'
 import ScopeBar from './_components/scope-bar'
 import { useScopedProjects } from './_components/use-scoped-projects'
+import { keepValidCodes } from '../../_components/use-status-filter'
+import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
 
 const { useBreakpoint } = Grid
 
@@ -64,13 +66,18 @@ const ProjectsDashboardPage: FC = () => {
     setSelectedProjectKey(null)
   }
 
-  const [selectedStatuses, setSelectedStatuses] = useLocalStorageState<
-    number[]
+  const [storedStatuses, setSelectedStatuses] = useLocalStorageState<
+    ProjectStatus[]
   >('projects-dashboard-filter-statuses', DEFAULT_STATUSES)
-  const [selectedRoles, setSelectedRoles] = useLocalStorageState<number[]>(
-    'projects-dashboard-filter-roles',
-    [],
+  const selectedStatuses = keepValidCodes(
+    storedStatuses,
+    ProjectStatus,
+    DEFAULT_STATUSES,
   )
+  const [storedRoles, setSelectedRoles] = useLocalStorageState<
+    ProjectMemberRole[]
+  >('projects-dashboard-filter-roles', [])
+  const selectedRoles = keepValidCodes(storedRoles, ProjectMemberRole, [])
   const [groupBy, setGroupBy] = useLocalStorageState<GroupBy>(
     'projects-dashboard-group-by',
     'portfolio',

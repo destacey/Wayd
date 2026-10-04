@@ -27,13 +27,9 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [OpenApiOperation("Get a list of strategic themes.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<StrategicThemeListDto>>> GetStrategicThemes([FromQuery] int[]? state, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<StrategicThemeListDto>>> GetStrategicThemes([FromQuery] StrategicThemeState[]? state, CancellationToken cancellationToken)
     {
-        StrategicThemeState[]? filter = state is { Length: > 0 }
-            ? [.. state.Select(s => (StrategicThemeState)s)]
-            : null;
-
-        var themes = await _dispatcher.Send(new GetStrategicThemesQuery(filter), cancellationToken);
+        var themes = await _dispatcher.Send(new GetStrategicThemesQuery(state), cancellationToken);
 
         return Ok(themes);
     }

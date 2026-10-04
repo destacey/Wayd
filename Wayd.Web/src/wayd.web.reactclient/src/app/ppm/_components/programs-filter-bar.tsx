@@ -2,12 +2,13 @@
 
 import { useGetProgramStatusOptionsQuery } from '@/src/store/features/ppm/programs-api'
 import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
+import { ProgramStatus } from '@/src/services/wayd-api'
 import { FC } from 'react'
 import PpmFilterBar from './ppm-filter-bar'
 
 export interface ProgramsFilterBarProps {
-  selectedStatuses: number[]
-  onStatusChange: (statuses: number[]) => void
+  selectedStatuses: ProgramStatus[]
+  onStatusChange: (statuses: ProgramStatus[]) => void
   selectedPortfolioId?: string | null
   onPortfolioChange?: (portfolioId: string | null) => void
   showPortfolioFilter?: boolean

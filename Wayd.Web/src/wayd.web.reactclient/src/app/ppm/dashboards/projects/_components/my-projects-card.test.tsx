@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import MyProjectsCard from './my-projects-card'
+import { ProjectStatus } from '@/src/services/wayd-api'
 
 global.ResizeObserver = class {
   observe() {}
@@ -219,6 +220,9 @@ describe('MyProjectsCard', () => {
 
     render(<MyProjectsCard />)
 
-    expect(mockQuery).toHaveBeenCalledWith({ status: [5, 2] }, { skip: true })
+    expect(mockQuery).toHaveBeenCalledWith(
+      { status: [ProjectStatus.Approved, ProjectStatus.Active] },
+      { skip: true },
+    )
   })
 })

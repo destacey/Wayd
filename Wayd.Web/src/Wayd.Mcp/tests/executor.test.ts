@@ -213,6 +213,7 @@ describe('executeApiTool', () => {
     pathTemplate: '/api/test',
     executionParameters: [],
     securityRequirements: [],
+    annotations: { title: 'Test fixture' },
   };
 
   test('returns an error result instead of throwing when arguments are invalid', async () => {

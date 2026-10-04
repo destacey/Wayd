@@ -303,6 +303,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{ name: 'includeArchived', in: 'query' }],
     requestBodyContentType: undefined,
     securityRequirements: [{ ApiKey: [] }],
+    annotations: { title: 'List expenditure category options' },
   }],
 
 ];

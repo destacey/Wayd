@@ -18,6 +18,13 @@ const requiresConfirmation = {
   idempotentHint: false,
 } as const;
 
+/** Shared annotation: adds a record without changing or removing any, so clients need not warn. */
+const addsOnly = {
+  destructiveHint: false,
+  readOnlyHint: false,
+  idempotentHint: false,
+} as const;
+
 /** Shared annotation: reads only, safe to run without asking. */
 const readsOnly = {
   readOnlyHint: true,
@@ -77,7 +84,7 @@ Only an **active** environment is accepted. Leaving \`startedAt\` empty records 
     executionParameters: [],
     requestBodyContentType: 'application/json',
     securityRequirements: [{"ApiKey":[]}],
-    annotations: { title: 'Start a deployment', ...requiresConfirmation },
+    annotations: { title: 'Start a deployment', ...addsOnly },
   }],
 
   ['Deployments_Succeed', {

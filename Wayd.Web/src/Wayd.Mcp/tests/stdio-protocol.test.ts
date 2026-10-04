@@ -199,13 +199,17 @@ describe('stdio transport', () => {
     assert.ok(list, 'no response to tools/list');
     assert.equal(list.error, undefined, `tools/list failed: ${JSON.stringify(list.error)}`);
 
-    const { tools } = list.result as { tools: { name: string; description: string; inputSchema: any }[] };
+    const { tools } = list.result as {
+      tools: { name: string; description: string; inputSchema: any; annotations?: { title?: string; openWorldHint?: boolean } }[];
+    };
     assert.ok(tools.length > 0, 'server exposed no tools');
 
     for (const tool of tools) {
       assert.ok(tool.name, 'tool is missing a name');
       assert.ok(tool.description, `tool ${tool.name} is missing a description`);
       assert.equal(tool.inputSchema?.type, 'object', `tool ${tool.name} has a non-object inputSchema`);
+      assert.ok(tool.annotations?.title, `tool ${tool.name} is listed without a title`);
+      assert.equal(tool.annotations?.openWorldHint, false, `tool ${tool.name} is listed as reaching beyond the Wayd API`);
     }
 
     const names = tools.map(t => t.name);

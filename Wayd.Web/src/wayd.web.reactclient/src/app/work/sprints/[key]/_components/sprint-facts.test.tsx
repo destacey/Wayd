@@ -25,8 +25,6 @@ const sprint: SprintDetailsDto = {
   canReopen: false,
 }
 
-const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
 // Instants arrive from the API as ISO strings despite the generated type.
 const instant = (iso: string) => iso as unknown as Date
 
@@ -81,7 +79,7 @@ describe('SprintFacts', () => {
     expect(screen.queryByText('Actual end')).not.toBeInTheDocument()
   })
 
-  it('tags recorded moments as actual and implied ones as default', () => {
+  it('shows a recorded start in the viewer zone and an unrecorded end as a dash', () => {
     // Arrange
     const started = '2026-08-17T15:00:00Z'
 
@@ -92,78 +90,58 @@ describe('SprintFacts', () => {
           ...sprint,
           started: instant(started),
           activeFrom: instant(started),
-          activeUntil: instant('2026-08-31T04:59:59Z'),
-          timeZone: viewerTimeZone,
+          activeUntil: instant('2026-08-31T05:00:00Z'),
+          timeZone: 'America/Chicago',
         }}
       />,
     )
 
     // Assert
     expect(screen.getByText('Actual start')).toBeInTheDocument()
-    expect(screen.getByText('Actual end')).toBeInTheDocument()
-    expect(screen.getByText('Actual')).toBeInTheDocument()
-    expect(screen.getByText('Default')).toBeInTheDocument()
-  })
-
-  it('shows the active moment in the viewer zone', () => {
-    // Arrange
-    const started = '2026-08-17T15:00:00Z'
-
-    // Act
-    render(
-      <SprintFacts
-        sprint={{
-          ...sprint,
-          started: instant(started),
-          activeFrom: instant(started),
-          timeZone: viewerTimeZone,
-        }}
-      />,
-    )
-
-    // Assert
     expect(
       screen.getByText(dayjs(started).format('MMM D, YYYY h:mm A')),
     ).toBeInTheDocument()
+    expect(screen.getByText('Actual end')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('names the team time zone when it differs from the viewer', () => {
-    // Arrange
-    const teamTimeZone =
-      viewerTimeZone === 'Pacific/Auckland'
-        ? 'Europe/London'
-        : 'Pacific/Auckland'
-
-    // Act
-    render(
-      <SprintFacts
-        sprint={{
-          ...sprint,
-          activeFrom: instant('2026-08-17T15:00:00Z'),
-          timeZone: teamTimeZone,
-        }}
-      />,
-    )
-
-    // Assert
-    expect(
-      screen.getByText(`Team time zone: ${teamTimeZone}`),
-    ).toBeInTheDocument()
-  })
-
-  it('omits the team time zone when it matches the viewer', () => {
+  it('shows dashes when the team recorded neither date', () => {
     // Arrange / Act
     render(
       <SprintFacts
         sprint={{
           ...sprint,
-          activeFrom: instant('2026-08-17T15:00:00Z'),
-          timeZone: viewerTimeZone,
+          activeFrom: instant('2026-08-17T05:00:00Z'),
+          activeUntil: instant('2026-08-31T05:00:00Z'),
+          timeZone: 'America/Chicago',
         }}
       />,
     )
 
     // Assert
-    expect(screen.queryByText(/Team time zone/)).not.toBeInTheDocument()
+    expect(screen.getAllByText('—')).toHaveLength(2)
+  })
+
+  it('counts the length over the days the sprint is active, after the actual rows', () => {
+    // Arrange — started on Aug 19, runs to the end of its planned Aug 30
+    const started = '2026-08-19T15:00:00Z'
+
+    // Act
+    const { container } = render(
+      <SprintFacts
+        sprint={{
+          ...sprint,
+          started: instant(started),
+          activeFrom: instant(started),
+          activeUntil: instant('2026-08-31T05:00:00Z'),
+          timeZone: 'America/Chicago',
+        }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('12 days')).toBeInTheDocument()
+    const text = container.textContent ?? ''
+    expect(text.indexOf('Actual end')).toBeLessThan(text.indexOf('Length'))
   })
 })

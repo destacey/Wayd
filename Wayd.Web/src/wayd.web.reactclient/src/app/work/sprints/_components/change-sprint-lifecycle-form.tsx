@@ -33,11 +33,11 @@ const presentParticiple: Record<SprintLifecycleAction, string> = {
 
 const explanation: Record<SprintLifecycleAction, string> = {
   [SprintLifecycleAction.Start]:
-    'Records when the team started the sprint. Its actual start replaces the default one.',
+    'Records when the team started the sprint, in place of its planned start.',
   [SprintLifecycleAction.Complete]:
-    'Records when the team completed the sprint. Its actual end replaces the default one.',
+    'Records when the team completed the sprint, in place of its planned end.',
   [SprintLifecycleAction.Reopen]:
-    'The recorded completion is cleared, so the sprint ends on its default end again.',
+    'The recorded completion is cleared, so the sprint ends on its planned end again.',
 }
 
 const MOMENT_FORMAT = 'MMM D, YYYY h:mm A'

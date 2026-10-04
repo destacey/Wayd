@@ -94148,13 +94148,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid SprintId { get; set; } = default!;
 
         /// <summary>
-        /// When the team actually started the sprint. Omit to take the default start.
+        /// When the team actually started the sprint. Omit to follow the planned start.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("started")]
         public System.DateTimeOffset? Started { get; set; } = default!;
 
         /// <summary>
-        /// When the team actually completed the sprint. Omit to take the default end.
+        /// When the team actually completed the sprint. Omit to follow the planned end.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completed")]
         public System.DateTimeOffset? Completed { get; set; } = default!;

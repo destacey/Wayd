@@ -19,9 +19,9 @@ public sealed record SprintActualDatesRequest
 {
     public Guid SprintId { get; set; }
 
-    /// <summary>When the team actually started the sprint. Omit to take the default start.</summary>
+    /// <summary>When the team actually started the sprint. Omit to follow the planned start.</summary>
     public Instant? Started { get; set; }
 
-    /// <summary>When the team actually completed the sprint. Omit to take the default end.</summary>
+    /// <summary>When the team actually completed the sprint. Omit to follow the planned end.</summary>
     public Instant? Completed { get; set; }
 }

@@ -14,8 +14,8 @@ export interface SprintDetailsProps {
   onHealthIndicatorReady?: (indicator: ReactNode) => void
 }
 
-// Overlapping sprints would count the same time twice, so the earlier one's
-// default end is cut to the later one's start, actual or default.
+// Overlapping sprints would count the same time twice, so an earlier sprint
+// the team did not complete ends when the later one starts.
 export const sprintOverlapWarning = (
   sprint: SprintDetailsDto,
 ): { title: string; description: string } | null => {
@@ -27,9 +27,9 @@ export const sprintOverlapWarning = (
 
   const cuts = [
     sprint.overlapsPreviousSprint &&
-      "The previous sprint's default end is cut to this sprint's start.",
+      'Unless it was completed earlier, the previous sprint ends when this sprint starts, not on its planned end.',
     sprint.overlapsNextSprint &&
-      "This sprint's default end is cut to the next sprint's start.",
+      'Unless it is completed earlier, this sprint ends when the next sprint starts, not on its planned end.',
   ].filter(Boolean)
 
   return {

@@ -49504,9 +49504,9 @@ other. */
 /** A sprint's corrected actual dates. Both values are replaced; omit one to revert it to the sprint's default. */
 export interface SprintActualDatesRequest {
     sprintId: string;
-    /** When the team actually started the sprint. Omit to take the default start. */
+    /** When the team actually started the sprint. Omit to follow the planned start. */
     started?: Date | undefined;
-    /** When the team actually completed the sprint. Omit to take the default end. */
+    /** When the team actually completed the sprint. Omit to follow the planned end. */
     completed?: Date | undefined;
 }
 

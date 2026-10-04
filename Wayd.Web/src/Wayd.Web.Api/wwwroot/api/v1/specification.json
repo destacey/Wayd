@@ -57102,13 +57102,13 @@
           },
           "started": {
             "type": "string",
-            "description": "When the team actually started the sprint. Omit to take the default start.",
+            "description": "When the team actually started the sprint. Omit to follow the planned start.",
             "format": "date-time",
             "nullable": true
           },
           "completed": {
             "type": "string",
-            "description": "When the team actually completed the sprint. Omit to take the default end.",
+            "description": "When the team actually completed the sprint. Omit to follow the planned end.",
             "format": "date-time",
             "nullable": true
           }

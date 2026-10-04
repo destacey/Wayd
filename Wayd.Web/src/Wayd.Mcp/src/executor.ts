@@ -107,13 +107,10 @@ export async function executeApiTool(
 
         if (scheme.in === 'header') {
           headers[scheme.name.toLowerCase()] = apiKey;
-          console.error(`Applied API key '${schemeName}' in header '${scheme.name}'`);
         } else if (scheme.in === 'query') {
           queryParams[scheme.name] = apiKey;
-          console.error(`Applied API key '${schemeName}' in query parameter '${scheme.name}'`);
         } else if (scheme.in === 'cookie') {
           headers['cookie'] = `${scheme.name}=${apiKey}${headers['cookie'] ? `; ${headers['cookie']}` : ''}`;
-          console.error(`Applied API key '${schemeName}' in cookie '${scheme.name}'`);
         }
       }
     }
@@ -143,11 +140,11 @@ export async function executeApiTool(
 
     // Format the response
     let responseText = '';
-    const rawContentType = response.headers['content-type'];
-    const contentType = typeof rawContentType === 'string' ? rawContentType.toLowerCase() : '';
-
-    if (contentType.includes('application/json') && typeof response.data === 'object' && response.data !== null) {
-      try { responseText = JSON.stringify(response.data, null, 2); } catch { responseText = '[Stringify Error]'; }
+    // Keyed on the parsed body, not the media type: axios also parses `+json` types such as
+    // `application/problem+json`, which String() would render as "[object Object]".
+    // Compact, because indentation costs the model tokens and tells it nothing.
+    if (typeof response.data === 'object' && response.data !== null) {
+      try { responseText = JSON.stringify(response.data); } catch { responseText = '[Stringify Error]'; }
     } else if (typeof response.data === 'string') {
       responseText = response.data;
     } else if (response.data !== undefined && response.data !== null) {

@@ -34,6 +34,13 @@ public sealed record WorkItemDetailsDto : IMapFrom<WorkItem>
     public required string ProjectSource { get; set; }
     public string? ExternalViewWorkItemUrl { get; set; }
     public double? StoryPoints { get; set; }
+
+    /// <summary>The level-of-effort estimate, often set on features and epics for longer-term planning; null when unestimated.</summary>
+    public double? Effort { get; set; }
+
+    /// <summary>The size estimate, the CMMI process's requirement estimate; null when unestimated.</summary>
+    public double? Size { get; set; }
+
     public List<string> Tags { get; set; } = [];
 
     public void ConfigureMapping(TypeAdapterConfig config)

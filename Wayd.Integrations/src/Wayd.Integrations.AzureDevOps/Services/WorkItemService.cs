@@ -43,7 +43,11 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
                 "System.IterationId",
                 "Microsoft.VSTS.Common.Priority",
                 "Microsoft.VSTS.Common.StackRank",
+                // Each process uses its own estimate field (Agile StoryPoints, Scrum Effort, CMMI Size),
+                // and an item can hold several. A field the type doesn't carry is simply absent.
                 "Microsoft.VSTS.Scheduling.StoryPoints",
+                "Microsoft.VSTS.Scheduling.Effort",
+                "Microsoft.VSTS.Scheduling.Size",
                 "Microsoft.VSTS.Common.ActivatedDate",
                 "Microsoft.VSTS.Common.ClosedDate",
                 "System.Tags"

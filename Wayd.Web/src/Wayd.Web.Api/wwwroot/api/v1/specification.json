@@ -57805,6 +57805,16 @@
             "format": "double",
             "nullable": true
           },
+          "effort": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "size": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "tags": {
             "type": "array",
             "items": {

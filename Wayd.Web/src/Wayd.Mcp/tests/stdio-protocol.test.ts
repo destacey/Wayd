@@ -187,6 +187,20 @@ describe('stdio transport', () => {
     );
   });
 
+  test('sends the cross-tool rules as server instructions', async () => {
+    // Arrange & Act
+    const { responses } = await runServer();
+
+    // Assert
+    // Clients that never load the skills learn these rules only from the initialize result.
+    const instructions = responses.get(1)?.result?.instructions as string | undefined;
+    assert.ok(instructions, 'initialize result carries no instructions');
+    assert.match(instructions, /overwrite/i, 'instructions should say updates overwrite the whole record');
+    assert.match(instructions, /omitted or empty/i, 'instructions should say an omitted or empty role list removes everyone');
+    assert.match(instructions, /idOrKey/, 'instructions should say which parameters take a key');
+    assert.match(instructions, /confirm/i, 'instructions should require confirmation before destructive tools');
+  });
+
   test('lists every registered tool with a valid schema', async () => {
     // Arrange
     const listRequest = { jsonrpc: '2.0', id: 2, method: 'tools/list' };

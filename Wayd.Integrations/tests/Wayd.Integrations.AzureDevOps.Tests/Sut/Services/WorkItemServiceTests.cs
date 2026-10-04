@@ -98,6 +98,25 @@ public class WorkItemServiceTests
         result.Error.Should().Contain("401");
     }
 
+    [Fact]
+    public async Task GetWorkItems_RequestsAllThreeEstimateFields()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.OK, WiqlIdsJson(101));
+        _handler.EnqueueResponse(HttpStatusCode.OK, """{"count":0,"value":[]}""");
+
+        // Act
+        await _sut.GetWorkItems(ProjectName, _lastChangedDate, [], TestContext.Current.CancellationToken);
+
+        // Assert
+        using var document = JsonDocument.Parse(_handler.Requests[1].Body!);
+        var fields = document.RootElement.GetProperty("fields").EnumerateArray().Select(f => f.GetString()).ToList();
+        fields.Should().Contain([
+            "Microsoft.VSTS.Scheduling.StoryPoints",
+            "Microsoft.VSTS.Scheduling.Effort",
+            "Microsoft.VSTS.Scheduling.Size"]);
+    }
+
     private static string GetWiqlQuery(string requestBody)
     {
         using var document = JsonDocument.Parse(requestBody);

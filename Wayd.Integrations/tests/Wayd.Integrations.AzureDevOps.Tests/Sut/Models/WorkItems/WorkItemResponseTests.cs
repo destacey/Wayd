@@ -97,6 +97,61 @@ public class WorkItemResponseTests
         result.Single(w => w.Id == 202).TeamId.Should().BeNull();
     }
 
+    [Fact]
+    public void ToIExternalWorkItems_WithAllThreeEstimates_KeepsEachSeparately()
+    {
+        // Arrange - one item can hold values in several estimate fields at once
+        var workItem = MakeWorkItem(id: 301, iterationId: 0);
+        workItem.Fields.StoryPoints = 3;
+        workItem.Fields.Effort = 8;
+        workItem.Fields.Size = 5;
+
+        // Act
+        var result = new List<WorkItemResponse> { workItem }.ToIExternalWorkItems([], NullLogger.Instance);
+
+        // Assert
+        var mapped = result.Should().ContainSingle().Subject;
+        mapped.StoryPoints.Should().Be(3);
+        mapped.Effort.Should().Be(8);
+        mapped.Size.Should().Be(5);
+    }
+
+    [Fact]
+    public void ToIExternalWorkItems_WithOneEstimate_LeavesTheOthersEmpty()
+    {
+        // Arrange - a Scrum item carries Effort only
+        var workItem = MakeWorkItem(id: 302, iterationId: 0);
+        workItem.Fields.Effort = 13;
+
+        // Act
+        var result = new List<WorkItemResponse> { workItem }.ToIExternalWorkItems([], NullLogger.Instance);
+
+        // Assert
+        var mapped = result.Should().ContainSingle().Subject;
+        mapped.StoryPoints.Should().BeNull();
+        mapped.Effort.Should().Be(13);
+        mapped.Size.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToIExternalWorkItems_WithNegativeEstimates_ClampsEachToZero()
+    {
+        // Arrange
+        var workItem = MakeWorkItem(id: 303, iterationId: 0);
+        workItem.Fields.StoryPoints = -1;
+        workItem.Fields.Effort = -2;
+        workItem.Fields.Size = -3;
+
+        // Act
+        var result = new List<WorkItemResponse> { workItem }.ToIExternalWorkItems([], NullLogger.Instance);
+
+        // Assert
+        var mapped = result.Should().ContainSingle().Subject;
+        mapped.StoryPoints.Should().Be(0);
+        mapped.Effort.Should().Be(0);
+        mapped.Size.Should().Be(0);
+    }
+
     private static WorkItemResponse MakeWorkItem(int id, int iterationId)
     {
         return new WorkItemResponse

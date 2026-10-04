@@ -40,7 +40,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get a list of versions.", "Ordered by released moment then sequence — never by version, which is free text.")]
+    [OpenApiOperation(
+        "List versions — the artifacts that were built, such as `Wayd API 4.12.0`.",
+        "A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. Everything not yet shipped comes first, then what has shipped, newest first: what is still coming is usually what you are looking for. Never ordered by the version number, which is free text and never parsed — `4.8.2` and `2026.04` are both just labels. There is no package filter here: a version carries no pointer to the package it shipped in, so ask that question from the packages side with ReleasePackages_GetReleasePackages.")]
+    [McpTool("Versions_GetVersions", "List versions")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<VersionDto>>> GetVersions(
@@ -56,7 +59,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get version details.", "Accepts the version's id or its short key.")]
+    [OpenApiOperation(
+        "Get one version in full — its product, version number, and its target date and its cut and released moments.",
+        "A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. Accepts the version's UUID or its short key.")]
+    [McpTool("Versions_GetVersion", "Get version")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<VersionDto>> GetVersion(string idOrKey, CancellationToken cancellationToken)
@@ -70,7 +76,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get activity history for the version.", "")]
+    [OpenApiOperation(
+        "Get a version's activity history, newest first: every change recorded on the version — details, dates and status.",
+        "Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
+    [McpTool("Versions_GetActivities", "Get version activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -85,8 +94,9 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
     [HttpGet("{idOrKey}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Get a version's status change history.",
-        "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+        "Get a version's status change history, newest first — when it was cut, how long it sat ready before shipping, who moved it.",
+        "Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past. Correcting a date leaves this untouched.")]
+    [McpTool("Versions_GetStatusHistory", "Get version status history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -106,8 +116,9 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Plan a version.",
-        "A version is a cut of one artifact — Wayd API 4.12.0 — and is what was built. To record what was announced to customers, plan a release instead. Only a product whose type is releasable can carry a version.")]
+        "Record a version against a product.",
+        "A version is one artifact that was built, not the announcement made to customers — for that, use the Releases_* tools instead. The product is required and **must be of a releasable type** — a version is a cut of something that ships, so the API refuses a product line or other non-releasable node. Only the target date is set here; cutting and releasing are their own actions, because each records something that happened and each carries its own rule.")]
+    [McpTool("Versions_Plan", "Plan a version", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Plan(
         [FromBody] PlanVersionRequest request, CancellationToken cancellationToken)
@@ -170,8 +181,9 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Update a version.",
-        "A whole-record overwrite of the descriptive fields: an omitted field is cleared. The dates and moments are not here — each carries a rule of its own, so they move through their own actions.")]
+        "Update a version's descriptive fields.",
+        "**This is a whole-record overwrite: an omitted field is cleared.** Send every value the version should end up with, including ones you are not changing. The dates are not here — each carries a rule the aggregate enforces, and folding them into a blanket save would hide which rule refused.")]
+    [McpTool("Versions_Update", "Update a version", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -190,7 +202,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
 
     [HttpPut("{id}/target-date")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
-    [OpenApiOperation("Move or clear a version's target date.", "")]
+    [OpenApiOperation(
+        "Move or clear a version's target date.",
+        "Omitting the date records that the version is no longer targeted, which is a different statement from never having set one. Refused on a released or withdrawn version.")]
+    [McpTool("Versions_MoveTargetDate", "Move a version target date", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MoveTargetDate(
@@ -207,8 +222,9 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Correct a version's recorded target date and cut and released moments.",
-        "Fixes values entered wrongly without changing the version's status. All three are sent, so an omitted value is cleared. The released moment cannot be cleared — revert the version instead.")]
+        "Fix a version's target date or cut or released moment that was recorded wrongly.",
+        "The status does not move and the status history is left untouched — that is the point of having this separate from Versions_Cut and Versions_MarkReleased, which assert the version moved and refuse to run twice. **All three are sent, so an omitted target date or cut moment is cleared.** The released moment cannot be cleared once set: a released record with no released moment contradicts its own status — revert it instead. A version cannot be released before it was cut. The target date is a calendar date; the cut and released moments are instants, sent with their offset exactly as the CI/CD system reports them. Refused on a withdrawn version.")]
+    [McpTool("Versions_CorrectDates", "Correct version dates", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
@@ -228,7 +244,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
 
     [HttpPost("{id}/cut")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
-    [OpenApiOperation("Cut a version.", "Freezes scope and marks it ready to ship. One-way.")]
+    [OpenApiOperation(
+        "Record that a version was cut — scope is frozen and it is ready to ship.",
+        "**One-way: a version cannot be cut twice**, and a released or withdrawn version refuses it. Cutting is not a prerequisite for releasing: a version imported after the fact can be marked released without ever having been cut, which is why this is a separate action rather than a step.")]
+    [McpTool("Versions_Cut", "Cut a version")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Cut(
@@ -250,7 +269,8 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Record that a version shipped.",
-        "Marking a version released is not the same as announcing it to customers — that is a release. Cutting is not a prerequisite: a version imported after the fact can be marked released without ever having been cut.")]
+        "**This is not announcing it to customers** — that is Releases_MarkReleased on a release. A version can be marked released without ever having been cut, which is what makes importing historical versions possible; where it was cut, it cannot be released before it was cut. Refused on a withdrawn version.")]
+    [McpTool("Versions_MarkReleased", "Mark a version released")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MarkReleased(
@@ -269,7 +289,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Delivery)]
-    [OpenApiOperation("Delete a version.", "Permanent: also deletes its status history and every deployment of it. Refused while a release lists it or a package manifest names it.")]
+    [OpenApiOperation(
+        "Permanently delete a version with its status history and **every deployment of it**.",
+        "The delivery measures and rollout stop counting those deployments. **Refused while a release lists it or a package manifest names it** — remove it with `Releases_SetContents` or `ReleasePackages_SetManifest` first, or delete that release or package (an announced release or released package cannot change, so deleting it is the only way). For a version recorded by mistake or when the user asks to purge history; a real version that was pulled is `Versions_Withdraw`. Needs the delivery Delete permission.")]
+    [McpTool("Versions_Delete", "Delete a version", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -283,7 +306,10 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
 
     [HttpPost("{id}/withdraw")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
-    [OpenApiOperation("Withdraw a version.", "The version is kept: deployments may reference it.")]
+    [OpenApiOperation(
+        "Pull a version.",
+        "Terminal. **A released version can still be withdrawn** — pulling something after it shipped is exactly the case this exists for — but a withdrawn one cannot be released. Use this only when a real version was pulled; if it was marked released by mistake and never actually shipped, use Versions_Revert instead.")]
+    [McpTool("Versions_Withdraw", "Withdraw a version")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Withdraw(
@@ -299,8 +325,9 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
     [HttpPost("{id}/revert")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Revert a version recorded as shipped.",
-        "For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released moment. Not a withdrawal — that pulls a version which really shipped.")]
+        "Record that a version marked as shipped did **not in fact ship** — the wrong record was updated.",
+        "Returns it to Ready, or to the initial status where it was never cut, and clears the released moment. A reason is required, unlike a withdrawal's optional one: this contradicts something the append-only history already asserts. Do not use this for a version that really shipped and was then pulled — that is Versions_Withdraw.")]
+    [McpTool("Versions_Revert", "Revert a version")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

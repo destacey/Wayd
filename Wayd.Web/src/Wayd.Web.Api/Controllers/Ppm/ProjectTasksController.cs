@@ -23,6 +23,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get a list of project tasks.", "")]
+    [McpTool("Tasks_GetProjectTasks", "List project tasks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectTaskListDto>>> GetProjectTasks(
@@ -41,6 +42,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpGet("{taskIdOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get project task details.", "")]
+    [McpTool("Tasks_GetProjectTask", "Get project task")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectTaskDto>> GetProjectTask(
@@ -58,6 +60,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Projects)]
     [OpenApiOperation("Create a project task.", "")]
+    [McpTool("Tasks_CreateProjectTask", "Create a project task", Destructive = false)]
     [ProducesResponseType(typeof(ProjectTaskIdAndKey), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -84,6 +87,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [OpenApiOperation("Update a project task.", "")]
+    [McpTool("Tasks_UpdateProjectTask", "Update a project task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -159,6 +163,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [OpenApiOperation("Delete a project task.", "")]
+    [McpTool("Tasks_DeleteProjectTask", "Delete a project task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -203,6 +208,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpGet("critical-path")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get the critical path for the project.", "Returns an ordered list of task IDs on the critical path.")]
+    [McpTool("Tasks_GetCriticalPath", "Get project critical path")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<Guid>>> GetCriticalPath(
@@ -217,6 +223,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpPost("{id}/dependencies")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [OpenApiOperation("Add a dependency to a task.", "Creates a finish-to-start dependency where the specified task is the predecessor.")]
+    [McpTool("Tasks_AddTaskDependency", "Add a task dependency", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -243,6 +250,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpDelete("{id}/dependencies/{successorId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [OpenApiOperation("Remove a dependency from a task.", "Removes the finish-to-start dependency between the predecessor and successor tasks.")]
+    [McpTool("Tasks_RemoveTaskDependency", "Remove a task dependency")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveTaskDependency(
@@ -266,6 +274,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpGet("/api/ppm/projects/tasks/types")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get a list of all task types.", "")]
+    [McpTool("Tasks_GetTaskTypes", "List task types")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectTaskTypeDto>>> GetTaskTypes(CancellationToken cancellationToken)
@@ -277,6 +286,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpGet("/api/ppm/projects/tasks/statuses")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get a list of all task statuses.", "")]
+    [McpTool("Tasks_GetTaskStatuses", "List task statuses")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TaskStatusDto>>> GetTaskStatuses(CancellationToken cancellationToken)
@@ -288,6 +298,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     [HttpGet("/api/ppm/projects/tasks/priorities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [OpenApiOperation("Get a list of all task priorities.", "")]
+    [McpTool("Tasks_GetTaskPriorities", "List task priorities")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TaskPriorityDto>>> GetTaskPriorities(CancellationToken cancellationToken)

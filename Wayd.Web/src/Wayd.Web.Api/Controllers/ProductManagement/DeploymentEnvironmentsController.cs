@@ -31,7 +31,10 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.DeploymentEnvironments)]
-    [OpenApiOperation("Get a list of deployment environments.", "")]
+    [OpenApiOperation(
+        "List the deployment environments defined for the organization.",
+        "Environments are defined once and any product can deploy into any of them. Each carries a **category** and a **ring order**, so progressive rollout is representable. Filter by category rather than matching on names, which are free text.")]
+    [McpTool("DeploymentEnvironments_GetDeploymentEnvironments", "List deployment environments")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<DeploymentEnvironmentDto>>> GetDeploymentEnvironments(
@@ -48,8 +51,9 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
     [HttpGet("rollout")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Get what is running in each environment, in rollout order.",
-        "Each entry is the latest deployment that succeeded and was not rolled back, so a failed attempt correctly leaves its predecessor running. Derived from the deployment record rather than stored, so it is never out of step with it. Keyed on the product: a package deployment is expanded into its manifest, and each component takes its own product's slot.")]
+        "Get what is running in each environment right now, in rollout order (lowest ring first).",
+        "Answers \"what version of X is in production?\" and \"how far has this got?\" in one call.\n\nEach environment lists `running`: **one entry per product**, never per package. A package deployment is expanded into its manifest and each component takes its own product's slot, so two successive bundles carrying the same component do not both show as running. Each entry is the **latest deployment that succeeded and was not rolled back** — a failed attempt leaves its predecessor running, and a rollback takes its own deployment out and leaves the one before it in. So \"what is here\" and \"what happened last\" differ: check `hasFailedAttemptSince`, true when a later deployment touching that product failed or was rolled back there.\n\nEach entry carries `versionLabel` (always set, free text), `version` (null for a packaged component never cut as a version in Wayd), `package` (set when it arrived inside one), `artifactId`, `deployedAt`, and the `deploymentId`/`deploymentKey` it was read from. An empty `running` list means nothing has ever succeeded into that environment — a complete answer, not missing data.")]
+    [McpTool("DeploymentEnvironments_GetRollout", "Get environment rollout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EnvironmentRolloutDto>>> GetRollout(
@@ -64,7 +68,10 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.DeploymentEnvironments)]
-    [OpenApiOperation("Create a deployment environment.", "")]
+    [OpenApiOperation(
+        "Define a deployment environment.",
+        "The **category** is what every production-scoped measure counts on, so set it deliberately rather than relying on the name. **Ring order** places the environment in a progressive rollout sequence — lower rings are reached first.")]
+    [McpTool("DeploymentEnvironments_Create", "Create a deployment environment", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(
         [FromBody] CreateDeploymentEnvironmentRequest request, CancellationToken cancellationToken)
@@ -126,8 +133,9 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.DeploymentEnvironments)]
     [OpenApiOperation(
-        "Update a deployment environment.",
-        "Changing the category changes what past deployments to it count toward.")]
+        "Update an environment's name, category or ring order.",
+        "**This is a whole-record overwrite — send every field, including ones you are not changing.**\n\nChanging the category is not an ordinary edit: each deployment **froze** the category of the environment it went into, so reclassifying changes where *future* deployments count and leaves past ones exactly as they were. A staging environment promoted to production does not retroactively inflate deployment frequency. Refused on a retired environment.")]
+    [McpTool("DeploymentEnvironments_Update", "Update a deployment environment", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -146,7 +154,10 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
 
     [HttpPut("{id}/active")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.DeploymentEnvironments)]
-    [OpenApiOperation("Activate or deactivate a deployment environment.", "")]
+    [OpenApiOperation(
+        "Retire an environment or reinstate one.",
+        "**Retire rather than delete** unless the user explicitly wants the history gone: deleting an environment takes every deployment into it with it, while retiring keeps them.\n\nA retired environment is no longer offered as a deployment target, but it and every deployment recorded against it are kept, and those deployments keep counting toward the measures they already count toward. Editing and reclassifying are refused on a retired environment, so reinstate it first if you need to change it.")]
+    [McpTool("DeploymentEnvironments_SetActive", "Retire or reinstate an environment", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetActive(
@@ -164,7 +175,10 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.DeploymentEnvironments)]
-    [OpenApiOperation("Delete a deployment environment.", "Permanent: also deletes every deployment into it and their status history, and the delivery measures stop counting them. Retiring keeps them.")]
+    [OpenApiOperation(
+        "Permanently delete an environment **and every deployment into it**, with their status history.",
+        "The delivery measures and rollout stop counting those deployments. For an environment defined by mistake, or when the user asks to purge history — otherwise retire it with `DeploymentEnvironments_SetActive`, which keeps them. The `deploymentCount` from `DeploymentEnvironments_GetDeploymentEnvironments` says how many would go; state it before confirming. Needs the environment Delete permission, and — when the environment has any deployments — the delivery Delete permission as well.")]
+    [McpTool("DeploymentEnvironments_Delete", "Delete a deployment environment", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)

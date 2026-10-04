@@ -37,7 +37,10 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get a list of deployments.", "Most recently started first.")]
+    [OpenApiOperation(
+        "List deployments, most recently started first.",
+        "Each carries either a version or a package, never both. Filtering by environment category is how to scope to production, because environment *names* are free text and endlessly varied (`prod`, `Production`, `prd`, `live`) while the category is fixed.")]
+    [McpTool("Deployments_GetDeployments", "List deployments")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<DeploymentDto>>> GetDeployments(
@@ -62,7 +65,10 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
 
     [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get deployment details.", "Accepts the deployment's id or its short key.")]
+    [OpenApiOperation(
+        "Get one deployment in full — what it carried, the environment it reached, its frozen environment category, its artifact identifier and its outcome.",
+        "Accepts the deployment's UUID or its short key.")]
+    [McpTool("Deployments_GetDeployment", "Get deployment")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DeploymentDto>> GetDeployment(string idOrKey, CancellationToken cancellationToken)
@@ -76,7 +82,10 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
 
     [HttpGet("{idOrKey}/activities")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
-    [OpenApiOperation("Get activity history for the deployment.", "")]
+    [OpenApiOperation(
+        "Get a deployment's activity history, newest first: when it started and its outcome — succeeded, failed or rolled back.",
+        "Each entry has a `category` (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), an `actorKind` (User, System, Import, Sync, Anonymous) with the acting `employee` when there is one, a `timestamp`, a one-line `summary`, and a `payload`: the event's fields as a JSON string. A change carries both ends, the value before and after. People in a payload are employee ids, not user ids. A Baseline entry marks where tracking began for a record that already existed, holding what it looked like then; nothing before it was recorded. An entry with `isRelated: true` was raised on another record and is listed here because it concerns this one; `raisedOn` names that record, or is null where it could not be resolved (typically removed since). Paged: the response carries `totalCount` and `hasNextPage`.")]
+    [McpTool("Deployments_GetActivities", "Get deployment activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -91,8 +100,9 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [HttpGet("{idOrKey}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Get a deployment's status change history.",
-        "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+        "Get a deployment's status change history, newest first.",
+        "Each entry reports the status names as they were at the time.")]
+    [McpTool("Deployments_GetStatusHistory", "Get deployment status history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -112,8 +122,9 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Start a deployment.",
-        "Carries either a version or a package, never both and never neither. Where a package exists it is the unit that shipped, so one pipeline run counts once rather than once per component. Only an active environment is accepted, and leaving the start time empty records it as starting now.")]
+        "Record a deployment beginning.",
+        "**Supply exactly one of versionId or packageId — never both, never neither.** The request is refused otherwise. Where a package exists it is the unit that shipped, so deploy the package rather than each component version: one pipeline run counts once, not once per service.\n\nOnly an **active** environment is accepted. Leaving `startedAt` empty records the deployment as starting now, which is what a pipeline reporting in real time would do. The artifact identifier is the build that actually shipped — `4.8.2.008` where the version number is `4.8.2` — and two builds of one version are two deployments.")]
+    [McpTool("Deployments_Start", "Start a deployment", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Start(
         [FromBody] StartDeploymentRequest request, CancellationToken cancellationToken)
@@ -179,7 +190,10 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
 
     [HttpPost("{id}/succeed")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
-    [OpenApiOperation("Record that a deployment reached its environment.", "")]
+    [OpenApiOperation(
+        "Record that a deployment reached its environment.",
+        "Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. There is no edit on a deployment — it records something that happened. **In production this also marks what shipped as released**: an unreleased version, or a package and the versions that changed in it, becomes Released at the completion. A released moment already recorded is never replaced.")]
+    [McpTool("Deployments_Succeed", "Record deployment success")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Succeed(
@@ -197,7 +211,8 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Record that a deployment did not reach its environment.",
-        "Counts toward change failure rate only in production.")]
+        "Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Note this is a deployment that *failed to arrive* — a deployment that succeeded and then broke something is a rollback, not a failure, and the distinction matters because change failure rate counts the second kind.")]
+    [McpTool("Deployments_Fail", "Record deployment failure")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Fail(
@@ -213,7 +228,10 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
 
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Delivery)]
-    [OpenApiOperation("Delete a deployment.", "Permanent: removes the deployment and its status history, and the delivery measures stop counting it.")]
+    [OpenApiOperation(
+        "Permanently delete a deployment and its status history.",
+        "Allowed in any state. **The delivery measures and rollout stop counting it**, so this is for a deployment recorded by mistake or for purging a retired product's history — a deployment that really failed or was rolled back must be recorded with `Deployments_Fail` or `Deployments_RollBack` instead. Needs the delivery Delete permission.")]
+    [McpTool("Deployments_Delete", "Delete a deployment", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -228,8 +246,9 @@ public class DeploymentsController(IDispatcher dispatcher, ICsvService csvServic
     [HttpPost("{id}/roll-back")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
-        "Record that a deployment was reverted.",
-        "Permitted only from a succeeded deployment.")]
+        "Record that a deployment reached its environment and was then reverted.",
+        "Offered only while the deployment is still in flight — once an outcome is recorded, none of the outcome tools can be called again. Distinct from a failure: this one arrived and then had to be undone, which is the signal change failure rate is computed from.")]
+    [McpTool("Deployments_RollBack", "Record deployment rollback")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RollBack(

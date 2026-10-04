@@ -26,8 +26,11 @@ convention, and `commit-msg` **warns** about a message that does but keeps the c
 
 No other prefix is allowed — including `copilot/`, `claude/`, `codex/` and `cursor/`, which cloud agents
 choose for themselves. A cloud agent works on GitHub's side and never runs the hook, and some (Copilot) cannot
-change their prefix, so rename such a branch before it is merged. Pushing to a branch a service created
-(`changeset-release/main`, a Copilot pull request) needs `git push --no-verify`.
+change their prefix, so rename such a branch before it is merged. Pushing to a Copilot pull request's branch
+needs `git push --no-verify`.
+
+The one exception is `changeset-release/main`, the release pull request the Changesets workflow opens under
+a name it fixes. Only that exact branch is allowed, not the `changeset-release/` prefix.
 
 ## Commit messages
 

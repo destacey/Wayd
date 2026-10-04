@@ -21,7 +21,7 @@ Some directories carry their own `AGENTS.md` with rules that apply only there. R
 
 - [Wayd.Services/AGENTS.md](Wayd.Services/AGENTS.md) — domain events: designing, raising, versioning, consuming
 - [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md) — the database context, transactions, authentication
-- [Wayd.Web/src/Wayd.Web.Api/AGENTS.md](Wayd.Web/src/Wayd.Web.Api/AGENTS.md) — OpenAPI client generation and Wolverine handler codegen
+- [Wayd.Web/src/Wayd.Web.Api/AGENTS.md](Wayd.Web/src/Wayd.Web.Api/AGENTS.md) — OpenAPI client generation, Wolverine handler codegen, and the hosted MCP endpoint (`/mcp`)
 - [Wayd.Web/src/wayd.web.reactclient/AGENTS.md](Wayd.Web/src/wayd.web.reactclient/AGENTS.md) — the client's traps, and the Next.js version in use
 - [Wayd.Web/src/Wayd.Mcp/AGENTS.md](Wayd.Web/src/Wayd.Mcp/AGENTS.md) — the MCP server (`@wayd/mcp`)
 

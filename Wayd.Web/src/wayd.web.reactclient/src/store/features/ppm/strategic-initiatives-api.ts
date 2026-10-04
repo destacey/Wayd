@@ -22,6 +22,7 @@ import {
   ObjectIdAndKey,
   StrategicInitiativeDetailsDto,
   StrategicInitiativeListDto,
+  StrategicInitiativeStatus,
   UpdateStrategicInitiativeRequest,
 } from '@/src/services/wayd-api'
 import { StatusOptionModel } from '@/src/components/types'
@@ -30,7 +31,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStrategicInitiatives: builder.query<
       StrategicInitiativeListDto[],
-      { status?: number[]; portfolioId?: string } | undefined
+      { status?: StrategicInitiativeStatus[]; portfolioId?: string } | undefined
     >({
       queryFn: async (request = undefined) => {
         try {
@@ -218,7 +219,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
       },
     }),
     getStrategicInitiativeStatusOptions: builder.query<
-      StatusOptionModel[],
+      StatusOptionModel<StrategicInitiativeStatus>[],
       void
     >({
       queryFn: async () => {
@@ -226,10 +227,10 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
           const statuses =
             await getStrategicInitiativesClient().getStrategicInitiativeStatuses()
 
-          const data: StatusOptionModel[] = statuses
+          const data: StatusOptionModel<StrategicInitiativeStatus>[] = statuses
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
-              value: s.id,
+              value: s.code,
               label: s.name,
               lifecycleCategory: s.lifecycleCategory,
             }))

@@ -13,6 +13,7 @@ public sealed class GetProjectStatusesQueryHandler : IQueryHandler<GetProjectSta
         IReadOnlyList<ProjectStatusDto> values = [.. Enum.GetValues<ProjectStatus>().Select(c => new ProjectStatusDto
         {
             Id = (int)c,
+            Code = c,
             Name = c.GetDisplayName(),
             Description = c.GetDisplayDescription(),
             Order = c.GetDisplayOrder(),

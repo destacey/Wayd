@@ -1,12 +1,13 @@
 'use client'
 
 import { useGetStateOptionsQuery } from '@/src/store/features/strategic-management/strategic-themes-api'
+import { StrategicThemeState } from '@/src/services/wayd-api'
 import { FC } from 'react'
 import { PpmFilterBar } from '@/src/app/ppm/_components'
 
 export interface StrategicThemesFilterBarProps {
-  selectedStates: number[]
-  onStateChange: (states: number[]) => void
+  selectedStates: StrategicThemeState[]
+  onStateChange: (states: StrategicThemeState[]) => void
 }
 
 const StrategicThemesFilterBar: FC<StrategicThemesFilterBarProps> = ({

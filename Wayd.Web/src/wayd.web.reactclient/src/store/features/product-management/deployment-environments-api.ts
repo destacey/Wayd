@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   CreateDeploymentEnvironmentRequest,
   DeploymentEnvironmentDto,
+  EnvironmentCategory,
   EnvironmentRolloutDto,
   ObjectIdAndKey,
   SetDeploymentEnvironmentActiveRequest,
@@ -12,7 +13,7 @@ import { QueryTags } from '../query-tags'
 
 export interface GetDeploymentEnvironmentsRequest {
   isActive?: boolean
-  category?: number
+  category?: EnvironmentCategory
 }
 
 export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({

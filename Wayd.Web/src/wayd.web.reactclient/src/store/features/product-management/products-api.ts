@@ -18,13 +18,14 @@ import {
   RetypeProductRequest,
   UpdateProductRequest,
   PagedResponseOfActivityLogDto,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
 export interface GetProductsRequest {
   parentId?: string
   productTypeId?: string
-  statusCategory?: number[]
+  statusCategory?: StatusCategory[]
   tagId?: string[]
 }
 

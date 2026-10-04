@@ -45,15 +45,11 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<VersionDto>>> GetVersions(
         [FromQuery] Guid? productId,
-        [FromQuery] int[]? statusCategory,
+        [FromQuery] StatusCategory[]? statusCategory,
         CancellationToken cancellationToken)
     {
-        StatusCategory[]? categories = statusCategory is { Length: > 0 }
-            ? [.. statusCategory.Select(c => (StatusCategory)c)]
-            : null;
-
         var versions = await _dispatcher.Send(
-            new GetVersionsQuery(productId, categories), cancellationToken);
+            new GetVersionsQuery(productId, statusCategory), cancellationToken);
 
         return Ok(versions);
     }

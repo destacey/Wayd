@@ -44,16 +44,12 @@ public class ReleasesController(IDispatcher dispatcher, ICsvService csvService) 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ReleaseDto>>> GetReleases(
         [FromQuery] Guid? productId,
-        [FromQuery] int[]? statusCategory,
+        [FromQuery] StatusCategory[]? statusCategory,
         [FromQuery] Guid? containingVersionId,
         CancellationToken cancellationToken)
     {
-        StatusCategory[]? categories = statusCategory is { Length: > 0 }
-            ? [.. statusCategory.Select(c => (StatusCategory)c)]
-            : null;
-
         var releases = await _dispatcher.Send(
-            new GetReleasesQuery(productId, categories, containingVersionId), cancellationToken);
+            new GetReleasesQuery(productId, statusCategory, containingVersionId), cancellationToken);
 
         return Ok(releases);
     }

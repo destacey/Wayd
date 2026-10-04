@@ -2,25 +2,28 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PpmFilterBar from './ppm-filter-bar'
 import { StatusOptionModel } from '@/src/components/types'
+import { ProjectStatus, StrategicThemeState } from '@/src/services/wayd-api'
 
-const STATUS_OPTIONS: StatusOptionModel[] = [
-  { value: 1, label: 'Proposed', lifecycleCategory: 'NotStarted' },
-  { value: 5, label: 'Approved', lifecycleCategory: 'NotStarted' },
-  { value: 2, label: 'Active', lifecycleCategory: 'Active' },
-  { value: 3, label: 'Completed', lifecycleCategory: 'Completed' },
+const { Proposed, Approved, Active, Completed } = ProjectStatus
+
+const STATUS_OPTIONS: StatusOptionModel<string>[] = [
+  { value: Proposed, label: 'Proposed', lifecycleCategory: 'NotStarted' },
+  { value: Approved, label: 'Approved', lifecycleCategory: 'NotStarted' },
+  { value: Active, label: 'Active', lifecycleCategory: 'Active' },
+  { value: Completed, label: 'Completed', lifecycleCategory: 'Completed' },
 ]
 
 /** Roadmaps and strategic themes filter on states, which carry no category. */
-const STATE_OPTIONS: StatusOptionModel[] = [
-  { value: 1, label: 'Proposed' },
-  { value: 2, label: 'Active' },
+const STATE_OPTIONS: StatusOptionModel<string>[] = [
+  { value: StrategicThemeState.Proposed, label: 'Proposed' },
+  { value: StrategicThemeState.Active, label: 'Active' },
 ]
 
 const onStatusChange = jest.fn()
 
 const renderBar = (
-  selectedStatuses: number[],
-  statusOptions: StatusOptionModel[] = STATUS_OPTIONS,
+  selectedStatuses: string[],
+  statusOptions: StatusOptionModel<string>[] = STATUS_OPTIONS,
 ) =>
   render(
     <PpmFilterBar
@@ -53,7 +56,7 @@ describe('PpmFilterBar status buttons', () => {
 
   it('lights only the selected statuses', () => {
     // Arrange / Act
-    renderBar([2])
+    renderBar([Active])
 
     // Assert
     expect(isLit('Active')).toBe(true)
@@ -75,24 +78,24 @@ describe('PpmFilterBar status buttons', () => {
 
   it('adds a status to an existing selection', async () => {
     // Arrange
-    renderBar([2])
+    renderBar([Active])
 
     // Act
     await userEvent.click(screen.getByRole('button', { name: 'Proposed' }))
 
     // Assert
-    expect(onStatusChange).toHaveBeenCalledWith([2, 1])
+    expect(onStatusChange).toHaveBeenCalledWith([Active, Proposed])
   })
 
   it('removes a status from an existing selection', async () => {
     // Arrange
-    renderBar([2, 1])
+    renderBar([Active, Proposed])
 
     // Act
     await userEvent.click(screen.getByRole('button', { name: 'Proposed' }))
 
     // Assert
-    expect(onStatusChange).toHaveBeenCalledWith([2])
+    expect(onStatusChange).toHaveBeenCalledWith([Active])
   })
 
   it('narrows to the rest when turning one off while showing all', async () => {
@@ -104,12 +107,12 @@ describe('PpmFilterBar status buttons', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Completed' }))
 
     // Assert
-    expect(onStatusChange).toHaveBeenCalledWith([1, 5, 2])
+    expect(onStatusChange).toHaveBeenCalledWith([Proposed, Approved, Active])
   })
 
   it('colors a lit status with its own color, not the default primary', () => {
     // Arrange / Act — only Completed is lit.
-    renderBar([3])
+    renderBar([Completed])
 
     // Assert — it takes the status column's colors rather than antd's primary.
     const completed = getButton('Completed')
@@ -134,7 +137,7 @@ describe('PpmFilterBar status buttons', () => {
     // Arrange / Act — Proposed lit, the rest not. A not-started status is grey, so
     // its lit chip differs from an unlit button by a background step alone; the
     // dash is what makes the difference legible, colorblind readers included.
-    renderBar([1])
+    renderBar([Proposed])
 
     // Assert
     expect(getButton('Proposed').style.borderStyle).toBe('')
@@ -146,7 +149,7 @@ describe('PpmFilterBar status buttons', () => {
     // Arrange / Act — Proposed is lit. Carrying the status color through both
     // states told them apart only by how vivid each was, which a grey status has
     // no way to show, so the row reads as "the colored ones are on" instead.
-    renderBar([1])
+    renderBar([Proposed])
 
     // Assert
     expect(isColored('Proposed')).toBe(true)
@@ -158,7 +161,7 @@ describe('PpmFilterBar status buttons', () => {
   it('leaves an unlit status uncolored', () => {
     // Arrange / Act — coloring the unlit buttons too would leave every button
     // colored, and selection is what the bar has to show first.
-    renderBar([3])
+    renderBar([Completed])
 
     // Assert
     const proposed = getButton('Proposed')
@@ -169,7 +172,7 @@ describe('PpmFilterBar status buttons', () => {
     // Arrange / Act — roadmaps and strategic themes filter on states. Keying the
     // dash on "no color was found" rather than on selection marked their lit
     // buttons as off.
-    renderBar([2], STATE_OPTIONS)
+    renderBar([StrategicThemeState.Active], STATE_OPTIONS)
 
     // Assert
     expect(getButton('Active').style.borderStyle).toBe('')
@@ -179,7 +182,7 @@ describe('PpmFilterBar status buttons', () => {
   it('falls back to the primary for states with no lifecycle category', () => {
     // Arrange / Act — roadmaps and strategic themes filter on states, which
     // carry no category to take a color from.
-    renderBar([2], STATE_OPTIONS)
+    renderBar([StrategicThemeState.Active], STATE_OPTIONS)
 
     // Assert
     const active = getButton('Active')
@@ -189,7 +192,7 @@ describe('PpmFilterBar status buttons', () => {
 
   it('clears to all when the last selected status is turned off', async () => {
     // Arrange
-    renderBar([2])
+    renderBar([Active])
 
     // Act
     await userEvent.click(screen.getByRole('button', { name: 'Active' }))

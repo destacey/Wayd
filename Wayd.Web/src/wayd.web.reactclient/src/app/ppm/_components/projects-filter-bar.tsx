@@ -2,12 +2,13 @@
 
 import { useGetProjectStatusOptionsQuery } from '@/src/store/features/ppm/projects-api'
 import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
+import { ProjectStatus } from '@/src/services/wayd-api'
 import { FC } from 'react'
 import PpmFilterBar from './ppm-filter-bar'
 
 export interface ProjectsFilterBarProps {
-  selectedStatuses: number[]
-  onStatusChange: (statuses: number[]) => void
+  selectedStatuses: ProjectStatus[]
+  onStatusChange: (statuses: ProjectStatus[]) => void
   selectedPortfolioId?: string | null
   onPortfolioChange?: (portfolioId: string | null) => void
   showPortfolioFilter?: boolean

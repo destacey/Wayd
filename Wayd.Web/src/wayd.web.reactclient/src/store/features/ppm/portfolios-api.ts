@@ -12,6 +12,10 @@ import {
   StrategicInitiativeListDto,
   UpdatePortfolioRequest,
   PagedResponseOfActivityLogDto,
+  ProgramStatus,
+  ProjectPortfolioStatus,
+  ProjectStatus,
+  StrategicInitiativeStatus,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
@@ -22,7 +26,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getPortfolios: builder.query<
       ProjectPortfolioListDto[],
-      number[] | undefined
+      ProjectPortfolioStatus[] | undefined
     >({
       queryFn: async (portfolioState = undefined) => {
         try {
@@ -256,7 +260,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     }),
     getPortfolioPrograms: builder.query<
       ProgramListDto[],
-      { portfolioIdOrKey: string; status?: number[] }
+      { portfolioIdOrKey: string; status?: ProgramStatus[] }
     >({
       queryFn: async ({ portfolioIdOrKey, status }) => {
         try {
@@ -277,7 +281,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     }),
     getPortfolioProjects: builder.query<
       ProjectListDto[],
-      { portfolioIdOrKey: string; status?: number[] }
+      { portfolioIdOrKey: string; status?: ProjectStatus[] }
     >({
       queryFn: async ({ portfolioIdOrKey, status }) => {
         try {
@@ -298,7 +302,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     }),
     getPortfolioStrategicInitiatives: builder.query<
       StrategicInitiativeListDto[],
-      { portfolioIdOrKey: string; status?: number[] }
+      { portfolioIdOrKey: string; status?: StrategicInitiativeStatus[] }
     >({
       queryFn: async ({ portfolioIdOrKey, status }) => {
         try {
@@ -317,15 +321,18 @@ export const portfoliosApi = apiSlice.injectEndpoints({
         { type: QueryTags.PortfolioStrategicInitiatives, id: portfolioIdOrKey },
       ],
     }),
-    getPortfolioStatusOptions: builder.query<OptionModel<number>[], void>({
+    getPortfolioStatusOptions: builder.query<
+      OptionModel<ProjectPortfolioStatus>[],
+      void
+    >({
       queryFn: async () => {
         try {
           const statuses = await getPortfoliosClient().getPortfolioStatuses()
 
-          const data: OptionModel<number>[] = statuses
+          const data: OptionModel<ProjectPortfolioStatus>[] = statuses
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
-              value: s.id,
+              value: s.code,
               label: s.name,
             }))
 
@@ -363,7 +370,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
           // TODO: hard coding status for now.  Need status values from the client.
           const programs = await getPortfoliosClient().getPrograms(
             portfolioIdOrKey,
-            [2],
+            [ProgramStatus.Active],
           )
 
           const data: BaseOptionType[] = programs

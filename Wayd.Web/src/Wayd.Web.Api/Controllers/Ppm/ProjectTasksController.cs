@@ -28,13 +28,11 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
     public async Task<ActionResult<IEnumerable<ProjectTaskListDto>>> GetProjectTasks(
         string projectIdOrKey,
         CancellationToken cancellationToken,
-        [FromQuery] int? status = null,
+        [FromQuery] TaskStatus? status = null,
         [FromQuery] Guid? parentId = null)
     {
-        TaskStatus? statusFilter = status.HasValue ? (TaskStatus)status.Value : null;
-
         var tasks = await _dispatcher.Send(
-            new GetProjectTasksQuery(projectIdOrKey, statusFilter, parentId),
+            new GetProjectTasksQuery(projectIdOrKey, status, parentId),
             cancellationToken);
 
         return Ok(tasks);

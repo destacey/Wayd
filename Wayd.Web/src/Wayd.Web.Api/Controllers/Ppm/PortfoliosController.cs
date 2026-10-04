@@ -42,13 +42,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [OpenApiOperation("Get a list of project portfolios.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<ProjectPortfolioListDto>>> GetPortfolios([FromQuery] int[]? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<ProjectPortfolioListDto>>> GetPortfolios([FromQuery] ProjectPortfolioStatus[]? status, CancellationToken cancellationToken)
     {
-        ProjectPortfolioStatus[]? filter = status is { Length: > 0 }
-            ? [.. status.Select(s => (ProjectPortfolioStatus)s)]
-            : null;
-
-        var portfolios = await _dispatcher.Send(new GetProjectPortfoliosQuery(filter), cancellationToken);
+        var portfolios = await _dispatcher.Send(new GetProjectPortfoliosQuery(status), cancellationToken);
 
         return Ok(portfolios);
     }
@@ -342,13 +338,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<ProgramListDto>>> GetPrograms(string idOrKey, [FromQuery] int[]? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<ProgramListDto>>> GetPrograms(string idOrKey, [FromQuery] ProgramStatus[]? status, CancellationToken cancellationToken)
     {
-        ProgramStatus[]? filter = status is { Length: > 0 }
-            ? [.. status.Select(s => (ProgramStatus)s)]
-            : null;
-
-        var programs = await _dispatcher.Send(new GetProgramsQuery(PortfolioIdOrKey: idOrKey, StatusFilter: filter), cancellationToken);
+        var programs = await _dispatcher.Send(new GetProgramsQuery(PortfolioIdOrKey: idOrKey, StatusFilter: status), cancellationToken);
 
         return programs is not null
             ? Ok(programs)
@@ -361,13 +353,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<ProjectListDto>>> GetProjects(string idOrKey, [FromQuery] int[]? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<ProjectListDto>>> GetProjects(string idOrKey, [FromQuery] ProjectStatus[]? status, CancellationToken cancellationToken)
     {
-        ProjectStatus[]? filter = status is { Length: > 0 }
-            ? [.. status.Select(s => (ProjectStatus)s)]
-            : null;
-
-        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: filter, PortfolioIdOrKey: idOrKey), cancellationToken);
+        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: status, PortfolioIdOrKey: idOrKey), cancellationToken);
 
         return projects is not null
             ? Ok(projects)
@@ -379,13 +367,9 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [OpenApiOperation("Get a list of strategic initiatives for the portfolio.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<StrategicInitiativeListDto>>> GetStrategicInitiatives(string idOrKey, [FromQuery] int[]? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<StrategicInitiativeListDto>>> GetStrategicInitiatives(string idOrKey, [FromQuery] StrategicInitiativeStatus[]? status, CancellationToken cancellationToken)
     {
-        StrategicInitiativeStatus[]? filter = status is { Length: > 0 }
-            ? [.. status.Select(s => (StrategicInitiativeStatus)s)]
-            : null;
-
-        var initiatives = await _dispatcher.Send(new GetStrategicInitiativesQuery(filter, idOrKey), cancellationToken);
+        var initiatives = await _dispatcher.Send(new GetStrategicInitiativesQuery(status, idOrKey), cancellationToken);
 
         return Ok(initiatives);
     }

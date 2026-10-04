@@ -2,12 +2,13 @@
 
 import { useGetStrategicInitiativeStatusOptionsQuery } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
+import { StrategicInitiativeStatus } from '@/src/services/wayd-api'
 import { FC } from 'react'
 import PpmFilterBar from './ppm-filter-bar'
 
 export interface StrategicInitiativesFilterBarProps {
-  selectedStatuses: number[]
-  onStatusChange: (statuses: number[]) => void
+  selectedStatuses: StrategicInitiativeStatus[]
+  onStatusChange: (statuses: StrategicInitiativeStatus[]) => void
   selectedPortfolioId?: string | null
   onPortfolioChange?: (portfolioId: string | null) => void
   showPortfolioFilter?: boolean

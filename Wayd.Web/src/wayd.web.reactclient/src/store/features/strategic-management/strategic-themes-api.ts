@@ -6,6 +6,7 @@ import {
   StrategicThemeListDto,
   UpdateStrategicThemeRequest,
   PagedResponseOfActivityLogDto,
+  StrategicThemeState,
 } from '@/src/services/wayd-api'
 import { getStrategicThemesClient } from '@/src/services/clients'
 import { QueryTags } from '../query-tags'
@@ -16,7 +17,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStrategicThemes: builder.query<
       StrategicThemeListDto[],
-      { state?: number[] } | undefined
+      { state?: StrategicThemeState[] } | undefined
     >({
       queryFn: async (request = undefined) => {
         try {
@@ -146,15 +147,15 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
         return [{ type: QueryTags.StrategicTheme, id: 'LIST' }]
       },
     }),
-    getStateOptions: builder.query<OptionModel<number>[], void>({
+    getStateOptions: builder.query<OptionModel<StrategicThemeState>[], void>({
       queryFn: async () => {
         try {
           const states = await getStrategicThemesClient().getStateOptions()
 
-          const data: OptionModel<number>[] = states
+          const data: OptionModel<StrategicThemeState>[] = states
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
-              value: s.id,
+              value: s.code,
               label: s.name,
             }))
 

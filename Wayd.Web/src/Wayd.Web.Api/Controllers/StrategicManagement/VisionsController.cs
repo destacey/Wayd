@@ -21,11 +21,9 @@ public class VisionsController(ILogger<VisionsController> logger, IDispatcher di
     [OpenApiOperation("Get a list of visions.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<VisionDto>>> GetVisions([FromQuery] int? state, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<VisionDto>>> GetVisions([FromQuery] VisionState? state, CancellationToken cancellationToken)
     {
-        VisionState? filter = state.HasValue ? (VisionState)state.Value : null;
-
-        var visions = await _dispatcher.Send(new GetVisionsQuery(filter), cancellationToken);
+        var visions = await _dispatcher.Send(new GetVisionsQuery(state), cancellationToken);
 
         return Ok(visions);
     }

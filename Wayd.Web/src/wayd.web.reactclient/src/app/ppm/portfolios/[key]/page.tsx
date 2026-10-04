@@ -48,6 +48,11 @@ import PortfolioFacts from './_components/portfolio-facts'
 import PortfolioOverview, {
   OverviewTab,
 } from './_components/portfolio-overview'
+import {
+  ProgramStatus,
+  ProjectStatus,
+  StrategicInitiativeStatus,
+} from '@/src/services/wayd-api'
 
 enum PortfolioSections {
   Overview = 'overview',
@@ -58,16 +63,22 @@ enum PortfolioSections {
   Activities = 'activities',
 }
 
-// Non-closed project statuses for the ranking board: Proposed(1), Approved(5), Active(2)
-// (excludes Completed(3) and Canceled(4)).
-const RANKING_STATUSES = [1, 5, 2]
+/** The project statuses the ranking board ranks: every one not yet closed. */
+const RANKING_STATUSES = [
+  ProjectStatus.Proposed,
+  ProjectStatus.Approved,
+  ProjectStatus.Active,
+]
 
-/** Active(2) — the programs a portfolio is currently delivering through. */
-const DEFAULT_PROGRAM_STATUSES = [2]
-/** Approved(5), Active(2) — the projects actually in flight. */
-const DEFAULT_PROJECT_STATUSES = [5, 2]
-/** Approved(2), Active(3) — initiatives use their own status ids. */
-const DEFAULT_SI_STATUSES = [2, 3]
+/** The programs a portfolio is currently delivering through. */
+const DEFAULT_PROGRAM_STATUSES = [ProgramStatus.Active]
+/** The projects actually in flight. */
+const DEFAULT_PROJECT_STATUSES = [ProjectStatus.Approved, ProjectStatus.Active]
+/** The initiatives approved or underway. */
+const DEFAULT_SI_STATUSES = [
+  StrategicInitiativeStatus.Approved,
+  StrategicInitiativeStatus.Active,
+]
 
 enum MenuActions {
   Edit = 'Edit',

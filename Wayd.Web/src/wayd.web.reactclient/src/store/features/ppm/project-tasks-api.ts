@@ -12,13 +12,14 @@ import {
   AddTaskDependencyRequest,
   ProjectTaskIdAndKey,
   UpdateProjectTaskPlacementRequest,
+  TaskStatus,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { OptionModel } from '@/src/components/types'
 
 interface GetProjectTasksParams {
   projectIdOrKey: string
-  status?: number
+  status?: TaskStatus
   parentId?: string
 }
 

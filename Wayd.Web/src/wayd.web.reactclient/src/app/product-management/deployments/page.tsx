@@ -14,22 +14,6 @@ import { Dayjs } from 'dayjs'
 import { FC, useEffect, useState } from 'react'
 import { DeploymentsGrid, StartDeploymentForm } from './_components'
 
-/**
- * The wire value for each category.
- *
- * The API binds this parameter as an int, while the generated client models the enum as its names, so
- * the number has to be supplied here. Written out rather than derived from the enum's declaration
- * order: the backing values start at 1, so anything positional is off by one on every category and
- * quietly filters to the wrong one.
- */
-const environmentCategoryValue: Record<EnvironmentCategory, number> = {
-  [EnvironmentCategory.Development]: 1,
-  [EnvironmentCategory.Testing]: 2,
-  [EnvironmentCategory.Staging]: 3,
-  [EnvironmentCategory.Production]: 4,
-  [EnvironmentCategory.Other]: 5,
-}
-
 const DeploymentsPage: FC = () => {
   useDocumentTitle('Deployments')
   const [openStartForm, setOpenStartForm] = useState<boolean>(false)
@@ -54,9 +38,7 @@ const DeploymentsPage: FC = () => {
     refetch,
   } = useGetDeploymentsQuery({
     environmentId,
-    environmentCategory: environmentCategory
-      ? environmentCategoryValue[environmentCategory]
-      : undefined,
+    environmentCategory,
     startedOnOrAfter: startedOnOrAfter?.toISOString(),
   })
 

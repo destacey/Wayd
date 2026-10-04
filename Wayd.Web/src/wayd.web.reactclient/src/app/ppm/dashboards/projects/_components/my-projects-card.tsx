@@ -3,6 +3,7 @@
 import useAuth from '@/src/components/contexts/auth'
 import { useLinkedEmployee } from '@/src/hooks'
 import { useGetMyProjectsSummaryQuery } from '@/src/store/features/ppm/projects-api'
+import { ProjectStatus } from '@/src/services/wayd-api'
 import { RightOutlined } from '@ant-design/icons'
 import { Badge, Card, Divider, Flex, Skeleton, Tag, Typography } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
@@ -43,7 +44,7 @@ const MyProjectsCard: FC = () => {
   // Project roles are held by employees, so an unlinked account can never be on a project. Skipping
   // the request avoids a round-trip whose answer is known to be empty.
   const { data: summary, isLoading } = useGetMyProjectsSummaryQuery(
-    { status: [5, 2] }, // Approved, Active
+    { status: [ProjectStatus.Approved, ProjectStatus.Active] },
     { skip: !canViewProjects || !hasLinkedEmployee },
   )
 

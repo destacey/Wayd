@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import ProjectsDashboardPage from './page'
+import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
+
+const IN_FLIGHT = [ProjectStatus.Approved, ProjectStatus.Active]
 
 global.ResizeObserver = class {
   observe() {}
@@ -214,7 +217,13 @@ describe('ProjectsDashboardPage', () => {
     expect(screen.getByTestId('scope')).toHaveTextContent('me:')
     const [args, options] = lastPersonCall()
     expect(args.employeeId).toBeUndefined()
-    expect(args.role).toEqual([1, 2, 3, 4, 5])
+    expect(args.role).toEqual([
+      ProjectMemberRole.Sponsor,
+      ProjectMemberRole.Owner,
+      ProjectMemberRole.Manager,
+      ProjectMemberRole.Member,
+      ProjectMemberRole.Assignee,
+    ])
     expect(options.skip).toBe(false)
     expect(screen.getByTestId('list')).toHaveTextContent('me')
     expect(screen.queryByTestId('breakdowns')).not.toBeInTheDocument()
@@ -252,7 +261,7 @@ describe('ProjectsDashboardPage', () => {
 
     // Assert
     expect(lastCall(mockPortfolioProjectsQuery)).toEqual([
-      { portfolioIdOrKey: 'port-1', status: [5, 2] },
+      { portfolioIdOrKey: 'port-1', status: IN_FLIGHT },
       { skip: false },
     ])
     expect(lastPersonCall()[1].skip).toBe(true)
@@ -276,7 +285,7 @@ describe('ProjectsDashboardPage', () => {
     const everything = [...mockProjectsQuery.mock.calls]
       .reverse()
       .find(([args]) => !('role' in args))!
-    expect(everything).toEqual([{ status: [5, 2] }, { skip: false }])
+    expect(everything).toEqual([{ status: IN_FLIGHT }, { skip: false }])
     expect(lastPersonCall()[1].skip).toBe(true)
   })
 

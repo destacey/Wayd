@@ -1,12 +1,13 @@
 'use client'
 
 import { useGetRoadmapStateOptionsQuery } from '@/src/store/features/planning/roadmaps-api'
+import { RoadmapState } from '@/src/services/wayd-api'
 import { FC } from 'react'
 import { PpmFilterBar } from '@/src/app/ppm/_components'
 
 export interface RoadmapsFilterBarProps {
-  selectedStates: number[]
-  onStateChange: (states: number[]) => void
+  selectedStates: RoadmapState[]
+  onStateChange: (states: RoadmapState[]) => void
 }
 
 const RoadmapsFilterBar: FC<RoadmapsFilterBarProps> = ({

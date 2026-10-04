@@ -4642,7 +4642,7 @@ export class StrategicThemesClient {
      * Get a list of strategic themes.
      * @param state (optional) 
      */
-    getStrategicThemes(state?: number[] | null | undefined, cancelToken?: CancelToken): Promise<StrategicThemeListDto[]> {
+    getStrategicThemes(state?: StrategicThemeState[] | null | undefined, cancelToken?: CancelToken): Promise<StrategicThemeListDto[]> {
         let url_ = this.baseUrl + "/api/strategic-management/strategic-themes?";
         if (state !== undefined && state !== null)
             state && state.forEach(item => { url_ += "state=" + encodeURIComponent("" + item) + "&"; });
@@ -5371,7 +5371,7 @@ export class StrategiesClient {
      * Get a list of strategies.
      * @param status (optional) 
      */
-    getStrategies(status?: number | null | undefined, cancelToken?: CancelToken): Promise<StrategyListDto[]> {
+    getStrategies(status?: StrategyStatus | null | undefined, cancelToken?: CancelToken): Promise<StrategyListDto[]> {
         let url_ = this.baseUrl + "/api/strategic-management/strategies?";
         if (status !== undefined && status !== null)
             url_ += "status=" + encodeURIComponent("" + status) + "&";
@@ -5752,7 +5752,7 @@ export class VisionsClient {
      * Get a list of visions.
      * @param state (optional) 
      */
-    getVisions(state?: number | null | undefined, cancelToken?: CancelToken): Promise<VisionDto[]> {
+    getVisions(state?: VisionState | null | undefined, cancelToken?: CancelToken): Promise<VisionDto[]> {
         let url_ = this.baseUrl + "/api/strategic-management/visions?";
         if (state !== undefined && state !== null)
             url_ += "state=" + encodeURIComponent("" + state) + "&";
@@ -6510,7 +6510,7 @@ export class DeploymentEnvironmentsClient {
      * @param isActive (optional) 
      * @param category (optional) 
      */
-    getDeploymentEnvironments(isActive?: boolean | null | undefined, category?: number | null | undefined, cancelToken?: CancelToken): Promise<DeploymentEnvironmentDto[]> {
+    getDeploymentEnvironments(isActive?: boolean | null | undefined, category?: EnvironmentCategory | null | undefined, cancelToken?: CancelToken): Promise<DeploymentEnvironmentDto[]> {
         let url_ = this.baseUrl + "/api/product-management/deployment-environments?";
         if (isActive !== undefined && isActive !== null)
             url_ += "isActive=" + encodeURIComponent("" + isActive) + "&";
@@ -6988,7 +6988,7 @@ export class DeploymentsClient {
      * @param environmentCategory (optional) 
      * @param startedOnOrAfter (optional) 
      */
-    getDeployments(versionId?: string | null | undefined, packageId?: string | null | undefined, environmentId?: string | null | undefined, environmentCategory?: number | null | undefined, startedOnOrAfter?: Date | null | undefined, cancelToken?: CancelToken): Promise<DeploymentDto[]> {
+    getDeployments(versionId?: string | null | undefined, packageId?: string | null | undefined, environmentId?: string | null | undefined, environmentCategory?: EnvironmentCategory | null | undefined, startedOnOrAfter?: Date | null | undefined, cancelToken?: CancelToken): Promise<DeploymentDto[]> {
         let url_ = this.baseUrl + "/api/product-management/deployments?";
         if (versionId !== undefined && versionId !== null)
             url_ += "versionId=" + encodeURIComponent("" + versionId) + "&";
@@ -7664,7 +7664,7 @@ export class ProductsClient {
      * @param statusCategory (optional) 
      * @param tagId (optional) 
      */
-    getProducts(parentId?: string | null | undefined, productTypeId?: string | null | undefined, statusCategory?: number[] | null | undefined, tagId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<ProductDto[]> {
+    getProducts(parentId?: string | null | undefined, productTypeId?: string | null | undefined, statusCategory?: StatusCategory[] | null | undefined, tagId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<ProductDto[]> {
         let url_ = this.baseUrl + "/api/product-management/products?";
         if (parentId !== undefined && parentId !== null)
             url_ += "parentId=" + encodeURIComponent("" + parentId) + "&";
@@ -10164,7 +10164,7 @@ export class ReleasePackagesClient {
      * @param containingProductId (optional) 
      * @param containingVersionId (optional) 
      */
-    getReleasePackages(statusCategory?: number[] | null | undefined, containingProductId?: string | null | undefined, containingVersionId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleasePackageDto[]> {
+    getReleasePackages(statusCategory?: StatusCategory[] | null | undefined, containingProductId?: string | null | undefined, containingVersionId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleasePackageDto[]> {
         let url_ = this.baseUrl + "/api/product-management/release-packages?";
         if (statusCategory !== undefined && statusCategory !== null)
             statusCategory && statusCategory.forEach(item => { url_ += "statusCategory=" + encodeURIComponent("" + item) + "&"; });
@@ -10908,7 +10908,7 @@ export class ReleasesClient {
      * @param statusCategory (optional) 
      * @param containingVersionId (optional) 
      */
-    getReleases(productId?: string | null | undefined, statusCategory?: number[] | null | undefined, containingVersionId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleaseDto[]> {
+    getReleases(productId?: string | null | undefined, statusCategory?: StatusCategory[] | null | undefined, containingVersionId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleaseDto[]> {
         let url_ = this.baseUrl + "/api/product-management/releases?";
         if (productId !== undefined && productId !== null)
             url_ += "productId=" + encodeURIComponent("" + productId) + "&";
@@ -11839,7 +11839,7 @@ export class VersionsClient {
      * @param productId (optional) 
      * @param statusCategory (optional) 
      */
-    getVersions(productId?: string | null | undefined, statusCategory?: number[] | null | undefined, cancelToken?: CancelToken): Promise<VersionDto[]> {
+    getVersions(productId?: string | null | undefined, statusCategory?: StatusCategory[] | null | undefined, cancelToken?: CancelToken): Promise<VersionDto[]> {
         let url_ = this.baseUrl + "/api/product-management/versions?";
         if (productId !== undefined && productId !== null)
             url_ += "productId=" + encodeURIComponent("" + productId) + "&";
@@ -13273,7 +13273,7 @@ export class PortfoliosClient {
      * Get a list of project portfolios.
      * @param status (optional) 
      */
-    getPortfolios(status?: number[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectPortfolioListDto[]> {
+    getPortfolios(status?: ProjectPortfolioStatus[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectPortfolioListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/portfolios?";
         if (status !== undefined && status !== null)
             status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
@@ -14332,7 +14332,7 @@ export class PortfoliosClient {
      * Get a list of programs for the portfolio.
      * @param status (optional) 
      */
-    getPrograms(idOrKey: string, status?: number[] | null | undefined, cancelToken?: CancelToken): Promise<ProgramListDto[]> {
+    getPrograms(idOrKey: string, status?: ProgramStatus[] | null | undefined, cancelToken?: CancelToken): Promise<ProgramListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{idOrKey}/programs?";
         if (idOrKey === undefined || idOrKey === null)
             throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
@@ -14403,7 +14403,7 @@ export class PortfoliosClient {
      * Get a list of projects for the portfolio.
      * @param status (optional) 
      */
-    getProjects(idOrKey: string, status?: number[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
+    getProjects(idOrKey: string, status?: ProjectStatus[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{idOrKey}/projects?";
         if (idOrKey === undefined || idOrKey === null)
             throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
@@ -14474,7 +14474,7 @@ export class PortfoliosClient {
      * Get a list of strategic initiatives for the portfolio.
      * @param status (optional) 
      */
-    getStrategicInitiatives(idOrKey: string, status?: number[] | null | undefined, cancelToken?: CancelToken): Promise<StrategicInitiativeListDto[]> {
+    getStrategicInitiatives(idOrKey: string, status?: StrategicInitiativeStatus[] | null | undefined, cancelToken?: CancelToken): Promise<StrategicInitiativeListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/portfolios/{idOrKey}/strategic-initiatives?";
         if (idOrKey === undefined || idOrKey === null)
             throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
@@ -14669,7 +14669,7 @@ export class ProgramsClient {
      * @param status (optional) 
      * @param portfolioId (optional) 
      */
-    getPrograms(status?: number[] | null | undefined, portfolioId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProgramListDto[]> {
+    getPrograms(status?: ProgramStatus[] | null | undefined, portfolioId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProgramListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/programs?";
         if (status !== undefined && status !== null)
             status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
@@ -15396,7 +15396,7 @@ export class ProgramsClient {
      * Get a list of projects.
      * @param status (optional) 
      */
-    getProjects(idOrKey: string, status?: number[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
+    getProjects(idOrKey: string, status?: ProjectStatus[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/programs/{idOrKey}/projects?";
         if (idOrKey === undefined || idOrKey === null)
             throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
@@ -16545,7 +16545,7 @@ export class ProjectsClient {
      * @param role (optional) 
      * @param employeeId (optional) 
      */
-    getProjects(status?: number[] | null | undefined, portfolioId?: string | null | undefined, role?: number[] | null | undefined, employeeId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
+    getProjects(status?: ProjectStatus[] | null | undefined, portfolioId?: string | null | undefined, role?: ProjectMemberRole[] | null | undefined, employeeId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProjectListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/projects?";
         if (status !== undefined && status !== null)
             status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
@@ -16681,7 +16681,7 @@ export class ProjectsClient {
      * Get a summary of the current user's project involvement.
      * @param status (optional) 
      */
-    getMyProjectsSummary(status?: number[] | null | undefined, cancelToken?: CancelToken): Promise<MyProjectsSummaryDto> {
+    getMyProjectsSummary(status?: ProjectStatus[] | null | undefined, cancelToken?: CancelToken): Promise<MyProjectsSummaryDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/my-summary?";
         if (status !== undefined && status !== null)
             status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
@@ -16736,7 +16736,7 @@ export class ProjectsClient {
      * @param status (optional) 
      * @param role (optional) 
      */
-    getMyProjectsTaskMetrics(status?: number[] | null | undefined, role?: number[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectsTaskMetricsDto> {
+    getMyProjectsTaskMetrics(status?: ProjectStatus[] | null | undefined, role?: ProjectMemberRole[] | null | undefined, cancelToken?: CancelToken): Promise<ProjectsTaskMetricsDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/my-task-metrics?";
         if (status !== undefined && status !== null)
             status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
@@ -16794,7 +16794,7 @@ export class ProjectsClient {
      * @param role (optional) 
      * @param employeeId (optional) 
      */
-    getProjectsTaskMetrics(status?: number[] | null | undefined, role?: number[] | null | undefined, employeeId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProjectsTaskMetricsDto> {
+    getProjectsTaskMetrics(status?: ProjectStatus[] | null | undefined, role?: ProjectMemberRole[] | null | undefined, employeeId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProjectsTaskMetricsDto> {
         let url_ = this.baseUrl + "/api/ppm/projects/task-metrics?";
         if (status !== undefined && status !== null)
             status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
@@ -18472,7 +18472,7 @@ export class ProjectsClient {
      * @param employeeId (optional) 
      * @param allTasks (optional) 
      */
-    getProjectsPlanSummaries(projectId?: string[] | undefined, role?: number[] | null | undefined, employeeId?: string | null | undefined, allTasks?: boolean | undefined, cancelToken?: CancelToken): Promise<{ [key: string]: ProjectPlanSummaryDto; }> {
+    getProjectsPlanSummaries(projectId?: string[] | undefined, role?: ProjectMemberRole[] | null | undefined, employeeId?: string | null | undefined, allTasks?: boolean | undefined, cancelToken?: CancelToken): Promise<{ [key: string]: ProjectPlanSummaryDto; }> {
         let url_ = this.baseUrl + "/api/ppm/projects/plan-summaries?";
         if (projectId === null)
             throw new globalThis.Error("The parameter 'projectId' cannot be null.");
@@ -19022,7 +19022,7 @@ export class ProjectTasksClient {
      * @param status (optional) 
      * @param parentId (optional) 
      */
-    getProjectTasks(projectIdOrKey: string, status?: number | null | undefined, parentId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProjectTaskListDto[]> {
+    getProjectTasks(projectIdOrKey: string, status?: TaskStatus | null | undefined, parentId?: string | null | undefined, cancelToken?: CancelToken): Promise<ProjectTaskListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/projects/{projectIdOrKey}/tasks?";
         if (projectIdOrKey === undefined || projectIdOrKey === null)
             throw new globalThis.Error("The parameter 'projectIdOrKey' must be defined.");
@@ -19895,7 +19895,7 @@ export class StrategicInitiativesClient {
      * @param status (optional) 
      * @param portfolioId (optional) 
      */
-    getStrategicInitiatives(status?: number[] | null | undefined, portfolioId?: string | null | undefined, cancelToken?: CancelToken): Promise<StrategicInitiativeListDto[]> {
+    getStrategicInitiatives(status?: StrategicInitiativeStatus[] | null | undefined, portfolioId?: string | null | undefined, cancelToken?: CancelToken): Promise<StrategicInitiativeListDto[]> {
         let url_ = this.baseUrl + "/api/ppm/strategic-initiatives?";
         if (status !== undefined && status !== null)
             status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
@@ -26397,7 +26397,7 @@ export class RoadmapsClient {
      * Get a list of roadmaps.
      * @param state (optional) 
      */
-    getRoadmaps(state?: number[] | null | undefined, cancelToken?: CancelToken): Promise<RoadmapListDto[]> {
+    getRoadmaps(state?: RoadmapState[] | null | undefined, cancelToken?: CancelToken): Promise<RoadmapListDto[]> {
         let url_ = this.baseUrl + "/api/planning/roadmaps?";
         if (state !== undefined && state !== null)
             state && state.forEach(item => { url_ += "state=" + encodeURIComponent("" + item) + "&"; });
@@ -45617,6 +45617,12 @@ export interface SimpleNavigationDto {
     name: string;
 }
 
+export enum StrategicThemeState {
+    Proposed = "Proposed",
+    Active = "Active",
+    Archived = "Archived",
+}
+
 export interface StrategicThemeDetailsDto {
     id: string;
     key: number;
@@ -45712,7 +45718,11 @@ export interface CommonEnumDto {
     order: number;
 }
 
-export interface StrategicThemeStateDto extends CommonEnumDto {
+export interface CommonEnumDtoOfStrategicThemeState extends CommonEnumDto {
+    code: StrategicThemeState;
+}
+
+export interface StrategicThemeStateDto extends CommonEnumDtoOfStrategicThemeState {
 }
 
 export interface StrategyListDto {
@@ -45722,6 +45732,13 @@ export interface StrategyListDto {
     status: SimpleNavigationDto;
     start?: string | undefined;
     end?: string | undefined;
+}
+
+export enum StrategyStatus {
+    Draft = "Draft",
+    Active = "Active",
+    Completed = "Completed",
+    Archived = "Archived",
 }
 
 export interface StrategyDetailsDto {
@@ -45762,7 +45779,11 @@ export interface UpdateStrategyRequest {
     end?: string | undefined;
 }
 
-export interface StrategyStatusDto extends CommonEnumDto {
+export interface CommonEnumDtoOfStrategyStatus extends CommonEnumDto {
+    code: StrategyStatus;
+}
+
+export interface StrategyStatusDto extends CommonEnumDtoOfStrategyStatus {
 }
 
 export interface VisionDto {
@@ -45772,6 +45793,12 @@ export interface VisionDto {
     state: SimpleNavigationDto;
     start?: Date | undefined;
     end?: Date | undefined;
+}
+
+export enum VisionState {
+    Proposed = "Proposed",
+    Active = "Active",
+    Archived = "Archived",
 }
 
 export interface CreateVisionRequest {
@@ -45786,7 +45813,11 @@ export interface UpdateVisionRequest {
     description: string;
 }
 
-export interface VisionStateDto extends CommonEnumDto {
+export interface CommonEnumDtoOfVisionState extends CommonEnumDto {
+    code: VisionState;
+}
+
+export interface VisionStateDto extends CommonEnumDtoOfVisionState {
 }
 
 export interface DeliveryMetricsDto {
@@ -46844,6 +46875,14 @@ export interface LifecycleNavigationDto {
     lifecycleCategory: string;
 }
 
+export enum ProjectPortfolioStatus {
+    Proposed = "Proposed",
+    Active = "Active",
+    OnHold = "OnHold",
+    Closed = "Closed",
+    Archived = "Archived",
+}
+
 export interface ProjectPortfolioDetailsDto {
     id: string;
     key: number;
@@ -47028,6 +47067,13 @@ export interface ProgramListDto {
     strategicThemes: NavigationDto[];
 }
 
+export enum ProgramStatus {
+    Proposed = "Proposed",
+    Active = "Active",
+    Completed = "Completed",
+    Canceled = "Canceled",
+}
+
 export interface ProjectListDto {
     id: string;
     key: string;
@@ -47074,6 +47120,14 @@ export interface ScoreSummaryDto {
     scoringModelName: string;
 }
 
+export enum ProjectStatus {
+    Proposed = "Proposed",
+    Active = "Active",
+    Completed = "Completed",
+    Canceled = "Canceled",
+    Approved = "Approved",
+}
+
 export interface StrategicInitiativeListDto {
     id: string;
     key: number;
@@ -47086,8 +47140,18 @@ export interface StrategicInitiativeListDto {
     strategicInitiativeOwners: EmployeeNavigationDto[];
 }
 
+export enum StrategicInitiativeStatus {
+    Proposed = "Proposed",
+    Approved = "Approved",
+    Active = "Active",
+    OnHold = "OnHold",
+    Completed = "Completed",
+    Canceled = "Canceled",
+}
+
 export interface ProjectPortfolioStatusDto {
     id: number;
+    code: ProjectPortfolioStatus;
     name: string;
     description?: string | undefined;
     order: number;
@@ -47193,6 +47257,7 @@ export interface UpdateProgramRequest {
 
 export interface ProgramStatusDto {
     id: number;
+    code: ProgramStatus;
     name: string;
     description?: string | undefined;
     order: number;
@@ -47291,6 +47356,14 @@ export interface ProjectLifecycleStageRequest {
 export interface ReorderProjectLifecycleStagesRequest {
     /** The ordered list of stage IDs representing the desired order. */
     orderedStageIds: string[];
+}
+
+export enum ProjectMemberRole {
+    Sponsor = "Sponsor",
+    Owner = "Owner",
+    Manager = "Manager",
+    Member = "Member",
+    Assignee = "Assignee",
 }
 
 export interface MyProjectsSummaryDto {
@@ -47553,16 +47626,9 @@ taken, and the explanation is kept in the Project's status history. */
     reason: string;
 }
 
-export enum ProjectStatus {
-    Proposed = "Proposed",
-    Active = "Active",
-    Completed = "Completed",
-    Canceled = "Canceled",
-    Approved = "Approved",
-}
-
 export interface ProjectStatusDto {
     id: number;
+    code: ProjectStatus;
     name: string;
     description?: string | undefined;
     order: number;
@@ -47843,6 +47909,13 @@ export interface ProjectTaskNavigationDto {
     name: string;
 }
 
+export enum TaskStatus {
+    NotStarted = "NotStarted",
+    InProgress = "InProgress",
+    Completed = "Completed",
+    Canceled = "Canceled",
+}
+
 export interface ProjectTaskDto {
     id: string;
     key: string;
@@ -48061,6 +48134,7 @@ export interface UpdateStrategicInitiativeRequest {
 
 export interface StrategicInitiativeStatusDto {
     id: number;
+    code: StrategicInitiativeStatus;
     name: string;
     description?: string | undefined;
     order: number;
@@ -48954,6 +49028,11 @@ export interface RoadmapListDto {
     roadmapManagers: EmployeeNavigationDto[];
 }
 
+export enum RoadmapState {
+    Active = "Active",
+    Archived = "Archived",
+}
+
 export interface RoadmapDetailsDto {
     id: string;
     key: number;
@@ -49205,7 +49284,11 @@ export interface UpdateRoadmapActivityPlacementRequest {
 export interface VisibilityDto extends CommonEnumDto {
 }
 
-export interface RoadmapStateDto extends CommonEnumDto {
+export interface CommonEnumDtoOfRoadmapState extends CommonEnumDto {
+    code: RoadmapState;
+}
+
+export interface RoadmapStateDto extends CommonEnumDtoOfRoadmapState {
 }
 
 export interface StoryMapListDto {

@@ -9,8 +9,8 @@ public sealed class GetStrategicThemeStatesQueryHandler : IQueryHandler<GetStrat
 {
     public Task<List<StrategicThemeStateDto>> Handle(GetStrategicThemeStatesQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(CommonEnumDto.GetValues<StrategicThemeState, StrategicThemeStateDto>());
+        return Task.FromResult(CommonEnumDto<StrategicThemeState>.GetValues<StrategicThemeStateDto>());
     }
 }
 
-public sealed record StrategicThemeStateDto : CommonEnumDto { }
+public sealed record StrategicThemeStateDto : CommonEnumDto<StrategicThemeState> { }

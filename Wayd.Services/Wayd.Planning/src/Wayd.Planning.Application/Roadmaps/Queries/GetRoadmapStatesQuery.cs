@@ -9,8 +9,8 @@ public sealed class GetRoadmapStatesQueryHandler : IQueryHandler<GetRoadmapState
 {
     public Task<List<RoadmapStateDto>> Handle(GetRoadmapStatesQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(CommonEnumDto.GetValues<RoadmapState, RoadmapStateDto>());
+        return Task.FromResult(CommonEnumDto<RoadmapState>.GetValues<RoadmapStateDto>());
     }
 }
 
-public sealed record RoadmapStateDto : CommonEnumDto { }
+public sealed record RoadmapStateDto : CommonEnumDto<RoadmapState> { }

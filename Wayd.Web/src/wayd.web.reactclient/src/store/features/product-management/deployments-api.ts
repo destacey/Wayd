@@ -2,6 +2,7 @@ import { getDeploymentsClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   DeploymentDto,
+  EnvironmentCategory,
   FailDeploymentRequest,
   ObjectIdAndKey,
   RollBackDeploymentRequest,
@@ -16,7 +17,7 @@ export interface GetDeploymentsRequest {
   versionId?: string
   packageId?: string
   environmentId?: string
-  environmentCategory?: number
+  environmentCategory?: EnvironmentCategory
   /**
    * ISO-8601, not a `Date`: query arguments become the Redux cache key, and a `Date` there is
    * non-serializable. Converted for the client in the queryFn below.

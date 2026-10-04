@@ -16,7 +16,7 @@ export interface OptionModel<T = string> {
  * which have no lifecycle category. Those stay a neutral color rather than borrowing a
  * meaning they do not have.
  */
-export interface StatusOptionModel extends OptionModel<number> {
+export interface StatusOptionModel<T = string> extends OptionModel<T> {
   lifecycleCategory?: string
 }
 

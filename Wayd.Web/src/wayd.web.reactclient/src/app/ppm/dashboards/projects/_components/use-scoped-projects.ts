@@ -1,6 +1,10 @@
 'use client'
 
-import { ProjectListDto } from '@/src/services/wayd-api'
+import {
+  ProjectListDto,
+  ProjectMemberRole,
+  ProjectStatus,
+} from '@/src/services/wayd-api'
 import { useGetPortfolioProjectsQuery } from '@/src/store/features/ppm/portfolios-api'
 import { useGetProgramProjectsQuery } from '@/src/store/features/ppm/programs-api'
 import {
@@ -39,8 +43,8 @@ export interface ScopedProjectsResult {
  */
 export const useScopedProjects = (
   scope: DashboardScope,
-  selectedStatuses: number[],
-  selectedRoles: number[],
+  selectedStatuses: ProjectStatus[],
+  selectedRoles: ProjectMemberRole[],
   myEmployeeId: string | null,
 ): ScopedProjectsResult => {
   const status = selectedStatuses.length > 0 ? selectedStatuses : undefined

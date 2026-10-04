@@ -9,8 +9,8 @@ public sealed class GetVisionStatesQueryHandler : IQueryHandler<GetVisionStatesQ
 {
     public Task<List<VisionStateDto>> Handle(GetVisionStatesQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(CommonEnumDto.GetValues<VisionState, VisionStateDto>());
+        return Task.FromResult(CommonEnumDto<VisionState>.GetValues<VisionStateDto>());
     }
 }
 
-public sealed record VisionStateDto : CommonEnumDto { }
+public sealed record VisionStateDto : CommonEnumDto<VisionState> { }

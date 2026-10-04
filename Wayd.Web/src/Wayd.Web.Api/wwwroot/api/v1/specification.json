@@ -3259,8 +3259,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/StrategicThemeState"
               }
             },
             "x-position": 1
@@ -3879,9 +3878,12 @@
             "name": "status",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "nullable": true
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/StrategyStatus"
+                }
+              ]
             },
             "x-position": 1
           }
@@ -4168,9 +4170,12 @@
             "name": "state",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "nullable": true
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/VisionState"
+                }
+              ]
             },
             "x-position": 1
           }
@@ -4793,9 +4798,12 @@
             "name": "category",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "nullable": true
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/EnvironmentCategory"
+                }
+              ]
             },
             "x-position": 2
           }
@@ -5247,9 +5255,12 @@
             "name": "environmentCategory",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "nullable": true
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/EnvironmentCategory"
+                }
+              ]
             },
             "x-position": 4
           },
@@ -5878,8 +5889,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/StatusCategory"
               }
             },
             "x-position": 3
@@ -8201,8 +8211,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/StatusCategory"
               }
             },
             "x-position": 1
@@ -8913,8 +8922,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/StatusCategory"
               }
             },
             "x-position": 2
@@ -9787,8 +9795,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/StatusCategory"
               }
             },
             "x-position": 2
@@ -11014,8 +11021,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectPortfolioStatus"
               }
             },
             "x-position": 1
@@ -11985,8 +11991,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProgramStatus"
               }
             },
             "x-position": 2
@@ -12060,8 +12065,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectStatus"
               }
             },
             "x-position": 2
@@ -12135,8 +12139,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/StrategicInitiativeStatus"
               }
             },
             "x-position": 2
@@ -12269,8 +12272,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProgramStatus"
               }
             },
             "x-position": 1
@@ -12927,8 +12929,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectStatus"
               }
             },
             "x-position": 2
@@ -13939,8 +13940,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectStatus"
               }
             },
             "x-position": 1
@@ -13965,8 +13965,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectMemberRole"
               }
             },
             "x-position": 3
@@ -14088,8 +14087,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectStatus"
               }
             },
             "x-position": 1
@@ -14131,8 +14129,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectStatus"
               }
             },
             "x-position": 1
@@ -14146,8 +14143,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectMemberRole"
               }
             },
             "x-position": 2
@@ -14190,8 +14186,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectStatus"
               }
             },
             "x-position": 1
@@ -14205,8 +14200,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectMemberRole"
               }
             },
             "x-position": 2
@@ -15800,8 +15794,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/ProjectMemberRole"
               }
             },
             "x-position": 2
@@ -16309,9 +16302,16 @@
             "name": "status",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "nullable": true
+              "oneOf": [
+                {
+                  "nullable": true,
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TaskStatus"
+                    }
+                  ]
+                }
+              ]
             },
             "x-position": 2
           },
@@ -17100,8 +17100,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/StrategicInitiativeStatus"
               }
             },
             "x-position": 1
@@ -23073,8 +23072,7 @@
               "type": "array",
               "nullable": true,
               "items": {
-                "type": "integer",
-                "format": "int32"
+                "$ref": "#/components/schemas/RoadmapState"
               }
             },
             "x-position": 1
@@ -42024,6 +42022,20 @@
           }
         }
       },
+      "StrategicThemeState": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Archived"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Archived"
+        ]
+      },
       "StrategicThemeDetailsDto": {
         "type": "object",
         "additionalProperties": false,
@@ -42350,11 +42362,30 @@
       "StrategicThemeStateDto": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/CommonEnumDto"
+            "$ref": "#/components/schemas/CommonEnumDtoOfStrategicThemeState"
           },
           {
             "type": "object",
             "additionalProperties": false
+          }
+        ]
+      },
+      "CommonEnumDtoOfStrategicThemeState": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/StrategicThemeState"
+              }
+            }
           }
         ]
       },
@@ -42421,6 +42452,22 @@
             "nullable": true
           }
         }
+      },
+      "StrategyStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Draft",
+          "Active",
+          "Completed",
+          "Archived"
+        ],
+        "enum": [
+          "Draft",
+          "Active",
+          "Completed",
+          "Archived"
+        ]
       },
       "StrategyDetailsDto": {
         "type": "object",
@@ -42558,11 +42605,30 @@
       "StrategyStatusDto": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/CommonEnumDto"
+            "$ref": "#/components/schemas/CommonEnumDtoOfStrategyStatus"
           },
           {
             "type": "object",
             "additionalProperties": false
+          }
+        ]
+      },
+      "CommonEnumDtoOfStrategyStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/StrategyStatus"
+              }
+            }
           }
         ]
       },
@@ -42603,6 +42669,20 @@
             "nullable": true
           }
         }
+      },
+      "VisionState": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Archived"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Archived"
+        ]
       },
       "CreateVisionRequest": {
         "type": "object",
@@ -42648,11 +42728,30 @@
       "VisionStateDto": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/CommonEnumDto"
+            "$ref": "#/components/schemas/CommonEnumDtoOfVisionState"
           },
           {
             "type": "object",
             "additionalProperties": false
+          }
+        ]
+      },
+      "CommonEnumDtoOfVisionState": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/VisionState"
+              }
+            }
           }
         ]
       },
@@ -46190,6 +46289,24 @@
           }
         }
       },
+      "ProjectPortfolioStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "OnHold",
+          "Closed",
+          "Archived"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "OnHold",
+          "Closed",
+          "Archived"
+        ]
+      },
       "ProjectPortfolioDetailsDto": {
         "type": "object",
         "additionalProperties": false,
@@ -46953,6 +47070,22 @@
           }
         }
       },
+      "ProgramStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Completed",
+          "Canceled"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Completed",
+          "Canceled"
+        ]
+      },
       "ProjectListDto": {
         "type": "object",
         "additionalProperties": false,
@@ -47181,6 +47314,24 @@
           }
         }
       },
+      "ProjectStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Completed",
+          "Canceled",
+          "Approved"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Completed",
+          "Canceled",
+          "Approved"
+        ]
+      },
       "StrategicInitiativeListDto": {
         "type": "object",
         "additionalProperties": false,
@@ -47237,6 +47388,26 @@
           }
         }
       },
+      "StrategicInitiativeStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Approved",
+          "Active",
+          "OnHold",
+          "Completed",
+          "Canceled"
+        ],
+        "enum": [
+          "Proposed",
+          "Approved",
+          "Active",
+          "OnHold",
+          "Completed",
+          "Canceled"
+        ]
+      },
       "ProjectPortfolioStatusDto": {
         "type": "object",
         "additionalProperties": false,
@@ -47244,12 +47415,16 @@
           "name",
           "lifecycleCategory",
           "id",
+          "code",
           "order"
         ],
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ProjectPortfolioStatus"
           },
           "name": {
             "type": "string",
@@ -47659,12 +47834,16 @@
           "name",
           "lifecycleCategory",
           "id",
+          "code",
           "order"
         ],
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ProgramStatus"
           },
           "name": {
             "type": "string",
@@ -48028,6 +48207,24 @@
             }
           }
         }
+      },
+      "ProjectMemberRole": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Sponsor",
+          "Owner",
+          "Manager",
+          "Member",
+          "Assignee"
+        ],
+        "enum": [
+          "Sponsor",
+          "Owner",
+          "Manager",
+          "Member",
+          "Assignee"
+        ]
       },
       "MyProjectsSummaryDto": {
         "type": "object",
@@ -49064,24 +49261,6 @@
           }
         }
       },
-      "ProjectStatus": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "Proposed",
-          "Active",
-          "Completed",
-          "Canceled",
-          "Approved"
-        ],
-        "enum": [
-          "Proposed",
-          "Active",
-          "Completed",
-          "Canceled",
-          "Approved"
-        ]
-      },
       "ProjectStatusDto": {
         "type": "object",
         "additionalProperties": false,
@@ -49089,12 +49268,16 @@
           "name",
           "lifecycleCategory",
           "id",
+          "code",
           "order"
         ],
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ProjectStatus"
           },
           "name": {
             "type": "string",
@@ -50354,6 +50537,22 @@
           }
         }
       },
+      "TaskStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "NotStarted",
+          "InProgress",
+          "Completed",
+          "Canceled"
+        ],
+        "enum": [
+          "NotStarted",
+          "InProgress",
+          "Completed",
+          "Canceled"
+        ]
+      },
       "ProjectTaskDto": {
         "type": "object",
         "additionalProperties": false,
@@ -51203,12 +51402,16 @@
           "name",
           "lifecycleCategory",
           "id",
+          "code",
           "order"
         ],
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
+          },
+          "code": {
+            "$ref": "#/components/schemas/StrategicInitiativeStatus"
           },
           "name": {
             "type": "string",
@@ -54844,6 +55047,18 @@
           }
         }
       },
+      "RoadmapState": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Active",
+          "Archived"
+        ],
+        "enum": [
+          "Active",
+          "Archived"
+        ]
+      },
       "RoadmapDetailsDto": {
         "type": "object",
         "additionalProperties": false,
@@ -55875,11 +56090,30 @@
       "RoadmapStateDto": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/CommonEnumDto"
+            "$ref": "#/components/schemas/CommonEnumDtoOfRoadmapState"
           },
           {
             "type": "object",
             "additionalProperties": false
+          }
+        ]
+      },
+      "CommonEnumDtoOfRoadmapState": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/RoadmapState"
+              }
+            }
           }
         ]
       },

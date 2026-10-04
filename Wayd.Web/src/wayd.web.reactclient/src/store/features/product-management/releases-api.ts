@@ -13,12 +13,13 @@ import {
   UpdateReleaseRequest,
   WithdrawReleaseRequest,
   PagedResponseOfActivityLogDto,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
 export interface GetReleasesRequest {
   productId?: string
-  statusCategory?: number[]
+  statusCategory?: StatusCategory[]
   containingVersionId?: string
 }
 

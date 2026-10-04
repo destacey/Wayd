@@ -8962,7 +8962,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of strategic themes.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicThemeListDto>> GetStrategicThemesAsync(System.Collections.Generic.IEnumerable<int>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicThemeListDto>> GetStrategicThemesAsync(System.Collections.Generic.IEnumerable<StrategicThemeState>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -9089,7 +9089,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of strategic themes.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicThemeListDto>> GetStrategicThemesAsync(System.Collections.Generic.IEnumerable<int>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicThemeListDto>> GetStrategicThemesAsync(System.Collections.Generic.IEnumerable<StrategicThemeState>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -10251,7 +10251,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of strategies.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategyListDto>> GetStrategiesAsync(int? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategyListDto>> GetStrategiesAsync(StrategyStatus? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -10343,7 +10343,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of strategies.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategyListDto>> GetStrategiesAsync(int? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategyListDto>> GetStrategiesAsync(StrategyStatus? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -11004,7 +11004,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of visions.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VisionDto>> GetVisionsAsync(int? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VisionDto>> GetVisionsAsync(VisionState? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -11110,7 +11110,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of visions.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VisionDto>> GetVisionsAsync(int? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VisionDto>> GetVisionsAsync(VisionState? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -12677,7 +12677,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of deployment environments.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentEnvironmentDto>> GetDeploymentEnvironmentsAsync(bool? isActive = null, int? category = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentEnvironmentDto>> GetDeploymentEnvironmentsAsync(bool? isActive = null, EnvironmentCategory? category = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -12788,7 +12788,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of deployment environments.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentEnvironmentDto>> GetDeploymentEnvironmentsAsync(bool? isActive = null, int? category = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentEnvironmentDto>> GetDeploymentEnvironmentsAsync(bool? isActive = null, EnvironmentCategory? category = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -13604,7 +13604,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Most recently started first.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentDto>> GetDeploymentsAsync(System.Guid? versionId = null, System.Guid? packageId = null, System.Guid? environmentId = null, int? environmentCategory = null, System.DateTimeOffset? startedOnOrAfter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentDto>> GetDeploymentsAsync(System.Guid? versionId = null, System.Guid? packageId = null, System.Guid? environmentId = null, EnvironmentCategory? environmentCategory = null, System.DateTimeOffset? startedOnOrAfter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -13748,7 +13748,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Most recently started first.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentDto>> GetDeploymentsAsync(System.Guid? versionId = null, System.Guid? packageId = null, System.Guid? environmentId = null, int? environmentCategory = null, System.DateTimeOffset? startedOnOrAfter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DeploymentDto>> GetDeploymentsAsync(System.Guid? versionId = null, System.Guid? packageId = null, System.Guid? environmentId = null, EnvironmentCategory? environmentCategory = null, System.DateTimeOffset? startedOnOrAfter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -14856,7 +14856,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of products.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductDto>> GetProductsAsync(System.Guid? parentId = null, System.Guid? productTypeId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Collections.Generic.IEnumerable<System.Guid>? tagId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductDto>> GetProductsAsync(System.Guid? parentId = null, System.Guid? productTypeId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Collections.Generic.IEnumerable<System.Guid>? tagId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -15087,7 +15087,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of products.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductDto>> GetProductsAsync(System.Guid? parentId = null, System.Guid? productTypeId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Collections.Generic.IEnumerable<System.Guid>? tagId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductDto>> GetProductsAsync(System.Guid? parentId = null, System.Guid? productTypeId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Collections.Generic.IEnumerable<System.Guid>? tagId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -19308,7 +19308,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// containingProductId matches any manifest line for that product; containingVersionId matches only the packages naming that exact release, which is what a release's own page needs.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -19465,7 +19465,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// containingProductId matches any manifest line for that product; containingVersionId matches only the packages naming that exact release, which is what a release's own page needs.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -20683,7 +20683,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Ordered by released date then sequence — never by the version label, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -20864,7 +20864,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Ordered by released date then sequence — never by the version label, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Guid? containingVersionId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -22359,7 +22359,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Ordered by released moment then sequence — never by version, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -22543,7 +22543,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Ordered by released moment then sequence — never by version, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<VersionDto>> GetVersionsAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -24979,7 +24979,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of project portfolios.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPortfolioListDto>> GetPortfoliosAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPortfolioListDto>> GetPortfoliosAsync(System.Collections.Generic.IEnumerable<ProjectPortfolioStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -25094,21 +25094,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of programs for the portfolio.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Get a list of projects for the portfolio.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Get a list of strategic initiatives for the portfolio.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(string idOrKey, System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -25179,7 +25179,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of project portfolios.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPortfolioListDto>> GetPortfoliosAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPortfolioListDto>> GetPortfoliosAsync(System.Collections.Generic.IEnumerable<ProjectPortfolioStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -26711,7 +26711,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of programs for the portfolio.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -26815,7 +26815,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of projects for the portfolio.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -26919,7 +26919,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of strategic initiatives for the portfolio.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(string idOrKey, System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -27312,7 +27312,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of programs.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -27389,7 +27389,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -27446,7 +27446,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of programs.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProgramListDto>> GetProgramsAsync(System.Collections.Generic.IEnumerable<ProgramStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -28493,7 +28493,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(string idOrKey, System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrKey == null)
                 throw new System.ArgumentNullException("idOrKey");
@@ -30705,7 +30705,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -30719,14 +30719,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a summary of the current user's project involvement.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<MyProjectsSummaryDto> GetMyProjectsSummaryAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<MyProjectsSummaryDto> GetMyProjectsSummaryAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Get aggregated task metrics across the current user's projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -30736,7 +30736,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Defaults to the current user when no employee is given.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -30923,7 +30923,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get plan summary metrics for multiple projects in a single request.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -31004,7 +31004,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// A role filter keeps the projects where the current user, or the employee named by employeeId, holds one of the roles. An employeeId on its own keeps every project that employee is involved in.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectListDto>> GetProjectsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Guid? portfolioId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -31205,7 +31205,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a summary of the current user's project involvement.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<MyProjectsSummaryDto> GetMyProjectsSummaryAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<MyProjectsSummaryDto> GetMyProjectsSummaryAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -31284,7 +31284,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get aggregated task metrics across the current user's projects.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetMyProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -31370,7 +31370,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Defaults to the current user when no employee is given.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ProjectsTaskMetricsDto> GetProjectsTaskMetricsAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -33807,7 +33807,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get plan summary metrics for multiple projects in a single request.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<int>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<string, ProjectPlanSummaryDto>> GetProjectsPlanSummariesAsync(System.Collections.Generic.IEnumerable<System.Guid>? projectId = null, System.Collections.Generic.IEnumerable<ProjectMemberRole>? role = null, System.Guid? employeeId = null, bool? allTasks = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -34903,7 +34903,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of project tasks.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectTaskListDto>> GetProjectTasksAsync(string projectIdOrKey, int? status = null, System.Guid? parentId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectTaskListDto>> GetProjectTasksAsync(string projectIdOrKey, TaskStatus? status = null, System.Guid? parentId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -35056,7 +35056,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of project tasks.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectTaskListDto>> GetProjectTasksAsync(string projectIdOrKey, int? status = null, System.Guid? parentId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectTaskListDto>> GetProjectTasksAsync(string projectIdOrKey, TaskStatus? status = null, System.Guid? parentId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (projectIdOrKey == null)
                 throw new System.ArgumentNullException("projectIdOrKey");
@@ -36444,7 +36444,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of strategic initiatives.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -36679,7 +36679,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of strategic initiatives.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(System.Collections.Generic.IEnumerable<int>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StrategicInitiativeListDto>> GetStrategicInitiativesAsync(System.Collections.Generic.IEnumerable<StrategicInitiativeStatus>? status = null, System.Guid? portfolioId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -47369,7 +47369,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of roadmaps.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<int>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<RoadmapState>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -47562,7 +47562,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of roadmaps.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<int>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<RoadmapState>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -82424,6 +82424,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum StrategicThemeState
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
+        Proposed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Archived")]
+        Archived = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StrategicThemeDetailsDto
     {
 
@@ -82690,8 +82705,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class StrategicThemeStateDto : CommonEnumDto
+    public partial class StrategicThemeStateDto : CommonEnumDtoOfStrategicThemeState
     {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CommonEnumDtoOfStrategicThemeState : CommonEnumDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StrategicThemeState>))]
+        public StrategicThemeState Code { get; set; } = default!;
 
     }
 
@@ -82740,6 +82766,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? End { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum StrategyStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Draft")]
+        Draft = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
+        Completed = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Archived")]
+        Archived = 3,
 
     }
 
@@ -82868,8 +82912,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class StrategyStatusDto : CommonEnumDto
+    public partial class StrategyStatusDto : CommonEnumDtoOfStrategyStatus
     {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CommonEnumDtoOfStrategyStatus : CommonEnumDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StrategyStatus>))]
+        public StrategyStatus Code { get; set; } = default!;
 
     }
 
@@ -82897,6 +82952,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("end")]
         public System.DateTimeOffset? End { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum VisionState
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
+        Proposed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Archived")]
+        Archived = 2,
 
     }
 
@@ -82936,8 +83006,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class VisionStateDto : CommonEnumDto
+    public partial class VisionStateDto : CommonEnumDtoOfVisionState
     {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CommonEnumDtoOfVisionState : CommonEnumDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<VisionState>))]
+        public VisionState Code { get; set; } = default!;
 
     }
 
@@ -86038,6 +86119,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ProjectPortfolioStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
+        Proposed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"OnHold")]
+        OnHold = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Closed")]
+        Closed = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Archived")]
+        Archived = 4,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectPortfolioDetailsDto
     {
 
@@ -86595,6 +86697,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ProgramStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
+        Proposed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
+        Completed = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Canceled")]
+        Canceled = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectListDto
     {
 
@@ -86744,6 +86864,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ProjectStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
+        Proposed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
+        Completed = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Canceled")]
+        Canceled = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Approved")]
+        Approved = 4,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StrategicInitiativeListDto
     {
 
@@ -86785,11 +86926,40 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum StrategicInitiativeStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
+        Proposed = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Approved")]
+        Approved = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"OnHold")]
+        OnHold = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
+        Completed = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Canceled")]
+        Canceled = 5,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectPortfolioStatusDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProjectPortfolioStatus>))]
+        public ProjectPortfolioStatus Code { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -87119,6 +87289,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProgramStatus>))]
+        public ProgramStatus Code { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = default!;
@@ -87416,6 +87591,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("orderedStageIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> OrderedStageIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ProjectMemberRole
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Sponsor")]
+        Sponsor = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Owner")]
+        Owner = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Manager")]
+        Manager = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Member")]
+        Member = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Assignee")]
+        Assignee = 4,
 
     }
 
@@ -88217,32 +88413,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum ProjectStatus
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
-        Proposed = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
-        Active = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
-        Completed = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Canceled")]
-        Canceled = 3,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Approved")]
-        Approved = 4,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectStatusDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProjectStatus>))]
+        public ProjectStatus Code { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -89091,6 +89271,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TaskStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NotStarted")]
+        NotStarted = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"InProgress")]
+        InProgress = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
+        Completed = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Canceled")]
+        Canceled = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectTaskDto
     {
 
@@ -89773,6 +89971,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public int Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StrategicInitiativeStatus>))]
+        public StrategicInitiativeStatus Code { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -92531,6 +92734,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum RoadmapState
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
+        Active = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Archived")]
+        Archived = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RoadmapDetailsDto
     {
 
@@ -93290,8 +93505,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class RoadmapStateDto : CommonEnumDto
+    public partial class RoadmapStateDto : CommonEnumDtoOfRoadmapState
     {
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CommonEnumDtoOfRoadmapState : CommonEnumDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<RoadmapState>))]
+        public RoadmapState Code { get; set; } = default!;
 
     }
 

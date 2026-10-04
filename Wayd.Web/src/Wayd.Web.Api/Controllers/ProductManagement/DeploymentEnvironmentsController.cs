@@ -36,11 +36,11 @@ public class DeploymentEnvironmentsController(IDispatcher dispatcher, ICsvServic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<DeploymentEnvironmentDto>>> GetDeploymentEnvironments(
         [FromQuery] bool? isActive,
-        [FromQuery] int? category,
+        [FromQuery] EnvironmentCategory? category,
         CancellationToken cancellationToken)
     {
         var environments = await _dispatcher.Send(
-            new GetDeploymentEnvironmentsQuery(isActive, (EnvironmentCategory?)category), cancellationToken);
+            new GetDeploymentEnvironmentsQuery(isActive, category), cancellationToken);
 
         return Ok(environments);
     }

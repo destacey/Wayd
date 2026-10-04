@@ -11,6 +11,7 @@ import { EmployeeSelect } from '@/src/components/common/organizations'
 import { BaseOptionType } from 'antd/es/select'
 import { FC, RefObject } from 'react'
 import { LifecycleCategory } from '@/src/components/types'
+import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
 import { getLifecycleCategoryStatusSurface } from '@/src/utils'
 import {
   DashboardScope,
@@ -25,16 +26,16 @@ export interface ScopeBarProps {
   onScopeChange: (scope: DashboardScope) => void
   /** Hides the Me option — an unlinked account has no projects of its own. */
   hasLinkedEmployee: boolean
-  selectedRoles: number[]
-  onRoleChange: (roles: number[]) => void
-  selectedStatuses: number[]
-  onStatusChange: (statuses: number[]) => void
+  selectedRoles: ProjectMemberRole[]
+  onRoleChange: (roles: ProjectMemberRole[]) => void
+  selectedStatuses: ProjectStatus[]
+  onStatusChange: (statuses: ProjectStatus[]) => void
   onReset: () => void
   onRefresh: () => void
   containerRef?: RefObject<HTMLDivElement | null>
 }
 
-const toggle = (values: number[], value: number) =>
+const toggle = <T,>(values: T[], value: T) =>
   values.includes(value)
     ? values.filter((v) => v !== value)
     : [...values, value]

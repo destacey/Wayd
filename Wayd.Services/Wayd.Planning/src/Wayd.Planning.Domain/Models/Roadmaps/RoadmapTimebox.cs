@@ -1,6 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Interfaces.Roadmaps;
 
 namespace Wayd.Planning.Domain.Models.Roadmaps;

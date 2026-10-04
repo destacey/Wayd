@@ -11,12 +11,14 @@ public sealed class ActivateRoadmapCommandValidator : AbstractValidator<Activate
     }
 }
 
-public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<ActivateRoadmapCommandHandler> logger) : ICommandHandler<ActivateRoadmapCommand>
+public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<ActivateRoadmapCommandHandler> logger) : ICommandHandler<ActivateRoadmapCommand>
 {
     private const string AppRequestName = nameof(ActivateRoadmapCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ActivateRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ActivateRoadmapCommand request, CancellationToken cancellationToken)
@@ -39,7 +41,7 @@ public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbC
                 return Result.Failure("Roadmap not found.");
             }
 
-            var activateResult = roadmap.Activate(currentUserEmployeeId.Value);
+            var activateResult = roadmap.Activate(currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

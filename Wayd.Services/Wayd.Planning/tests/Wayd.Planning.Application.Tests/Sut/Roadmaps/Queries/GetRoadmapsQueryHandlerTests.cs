@@ -6,11 +6,17 @@ using Wayd.Common.Models;
 using Wayd.Planning.Application.Roadmaps.Queries;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.Roadmaps;
+using NodaTime.Testing;
+using Wayd.Common.Domain.Events;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Planning.Application.Tests.Sut.Roadmaps.Queries;
 
 public class GetRoadmapsQueryHandlerTests
 {
+    private static readonly EventActor Actor = EventActor.User("user-1");
+    private static readonly Instant Now = Instant.FromUtc(2026, 1, 1, 0, 0);
+
     private readonly FakePlanningDbContext _dbContext = new();
     private readonly Mock<ICurrentPrincipal> _currentPrincipal = new();
 
@@ -26,7 +32,7 @@ public class GetRoadmapsQueryHandlerTests
     private Roadmap AddRoadmap(string name, Visibility visibility, params Guid[] managerIds)
     {
         var managers = managerIds.Length > 0 ? managerIds : [Guid.NewGuid()];
-        var roadmap = Roadmap.Create(name, null, AnyDateRange, visibility, managers).Value;
+        var roadmap = Roadmap.Create(name, null, AnyDateRange, visibility, managers, Actor, Now).Value;
         _dbContext.Roadmaps.Add(roadmap);
         return roadmap;
     }

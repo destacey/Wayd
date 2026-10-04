@@ -629,6 +629,11 @@ where the default serializer stored enums as numbers, so the migration maps them
 `SecurityConfigurationBaselineBackfillTests` compares each row with the factory's entry by running the migration's SQL
 against the current schema. `Backfill-Employee-And-Identity-Mapping-Baseline-Activity` baselined employees and external
 identity mappings, skipping soft-deleted employees; both payloads are ids and states only, as their events are.
+`Backfill-Roadmap-Baseline-Activity` baselined roadmaps with their managers, colors and items. Colors are read out of
+the owned JSON column, under EF's property names. A milestone stores its date in `Start` and has no `End`, so its
+range is that single day, as the events carry it. Managers are ordered by id and items by type, order, start and id;
+`RoadmapBaselineBackfillTests` orders the expected arrays the same way, comparing ids as SQL Server sorts them
+(`SqlGuid`), because array order is part of the payload.
 
 **A seeder that creates an evented aggregate records its creation too.** The backfill runs once, before any seeder,
 so a record a seeder creates on a fresh install is never baselined. Seeders run during `InitializeDatabases`,

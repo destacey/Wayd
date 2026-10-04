@@ -13,12 +13,14 @@ public sealed class ArchiveRoadmapCommandValidator : AbstractValidator<ArchiveRo
     }
 }
 
-public sealed class ArchiveRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<ArchiveRoadmapCommandHandler> logger) : ICommandHandler<ArchiveRoadmapCommand>
+public sealed class ArchiveRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<ArchiveRoadmapCommandHandler> logger) : ICommandHandler<ArchiveRoadmapCommand>
 {
     private const string AppRequestName = nameof(ArchiveRoadmapCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ArchiveRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ArchiveRoadmapCommand request, CancellationToken cancellationToken)
@@ -41,7 +43,7 @@ public sealed class ArchiveRoadmapCommandHandler(IPlanningDbContext planningDbCo
                 return Result.Failure("Roadmap not found.");
             }
 
-            var archiveResult = roadmap.Archive(currentUserEmployeeId.Value);
+            var archiveResult = roadmap.Archive(currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
             if (archiveResult.IsFailure)
             {
                 // Reset the entity

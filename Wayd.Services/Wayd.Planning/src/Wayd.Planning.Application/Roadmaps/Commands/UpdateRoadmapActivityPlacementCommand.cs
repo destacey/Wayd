@@ -52,12 +52,14 @@ public sealed class UpdateRoadmapActivityPlacementCommandValidator : CustomValid
     }
 }
 
-public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapActivityPlacementCommandHandler> logger) : ICommandHandler<UpdateRoadmapActivityPlacementCommand>
+public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRoadmapActivityPlacementCommandHandler> logger) : ICommandHandler<UpdateRoadmapActivityPlacementCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapActivityPlacementCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateRoadmapActivityPlacementCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapActivityPlacementCommand request, CancellationToken cancellationToken)
@@ -92,12 +94,12 @@ public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbCont
             Result placementResult = Result.Success();
             if (activity.ParentId == request.ParentId)
             {
-                placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, currentUserEmployeeId.Value);
+                placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
                 _logger.LogInformation("Updated roadmap activity {RoadmapActivityId} order to {Order}.", request.ItemId, request.Order);
             }
             else
             {
-                placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, currentUserEmployeeId.Value);
+                placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
                 _logger.LogInformation("Moved roadmap activity {RoadmapActivityId} to parent {ParentId} with order {Order}.", request.ItemId, request.ParentId, request.Order);
             }
 

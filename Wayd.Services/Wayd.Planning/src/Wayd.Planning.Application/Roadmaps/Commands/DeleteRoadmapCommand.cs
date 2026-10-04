@@ -12,10 +12,12 @@ public sealed class DeleteRoadmapCommandValidator : AbstractValidator<DeleteRoad
     }
 }
 
-public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<DeleteRoadmapCommandHandler> logger) : ICommandHandler<DeleteRoadmapCommand>
+public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<DeleteRoadmapCommandHandler> logger) : ICommandHandler<DeleteRoadmapCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeleteRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteRoadmapCommand request, CancellationToken cancellationToken)
@@ -37,7 +39,7 @@ public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbCon
             if (roadmap is null)
                 return Result.Failure($"Roadmap with id {request.Id} not found");
 
-            var deleteResult = roadmap.CanDelete(currentUserEmployeeId.Value);
+            var deleteResult = roadmap.Delete(currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", request.GetType().Name, request, deleteResult.Error);

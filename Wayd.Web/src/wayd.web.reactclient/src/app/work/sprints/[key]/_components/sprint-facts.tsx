@@ -4,30 +4,20 @@ import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { SprintDetailsDto } from '@/src/services/wayd-api'
-import { Divider, Flex, Tag, Typography } from 'antd'
-import { calendarDaysBetween, formatCalendarDate } from '@/src/utils'
+import { Divider, Flex } from 'antd'
+import {
+  calendarDaysBetween,
+  formatCalendarDate,
+  sprintActiveDays,
+} from '@/src/utils'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 
-const { Text } = Typography
-
 const INSTANT_FORMAT = 'MMM D, YYYY h:mm A'
 
-interface ActualMomentProps {
-  value: Date
-  recorded: boolean
-}
-
-// An effective moment is either what the team recorded or the default the
-// planned dates imply; the tag says which, since both read as a time.
-const ActualMoment = ({ value, recorded }: ActualMomentProps) => (
-  <Flex gap={6} align="center" wrap>
-    {dayjs(value).format(INSTANT_FORMAT)}
-    <Tag variant="filled" color={recorded ? 'processing' : 'default'}>
-      {recorded ? 'Actual' : 'Default'}
-    </Tag>
-  </Flex>
-)
+// Only what the team recorded, as the time it entered in the viewer's zone.
+const formatActual = (recorded: Date | undefined) =>
+  recorded ? dayjs(recorded).format(INSTANT_FORMAT) : '—'
 
 export interface SprintFactsProps {
   sprint: SprintDetailsDto
@@ -40,52 +30,39 @@ export interface SprintFactsProps {
  * the sprint's container rather than one of its attributes.
  */
 const SprintFacts = ({ sprint }: SprintFactsProps) => {
-  // Inclusive of both endpoints: a Mon-Fri sprint is five days, not four.
-  const days = calendarDaysBetween(sprint.start, sprint.end) + 1
-
-  // Times are shown in the viewer's zone; the defaults are computed in the
-  // team's, so name it when the two differ.
-  const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const showTeamTimeZone =
-    !!sprint.timeZone && sprint.timeZone !== viewerTimeZone
+  // The days the sprint is Active — its planned days, moved by any recorded
+  // start or end — counted inclusively, so Mon-Fri is five days.
+  const activeDays = sprintActiveDays(sprint)
+  const days = calendarDaysBetween(activeDays.start, activeDays.end) + 1
 
   return (
     <>
       <Flex vertical gap={10}>
-        <LabeledContent label="Start">
+        <LabeledContent label="Planned start">
           {formatCalendarDate(sprint.start)}
         </LabeledContent>
 
-        <LabeledContent label="End">
+        <LabeledContent label="Planned end">
           {formatCalendarDate(sprint.end)}
         </LabeledContent>
+
+        {/* Only a sprint of a mapped team can have actual dates recorded. */}
+        {sprint.activeFrom && (
+          <>
+            <LabeledContent label="Actual start">
+              {formatActual(sprint.started)}
+            </LabeledContent>
+
+            <LabeledContent label="Actual end">
+              {formatActual(sprint.completed)}
+            </LabeledContent>
+          </>
+        )}
 
         {days > 0 && (
           <LabeledContent label="Length">
             {days.toLocaleString()} day{days === 1 ? '' : 's'}
           </LabeledContent>
-        )}
-
-        {sprint.effectiveStart && (
-          <LabeledContent label="Actual start">
-            <ActualMoment
-              value={sprint.effectiveStart}
-              recorded={!!sprint.started}
-            />
-          </LabeledContent>
-        )}
-
-        {sprint.effectiveStart && sprint.effectiveEnd && (
-          <LabeledContent label="Actual end">
-            <ActualMoment
-              value={sprint.effectiveEnd}
-              recorded={!!sprint.completed}
-            />
-          </LabeledContent>
-        )}
-
-        {sprint.effectiveStart && showTeamTimeZone && (
-          <Text type="secondary">Team time zone: {sprint.timeZone}</Text>
         )}
       </Flex>
 

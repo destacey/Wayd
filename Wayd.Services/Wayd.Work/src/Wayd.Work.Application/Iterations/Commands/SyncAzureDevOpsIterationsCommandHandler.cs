@@ -171,7 +171,6 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
                 var updateResult = existingIteration.Update(
                     externalIteration.Name,
                     sprintType,
-                    externalIteration.State,
                     IterationDateRange.Create(externalIteration.Start, externalIteration.End),
                     teamId,
                     EventActor.Sync(null),
@@ -210,7 +209,6 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
                 var newIteration = Iteration.Create(
                     externalIteration.Name,
                     sprintType,
-                    externalIteration.State,
                     IterationDateRange.Create(externalIteration.Start, externalIteration.End),
                     teamId,
                     ownershipInfo,

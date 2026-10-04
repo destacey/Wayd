@@ -36,13 +36,13 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
         var iterationId = await CreateReplicatedIteration(ct);
         var moved = new IterationDateRange(Range.Start, new LocalDate(2026, 1, 21));
 
-        // Act — a rename, a moved end date and a state change in one save.
+        // Act — a rename and a moved end date in one save.
         using (var scope = _factory.Services.CreateScope())
         {
             var work = scope.ServiceProvider.GetRequiredService<IWorkDbContext>();
             var now = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>().Now;
             var iteration = await work.Iterations.SingleAsync(i => i.Id == iterationId, ct);
-            var result = iteration.Update("Sprint 1 (extended)", IterationType.Sprint, IterationState.Completed, moved, null, EventActor.System, now);
+            var result = iteration.Update("Sprint 1 (extended)", IterationType.Sprint, moved, null, EventActor.System, now);
             Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
             await work.SaveChangesAsync(ct);
         }
@@ -52,9 +52,8 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
             sp => sp.GetRequiredService<IPlanningDbContext>().PlanningSprints.AnyAsync(s =>
                 s.Id == iterationId
                 && s.Name == "Sprint 1 (extended)"
-                && s.State == IterationState.Completed
                 && s.DateRange.End == moved.End, ct),
-            ct), "the Planning copy should take the new name, state and dates");
+            ct), "the Planning copy should take the new name and dates");
     }
 
     [Fact]
@@ -127,7 +126,7 @@ public sealed class IterationReplicationTests(WaydSqlServerApiFactory factory)
         {
             var work = scope.ServiceProvider.GetRequiredService<IWorkDbContext>();
             var now = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>().Now;
-            var iteration = Iteration.Create("Sprint 1", IterationType.Sprint, IterationState.Active, Range, null,
+            var iteration = Iteration.Create("Sprint 1", IterationType.Sprint, Range, null,
                 OwnershipInfo.CreateWaydOwned(), [], EventActor.System, now);
             await work.Iterations.AddAsync(iteration, ct);
             await work.SaveChangesAsync(ct);

@@ -81,7 +81,7 @@ public sealed class IterationConcurrencyTokenTests(SqlServerDbContextFixture fix
 
     private async Task<Guid> SeedSprint(Guid teamId, CancellationToken cancellationToken)
     {
-        var sprint = Iteration.Create("Sprint A", IterationType.Sprint, IterationState.Active,
+        var sprint = Iteration.Create("Sprint A", IterationType.Sprint,
             new IterationDateRange(SprintStart, SprintStart.PlusDays(13)), teamId,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, Now);
 

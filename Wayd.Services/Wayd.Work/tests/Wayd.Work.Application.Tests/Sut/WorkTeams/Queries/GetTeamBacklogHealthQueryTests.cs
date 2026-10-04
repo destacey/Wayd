@@ -4,6 +4,8 @@ using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
@@ -40,7 +42,16 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
 
     public void Dispose() => _context.Dispose();
 
-    private GetTeamBacklogHealthQueryHandler Handler() => new(_context, _dispatcher.Object, _dateTimeProvider);
+    private GetTeamBacklogHealthQueryHandler Handler()
+    {
+        _dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>());
+        var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
+        schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+
+        return new(_context, _dispatcher.Object, schedulingSettings.Object, _dateTimeProvider);
+    }
 
     private static GetTeamBacklogHealthQuery Query(Guid team, BacklogHealthThresholds? thresholds = null) =>
         new(team, thresholds ?? BacklogHealthThresholds.Default);

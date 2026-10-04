@@ -51,6 +51,21 @@ public sealed record SprintMetricsSummary
     public required SimpleNavigationDto State { get; init; }
     public LocalDate Start { get; init; }
     public LocalDate End { get; init; }
+
+    /// <summary>
+    /// When the sprint became Active: when the team started it, or else the start of its first planned day in
+    /// <see cref="TimeZone"/>. Null for a sprint whose team is not mapped.
+    /// </summary>
+    public Instant? ActiveFrom { get; init; }
+
+    /// <summary>
+    /// When the sprint stops being Active, exclusive: a sprint that runs to the end of a day ends at the next
+    /// midnight, so its last day is the one before.
+    /// </summary>
+    public Instant? ActiveUntil { get; init; }
+
+    /// <summary>The IANA time zone the sprint's days are counted in: its team's.</summary>
+    public string? TimeZone { get; init; }
     public required NavigationDto Team { get; init; }
 
     // Metrics

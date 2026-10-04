@@ -2871,11 +2871,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
                     b.Property<Guid?>("TeamId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2913,7 +2908,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("TeamId");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TeamId"), new[] { "Key", "Name", "Type", "State" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TeamId"), new[] { "Key", "Name", "Type" });
 
                     b.ToTable("PlanningSprints", "Planning");
                 });
@@ -5954,11 +5949,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime?>("Started")
                         .IsConcurrencyToken()
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
 
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");

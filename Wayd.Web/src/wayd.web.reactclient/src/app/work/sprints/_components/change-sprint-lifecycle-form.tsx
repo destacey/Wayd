@@ -8,7 +8,8 @@ import {
   useReopenSprintMutation,
   useStartSprintMutation,
 } from '@/src/store/features/work-management/sprints-api'
-import { isApiError } from '@/src/utils'
+import { formatCalendarDate, isApiError, sprintActiveDays } from '@/src/utils'
+import { disabledTimeAfter } from './past-moment'
 import { Alert, DatePicker, Form, Modal, Space } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { useState } from 'react'
@@ -33,11 +34,11 @@ const presentParticiple: Record<SprintLifecycleAction, string> = {
 
 const explanation: Record<SprintLifecycleAction, string> = {
   [SprintLifecycleAction.Start]:
-    'Records when the team started the sprint. Its actual start replaces the default one.',
+    'Records when the team started the sprint, in place of its planned start.',
   [SprintLifecycleAction.Complete]:
-    'Records when the team completed the sprint. Its actual end replaces the default one.',
+    'Records when the team completed the sprint, in place of its planned end.',
   [SprintLifecycleAction.Reopen]:
-    'The recorded completion is cleared, so the sprint ends on its default end again.',
+    'The recorded completion is cleared, so the sprint ends on its planned end again.',
 }
 
 const MOMENT_FORMAT = 'MMM D, YYYY h:mm A'
@@ -179,12 +180,21 @@ const ChangeSprintLifecycleForm = ({
                 onChange={setMoment}
                 minDate={pickable.earliest}
                 maxDate={pickable.latest ?? dayjs()}
+                disabledTime={disabledTimeAfter(pickable.latest ?? dayjs())}
                 allowClear={false}
                 style={{ width: '100%' }}
                 aria-label={momentLabel}
               />
             </Form.Item>
           </Form>
+        )}
+        {action === SprintLifecycleAction.Complete && !sprint.started && (
+          <Alert
+            type="info"
+            showIcon
+            title="This sprint wasn't started."
+            description={`It counts as started on ${formatCalendarDate(sprintActiveDays(sprint).start)}. If the team started on a different day, use Correct Actual Dates to record both its start and its end.`}
+          />
         )}
         {openSprint && (
           <Alert

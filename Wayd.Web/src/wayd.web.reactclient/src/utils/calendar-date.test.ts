@@ -2,6 +2,7 @@
 jest.unmock('dayjs')
 
 import {
+  calendarDateInZone,
   calendarDaysBetween,
   compareCalendarDates,
   formatCalendarDate,
@@ -141,5 +142,28 @@ describe('calendarDaysBetween', () => {
 
     // Assert
     expect(result).toBe(-3)
+  })
+})
+
+describe('calendarDateInZone', () => {
+  it('takes the day the instant falls on in the given zone', () => {
+    // Arrange — 03:00 UTC on Sep 28 is still Sep 27 in Chicago
+    const instant = new Date('2026-09-28T03:00:00Z')
+
+    // Act
+    const chicago = calendarDateInZone(instant, 'America/Chicago')
+    const utc = calendarDateInZone(instant, 'UTC')
+
+    // Assert
+    expect(chicago).toBe('2026-09-27')
+    expect(utc).toBe('2026-09-28')
+  })
+
+  it('accepts the ISO string a Date-typed field holds', () => {
+    // Act
+    const result = calendarDateInZone('2026-09-28T05:00:00Z', 'America/Chicago')
+
+    // Assert
+    expect(result).toBe('2026-09-28')
   })
 })

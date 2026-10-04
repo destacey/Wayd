@@ -15,7 +15,6 @@ public class AzureDevOpsService(
     ILogger<AzureDevOpsService> logger,
     ILoggerFactory loggerFactory,
     IHttpClientFactory httpClientFactory,
-    IDateTimeProvider dateTimeProvider,
     IMemoryCache memoryCache) : IAzureDevOpsService
 {
     // https://learn.microsoft.com/en-us/azure/devops/integrate/concepts/rest-api-versioning?view=azure-devops#supported-versions
@@ -26,7 +25,6 @@ public class AzureDevOpsService(
     private readonly ILogger<AzureDevOpsService> _logger = logger;
     private readonly ILoggerFactory _loggerFactory = loggerFactory;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IMemoryCache _memoryCache = memoryCache;
 
     public async Task<Result> TestConnection(AzureDevOpsConnectionContext connection)
@@ -129,7 +127,7 @@ public class AzureDevOpsService(
         var iterationsResult = await GetOrFetchIterationsAsync(connection, projectName, teamSettings, cancellationToken).ConfigureAwait(false);
 
         return iterationsResult.IsSuccess
-            ? iterationsResult.Value.ToIExternalIterations(_dateTimeProvider.Now, projectResult.Value.Id)
+            ? iterationsResult.Value.ToIExternalIterations(projectResult.Value.Id)
             : Result.Failure<List<IExternalIteration<AzdoIterationMetadata>>>(iterationsResult.Error);
     }
 

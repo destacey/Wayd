@@ -66,9 +66,9 @@ public sealed class SyncPlanningSprintsCommandHandlerTests : IDisposable
     {
         // Arrange
         var id = Guid.NewGuid();
-        var copy = new PlanningSprint(new PlanningSprintFaker().WithId(id).WithState(IterationState.Future).Generate(), Created);
+        var copy = new PlanningSprint(new PlanningSprintFaker().WithId(id).WithName("Sprint 1").Generate(), Created);
         _planningDbContext.AddPlanningSprint(copy);
-        var source = SameSprintAs(copy).WithState(IterationState.Active).Generate();
+        var source = SameSprintAs(copy).WithName("Sprint 1a").Generate();
 
         // Act
         var result = await _handler.Handle(new SyncPlanningSprintsCommand([source], Read), TestContext.Current.CancellationToken);
@@ -76,8 +76,8 @@ public sealed class SyncPlanningSprintsCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         var synced = _planningDbContext.PlanningSprints.Should().ContainSingle().Subject;
-        synced.State.Should().Be(IterationState.Active);
-        synced.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created) with { State = Read });
+        synced.Name.Should().Be("Sprint 1a");
+        synced.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created) with { Details = Read });
         _planningDbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -204,7 +204,6 @@ public sealed class SyncPlanningSprintsCommandHandlerTests : IDisposable
             .WithKey(sprint.Key)
             .WithName(sprint.Name)
             .WithType(sprint.Type)
-            .WithState(sprint.State)
             .WithDateRange(sprint.DateRange)
             .WithTeamId(sprint.TeamId);
 }

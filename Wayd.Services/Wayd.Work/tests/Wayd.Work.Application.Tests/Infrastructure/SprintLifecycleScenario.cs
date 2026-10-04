@@ -34,9 +34,14 @@ public sealed class SprintLifecycleScenario : IDisposable
         Clock = new FakeClock(InChicago(Sprint2Start.PlusDays(-3), 15));
         DateTimeProvider = new TestingDateTimeProvider(Clock);
 
+        TeamSchedulePeriodDto[] schedule = [new TeamSchedulePeriodDto(new LocalDate(2026, 1, 1), null, "America/Chicago", 1)];
         Dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new TeamSchedulePeriodDto(new LocalDate(2026, 1, 1), null, "America/Chicago", 1)]);
+            .ReturnsAsync(schedule);
+        Dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetTeamsScheduleHistoryQuery q, CancellationToken _) =>
+                q.TeamIds.Where(id => id == Team.Id).ToDictionary(id => id, _ => (IReadOnlyList<TeamSchedulePeriodDto>)schedule));
         Dispatcher
             .Setup(d => d.Send(It.IsAny<IsTeamMemberQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IsTeamMemberQuery q, CancellationToken _) => q.TeamId == Team.Id && q.EmployeeId == EmployeeId && IsMember);

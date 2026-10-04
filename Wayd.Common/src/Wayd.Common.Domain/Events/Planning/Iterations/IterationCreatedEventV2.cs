@@ -10,21 +10,15 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// An iteration was created.
 /// </summary>
 /// <remarks>
-/// Supersedes <see cref="IterationCreatedEvent"/>, whose <c>DateRange</c> carried instants. The planned dates are
-/// calendar days, so a consumer can place them in whichever zone applies to it. A new type rather than a new
-/// version, because retyping a field breaks every consumer written against the old shape.
+/// Frozen at its published shape and never raised; <see cref="IterationCreatedEventV3"/> replaced it when state
+/// stopped being stored. Kept so every payload written as this type still deserializes into it — its name and
+/// members are the contract those payloads were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by IterationCreatedEventV3. Kept only to deserialize payloads already written as this type.")]
 public sealed record IterationCreatedEventV2 : DomainEvent<IterationCreatedEventV2>, IDomainEventDescriptor, ISimpleIteration, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;
 
-    public IterationCreatedEventV2(ISimpleIteration iteration, EventActor actor, Instant timestamp)
-        : this(iteration.Id, iteration.Key, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
-    {
-    }
-
-    // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
-    // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
     public IterationCreatedEventV2(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
         : base(actor, "2.0")

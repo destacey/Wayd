@@ -435,11 +435,6 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
             .HasColumnType("varchar")
             .HasMaxLength(32);
 
-        builder.Property(i => i.State).IsRequired()
-            .HasConversion<EnumConverter<IterationState>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
-
         // Concurrency tokens so two requests that change the same sprint's lifecycle at once cannot both
         // save: the second would overwrite the first's moment and record a second event for one change.
         // The open-sprint index below only catches two different sprints.

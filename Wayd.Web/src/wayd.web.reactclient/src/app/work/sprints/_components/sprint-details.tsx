@@ -5,6 +5,7 @@ import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
 import { Alert, Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
+import { sprintActiveDays } from '@/src/utils'
 import { FC, ReactNode } from 'react'
 
 export interface SprintDetailsProps {
@@ -13,8 +14,8 @@ export interface SprintDetailsProps {
   onHealthIndicatorReady?: (indicator: ReactNode) => void
 }
 
-// Overlapping sprints would count the same time twice, so the earlier one's
-// default end is cut to the later one's start, actual or default.
+// Overlapping sprints would count the same time twice, so an earlier sprint
+// the team did not complete ends when the later one starts.
 export const sprintOverlapWarning = (
   sprint: SprintDetailsDto,
 ): { title: string; description: string } | null => {
@@ -26,9 +27,9 @@ export const sprintOverlapWarning = (
 
   const cuts = [
     sprint.overlapsPreviousSprint &&
-      "The previous sprint's default end is cut to this sprint's start.",
+      'Unless it was completed earlier, the previous sprint ends when this sprint starts, not on its planned end.',
     sprint.overlapsNextSprint &&
-      "This sprint's default end is cut to the next sprint's start.",
+      'Unless it is completed earlier, this sprint ends when the next sprint starts, not on its planned end.',
   ].filter(Boolean)
 
   return {
@@ -50,6 +51,7 @@ const SprintDetails: FC<SprintDetailsProps> = ({
     sprintState === IterationState.Completed
 
   const overlapWarning = sprintOverlapWarning(sprint)
+  const activeDays = sprintActiveDays(sprint)
 
   return (
     <Flex vertical gap={16}>
@@ -64,8 +66,8 @@ const SprintDetails: FC<SprintDetailsProps> = ({
       {/* Team and dates live in the record's details panel — repeating them
           here would duplicate the panel beside it. */}
       <TimelineProgress
-        start={sprint.start}
-        end={sprint.end}
+        start={activeDays.start}
+        end={activeDays.end}
         dateFormat="MMM D, YYYY"
       />
       {showMetrics && (

@@ -520,25 +520,6 @@ public class WorkItemDependencyTests
     }
 
     [Fact]
-    public void Create_CompletedIteration_IsFilteredOut()
-    {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-
-        var completedIteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationState.Completed).Generate();
-        var source = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(completedIteration.Id).Generate();
-        source.Iteration = completedIteration;
-        var target = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).Generate();
-
-        // Act
-        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source, now), DependencyWorkItemInfo.Create(target, now), now, null, null, null, null, now);
-
-        // Assert: completed iteration should be filtered out
-        Assert.Null(dep.SourcePlannedOn);
-    }
-
-    [Fact]
     public void Create_PastIteration_IsFilteredOut()
     {
         // Arrange
@@ -564,7 +545,7 @@ public class WorkItemDependencyTests
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Today;
 
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationState.Active, IterationType.Iteration).Generate();
+        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationType.Iteration).Generate();
         var source = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         source.Iteration = iteration;
         var target = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).Generate();

@@ -24,9 +24,6 @@ public sealed class IExternalIterationValidator<T> : CustomValidator<IExternalIt
             () => RuleFor(c => c.End)
                 .NotEmpty());
 
-        RuleFor(c => c.State)
-            .IsInEnum();
-
         When(c => c.TeamId.HasValue,
             () => RuleFor(c => c.TeamId)
                 .NotEmpty());

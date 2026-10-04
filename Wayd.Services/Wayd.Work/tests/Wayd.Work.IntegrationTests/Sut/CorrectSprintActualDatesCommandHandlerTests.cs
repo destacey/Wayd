@@ -122,7 +122,7 @@ public sealed class CorrectSprintActualDatesCommandHandlerTests(SqlServerDbConte
 
     private async Task<Guid> SeedSprint(Guid teamId, string name, LocalDate start, Instant? started, CancellationToken cancellationToken)
     {
-        var sprint = Iteration.Create(name, IterationType.Sprint, IterationState.Active,
+        var sprint = Iteration.Create(name, IterationType.Sprint,
             new IterationDateRange(start, start.PlusDays(13)), teamId,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, SqlServerDbContextFixture.FixedNow);
 

@@ -45,7 +45,7 @@ describe('sprintOverlapWarning', () => {
       "This sprint's planned dates overlap the team's next sprint in Azure DevOps.",
     )
     expect(result?.description).toContain(
-      "This sprint's default end is cut to the next sprint's start.",
+      'Unless it is completed earlier, this sprint ends when the next sprint starts, not on its planned end.',
     )
   })
 
@@ -58,7 +58,7 @@ describe('sprintOverlapWarning', () => {
 
     // Assert
     expect(result?.description).toContain(
-      "The previous sprint's default end is cut to this sprint's start.",
+      'Unless it was completed earlier, the previous sprint ends when this sprint starts, not on its planned end.',
     )
   })
 

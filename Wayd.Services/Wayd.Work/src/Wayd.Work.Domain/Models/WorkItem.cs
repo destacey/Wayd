@@ -275,7 +275,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
             return Result.Failure("A work item cannot be linked to itself.");
         }
 
-        var sourceInfo = DependencyWorkItemInfo.Create(this);
+        var sourceInfo = DependencyWorkItemInfo.Create(this, now);
 
         var existingLink = _outboundDependencyHistory.FirstOrDefault(x => x.TargetId == targetInfo.WorkItemId
             && x.CreatedOn == createdOn);

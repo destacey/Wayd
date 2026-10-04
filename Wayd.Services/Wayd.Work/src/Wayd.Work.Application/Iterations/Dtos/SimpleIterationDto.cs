@@ -11,7 +11,6 @@ public sealed record SimpleIterationDto : IMapFrom<Iteration>, ISimpleIteration
     public int Key { get; init; }
     public required string Name { get; init; }
     public IterationType Type { get; init; }
-    public IterationState State { get; init; }
     public required IterationDateRange DateRange { get; init; }
     public Guid? TeamId { get; init; }
 }

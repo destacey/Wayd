@@ -17,7 +17,6 @@ public sealed class PlanningSprintFaker : PrivateConstructorFaker<PlanningSprint
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));
         RuleFor(x => x.Name, f => f.Company.CatchPhrase());
         RuleFor(x => x.Type, f => IterationType.Sprint);
-        RuleFor(x => x.State, f => f.PickRandom<IterationState>());
         RuleFor(x => x.DateRange, f => IterationDateRange.Create(start, end));
         RuleFor(x => x.TeamId, f => f.Random.Guid());
     }
@@ -46,12 +45,6 @@ public static class PlanningSprintFakerExtensions
     public static PlanningSprintFaker WithType(this PlanningSprintFaker faker, IterationType type)
     {
         faker.RuleFor(x => x.Type, type);
-        return faker;
-    }
-
-    public static PlanningSprintFaker WithState(this PlanningSprintFaker faker, IterationState state)
-    {
-        faker.RuleFor(x => x.State, state);
         return faker;
     }
 

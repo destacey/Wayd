@@ -18,7 +18,7 @@ import {
 } from '@/src/services/wayd-api'
 import { Card, Col, Flex, Grid, Row, Tag, Typography } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
-import { formatCalendarDate } from '@/src/utils'
+import { formatCalendarDate, sprintActiveDays } from '@/src/utils'
 import Link from 'next/link'
 import { FC } from 'react'
 
@@ -64,6 +64,7 @@ const SprintCard: FC<SprintCardProps> = ({
     `${formatCalendarDate(sprint.start)} - ${formatCalendarDate(sprint.end)}`
 
   const isFuture = sprint.state.id === IterationState.Future
+  const activeDays = sprintActiveDays(sprint)
 
   const metricCardStyle: React.CSSProperties = {
     height: '100%',
@@ -98,8 +99,8 @@ const SprintCard: FC<SprintCardProps> = ({
             </Text>
             <Flex gap={8} wrap>
               <IterationHealthIndicator
-                startDate={sprint.start}
-                endDate={sprint.end}
+                startDate={activeDays.start}
+                endDate={activeDays.end}
                 total={displayTotal}
                 completed={displayCompleted}
               />
@@ -132,8 +133,8 @@ const SprintCard: FC<SprintCardProps> = ({
 
             <Flex vertical gap={8} align="end">
               <IterationHealthIndicator
-                startDate={sprint.start}
-                endDate={sprint.end}
+                startDate={activeDays.start}
+                endDate={activeDays.end}
                 total={displayTotal}
                 completed={displayCompleted}
               />
@@ -149,8 +150,8 @@ const SprintCard: FC<SprintCardProps> = ({
         {/* Progress Bar - only show for active/completed sprints */}
         {!isFuture && (
           <IterationProgressBar
-            startDate={sprint.start}
-            endDate={sprint.end}
+            startDate={activeDays.start}
+            endDate={activeDays.end}
             total={displayTotal}
             completed={displayCompleted}
           />

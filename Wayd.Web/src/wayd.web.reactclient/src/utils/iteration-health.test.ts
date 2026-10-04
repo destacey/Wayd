@@ -1,6 +1,7 @@
 import {
   calculateIterationHealth,
   IterationHealthStatus,
+  sprintActiveDays,
 } from './iteration-health'
 import { toCalendarDate } from './calendar-date'
 
@@ -151,5 +152,49 @@ describe('calculateIterationHealth', () => {
 
       expect(result.status).toBeDefined()
     })
+  })
+})
+
+describe('sprintActiveDays', () => {
+  const planned = { start: '2026-09-28', end: '2026-10-09' }
+
+  it('falls back to the planned days without an active period', () => {
+    // Act
+    const result = sprintActiveDays(planned)
+
+    // Assert
+    expect(result).toEqual({ start: '2026-09-28', end: '2026-10-09' })
+  })
+
+  it('runs from the day it became active to the day before an end at midnight', () => {
+    // Arrange — started Tuesday 9am and runs to the end of Friday, in Chicago
+    const sprint = {
+      ...planned,
+      activeFrom: new Date('2026-09-29T14:00:00Z'),
+      activeUntil: new Date('2026-10-10T05:00:00Z'),
+      timeZone: 'America/Chicago',
+    }
+
+    // Act
+    const result = sprintActiveDays(sprint)
+
+    // Assert
+    expect(result).toEqual({ start: '2026-09-29', end: '2026-10-09' })
+  })
+
+  it('ends on the day it was completed', () => {
+    // Arrange — completed Thursday afternoon in Chicago
+    const sprint = {
+      ...planned,
+      activeFrom: new Date('2026-09-28T05:00:00Z'),
+      activeUntil: new Date('2026-10-08T20:00:00Z'),
+      timeZone: 'America/Chicago',
+    }
+
+    // Act
+    const result = sprintActiveDays(sprint)
+
+    // Assert
+    expect(result).toEqual({ start: '2026-09-28', end: '2026-10-08' })
   })
 })

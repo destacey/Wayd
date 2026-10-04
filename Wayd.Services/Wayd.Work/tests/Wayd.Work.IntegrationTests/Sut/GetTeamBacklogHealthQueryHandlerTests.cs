@@ -2,6 +2,8 @@
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
@@ -37,8 +39,8 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
         MapsterConfiguration.Ensure();
         await _fixture.ResetWorkData(TestContext.Current.CancellationToken);
         var teamId = await SeedTeam();
-        var completedSprintId = await SeedSprint(teamId, IterationState.Completed);
-        var activeSprintId = await SeedSprint(teamId, IterationState.Active);
+        var completedSprintId = await SeedSprint(teamId, new LocalDate(2026, 9, 1));
+        var activeSprintId = await SeedSprint(teamId, new LocalDate(2026, 9, 15));
 
         Guid closedParent, carriedOver, current;
         await using (var seed = new WaydDbContextAccessor(_fixture))
@@ -53,10 +55,15 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
         dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamMemberCountQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(3);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>());
+        var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
+        schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
         var dateTimeProvider = Mock.Of<IDateTimeProvider>(p => p.Now == _now);
 
         await using var accessor = new WaydDbContextAccessor(_fixture);
-        var handler = new GetTeamBacklogHealthQueryHandler(accessor.Context, dispatcher.Object, dateTimeProvider);
+        var handler = new GetTeamBacklogHealthQueryHandler(accessor.Context, dispatcher.Object, schedulingSettings.Object, dateTimeProvider);
 
         // Act
         var result = await handler.Handle(
@@ -99,11 +106,12 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
         return team.Id;
     }
 
-    private async Task<Guid> SeedSprint(Guid teamId, IterationState state)
+    // Sprint state is worked out from the dates against _now, Sep 22: one from Sep 1 has ended, one from Sep 15 is running.
+    private async Task<Guid> SeedSprint(Guid teamId, LocalDate start)
     {
         var key = Guid.NewGuid().ToString("N")[..8];
-        var range = new IterationDateRange(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 14));
-        var sprint = Iteration.Create($"Sprint {key}", IterationType.Sprint, state, range, teamId,
+        var range = new IterationDateRange(start, start.PlusDays(13));
+        var sprint = Iteration.Create($"Sprint {key}", IterationType.Sprint, range, teamId,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, _now);
 
         await using var context = new WaydDbContextAccessor(_fixture);

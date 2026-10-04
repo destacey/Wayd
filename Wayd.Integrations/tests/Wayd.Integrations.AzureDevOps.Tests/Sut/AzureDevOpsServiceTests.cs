@@ -1,7 +1,5 @@
 using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
-using NodaTime;
-using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Integrations.AzureDevOps.Tests.Support;
 
@@ -26,7 +24,6 @@ public class AzureDevOpsServiceTests
             NullLogger<AzureDevOpsService>.Instance,
             NullLoggerFactory.Instance,
             _httpClientFactory,
-            new FixedDateTimeProvider(),
             _memoryCache);
     }
 
@@ -134,11 +131,5 @@ public class AzureDevOpsServiceTests
                 "children": []
             }
             """;
-    }
-
-    private sealed class FixedDateTimeProvider : IDateTimeProvider
-    {
-        public Instant Now => Instant.FromUtc(2026, 1, 1, 0, 0);
-        public LocalDate Today => new(2026, 1, 1);
     }
 }

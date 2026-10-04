@@ -9,7 +9,6 @@ public interface ISimpleIteration
     int Key { get; }
     string Name { get; }
     IterationType Type { get; }
-    IterationState State { get; }
     IterationDateRange DateRange { get; }
     Guid? TeamId { get; }
 

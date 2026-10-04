@@ -25,12 +25,12 @@ public sealed record DependencyWorkItemInfo
             : null
     };
 
+    /// <param name="now">When given, a sprint whose last planned day has passed in UTC counts as no plan.</param>
     public static DependencyWorkItemInfo Create(WorkItem workItem, Instant? now = null)
     {
         LocalDate? plannedOn = null;
         if (workItem.Iteration != null
             && workItem.Iteration.Type == IterationType.Sprint
-            && workItem.Iteration.State != IterationState.Completed
             && (!now.HasValue || workItem.Iteration.DateRange.End >= now.Value.InUtc().Date))
         {
             plannedOn = workItem.Iteration.DateRange.End;

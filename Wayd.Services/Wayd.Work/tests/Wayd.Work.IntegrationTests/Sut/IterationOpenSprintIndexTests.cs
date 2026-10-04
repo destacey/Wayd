@@ -95,7 +95,7 @@ public sealed class IterationOpenSprintIndexTests(SqlServerDbContextFixture fixt
             .Where(i => i.Id == firstSprintId || i.Id == secondSprintId)
             .ToListAsync(cancellationToken);
         foreach (var sprint in sprints)
-            sprint.Update(sprint.Name, sprint.Type, sprint.State, sprint.DateRange, teamId: null, EventActor.System, Now);
+            sprint.Update(sprint.Name, sprint.Type, sprint.DateRange, teamId: null, EventActor.System, Now);
 
         // Act
         var save = async () => await sync.Context.SaveChangesAsync(cancellationToken);
@@ -127,7 +127,7 @@ public sealed class IterationOpenSprintIndexTests(SqlServerDbContextFixture fixt
 
     private async Task<Guid> SeedSprint(Guid teamId, string name, LocalDate start, CancellationToken cancellationToken)
     {
-        var sprint = Iteration.Create(name, IterationType.Sprint, IterationState.Active,
+        var sprint = Iteration.Create(name, IterationType.Sprint,
             new IterationDateRange(start, start.PlusDays(13)), teamId,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, Now);
 

@@ -63,7 +63,7 @@ describe('HealthCheckTag', () => {
   it('should render summary content when details are not provided', () => {
     render(<HealthCheckTag healthCheck={healthCheck} />)
     expect(screen.getByText('Expires On')).toBeInTheDocument()
-    expect(screen.getByText(/2026-01-15/)).toBeInTheDocument()
+    expect(screen.getByText('Jan 15, 2026 2:30 PM')).toBeInTheDocument()
   })
 
   it('should render loading indicator when loading details', () => {

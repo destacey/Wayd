@@ -19,6 +19,7 @@ import useTheme from '@/src/components/contexts/theme'
 import SprintPiPredictability from './sprint-pi-predictability'
 import TimelineProgress from './timeline-progress'
 import IterationHealthIndicator from './iteration-health-indicator'
+import { sprintActiveDays } from '@/src/utils'
 
 const { Text } = Typography
 
@@ -82,6 +83,8 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
     return null
   }
 
+  const activeDays = sprintActiveDays(sprintData)
+
   const title = (
     <Flex justify="space-between">
       <div>
@@ -98,8 +101,8 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
         <Link href={`/work/sprints/${sprintData.key}`}>{sprintData.name}</Link>
       </div>
       <IterationHealthIndicator
-        startDate={sprintData.start}
-        endDate={sprintData.end}
+        startDate={activeDays.start}
+        endDate={activeDays.end}
         total={displayValues.total}
         completed={displayValues.completed}
       />
@@ -110,8 +113,8 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
     <Card title={title} size="small" loading={metricsIsLoading}>
       <Flex vertical gap="small">
         <TimelineProgress
-          start={sprintData.start}
-          end={sprintData.end}
+          start={activeDays.start}
+          end={activeDays.end}
           variant="borderless"
           size="small"
           style={{ width: '100%' }}

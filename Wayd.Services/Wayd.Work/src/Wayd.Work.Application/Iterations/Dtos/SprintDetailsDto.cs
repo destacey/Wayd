@@ -19,7 +19,7 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The current state of the sprint.
+    /// The sprint's state now, worked out from its actual and default dates when read.
     /// </summary>
     public required SimpleNavigationDto State { get; set; }
 
@@ -46,17 +46,18 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public Instant? Completed { get; set; }
 
     /// <summary>
-    /// When the sprint actually started: <see cref="Started"/>, or by default the end of the commitment grace
-    /// period after the planned start, in <see cref="TimeZone"/>. Null for a sprint whose team is not mapped
-    /// or that has no planned dates.
+    /// When the sprint became Active: <see cref="Started"/>, or by default the start of its first planned day
+    /// in <see cref="TimeZone"/>, never before the previous sprint ended. <see cref="State"/> is Future before
+    /// it. Null for a sprint whose team is not mapped or that has no planned dates.
     /// </summary>
-    public Instant? EffectiveStart { get; set; }
+    public Instant? ActiveFrom { get; set; }
 
     /// <summary>
-    /// When the sprint actually ended: <see cref="Completed"/>, or by default the end of the last planned day,
-    /// cut to the next sprint's start where the two overlap.
+    /// When the sprint stops being Active, exclusive: <see cref="Completed"/>, or by default the end of its last
+    /// planned day, cut to the next sprint's start where the two overlap. A sprint that runs to the end of a day
+    /// ends at the next midnight, so its last day is the one before.
     /// </summary>
-    public Instant? EffectiveEnd { get; set; }
+    public Instant? ActiveUntil { get; set; }
 
     /// <summary>
     /// The IANA time zone the sprint's planned days are counted in: its team's on the planned start.
@@ -106,12 +107,12 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<Iteration, SprintDetailsDto>()
-            .Map(dest => dest.State, src => SimpleNavigationDto.FromEnum(src.State))
+            .Ignore(dest => dest.State)
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => src.Team)
-            .Ignore(dest => dest.EffectiveStart)
-            .Ignore(dest => dest.EffectiveEnd)
+            .Ignore(dest => dest.ActiveFrom)
+            .Ignore(dest => dest.ActiveUntil)
             .Ignore(dest => dest.TimeZone)
             .Ignore(dest => dest.OverlapsPreviousSprint)
             .Ignore(dest => dest.OverlapsNextSprint)

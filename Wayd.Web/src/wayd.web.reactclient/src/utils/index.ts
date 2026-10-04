@@ -1,6 +1,7 @@
 export { daysRemaining, percentageElapsed } from './dates'
 export {
   type CalendarDate,
+  calendarDateInZone,
   calendarDaysBetween,
   compareCalendarDates,
   formatCalendarDate,
@@ -28,6 +29,7 @@ export {
 } from './color-helper'
 export {
   calculateIterationHealth,
+  sprintActiveDays,
   IterationHealthStatus,
   type IterationHealthParams,
   type IterationHealthResult,

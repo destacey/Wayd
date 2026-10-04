@@ -63,7 +63,7 @@ const HealthCheckTag = ({
         <Descriptions size="small" column={1} style={{ width: '100%' }}>
           {healthCheck.expiration && (
             <Item label="Expires On">
-              {dayjs(healthCheck.expiration).format('MMM D, YYYY hh:mm A')}
+              {dayjs(healthCheck.expiration).format('MMM D, YYYY h:mm A')}
             </Item>
           )}
         </Descriptions>
@@ -78,7 +78,7 @@ const HealthCheckTag = ({
             {dayjs(details.reportedOn).format('MMM D, YYYY')}
           </Item>
           <Item label="Expires On">
-            {dayjs(details.expiration).format('MMM D, YYYY hh:mm A')}
+            {dayjs(details.expiration).format('MMM D, YYYY h:mm A')}
           </Item>
         </Descriptions>
         {details.note && <MarkdownRenderer markdown={details.note} />}

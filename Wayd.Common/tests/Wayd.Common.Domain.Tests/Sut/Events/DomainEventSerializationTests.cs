@@ -257,17 +257,16 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
-    public void IterationCreatedEventV2_RoundTripsThroughDurableSerializer()
+    public void IterationCreatedEventV3_RoundTripsThroughDurableSerializer()
     {
         // Arrange — an ISimpleIteration aggregate-constructor event (fixed with a [JsonConstructor]) whose
         // IterationDateRange value object carries nullable NodaTime LocalDates.
-        var original = new IterationCreatedEventV2(
+        var original = new IterationCreatedEventV3(
             iteration: new SimpleIterationStub(
                 Guid.NewGuid(),
                 7,
                 "Sprint 7",
                 IterationType.Iteration,
-                IterationState.Active,
                 new IterationDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14)),
                 Guid.NewGuid()),
             EventActor.System,
@@ -281,11 +280,38 @@ public sealed class DomainEventSerializationTests
         roundTripped.Key.Should().Be(original.Key);
         roundTripped.Name.Should().Be(original.Name);
         roundTripped.Type.Should().Be(original.Type);
-        roundTripped.State.Should().Be(original.State);
         roundTripped.DateRange.Start.Should().Be(original.DateRange.Start);
         roundTripped.DateRange.End.Should().Be(original.DateRange.End);
         roundTripped.TeamId.Should().Be(original.TeamId);
         roundTripped.Timestamp.Should().Be(original.Timestamp);
+        roundTripped.EventVersion.Should().Be("3.0");
+    }
+
+    [Fact]
+    public void IterationCreatedEventV2_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+#pragma warning disable CS0618 // retired, but payloads written as it must still round-trip
+        var original = new IterationCreatedEventV2(
+            Guid.NewGuid(),
+            7,
+            "Sprint 7",
+            IterationType.Iteration,
+            IterationState.Active,
+            new IterationDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 14)),
+            Guid.NewGuid(),
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+#pragma warning restore CS0618
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.State.Should().Be(original.State);
+        roundTripped.DateRange.Should().Be(original.DateRange);
+        roundTripped.TeamId.Should().Be(original.TeamId);
     }
 
     [Fact]
@@ -1148,9 +1174,37 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void IterationBaselinedEventV3_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new IterationBaselinedEventV3(
+            Guid.NewGuid(),
+            7,
+            "Sprint 7",
+            IterationType.Sprint,
+            new IterationDateRange(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 16)),
+            Guid.NewGuid(),
+            recordCreatedOn: Instant.FromUtc(2025, 12, 20, 8, 0),
+            recordCreatedById: null,
+            timestamp: Instant.FromUtc(2026, 9, 7, 12, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.EventId.Should().Be(original.EventId);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.DateRange.Should().Be(original.DateRange);
+        roundTripped.TeamId.Should().Be(original.TeamId);
+        roundTripped.RecordCreatedOn.Should().Be(original.RecordCreatedOn);
+        roundTripped.EventVersion.Should().Be("3.0");
+    }
+
+    [Fact]
     public void IterationBaselinedEventV2_RoundTripsThroughDurableSerializer()
     {
         // Arrange
+#pragma warning disable CS0618 // the retired type is exactly what is under test
         var original = new IterationBaselinedEventV2(
             Guid.NewGuid(),
             7,
@@ -1162,6 +1216,7 @@ public sealed class DomainEventSerializationTests
             recordCreatedOn: Instant.FromUtc(2025, 12, 20, 8, 0),
             recordCreatedById: null,
             timestamp: Instant.FromUtc(2026, 9, 7, 12, 0));
+#pragma warning restore CS0618
 
         // Act
         var roundTripped = RoundTrip(original);
@@ -1793,7 +1848,7 @@ public sealed class DomainEventSerializationTests
 
     /// <summary>Minimal <see cref="ISimpleIteration"/> so the event can be constructed without the full aggregate.</summary>
     private sealed record SimpleIterationStub(
-        Guid Id, int Key, string Name, IterationType Type, IterationState State, IterationDateRange DateRange, Guid? TeamId)
+        Guid Id, int Key, string Name, IterationType Type, IterationDateRange DateRange, Guid? TeamId)
         : ISimpleIteration;
 
     /// <summary>Minimal <see cref="IStrategicThemeData"/> so the event can be constructed without the full aggregate.</summary>

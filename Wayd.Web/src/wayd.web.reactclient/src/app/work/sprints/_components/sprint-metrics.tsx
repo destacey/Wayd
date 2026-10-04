@@ -17,6 +17,7 @@ import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
 import { useGetSprintMetricsQuery } from '@/src/store/features/work-management/sprints-api'
 import { Flex, Segmented, Skeleton } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
+import { sprintActiveDays } from '@/src/utils'
 import { FC, ReactNode, useEffect, useState } from 'react'
 
 export interface SprintMetricsProps {
@@ -37,6 +38,7 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
   const useStoryPoints = sizingMethodState === SizingMethod.StoryPoints
 
   const { data: metrics, isLoading } = useGetSprintMetricsQuery(sprint.key)
+  const activeDays = sprintActiveDays(sprint)
 
   // Update local state when sizingMethod prop changes
   // This allows the component to be both controlled (responds to prop changes)
@@ -75,21 +77,21 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
     if (!isLoading && metrics && onHealthIndicatorReady) {
       onHealthIndicatorReady(
         <IterationHealthIndicator
-          startDate={sprint.start}
-          endDate={sprint.end}
+          startDate={activeDays.start}
+          endDate={activeDays.end}
           total={displayValues.total}
           completed={displayValues.completed}
         />,
       )
     }
   }, [
+    activeDays.end,
+    activeDays.start,
     displayValues.completed,
     displayValues.total,
     isLoading,
     metrics,
     onHealthIndicatorReady,
-    sprint.end,
-    sprint.start,
   ])
 
   if (isLoading) {
@@ -124,8 +126,8 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
         {sprint.state.id !== IterationState.Completed && (
           <DaysCountdownMetric
             state={sprint.state.id as IterationState}
-            startDate={sprint.start}
-            endDate={sprint.end}
+            startDate={activeDays.start}
+            endDate={activeDays.end}
             cardStyle={METRIC_CARD_FLEX}
           />
         )}

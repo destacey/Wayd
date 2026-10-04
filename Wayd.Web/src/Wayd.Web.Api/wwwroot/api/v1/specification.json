@@ -52737,6 +52737,20 @@
             "type": "string",
             "format": "date"
           },
+          "activeFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "activeUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timeZone": {
+            "type": "string",
+            "nullable": true
+          },
           "team": {
             "$ref": "#/components/schemas/PlanningTeamNavigationDto"
           }
@@ -53060,6 +53074,23 @@
           "end": {
             "type": "string",
             "format": "date"
+          },
+          "activeFrom": {
+            "type": "string",
+            "description": "When the sprint became Active: when the team started it, or else the start of its first planned day in\nTimeZone. Null for a sprint whose team is not mapped.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "activeUntil": {
+            "type": "string",
+            "description": "When the sprint stops being Active, exclusive: a sprint that runs to the end of a day ends at the next\nmidnight, so its last day is the one before.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA time zone the sprint's days are counted in: its team's.",
+            "nullable": true
           },
           "team": {
             "$ref": "#/components/schemas/NavigationDto"
@@ -56865,12 +56896,12 @@
             "format": "date-time",
             "nullable": true
           },
-          "effectiveStart": {
+          "activeFrom": {
             "type": "string",
             "format": "date-time",
             "nullable": true
           },
-          "effectiveEnd": {
+          "activeUntil": {
             "type": "string",
             "format": "date-time",
             "nullable": true
@@ -57071,13 +57102,13 @@
           },
           "started": {
             "type": "string",
-            "description": "When the team actually started the sprint. Omit to take the default start.",
+            "description": "When the team actually started the sprint. Omit to follow the planned start.",
             "format": "date-time",
             "nullable": true
           },
           "completed": {
             "type": "string",
-            "description": "When the team actually completed the sprint. Omit to take the default end.",
+            "description": "When the team actually completed the sprint. Omit to follow the planned end.",
             "format": "date-time",
             "nullable": true
           }

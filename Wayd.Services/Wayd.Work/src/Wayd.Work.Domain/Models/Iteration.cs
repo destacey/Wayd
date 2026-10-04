@@ -16,19 +16,18 @@ namespace Wayd.Work.Domain.Models;
 /// <summary>
 /// Represents an iteration, which is a time-boxed unit of work typically associated with a team.
 /// </summary>
-/// <remarks>An iteration is characterized by its name, type, state, date range, and ownership information.  This class
-/// provides methods for creating and updating iterations, as well as managing associated metadata.</remarks>
+/// <remarks>An iteration is characterized by its name, type, date range, and ownership information.  Its state is not
+/// stored: it follows the dates and is worked out when read (see <see cref="TeamSprintTimeline.StateAt"/>).</remarks>
 public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIteration, IHasOptionalWorkTeam
 {
     private readonly List<KeyValueObjectMetadata> _externalMetadata = [];
 
     private Iteration() { }
 
-    private Iteration(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, OwnershipInfo ownershipInfo, List<KeyValueObjectMetadata> externalMetadata)
+    private Iteration(string name, IterationType type, IterationDateRange dateRange, Guid? teamId, OwnershipInfo ownershipInfo, List<KeyValueObjectMetadata> externalMetadata)
     {
         Name = name;
         Type = type;
-        State = state;
         DateRange = dateRange;
         TeamId = teamId;
         OwnershipInfo = Guard.Against.Null(ownershipInfo);
@@ -57,11 +56,6 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// The type of iteration being performed.
     /// </summary>
     public IterationType Type { get; private set; }
-
-    /// <summary>
-    /// The current state of the iteration.
-    /// </summary>
-    public IterationState State { get; private set; }
 
     /// <summary>
     /// The date range of the iteration.
@@ -101,19 +95,16 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
 
     /// <summary>
     /// Applies the iteration as its source describes it. Each part that changed raises its own event: the
-    /// details, the date range, the state and the team change for different reasons, and the state moves on
-    /// its own as the dates pass.
+    /// details, the date range and the team change for different reasons.
     /// </summary>
-    public Result Update(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
+    public Result Update(string name, IterationType type, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
     {
         var previousDetails = new IterationDetails(Name, Type);
-        var previousState = State;
         var previousDateRange = DateRange;
         var previousTeamId = TeamId;
 
         Name = name;
         Type = type;
-        State = state;
         DateRange = dateRange;
         TeamId = teamId;
 
@@ -125,10 +116,6 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
         var newDateRange = DateRange;
         if (newDateRange != previousDateRange)
             AddKeyedDomainEvent(() => new IterationDateRangeChangedEventV2(Id, Key, previousDateRange, newDateRange, actor, timestamp));
-
-        var newState = State;
-        if (newState != previousState)
-            AddKeyedDomainEvent(() => new IterationStateChangedEvent(Id, Key, previousState, newState, actor, timestamp));
 
         var newTeamId = TeamId;
         if (newTeamId != previousTeamId)
@@ -260,7 +247,6 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// </summary>
     /// <param name="name"></param>
     /// <param name="type"></param>
-    /// <param name="state"></param>
     /// <param name="dateRange"></param>
     /// <param name="teamId"></param>
     /// <param name="ownershipInfo"></param>
@@ -268,25 +254,23 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public static Iteration Create(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, OwnershipInfo ownershipInfo, List<KeyValueObjectMetadata> externalMetadata, EventActor actor, Instant timestamp)
+    public static Iteration Create(string name, IterationType type, IterationDateRange dateRange, Guid? teamId, OwnershipInfo ownershipInfo, List<KeyValueObjectMetadata> externalMetadata, EventActor actor, Instant timestamp)
     {
-        var iteration = new Iteration(name, type, state, dateRange, teamId, ownershipInfo, externalMetadata);
+        var iteration = new Iteration(name, type, dateRange, teamId, ownershipInfo, externalMetadata);
 
         // Captured now, not when the action runs: the event records the iteration as created, so a caller
         // that changes it before the first save cannot rewrite the creation. Only Key waits for the save
         // that assigns it.
         var createdName = iteration.Name;
         var createdType = iteration.Type;
-        var createdState = iteration.State;
         var createdDateRange = iteration.DateRange;
         var createdTeamId = iteration.TeamId;
 
-        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEventV2(
+        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEventV3(
             iteration.Id,
             iteration.Key,
             createdName,
             createdType,
-            createdState,
             createdDateRange,
             createdTeamId,
             actor,

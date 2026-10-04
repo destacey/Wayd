@@ -21,7 +21,8 @@ public sealed record PlanningSprintListDto : IMapFrom<PlanningSprint>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The current state of the sprint.
+    /// The sprint's state now. The copy does not hold it; the query that returns this DTO reads it from the
+    /// Work module.
     /// </summary>
     public required SimpleNavigationDto State { get; set; }
 
@@ -35,12 +36,27 @@ public sealed record PlanningSprintListDto : IMapFrom<PlanningSprint>
     /// </summary>
     public LocalDate End { get; set; }
 
+    /// <summary>
+    /// When the sprint became Active, read from the Work module like <see cref="State"/>. Null for a sprint
+    /// whose team is not mapped.
+    /// </summary>
+    public Instant? ActiveFrom { get; set; }
+
+    /// <summary>When the sprint stops being Active, exclusive.</summary>
+    public Instant? ActiveUntil { get; set; }
+
+    /// <summary>The IANA time zone the sprint's days are counted in: its team's.</summary>
+    public string? TimeZone { get; set; }
+
     public required PlanningTeamNavigationDto Team { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<PlanningSprint, PlanningSprintListDto>()
-            .Map(dest => dest.State, src => SimpleNavigationDto.FromEnum(src.State))
+            .Ignore(dest => dest.State)
+            .Ignore(dest => dest.ActiveFrom)
+            .Ignore(dest => dest.ActiveUntil)
+            .Ignore(dest => dest.TimeZone!)
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => PlanningTeamNavigationDto.FromPlanningTeam(src.Team!));

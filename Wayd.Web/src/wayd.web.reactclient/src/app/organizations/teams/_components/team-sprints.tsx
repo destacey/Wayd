@@ -29,7 +29,7 @@ const TeamSprints: FC<TeamSprintsProps> = (props) => {
           showIcon
           style={{ marginBottom: 12 }}
           title="Some of this team's sprints have overlapping planned dates in Azure DevOps."
-          description={`Overlapping: ${summarizeSprintNames(overlapping)}. Each overlapping sprint's default end is cut to the next sprint's start, actual or default.`}
+          description={`Overlapping: ${summarizeSprintNames(overlapping)}. Unless it is completed earlier, each overlapping sprint ends when the next sprint starts, not on its planned end.`}
         />
       )}
       <SprintsGrid

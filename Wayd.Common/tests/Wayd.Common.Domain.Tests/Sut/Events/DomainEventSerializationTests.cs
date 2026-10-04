@@ -15,6 +15,7 @@ using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Events.Planning.Risks;
+using Wayd.Common.Domain.Events.Planning.Roadmaps;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.Scoring;
@@ -663,6 +664,81 @@ public sealed class DomainEventSerializationTests
         roundTripped.SprintMappings.Should().Equal(original.SprintMappings);
         roundTripped.DateRange.Should().Be(original.DateRange);
         roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void RoadmapCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - item records with an enum, a LocalDateRange and a nullable order, and color records.
+        var activityId = Guid.NewGuid();
+        var original = new RoadmapCreatedEvent(
+            Guid.NewGuid(), 12, "Platform 2026", null,
+            new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 12, 31)),
+            Visibility.Public,
+            RoadmapState.Active,
+            managerIds: [Guid.NewGuid()],
+            colors: [new RoadmapColorValues("#4096FF", "Committed", 1, true)],
+            items:
+            [
+                new RoadmapItemValues(activityId, RoadmapItemType.Activity, "Discovery", null, null, "#4096FF",
+                    new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 3, 31)), 1),
+                new RoadmapItemValues(Guid.NewGuid(), RoadmapItemType.Milestone, "Beta", "Public beta", activityId, null,
+                    new LocalDateRange(new LocalDate(2026, 3, 1), new LocalDate(2026, 3, 1)), null),
+            ],
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Items.Should().Equal(original.Items);
+        roundTripped.Colors.Should().Equal(original.Colors);
+        roundTripped.ManagerIds.Should().Equal(original.ManagerIds);
+        roundTripped.DateRange.Should().Be(original.DateRange);
+        roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void RoadmapItemDatesChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a collection of change records carrying both ends as LocalDateRanges.
+        var original = new RoadmapItemDatesChangedEvent(
+            Guid.NewGuid(), 12,
+            changes:
+            [
+                new RoadmapItemDateChange(Guid.NewGuid(), RoadmapItemType.Timebox,
+                    new LocalDateRange(new LocalDate(2026, 2, 1), new LocalDate(2026, 2, 14)),
+                    new LocalDateRange(new LocalDate(2026, 2, 8), new LocalDate(2026, 2, 21))),
+                new RoadmapItemDateChange(Guid.NewGuid(), RoadmapItemType.Activity,
+                    new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 2, 14)),
+                    new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 2, 21))),
+            ],
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Changes.Should().Equal(original.Changes);
+    }
+
+    [Fact]
+    public void RoadmapItemDetailsUpdatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a nullable color at both ends, and the replaced details as a record.
+        var original = new RoadmapItemDetailsUpdatedEvent(
+            Guid.NewGuid(), 12, Guid.NewGuid(), RoadmapItemType.Activity, "Discovery", null, null,
+            new RoadmapItemDetails("Research", "Early research", "#4096FF"),
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original);
     }
 
     [Fact]

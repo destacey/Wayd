@@ -1,5 +1,5 @@
 using Wayd.Common.Models;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Tests.Data;
 using Wayd.Planning.Domain.Tests.Models;

@@ -5,11 +5,18 @@ using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
+using NodaTime;
+using NodaTime.Testing;
+using Wayd.Common.Domain.Events;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Planning.Application.Tests.Sut.Roadmaps.Commands;
 
 public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
 {
+    private static readonly EventActor Actor = EventActor.User("user-1");
+    private static readonly Instant Now = Instant.FromUtc(2026, 1, 1, 0, 0);
+
     private readonly FakePlanningDbContext _dbContext;
     private readonly Mock<ILogger<UpdateRoadmapColorsCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
@@ -26,13 +33,13 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
     }
 
     private UpdateRoadmapColorsCommandHandler CreateHandler() =>
-        new(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+        new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
 
     private Roadmap CreateActiveRoadmap(Guid? managerId = null)
     {
         var mgrId = managerId ?? _currentEmployeeId;
         var fakeRoadmap = _faker.Generate();
-        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [mgrId]).Value;
+        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [mgrId], Actor, Now).Value;
     }
 
     [Fact]
@@ -66,7 +73,7 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
         roadmap.UpdateColors(
             [new UpsertRoadmapColorModel("#111111", "Old", 1, false)],
-            _currentEmployeeId);
+            _currentEmployeeId, Actor, Now);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 
@@ -92,7 +99,7 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
         roadmap.UpdateColors(
             [new UpsertRoadmapColorModel("#111111", "Old", 1, false)],
-            _currentEmployeeId);
+            _currentEmployeeId, Actor, Now);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 

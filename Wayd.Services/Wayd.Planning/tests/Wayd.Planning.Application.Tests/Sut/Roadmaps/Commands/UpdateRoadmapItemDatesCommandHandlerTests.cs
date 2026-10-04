@@ -9,11 +9,17 @@ using Wayd.Planning.Domain.Tests.Data;
 using Moq;
 using NodaTime;
 using OneOf;
+using NodaTime.Testing;
+using Wayd.Common.Domain.Events;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Planning.Application.Tests.Sut.Roadmaps.Commands;
 
 public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
 {
+    private static readonly EventActor Actor = EventActor.User("user-1");
+    private static readonly Instant Now = Instant.FromUtc(2026, 1, 1, 0, 0);
+
     private readonly FakePlanningDbContext _dbContext;
     private readonly Mock<ILogger<UpdateRoadmapItemDatesCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
@@ -30,12 +36,12 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
     }
 
     private UpdateRoadmapItemDatesCommandHandler CreateHandler() =>
-        new(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+        new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
 
     private Roadmap CreateActiveRoadmap()
     {
         var fakeRoadmap = _faker.Generate();
-        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [_currentEmployeeId]).Value;
+        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [_currentEmployeeId], Actor, Now).Value;
     }
 
     [Fact]
@@ -45,11 +51,11 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
 
         var parentActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)));
-        var parentResult = roadmap.CreateActivity(parentActivity, _currentEmployeeId);
+        var parentResult = roadmap.CreateActivity(parentActivity, _currentEmployeeId, Actor, Now);
         parentResult.IsSuccess.Should().BeTrue();
 
         var childActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)), parentResult.Value.Id);
-        var childResult = roadmap.CreateActivity(childActivity, _currentEmployeeId);
+        var childResult = roadmap.CreateActivity(childActivity, _currentEmployeeId, Actor, Now);
         childResult.IsSuccess.Should().BeTrue();
 
         _dbContext.AddRoadmap(roadmap);
@@ -77,13 +83,13 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
 
         var parentActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)));
-        var parentResult = roadmap.CreateActivity(parentActivity, _currentEmployeeId);
+        var parentResult = roadmap.CreateActivity(parentActivity, _currentEmployeeId, Actor, Now);
         parentResult.IsSuccess.Should().BeTrue();
 
         var childActivity = new UpsertActivity(
             new LocalDateRange(_today, _today.PlusDays(30)),
             parentResult.Value.Id);
-        var childResult = roadmap.CreateActivity(childActivity, _currentEmployeeId);
+        var childResult = roadmap.CreateActivity(childActivity, _currentEmployeeId, Actor, Now);
         childResult.IsSuccess.Should().BeTrue();
 
         _dbContext.AddRoadmap(roadmap);

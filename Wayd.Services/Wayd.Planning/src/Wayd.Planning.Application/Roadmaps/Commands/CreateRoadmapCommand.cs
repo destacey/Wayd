@@ -55,10 +55,12 @@ public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoad
     }
 }
 
-public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<CreateRoadmapCommandHandler> logger) : ICommandHandler<CreateRoadmapCommand, ObjectIdAndKey>
+public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateRoadmapCommandHandler> logger) : ICommandHandler<CreateRoadmapCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateRoadmapCommand request, CancellationToken cancellationToken)
@@ -83,8 +85,9 @@ public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbCon
                 request.Description,
                 request.DateRange,
                 request.Visibility,
-                request.RoadmapManagerIds
-                );
+                request.RoadmapManagerIds,
+                EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
+                _dateTimeProvider.Now);
 
             if (result.IsFailure)
             {

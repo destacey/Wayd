@@ -85,6 +85,7 @@ public partial class EventCoverageTests
         typeof(PlanningInterval),
         typeof(PlanningIntervalObjective),
         typeof(Risk),
+        typeof(Roadmap),
 
         // Product Management
         typeof(Deployment),
@@ -213,7 +214,6 @@ public partial class EventCoverageTests
         [typeof(ProjectLifecycle)] = "#952.",
         [typeof(TeamMemberRole)] = "#952.",
         [typeof(WorkItemReference)] = "#952.",
-        [typeof(Roadmap)] = "#953.",
         [typeof(Workflow)] = "#955.",
         [typeof(WorkStatus)] = "#955.",
         [typeof(WorkType)] = "#955.",

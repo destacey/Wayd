@@ -24,12 +24,14 @@ public sealed class UpdateRoadmapRootActivityOrderCommandValidator : CustomValid
     }
 }
 
-public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapRootActivityOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivityOrderCommand>
+public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRoadmapRootActivityOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivityOrderCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapRootActivityOrderCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateRoadmapRootActivityOrderCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapRootActivityOrderCommand request, CancellationToken cancellationToken)
@@ -51,7 +53,7 @@ public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbCont
             if (roadmap is null)
                 return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
 
-            var updateResult = roadmap.SetActivityOrder(request.RoadmapActivityId, request.Order, currentUserEmployeeId.Value);
+            var updateResult = roadmap.SetActivityOrder(request.RoadmapActivityId, request.Order, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

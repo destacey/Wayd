@@ -53,12 +53,14 @@ public sealed class UpdateRoadmapItemDatesCommandValidator : AbstractValidator<U
     }
 }
 
-public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapItemDatesCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemDatesCommand>
+public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRoadmapItemDatesCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemDatesCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapItemDatesCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateRoadmapItemDatesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapItemDatesCommand request, CancellationToken cancellationToken)
@@ -80,7 +82,7 @@ public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext plan
             if (roadmap is null)
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
-            var updateResult = roadmap.UpdateRoadmapItemDates(request.ItemId, request.Dates, currentUserEmployeeId.Value);
+            var updateResult = roadmap.UpdateRoadmapItemDates(request.ItemId, request.Dates, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

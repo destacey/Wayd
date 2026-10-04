@@ -35,12 +35,14 @@ public sealed class UpdateRoadmapColorsCommandValidator : AbstractValidator<Upda
     }
 }
 
-public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapColorsCommandHandler> logger) : ICommandHandler<UpdateRoadmapColorsCommand>
+public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRoadmapColorsCommandHandler> logger) : ICommandHandler<UpdateRoadmapColorsCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapColorsCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateRoadmapColorsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapColorsCommand request, CancellationToken cancellationToken)
@@ -63,7 +65,7 @@ public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext plannin
                 return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
             }
 
-            var updateResult = roadmap.UpdateColors(request.Colors, currentUserEmployeeId.Value);
+            var updateResult = roadmap.UpdateColors(request.Colors, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
 
             if (updateResult.IsFailure)
             {

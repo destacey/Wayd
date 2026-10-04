@@ -7,11 +7,17 @@ using Wayd.Common.Domain.Enums;
 using Wayd.Common.Models;
 using Wayd.Planning.Application.Roadmaps.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
+using NodaTime.Testing;
+using Wayd.Common.Domain.Events;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Planning.Application.Tests.Sut.Roadmaps.Commands;
 
 public class CreateRoadmapCommandHandlerTests : IDisposable
 {
+    private static readonly EventActor Actor = EventActor.User("user-1");
+    private static readonly Instant Now = Instant.FromUtc(2026, 1, 1, 0, 0);
+
     private readonly FakePlanningDbContext _dbContext = new();
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
     private readonly Mock<ILogger<CreateRoadmapCommandHandler>> _mockLogger = new();
@@ -26,7 +32,7 @@ public class CreateRoadmapCommandHandlerTests : IDisposable
             .ReturnsAsync(_currentEmployeeId);
 
     private CreateRoadmapCommandHandler CreateSut() =>
-        new(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+        new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
 
     private static CreateRoadmapCommand CommandFor(params Guid[] managerIds) =>
         new("Roadmap", null, AnyDateRange, [.. managerIds], Visibility.Public);

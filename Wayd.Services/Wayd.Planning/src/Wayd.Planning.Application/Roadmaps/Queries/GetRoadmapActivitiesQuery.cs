@@ -2,7 +2,7 @@
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.Roadmaps.Dtos;
-using Wayd.Planning.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Queries;

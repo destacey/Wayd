@@ -13,10 +13,11 @@ import { SERVER_NAME, SERVER_VERSION, API_BASE_URL } from './config.js';
 import { toolDefinitionMap } from './tools/index.js';
 import { executeApiTool, securitySchemes } from './executor.js';
 import { annotationsFor } from './annotations.js';
+import { SERVER_INSTRUCTIONS } from './instructions.js';
 
 const server = new Server(
   { name: SERVER_NAME, version: SERVER_VERSION },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS }
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {

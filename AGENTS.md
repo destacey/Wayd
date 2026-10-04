@@ -1,6 +1,6 @@
 # AGENTS.md
 
-<!-- Codex reads at most 32 KiB of AGENTS.md per path (this file + nested ones). Keep this + the largest nested file under it. -->
+<!-- Codex reads at most 32 KiB of AGENTS.md per path (this file + nested ones). Keep this + the largest nested file under it; pre-commit warns when they are not. -->
 
 Guidance for AI coding agents (Claude Code, Codex, Copilot, Cursor, Gemini, and others) working in this repository.
 

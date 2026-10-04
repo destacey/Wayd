@@ -1,0 +1,11 @@
+#!/bin/sh
+# Warns, without blocking, when a commit that touches an AGENTS.md leaves any directory's combined
+# AGENTS.md text larger than Codex reads.
+
+if git diff --cached --name-only | grep -q 'AGENTS\.md$'; then
+    if ! bash "$(git rev-parse --show-toplevel)/.github/scripts/agents-md-size-check.sh"; then
+        echo "pre-commit: committed anyway -- trim the AGENTS.md files above before pushing." >&2
+    fi
+fi
+
+exit 0

@@ -160,6 +160,8 @@ npx skills add destacey/Wayd
 
 Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-products`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, `/wayd-users`, or `/wayd-imports`.
 
+Clients that don't load skills still receive the rules that apply to every tool: the server sends them as MCP `instructions` when a client connects — updates overwrite the whole record, which parameters accept a key, and that status changes and deletes need the user's confirmation.
+
 ## Confirmation before status changes
 
 Every tool that writes is advertised to clients with the MCP `destructiveHint` annotation unless it only adds a record — creating one, adding a child such as a task, goal or dependency, logging a health check, recording a KPI measurement, or checking an import file. Adding destroys nothing and is undone by deleting what was added. Everything else carries it: every status change (activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status), every update and delete, and importing, stopping, resuming, or retrying an import run. Clients that honour the annotation prompt for confirmation before running them.

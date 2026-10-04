@@ -212,7 +212,7 @@ export const definitions: [string, McpToolDefinition][] = [
 
   ['Projects_Update', {
     name: 'Projects_Update',
-    description: `Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes. The project's key, program, and lifecycle are NOT changed here — use Projects_ChangeKey, Projects_ChangeProgram, and the lifecycle tools. ${READ_FIRST} ${ROLE_LISTS} The id in the body must match the id path parameter. ${LEADERSHIP} ${CONFIRM}`,
+    description: `Update a project's name, description, business case, expected benefits, expenditure category, dates, roles, and strategic themes. The project's key and program are NOT changed here — use Projects_ChangeKey and Projects_ChangeProgram. The lifecycle is set only at creation (projectLifecycleId); no tool changes it afterwards. ${READ_FIRST} ${ROLE_LISTS} The id in the body must match the id path parameter. ${LEADERSHIP} ${CONFIRM}`,
     inputSchema: {
       type: 'object',
       properties: {

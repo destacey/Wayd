@@ -22,8 +22,9 @@ Once per clone:
 git config core.hooksPath .githooks
 ```
 
-- `commit-msg` rejects AI attribution trailers and footers.
-- `pre-push` refuses a push that changes the `@wayd/mcp` package without a changeset, the same check CI runs on the pull request. See [MCP Server](./mcp-server.mdx#every-shipped-change-needs-a-changeset).
+- `pre-commit` warns when a change to an `AGENTS.md` leaves the guidance an agent loads for a directory larger than Codex reads (32 KiB).
+- `commit-msg` warns about a commit message that breaks the [convention](./git-workflow.mdx), without blocking it.
+- `pre-push` refuses a branch whose name breaks that convention, and a push that changes the `@wayd/mcp` package without a changeset, the same check CI runs on the pull request. See [MCP Server](./mcp-server.mdx#every-shipped-change-needs-a-changeset).
 
 ## Build the Backend
 

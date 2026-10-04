@@ -1,469 +1,187 @@
 ---
 name: wayd-ppm
-description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and stages, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, exploring strategic initiatives and their KPIs or recording KPI measurements, approving, activating, completing, cancelling, closing, or archiving any of those records, creating, updating, or managing tasks within a project, or recommending, reviewing, and logging project health checks.
+description: Guides agents working with Wayd portfolio, program, project, and task management via the Wayd MCP server. Use when looking up or creating and updating portfolios, programs, or projects; exploring project lifecycles, stages, the project plan, or team; approving, activating, completing, cancelling, closing, archiving, or reverting any of those records or a strategic initiative; creating, updating, or deleting tasks within a project; reviewing project scores or a portfolio's ranking board; exploring strategic initiatives and recording KPI measurements; or recommending, logging, or correcting project health checks.
 ---
 
 # Wayd PPM (Portfolio / Program / Project / Task Management)
 
-## When to use
+## Reference files
 
-- Finding or listing portfolios, programs, or projects
-- Understanding what projects or programs are in a portfolio
-- Exploring project lifecycles and their stages
-- Viewing a project's plan tree, stages, team, or plan summary metrics
-- Listing, creating, updating, or deleting tasks within a project
-- Managing task hierarchies, dependencies, or the critical path
-- Recommending, reviewing, or logging project health checks (Healthy / AtRisk / Unhealthy)
-- Reviewing project scores and a portfolio's ranking board
-- Exploring strategic initiatives, their KPIs, and recording KPI measurements
-- Changing the status of a portfolio, program, project, or strategic initiative (approve, activate, complete, cancel, close, archive)
+Read the matching file before working in these areas:
 
-> **Note on what can be changed via MCP.** Portfolios, programs, and projects can be **created and updated**, and their **status changed** (confirm with the user first — see below). **Tasks** support full CRUD. **Project health checks** support create, update, and delete. **KPI measurements** can be added and removed. Read-only: scoring and ranking (scores cannot be recorded, ranks cannot be reordered), project **lifecycles and stages**, and strategic **initiative records** and their **KPI definitions** — initiative status can still be changed and measurements still recorded. Nothing here deletes a portfolio, program, or project.
+- **Project health checks** — reviewing, recommending, logging, correcting, or deleting one: [health-checks.md](health-checks.md)
+- **Strategic initiatives and KPIs** — reading KPI progress or recording a measurement: [kpis.md](kpis.md)
+- **Project scores and portfolio ranking** (read-only): [scoring.md](scoring.md)
 
----
+## What MCP can change
 
-## Entity context
+Portfolios, programs, and projects can be created, updated, and moved through their statuses; tasks support full create, update, and delete. Read-only: project lifecycles and stages, scores and rankings, and strategic initiative records and KPI definitions. Nothing deletes a portfolio, program, or project.
 
-### Hierarchy
+## Entity model
 
 ```
 Portfolio
-├── Strategic Initiative (the outcome being pursued)
-│   ├── KPIs (how success is measured)
-│   │   ├── Checkpoints (dated targets — the plan)
-│   │   └── Measurements (observed values — the actuals)
-│   └── Projects (the delivery work, linked many-to-many)
-└── Program (optional grouping)
+├── Strategic Initiative ── KPIs ── Checkpoints (plan) / Measurements (actuals)
+│        └── linked Projects (many-to-many)
+└── Program (optional)
     └── Project
-        ├── Lifecycle (optional — defines the stages a project moves through)
-        │   └── Stages (ordered stages of the project plan)
-        │       └── Tasks (leaf tasks assigned to a stage)
-        ├── Team Members (employees with project roles)
-        ├── Work Items
-        └── Tasks
-            └── Subtasks (nested via parentId)
+        ├── Lifecycle (template) → Stages
+        │                            └── Tasks / Milestones
+        │                                  └── child Tasks (via parentId)
+        ├── Team (employees in project roles)
+        └── Work Items (with Monte Carlo forecast)
 ```
 
-### Portfolio
+- **Project** — belongs to one portfolio and at most one program. Has a unique `key` (2–20 uppercase letters and digits), a committed timeline `start`/`end`, a status, an optional lifecycle, and an embedded current `healthCheck`. There is no project-level progress field; progress lives on stages and tasks.
+- **Lifecycle** — a reusable template of ordered stages, with a state `1=Proposed`, `2=Active`, `3=Archived`. Only Active lifecycles can be assigned. Through MCP a lifecycle can only be set at creation (`projectLifecycleId` on `Projects_Create`); otherwise it is assigned in the Wayd UI.
+- **Stage** — one stage of a project's plan, from its lifecycle, with its own status, `start`/`end`, and `progress`.
+- **Task** — type `Task` (planned `plannedStart`/`plannedEnd`, `progress` 0–100) or `Milestone` (a single `plannedDate`, no progress). Every task sits under a stage or under another task. Dependencies are finish-to-start.
 
-- Top-level container for programs and projects
-- Has a status (integer enum — call `Portfolios_GetPortfolioStatuses` to resolve values)
+## Common patterns
 
-### Program
+- **Ids and keys.** A parameter named `idOrKey` (or `projectIdOrKey`, `taskIdOrKey`) accepts a UUID or a key. On portfolio, program, project, and task tools, a parameter named `id` takes a **UUID only** — this covers every record update, `Projects_GetStatusHistory`, and the stage, health-check, and scoring tools. Read the UUID off a read tool first.
+- **Status enums.** Status filters take integer arrays. Resolve the values first with `Portfolios_GetPortfolioStatuses`, `Programs_GetProgramStatuses`, `Projects_GetStatuses`, `Tasks_GetTaskStatuses`, or `StrategicInitiatives_GetStatuses`.
+- **Role filters.** `1=Sponsor`, `2=Owner`, `3=Manager`, `4=Member`, `5=Task Assignee`. There is no lookup tool for these.
+- **People are employee ids.** Role lists, task `assigneeIds`, `employeeId` filters, and people in activity payloads all take or return employee ids, never user ids. Resolve a name with `employee.id` from `Users_GetUsers` — see the `wayd-users` skill.
+- **Delivery leadership.** Changing a portfolio, program, or project — updates, status transitions, key and program changes — and writing project health checks require the caller to be an **Owner or Manager** of the record or of an ancestor (project ← program ← portfolio). Sponsors and Members do not qualify, and a permission alone is not enough. Strategic initiative transitions and task changes check permissions only. When a call is rejected as unauthorized, check the record's role lists before retrying.
 
-- Groups related projects under a portfolio; projects can exist without one
-- Has a status (integer enum — call `Programs_GetProgramStatuses` to resolve values)
+## Finding records
 
-### Project
-
-- Must belong to a portfolio; optionally belongs to a program
-- **Name & Key**: Descriptive project name and unique string `key` (2–20 uppercase alphanumeric, e.g. `MYPROJ`)
-- **Dates**: Planned timeline (`plannedStart`, `plannedEnd`) representing target delivery commitment, and actuals (`actualStart`, `actualEnd`)
-- **Progress**: Overall progress percentage across plan and tasks
-- **Status**: Lifecycle status (integer enum — call `Projects_GetStatuses` to resolve values)
-- **Lifecycle & Stages**: May have an assigned lifecycle with sequential stages (e.g. Initiation, Planning, Execution, Closure)
-- **Plan & Tasks**: Plan tree with tasks and milestones organized by WBS; task status metrics (overdue, due this week, upcoming) and critical path
-- **Work Items & Forecast**: Linked work items from workspaces, with Monte Carlo forecasts predicting completion probability against `plannedEnd`
-- **Health Checks**: Point-in-time RAG assessments (`"Healthy"`, `"AtRisk"`, `"Unhealthy"`) with reporter, expiration, and notes
-
-### Project Lifecycle
-
-- A reusable template that defines an ordered set of named stages
-- Has a **state**: `1=Proposed`, `2=Active`, `3=Archived`
-- Only `Active` lifecycles can be assigned to projects
-- Stages within a lifecycle are ordered and named (e.g. Initiation, Planning, Execution, Closure)
-
-### Project Stage
-
-- A stage of a specific project's plan, derived from its assigned lifecycle
-- Has a **status**, date range, progress, and assignees
-- Tasks in the project are associated with a stage
-
-### Task
-
-- Scoped to a project; accessed via `projectIdOrKey` (UUID or string key)
-- Has a **type** (call `Tasks_GetTaskTypes` to resolve), **status** (`Tasks_GetTaskStatuses`), and **priority** (`Tasks_GetTaskPriorities`)
-- Two task types: `Task` and `Milestone` — behavior differs per type:
-  - Tasks: use `plannedStart`/`plannedEnd` and `progress` (0.0–100.0); can be nested under another task via `parentId` (this is how subtasks are modelled, not a separate type)
-  - Milestones: use `plannedDate` instead; `progress` is not applicable
-- Supports parent/child nesting via `parentId` (UUID of the parent task); nesting does not change the `typeId`
-- `assigneeIds` — optional UUID array; resolve user names → UUIDs with `Users_GetUsers`
-- `estimatedEffortHours` — optional decimal
-- Dependencies are finish-to-start: predecessor must complete before successor starts
-- `taskIdOrKey` — GET endpoints accept either a UUID or a string key
-
-### Common patterns
-
-- **`idOrKey`** — most GET endpoints accept either a UUID or a string key
-- **Status filters** — take integer arrays; call the matching `*_GetStatuses` endpoint (e.g., portfolios, programs, projects, tasks) to resolve enum values
-- **Role filters** — also take integer arrays; use the documented mapping `1=Sponsor, 2=Owner, 3=Manager, 4=Member` for project team roles (there is no `GetStatuses` endpoint for roles)
-- **UUID references** — `portfolioId`, `programId`, etc. are always UUIDs; resolve name → UUID with list/options endpoints
-- **`Portfolios_GetPortfolioOptions`** — lightweight `{ id, name }` list; prefer this over `GetPortfolios` when you only need a UUID lookup
-
----
-
-## Instructions
-
-### Listing and filtering
-
-| Goal                                    | Tool                                                                                                                    | Notes                                                                                        |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| All portfolios (optionally by status)   | `Portfolios_GetPortfolios`                                                                                              |                                                                                              |
-| Portfolio details                       | `Portfolios_GetPortfolio`                                                                                               |                                                                                              |
-| Portfolio name → UUID lookup            | `Portfolios_GetPortfolioOptions`                                                                                        |                                                                                              |
-| Programs in a portfolio                 | `Portfolios_GetPortfolioPrograms`                                                                                       |                                                                                              |
-| Projects in a portfolio                 | `Portfolios_GetPortfolioProjects`                                                                                       |                                                                                              |
-| All programs (cross-portfolio)          | `Programs_GetPrograms`                                                                                                  |                                                                                              |
-| Projects in a program                   | `Programs_GetProgramProjects`                                                                                           |                                                                                              |
-| All projects (cross-portfolio)          | `Projects_GetProjects`                                                                                                  | Optional `role` filter: `1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee`, applied to the caller or to `employeeId`                            |
-| Project details                         | `Projects_GetProject`                                                                                                   |                                                                                              |
-| Project status change history           | `Projects_GetStatusHistory`                                                                                             | Takes project `id` (**UUID only** — unlike most project endpoints, it does not accept a key) |
-| Everything that changed on a record     | `Portfolios_GetActivities` / `Programs_GetActivities` / `Projects_GetActivities` / `StrategicInitiatives_GetActivities` | Accept an ID or key. See [Activity history](#activity-history).                              |
-| All project lifecycles                  | `ProjectLifecycles_GetProjectLifecycles`                                                                                | Optional `state` filter: `1=Proposed, 2=Active, 3=Archived`                                  |
-| Project lifecycle details (with stages) | `ProjectLifecycles_GetProjectLifecycle`                                                                                 | `idOrKey` accepts UUID or integer key                                                        |
-
-Before filtering by status, call `Projects_GetStatuses` (or `Programs_GetProgramStatuses` / `Portfolios_GetPortfolioStatuses`) to resolve the integer enum values.
+| Goal                                                       | Tool                                                                                                                 |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Portfolios                                                 | `Portfolios_GetPortfolios`, `Portfolios_GetPortfolio`                                                                |
+| Portfolio name → UUID                                      | `Portfolios_GetPortfolioOptions` (lightweight `{ id, name }`)                                                        |
+| A portfolio's programs / projects                          | `Portfolios_GetPortfolioPrograms`, `Portfolios_GetPortfolioProjects`                                                 |
+| Programs                                                   | `Programs_GetPrograms`, `Programs_GetProgram`                                                                        |
+| A program's projects                                       | `Programs_GetProgramProjects`                                                                                        |
+| Projects (filter by status, portfolio, role, `employeeId`) | `Projects_GetProjects`, `Projects_GetProject`                                                                        |
+| Project status history                                     | `Projects_GetStatusHistory` (UUID only; carries the reason for each revert)                                          |
+| Lifecycles and their stages                                | `ProjectLifecycles_GetProjectLifecycles`, `ProjectLifecycles_GetProjectLifecycle`                                    |
+| Everything that changed on a record                        | `Portfolios_GetActivities`, `Programs_GetActivities`, `Projects_GetActivities`, `StrategicInitiatives_GetActivities` |
 
 ### Activity history
 
-Every change to a portfolio, program, project or strategic initiative is recorded as an entry in its activity history, newest first. Use it for "what changed?", "who moved this date?" or "when did the owner change?" — questions the record itself cannot answer, because it only holds its current state.
+Use activity history for "what changed?", "who moved this date?", or "when did the owner change?" — the record itself holds only its current state.
 
-- **Each entry is one fact.** `category` says what kind (Created, Updated, ScheduleChanged, StatusChanged, StateChanged, Health, Removed, Baseline), `summary` says it in a line, and `timestamp`, `actorKind` and `employee` say when and by whom. An `actorKind` of Import or Sync means no person made the change directly.
-- **`payload` is a JSON string** holding the event's fields. Parse it for detail. A change carries both ends — `PreviousDateRange` beside the new range, `From*`/`To*` on a status change, `Added`/`Removed` beside the resulting set on a role or theme change — so one entry answers what moved without reading an earlier one.
-- **People in a payload are employee ids**, not user ids, so they will not match `Users_GetUsers` UUIDs. The entry's own `employee` carries the actor's name.
-- **A Baseline entry is where tracking began** for a record that existed before its changes were recorded. It holds what the record looked like at that moment. Nothing earlier is available, so do not report the baseline as the record's creation.
-- **Each record has its own history.** A project's covers its details, key, program, lifecycle, timeline, roles, themes, status, health checks and scores, but not its tasks or stages. A program's does not include its projects' changes.
-- **Paged**, 50 entries by default and at most 100 per page; check `hasNextPage` before concluding something never happened.
+- Parse `payload` (a JSON string) for detail; each change carries its before and after values, so one entry answers what moved.
+- A `Baseline` entry is where tracking began for a record that already existed. Do not report it as the record's creation.
+- Each record has its own history. A project's covers its details, key, program, lifecycle, timeline, roles, themes, status, health checks, and scores — **not its tasks or stages**. A program's does not include its projects' changes.
+- Results are paged; check `hasNextPage` before concluding something never happened.
 
-Prefer `Projects_GetStatusHistory` when only status matters: it carries the reason a revert was made.
+## Someone's work
 
-### "What am I working on?" and "what is she working on?"
+For the **caller**, use `Projects_GetMyProjectsSummary` (project counts per role) and `Projects_GetMyProjectsTaskMetrics` (overdue, due this week, upcoming task counts). Neither takes a user parameter.
 
-Two tools are scoped to the **caller's own** PAT and take no user parameter. Prefer them over listing and filtering every project.
+For a **colleague**, get their employee id (see Common patterns), then use `Projects_GetTaskMetrics` with `employeeId` for task counts, and `Projects_GetProjects` with `employeeId` (plus a `role` filter to narrow it) for the projects themselves.
 
-| Goal                            | Tool                                | Notes                                                                                                             |
-| ------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| My project involvement, by role | `Projects_GetMyProjectsSummary`     | Counts only: total, sponsor, owner, manager, member, assignee. Optional `status` filter.                          |
-| My open task counts             | `Projects_GetMyProjectsTaskMetrics` | Overdue, due this week (through Saturday), upcoming (next Sunday–Saturday). Optional `status` and `role` filters. |
+The metrics tools return counts only; follow up with `Projects_GetProjects` when the user wants the list.
 
-For a **colleague**, you need their employee UUID, not their user UUID (`Users_GetUsers` ids will not match). Take it from a project they are on — the role lists on `Projects_GetProject`, or `Projects_GetProjectTeam` — then:
+## A project's plan and team
 
-| Goal                   | Tool                       | Notes                                                                                                                                                                       |
-| ---------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Their open task counts | `Projects_GetTaskMetrics`  | The same counts, with `employeeId`. Where they lead a project every task counts, otherwise only their own tasks. Without `employeeId` it reports the caller, the same as the `My` tool. |
-| Their projects         | `Projects_GetProjects`     | `employeeId` alone lists everything they are involved in; add a `role` filter to narrow it.                                                                                 |
+| Goal                                     | Tool                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------ |
+| Full plan: stages with nested tasks, WBS | `Projects_GetProjectPlanTree` (prefer this for a hierarchical view)      |
+| Plan metrics for one project             | `Projects_GetProjectPlanSummary`                                         |
+| Plan metrics for many projects           | `Projects_GetProjectsPlanSummaries`                                      |
+| Stages                                   | `Projects_GetProjectStages`, `Projects_GetProjectStage`                  |
+| Team: roles, stages, active task counts  | `Projects_GetProjectTeam`                                                |
+| Linked work items                        | `Projects_GetWorkItems`                                                  |
+| When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)     |
+| Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath` |
 
-These return aggregate counts, not the projects or tasks themselves — follow up with `Projects_GetProjects` (with a `role` filter) when the user wants the actual list.
+When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
 
-### Plan metrics across many projects
+## Tasks
 
-`Projects_GetProjectsPlanSummaries` returns plan summaries for a set of projects in one call, keyed by project ID. Pass `projectId` as an array of **UUIDs** (keys are not accepted). Use it instead of calling `Projects_GetProjectPlanSummary` once per project — surveying a portfolio otherwise costs one round trip per project. By default it counts the tasks the caller can see; pass `employeeId` for another person's view, or `allTasks: true` to count every task on the projects, which is what a portfolio or program summary wants.
-
-### Exploring a project's plan and team
-
-| Goal                                       | Tool                             | Notes                                                                                                                                                                   |
-| ------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Project team members                       | `Projects_GetProjectTeam`        | Returns roles, assigned stages, and active task count per member                                                                                                        |
-| All stages for a project                   | `Projects_GetProjectStages`      | Takes project `id` (UUID)                                                                                                                                               |
-| Single stage details                       | `Projects_GetProjectStage`       | Takes project `id` and `stageId` (both UUIDs)                                                                                                                           |
-| Unified plan tree (stages + tasks)         | `Projects_GetProjectPlanTree`    | Top-level nodes are stages; tasks nested within with WBS codes                                                                                                          |
-| Plan summary metrics                       | `Projects_GetProjectPlanSummary` | Returns overdue, due this week, upcoming, and total task counts; optional `employeeId` to scope to one person                                                           |
-| Work items linked to a project             | `Projects_GetWorkItems`          | Takes project `id` (UUID)                                                                                                                                               |
-| When the project's work items will be done | `Projects_GetForecast`           | Takes `idOrKey`; reports the chance of finishing by the planned end. Requires the `delivery-forecasting` feature flag; see the `wayd-teams` skill for reading forecasts |
-
-Prefer `Projects_GetProjectPlanTree` over `Tasks_GetProjectTasks` when you need a full hierarchical view of the project plan including stages.
-
-### Listing and navigating tasks
-
-| Goal                   | Tool                    | Notes                                                 |
-| ---------------------- | ----------------------- | ----------------------------------------------------- |
-| All tasks in a project | `Tasks_GetProjectTasks` | Optional `status` (int) and `parentId` (UUID) filters |
-| Single task details    | `Tasks_GetProjectTask`  | `taskIdOrKey` accepts UUID or string key              |
-| Critical path          | `Tasks_GetCriticalPath` | Returns ordered list of task UUIDs                    |
-
-Before filtering by status, call `Tasks_GetTaskStatuses` to resolve the integer enum values.
+A project needs an assigned lifecycle before it can hold tasks.
 
 ### Creating a task
 
-Required fields: `name`, `typeId`, `statusId`, `priorityId`
-
-1. Resolve reference values first (can be done in parallel):
-   - `Tasks_GetTaskTypes` → `typeId`
-   - `Tasks_GetTaskStatuses` → `statusId`
-   - `Tasks_GetTaskPriorities` → `priorityId`
-2. For assignees, resolve user name → UUID with `Users_GetUsers`.
-3. To nest a task under another (subtask pattern), provide `parentId` (UUID of the parent task) — the `typeId` stays `Task`.
-4. For milestones: use `plannedDate`; omit `plannedStart`/`plannedEnd` and `progress`.
-5. Call `Tasks_CreateProjectTask` with the assembled `requestBody`.
+1. Resolve `typeId`, `statusId`, and `priorityId` with `Tasks_GetTaskTypes`, `Tasks_GetTaskStatuses`, and `Tasks_GetTaskPriorities` (in parallel).
+2. Choose `parentId` — **required**. Use the stage's id (from `Projects_GetProjectStages`) for a top-level task in that stage, or another task's id to nest it beneath that task.
+3. Resolve assignees to employee ids (see Common patterns).
+4. Set the type-specific fields:
+   - **Task**: `progress` is required (use `0` for new work); dates go in `plannedStart` and `plannedEnd`.
+   - **Milestone**: `plannedDate` is required; omit `progress`, `plannedStart`, and `plannedEnd`.
+5. Call `Tasks_CreateProjectTask`.
 
 ### Updating a task
 
-`Tasks_UpdateProjectTask` — requires `id` (UUID), `name`, `statusId`, `priorityId` in the request body. All other fields are optional patches.
+`Tasks_UpdateProjectTask` overwrites the whole task: an omitted description, effort, date, or assignee list is cleared. An omitted or empty `assigneeIds` removes every assignee.
 
-### Deleting a task
+1. Read the task with `Tasks_GetProjectTask`.
+2. Build the body from what you read, changing only what the user asked for:
+   - `statusId` = `status.id`, `priorityId` = `priority.id`
+   - `parentId` = `parentId` if set, otherwise `projectStageId` — required
+   - `assigneeIds` = every `assignees[].id`
+   - `progress` — required for a Task; omit for a Milestone
+   - `name`, `description`, `plannedStart`, `plannedEnd`, `plannedDate`, `estimatedEffortHours` as read
+3. Call `Tasks_UpdateProjectTask`. The task type cannot be changed.
 
-`Tasks_DeleteProjectTask` — requires `projectIdOrKey` and `id` (UUID).
+### Deleting tasks and managing dependencies
 
-### Managing dependencies
+- **Delete**: `Tasks_DeleteProjectTask`. Confirm with the user first.
+- **Add a dependency** (finish-to-start): `Tasks_AddTaskDependency` with the predecessor's id as the path `id` and `{ predecessorId, successorId }` in the body.
+- **Remove a dependency**: `Tasks_RemoveTaskDependency` with the predecessor's `id` and the `successorId`.
 
-- **Add** (finish-to-start): `Tasks_AddTaskDependency` with `{ predecessorId, successorId }` — both UUIDs. Also pass the predecessor task's `id` as the path parameter.
-- **Remove**: `Tasks_RemoveTaskDependency` with path params `id` (predecessor UUID) and `successorId`.
+## Creating and updating records
 
-### Creating and updating records
+| Goal                                             | Tool                                                                                           |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Create                                           | `Portfolios_Create`, `Programs_Create`, `Projects_Create`                                      |
+| Update                                           | `Portfolios_Update`, `Programs_Update`, `Projects_Update`                                      |
+| Move a project to another program, or out of one | `Projects_ChangeProgram` (target must be in the same portfolio; `null` detaches)               |
+| Change a project's key                           | `Projects_ChangeKey` — only when the user explicitly asks; it breaks task keys and saved links |
 
-| Goal                                             | Tool                                                      |
-| ------------------------------------------------ | --------------------------------------------------------- |
-| Create a portfolio / program / project           | `Portfolios_Create`, `Programs_Create`, `Projects_Create` |
-| Update a portfolio / program / project           | `Portfolios_Update`, `Programs_Update`, `Projects_Update` |
-| Move a project to another program (or detach it) | `Projects_ChangeProgram`                                  |
-| Change a project's key                           | `Projects_ChangeKey`                                      |
+New records start in **Proposed**. Creating a project needs an `expenditureCategoryId` from `ExpenditureCategories_GetOptions`. Updates never change status, a project's key, program, or lifecycle, or a program's portfolio.
 
-New records start in **Proposed** — creating one does not activate it. Use the status tools for that.
+### Updating a record (checklist)
 
-> **Updates are overwrites, not patches.** Every update endpoint writes the whole record from the request body. A field you omit is not left alone; it is cleared. **Always read the record first and echo back every value that should stay the same.**
+Every update overwrites the whole record: an omitted field is cleared. Role lists replace that role's membership, and **an omitted or empty list removes everyone in that role** — a rename that leaves them out strips every Owner and Manager, leaving a record nobody is authorized to manage.
 
-#### The role-list trap
+1. **Read** the record: `Portfolios_GetPortfolio`, `Programs_GetProgram`, or `Projects_GetProject`.
+2. **Copy every role list and theme set** into the request as employee or theme ids:
+   - Portfolio: `sponsorIds`, `ownerIds`, `managerIds`
+   - Program: `sponsorIds`, `ownerIds`, `managerIds`, `strategicThemeIds`
+   - Project: `sponsorIds`, `ownerIds`, `managerIds`, `memberIds`, `strategicThemeIds`
+3. **Copy every other field** as read (name, description, dates, and for a project `expenditureCategoryId`, `businessCase`, `expectedBenefits`).
+4. **Apply** only the requested change.
+5. **Show the user** any role that would lose members, by name, and confirm before calling.
+6. **Call** the update.
+7. **Re-read** the record and verify the Owners and Managers are intact and the change landed.
 
-`sponsorIds`, `ownerIds`, `managerIds`, and `memberIds` **replace** the assignments for that role. Critically, a list that is **omitted or empty removes everyone currently in that role** — there is no way to say "leave this role alone".
+## Changing status
 
-So this apparently harmless call:
+Status changes only through dedicated transition tools, never through an update. **Confirm every transition with the user first**, naming the record and the transition: others rely on the status, and portfolio, program, and initiative transitions cannot be undone.
 
-```
-Projects_Update { id, name: "Renamed", description, expenditureCategoryId }
-```
+| Record               | Tools and allowed from                                                                                                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Portfolio            | `Portfolios_Activate` (Proposed), `Portfolios_Close` (Active or OnHold), `Portfolios_Archive` (Closed)                                                                                                   |
+| Program              | `Programs_Activate` (Proposed), `Programs_Complete` (Active), `Programs_Cancel` (any status not already closed)                                                                                          |
+| Project              | `Projects_Approve` (Proposed), `Projects_Activate` (Proposed or Approved), `Projects_Complete` (Active), `Projects_Cancel` (any status not already closed), `Projects_RevertStatus` (below)              |
+| Strategic initiative | `StrategicInitiatives_Approve` (Proposed), `StrategicInitiatives_Activate` (Approved), `StrategicInitiatives_Complete` (Active or OnHold), `StrategicInitiatives_Cancel` (any status not already closed) |
 
-…silently strips every sponsor, owner, manager, and member from the project. Because Owners and Managers are exactly who is authorised to manage PPM records, this can leave a project that nobody can edit.
+Every transition tool takes the record's UUID, not its key. No forward transition records a reason; the status history shows who and when, but not why.
 
-**Before any update: read the record, collect the current role membership, and pass it back in full alongside your changes.** The same applies to `strategicThemeIds`.
+### Prerequisites that cause rejections
 
-#### Fields that are not part of an update
+Check these first so a transition fails in conversation rather than at the API:
 
-- A project's **key** changes only via `Projects_ChangeKey`. The key is the human-facing identifier used in task keys and saved links, so a rekey invalidates existing references — only do it when explicitly asked.
-- A project's **program** changes only via `Projects_ChangeProgram` (pass `null` to detach). The target program must be in the same portfolio.
-- A project's **lifecycle** is not set by `Projects_Update`.
-- A program's **portfolio** cannot be changed at all.
-- **Status is never set by an update** — use the transition tools below.
+- **Project approve** — a lifecycle is assigned.
+- **Project or program activate and complete** — both a start and an end date are set.
+- **Program complete, or cancel from Active** — every project in it is completed or canceled (`Programs_GetProgramProjects`).
+- **Portfolio archive** — the portfolio is Closed.
 
-Creating a project needs an `expenditureCategoryId`; resolve it with `ExpenditureCategories_GetOptions`.
+### Side effects
 
-### Changing status (portfolios, programs, projects, initiatives)
+- **`Portfolios_Activate` stamps the start date as today and `Portfolios_Close` stamps the end date as today.** Neither can be backdated, so never use them to tidy up a portfolio that really started or ended on another date.
+- **Completing or cancelling a strategic initiative closes it**: its KPIs and linked projects are frozen, though measurements can still be recorded.
 
-Status is changed through **dedicated action tools**, never by writing a status field.
+### Moving a project backwards
 
-> **Always confirm with the user before calling any of these.** They change a published status other people rely on. Portfolio, program, and strategic initiative transitions are irreversible; project transitions can be undone with `Projects_RevertStatus`, but only by someone with delivery leadership and only with a recorded reason — so treat them as consequential too. The tools are marked `destructiveHint` so compliant clients prompt, but do not rely on the client — ask first, state which record and which transition, and wait for a clear yes.
+`Projects_RevertStatus` is the only way back to an earlier status — reopening a completed or canceled project, or returning an active one to Approved. Programs and portfolios cannot be reverted.
 
-| Record               | Tools                                                                                                    | Allowed from                                                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Portfolio            | `Portfolios_Activate`, `Portfolios_Close`, `Portfolios_Archive`                                          | Activate: Proposed. Close: Active or OnHold. Archive: Closed.                                                                |
-| Program              | `Programs_Activate`, `Programs_Complete`, `Programs_Cancel`                                              | Activate: Proposed. Complete: Active. Cancel: anything not already closed.                                                   |
-| Project              | `Projects_Approve`, `Projects_Activate`, `Projects_Complete`, `Projects_Cancel`, `Projects_RevertStatus` | Approve: Proposed. Activate: Proposed or Approved. Complete: Active. Cancel: anything not already closed. Revert: see below. |
-| Strategic initiative | `StrategicInitiatives_Approve`, `_Activate`, `_Complete`, `_Cancel`                                      | Approve: Proposed. Activate: Approved. Complete: Active or OnHold. Cancel: anything not already closed.                      |
-
-All take a **UUID only**, not a key.
-
-#### Moving a project backwards
-
-`Projects_RevertStatus` is the only tool that moves a record to an **earlier** status — reopening a completed or canceled project, or returning an active one to approved.
-
-It differs from the forward tools in two ways:
-
-- **A reason is required.** Forward transitions take an id alone; this one takes `toStatus` and `reason`. The reason is stored in the project's status history as the record of why a decision was reversed, so write something a reader will understand later — not "revert" or "fix".
-- **Read `backwardStatusTargets` off `Projects_GetProject` and offer only what it contains.** Do not derive the targets yourself. Legal targets narrow by more than the current status: a status carries the same entry requirements whichever direction it is reached from, so reverting to Approved needs a lifecycle assigned and reverting to Active needs a start and end date. A project cancelled straight from Proposed has neither, and can only return to Proposed.
-
-For reference, the widest each status ever allows — before those requirements narrow it:
-
-| Current status | Can revert to                  |
-| -------------- | ------------------------------ |
-| Completed      | Proposed, Approved, Active     |
-| Canceled       | Proposed, Approved, Active     |
-| Active         | Proposed, Approved             |
-| Approved       | Proposed                       |
-| Proposed       | nothing — already at the start |
-
-The call is also rejected outright if the project's program or portfolio is closed — reopen the parent first. Programs and portfolios have no equivalent tool; only projects can be reverted.
-
-#### Prerequisites that cause rejections
-
-Check these before calling, so a transition fails in conversation rather than at the API:
-
-- **Project approve** — a lifecycle must already be assigned (`Projects_GetProject` → check the lifecycle; assign with the UI if missing).
-- **Project / program activate and complete** — the record must already have a start **and** end date.
-- **Program complete or cancel (from Active)** — **every project in the program must already be completed or canceled.** Check with `Programs_GetProgramProjects` first; a program with one open project cannot be closed.
-- **Portfolio archive** — the portfolio must already be Closed.
-
-#### Side effects beyond the status
-
-- **`Portfolios_Activate` sets the portfolio's start date to today**, and **`Portfolios_Close` sets its end date to today.** Neither can be backdated through these tools. Never use them to tidy up a portfolio that really started or ended on a different date — the recorded date will be wrong and this call cannot fix it.
-- **Completing or cancelling a strategic initiative closes it**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. KPI _measurements_ can still be recorded.
-
-#### Authorization
-
-Portfolio, program, and project transitions require **delivery leadership** — the caller must be an Owner or Manager of the record or of an ancestor (project ← program ← portfolio). A permission claim alone is not enough, and Sponsors and Members are excluded. Strategic initiative transitions check the permission claim only. If a call is rejected as unauthorized, the caller is likely a Sponsor or Member rather than an Owner or Manager.
-
-Note that none of these transitions records a reason — the status history will show who changed it and when, but the _why_ has to live elsewhere.
-
-### Strategic initiatives and KPIs
-
-A **strategic initiative** is a portfolio-level outcome the organisation is trying to achieve — the _why_ behind the work. Projects are the delivery vehicles linked to it, and **KPIs** are how success is measured. An initiative belongs to exactly one portfolio and has sponsors and owners.
-
-| Goal                                                         | Tool                                           | Notes                                        |
-| ------------------------------------------------------------ | ---------------------------------------------- | -------------------------------------------- |
-| All initiatives (optionally by status / portfolio)           | `StrategicInitiatives_GetStrategicInitiatives` |                                              |
-| Initiatives in a portfolio                                   | `Portfolios_GetPortfolioStrategicInitiatives`  |                                              |
-| Initiative details                                           | `StrategicInitiatives_GetStrategicInitiative`  |                                              |
-| Resolve status enum values                                   | `StrategicInitiatives_GetStatuses`             | Call before filtering by status.             |
-| Projects delivering an initiative                            | `StrategicInitiatives_GetProjects`             |                                              |
-| KPIs for an initiative                                       | `StrategicInitiatives_GetKpis`                 |                                              |
-| One KPI                                                      | `StrategicInitiatives_GetKpi`                  |                                              |
-| A KPI's checkpoints                                          | `StrategicInitiatives_GetKpiCheckpoints`       | Definitions only, no measurements.           |
-| A KPI's checkpoints **with** measurements, health, and trend | `StrategicInitiatives_GetKpiCheckpointPlan`    | Best single call for "is this KPI on track?" |
-| A KPI's measurement history                                  | `StrategicInitiatives_GetKpiMeasurements`      |                                              |
-| Record a measurement                                         | `StrategicInitiatives_AddKpiMeasurement`       |                                              |
-| Remove a measurement                                         | `StrategicInitiatives_RemoveKpiMeasurement`    |                                              |
-
-**Read tools accept an ID or a key** for both the initiative and the KPI. **The two measurement write tools take UUIDs only** — resolve a key to a UUID with a read tool first.
-
-Initiative **status** can be changed — see the status tools above. Everything else is read-only via MCP: initiatives cannot be created, updated, or deleted, and KPIs cannot be added, edited, reordered, or deleted.
-
-#### KPI semantics
-
-- `targetDirection` is `1=Increase` or `2=Decrease`. For a **Decrease** KPI (cost, defect count, cycle time) a _falling_ value is improvement. Never assume lower is worse or higher is better — check the direction before characterising a trend.
-- `startingValue` is the baseline, `targetValue` is success, and `progress` is computed from those plus `actualValue` and the direction. Prefer the supplied `progress` over recomputing it.
-- `actualValue` is the measurement with the **latest measurement date**, not the most recently entered one. Back-dating a measurement earlier than the current latest will not change it.
-- `prefix` and `suffix` (e.g. `$`, `%`, `M`) are display affordances — include them when reporting a value to a user.
-- **Checkpoints are the plan; measurements are the actuals.** A checkpoint is a dated target with an optional at-risk threshold. In the checkpoint plan, a checkpoint with no measurement yet has null `measurement`, `health`, and `trend` — that means "not measured", not "failing".
-
-#### Recording a measurement
-
-1. Resolve the initiative and KPI to **UUIDs** (`StrategicInitiatives_GetKpis` returns both).
-2. Call `StrategicInitiatives_AddKpiMeasurement` with `strategicInitiativeId` and `kpiId` in the body **matching the path parameters** — a mismatch is rejected.
-3. `actualValue` must be non-zero, and `measurementDate` is an ISO 8601 UTC datetime. `note` is optional, max 1024 characters.
-
-**Measurement dates must be unique within a KPI** — re-submitting the same date is rejected rather than treated as an update. To revise a value at an already-measured date, remove the existing measurement first.
-
-Measurements accumulate as history rather than overwriting, and the KPI's headline `actualValue` and `progress` derive from them. To record a _new_ observation, always add — never delete the previous one. Deletion is only for correcting a genuinely wrong entry at a date that must keep its value, since it rewrites the record of what was known when.
-
-### Project scoring and portfolio ranking
-
-Scoring is **read-only via MCP** — there is no tool to record a score.
-
-A **scoring model** is assigned to a _portfolio_, and every project in it is scored against that model's criteria. A **score** is a frozen snapshot: the criterion ratings and computed outputs as they were at scoring time. Re-scoring a project adds a new entry to its history rather than editing the old one, so an old score reflects the model as it was then, not as it is now.
-
-| Goal                                                           | Tool                              | Notes                                                                                            |
-| -------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------ |
-| A project's model, current score, and whether it can be scored | `Projects_GetScoringContext`      | `scoringModel` is null when the portfolio has no model assigned — that project cannot be scored. |
-| A project's full scoring history                               | `Projects_GetScores`              | Headline values only, no per-criterion breakdown.                                                |
-| One score in full                                              | `Projects_GetScore`               | Every criterion rating and output value in the frozen snapshot.                                  |
-| Score breakdown across a portfolio                             | `Portfolios_GetRankingScoreboard` | The model definition plus per-project ratings and outputs.                                       |
-
-All four take **UUIDs only** — not project or portfolio keys.
-
-Notes:
-
-- A project's latest score is already embedded as `currentScore` on `Projects_GetProject` and `Projects_GetProjects`. Prefer those when you only need the headline number; use the scoring tools for history or per-criterion detail.
-- In the ranking scoreboard, a project with empty `ratings` and `outputs` is either unscored **or** was last scored under a different or older model than the portfolio's current one. Do not read empty as "scored zero".
-- The scoreboard returns score breakdowns keyed by project ID only — no names, no positions. Join it against `Portfolios_GetPortfolioProjects` to label rows.
-- On project DTOs, `rank` is an **opaque fractional sort key**, not a displayed position — never show it to a user. The 1-based display position is `position`, which is only populated when results are scoped to a single portfolio (a cross-portfolio position would be meaningless).
-- `canManageProject` on the project DTO indicates whether the caller could record a score, but recording one is not available through MCP.
-
-### Project health checks
-
-A health check records a point-in-time RAG assessment of a project (Healthy / AtRisk / Unhealthy) with a reporter, a note, and an expiration. Only one non-expired check is active at a time — logging a new check automatically expires the previous one.
-
-| Goal                                    | Tool                                | Notes                                                      |
-| --------------------------------------- | ----------------------------------- | ---------------------------------------------------------- |
-| Full health check history for a project | `Projects_GetProjectHealthChecks`   | Takes project `id` (UUID). Newest first.                   |
-| One specific health check               | `Projects_GetProjectHealthCheck`    | Takes project `id` and `healthCheckId` (both UUIDs).       |
-| Log a new health check                  | `Projects_CreateProjectHealthCheck` | Takes project `id`; body: `{ status, expiration, note? }`. |
-
-Notes for logging a check:
-
-- `status` is a **string enum**: `"Healthy"`, `"AtRisk"`, or `"Unhealthy"` (asymmetric with the PI objective version, which takes a numeric `statusId`).
-- `expiration` is an ISO 8601 UTC datetime and **must be in the future**.
-- `note` is optional, max 1024 characters.
-- Authorization (server-enforced): the caller must be an Owner or Manager of the project, the parent portfolio, or the parent program. Sponsors are intentionally excluded.
-
-The current active check (if any) is also embedded in `Projects_GetProject` and `Projects_GetProjects` — prefer those when you only need the latest status, and use the dedicated tools when you need history or want to log a new check.
-
-### Recommending and logging a project health check (recipe)
-
-When asked to evaluate a project, recommend its health, or log a health check, assemble the complete delivery picture across project timeline, plan tasks, critical path, stages, delivery forecast, and past health checks before formulating a recommendation.
-
-#### 1. Gather project context and evidence
-
-Run these queries to assemble the project's health evidence:
-
-1. **Project details and timeline:** `Projects_GetProject` with `idOrKey`.
-   - Key attributes: name, key, description, status, overall `progress` percentage.
-   - Commitment dates: `plannedStart` and `plannedEnd` (the delivery window), and any `actualStart` / `actualEnd`.
-   - Current health check: inspect `currentHealthCheck` if active.
-   - Assigned roles: verify Owner/Manager membership (required for delivery leadership authorization).
-2. **Plan summary metrics:** `Projects_GetProjectPlanSummary` with `idOrKey`.
-   - Task counts: `overdue`, `dueThisWeek`, `upcoming`, and `total`.
-   - Overdue tasks indicate execution friction and schedule slippage.
-3. **Critical path analysis:** `Tasks_GetCriticalPath` with `projectIdOrKey`.
-   - Inspect the sequence of tasks driving the project finish date.
-   - For high-priority or blocked critical path tasks, inspect their details (`Tasks_GetProjectTask`) to identify causes of delays.
-4. **Project stages (if lifecycle assigned):** `Projects_GetProjectStages` with `id`.
-   - Check stage statuses, progress %, and whether current stages are completing on time or approaching stage gate deadlines.
-5. **Delivery forecast (Monte Carlo):** `Projects_GetForecast` with `idOrKey`.
-   - Read `outcome` (Forecast, Done, Blocked by Dependency, Not Enough History, etc.).
-   - Check `chanceOfFinishingByTargetDate` against `plannedEnd`.
-   - Check the 85th percentile completion date against `plannedEnd`.
-   - Check `dependencies[].shareOfTrialsSettingFinish` to see if specific predecessor work items are dictating the completion timeline.
-6. **Past health check history:** `Projects_GetProjectHealthChecks` with `id`.
-   - Review previous checks: newest first. Note the latest check's status, `reportedOn` timestamp, reporter, and previous `note`.
-7. **Activity history since last check:** `Projects_GetActivities` with `idOrKey`.
-   - Filter/inspect changes recorded since the previous health check: schedule changes (`PreviousDateRange` vs new range), status changes, task completions, role adjustments.
-
-#### 2. Formulate the recommendation
-
-- **Assess RAG status (`status` string enum):**
-  - **`"Healthy"`**:
-    - Progress is tracking on or ahead of schedule relative to elapsed time between `plannedStart` and `plannedEnd`.
-    - Plan summary shows zero or negligible overdue tasks; critical path tasks are on schedule.
-    - Stages are progressing normally within their target windows.
-    - Forecast indicates strong probability of meeting `plannedEnd` (typically >= 80–85%).
-    - No severe blockers or external dependency impediments.
-  - **`"AtRisk"`**:
-    - Progress is lagging behind the planned timeline.
-    - Notable overdue tasks present in plan summary, or delays emerging on critical path tasks.
-    - Forecast confidence is marginal (e.g. 50–80%) or the 85% date slightly overshoots `plannedEnd`.
-    - Predecessor dependency bottlenecks identified in the forecast (`shareOfTrialsSettingFinish`) that could slip the schedule if unaddressed.
-  - **`"Unhealthy"`**:
-    - Progress is stalled or severely behind schedule.
-    - Substantial overdue task volume; critical path is blocked or broken; stage gate deadlines missed.
-    - Forecast shows low confidence (< 50%), the 85% date slips far beyond `plannedEnd`, or outcome is `Blocked by Dependency`.
-    - Critical unresolved impediments requiring escalation.
-- **Summarize progress since the last check:**
-  - Clearly state concrete achievements and deltas since the previous check's `reportedOn` date:
-    - Number of tasks completed or moved forward.
-    - Critical path milestones achieved or stages closed.
-    - Progress percentage change.
-    - Any scope or schedule revisions recorded in activity history.
-    - If this is the initial check, summarize progress and milestones achieved to date.
-- **Call out specific concerns:**
-  - Overdue task count and names/keys of overdue critical path tasks.
-  - Forecast slippage beyond `plannedEnd` (state both 50% and 85% dates).
-  - External dependencies pacing the finish (`shareOfTrialsSettingFinish`).
-  - Imminent stage gate deadlines or resource constraints.
-- **Draft proposed `note` (max 1024 characters):**
-  - Synthesize a concise, informative narrative combining progress achieved, schedule/forecast standing, and key concerns.
-- **Determine `expiration`:**
-  - Recommend a future UTC ISO datetime (e.g., next stage gate review, end of month, or 2–4 weeks out, not exceeding `plannedEnd`).
-
-#### 3. Present to the user before submitting
-
-**Never log a health check without user confirmation.** Present the recommendation clearly:
-
-- **Recommended Status:** `"Healthy"`, `"AtRisk"`, or `"Unhealthy"`
-- **Proposed Expiration:** UTC datetime
-- **Proposed Note:** Full drafted text for the note
-- **Rationale & Analysis:**
-  - **Progress since last check:** Tasks completed, stage advancement, and progress % delta
-  - **Plan & Critical path observation:** Overdue task counts and critical path health
-  - **Forecast & Timeline:** Probability of meeting `plannedEnd` and 85% confidence date
-  - **Concerns / Blockers:** Overdue critical tasks, dependency bottlenecks, or stage slippage
-- **Authorization Note:** Remind the user that submitting requires delivery leadership (Owner or Manager on the project, program, or portfolio).
-
-Ask the user to confirm the recommendation or provide adjustments (change status, revise expiration, or edit note) before calling `Projects_CreateProjectHealthCheck`.
+1. Read `backwardStatusTargets` from `Projects_GetProject` and offer only those. Do not derive targets: a status keeps its entry requirements in either direction (Approved needs a lifecycle, Active needs both dates), so a project cancelled straight from Proposed may only return to Proposed.
+2. If the project's program or portfolio is closed, the revert is rejected — that parent must be reopened first.
+3. Agree a `reason` with the user. It is required and stored in the status history as the record of why a decision was reversed, so write something a later reader will understand — never "revert" or "fix".
+4. Confirm, then call with `toStatus` and `reason`.

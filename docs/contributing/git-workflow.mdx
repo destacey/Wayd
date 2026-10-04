@@ -1,0 +1,116 @@
+---
+title: Branches and Commits
+description: How to name branches and write commit messages in the Wayd repository.
+sidebar_position: 3
+audience: [developer, agent]
+---
+
+# Branches and Commits
+
+One convention for every contributor and every coding agent. Once the hooks are enabled
+(`git config core.hooksPath .githooks`, once per clone), `pre-push` **refuses** a branch whose name breaks the
+convention, and `commit-msg` **warns** about a message that does but keeps the commit. The checks live in
+`.github/scripts/branch-name-check.sh` and `.github/scripts/commit-message-check.sh`.
+
+## Branches
+
+```text
+<type>/<issue>-<short-summary>
+```
+
+- `feat/964-mcp-tool-annotations`, `fix/937-mcp-instant-fields`, `docs/agents-md-canonical`
+- The type is one of the [commit types](#types).
+- The issue number is left out only when there is no issue.
+- Lowercase words joined by hyphens; 60 characters at most, and a summary of a few words is enough.
+- One branch per issue, cut from `main`. Never commit to `main` directly.
+
+No other prefix is allowed — including `copilot/`, `claude/`, `codex/` and `cursor/`, which cloud agents
+choose for themselves. A cloud agent works on GitHub's side and never runs the hook, and some (Copilot) cannot
+change their prefix, so rename such a branch before it is merged. Pushing to a Copilot pull request's branch
+needs `git push --no-verify`.
+
+The one exception is `changeset-release/main`, the release pull request the Changesets workflow opens under
+a name it fixes. Only that exact branch is allowed, not the `changeset-release/` prefix.
+
+## Commit messages
+
+```text
+type(scope): summary (#issue)
+
+Optional body: why the change was made, and any constraint the diff does not show.
+```
+
+- **Summary** — imperative mood ("add", not "added" or "adds"), lowercase unless it starts with a proper
+  noun or acronym, no full stop.
+- **72 characters at most** for the whole subject line, issue reference included.
+- **Issue reference** — `(#964)` at the end when the work has an issue.
+- **Body** — optional. Explain why, not what; the diff shows what. The same rule as for
+  [code comments](./coding-standards.mdx#comments): no narrative, no history of how the fix was found.
+  Write each paragraph as one unwrapped line.
+- **One logical change per commit.** Keep a refactor apart from the behaviour change it enables.
+
+```text
+feat(mcp): advertise complete tool annotations (#964)
+fix(work): end an overlapping sprint when the next one starts (#918)
+docs: clarify how a recorded start changes a sprint's first day (#918)
+chore(client): update Ant Design and add a deprecation script
+```
+
+### Types
+
+| Type | Use for |
+|---|---|
+| `feat` | A new capability, or a change to what an existing one does |
+| `fix` | A bug fix |
+| `docs` | Documentation only, including agent guidance and skills |
+| `refactor` | A change that alters no behaviour |
+| `test` | Adding or correcting tests only |
+| `perf` | A performance improvement |
+| `chore` | Maintenance: dependency updates, tooling, repository housekeeping |
+| `ci` | GitHub Actions workflows and CI scripts |
+| `build` | Build configuration: project files, Docker images, package manifests |
+
+Add `!` after the type or scope when a published contract breaks — the API or the `@wayd/mcp` package:
+`feat(mcp)!: remove the v1 project tools`.
+
+### Scopes
+
+The scope names the module or area the change is in. Leave it out when a change spans several.
+
+| Scope | Area |
+|---|---|
+| `work` | Work items, workspaces, workflows, sprints |
+| `organization` | Teams, teams of teams, employees |
+| `planning` | Planning intervals, objectives, risks, roadmaps |
+| `ppm` | Portfolios, programs, projects, tasks, strategic initiatives |
+| `products` | The product catalog, product types and tags |
+| `delivery` | Releases, versions, release packages, deployments |
+| `strategic-management` | Visions, strategies, strategic themes |
+| `links` | Cross-entity links |
+| `app-integration` | Connections to external systems and the integrations behind them |
+| `status-workflows` | Customizable status workflows |
+| `scoring` | Scoring models and scores |
+| `identity` | Sign-in, users, roles, permissions |
+| `settings` | System settings and feature flags |
+| `events` | Domain events and replication between modules |
+| `activities` | Activity history |
+| `imports` | CSV imports |
+| `data-generation` | Test data generation and seeding |
+| `database` | Migrations and persistence configuration |
+| `infrastructure` | Cross-cutting infrastructure: messaging, jobs, logging, telemetry |
+| `api` | The Web API layer: controllers, request and response models, OpenAPI |
+| `client` | The Next.js client |
+| `mcp` | The MCP server (`@wayd/mcp`) |
+| `skills` | Agent skills in `skills/` |
+| `agents` | Agent guidance: `AGENTS.md`, `CLAUDE.md`, agent tool configuration |
+| `docker` | Docker Compose and container setup |
+
+These replace older scopes that meant the same thing: use `client` for `web`, `ui`, `grid`, `timeline` and
+`gantt`; `activities` for `activity`; `products` for `product-management`; `database` for `persistence` and
+`migrations`; `events` for `replication`. To add a scope, change the list in
+`.github/scripts/commit-message-check.sh` and this table together.
+
+## Pull requests
+
+Pull requests are merged with a merge commit, so each commit's message lands in `main` as written. Make
+every commit on the branch follow the convention rather than relying on the pull request title.

@@ -1,13 +1,12 @@
 # Agent Memory
 
-This file captures compact repo-specific lessons that future coding agents should read early. Keep it short and practical. Use `CLAUDE.md`, `AGENTS.md`, `docs/llms-full.txt`, and `docs/ai/domain-glossary.mdx` for full architecture and domain context.
+This file captures compact repo-specific lessons that future coding agents should read early. Keep it short and practical. Use `AGENTS.md`, `docs/llms-full.txt`, and `docs/ai/domain-glossary.mdx` for full architecture and domain context.
 
 ## Startup Checklist
 
-1. Read root `AGENTS.md` first.
-2. Read `CLAUDE.md` for build commands, architecture conventions, and generated-client rules.
-3. Read this file for recent implementation lessons and repo habits.
-4. For domain work, use `docs/llms-full.txt` and `docs/ai/domain-glossary.mdx`.
+1. Read root `AGENTS.md` first — build commands, architecture conventions, and generated-client rules — and the `AGENTS.md` of any directory you change.
+2. Read this file for recent implementation lessons and repo habits.
+3. For domain work, use `docs/llms-full.txt` and `docs/ai/domain-glossary.mdx`.
 
 ## Databases
 
@@ -28,6 +27,16 @@ This file captures compact repo-specific lessons that future coding agents shoul
 - Use NodaTime (`Instant`, `LocalDate`) in application/domain code. Convert API `DateTime` inputs at the controller boundary.
 - Controllers should stay thin and delegate to commands/queries via `IDispatcher` (Wolverine). Handlers must be `public`.
 - Business validation should use `Result<T>` and FluentValidation where appropriate, not business exceptions.
+- Types in `Wayd.Web.Api/Models` are named `*Request` / `*Response`. "Dto" means a type defined in an Application project's `Dtos/` folder.
+- Do not add `AsNoTracking()` to a query that projects to DTOs, scalars, or anonymous types holding no entity instances (`Select`, `ProjectToType`): there is nothing to track. A projection that returns an entity instance is tracked, so it, like a query returning entities read but not saved, still takes `AsNoTracking()`.
+- With a primary constructor, assign each parameter to a `private readonly _field` and use the field in method bodies.
+- AI provider connectors (Azure OpenAI, OpenAI) are called on demand and have nothing to sync. Sync runners, sync buttons and sync dispatch gate on `ConnectorCategory.WorkSync` / `PeopleSync`; `RunSync` answers 400 for an AI provider.
+
+## Local Environment
+
+- Files are CRLF (`.editorconfig`, `core.autocrlf=true`). `sed -i` and writing `git show` output back to disk both produce LF, which turns every touched file into a whole-file diff. Edit files with a tool that keeps the existing line endings.
+- Integration suites on Windows/Docker Desktop can exceed the 5-minute `--hangdump-timeout` while SQL Server containers start (the dump log names no test). Run `INTEGRATION_TEST_PARALLELISM=1 ./.github/scripts/dotnet-test-projects.sh integration`; CI is unaffected.
+- Seq receiving nothing, with the Serilog sink timing out after 100s, is an orphaned `wslrelay.exe` on `::1:5341` shadowing the container. `Get-NetTCPConnection -State Listen | ? LocalPort -eq 5341` shows two owners; stop the relay's process. Stop Seq with `docker compose down`, never by killing Docker or WSL, which is what orphans the relay.
 
 ## Frontend Patterns
 

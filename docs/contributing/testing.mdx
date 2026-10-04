@@ -161,10 +161,12 @@ Fake `DbContext` implementations are available for each application area (e.g. `
 
 ```csharp
 private readonly FakeWaydDbContext _dbContext = new();
+private readonly Mock<ICurrentUser> _currentUser = new();
+private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Instant.FromUtc(2026, 1, 15, 9, 30)));
 private readonly ScoringModelFaker _faker = new();
 
 private DeleteScoringModelCommandHandler CreateHandler() =>
-    new(_dbContext, NullLogger<DeleteScoringModelCommandHandler>.Instance);
+    new(_dbContext, _currentUser.Object, _dateTimeProvider, NullLogger<DeleteScoringModelCommandHandler>.Instance);
 ```
 
 ## Running Tests

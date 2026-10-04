@@ -1,6 +1,6 @@
 ---
 name: wayd-pi
-description: Guides agents working with Wayd Planning Intervals — iterations, sprint metrics, team objectives, health recommendations and reports, predictability, and risks.
+description: Guides agents working with Wayd Planning Intervals — iterations, sprint metrics, team objectives, objective health checks, PI health reports, predictability, and risks. Use when exploring a PI, recommending or logging an objective health check, building a PI health report, or checking predictability or risks.
 ---
 
 # Wayd Planning Intervals (PI)
@@ -58,13 +58,11 @@ Planning Interval (PI)
 ### Risk
 
 - Scoped to a PI; optionally scoped to a team
-- Open risks returned by default; closed risks must be explicitly requested (`includeClosed: true`)
 
 ### Common patterns
 
 - **`idOrKey`** — most GET endpoints accept either a UUID or a string key
 - **`teamId`** — optional filter on many PI endpoints; omit to get all teams, include to scope to one
-- **`includeClosed`** on `GetRisks` — defaults to `false`; pass `true` to include resolved risks
 
 ---
 
@@ -96,7 +94,7 @@ Planning Interval (PI)
 - Resolve objective status values: `PlanningIntervals_GetObjectiveStatuses`
 - Work items linked to an objective: `PlanningIntervals_GetObjectiveWorkItems` (returns work item list and `progressSummary` with Proposed, Active, Done, and Total counts)
 - Daily work item metrics for an objective (CFD): `PlanningIntervals_GetObjectiveWorkItemMetrics` (returns daily rollups of Proposed, Active, Done, and Total from PI start to today/PI end — Cumulative Flow Diagram data)
-- When an objective's work will be done, and its chance of finishing by the objective's target date (else the PI's end): `PlanningIntervals_GetObjectiveForecast`. Requires the `delivery-forecasting` feature flag; see the `wayd-teams` skill for reading forecasts.
+- When an objective's work will be done, and its chance of finishing by the objective's target date (else the PI's end): `PlanningIntervals_GetObjectiveForecast`. Requires the `delivery-forecasting` feature flag (404 when it is off); see the `wayd-teams` skill for reading forecasts.
 
 ### Health report and per-objective health checks
 
@@ -111,7 +109,7 @@ The PI-wide health report is a dedicated endpoint — do not attempt to derive i
 
 Notes for logging a check:
 
-- `statusId` is a **number**: `1=Healthy, 2=AtRisk, 3=Unhealthy` (asymmetric with the project version, which takes a string `status`).
+- `statusId` is a **number**: `1=Healthy, 2=AtRisk, 3=Unhealthy`.
 - `expiration` is an ISO 8601 UTC datetime and **must be in the future**.
 - `note` is optional, max 1024 characters.
 - The body redundantly requires `planningIntervalObjectiveId` in addition to the path `objectiveId` — they must match.
@@ -134,10 +132,10 @@ Run these queries to assemble the complete picture:
    - Daily snapshots of `proposed`, `active`, and `done` counts.
    - Flow observation: Are items moving steadily from Proposed → Active → Done? Is WIP (`active`) ballooning or flatlining?
 4. **Delivery forecast:** `PlanningIntervals_GetObjectiveForecast`.
-   - Read `outcome` (Forecast, Done, Blocked by Dependency, Not Enough History).
-   - Check `chanceOfFinishingByTargetDate` against the objective's target date (or PI end).
-   - Check the 85% confidence completion date against the target date.
+   - Read the `outcome` first, as the `wayd-teams` skill describes; only `Forecast` carries dates.
+   - Check `chanceOfFinishingByTargetDate` and the 85% confidence date against the objective's target date (or PI end).
    - Identify pacing blockers from `dependencies[].shareOfTrialsSettingFinish`.
+   - **A 404 on an objective you just read means the `delivery-forecasting` flag is off.** Continue without a forecast, judge on progress and CFD alone, and say in the rationale that no forecast was available.
 5. **Past health check history:** `PlanningIntervals_GetObjectiveHealthChecks`.
    - Inspect the most recent check: status, `reportedOn` timestamp, expiration, and previous `note`.
 6. **Activity history since last check:** `PlanningIntervals_GetObjectiveActivities`.
@@ -166,13 +164,13 @@ Run these queries to assemble the complete picture:
 
 **Never log a health check without user confirmation.** Present the recommendation clearly:
 
-- **Recommended Status:** Healthy / At Risk / Unhealthy (with statusId)
+- **Recommended Status:** Healthy / AtRisk / Unhealthy (with statusId)
 - **Proposed Expiration:** UTC datetime
 - **Proposed Note:** Full drafted text for the note
 - **Rationale & Analysis:**
   - **Progress since last check:** Key deltas in work items and progress percentage
   - **CFD & Flow observation:** Trend in Active vs Done items
-  - **Forecast & Timeline:** Probability of meeting target date and 85% confidence date
+  - **Forecast & Timeline:** Probability of meeting target date and 85% confidence date, or that no forecast was available
   - **Concerns / Blockers:** Specific dependencies, risks, or slip factors
 
 Ask the user to confirm the recommendation or provide any adjustments (change status, revise expiration, or edit note) before calling `PlanningIntervals_CreateObjectiveHealthCheck`.
@@ -192,17 +190,20 @@ Both return entries newest first, paged (at most 100 per page). Each entry has a
 
 ### Risks
 
-- `PlanningIntervals_GetRisks` — defaults to open risks only
-- Pass `includeClosed: true` to include resolved/closed risks
-- Pass `teamId` to scope to one team
-
-If the user seems to be missing risks, suggest adding `includeClosed: true`.
+`PlanningIntervals_GetRisks` returns **open risks only** unless you pass `includeClosed: true`; pass `teamId` to scope to one team. If the user seems to be missing risks, they are probably closed — rerun with `includeClosed: true`.
 
 ### PI health report recipe (compound task)
 
-When the user asks for a comprehensive PI health summary, run these in parallel then synthesize:
+When the user asks for a comprehensive PI health summary:
 
-1. `PlanningIntervals_GetPlanningInterval` — PI dates, name, metadata
-2. `PlanningIntervals_GetObjectivesHealthReport` — objective status across teams
-3. `PlanningIntervals_GetPredictability` — predictability scores per team
-4. `PlanningIntervals_GetRisks` — active risks (add `includeClosed: true` if a full picture is needed)
+1. Run in parallel:
+   - `PlanningIntervals_GetPlanningInterval` — PI name, dates, and how far through the PI today is
+   - `PlanningIntervals_GetObjectivesHealthReport` — latest health check per objective across teams
+   - `PlanningIntervals_GetPredictability` — predictability per team
+   - `PlanningIntervals_GetRisks` — open risks
+2. Synthesize the report in this shape:
+   - **Overall RAG** — one status for the PI with a one-sentence reason, led by the share of objectives AtRisk or Unhealthy.
+   - **Objectives by status** — grouped Unhealthy, AtRisk, Healthy, then objectives with no active (non-expired) health check; each with its team and the check's note.
+   - **Predictability outliers** — the PI-wide `predictability`, then the teams furthest below it, each with its `predictability` and completed versus regular objective counts.
+   - **Top risks** — the few open risks with the highest `exposure`, each with its team, `assignee` and `followUpDate`.
+3. Before presenting, check every objective in the health report appears in exactly one status group, and that the overall RAG agrees with the groups.

@@ -29,7 +29,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Projects_GetMyProjectsTaskMetrics', {
     name: 'Projects_GetMyProjectsTaskMetrics',
     description: `Get aggregated open-task counts across the current user's projects: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday). Scoped to the caller — no user parameter.`,
-    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member."}}},
+    inputSchema: {"type":"object","properties":{"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee."}}},
     method: 'get',
     pathTemplate: '/api/ppm/projects/my-task-metrics',
     executionParameters: [{"name":"status","in":"query"},{"name":"role","in":"query"}],
@@ -185,7 +185,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['Projects_GetProjectsPlanSummaries', {
     name: 'Projects_GetProjectsPlanSummaries',
     description: `Get plan summary metrics for multiple projects in one request, keyed by project ID. Prefer this over calling Projects_GetProjectPlanSummary once per project when surveying several projects. Counts the tasks the caller can see (every task where they lead the project, otherwise their own), or another employee's with employeeId, or every task on the projects with allTasks.`,
-    inputSchema: {"type":"object","properties":{"projectId":{"type":"array","items":{"type":"string","format":"uuid"},"description":"Project IDs (UUIDs only, not keys)."},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member."},"employeeId":{"type":["string","null"],"format":"uuid","description":"Count the tasks this employee can see instead of the caller's. Omit for the caller."},"allTasks":{"type":["boolean","null"],"description":"Count every task on the projects regardless of who can see them, for a portfolio or program view."}},"required":["projectId"]},
+    inputSchema: {"type":"object","properties":{"projectId":{"type":"array","items":{"type":"string","format":"uuid"},"description":"Project IDs (UUIDs only, not keys)."},"role":{"type":["array","null"],"items":{"type":"number","format":"int32"},"description":"Project role filter. 1=Sponsor, 2=Owner, 3=Manager, 4=Member, 5=Task Assignee."},"employeeId":{"type":["string","null"],"format":"uuid","description":"Count the tasks this employee can see instead of the caller's. Omit for the caller."},"allTasks":{"type":["boolean","null"],"description":"Count every task on the projects regardless of who can see them, for a portfolio or program view."}},"required":["projectId"]},
     method: 'get',
     pathTemplate: '/api/ppm/projects/plan-summaries',
     executionParameters: [{"name":"projectId","in":"query"},{"name":"role","in":"query"},{"name":"employeeId","in":"query"},{"name":"allTasks","in":"query"}],

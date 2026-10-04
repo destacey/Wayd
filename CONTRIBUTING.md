@@ -31,9 +31,9 @@ Follow the setup instructions in the `README.md` file to get the project running
 #### Create a Branch
 Create a new branch for your changes:
 ```bash
-git checkout -b feature/your-feature-name
+git checkout -b feat/123-short-summary
 ```
-Use a descriptive branch name that reflects the purpose of your changes.
+Name it `<type>/<issue>-<short-summary>` — see [Branches and Commits](docs/contributing/git-workflow.mdx).
 
 #### Make Your Changes
 Make your changes to the codebase. Ensure that:
@@ -50,9 +50,9 @@ npm test
 Commit your changes with a meaningful commit message:
 ```bash
 git add .
-git commit -m "Add feature: description of feature"
+git commit -m "feat(ppm): add a short summary of the change (#123)"
 ```
-If your changes address an existing issue, make sure to link to the issue in your commit message or pull request description, e.g., `Fixes #<issue-number>`.
+Follow the `type(scope): summary (#issue)` format in [Branches and Commits](docs/contributing/git-workflow.mdx). To close an issue when the pull request merges, add `Fixes #<issue-number>` to the pull request description.
 
 #### Push Your Changes
 Push your branch to your fork:

@@ -1,6 +1,6 @@
 ---
 name: wayd-roadmaps
-description: Guides agents working with Wayd Roadmaps — exploring activities, timeboxes, milestones, and roadmap item details.
+description: Guides agents reading Wayd Roadmaps — listing roadmaps and exploring their activities, timeboxes, milestones, and item details. Read-only, since the Wayd MCP server has no tools that create or edit roadmaps. Use when finding a roadmap, summarizing what a roadmap plans for a period, or looking up a roadmap item.
 ---
 
 # Wayd Roadmaps
@@ -12,6 +12,8 @@ description: Guides agents working with Wayd Roadmaps — exploring activities, 
 - Getting details for a specific roadmap item
 - Understanding what's planned or visualized in a roadmap
 
+Every roadmap tool is read-only. To create or change a roadmap, direct the user to the Wayd app.
+
 ---
 
 ## Entity context
@@ -20,18 +22,24 @@ description: Guides agents working with Wayd Roadmaps — exploring activities, 
 
 Roadmaps contain three distinct item types:
 
-| Type | Description |
-|---|---|
-| **Activity** | Work or effort spanning a date range |
-| **Timebox** | A time-bounded container (e.g. a quarter, a PI) |
-| **Milestone** | A single point-in-time event |
+| Type | Description | Dates |
+|---|---|---|
+| **Activity** | Work or effort spanning a date range; may contain child items | `start`, `end` |
+| **Timebox** | A time-bounded container (e.g. a quarter, a PI) | `start`, `end` |
+| **Milestone** | A single point-in-time event | `date` |
 
-`GetItems` returns all three types. `GetActivities` returns only activities.
+`Roadmaps_GetItems` returns all three types. `Roadmaps_GetActivities` returns only activities.
 
-### Common patterns
+**Both return a tree, not a flat list.** Only top-level items are at the root; anything nested under an activity is in that activity's `children`. Walk `children` recursively or you will miss most of the roadmap.
 
-- **`idOrKey`** — `roadmapIdOrKey` accepts either a UUID or a string key
-- **`itemId`** — roadmap items are UUID-only (no string key); resolve via `GetItems` if you only have a name
+### Identifiers
+
+- `Roadmaps_GetRoadmap`, `Roadmaps_GetItems` and `Roadmaps_GetActivities` take `idOrKey` — the roadmap's UUID or its integer key.
+- `Roadmaps_GetItem` takes `roadmapIdOrKey` (UUID or key) plus `itemId`, which is UUID-only. If you only have the item's name, find its `id` in `Roadmaps_GetItems` first.
+
+### Visibility
+
+A private roadmap is visible only to its roadmap managers. To anyone else it is absent from `Roadmaps_GetRoadmaps` and its items come back empty, so an empty or missing roadmap may be private rather than nonexistent — say so.
 
 ---
 
@@ -41,14 +49,14 @@ Roadmaps contain three distinct item types:
 
 1. List all roadmaps: `Roadmaps_GetRoadmaps`
 2. Get roadmap details: `Roadmaps_GetRoadmap` with `idOrKey`
-3. Get all items (activities + timeboxes + milestones): `Roadmaps_GetItems` with `idOrKey`
-4. Get only activities: `Roadmaps_GetActivities` with `idOrKey`
-5. Get visibility options (reference list): `Roadmaps_GetVisibilityOptions`
+3. Get all items: `Roadmaps_GetItems` with `idOrKey`
+4. Get one item's details (adds `description`): `Roadmaps_GetItem` with `roadmapIdOrKey` + `itemId`
 
-### Getting a specific item
+### Recipe: what is planned for a period
 
-`Roadmaps_GetItem` requires:
-- `roadmapIdOrKey` — UUID or string key
-- `itemId` — UUID only
+For a question like "what's planned next quarter on the Platform roadmap?":
 
-If you only have the item's name, call `Roadmaps_GetItems` first to resolve the UUID.
+1. `Roadmaps_GetRoadmaps` — find the roadmap by name; confirm its `start`/`end` cover the period.
+2. `Roadmaps_GetItems` with its `id` or `key`.
+3. Flatten the tree through `children`, then keep items that overlap the period: activities and timeboxes where `start` ≤ period end and `end` ≥ period start; milestones whose `date` falls inside it.
+4. Present milestones in date order, then activities grouped under their top-level parent activity, sorted by `start`. Name any timebox the period falls in.

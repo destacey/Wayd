@@ -214,6 +214,32 @@ describe('ChangeSprintLifecycleForm', () => {
     )
   })
 
+  it('notes when completing a sprint the team did not start', () => {
+    // Arrange / Act
+    renderForm(SprintLifecycleAction.Complete, {
+      canComplete: true,
+      completeWindow: window(-24),
+    })
+
+    // Assert
+    expect(screen.getByText("This sprint wasn't started.")).toBeInTheDocument()
+    expect(screen.getByText(/use Correct Actual Dates/)).toBeInTheDocument()
+  })
+
+  it('says nothing about the start when completing a started sprint', () => {
+    // Arrange / Act
+    renderForm(SprintLifecycleAction.Complete, {
+      canComplete: true,
+      completeWindow: window(-24),
+      started: new Date(Date.now() - 48 * 3_600_000),
+    })
+
+    // Assert
+    expect(
+      screen.queryByText("This sprint wasn't started."),
+    ).not.toBeInTheDocument()
+  })
+
   it('offers no moment when reopening', () => {
     // Arrange / Act
     renderForm(SprintLifecycleAction.Reopen, { canReopen: true })

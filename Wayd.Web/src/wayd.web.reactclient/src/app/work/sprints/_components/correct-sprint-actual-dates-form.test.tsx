@@ -126,7 +126,7 @@ describe('CorrectSprintActualDatesForm', () => {
     expect(screen.getByLabelText('26.3.4 started')).toBeInTheDocument()
   })
 
-  it('sends only the sprints that changed, a cleared value reverting to the default', async () => {
+  it('sends only the sprints that changed, a cleared value following the planned date', async () => {
     // Arrange
     const onFormComplete = jest.fn()
     renderForm({}, onFormComplete)
@@ -175,6 +175,32 @@ describe('CorrectSprintActualDatesForm', () => {
     // Assert
     expect(screen.getByText('Must be after the start.')).toBeInTheDocument()
     expect(saveButton()).toBeDisabled()
+  })
+
+  it('refuses a moment in the future', () => {
+    // Arrange / Act
+    renderForm({
+      started: new Date(Date.now() - 3_600_000),
+      completed: new Date(Date.now() + 3_600_000),
+    })
+
+    // Assert
+    expect(screen.getByText("Can't be in the future.")).toBeInTheDocument()
+    expect(saveButton()).toBeDisabled()
+  })
+
+  it('shows an unrecorded date as not recorded', async () => {
+    // Arrange
+    renderForm()
+
+    // Act
+    await clearPicker('Completed')
+
+    // Assert
+    expect(screen.getByLabelText('Completed')).toHaveAttribute(
+      'placeholder',
+      'Not recorded',
+    )
   })
 
   it('shows the refusal the API gives and stays open', async () => {

@@ -8,7 +8,8 @@ import {
   useReopenSprintMutation,
   useStartSprintMutation,
 } from '@/src/store/features/work-management/sprints-api'
-import { isApiError } from '@/src/utils'
+import { formatCalendarDate, isApiError, sprintActiveDays } from '@/src/utils'
+import { disabledTimeAfter } from './past-moment'
 import { Alert, DatePicker, Form, Modal, Space } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { useState } from 'react'
@@ -179,12 +180,21 @@ const ChangeSprintLifecycleForm = ({
                 onChange={setMoment}
                 minDate={pickable.earliest}
                 maxDate={pickable.latest ?? dayjs()}
+                disabledTime={disabledTimeAfter(pickable.latest ?? dayjs())}
                 allowClear={false}
                 style={{ width: '100%' }}
                 aria-label={momentLabel}
               />
             </Form.Item>
           </Form>
+        )}
+        {action === SprintLifecycleAction.Complete && !sprint.started && (
+          <Alert
+            type="info"
+            showIcon
+            title="This sprint wasn't started."
+            description={`It counts as started on ${formatCalendarDate(sprintActiveDays(sprint).start)}. If the team started on a different day, use Correct Actual Dates to record both its start and its end.`}
+          />
         )}
         {openSprint && (
           <Alert

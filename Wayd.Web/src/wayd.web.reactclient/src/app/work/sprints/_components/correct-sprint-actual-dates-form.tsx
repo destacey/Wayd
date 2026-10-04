@@ -5,6 +5,7 @@ import { useConfirmModal } from '@/src/hooks'
 import { SprintDetailsDto, SprintListDto } from '@/src/services/wayd-api'
 import { useCorrectSprintActualDatesMutation } from '@/src/store/features/work-management/sprints-api'
 import { isApiError } from '@/src/utils'
+import { disabledTimeAfter } from './past-moment'
 import { DatePicker, Flex, Form, Modal, Space, Typography } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { useState } from 'react'
@@ -54,7 +55,7 @@ export interface CorrectSprintActualDatesFormProps {
 
 /**
  * Corrects when the team actually started and completed a sprint, after the
- * fact. A cleared value reverts to the sprint's default. The neighbouring
+ * fact. A cleared value follows the planned date again. The neighbouring
  * sprints can be corrected in the same save: moving this sprint's completion
  * past the next one's start, for example, is accepted only alongside a
  * matching correction of the next sprint. Neighbours are sent only when
@@ -91,7 +92,19 @@ const CorrectSprintActualDatesForm = ({
     return !!started && !!completed && !completed.isAfter(started)
   }
 
-  const invalid = sprints.some((s) => completedBeforeStarted(s.id))
+  // A typed time can still pass the picker's limits.
+  const inFuture = (value: Dayjs | null) => !!value && value.isAfter(dayjs())
+
+  const fieldError = (id: string, field: keyof ActualDates) =>
+    inFuture(dates[id][field])
+      ? "Can't be in the future."
+      : field === 'completed' && completedBeforeStarted(id)
+        ? 'Must be after the start.'
+        : undefined
+
+  const invalid = sprints.some(
+    (s) => fieldError(s.id, 'started') || fieldError(s.id, 'completed'),
+  )
   const changed = sprints.filter((s) => isChanged(s, dates[s.id]))
 
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
@@ -135,13 +148,14 @@ const CorrectSprintActualDatesForm = ({
         <Flex gap="small" wrap>
           {(['started', 'completed'] as const).map((field) => {
             const fieldLabel = field === 'started' ? 'Started' : 'Completed'
-            const error = field === 'completed' && completedBeforeStarted(s.id)
+            const error = fieldError(s.id, field)
+            const now = dayjs()
             return (
               <Form.Item
                 key={field}
                 label={fieldLabel}
                 validateStatus={error ? 'error' : undefined}
-                help={error ? 'Must be after the start.' : undefined}
+                help={error}
                 style={{ flex: 1, minWidth: 220 }}
               >
                 <DatePicker
@@ -149,8 +163,9 @@ const CorrectSprintActualDatesForm = ({
                   format={MOMENT_FORMAT}
                   value={dates[s.id][field]}
                   onChange={(value) => setDate(s.id, field, value)}
-                  maxDate={dayjs()}
-                  placeholder="Default"
+                  maxDate={now}
+                  disabledTime={disabledTimeAfter(now)}
+                  placeholder="Not recorded"
                   style={{ width: '100%' }}
                   aria-label={label(fieldLabel)}
                 />
@@ -178,8 +193,9 @@ const CorrectSprintActualDatesForm = ({
       <Space vertical style={{ width: '100%' }}>
         <div>
           Corrects when the team actually started and completed the sprint, in
-          your time zone. Clear a value to use the sprint&apos;s default.
-          Correct a neighbouring sprint as well when moving one past the other.
+          your time zone. Clear a value to have the sprint follow its planned
+          date. Correct a neighbouring sprint as well when moving one past the
+          other.
         </div>
         <Form layout="vertical" size="small">
           {previousSprint && renderSprint(previousSprint, 'previous sprint')}

@@ -34,7 +34,7 @@ public sealed class SprintLifecycleScenario : IDisposable
         Clock = new FakeClock(InChicago(Sprint2Start.PlusDays(-3), 15));
         DateTimeProvider = new TestingDateTimeProvider(Clock);
 
-        TeamSchedulePeriodDto[] schedule = [new TeamSchedulePeriodDto(new LocalDate(2026, 1, 1), null, "America/Chicago", 1)];
+        TeamSchedulePeriodDto[] schedule = [new TeamSchedulePeriodDto(new LocalDate(2026, 1, 1), null, "America/Chicago", 1, SizingMethod.StoryPoints)];
         Dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(schedule);

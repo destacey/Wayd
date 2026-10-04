@@ -7,7 +7,12 @@ import {
   SetTeamOperatingModelRequest,
   SizingMethod,
 } from '@/src/services/wayd-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import {
+  toFormErrors,
+  isApiError,
+  sizingMethodOptions,
+  type ApiError,
+} from '@/src/utils'
 import {
   useGetOperatingModelDefaultsQuery,
   useSetTeamOperatingModelMutation,
@@ -40,11 +45,6 @@ interface SetTeamOperatingModelFormValues {
 const methodologyOptions = [
   { value: Methodology.Scrum, label: 'Scrum' },
   { value: Methodology.Kanban, label: 'Kanban' },
-]
-
-const sizingMethodOptions = [
-  { value: SizingMethod.StoryPoints, label: 'Story Points' },
-  { value: SizingMethod.Count, label: 'Count' },
 ]
 
 const mapToRequestValues = (

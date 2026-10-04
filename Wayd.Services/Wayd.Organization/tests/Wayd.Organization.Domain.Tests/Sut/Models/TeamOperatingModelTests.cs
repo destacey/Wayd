@@ -135,6 +135,24 @@ public class TeamOperatingModelTests
     }
 
     [Theory]
+    [InlineData(SizingMethod.StoryPoints)]
+    [InlineData(SizingMethod.Count)]
+    [InlineData(SizingMethod.Effort)]
+    [InlineData(SizingMethod.Size)]
+    public void Create_StoresEverySizingMethod(SizingMethod sizingMethod)
+    {
+        // ARRANGE
+        var startDate = new LocalDate(2024, 1, 1);
+
+        // ACT
+        var result = TeamOperatingModel.Create(startDate, Methodology.Scrum, sizingMethod, "UTC", 1);
+
+        // ASSERT
+        result.IsSuccess.Should().BeTrue();
+        result.Value.SizingMethod.Should().Be(sizingMethod);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("Not/AZone")]
     [InlineData("Eastern Standard Time")]

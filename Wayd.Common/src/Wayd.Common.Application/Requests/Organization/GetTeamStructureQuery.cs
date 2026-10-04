@@ -48,8 +48,8 @@ public sealed record TeamStructureMembership(Guid ChildId, Guid ParentId, LocalD
 }
 
 /// <param name="End">Inclusive; null for the current operating model.</param>
-/// <param name="UsesStoryPoints">False when the team sizes by count, where every item counts as one.</param>
-public sealed record TeamSizingPeriod(Guid TeamId, LocalDate Start, LocalDate? End, bool UsesStoryPoints)
+/// <param name="SizingMethod">Which of a work item's estimates the team's work is measured in over the period.</param>
+public sealed record TeamSizingPeriod(Guid TeamId, LocalDate Start, LocalDate? End, SizingMethod SizingMethod)
 {
     public bool IncludesDate(LocalDate date) => Start <= date && (End is null || date <= End);
 }

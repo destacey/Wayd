@@ -43,7 +43,7 @@ public static class AllocationCalculator
                 continue;
 
             // A team with no operating model on the day is treated as count-sized.
-            var usesPoints = sizing[item.TeamId].FirstOrDefault(p => p.IncludesDate(item.DoneOn))?.UsesStoryPoints ?? false;
+            var usesPoints = sizing[item.TeamId].FirstOrDefault(p => p.IncludesDate(item.DoneOn))?.SizingMethod == SizingMethod.StoryPoints;
             var project = item.ProjectId is { } projectId && projects.TryGetValue(projectId, out var found) ? found : null;
             placed.Add(new PlacedItem(item, path, usesPoints, item.StoryPoints is > 0 ? item.StoryPoints : null, project));
         }

@@ -8,20 +8,13 @@ import {
   RecordLinkList,
 } from '@/src/components/common/record'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import {
-  SizingMethod,
-  TeamDetailsDto,
-  TeamOfTeamsDetailsDto,
-} from '@/src/services/wayd-api'
+import { TeamDetailsDto, TeamOfTeamsDetailsDto } from '@/src/services/wayd-api'
 import { useGetTeamOfTeamsMembershipsQuery } from '@/src/store/features/organizations/team-api'
-import { formatCalendarDate, teamUrl } from '@/src/utils'
+import { formatCalendarDate, sizingMethodLabel, teamUrl } from '@/src/utils'
 import { Divider, Flex, Typography } from 'antd'
 import Link from 'next/link'
 
 const { Text } = Typography
-
-const getSizingMethodDisplayName = (sizingMethod: SizingMethod): string =>
-  sizingMethod === SizingMethod.StoryPoints ? 'Story Points' : sizingMethod
 
 export interface TeamFactsProps {
   /** Serves both team types — the shared facts are the same on each. */
@@ -72,7 +65,7 @@ const TeamFacts = ({
               {operatingModel.methodology}
             </LabeledContent>
             <LabeledContent label="Sizing Method">
-              {getSizingMethodDisplayName(operatingModel.sizingMethod)}
+              {sizingMethodLabel(operatingModel.sizingMethod)}
             </LabeledContent>
           </>
         )}

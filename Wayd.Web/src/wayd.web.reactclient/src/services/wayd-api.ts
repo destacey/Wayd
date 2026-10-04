@@ -50026,6 +50026,8 @@ export enum Methodology {
 export enum SizingMethod {
     StoryPoints = "StoryPoints",
     Count = "Count",
+    Effort = "Effort",
+    Size = "Size",
 }
 
 export interface CreateTeamRequest {

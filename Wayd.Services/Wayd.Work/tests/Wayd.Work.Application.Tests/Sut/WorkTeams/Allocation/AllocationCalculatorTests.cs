@@ -54,8 +54,8 @@ public sealed class AllocationCalculatorTests
             new(Mobile.Id, CoreServices.Id, From.PlusYears(-1), null),
         ],
         [
-            new(Payments.Id, From.PlusYears(-1), null, true),
-            new(Mobile.Id, From.PlusYears(-1), null, false),
+            new(Payments.Id, From.PlusYears(-1), null, SizingMethod.StoryPoints),
+            new(Mobile.Id, From.PlusYears(-1), null, SizingMethod.Count),
         ]);
 
     private ProjectClassification Project(string key, PpmRecordReference portfolio, PpmRecordReference? program = null, params PpmRecordReference[] themes)

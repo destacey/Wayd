@@ -869,7 +869,7 @@ public sealed class DomainEventSerializationTests
             id: Guid.NewGuid(),
             key: 42,
             period: new FlexibleDateRange(new LocalDate(2026, 1, 1)),
-            settings: new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Count, "America/Chicago", 2),
+            settings: new TeamOperatingModelSettings(Methodology.Kanban, SizingMethod.Size, "America/Chicago", 2),
             supersededPeriod: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
             EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
@@ -891,7 +891,7 @@ public sealed class DomainEventSerializationTests
             id: Guid.NewGuid(),
             key: 42,
             period: new FlexibleDateRange(new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31)),
-            settings: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.StoryPoints, "Europe/London", 1),
+            settings: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Effort, "Europe/London", 1),
             previous: new TeamOperatingModelSettings(Methodology.Scrum, SizingMethod.Count, "UTC", 0),
             EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));

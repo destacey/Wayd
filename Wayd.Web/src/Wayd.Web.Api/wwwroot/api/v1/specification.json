@@ -59063,11 +59063,15 @@
         "description": "",
         "x-enumNames": [
           "StoryPoints",
-          "Count"
+          "Count",
+          "Effort",
+          "Size"
         ],
         "enum": [
           "StoryPoints",
-          "Count"
+          "Count",
+          "Effort",
+          "Size"
         ]
       },
       "CreateTeamRequest": {

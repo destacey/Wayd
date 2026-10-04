@@ -30851,6 +30851,64 @@ export class SprintsClient {
     }
 
     /**
+     * Correct sprints' actual dates.
+     */
+    correctActualDates(request: CorrectSprintActualDatesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/work/sprints/actual-dates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCorrectActualDates(_response);
+        });
+    }
+
+    protected processCorrectActualDates(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get planning intervals that this sprint is mapped to.
      */
     getPlanningIntervals(key: number, cancelToken?: CancelToken): Promise<NavigationDto[]> {
@@ -49423,6 +49481,22 @@ export interface CompleteSprintRequest {
     /** When the team completed the sprint, now or earlier. Omit to record it as completing now. It must fall
 in the sprint's completion window, which the sprint details report. */
     completedAt?: Date | undefined;
+}
+
+/** Corrects the actual start and completion of one or more of a team's sprints. */
+export interface CorrectSprintActualDatesRequest {
+    /** The sprints to correct, all of one team. Correct neighbouring sprints together when moving one past the
+other. */
+    sprints: SprintActualDatesRequest[];
+}
+
+/** A sprint's corrected actual dates. Both values are replaced; omit one to revert it to the sprint's default. */
+export interface SprintActualDatesRequest {
+    sprintId: string;
+    /** When the team actually started the sprint. Omit to take the default start. */
+    started?: Date | undefined;
+    /** When the team actually completed the sprint. Omit to take the default end. */
+    completed?: Date | undefined;
 }
 
 export interface WorkProcessListDto {

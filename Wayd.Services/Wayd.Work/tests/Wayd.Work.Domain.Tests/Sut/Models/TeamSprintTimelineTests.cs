@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
@@ -464,6 +465,200 @@ public class TeamSprintTimelineTests
 
         // Act
         var result = timeline.CanReopen(sprint1);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    private static readonly Instant AfterAllSprints = At(Sprint3Start.PlusDays(20));
+
+    private static Dictionary<Iteration, SprintActualDates> Corrections(params (Iteration Sprint, Instant? Started, Instant? Completed)[] corrections) =>
+        corrections.ToDictionary(c => c.Sprint, c => new SprintActualDates(c.Started, c.Completed));
+
+    [Fact]
+    public void ValidateCorrection_ASprintWithNoActualDates_Succeeds()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1);
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint1, At(Sprint1Start, 10), At(Sprint2Start.PlusDays(-3), 15))), AfterAllSprints);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateCorrection_ACompletionPastTheNextSprintsStart_Fails()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 10), completed: At(Sprint2Start, 9));
+        var sprint2 = NewSprint(Sprint2Start, 2, started: At(Sprint2Start, 9), completed: At(Sprint3Start, 9));
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint1, At(Sprint1Start, 10), At(Sprint2Start, 12))), AfterAllSprints);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Correct both together");
+    }
+
+    [Fact]
+    public void ValidateCorrection_ACompletionPastTheNextSprintsStart_WithTheNextStartMovedToo_Succeeds()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 10), completed: At(Sprint2Start, 9));
+        var sprint2 = NewSprint(Sprint2Start, 2, started: At(Sprint2Start, 9), completed: At(Sprint3Start, 9));
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections(
+            (sprint1, At(Sprint1Start, 10), At(Sprint2Start, 12)),
+            (sprint2, At(Sprint2Start, 12), At(Sprint3Start, 9))), AfterAllSprints);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateCorrection_ACompletionPastTheNextSprintsDefaultStart_Fails()
+    {
+        // Arrange — sprint 2 was completed without being started, so it began at its default start
+        var sprint1 = NewSprint(Sprint1Start, 1);
+        var sprint2 = NewSprint(Sprint2Start, 2, completed: At(Sprint3Start, 9));
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint1, null, At(Sprint2Start.PlusDays(4), 9))), AfterAllSprints);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Correct both together");
+    }
+
+    [Fact]
+    public void ValidateCorrection_ALateCompletionItLeavesAlone_DoesNotBlockIt()
+    {
+        // Arrange — the team completed sprint 1 on sprint 2's second day, which the live Complete allows
+        var lateCompletion = At(Sprint2Start.PlusDays(1), 15);
+        var sprint1 = NewSprint(Sprint1Start, 1, completed: lateCompletion);
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act — only the start is corrected
+        var result = timeline.ValidateCorrection(Corrections((sprint1, At(Sprint1Start, 10), lateCompletion)), AfterAllSprints);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateCorrection_AStartBeforeThePreviousSprintStarted_Fails()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 10));
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint2, At(Sprint1Start, 9), null)), AfterAllSprints);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateCorrection_AStartAfterThePlannedEnd_Fails()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1);
+        var timeline = Timeline(sprint1);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint1, At(Sprint2Start, 9), null)), AfterAllSprints);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateCorrection_InTheFuture_Fails()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1);
+        var timeline = Timeline(sprint1);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint1, At(Sprint1Start, 10), null)), At(Sprint1Start, 9));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("future");
+    }
+
+    [Fact]
+    public void ValidateCorrection_LeavingASprintOpenBeforeALaterOneWithActualDates_Fails()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 10), completed: At(Sprint2Start, 9));
+        var sprint2 = NewSprint(Sprint2Start, 2, started: At(Sprint2Start, 9));
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint1, At(Sprint1Start, 10), null)), AfterAllSprints);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("open");
+    }
+
+    [Fact]
+    public void ValidateCorrection_MovingThePreviousStartPastTheNextSprintsStart_Fails()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1);
+        var sprint2 = NewSprint(Sprint2Start, 2, started: At(Sprint2Start, 9));
+        var sprint3 = NewSprint(Sprint3Start, 3, started: At(Sprint2Start, 12));
+        var timeline = Timeline(sprint1, sprint2, sprint3);
+
+        // Act — clearing sprint 2's start reverts it to its default, the end of its first day, past sprint 3's start
+        var result = timeline.ValidateCorrection(Corrections((sprint2, null, null)), AfterAllSprints);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain($"{sprint2.Name} can't start after {sprint3.Name} started");
+    }
+
+    [Fact]
+    public void ValidateCorrection_ClearingValues_RevertsToTheDefaults()
+    {
+        // Arrange
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 10), completed: At(Sprint2Start, 9));
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections((sprint1, null, null)), AfterAllSprints);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateCorrection_DoesNotRecheckSprintsLeftAsTheyAre()
+    {
+        // Arrange — the source moved sprint 1's planned dates after it was started
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start.PlusDays(-10), 10), completed: At(Sprint2Start, 9));
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var result = timeline.ValidateCorrection(Corrections(
+            (sprint1, sprint1.Started, sprint1.Completed),
+            (sprint2, At(Sprint2Start, 9), At(Sprint3Start, 9))), AfterAllSprints);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

@@ -22,6 +22,7 @@ import { ReactNode, use, useState } from 'react'
 import SprintDetailsLoading from './loading'
 import {
   ChangeSprintLifecycleForm,
+  CorrectSprintActualDatesForm,
   SprintBacklogGrid,
   SprintDetails,
   SprintLifecycleAction,
@@ -54,6 +55,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const [lifecycleAction, setLifecycleAction] =
     useState<SprintLifecycleAction | null>(null)
+  const [correctingDates, setCorrectingDates] = useState(false)
 
   const router = useRouter()
   const { hasPermissionClaim } = useAuth()
@@ -146,11 +148,33 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     { action: SprintLifecycleAction.Reopen, allowed: sprint.canReopen },
   ]
     .filter(({ allowed }) => canManage && allowed)
-    .map(({ action }) => ({
+    .map<ItemType>(({ action }) => ({
       key: action,
       label: action,
       onClick: () => setLifecycleAction(action),
     }))
+    .concat(
+      canManage
+        ? [
+            {
+              key: 'correct-actual-dates',
+              label: 'Correct Actual Dates',
+              onClick: () => setCorrectingDates(true),
+            },
+          ]
+        : [],
+    )
+
+  // In the order the server's timeline uses, so the neighbours offered are the
+  // ones a correction is checked against.
+  const timelineSprints = [...(teamSprints ?? [])].sort(
+    (a, b) => compareCalendarDates(a.start, b.start) || a.key - b.key,
+  )
+  const sprintIndex = timelineSprints.findIndex((s) => s.key === sprint.key)
+  const previousSprint =
+    sprintIndex > 0 ? timelineSprints[sprintIndex - 1] : undefined
+  const nextSprint =
+    sprintIndex >= 0 ? timelineSprints[sprintIndex + 1] : undefined
 
   const sections: RecordSection[] = [
     { id: SprintSections.Overview, label: 'Overview' },
@@ -224,6 +248,15 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           action={lifecycleAction}
           onFormComplete={() => setLifecycleAction(null)}
           onFormCancel={() => setLifecycleAction(null)}
+        />
+      )}
+      {correctingDates && (
+        <CorrectSprintActualDatesForm
+          sprint={sprint}
+          previousSprint={previousSprint}
+          nextSprint={nextSprint}
+          onFormComplete={() => setCorrectingDates(false)}
+          onFormCancel={() => setCorrectingDates(false)}
         />
       )}
     </>

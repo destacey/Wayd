@@ -1,4 +1,5 @@
 import { getSprintsClient } from '@/src/services/clients'
+import { isApiError } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -127,7 +128,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
           })
           return { data }
         } catch (error) {
-          console.error('API Error:', error)
+          logUnlessRefused(error)
           return { error }
         }
       },
@@ -148,7 +149,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
           const data = await getSprintsClient().complete(id, { completedAt })
           return { data }
         } catch (error) {
-          console.error('API Error:', error)
+          logUnlessRefused(error)
           return { error }
         }
       },
@@ -162,15 +163,53 @@ export const sprintsApi = apiSlice.injectEndpoints({
           const data = await getSprintsClient().reopen(id)
           return { data }
         } catch (error) {
-          console.error('API Error:', error)
+          logUnlessRefused(error)
           return { error }
         }
       },
       invalidatesTags: (result, error, { id, key }) =>
         sprintLifecycleTags(id, key),
     }),
+
+    correctSprintActualDates: builder.mutation<
+      void,
+      {
+        sprints: {
+          id: string
+          key: number
+          started?: Date
+          completed?: Date
+        }[]
+      }
+    >({
+      queryFn: async ({ sprints }) => {
+        try {
+          const data = await getSprintsClient().correctActualDates({
+            sprints: sprints.map(({ id, started, completed }) => ({
+              sprintId: id,
+              started,
+              completed,
+            })),
+          })
+          return { data }
+        } catch (error) {
+          logUnlessRefused(error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { sprints }) =>
+        sprints.flatMap(({ id, key }) => sprintLifecycleTags(id, key)),
+    }),
   }),
 })
+
+// A 400 or 422 is the server refusing the change, which the form that sent it
+// shows. Logged as an error, Next's dev overlay reports it as a crash.
+function logUnlessRefused(error: unknown) {
+  if (isApiError(error) && (error.status === 400 || error.status === 422))
+    return
+  console.error('API Error:', error)
+}
 
 // A lifecycle change moves the sprint's state, so every view of the team's
 // sprints goes stale with it. The team tags are invalidated by type: they are
@@ -198,4 +237,5 @@ export const {
   useStartSprintMutation,
   useCompleteSprintMutation,
   useReopenSprintMutation,
+  useCorrectSprintActualDatesMutation,
 } = sprintsApi

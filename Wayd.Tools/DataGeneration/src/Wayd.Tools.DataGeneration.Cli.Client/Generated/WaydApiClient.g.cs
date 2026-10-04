@@ -54129,6 +54129,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Correct sprints' actual dates.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the actual start and completion of one or more of a team's sprints; an omitted value reverts to the sprint's default. Sprints corrected together are checked against each other's corrected dates, and the team's actual sprint periods may not overlap. Requires membership of the sprints' team or its team of teams.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task CorrectActualDatesAsync(CorrectSprintActualDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get planning intervals that this sprint is mapped to.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -54846,6 +54856,93 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("api/work/sprints/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/reopen");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Correct sprints' actual dates.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the actual start and completion of one or more of a team's sprints; an omitted value reverts to the sprint's default. Sprints corrected together are checked against each other's corrected dates, and the team's actual sprint periods may not overlap. Requires membership of the sprints' team or its team of teams.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task CorrectActualDatesAsync(CorrectSprintActualDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/work/sprints/actual-dates"
+                    urlBuilder_.Append("api/work/sprints/actual-dates");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -93990,6 +94087,48 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("completedAt")]
         public System.DateTimeOffset? CompletedAt { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Corrects the actual start and completion of one or more of a team's sprints.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CorrectSprintActualDatesRequest
+    {
+
+        /// <summary>
+        /// The sprints to correct, all of one team. Correct neighbouring sprints together when moving one past the
+        /// <br/>other.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sprints")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SprintActualDatesRequest> Sprints { get; set; } = new System.Collections.ObjectModel.Collection<SprintActualDatesRequest>();
+
+    }
+
+    /// <summary>
+    /// A sprint's corrected actual dates. Both values are replaced; omit one to revert it to the sprint's default.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SprintActualDatesRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("sprintId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid SprintId { get; set; } = default!;
+
+        /// <summary>
+        /// When the team actually started the sprint. Omit to take the default start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("started")]
+        public System.DateTimeOffset? Started { get; set; } = default!;
+
+        /// <summary>
+        /// When the team actually completed the sprint. Omit to take the default end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completed")]
+        public System.DateTimeOffset? Completed { get; set; } = default!;
 
     }
 

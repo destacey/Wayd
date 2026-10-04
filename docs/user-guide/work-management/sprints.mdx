@@ -53,10 +53,25 @@ Both are counted in the team's time zone, from the [operating model](../organiza
 
 Every start, completion and reopening is recorded in the sprint's [Activity](../activity-log.mdx).
 
+### Correcting Actual Dates
+
+Past sprints — including every sprint from before Wayd recorded actual dates — have no actual start or end, and a team that forgot to press Start or Complete needs to fix the record afterwards. **Correct Actual Dates** in the sprint's **Actions** menu sets the actual start and end to the moments you choose, on any sprint, past or current. Clear a value to return it to its [default](#starting-completing-and-reopening-a-sprint).
+
+The same rules as Start and Complete keep the team's sprints in order:
+- A start falls after the previous sprint's start and before the end of the sprint's last planned day. The team's first sprint can start up to 3 days before its planned start.
+- An end falls after the sprint's start, actual or default.
+- A sprint's end can't pass the next sprint's start, actual or default, so the team's actual sprints never overlap.
+- A sprint left open (started but not completed) can't be followed by a sprint with actual dates.
+- Neither date can be in the future.
+
+**Correcting neighbouring sprints together.** The dialog also shows the previous and next sprints. To move this sprint's end past the next sprint's start — say the team finished a day late — correct the next sprint's start in the same dialog. Both are checked and saved together, and only the sprints you changed are saved.
+
+A correction moves the sprint's commitment point, which changes its metrics, so each one is recorded in the sprint's [Activity](../activity-log.mdx) with the dates before and after. Who can correct is the same as who can start and complete.
+
 ### Sprint Detail Page
 
 The sprint detail page shows:
-- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint))
+- **Actions** — Start, Complete and Reopen, when you may take them (see [above](#starting-completing-and-reopening-a-sprint)), and [Correct Actual Dates](#correcting-actual-dates)
 - **Planned and actual dates** — the planned start and end, and the actual start and end, each labelled Actual or Default
 - **Team** link and timeline progress bar
 - **Sprint Metrics** (for Active/Completed sprints) — see [Sprint Metrics](#sprint-metrics) below

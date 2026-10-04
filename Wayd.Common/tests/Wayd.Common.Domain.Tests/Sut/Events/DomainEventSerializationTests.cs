@@ -933,6 +933,27 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void SprintActualDatesCorrectedEvent_RoundTripsBothEnds()
+    {
+        // Arrange — nulls on both sides, so "takes the default" survives the round trip
+        var original = new SprintActualDatesCorrectedEvent(
+            Guid.NewGuid(),
+            7,
+            new SprintActualDates(null, Instant.FromUtc(2026, 9, 28, 14, 0)),
+            new SprintActualDates(Instant.FromUtc(2026, 9, 14, 15, 0), null),
+            EventActor.System,
+            Instant.FromUtc(2026, 10, 2, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Key.Should().Be(7);
+        roundTripped.Previous.Should().Be(original.Previous);
+        roundTripped.Current.Should().Be(original.Current);
+    }
+
+    [Fact]
     public void WorkIterationDateRangeChangedEventV2_RoundTripsBothEnds()
     {
         // Arrange

@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Domain.Models;
@@ -662,5 +663,126 @@ public class TeamSprintTimelineTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void StateAt_WhenNotStarted_IsActiveFromTheStartOfTheFirstPlannedDayInTheTeamsZone()
+    {
+        // Arrange
+        var sprint = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var before = timeline.StateAt(sprint, At(Sprint2Start).Minus(Duration.FromMinutes(1)));
+        var from = timeline.StateAt(sprint, At(Sprint2Start));
+
+        // Assert
+        before.Should().Be(IterationState.Future);
+        from.Should().Be(IterationState.Active);
+    }
+
+    [Fact]
+    public void StateAt_WhenTheTeamStartedOnTheSecondDay_IsFutureOnTheFirstAndActiveOnTheSecond()
+    {
+        // Arrange — planned from Monday, started on Tuesday morning
+        var started = At(Sprint2Start.PlusDays(1), 9);
+        var sprint = NewSprint(Sprint2Start, 2, started: started);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var monday = timeline.StateAt(sprint, At(Sprint2Start, 12));
+        var tuesday = timeline.StateAt(sprint, started);
+
+        // Assert
+        monday.Should().Be(IterationState.Future);
+        tuesday.Should().Be(IterationState.Active);
+    }
+
+    [Fact]
+    public void StateAt_WhenTheTeamStartedEarly_IsActiveFromItsStart()
+    {
+        // Arrange — the previous sprint is left to end on its own, and this one is started the Friday before
+        var started = At(Sprint2Start.PlusDays(-3), 15);
+        var sprint1 = NewSprint(Sprint1Start, 1);
+        var sprint2 = NewSprint(Sprint2Start, 2, started: started);
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var state1 = timeline.StateAt(sprint1, started);
+        var state2 = timeline.StateAt(sprint2, started);
+
+        // Assert
+        state1.Should().Be(IterationState.Completed);
+        state2.Should().Be(IterationState.Active);
+    }
+
+    [Fact]
+    public void StateAt_IsActiveForTheWholeOfTheLastPlannedDay()
+    {
+        // Arrange
+        var sprint = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint);
+        var lastDay = Sprint3Start.PlusDays(-1);
+
+        // Act
+        var lateOnTheLastDay = timeline.StateAt(sprint, At(lastDay, 23));
+        var afterTheLastDay = timeline.StateAt(sprint, At(Sprint3Start));
+
+        // Assert
+        lateOnTheLastDay.Should().Be(IterationState.Active);
+        afterTheLastDay.Should().Be(IterationState.Completed);
+    }
+
+    [Fact]
+    public void StateAt_WhenCompletedEarly_IsCompletedFromTheCompletion()
+    {
+        // Arrange
+        var completed = At(Sprint3Start.PlusDays(-3), 15);
+        var sprint = NewSprint(Sprint2Start, 2, started: At(Sprint2Start, 9), completed: completed);
+        var timeline = Timeline(sprint);
+
+        // Act
+        var result = timeline.StateAt(sprint, completed);
+
+        // Assert
+        result.Should().Be(IterationState.Completed);
+    }
+
+    [Fact]
+    public void StateAt_WhenThePreviousSprintEndsLate_TheNextIsFutureUntilItDoes()
+    {
+        // Arrange — sprint 1 was completed mid-morning on sprint 2's first planned day
+        var sprint1Completed = At(Sprint2Start, 10);
+        var sprint1 = NewSprint(Sprint1Start, 1, started: At(Sprint1Start, 9), completed: sprint1Completed);
+        var sprint2 = NewSprint(Sprint2Start, 2);
+        var timeline = Timeline(sprint1, sprint2);
+
+        // Act
+        var beforeIt = timeline.StateAt(sprint2, At(Sprint2Start, 9));
+        var fromIt = timeline.StateAt(sprint2, sprint1Completed);
+
+        // Assert
+        beforeIt.Should().Be(IterationState.Future);
+        fromIt.Should().Be(IterationState.Active);
+    }
+
+    [Fact]
+    public void StateAt_WhenTheSourcePlansTheSprintsToOverlap_OnlyOneIsActive()
+    {
+        // Arrange — the source plans sprint 2 two days into sprint 3
+        var sprint2 = NewSprint(Sprint2Start, 2, days: 16);
+        var sprint3 = NewSprint(Sprint3Start, 3);
+        var timeline = Timeline(sprint2, sprint3);
+        var duringTheOverlap = At(Sprint3Start, 12);
+
+        // Act
+        var state2 = timeline.StateAt(sprint2, duringTheOverlap);
+        var state3 = timeline.StateAt(sprint3, duringTheOverlap);
+
+        // Assert — sprint 2 ends at sprint 3's default start, the end of its first day
+        state2.Should().Be(IterationState.Active);
+        state3.Should().Be(IterationState.Future);
+        timeline.StateAt(sprint3, timeline.DefaultStart(sprint3)).Should().Be(IterationState.Active);
+        timeline.StateAt(sprint2, timeline.DefaultStart(sprint3)).Should().Be(IterationState.Completed);
     }
 }

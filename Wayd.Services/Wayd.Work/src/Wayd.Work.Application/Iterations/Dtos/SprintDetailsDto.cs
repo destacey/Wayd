@@ -19,7 +19,7 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The current state of the sprint.
+    /// The sprint's state now, worked out from its actual and default dates when read.
     /// </summary>
     public required SimpleNavigationDto State { get; set; }
 
@@ -106,7 +106,7 @@ public sealed record SprintDetailsDto : IMapFrom<Iteration>
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<Iteration, SprintDetailsDto>()
-            .Map(dest => dest.State, src => SimpleNavigationDto.FromEnum(src.State))
+            .Ignore(dest => dest.State)
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => src.Team)

@@ -119,7 +119,7 @@ public sealed class StartSprintCommandHandlerTests(SqlServerDbContextFixture fix
 
     private async Task<Guid> SeedSprint(Guid teamId, string name, LocalDate start, Instant? started, CancellationToken cancellationToken)
     {
-        var sprint = Iteration.Create(name, IterationType.Sprint, IterationState.Active,
+        var sprint = Iteration.Create(name, IterationType.Sprint,
             new IterationDateRange(start, start.PlusDays(13)), teamId,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, SqlServerDbContextFixture.FixedNow);
 

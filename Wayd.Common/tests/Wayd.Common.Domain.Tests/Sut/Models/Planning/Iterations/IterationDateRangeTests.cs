@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Models.Planning.Iterations;
+﻿using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 
 namespace Wayd.Common.Domain.Tests.Sut.Models.Planning.Iterations;
 
@@ -266,5 +267,65 @@ public sealed class IterationDateRangeTests
 
         // Assert
         result.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(2026, 9, 27, IterationState.Future)]
+    [InlineData(2026, 9, 28, IterationState.Active)]
+    [InlineData(2026, 10, 9, IterationState.Active)]
+    [InlineData(2026, 10, 10, IterationState.Completed)]
+    public void StateOn_IsActiveFromTheFirstDayThroughTheLastDay(int year, int month, int day, IterationState expected)
+    {
+        // Arrange — a Monday-to-Friday sprint, Sep 28 – Oct 9
+        var range = new IterationDateRange(new LocalDate(2026, 9, 28), new LocalDate(2026, 10, 9));
+
+        // Act
+        var result = range.StateOn(new LocalDate(year, month, day));
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(2026, 9, 27, IterationState.Future)]
+    [InlineData(2026, 9, 28, IterationState.Active)]
+    public void StateOn_WithNoEnd_IsActiveFromTheFirstDay(int year, int month, int day, IterationState expected)
+    {
+        // Arrange
+        var range = new IterationDateRange(new LocalDate(2026, 9, 28), null);
+
+        // Act
+        var result = range.StateOn(new LocalDate(year, month, day));
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(2026, 10, 9, IterationState.Active)]
+    [InlineData(2026, 10, 10, IterationState.Completed)]
+    public void StateOn_WithNoStart_IsActiveThroughTheLastDay(int year, int month, int day, IterationState expected)
+    {
+        // Arrange
+        var range = new IterationDateRange(null, new LocalDate(2026, 10, 9));
+
+        // Act
+        var result = range.StateOn(new LocalDate(year, month, day));
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void StateOn_WithNoDates_IsUnknown()
+    {
+        // Arrange
+        var range = new IterationDateRange(null, null);
+
+        // Act
+        var result = range.StateOn(new LocalDate(2026, 10, 1));
+
+        // Assert
+        result.Should().Be(IterationState.Unknown);
     }
 }

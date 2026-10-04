@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Interfaces;
 using NodaTime;
 
@@ -94,6 +95,22 @@ public sealed class IterationDateRange : ValueObject, IDateRange<LocalDate?>
     public bool IsFutureOn(LocalDate date)
     {
         return date < EffectiveStart;
+    }
+
+    /// <summary>
+    /// The state on <paramref name="date"/> from the planned days alone: Future before the first, Active
+    /// through the whole of the last, Completed after. A missing date leaves that side open, and with
+    /// neither the state is Unknown.
+    /// </summary>
+    public IterationState StateOn(LocalDate date)
+    {
+        if (!Start.HasValue && !End.HasValue)
+            return IterationState.Unknown;
+
+        if (IsFutureOn(date))
+            return IterationState.Future;
+
+        return IsPastOn(date) ? IterationState.Completed : IterationState.Active;
     }
 
     protected override IEnumerable<IComparable> GetEqualityComponents()

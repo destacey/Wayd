@@ -21,7 +21,8 @@ public sealed record PlanningSprintListDto : IMapFrom<PlanningSprint>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The current state of the sprint.
+    /// The sprint's state now. The copy does not hold it; the query that returns this DTO reads it from the
+    /// Work module.
     /// </summary>
     public required SimpleNavigationDto State { get; set; }
 
@@ -40,7 +41,7 @@ public sealed record PlanningSprintListDto : IMapFrom<PlanningSprint>
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<PlanningSprint, PlanningSprintListDto>()
-            .Map(dest => dest.State, src => SimpleNavigationDto.FromEnum(src.State))
+            .Ignore(dest => dest.State)
             .Map(dest => dest.Start, src => src.DateRange.Start)
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Team, src => PlanningTeamNavigationDto.FromPlanningTeam(src.Team!));

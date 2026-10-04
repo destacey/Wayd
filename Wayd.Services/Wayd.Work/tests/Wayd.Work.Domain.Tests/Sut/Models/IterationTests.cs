@@ -30,7 +30,7 @@ public class IterationTests
         var previous = new IterationDetails(iteration.Name, iteration.Type);
 
         // Act
-        var result = iteration.Update("Sprint 42 ", iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
+        var result = iteration.Update("Sprint 42 ", iteration.Type, iteration.DateRange, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -44,21 +44,6 @@ public class IterationTests
     }
 
     [Fact]
-    public void Update_WhenOnlyTheStateChanges_RaisesOnlyTheStateEvent()
-    {
-        // Arrange — the sync derives state from the dates, so it moves on its own as they pass
-        var iteration = _faker.AsFuture().Generate();
-
-        // Act
-        iteration.Update(iteration.Name, iteration.Type, IterationState.Active, iteration.DateRange, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
-
-        // Assert
-        var raised = iteration.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IterationStateChangedEvent>().Subject;
-        raised.FromState.Should().Be(IterationState.Future);
-        raised.ToState.Should().Be(IterationState.Active);
-    }
-
-    [Fact]
     public void Update_WhenTheDatesMove_RaisesTheDateRangeEventWithBothEnds()
     {
         // Arrange
@@ -67,7 +52,7 @@ public class IterationTests
         var moved = new IterationDateRange(previous.Start, previous.EffectiveEnd.PlusDays(7));
 
         // Act
-        iteration.Update(iteration.Name, iteration.Type, iteration.State, moved, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
+        iteration.Update(iteration.Name, iteration.Type, moved, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         var raised = iteration.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IterationDateRangeChangedEventV2>().Subject;
@@ -84,7 +69,7 @@ public class IterationTests
         var teamId = Guid.NewGuid();
 
         // Act
-        iteration.Update(iteration.Name, iteration.Type, iteration.State, iteration.DateRange, teamId, EventActor.System, _dateTimeProvider.Now);
+        iteration.Update(iteration.Name, iteration.Type, iteration.DateRange, teamId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         var raised = iteration.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IterationTeamChangedEvent>().Subject;
@@ -96,18 +81,17 @@ public class IterationTests
     public void Update_WhenEverythingChanges_RaisesOneEventPerPart()
     {
         // Arrange
-        var iteration = _faker.AsFuture().Generate();
+        var iteration = _faker.Generate();
         var moved = new IterationDateRange(iteration.DateRange.Start, iteration.DateRange.EffectiveEnd.PlusDays(7));
         var type = iteration.Type == IterationType.Sprint ? IterationType.Iteration : IterationType.Sprint;
 
         // Act
-        iteration.Update("Renamed", type, IterationState.Active, moved, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+        iteration.Update("Renamed", type, moved, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         iteration.DomainEvents.Select(e => e.GetType()).Should().Equal(
             typeof(IterationDetailsUpdatedEvent),
             typeof(IterationDateRangeChangedEventV2),
-            typeof(IterationStateChangedEvent),
             typeof(IterationTeamChangedEvent));
     }
 
@@ -118,7 +102,7 @@ public class IterationTests
         var iteration = _faker.Generate();
 
         // Act
-        var result = iteration.Update($"{iteration.Name} ", iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
+        var result = iteration.Update($"{iteration.Name} ", iteration.Type, iteration.DateRange, iteration.TeamId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -145,16 +129,16 @@ public class IterationTests
     {
         // Arrange
         var range = new IterationDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(13));
-        var iteration = Iteration.Create("Sprint 1", IterationType.Sprint, IterationState.Future, range, null,
+        var iteration = Iteration.Create("Sprint 1", IterationType.Sprint, range, null,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        iteration.Update("Sprint 1a", IterationType.Sprint, IterationState.Future, range, null, EventActor.System, _dateTimeProvider.Now);
+        iteration.Update("Sprint 1a", IterationType.Sprint, range, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         iteration.DomainEvents.Should().BeEmpty();
         iteration.ExecutePostPersistenceActions();
-        iteration.DomainEvents.OfType<IterationCreatedEventV2>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1");
+        iteration.DomainEvents.OfType<IterationCreatedEventV3>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1");
         iteration.DomainEvents.OfType<IterationDetailsUpdatedEvent>().Should().ContainSingle().Which.Name.Should().Be("Sprint 1a");
     }
 

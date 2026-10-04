@@ -43,7 +43,7 @@ internal sealed record IterationDto
 
 internal static class IterationDtoExtensions
 {
-    public static AzdoIteration ToAzdoIteration(this IterationDto iteration, Instant now, Guid projectId)
+    public static AzdoIteration ToAzdoIteration(this IterationDto iteration, Guid projectId)
     {
         AzdoIterationMetadata metadata = new()
         {
@@ -61,15 +61,15 @@ internal static class IterationDtoExtensions
             ? IterationType.Sprint
             : IterationType.Iteration;
 
-        return new AzdoIteration(iteration.Id, iteration.Name, type, start, end, iteration.TeamId, metadata, now);
+        return new AzdoIteration(iteration.Id, iteration.Name, type, start, end, iteration.TeamId, metadata);
     }
 
-    public static List<IExternalIteration<AzdoIterationMetadata>> ToIExternalIterations(this List<IterationDto> iterations, Instant now, Guid projectId)
+    public static List<IExternalIteration<AzdoIterationMetadata>> ToIExternalIterations(this List<IterationDto> iterations, Guid projectId)
     {
         List<IExternalIteration<AzdoIterationMetadata>> azdoIterations = new (iterations.Count);
         foreach (var iteration in iterations)
         {
-            azdoIterations.Add(iteration.ToAzdoIteration(now, projectId));
+            azdoIterations.Add(iteration.ToAzdoIteration(projectId));
         }
         return azdoIterations;
     }

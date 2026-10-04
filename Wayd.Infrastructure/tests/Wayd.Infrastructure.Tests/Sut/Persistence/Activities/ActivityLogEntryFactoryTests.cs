@@ -92,10 +92,10 @@ public sealed class ActivityLogEntryFactoryTests
     {
         // Arrange — the sprint lives in Work, while its events kept their Planning namespace.
         var timestamp = Instant.FromUtc(2026, 10, 2, 9, 0);
-        var sprint = Iteration.Create("Sprint 1", IterationType.Sprint, IterationState.Active,
+        var sprint = Iteration.Create("Sprint 1", IterationType.Sprint,
             new IterationDateRange(new LocalDate(2026, 10, 1), new LocalDate(2026, 10, 14)), null,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, timestamp);
-        var raised = new IterationStateChangedEvent(sprint.Id, 7, IterationState.Future, IterationState.Active, EventActor.System, timestamp);
+        var raised = new IterationTeamChangedEvent(sprint.Id, 7, null, Guid.NewGuid(), EventActor.System, timestamp);
 
         // Act
         var entry = ActivityLogEntryFactory.CreateActivityLogEntry(raised, sprint, ordinal: 0, correlationId: null);

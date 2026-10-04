@@ -40,48 +40,26 @@ public sealed class GetSprintQueryHandler(
         var sprint = await _workDbContext.Iterations
             .Where(request.IdOrKeyFilter)
             .Where(i => i.Type == IterationType.Sprint)
-            .ProjectToType<SprintDetailsDto>()
+            .Include(i => i.Team)
+            .AsNoTracking()
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (sprint?.Team is null)
-            return sprint;
+        if (sprint is null)
+            return null;
 
-        await ResolveLifecycle(sprint, sprint.Team.Id, cancellationToken);
-
-        return sprint;
-    }
-
-    /// <summary>
-    /// Fills the fields that depend on the team's other sprints and schedules, answered by the same timeline
-    /// rules the lifecycle commands enforce, so the page offers only the actions they would accept.
-    /// </summary>
-    private async Task ResolveLifecycle(SprintDetailsDto sprint, Guid teamId, CancellationToken cancellationToken)
-    {
-        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, teamId, tracked: false, cancellationToken);
-
-        var entity = timeline.Sprints.FirstOrDefault(s => s.Id == sprint.Id);
-        if (entity is null)
-            return;
-
+        var details = sprint.Adapt<SprintDetailsDto>();
         var now = _dateTimeProvider.Now;
 
-        sprint.EffectiveStart = timeline.EffectiveStart(entity);
-        sprint.EffectiveEnd = timeline.EffectiveEnd(entity);
-        sprint.TimeZone = timeline.ScheduleFor(entity).TimeZone.Id;
-        sprint.OverlapsPreviousSprint = timeline.OverlapsPrevious(entity);
-        sprint.OverlapsNextSprint = timeline.OverlapsNext(entity);
-        var startWindow = timeline.StartWindow(entity, now);
-        sprint.CanStart = startWindow.IsSuccess;
-        sprint.StartWindow = startWindow.IsSuccess ? InstantWindowDto.From(startWindow.Value, now) : null;
+        if (sprint.TeamId is not { } teamId)
+        {
+            var states = await _dispatcher.BuildIterationStateReader(_schedulingSettings, [], now, cancellationToken);
+            details.State = SimpleNavigationDto.FromEnum(states.StateOf(sprint));
+            return details;
+        }
 
-        var completeWindow = timeline.CompleteWindow(entity, now);
-        sprint.CanComplete = completeWindow.IsSuccess;
-        sprint.CompleteWindow = completeWindow.IsSuccess ? InstantWindowDto.From(completeWindow.Value, now) : null;
-        sprint.CanReopen = timeline.CanReopen(entity).IsSuccess;
+        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, teamId, tracked: false, cancellationToken);
+        await details.Resolve(sprint, timeline, _currentPrincipal, _dispatcher, now, cancellationToken);
 
-        if (timeline.OpenSprint is { } open && open.Id != entity.Id)
-            sprint.OpenSprint = NavigationDto.Create(open.Id, open.Key, open.Name);
-
-        sprint.CanManageSprint = await _currentPrincipal.CanManageTeamSprints(_dispatcher, teamId, now.InUtc().Date, cancellationToken);
+        return details;
     }
 }

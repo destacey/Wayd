@@ -8,6 +8,11 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// <summary>
 /// The iteration moved between Future, Active and Completed.
 /// </summary>
+/// <remarks>
+/// Frozen at its published shape and never raised: state is worked out from the iteration's dates when read, so
+/// nothing changes on the record when it moves. Kept so every payload written as this type still deserializes.
+/// </remarks>
+[Obsolete("No longer raised: iteration state is worked out when read. Kept only to deserialize payloads already written as this type.")]
 public sealed record IterationStateChangedEvent : DomainEvent<IterationStateChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;

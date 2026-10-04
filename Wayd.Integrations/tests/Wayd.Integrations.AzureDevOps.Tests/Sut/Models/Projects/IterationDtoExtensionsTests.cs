@@ -21,13 +21,12 @@ public sealed class IterationDtoExtensionsTests
         };
 
         // Act
-        var iteration = dto.ToAzdoIteration(Instant.FromUtc(2026, 10, 1, 12, 0), Guid.NewGuid());
+        var iteration = dto.ToAzdoIteration(Guid.NewGuid());
 
         // Assert
         iteration.Start.Should().Be(new LocalDate(2026, 9, 28));
         iteration.End.Should().Be(new LocalDate(2026, 10, 9));
         iteration.Type.Should().Be(IterationType.Sprint);
-        iteration.State.Should().Be(IterationState.Active);
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public sealed class IterationDtoExtensionsTests
         };
 
         // Act
-        var iteration = dto.ToAzdoIteration(Instant.FromUtc(2026, 10, 1, 12, 0), Guid.NewGuid());
+        var iteration = dto.ToAzdoIteration(Guid.NewGuid());
 
         // Assert
         iteration.Start.Should().BeNull();

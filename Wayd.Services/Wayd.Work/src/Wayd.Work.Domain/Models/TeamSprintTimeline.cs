@@ -40,6 +40,9 @@ public sealed class TeamSprintTimeline
 
     public Guid TeamId { get; }
 
+    /// <summary>The system default zone, which a day the team had no schedule falls back to.</summary>
+    public DateTimeZone DefaultZone => _schedules.Fallback.TimeZone;
+
     public IReadOnlyList<Iteration> Sprints => _sprints.AsReadOnly();
 
     /// <summary>The sprint the team started and has not completed, if any. A team has at most one.</summary>
@@ -93,6 +96,38 @@ public sealed class TeamSprintTimeline
 
         var nextStart = EffectiveStart(next);
         return nextStart < plannedEnd ? nextStart : plannedEnd;
+    }
+
+    /// <summary>
+    /// When the sprint shows as Active: its actual start, or else the start of its first planned day in the
+    /// team's zone. That is earlier than <see cref="DefaultStart"/>, which leaves the team the grace period to
+    /// plan before its commitment is taken. Never before the previous sprint's effective end, so a team has at
+    /// most one Active sprint.
+    /// </summary>
+    public Instant ActiveFrom(Iteration sprint)
+    {
+        if (sprint.Started is { } started)
+            return started;
+
+        var plannedStart = PlannedStartDate(sprint)
+            .AtStartOfDayInZone(ScheduleFor(sprint).TimeZone)
+            .ToInstant();
+
+        return Previous(sprint) is { } previous && EffectiveEnd(previous) > plannedStart
+            ? EffectiveEnd(previous)
+            : plannedStart;
+    }
+
+    /// <summary>
+    /// The sprint's state at <paramref name="now"/>: Future before <see cref="ActiveFrom"/>, Active until its
+    /// effective end, and Completed after.
+    /// </summary>
+    public IterationState StateAt(Iteration sprint, Instant now)
+    {
+        if (now >= EffectiveEnd(sprint))
+            return IterationState.Completed;
+
+        return now < ActiveFrom(sprint) ? IterationState.Future : IterationState.Active;
     }
 
     /// <summary>Whether the sprint's planned days overlap the previous sprint's in the source system.</summary>

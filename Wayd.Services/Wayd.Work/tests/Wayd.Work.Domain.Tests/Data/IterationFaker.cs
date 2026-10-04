@@ -21,7 +21,6 @@ public sealed class IterationFaker : PrivateConstructorFaker<Iteration>
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));
         RuleFor(x => x.Name, f => f.Company.CatchPhrase());
         RuleFor(x => x.Type, f => f.PickRandom<IterationType>());
-        RuleFor(x => x.State, f => f.PickRandom<IterationState>());
         RuleFor(x => x.DateRange, f => IterationDateRange.Create(start, end));
         RuleFor(x => x.TeamId, f => f.Random.Guid());
         RuleFor(x => x.OwnershipInfo, f => OwnershipInfo.CreateWaydOwned());
@@ -51,12 +50,6 @@ public static class IterationFakerExtensions
     public static IterationFaker WithType(this IterationFaker faker, IterationType type)
     {
         faker.RuleFor(x => x.Type, type);
-        return faker;
-    }
-
-    public static IterationFaker WithState(this IterationFaker faker, IterationState state)
-    {
-        faker.RuleFor(x => x.State, state);
         return faker;
     }
 
@@ -100,10 +93,9 @@ public static class IterationFakerExtensions
     /// <summary>
     /// Creates a two-week iteration whose last day is <paramref name="endDate"/>.
     /// </summary>
-    public static IterationFaker WithEndDate(this IterationFaker faker, LocalDate endDate, IterationState state = IterationState.Active, IterationType type = IterationType.Sprint)
+    public static IterationFaker WithEndDate(this IterationFaker faker, LocalDate endDate, IterationType type = IterationType.Sprint)
     {
         faker.RuleFor(x => x.Type, type);
-        faker.RuleFor(x => x.State, state);
         faker.RuleFor(x => x.DateRange, new IterationDateRange(endDate.PlusDays(-13), endDate));
         return faker;
     }
@@ -117,24 +109,6 @@ public static class IterationFakerExtensions
     public static IterationFaker AsSprint(this IterationFaker faker)
     {
         faker.RuleFor(x => x.Type, IterationType.Sprint);
-        return faker;
-    }
-
-    public static IterationFaker AsActive(this IterationFaker faker)
-    {
-        faker.RuleFor(x => x.State, IterationState.Active);
-        return faker;
-    }
-
-    public static IterationFaker AsFuture(this IterationFaker faker)
-    {
-        faker.RuleFor(x => x.State, IterationState.Future);
-        return faker;
-    }
-
-    public static IterationFaker AsCompleted(this IterationFaker faker)
-    {
-        faker.RuleFor(x => x.State, IterationState.Completed);
         return faker;
     }
 

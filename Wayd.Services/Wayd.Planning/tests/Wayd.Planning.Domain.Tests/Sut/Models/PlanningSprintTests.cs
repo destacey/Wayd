@@ -25,7 +25,6 @@ public class PlanningSprintTests
         sprint.Key.Should().Be(source.Key);
         sprint.Name.Should().Be(source.Name);
         sprint.Type.Should().Be(source.Type);
-        sprint.State.Should().Be(source.State);
         sprint.DateRange.Should().Be(source.DateRange);
         sprint.TeamId.Should().Be(source.TeamId);
         sprint.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created));
@@ -65,21 +64,6 @@ public class PlanningSprintTests
     }
 
     [Fact]
-    public void ApplyState_WhenTheStateMoves_AppliesAndAdvancesOnlyItsWatermark()
-    {
-        // Arrange
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithState(IterationState.Future).Generate(), Created);
-
-        // Act
-        var applied = sprint.ApplyState(IterationState.Active, Later);
-
-        // Assert
-        applied.Should().BeTrue();
-        sprint.State.Should().Be(IterationState.Active);
-        sprint.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created) with { State = Later });
-    }
-
-    [Fact]
     public void ApplyTeam_WhenTheTeamChanges_AppliesAndAdvancesOnlyItsWatermark()
     {
         // Arrange
@@ -110,18 +94,19 @@ public class PlanningSprintTests
     }
 
     [Fact]
-    public void ApplyState_WhenNothingChangedButNewer_AdvancesTheWatermark()
+    public void ApplyTeam_WhenNothingChangedButNewer_AdvancesTheWatermark()
     {
         // Arrange
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithState(IterationState.Active).Generate(), Created);
+        var teamId = Guid.NewGuid();
+        var sprint = new PlanningSprint(new PlanningSprintFaker().WithTeamId(teamId).Generate(), Created);
 
         // Act
-        var applied = sprint.ApplyState(IterationState.Active, Later);
+        var applied = sprint.ApplyTeam(teamId, Later);
 
         // Assert
         applied.Should().BeTrue();
-        sprint.State.Should().Be(IterationState.Active);
-        sprint.Watermarks.State.Should().Be(Later);
+        sprint.TeamId.Should().Be(teamId);
+        sprint.Watermarks.Team.Should().Be(Later);
     }
 
     [Fact]
@@ -156,20 +141,6 @@ public class PlanningSprintTests
     }
 
     [Fact]
-    public void ApplyState_WhenOlderThanTheLastChange_IsSkipped()
-    {
-        // Arrange
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithState(IterationState.Completed).Generate(), Created);
-
-        // Act
-        var applied = sprint.ApplyState(IterationState.Active, Earlier);
-
-        // Assert
-        applied.Should().BeFalse();
-        sprint.State.Should().Be(IterationState.Completed);
-    }
-
-    [Fact]
     public void ApplyTeam_WhenOlderThanTheLastChange_IsSkipped()
     {
         // Arrange
@@ -185,18 +156,19 @@ public class PlanningSprintTests
     }
 
     [Fact]
-    public void ApplyState_WhenAnotherGroupTookANewerChange_StillApplies()
+    public void ApplyTeam_WhenAnotherGroupTookANewerChange_StillApplies()
     {
-        // Arrange — renamed at Later; a state change from Created arrives afterwards.
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithState(IterationState.Future).Generate(), Earlier);
+        // Arrange — renamed at Later; a team change from Created arrives afterwards.
+        var teamId = Guid.NewGuid();
+        var sprint = new PlanningSprint(new PlanningSprintFaker().Generate(), Earlier);
         sprint.ApplyDetails("Renamed", sprint.Type, Later);
 
         // Act
-        var applied = sprint.ApplyState(IterationState.Active, Created);
+        var applied = sprint.ApplyTeam(teamId, Created);
 
         // Assert
         applied.Should().BeTrue();
-        sprint.State.Should().Be(IterationState.Active);
+        sprint.TeamId.Should().Be(teamId);
         sprint.Name.Should().Be("Renamed");
     }
 
@@ -233,20 +205,6 @@ public class PlanningSprintTests
     }
 
     [Fact]
-    public void ApplyState_WhenRedelivered_HasNothingToApply()
-    {
-        // Arrange
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithState(IterationState.Future).Generate(), Created);
-        sprint.ApplyState(IterationState.Active, Later);
-
-        // Act
-        var applied = sprint.ApplyState(IterationState.Active, Later);
-
-        // Assert
-        applied.Should().BeFalse();
-    }
-
-    [Fact]
     public void ApplyTeam_WhenRedelivered_HasNothingToApply()
     {
         // Arrange
@@ -277,26 +235,13 @@ public class PlanningSprintTests
     }
 
     [Fact]
-    public void ApplyState_WhenATieCarriesADifferentValue_Applies()
-    {
-        // Arrange
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithState(IterationState.Future).Generate(), Created);
-
-        // Act
-        var applied = sprint.ApplyState(IterationState.Active, Created);
-
-        // Assert
-        applied.Should().BeTrue();
-        sprint.State.Should().Be(IterationState.Active);
-    }
-
-    [Fact]
     public void ApplyRecord_AppliesEachGroupAgainstItsOwnWatermark()
     {
-        // Arrange — the state took a change at Later; a whole record from Created renames and moves the state.
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithName("Sprint 1").WithState(IterationState.Future).Generate(), Earlier);
-        sprint.ApplyState(IterationState.Completed, Later);
-        var record = SameSprintAs(sprint).WithName("Sprint 1a").WithState(IterationState.Active).Generate();
+        // Arrange — the team took a change at Later; a whole record from Created renames and moves the team.
+        var laterTeamId = Guid.NewGuid();
+        var sprint = new PlanningSprint(new PlanningSprintFaker().WithName("Sprint 1").Generate(), Earlier);
+        sprint.ApplyTeam(laterTeamId, Later);
+        var record = SameSprintAs(sprint).WithName("Sprint 1a").WithTeamId(Guid.NewGuid()).Generate();
 
         // Act
         var applied = sprint.ApplyRecord(record, Created);
@@ -304,8 +249,8 @@ public class PlanningSprintTests
         // Assert
         applied.Should().BeTrue();
         sprint.Name.Should().Be("Sprint 1a");
-        sprint.State.Should().Be(IterationState.Completed);
-        sprint.Watermarks.Should().Be(new PlanningSprintWatermarks(Created, Created, Later, Created));
+        sprint.TeamId.Should().Be(laterTeamId);
+        sprint.Watermarks.Should().Be(new PlanningSprintWatermarks(Created, Created, Later));
     }
 
     [Fact]
@@ -358,26 +303,27 @@ public class PlanningSprintTests
     public void Resync_StampsOnlyTheGroupsThatDiffer()
     {
         // Arrange
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithState(IterationState.Future).Generate(), Created);
-        var source = SameSprintAs(sprint).WithState(IterationState.Active).Generate();
+        var sprint = new PlanningSprint(new PlanningSprintFaker().Generate(), Created);
+        var teamId = Guid.NewGuid();
+        var source = SameSprintAs(sprint).WithTeamId(teamId).Generate();
 
         // Act
         var changed = sprint.Resync(source, Later);
 
         // Assert
         changed.Should().BeTrue();
-        sprint.State.Should().Be(IterationState.Active);
-        sprint.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created) with { State = Later });
+        sprint.TeamId.Should().Be(teamId);
+        sprint.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created) with { Team = Later });
     }
 
     [Fact]
     public void Resync_WhenEveryGroupDiffers_AppliesAllOfThem()
     {
         // Arrange
-        var sprint = new PlanningSprint(new PlanningSprintFaker().WithType(IterationType.Sprint).WithState(IterationState.Future).Generate(), Created);
+        var sprint = new PlanningSprint(new PlanningSprintFaker().WithType(IterationType.Sprint).Generate(), Created);
         var teamId = Guid.NewGuid();
         var range = new IterationDateRange(new LocalDate(2026, 5, 1), new LocalDate(2026, 5, 14));
-        var source = SameSprintAs(sprint).WithName("Renamed").WithType(IterationType.Iteration).WithState(IterationState.Active)
+        var source = SameSprintAs(sprint).WithName("Renamed").WithType(IterationType.Iteration)
             .WithDateRange(range).WithTeamId(teamId).Generate();
 
         // Act
@@ -387,7 +333,6 @@ public class PlanningSprintTests
         changed.Should().BeTrue();
         sprint.Name.Should().Be("Renamed");
         sprint.Type.Should().Be(IterationType.Iteration);
-        sprint.State.Should().Be(IterationState.Active);
         sprint.DateRange.Should().Be(range);
         sprint.TeamId.Should().Be(teamId);
         sprint.Watermarks.Should().Be(PlanningSprintWatermarks.At(Later));
@@ -430,7 +375,6 @@ public class PlanningSprintTests
             .WithKey(sprint.Key)
             .WithName(sprint.Name)
             .WithType(sprint.Type)
-            .WithState(sprint.State)
             .WithDateRange(sprint.DateRange)
             .WithTeamId(sprint.TeamId);
 }

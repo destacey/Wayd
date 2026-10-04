@@ -8,6 +8,11 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// Tracking began for an iteration that existed before <see cref="IterationCreatedEventV2"/> was recorded. Carries
 /// that event's payload, describing the iteration as it stood at <see cref="DomainEvent.Timestamp"/>.
 /// </summary>
+/// <remarks>
+/// Frozen at its published shape; <see cref="IterationBaselinedEventV3"/> replaced it alongside the creation
+/// event. Kept so every payload written as this type still deserializes into it.
+/// </remarks>
+[Obsolete("Superseded by IterationBaselinedEventV3. Kept only to deserialize payloads already written as this type.")]
 public sealed record IterationBaselinedEventV2 : BaselineEvent<IterationBaselinedEventV2, IterationCreatedEventV2>
 {
     public IterationBaselinedEventV2(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)

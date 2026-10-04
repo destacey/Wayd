@@ -28,7 +28,6 @@ public sealed class PlanningSprint : ISimpleIteration, IHasIdAndKey
         Key = sprint.Key;
         Name = sprint.Name;
         Type = sprint.Type;
-        State = sprint.State;
         DateRange = sprint.DateRange;
         TeamId = sprint.TeamId;
         Watermarks = PlanningSprintWatermarks.At(asOf);
@@ -38,7 +37,6 @@ public sealed class PlanningSprint : ISimpleIteration, IHasIdAndKey
     public int Key { get; private set; }
     public string Name { get; private set; } = default!;
     public IterationType Type { get; private set; }
-    public IterationState State { get; private set; }
     public IterationDateRange DateRange { get; private set; } = default!;
     public Guid? TeamId { get; private set; }
     public PlanningTeam? Team { get; private set; }
@@ -75,21 +73,6 @@ public sealed class PlanningSprint : ISimpleIteration, IHasIdAndKey
         return true;
     }
 
-    /// <summary>Applies a change of state made at <paramref name="timestamp"/>.</summary>
-    /// <returns>False when a newer change already applied, or when the copy already holds this one.</returns>
-    public bool ApplyState(IterationState state, Instant timestamp)
-    {
-        if (ReplicaWatermark.IsStale(Watermarks.State, timestamp)
-            || (State == state && Watermarks.State == timestamp))
-        {
-            return false;
-        }
-
-        State = state;
-        Watermarks = Watermarks with { State = timestamp };
-        return true;
-    }
-
     /// <summary>Applies a change of team made at <paramref name="timestamp"/>.</summary>
     /// <returns>False when a newer change already applied, or when the copy already holds this one.</returns>
     public bool ApplyTeam(Guid? teamId, Instant timestamp)
@@ -116,10 +99,9 @@ public sealed class PlanningSprint : ISimpleIteration, IHasIdAndKey
 
         var details = ApplyDetails(sprint.Name, sprint.Type, timestamp);
         var dateRange = ApplyDateRange(sprint.DateRange, timestamp);
-        var state = ApplyState(sprint.State, timestamp);
         var team = ApplyTeam(sprint.TeamId, timestamp);
 
-        return details || dateRange || state || team;
+        return details || dateRange || team;
     }
 
     /// <summary>
@@ -149,13 +131,6 @@ public sealed class PlanningSprint : ISimpleIteration, IHasIdAndKey
         {
             DateRange = sprint.DateRange;
             Watermarks = Watermarks with { DateRange = asOf };
-            changed = true;
-        }
-
-        if (State != sprint.State && !ReplicaWatermark.IsStale(Watermarks.State, asOf))
-        {
-            State = sprint.State;
-            Watermarks = Watermarks with { State = asOf };
             changed = true;
         }
 

@@ -489,7 +489,7 @@ public class PlanningSprintConfig : IEntityTypeConfiguration<PlanningSprint>
         builder.HasAlternateKey(s => s.Key);
 
         builder.HasIndex(s => s.TeamId)
-            .IncludeProperties(s => new { s.Key, s.Name, s.Type, s.State });
+            .IncludeProperties(s => new { s.Key, s.Name, s.Type });
 
         builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.Key).ValueGeneratedNever();
@@ -497,11 +497,6 @@ public class PlanningSprintConfig : IEntityTypeConfiguration<PlanningSprint>
 
         builder.Property(s => s.Type).IsRequired()
             .HasConversion<EnumConverter<IterationType>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
-
-        builder.Property(s => s.State).IsRequired()
-            .HasConversion<EnumConverter<IterationState>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
 

@@ -2,6 +2,7 @@ using FluentAssertions;
 using NodaTime;
 using Xunit;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Work.Application.Tests.Infrastructure;
 using static Wayd.Work.Application.Tests.Infrastructure.SprintLifecycleScenario;
@@ -34,7 +35,8 @@ public class GetSprintQueryHandlerTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result!.Started.Should().BeNull();
+        result!.State.Id.Should().Be((int)IterationState.Future);
+        result.Started.Should().BeNull();
         result.EffectiveStart.Should().Be(InChicago(Sprint2Start.PlusDays(1), 0));
         result.EffectiveEnd.Should().Be(InChicago(Sprint2Start.PlusDays(14), 0));
         result.TimeZone.Should().Be("America/Chicago");
@@ -56,7 +58,8 @@ public class GetSprintQueryHandlerTests : IDisposable
         var result = await _handler.Handle(new GetSprintQuery(new IdOrKey(_scenario.Sprint1.Key.ToString())), TestContext.Current.CancellationToken);
 
         // Assert
-        result!.Started.Should().Be(InChicago(Sprint1Start, 10));
+        result!.State.Id.Should().Be((int)IterationState.Active);
+        result.Started.Should().Be(InChicago(Sprint1Start, 10));
         result.EffectiveStart.Should().Be(result.Started);
         result.CanComplete.Should().BeTrue();
         result.CanStart.Should().BeFalse();

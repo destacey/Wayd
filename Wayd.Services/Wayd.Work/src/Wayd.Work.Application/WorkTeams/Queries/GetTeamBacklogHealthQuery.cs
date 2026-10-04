@@ -2,8 +2,12 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models.Organizations;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.Models.Planning.Iterations;
+using Wayd.Common.Domain.Settings;
+using Wayd.Work.Application.Iterations.Sprints;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkTeams.Dtos;
@@ -73,10 +77,12 @@ public sealed class BacklogHealthThresholdsValidator : AbstractValidator<Backlog
 public sealed class GetTeamBacklogHealthQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
+    ISettings<SchedulingSettings> schedulingSettings,
     IDateTimeProvider dateTimeProvider) : IQueryHandler<GetTeamBacklogHealthQuery, Result<TeamBacklogHealthDto?>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result<TeamBacklogHealthDto?>> Handle(GetTeamBacklogHealthQuery request, CancellationToken cancellationToken)
@@ -119,11 +125,19 @@ public sealed class GetTeamBacklogHealthQueryHandler(
                 IsParentClosed = w.Parent != null
                     && (w.Parent.StatusCategory == WorkStatusCategory.Done || w.Parent.StatusCategory == WorkStatusCategory.Removed),
                 HasProject = w.ProjectId.HasValue || w.ParentProjectId.HasValue,
-                SprintState = w.Iteration != null && w.Iteration.Type == IterationType.Sprint
-                    ? w.Iteration.State
-                    : (IterationState?)null,
+                Sprint = w.Iteration != null && w.Iteration.Type == IterationType.Sprint
+                    ? new { w.Iteration.Id, w.Iteration.TeamId, w.Iteration.DateRange.Start, w.Iteration.DateRange.End }
+                    : null,
             })
             .ToListAsync(cancellationToken);
+
+        // An item's sprint can belong to another team, so each sprint is read on its own team's timeline.
+        var sprintStates = await _workDbContext.LoadIterationStateReader(
+            _dispatcher,
+            _schedulingSettings,
+            facts.Where(f => f.Sprint?.TeamId is not null).Select(f => f.Sprint!.TeamId!.Value),
+            now,
+            cancellationToken);
 
         var openIds = facts.Select(f => f.Id).ToList();
         var predecessors = (await _workDbContext.WorkItemDependencies
@@ -148,7 +162,9 @@ public sealed class GetTeamBacklogHealthQueryHandler(
                 HasParent = f.HasParent,
                 IsParentClosed = f.IsParentClosed,
                 HasProject = f.HasProject,
-                SprintState = f.SprintState,
+                SprintState = f.Sprint is { } sprint
+                    ? sprintStates.StateOf(sprint.Id, new IterationDateRange(sprint.Start, sprint.End))
+                    : null,
                 PredecessorIds = [.. predecessors[f.Id]],
             })
             .ToList();

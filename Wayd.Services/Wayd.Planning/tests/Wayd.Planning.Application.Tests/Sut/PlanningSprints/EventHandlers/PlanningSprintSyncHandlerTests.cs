@@ -139,20 +139,21 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_StateChangedAndDetailsUpdated_WhenDeliveredOutOfOrder_ApplyBoth()
+    public async Task Handle_DateRangeChangedAndDetailsUpdated_WhenDeliveredOutOfOrder_ApplyBoth()
     {
-        // Arrange — a state change at FirstEdit arrives after a rename at SecondEdit; neither replaces the other.
+        // Arrange — a date change at FirstEdit arrives after a rename at SecondEdit; neither replaces the other.
         var id = Guid.CreateVersion7();
-        _planningDbContext.AddPlanningSprint(new PlanningSprint(new PlanningSprintFaker().WithId(id).WithState(IterationState.Future).WithDateRange(Range).Generate(), Created));
+        var moved = new IterationDateRange(Range.Start, new LocalDate(2026, 1, 21));
+        _planningDbContext.AddPlanningSprint(new PlanningSprint(new PlanningSprintFaker().WithId(id).WithDateRange(Range).Generate(), Created));
 
         // Act
         await _handler.Handle(DetailsUpdatedEvent(id, "Renamed", SecondEdit), TestContext.Current.CancellationToken);
-        await _handler.Handle(new IterationStateChangedEvent(id, 1, IterationState.Future, IterationState.Active, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationDateRangeChangedEventV2(id, 1, Range, moved, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
 
         // Assert
         var copy = _planningDbContext.PlanningSprints.Single(s => s.Id == id);
         copy.Name.Should().Be("Renamed");
-        copy.State.Should().Be(IterationState.Active);
+        copy.DateRange.Should().Be(moved);
         _planningDbContext.SaveChangesCallCount.Should().Be(2);
     }
 
@@ -170,21 +171,6 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
         // Assert
         _planningDbContext.PlanningSprints.Single(s => s.Id == id).DateRange.Should().Be(moved);
         _planningDbContext.SaveChangesCallCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task Handle_StateChanged_WhenOlderThanTheCopy_IsSkipped()
-    {
-        // Arrange
-        var id = Guid.CreateVersion7();
-        _planningDbContext.AddPlanningSprint(new PlanningSprint(new PlanningSprintFaker().WithId(id).WithState(IterationState.Completed).WithDateRange(Range).Generate(), SecondEdit));
-
-        // Act
-        await _handler.Handle(new IterationStateChangedEvent(id, 1, IterationState.Future, IterationState.Active, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
-
-        // Assert
-        _planningDbContext.PlanningSprints.Single(s => s.Id == id).State.Should().Be(IterationState.Completed);
-        _planningDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]
@@ -254,21 +240,43 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
         _planningDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
+#pragma warning disable CS0618 // the retired types are exactly what is under test
     [Fact]
-    public async Task Handle_StateChanged_WhenTheSprintIsMapped_LeavesTheMapping()
+    public async Task Handle_RetiredStateChanged_ChangesNothing()
     {
-        // Arrange
+        // Arrange — an envelope written before state stopped being stored, for a mapped sprint and a deleted one.
         var (planningInterval, sprint, _) = MappedSprint();
+        SourceReturns(null);
 
         // Act
-        await _handler.Handle(new IterationStateChangedEvent(sprint.Id, 1, sprint.State, IterationState.Completed, EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationStateChangedEvent(sprint.Id, 1, IterationState.Active, IterationState.Completed, EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
+        await _handler.Handle(new IterationStateChangedEvent(Guid.CreateVersion7(), 1, IterationState.Future, IterationState.Active, EventActor.System, SecondEdit), TestContext.Current.CancellationToken);
 
         // Assert
+        sprint.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created));
         planningInterval.IterationSprints.Should().ContainSingle();
         planningInterval.DomainEvents.Should().BeEmpty();
+        _planningDbContext.PlanningSprints.Should().ContainSingle();
+        _planningDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
-#pragma warning disable CS0618 // the retired types are exactly what is under test
+    [Fact]
+    public async Task Handle_SupersededCreatedV2_WhenNoCopyExists_CreatesItFromTheSource()
+    {
+        // Arrange
+        var source = new PlanningSprintFaker().WithName("Sprint 1").WithDateRange(Range).Generate();
+        SourceReturns(source);
+
+        // Act
+        await _handler.Handle(new IterationCreatedEventV2(source.Id, 1, "Sprint 1", IterationType.Sprint, IterationState.Active,
+            Range, null, EventActor.System, Created), TestContext.Current.CancellationToken);
+
+        // Assert
+        var copy = _planningDbContext.PlanningSprints.Should().ContainSingle(s => s.Id == source.Id).Subject;
+        copy.Watermarks.Should().Be(PlanningSprintWatermarks.At(Created));
+        _planningDbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
     [Fact]
     public async Task Handle_SupersededDateRangeChanged_AppliesTheUtcDateOfEachInstant()
     {
@@ -310,7 +318,7 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
     {
         // Arrange — an envelope written as the superseded type before the switch, still in the outbox.
         var id = Guid.CreateVersion7();
-        _planningDbContext.AddPlanningSprint(new PlanningSprint(new PlanningSprintFaker().WithId(id).WithName("Old Name").WithState(IterationState.Future).WithTeamId(null).WithDateRange(Range).Generate(), Created));
+        _planningDbContext.AddPlanningSprint(new PlanningSprint(new PlanningSprintFaker().WithId(id).WithName("Old Name").WithTeamId(null).WithDateRange(Range).Generate(), Created));
 
         // Act
         await _handler.Handle(new IterationUpdatedEvent(id, 1, "New Name", IterationType.Sprint, IterationState.Active,
@@ -319,7 +327,6 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
         // Assert
         var copy = _planningDbContext.PlanningSprints.Single(s => s.Id == id);
         copy.Name.Should().Be("New Name");
-        copy.State.Should().Be(IterationState.Active);
         copy.DateRange.End.Should().Be(new LocalDate(2026, 1, 28));
         _planningDbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -340,20 +347,6 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
         copy.Name.Should().Be("New Name");
         copy.Watermarks.Should().Be(PlanningSprintWatermarks.At(FirstEdit));
         _planningDbContext.SaveChangesCallCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task Handle_StateChanged_WhenDeliveredAfterTheSprintWasDeleted_CreatesNothing()
-    {
-        // Arrange
-        SourceReturns(null);
-
-        // Act
-        await _handler.Handle(new IterationStateChangedEvent(Guid.CreateVersion7(), 1, IterationState.Future, IterationState.Active, EventActor.System, FirstEdit), TestContext.Current.CancellationToken);
-
-        // Assert
-        _planningDbContext.PlanningSprints.Should().BeEmpty();
-        _planningDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]
@@ -427,7 +420,7 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
         var piDates = new LocalDateRange(new LocalDate(2026, 1, 1), new LocalDate(2026, 3, 31));
         var teamId = Guid.NewGuid();
         var planningInterval = new PlanningIntervalFaker().WithDateRange(piDates).WithTeams(teamId).WithIterations(piDates, 2, "Iteration ").Generate();
-        var sprint = new PlanningSprint(new PlanningSprintFaker().AsSprint().WithTeamId(teamId).WithState(IterationState.Active).WithDateRange(Range).Generate(), Created);
+        var sprint = new PlanningSprint(new PlanningSprintFaker().AsSprint().WithTeamId(teamId).WithDateRange(Range).Generate(), Created);
         var iterationId = planningInterval.Iterations.First().Id;
         planningInterval.MapSprintToIteration(iterationId, sprint, EventActor.System, Created).IsSuccess.Should().BeTrue();
         planningInterval.ClearDomainEvents();
@@ -443,13 +436,12 @@ public sealed class PlanningSprintSyncHandlerTests : IDisposable
             .Setup(d => d.Send(It.IsAny<GetSimpleIterationQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(sprint);
 
-    private static IterationCreatedEventV2 CreatedEvent(Guid id) =>
+    private static IterationCreatedEventV3 CreatedEvent(Guid id) =>
         new(
             id: id,
             key: 1,
             name: "Sprint 1",
             type: IterationType.Sprint,
-            state: IterationState.Active,
             dateRange: Range,
             teamId: null,
             actor: EventActor.System,

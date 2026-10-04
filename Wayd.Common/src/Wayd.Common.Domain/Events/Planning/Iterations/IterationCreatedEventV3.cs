@@ -10,24 +10,28 @@ namespace Wayd.Common.Domain.Events.Planning.Iterations;
 /// An iteration was created.
 /// </summary>
 /// <remarks>
-/// Frozen at its published shape and never raised; <see cref="IterationCreatedEventV3"/> replaced it when state
-/// stopped being stored. Kept so every payload written as this type still deserializes into it — its name and
-/// members are the contract those payloads were written against, so neither may change.
+/// Supersedes <see cref="IterationCreatedEventV2"/>, which carried a <c>State</c>. An iteration's state is worked
+/// out from its dates whenever it is read, so it is not part of the record and a payload can't carry it.
 /// </remarks>
-[Obsolete("Superseded by IterationCreatedEventV3. Kept only to deserialize payloads already written as this type.")]
-public sealed record IterationCreatedEventV2 : DomainEvent<IterationCreatedEventV2>, IDomainEventDescriptor, ISimpleIteration, IAggregateEvent
+public sealed record IterationCreatedEventV3 : DomainEvent<IterationCreatedEventV3>, IDomainEventDescriptor, ISimpleIteration, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;
 
+    public IterationCreatedEventV3(ISimpleIteration iteration, EventActor actor, Instant timestamp)
+        : this(iteration.Id, iteration.Key, iteration.Name, iteration.Type, iteration.DateRange, iteration.TeamId, actor, timestamp)
+    {
+    }
+
+    // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
+    // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
-    public IterationCreatedEventV2(Guid id, int key, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
-        : base(actor, "2.0")
+    public IterationCreatedEventV3(Guid id, int key, string name, IterationType type, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
+        : base(actor, "3.0")
     {
         Id = id;
         Key = key;
         Name = name;
         Type = type;
-        State = state;
         DateRange = dateRange;
         TeamId = teamId;
 
@@ -38,7 +42,6 @@ public sealed record IterationCreatedEventV2 : DomainEvent<IterationCreatedEvent
     public int Key { get; }
     public string Name { get; }
     public IterationType Type { get; }
-    public IterationState State { get; }
 
     /// <summary>The planned first and last days, both included.</summary>
     public IterationDateRange DateRange { get; }

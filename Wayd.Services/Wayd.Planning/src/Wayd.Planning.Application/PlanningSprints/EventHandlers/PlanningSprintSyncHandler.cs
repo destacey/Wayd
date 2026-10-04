@@ -26,7 +26,7 @@ public sealed class PlanningSprintSyncHandler(
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<PlanningSprintSyncHandler> _logger = logger;
 
-    public async Task Handle(IterationCreatedEventV2 @event, CancellationToken cancellationToken)
+    public async Task Handle(IterationCreatedEventV3 @event, CancellationToken cancellationToken)
     {
         await Create(@event.Id, @event.Timestamp, cancellationToken);
     }
@@ -41,11 +41,6 @@ public sealed class PlanningSprintSyncHandler(
         await Apply(@event.Id, @event.Timestamp, s => s.ApplyDateRange(@event.DateRange, @event.Timestamp), "date range", cancellationToken);
     }
 
-    public async Task Handle(IterationStateChangedEvent @event, CancellationToken cancellationToken)
-    {
-        await Apply(@event.Id, @event.Timestamp, s => s.ApplyState(@event.ToState, @event.Timestamp), "state", cancellationToken);
-    }
-
     public async Task Handle(IterationTeamChangedEvent @event, CancellationToken cancellationToken)
     {
         await Apply(@event.Id, @event.Timestamp, s => s.ApplyTeam(@event.TeamId, @event.Timestamp), "team", cancellationToken);
@@ -54,10 +49,18 @@ public sealed class PlanningSprintSyncHandler(
     // Nothing raises the superseded types below, but an envelope written as one before the switch can still be
     // waiting in the durable outbox; without these it would dead-letter rather than update the copy.
 #pragma warning disable CS0618
+    public async Task Handle(IterationCreatedEventV2 @event, CancellationToken cancellationToken)
+    {
+        await Create(@event.Id, @event.Timestamp, cancellationToken);
+    }
+
     public async Task Handle(IterationCreatedEvent @event, CancellationToken cancellationToken)
     {
         await Create(@event.Id, @event.Timestamp, cancellationToken);
     }
+
+    // The copy no longer holds a state: Planning reads it from Work when needed.
+    public Task Handle(IterationStateChangedEvent @event, CancellationToken cancellationToken) => Task.CompletedTask;
 
     public async Task Handle(IterationDateRangeChangedEvent @event, CancellationToken cancellationToken)
     {
@@ -66,7 +69,7 @@ public sealed class PlanningSprintSyncHandler(
 
     public async Task Handle(IterationUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        var record = new SupersededRecord(@event.Id, @event.Key, @event.Name, @event.Type, @event.State, @event.DateRange.ToIterationDateRange(), @event.TeamId);
+        var record = new SupersededRecord(@event.Id, @event.Key, @event.Name, @event.Type, @event.DateRange.ToIterationDateRange(), @event.TeamId);
         await Apply(@event.Id, @event.Timestamp, s => s.ApplyRecord(record, @event.Timestamp), "record", cancellationToken);
     }
 #pragma warning restore CS0618
@@ -143,5 +146,5 @@ public sealed class PlanningSprintSyncHandler(
         _logger.LogInformation("Successful Planning {SystemActionType} creating Sprint {SprintId} from its source.", SystemActionType.ServiceDataReplication, sprintId);
     }
 
-    private sealed record SupersededRecord(Guid Id, int Key, string Name, IterationType Type, IterationState State, IterationDateRange DateRange, Guid? TeamId) : ISimpleIteration;
+    private sealed record SupersededRecord(Guid Id, int Key, string Name, IterationType Type, IterationDateRange DateRange, Guid? TeamId) : ISimpleIteration;
 }

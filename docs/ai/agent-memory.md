@@ -27,6 +27,16 @@ This file captures compact repo-specific lessons that future coding agents shoul
 - Use NodaTime (`Instant`, `LocalDate`) in application/domain code. Convert API `DateTime` inputs at the controller boundary.
 - Controllers should stay thin and delegate to commands/queries via `IDispatcher` (Wolverine). Handlers must be `public`.
 - Business validation should use `Result<T>` and FluentValidation where appropriate, not business exceptions.
+- Types in `Wayd.Web.Api/Models` are named `*Request` / `*Response`. "Dto" means a type defined in an Application project's `Dtos/` folder.
+- Do not add `AsNoTracking()` to a query that ends in a projection (`Select`, `ProjectToType`): it materializes no entities, so there is nothing to track. Reserve it for queries returning entities that are read but not saved.
+- With a primary constructor, assign each parameter to a `private readonly _field` and use the field in method bodies.
+- AI provider connectors (Azure OpenAI, OpenAI) are called on demand and have nothing to sync. Sync runners, sync buttons and sync dispatch gate on `ConnectorCategory.WorkSync` / `PeopleSync`; `RunSync` answers 400 for an AI provider.
+
+## Local Environment
+
+- Files are CRLF (`.editorconfig`, `core.autocrlf=true`). `sed -i` and writing `git show` output back to disk both produce LF, which turns every touched file into a whole-file diff. Edit files with a tool that keeps the existing line endings.
+- Integration suites on Windows/Docker Desktop can exceed the 5-minute `--hangdump-timeout` while SQL Server containers start (the dump log names no test). Run `INTEGRATION_TEST_PARALLELISM=1 ./.github/scripts/dotnet-test-projects.sh integration`; CI is unaffected.
+- Seq receiving nothing, with the Serilog sink timing out after 100s, is an orphaned `wslrelay.exe` on `::1:5341` shadowing the container. `Get-NetTCPConnection -State Listen | ? LocalPort -eq 5341` shows two owners; stop the relay's process. Stop Seq with `docker compose down`, never by killing Docker or WSL, which is what orphans the relay.
 
 ## Frontend Patterns
 

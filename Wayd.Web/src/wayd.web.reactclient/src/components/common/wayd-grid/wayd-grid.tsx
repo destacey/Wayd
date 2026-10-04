@@ -739,11 +739,6 @@ function WaydGridInner<T extends RowData>(
   props: WaydGridProps<T>,
   ref: Ref<WaydGridHandle>,
 ) {
-  // TanStack Table's instance mutates internally behind a stable identity, so
-  // React Compiler memoization goes stale (sort icons, column sizes). Before
-  // the table config moved into useGridTable, the direct useReactTable call
-  // made the compiler skip this component automatically; the directive keeps
-  // that behavior now that the call is behind the hook.
   const {
     data: dataProp,
     columns: columnsProp,

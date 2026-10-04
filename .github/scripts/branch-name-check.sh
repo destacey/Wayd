@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fails when a branch name breaks the convention in docs/contributing/git-workflow.mdx:
 #   type/issue-short-summary   (the issue number is left out only when there is none)
-# Bot branches are exempt: their names are chosen by the service that creates them.
+# No other prefix is allowed, including the ones cloud agents and bots choose for themselves.
 #
 #   usage: branch-name-check.sh <branch>
 set -euo pipefail
@@ -9,9 +9,9 @@ set -euo pipefail
 branch="$1"
 types='feat|fix|docs|refactor|test|perf|chore|ci|build'
 
-case "$branch" in
-    main|changeset-release/*|copilot/*) exit 0 ;;
-esac
+if [ "$branch" = main ]; then
+    exit 0
+fi
 
 if ! printf '%s' "$branch" | grep -qxE "($types)/([0-9]+-)?[a-z0-9]+(-[a-z0-9]+)*"; then
     echo "branch '$branch' should be <type>/<issue>-<short-summary>, e.g. feat/964-mcp-tool-annotations." >&2

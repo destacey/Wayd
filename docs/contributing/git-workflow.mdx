@@ -24,8 +24,10 @@ convention, and `commit-msg` **warns** about a message that does but keeps the c
 - Lowercase words joined by hyphens; 60 characters at most, and a summary of a few words is enough.
 - One branch per issue, cut from `main`. Never commit to `main` directly.
 
-Branches created by a service keep the name it gives them: `changeset-release/*` (the release workflow) and
-`copilot/*` (GitHub's Copilot coding agent) are exempt from the check.
+No other prefix is allowed — including `copilot/`, `claude/`, `codex/` and `cursor/`, which cloud agents
+choose for themselves. A cloud agent works on GitHub's side and never runs the hook, and some (Copilot) cannot
+change their prefix, so rename such a branch before it is merged. Pushing to a branch a service created
+(`changeset-release/main`, a Copilot pull request) needs `git push --no-verify`.
 
 ## Commit messages
 

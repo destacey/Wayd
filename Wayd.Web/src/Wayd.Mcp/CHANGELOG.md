@@ -1,5 +1,16 @@
 # @wayd/mcp
 
+## 0.16.1
+
+### Patch Changes
+
+- cee2a3e: Return tool results as compact JSON, cutting the tokens every response costs the model, and stop logging a line to stderr each time the API key is applied. Updates `@modelcontextprotocol/sdk` to 1.32, `axios` to 1.20 and `zod` to 4.6, and the SDK's transitive dependencies, clearing every advisory `npm audit` reported against the installed package.
+- 19d9cfc: Correct two project tool descriptions: `Projects_GetMyProjectsTaskMetrics` and `Projects_GetProjectsPlanSummaries` now list role filter 5 (Task Assignee), which the API already accepts, and `Projects_Update` no longer points to lifecycle tools that do not exist — a project's lifecycle is set only at creation.
+- 71456a6: The server now sends instructions when a client connects, so clients that don't load the Wayd skills — Claude Desktop, Cursor, ChatGPT and claude.ai connectors — still learn the rules that apply to every tool: updates overwrite the whole record and an omitted or empty role list removes everyone in that role, which parameters accept a key and which take only a UUID, and that status changes and deletes need the user's confirmation.
+- d402a8a: Every tool now advertises a full set of annotations. Each has a human-readable `title`, and all are marked `openWorldHint: false`, since they reach only the Wayd API. Defaults come from the HTTP method: GET tools are read-only and idempotent, PUT and DELETE tools are destructive and idempotent, and POST tools are destructive. A tool's own annotations still override these.
+
+  `destructiveHint` now follows a single rule: a write is destructive unless it only adds a record. Creating a record, adding a child (a task, goal, step, dependency, persona, tag, swim lane or checklist item), logging a health check and recording a KPI measurement are no longer marked destructive. These include creating products, product types, tag categories and deployment environments, planning releases and versions, assembling packages and starting deployments. Every update, delete, status change and reversal is still destructive, and so is applying a product tag, which can replace one already on the product. The write tools that previously had no annotations, including the story map edits, are now marked destructive, so clients confirm before running them.
+
 ## 0.16.0
 
 ### Minor Changes

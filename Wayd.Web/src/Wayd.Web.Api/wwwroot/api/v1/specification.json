@@ -31051,7 +31051,7 @@
           {
             "name": "OversizedPercentile",
             "in": "query",
-            "description": "The story point percentile a work item is oversized above (default 85).",
+            "description": "The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -59592,8 +59592,9 @@
           "from",
           "to",
           "lookbackDays",
+          "sizingMethod",
           "totalWorkItems",
-          "totalStoryPoints",
+          "totalEstimate",
           "proposedWorkItems",
           "activeWorkItems",
           "itemsCompleted",
@@ -59622,11 +59623,14 @@
             "type": "string",
             "format": "date"
           },
+          "sizingMethod": {
+            "$ref": "#/components/schemas/SizingMethod"
+          },
           "totalWorkItems": {
             "type": "integer",
             "format": "int32"
           },
-          "totalStoryPoints": {
+          "totalEstimate": {
             "type": "number",
             "format": "double"
           },
@@ -59664,7 +59668,7 @@
             "format": "double",
             "nullable": true
           },
-          "oversizedStoryPoints": {
+          "oversizedEstimate": {
             "type": "number",
             "format": "double",
             "nullable": true
@@ -59908,7 +59912,7 @@
               }
             ]
           },
-          "storyPoints": {
+          "estimate": {
             "type": "number",
             "format": "double",
             "nullable": true

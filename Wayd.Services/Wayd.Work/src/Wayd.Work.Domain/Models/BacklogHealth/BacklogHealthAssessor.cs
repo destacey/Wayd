@@ -1,5 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using NodaTime;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
 
@@ -16,6 +17,10 @@ public static class BacklogHealthAssessor
     /// </summary>
     public const int MinimumItemsCompleted = 10;
 
+    /// <param name="sizingMethod">
+    /// The team's sizing method, which the items' and completions' estimates are in. A team that sizes by count
+    /// has no estimates, so the estimate checks do not apply to it.
+    /// </param>
     /// <param name="memberCount">The team's members, or null when unknown.</param>
     /// <param name="usesProjects">
     /// The team links its work to projects. Without that, a missing project is not a gap.
@@ -23,6 +28,7 @@ public static class BacklogHealthAssessor
     public static BacklogHealthAssessment Assess(
         IReadOnlyCollection<BacklogHealthItem> backlog,
         BacklogHealthHistory history,
+        SizingMethod sizingMethod,
         int? memberCount,
         bool usesProjects,
         Instant now,
@@ -97,18 +103,27 @@ public static class BacklogHealthAssessor
             : thresholds.ReadinessFallbackItems;
         var window = ranked.Take(windowSize).ToList();
 
-        Flag(BacklogHealthCheck.MissingStoryPoints, window, i => i.StoryPoints is null);
-
-        var estimates = history.Completions.Where(c => c.StoryPoints.HasValue).Select(c => c.StoryPoints!.Value).ToList();
-        double? oversizedStoryPoints = estimates.Count >= MinimumItemsCompleted
-            ? Percentile(estimates, thresholds.OversizedPercentile)
-            : null;
-
-        if (oversizedStoryPoints is { } oversizedLimit)
-            Flag(BacklogHealthCheck.Oversized, window.Where(i => i.StoryPoints.HasValue),
-                i => i.StoryPoints!.Value > oversizedLimit);
+        double? oversizedEstimate = null;
+        if (sizingMethod == SizingMethod.Count)
+        {
+            results.Add(NotAssessed(BacklogHealthCheck.MissingEstimate, BacklogHealthOutcome.NotApplicable));
+            results.Add(NotAssessed(BacklogHealthCheck.Oversized, BacklogHealthOutcome.NotApplicable));
+        }
         else
-            results.Add(NotAssessed(BacklogHealthCheck.Oversized, BacklogHealthOutcome.NotEnoughHistory));
+        {
+            Flag(BacklogHealthCheck.MissingEstimate, window, i => i.Estimate is null);
+
+            var estimates = history.Completions.Where(c => c.Estimate.HasValue).Select(c => c.Estimate!.Value).ToList();
+            oversizedEstimate = estimates.Count >= MinimumItemsCompleted
+                ? Percentile(estimates, thresholds.OversizedPercentile)
+                : null;
+
+            if (oversizedEstimate is { } oversizedLimit)
+                Flag(BacklogHealthCheck.Oversized, window.Where(i => i.Estimate.HasValue),
+                    i => i.Estimate!.Value > oversizedLimit);
+            else
+                results.Add(NotAssessed(BacklogHealthCheck.Oversized, BacklogHealthOutcome.NotEnoughHistory));
+        }
 
         Flag(BacklogHealthCheck.NoParent, window, i => !i.HasParent);
 
@@ -136,7 +151,7 @@ public static class BacklogHealthAssessor
             flags.ToDictionary(f => f.Key, f => (IReadOnlyList<BacklogHealthCheck>)f.Value),
             window.Count,
             agingWipDays,
-            oversizedStoryPoints);
+            oversizedEstimate);
     }
 
     private static BacklogHealthCheckResult Runway(double weeks, BacklogHealthThresholds thresholds)

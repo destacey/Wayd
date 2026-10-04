@@ -3,6 +3,7 @@ import '@testing-library/jest-dom'
 import {
   BacklogHealthCheckDto,
   BacklogHealthWorkItemDto,
+  SizingMethod,
   TeamBacklogHealthDto,
 } from '@/src/services/wayd-api'
 import {
@@ -58,7 +59,8 @@ const createHealth = (): TeamBacklogHealthDto =>
     from: '2026-06-24',
     to: '2026-09-21',
     totalWorkItems: 2,
-    totalStoryPoints: 8,
+    sizingMethod: SizingMethod.StoryPoints,
+    totalEstimate: 8,
     proposedWorkItems: 1,
     activeWorkItems: 1,
     itemsCompleted: 30,
@@ -201,7 +203,7 @@ describe('BacklogHealthReportView', () => {
     const health = {
       ...createHealth(),
       agingWipDays: null,
-      oversizedStoryPoints: null,
+      oversizedEstimate: null,
       memberCount: null,
     } as unknown as TeamBacklogHealthDto
 

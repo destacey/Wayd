@@ -76,7 +76,7 @@ export const definitions: [string, McpToolDefinition][] = [
             minimum: 1,
             maximum: 100,
             description:
-              'Story point percentile of completed work a work item is oversized above (default 85).',
+              "Percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).",
           },
           readinessWindowWeeks: {
             type: 'integer',

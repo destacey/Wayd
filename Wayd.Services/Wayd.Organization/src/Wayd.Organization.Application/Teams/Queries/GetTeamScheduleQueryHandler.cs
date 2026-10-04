@@ -15,7 +15,7 @@ public sealed class GetTeamScheduleQueryHandler(IOrganizationDbContext organizat
             .Where(t => t.Id == request.TeamId)
             .SelectMany(t => t.OperatingModels)
             .Where(m => m.DateRange.Start <= asOf && (m.DateRange.End == null || m.DateRange.End >= asOf))
-            .Select(m => new TeamScheduleDto(m.TimeZone, m.CommitmentGraceDays))
+            .Select(m => new TeamScheduleDto(m.TimeZone, m.CommitmentGraceDays, m.SizingMethod))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

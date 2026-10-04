@@ -1,7 +1,9 @@
 import {
   BacklogHealthCheckDto,
+  SizingMethod,
   TeamBacklogHealthDto,
 } from '@/src/services/wayd-api'
+import { sizingMethodMeasure } from '@/src/utils'
 
 /** Mirrors the API's BacklogHealthCheck enum, which the DTOs carry as ids. */
 export enum BacklogHealthCheck {
@@ -11,7 +13,7 @@ export enum BacklogHealthCheck {
   Stale = 4,
   OldProposed = 5,
   AgingWip = 6,
-  MissingStoryPoints = 7,
+  MissingEstimate = 7,
   Oversized = 8,
   NoParent = 9,
   NoProject = 10,
@@ -77,6 +79,9 @@ export const describeCheck = (
   const window = `the top ${health.readinessWindowWorkItems} ranked work items`
   const byShare = `At Risk at ${t.atRiskPercent}% flagged, Unhealthy at ${t.unhealthyPercent}%.`
   const needsHistory = `Needs at least ${health.minimumItemsCompleted} completed work items in the history.`
+  const measure = sizingMethodMeasure(health.sizingMethod)
+  const countSized =
+    'Not checked: the team sizes by count, so its work items carry no estimate.'
 
   switch (check) {
     case BacklogHealthCheck.Runway:
@@ -93,12 +98,16 @@ export const describeCheck = (
       return health.agingWipDays == null
         ? `Active work items open longer than the team's ${t.agingWipPercentile}th percentile cycle time. ${needsHistory}`
         : `Active work items open longer than ${round(health.agingWipDays, 1)} days, the team's ${t.agingWipPercentile}th percentile cycle time. ${byShare}`
-    case BacklogHealthCheck.MissingStoryPoints:
-      return `Work items among ${window} without an estimate. ${byShare}`
+    case BacklogHealthCheck.MissingEstimate:
+      return health.sizingMethod === SizingMethod.Count
+        ? countSized
+        : `Work items among ${window} with no ${measure}. An estimate of 0 counts as estimated. ${byShare}`
     case BacklogHealthCheck.Oversized:
-      return health.oversizedStoryPoints == null
-        ? `Work items among ${window} estimated above the team's ${t.oversizedPercentile}th percentile. ${needsHistory}`
-        : `Work items among ${window} estimated above ${health.oversizedStoryPoints} points, the team's ${t.oversizedPercentile}th percentile. ${byShare}`
+      return health.sizingMethod === SizingMethod.Count
+        ? countSized
+        : health.oversizedEstimate == null
+          ? `Work items among ${window} estimated above the team's ${t.oversizedPercentile}th percentile ${measure}. ${needsHistory}`
+          : `Work items among ${window} estimated above ${health.oversizedEstimate} ${measure}, the team's ${t.oversizedPercentile}th percentile. ${byShare}`
     case BacklogHealthCheck.NoParent:
       return `Work items among ${window} without a parent. ${byShare}`
     case BacklogHealthCheck.NoProject:

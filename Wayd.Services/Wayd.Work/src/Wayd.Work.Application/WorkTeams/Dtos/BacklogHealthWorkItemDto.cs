@@ -24,7 +24,12 @@ public sealed record BacklogHealthWorkItemDto : IMapFrom<WorkItem>
     public WorkIterationNavigationDto? Sprint { get; set; }
     public EmployeeNavigationDto? AssignedTo { get; set; }
     public WorkProjectNavigationDto? Project { get; set; }
-    public double? StoryPoints { get; set; }
+
+    /// <summary>
+    /// The item's estimate in the team's sizing method; null when it has none, or when the team sizes by count.
+    /// </summary>
+    public double? Estimate { get; set; }
+
     public Instant Created { get; set; }
     public Instant LastModified { get; set; }
     public Instant? Activated { get; set; }
@@ -56,6 +61,7 @@ public sealed record BacklogHealthWorkItemDto : IMapFrom<WorkItem>
                     : null)
             .Map(dest => dest.Activated, src => src.ActivatedTimestamp)
             .Map(dest => dest.ExternalViewWorkItemUrl, src => src.Workspace.ExternalViewWorkItemUrlTemplate == null ? null : $"{src.Workspace.ExternalViewWorkItemUrlTemplate}{src.ExternalId}")
+            .Ignore(dest => dest.Estimate)
             .Ignore(dest => dest.Rank)
             .Ignore(dest => dest.Flags);
     }

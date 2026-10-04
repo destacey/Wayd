@@ -11,12 +11,15 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
-import { BacklogHealthWorkItemDto } from '@/src/services/wayd-api'
+import { BacklogHealthWorkItemDto, SizingMethod } from '@/src/services/wayd-api'
+import { sizingMethodLabel } from '@/src/utils'
 import type { ColumnDef } from '../../wayd-grid-core'
 import { FC } from 'react'
 
 export interface BacklogHealthGridProps {
   workItems: BacklogHealthWorkItemDto[]
+  /** The team's sizing method, which the estimate column is in. A team that sizes by count has no estimate column. */
+  sizingMethod?: SizingMethod
   isLoading: boolean
   refetch: () => void
   /** Column layout persistence key for the hosting page (see WaydGridProps). */
@@ -25,7 +28,42 @@ export interface BacklogHealthGridProps {
 
 const GRID_HEIGHT = 650
 
-const columns: ColumnDef<BacklogHealthWorkItemDto, any>[] = [
+const estimateColumn = (
+  sizingMethod: SizingMethod,
+): ColumnDef<BacklogHealthWorkItemDto, any> => ({
+  id: 'estimate',
+  accessorKey: 'estimate',
+  header: sizingMethodLabel(sizingMethod),
+  size: 100,
+  meta: {
+    headerTooltip: `The team's estimate: ${sizingMethodLabel(sizingMethod)}`,
+  },
+})
+
+// Built once per sizing method, so the grid receives the same column array on every render.
+const columnsBySizingMethod = new Map<
+  SizingMethod,
+  ColumnDef<BacklogHealthWorkItemDto, any>[]
+>()
+
+const columnsFor = (sizingMethod: SizingMethod) => {
+  let columns = columnsBySizingMethod.get(sizingMethod)
+  if (!columns) {
+    columns = baseColumns.flatMap((column) =>
+      column.id !== ESTIMATE_SLOT
+        ? [column]
+        : sizingMethod === SizingMethod.Count
+          ? []
+          : [estimateColumn(sizingMethod)],
+    )
+    columnsBySizingMethod.set(sizingMethod, columns)
+  }
+  return columns
+}
+
+const ESTIMATE_SLOT = 'estimate'
+
+const baseColumns: ColumnDef<BacklogHealthWorkItemDto, any>[] = [
   { id: 'rank', accessorKey: 'rank', header: 'Rank', size: 90 },
   {
     id: 'key',
@@ -69,13 +107,7 @@ const columns: ColumnDef<BacklogHealthWorkItemDto, any>[] = [
     sortFn: workStatusCategorySort,
     meta: { filterType: 'set' },
   },
-  {
-    id: 'storyPoints',
-    accessorKey: 'storyPoints',
-    header: 'SPs',
-    size: 100,
-    meta: { headerTooltip: 'Story Points' },
-  },
+  { id: ESTIMATE_SLOT },
   {
     id: 'assignedTo',
     accessorKey: 'assignedTo.name',
@@ -144,6 +176,7 @@ const columns: ColumnDef<BacklogHealthWorkItemDto, any>[] = [
 
 const BacklogHealthGrid: FC<BacklogHealthGridProps> = ({
   workItems,
+  sizingMethod = SizingMethod.Count,
   isLoading,
   refetch,
   persistStateKey,
@@ -152,7 +185,7 @@ const BacklogHealthGrid: FC<BacklogHealthGridProps> = ({
     // Fixed: the report's tiles and checks sit above the grid, so filling the
     // remaining viewport always bottomed out at the auto-height floor.
     height={GRID_HEIGHT}
-    columns={columns}
+    columns={columnsFor(sizingMethod)}
     data={workItems}
     onRefresh={async () => refetch()}
     isLoading={isLoading}

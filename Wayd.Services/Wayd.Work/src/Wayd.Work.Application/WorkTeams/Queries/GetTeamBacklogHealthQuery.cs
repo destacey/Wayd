@@ -3,6 +3,7 @@ using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models.Organizations;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Models.Planning.Iterations;
@@ -102,6 +103,12 @@ public sealed class GetTeamBacklogHealthQueryHandler(
         var start = from.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
         var end = to.PlusDays(1).AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
 
+        // The backlog is measured now, so in the sizing method the team uses today (UTC, as the window is).
+        var schedule = await _dispatcher.Send(new GetTeamScheduleQuery(team.Id, now.InUtc().Date), cancellationToken);
+        var sizingMethod = schedule?.SizingMethod ?? SizingMethod.Count;
+        double? EstimateOf(double? storyPoints, double? effort, double? size) =>
+            sizingMethod == SizingMethod.Count ? null : WorkItemEstimate.Of(sizingMethod, storyPoints, effort, size);
+
         var teamBacklogItems = _workDbContext.WorkItems
             .Where(w => w.TeamId == team.Id)
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement);
@@ -117,6 +124,8 @@ public sealed class GetTeamBacklogHealthQueryHandler(
                 w.StackRank,
                 w.StatusCategory,
                 w.StoryPoints,
+                w.Effort,
+                w.Size,
                 w.Created,
                 w.LastModified,
                 w.ActivatedTimestamp,
@@ -154,7 +163,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
                 Id = f.Id,
                 Rank = index + 1,
                 StatusCategory = f.StatusCategory,
-                StoryPoints = f.StoryPoints,
+                Estimate = EstimateOf(f.StoryPoints, f.Effort, f.Size),
                 Created = f.Created,
                 LastModified = f.LastModified,
                 Activated = f.ActivatedTimestamp,
@@ -170,15 +179,25 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             .ToList();
 
         // Removed items also carry a DoneTimestamp, so the status category is what excludes them.
-        var completions = await teamBacklogItems
-            .Where(w => w.StatusCategory == WorkStatusCategory.Done)
-            .Where(w => w.DoneTimestamp >= start && w.DoneTimestamp < end)
-            .Select(w => new
+        var completions = (await teamBacklogItems
+                .Where(w => w.StatusCategory == WorkStatusCategory.Done)
+                .Where(w => w.DoneTimestamp >= start && w.DoneTimestamp < end)
+                .Select(w => new
+                {
+                    w.ActivatedTimestamp,
+                    Done = w.DoneTimestamp!.Value,
+                    w.StoryPoints,
+                    w.Effort,
+                    w.Size,
+                    HasProject = w.ProjectId.HasValue || w.ParentProjectId.HasValue,
+                })
+                .ToListAsync(cancellationToken))
+            .Select(c => new
             {
-                Completion = new BacklogHealthCompletion(w.ActivatedTimestamp, w.DoneTimestamp!.Value, w.StoryPoints),
-                HasProject = w.ProjectId.HasValue || w.ParentProjectId.HasValue,
+                Completion = new BacklogHealthCompletion(c.ActivatedTimestamp, c.Done, EstimateOf(c.StoryPoints, c.Effort, c.Size)),
+                c.HasProject,
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         // Removed items are left out as completions are, so triaging work away does not read as growth.
         var itemsCreated = await teamBacklogItems
@@ -192,12 +211,14 @@ public sealed class GetTeamBacklogHealthQueryHandler(
         var assessment = BacklogHealthAssessor.Assess(
             backlog,
             new BacklogHealthHistory(request.LookbackDays, [.. completions.Select(c => c.Completion)], itemsCreated),
+            sizingMethod,
             memberCount,
             usesProjects,
             now,
             request.Thresholds);
 
         var rankById = backlog.ToDictionary(i => i.Id, i => i.Rank);
+        var estimateById = backlog.ToDictionary(i => i.Id, i => i.Estimate);
 
         // A sync between the two reads can open an item that was not assessed; it is left out.
         var workItems = (await openItems
@@ -209,6 +230,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
         foreach (var workItem in workItems)
         {
             workItem.Rank = rankById[workItem.Id];
+            workItem.Estimate = estimateById[workItem.Id];
             workItem.Flags = [.. assessment.ItemFlags[workItem.Id].Select(c => SimpleNavigationDto.FromEnum(c))];
         }
 
@@ -219,8 +241,9 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             LookbackDays = request.LookbackDays,
             From = from,
             To = to,
+            SizingMethod = sizingMethod,
             TotalWorkItems = backlog.Count,
-            TotalStoryPoints = backlog.Sum(i => i.StoryPoints ?? 0),
+            TotalEstimate = sizingMethod == SizingMethod.Count ? backlog.Count : backlog.Sum(i => i.Estimate ?? 0),
             ProposedWorkItems = backlog.Count(i => i.StatusCategory == WorkStatusCategory.Proposed),
             ActiveWorkItems = backlog.Count(i => i.StatusCategory == WorkStatusCategory.Active),
             ItemsCompleted = completions.Count,
@@ -229,7 +252,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             MemberCount = memberCount,
             ReadinessWindowWorkItems = assessment.ReadinessWindowItems,
             AgingWipDays = assessment.AgingWipDays,
-            OversizedStoryPoints = assessment.OversizedStoryPoints,
+            OversizedEstimate = assessment.OversizedEstimate,
             Checks = assessment.Checks.Adapt<List<BacklogHealthCheckDto>>(),
             WorkItems = [.. workItems.OrderBy(w => w.Rank)],
         };

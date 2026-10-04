@@ -61938,7 +61938,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
         /// <param name="oldProposedDays">Days since creation before a proposed work item is old (default 180).</param>
         /// <param name="agingWipPercentile">The cycle time percentile an active work item is aging beyond (default 85).</param>
-        /// <param name="oversizedPercentile">The story point percentile a work item is oversized above (default 85).</param>
+        /// <param name="oversizedPercentile">The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).</param>
         /// <param name="readinessWindowWeeks">Weeks of throughput the readiness checks look ahead (default 4).</param>
         /// <param name="readinessFallbackItems">Top-ranked work items the readiness checks look at without enough history (default 20).</param>
         /// <param name="atRiskPercent">Percent of work items flagged at which a check is At Risk (default 10).</param>
@@ -63606,7 +63606,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
         /// <param name="oldProposedDays">Days since creation before a proposed work item is old (default 180).</param>
         /// <param name="agingWipPercentile">The cycle time percentile an active work item is aging beyond (default 85).</param>
-        /// <param name="oversizedPercentile">The story point percentile a work item is oversized above (default 85).</param>
+        /// <param name="oversizedPercentile">The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).</param>
         /// <param name="readinessWindowWeeks">Weeks of throughput the readiness checks look ahead (default 4).</param>
         /// <param name="readinessFallbackItems">Top-ranked work items the readiness checks look at without enough history (default 20).</param>
         /// <param name="atRiskPercent">Percent of work items flagged at which a check is At Risk (default 10).</param>
@@ -96168,11 +96168,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("sizingMethod")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SizingMethod>))]
+        public SizingMethod SizingMethod { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("totalWorkItems")]
         public int TotalWorkItems { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("totalStoryPoints")]
-        public double TotalStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("totalEstimate")]
+        public double TotalEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("proposedWorkItems")]
         public int ProposedWorkItems { get; set; } = default!;
@@ -96198,8 +96203,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("agingWipDays")]
         public double? AgingWipDays { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("oversizedStoryPoints")]
-        public double? OversizedStoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("oversizedEstimate")]
+        public double? OversizedEstimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("checks")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -96347,8 +96352,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("project")]
         public WorkProjectNavigationDto? Project { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
-        public double? StoryPoints { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        public double? Estimate { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

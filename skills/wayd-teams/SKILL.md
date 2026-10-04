@@ -35,7 +35,8 @@ Planning Interval tools take a different, PI-scoped team id — see the `wayd-pi
 - **`value` means different things.** Runway is weeks, Net Flow is work items created per completed, WIP Load is active work items per member; for every other check it is the percent of in-scope work items flagged, with `flagged` and `inScope` as the counts.
 - **Name the work items.** To explain a problem, filter `workItems` to those whose `flags` include the check, and cite their keys and ranks rather than only the percentage.
 - **Thresholds are what-ifs, not settings.** Pass any threshold to see how the grades change; nothing is saved. Quote the `thresholds` in the response when reporting grades, since they may not be the defaults.
-- **Readiness checks cover only the top of the backlog.** Missing Story Points, Oversized, No Parent and No Project look at `readinessWindowWorkItems` top-ranked items, not the whole backlog.
+- **Readiness checks cover only the top of the backlog.** Missing Estimate, Oversized, No Parent and No Project look at `readinessWindowWorkItems` top-ranked items, not the whole backlog.
+- **Estimates are in the team's `sizingMethod`.** `totalEstimate`, `oversizedEstimate` and each work item's `estimate` are Story Points, Effort or Size as the response's `sizingMethod` says — name the unit. A work item with no value in that estimate is missing one even if it has another; 0 is an estimate. For a team that sizes by `Count`, Missing Estimate and Oversized are `Not Applicable`.
 - **Rank Inversion compares only dependencies within the team.** Cross-team dependencies are not ranked against each other.
 
 ## Delivery forecasts

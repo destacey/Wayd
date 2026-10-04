@@ -35297,7 +35297,7 @@ export class TeamsClient {
      * @param staleDays (optional) Days without a change before a work item is stale (default 90).
      * @param oldProposedDays (optional) Days since creation before a proposed work item is old (default 180).
      * @param agingWipPercentile (optional) The cycle time percentile an active work item is aging beyond (default 85).
-     * @param oversizedPercentile (optional) The story point percentile a work item is oversized above (default 85).
+     * @param oversizedPercentile (optional) The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).
      * @param readinessWindowWeeks (optional) Weeks of throughput the readiness checks look ahead (default 4).
      * @param readinessFallbackItems (optional) Top-ranked work items the readiness checks look at without enough history (default 20).
      * @param atRiskPercent (optional) Percent of work items flagged at which a check is At Risk (default 10).
@@ -50166,8 +50166,9 @@ export interface TeamBacklogHealthDto {
     lookbackDays: number;
     from: string;
     to: string;
+    sizingMethod: SizingMethod;
     totalWorkItems: number;
-    totalStoryPoints: number;
+    totalEstimate: number;
     proposedWorkItems: number;
     activeWorkItems: number;
     itemsCompleted: number;
@@ -50176,7 +50177,7 @@ export interface TeamBacklogHealthDto {
     memberCount?: number | undefined;
     readinessWindowWorkItems: number;
     agingWipDays?: number | undefined;
-    oversizedStoryPoints?: number | undefined;
+    oversizedEstimate?: number | undefined;
     checks: BacklogHealthCheckDto[];
     workItems: BacklogHealthWorkItemDto[];
 }
@@ -50220,7 +50221,7 @@ export interface BacklogHealthWorkItemDto {
     sprint?: WorkIterationNavigationDto | undefined;
     assignedTo?: EmployeeNavigationDto | undefined;
     project?: WorkProjectNavigationDto | undefined;
-    storyPoints?: number | undefined;
+    estimate?: number | undefined;
     created: Date;
     lastModified: Date;
     activated?: Date | undefined;

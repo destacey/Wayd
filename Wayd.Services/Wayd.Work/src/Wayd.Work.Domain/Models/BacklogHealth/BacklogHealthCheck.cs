@@ -22,10 +22,10 @@ public enum BacklogHealthCheck
     [Display(Name = "Aging WIP", Description = "Active work items open longer than the team's cycle time percentile.", Order = 6)]
     AgingWip = 6,
 
-    [Display(Name = "Missing Story Points", Description = "Work items in the readiness window without an estimate.", Order = 7)]
-    MissingStoryPoints = 7,
+    [Display(Name = "Missing Estimate", Description = "Work items in the readiness window without an estimate in the team's sizing method.", Order = 7)]
+    MissingEstimate = 7,
 
-    [Display(Name = "Oversized", Description = "Work items in the readiness window estimated above the team's story point percentile.", Order = 8)]
+    [Display(Name = "Oversized", Description = "Work items in the readiness window estimated above the team's estimate percentile.", Order = 8)]
     Oversized = 8,
 
     [Display(Name = "No Parent", Description = "Work items in the readiness window without a parent.", Order = 9)]

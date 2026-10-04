@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Work.Domain.Models.BacklogHealth;
 
 namespace Wayd.Work.Application.WorkTeams.Dtos;
@@ -24,9 +25,18 @@ public sealed record TeamBacklogHealthDto
 
     public required LocalDate To { get; init; }
 
+    /// <summary>
+    /// The team's sizing method today, which every estimate in the report is in. A team that sizes by count has
+    /// no estimates, so its estimate checks are not applicable.
+    /// </summary>
+    public SizingMethod SizingMethod { get; init; }
+
     public int TotalWorkItems { get; init; }
 
-    public double TotalStoryPoints { get; init; }
+    /// <summary>
+    /// The sum of the open work items' estimates in <see cref="SizingMethod"/>; under Count, the number of items.
+    /// </summary>
+    public double TotalEstimate { get; init; }
 
     public int ProposedWorkItems { get; init; }
 
@@ -63,9 +73,10 @@ public sealed record TeamBacklogHealthDto
     public double? AgingWipDays { get; init; }
 
     /// <summary>
-    /// The estimate a work item is flagged as oversized above. Null without enough history.
+    /// The estimate, in <see cref="SizingMethod"/>, a work item is flagged as oversized above. Null without
+    /// enough history, or when the team sizes by count.
     /// </summary>
-    public double? OversizedStoryPoints { get; init; }
+    public double? OversizedEstimate { get; init; }
 
     public List<BacklogHealthCheckDto> Checks { get; init; } = [];
 

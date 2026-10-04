@@ -1,5 +1,6 @@
 import {
   BacklogHealthCheckDto,
+  SizingMethod,
   TeamBacklogHealthDto,
 } from '@/src/services/wayd-api'
 import {
@@ -83,7 +84,8 @@ describe('describeCheck', () => {
     memberCount: 4,
     minimumItemsCompleted: 10,
     agingWipDays: 12.34,
-    oversizedStoryPoints: null,
+    sizingMethod: SizingMethod.StoryPoints,
+    oversizedEstimate: null,
     thresholds: {
       staleDays: 45,
       atRiskPercent: 10,
@@ -106,7 +108,7 @@ describe('describeCheck', () => {
     const noHistory = {
       ...health,
       agingWipDays: null,
-      oversizedStoryPoints: null,
+      oversizedEstimate: null,
       memberCount: null,
     } as unknown as TeamBacklogHealthDto
 
@@ -128,8 +130,47 @@ describe('describeCheck', () => {
 
   it('says a history-based check needs history when there is none', () => {
     expect(describeCheck(BacklogHealthCheck.Oversized, health)).toContain(
-      "above the team's 90th percentile. Needs at least 10 completed work items",
+      "above the team's 90th percentile story points. Needs at least 10 completed work items",
     )
+  })
+
+  it('states the oversized limit in the team’s sizing method', () => {
+    // Arrange
+    const effort = {
+      ...health,
+      sizingMethod: SizingMethod.Effort,
+      oversizedEstimate: 13,
+    } as unknown as TeamBacklogHealthDto
+
+    // Act
+    const result = describeCheck(BacklogHealthCheck.Oversized, effort)
+
+    // Assert
+    expect(result).toContain("above 13 effort, the team's 90th percentile")
+  })
+
+  it('says the estimate checks do not apply to a team that sizes by count', () => {
+    // Arrange
+    const count = {
+      ...health,
+      sizingMethod: SizingMethod.Count,
+    } as unknown as TeamBacklogHealthDto
+
+    // Act
+    const missing = describeCheck(BacklogHealthCheck.MissingEstimate, count)
+    const oversized = describeCheck(BacklogHealthCheck.Oversized, count)
+
+    // Assert
+    expect(missing).toContain('the team sizes by count')
+    expect(oversized).toContain('the team sizes by count')
+  })
+
+  it('counts an estimate of 0 as estimated', () => {
+    // Act
+    const result = describeCheck(BacklogHealthCheck.MissingEstimate, health)
+
+    // Assert
+    expect(result).toContain('with no story points. An estimate of 0 counts')
   })
 
   it('states the readiness window size', () => {

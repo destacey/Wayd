@@ -22,7 +22,7 @@ public sealed record GetTeamBacklogHealthRequest
     /// <summary>The cycle time percentile an active work item is aging beyond (default 85).</summary>
     public int? AgingWipPercentile { get; set; }
 
-    /// <summary>The story point percentile a work item is oversized above (default 85).</summary>
+    /// <summary>The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).</summary>
     public int? OversizedPercentile { get; set; }
 
     /// <summary>Weeks of throughput the readiness checks look ahead (default 4).</summary>

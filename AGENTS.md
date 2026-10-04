@@ -205,20 +205,18 @@ Architecture tests in `Wayd.ArchitectureTests` enforce these dependency rules.
 
 ### Comments (all languages)
 
-Comment the **constraint**, not the narrative. A comment earns its place when it explains something
-the code cannot: a non-obvious invariant, why a surprising line must stay, a bug it prevents, an
-external quirk it works around.
+Every comment must be valuable, never narrative. Full rules and examples:
+[coding-standards.mdx](docs/contributing/coding-standards.mdx#comments).
 
-Do not write:
-
-- Restatements of what the line plainly does (`// loop over the rows`).
-- The path that led to the fix, alternatives rejected, or what the code used to do — git history
-  covers that. Keep only the constraint that survives ("X must run before Y or Z breaks").
-- References to a property, flag, or branch that is **not** in the code.
-- A doc block on every function purely for symmetry. Summarize a function when its name and
-  signature genuinely don't convey it; otherwise skip it.
-
-Match the comment density of the surrounding file rather than importing a different house style.
+- A comment tells the reader what the code cannot: what a type or member is for, a non-obvious
+  invariant, why a surprising line must stay, the bug it prevents, an external quirk it works around.
+- No history (what the code used to do, how the fix was found, alternatives rejected — git keeps that),
+  no restating the line beneath, no references to a property, flag, or branch that is not in the code.
+- **.NET: classes, records, interfaces, enums, methods, and properties carry `///` XML documentation**
+  — it is how readers discover what a member is for. Write the summary for someone who sees the name and
+  signature but not the body; never `Gets or sets the X`.
+- `///` on `Wayd.Web.Api` request/response models is published: it becomes the OpenAPI `description` and
+  the generated TypeScript client's JSDoc. Endpoint summaries come from `[OpenApiOperation]`.
 
 ### .NET Backend
 

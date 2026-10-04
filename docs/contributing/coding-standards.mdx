@@ -7,6 +7,70 @@ audience: [developer, agent]
 
 # Coding Standards
 
+## Comments
+
+Every comment must be worth reading. A comment earns its place when it tells the reader something the code
+cannot: what a type or member is for, a non-obvious invariant, why a surprising line must stay, the bug it
+prevents, or an external quirk it works around.
+
+Comments are never narrative. Do not write:
+
+- **History** — what the code used to do, the path that led to a fix, or alternatives that were rejected. Git
+  keeps that. Keep only the constraint that survives: "X must run before Y or Z breaks".
+- **Reasoning** — how the author got there ("which is how this reached production"). A later reader needs
+  the conclusion, not the journey.
+- **Restatement** — a comment that repeats the line beneath it (`// loop over the rows`).
+- **Phantom references** — a property, flag, or branch that is not in the code.
+- **Cross-reference bouncing** — "see the note on X" when the point fits in the comment itself.
+
+When a comment warns, phrase it as an instruction — "Do not map X here; it throws under a real provider" —
+not as an observation ("X is deliberately not mapped"). If deleting a comment loses nothing a reader can't
+see from the code, delete it.
+
+Match the comment density of the file you are editing.
+
+### XML documentation (.NET)
+
+Classes, records, interfaces, enums, methods, and properties carry `///` XML documentation. It is how a
+reader discovers what a type is for without opening it — the summary appears in IntelliSense wherever the
+member is used — and it is where the context belongs that a name alone cannot carry.
+
+Write the summary for someone who can see the name and signature but not the body. From `Project`:
+
+```csharp
+/// <summary>
+/// The project's fractional sort key within its portfolio's ranking (Jira-style: an opaque
+/// between-able key, not the displayed position; the #1/#2/#3 shown to users is derived at read
+/// time). Every project is ranked from creation, so this is always set. A human prioritization,
+/// independent of the computed score. Mutated only via the owning <see cref="ProjectPortfolio"/>
+/// aggregate.
+/// </summary>
+public double Rank { get; private set; }
+```
+
+not
+
+```csharp
+/// <summary>Gets or sets the rank.</summary>
+public double Rank { get; private set; }
+```
+
+- Say what the member is for and anything a caller must know: units, ranges, what `null` means, when it
+  throws or fails, what it does not do.
+- Use `<param>`, `<returns>`, and `<remarks>` when they add something; skip them when the summary covers it.
+- The same no-narrative rule applies: no history, no "this was added to…".
+
+**API models publish their documentation.** `Wayd.Web.Api` generates its XML documentation file, and NSwag
+reads it: the `///` summary on a request or response model and on each of its properties becomes the
+`description` in the OpenAPI spec and the JSDoc on the generated TypeScript client. Write those for an API
+consumer. An endpoint's published summary comes from its `[OpenApiOperation]` attribute instead, so the
+`///` on a controller action can speak to maintainers.
+
+### Test markers
+
+Every test marks its phases with `// Arrange`, `// Act`, and `// Assert`. See
+[Testing](./testing.mdx#arrange--act--assert-comments).
+
 ## .NET Backend
 
 ### Naming Conventions

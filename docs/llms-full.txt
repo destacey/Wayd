@@ -206,7 +206,8 @@ Managed workspaces: Synced from external systems, have external URL templates.
 Fundamental unit of work. Properties:
 - Key: {WorkspaceKey}-{Number} (e.g., PLAT-1234). Title (immutable after creation).
 - Type (WorkType), Status (WorkStatus), StatusCategory (Proposed/Active/Done/Removed)
-- Priority, StackRank, StoryPoints, Assignee, Team, Parent
+- Priority, StackRank, Assignee, Team, Parent
+- Estimates, kept separately: StoryPoints (sprint-level relative estimate), Effort (level of effort; Scrum's sprint estimate, and Agile features/epics), Size (CMMI). Each syncs from its own AzDO field; an item can carry several.
 - Sprint/Iteration, Project (Portfolio tier only), ParentProject (inherited from parent)
 - ActivatedTimestamp, DoneTimestamp, Created, LastModified
 

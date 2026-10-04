@@ -49616,6 +49616,8 @@ export interface WorkItemDetailsDto {
     projectSource: string;
     externalViewWorkItemUrl?: string | undefined;
     storyPoints?: number | undefined;
+    effort?: number | undefined;
+    size?: number | undefined;
     tags: string[];
 }
 

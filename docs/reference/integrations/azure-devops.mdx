@@ -61,8 +61,9 @@ There are no admin toggles for filtering or projection. Sync cadence is set by t
 3. Each Azure DevOps project is initialized into a Wayd **Workspace**; each work process into a Wayd **Work Process**.
 4. The `WorkSyncRunner` (Hangfire job `WorkFullSync` or `WorkDiffSync`) iterates all active AzDO connections and dispatches work item fetches through the keyed `IWorkItemSource` registered for `Connector.AzureDevOps`.
 5. Synced items have **Managed** ownership and are read-only in Wayd. Differential syncs only re-fetch items changed since the last successful run; full syncs re-pull everything and reconcile deletions.
-6. A work item's **Assigned To**, **Created By**, and **Changed By** are resolved to Wayd employees through [identity mapping](#people-matching). Every identity a sync sees is recorded, whether or not it resolved.
-7. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the Sync History tab on the connection detail page.
+6. A work item's three estimates are read from the standard scheduling fields — `Microsoft.VSTS.Scheduling.StoryPoints`, `Microsoft.VSTS.Scheduling.Effort` and `Microsoft.VSTS.Scheduling.Size` — on every sync, whatever the process. Each process fills a different one (Agile Story Points, Scrum Effort, CMMI Size), Agile features and epics often carry Effort, and a project that changes process keeps its old values. A field a work item type doesn't have stays empty; a negative value is stored as 0.
+7. A work item's **Assigned To**, **Created By**, and **Changed By** are resolved to Wayd employees through [identity mapping](#people-matching). Every identity a sync sees is recorded, whether or not it resolved.
+8. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the Sync History tab on the connection detail page.
 
 ## People matching
 

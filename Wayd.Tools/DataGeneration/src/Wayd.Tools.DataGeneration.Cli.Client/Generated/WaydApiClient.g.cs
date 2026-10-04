@@ -94715,6 +94715,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("storyPoints")]
         public double? StoryPoints { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        public double? Effort { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("size")]
+        public double? Size { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();

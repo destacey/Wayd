@@ -48455,6 +48455,9 @@ export interface PlanningSprintListDto {
     state: SimpleNavigationDto;
     start: string;
     end: string;
+    activeFrom?: Date | undefined;
+    activeUntil?: Date | undefined;
+    timeZone?: string | undefined;
     team: PlanningTeamNavigationDto;
 }
 
@@ -48537,6 +48540,14 @@ export interface SprintMetricsSummary {
     state: SimpleNavigationDto;
     start: string;
     end: string;
+    /** When the sprint became Active: when the team started it, or else the start of its first planned day in
+TimeZone. Null for a sprint whose team is not mapped. */
+    activeFrom?: Date | undefined;
+    /** When the sprint stops being Active, exclusive: a sprint that runs to the end of a day ends at the next
+midnight, so its last day is the one before. */
+    activeUntil?: Date | undefined;
+    /** The IANA time zone the sprint's days are counted in: its team's. */
+    timeZone?: string | undefined;
     team: NavigationDto;
     totalWorkItems: number;
     totalStoryPoints: number;
@@ -49432,8 +49443,8 @@ export interface SprintDetailsDto {
     team: WorkTeamNavigationDto;
     started?: Date | undefined;
     completed?: Date | undefined;
-    effectiveStart?: Date | undefined;
-    effectiveEnd?: Date | undefined;
+    activeFrom?: Date | undefined;
+    activeUntil?: Date | undefined;
     timeZone?: string | undefined;
     overlapsPreviousSprint: boolean;
     overlapsNextSprint: boolean;

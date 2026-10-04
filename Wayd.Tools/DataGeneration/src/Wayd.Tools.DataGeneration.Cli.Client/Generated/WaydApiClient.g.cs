@@ -90998,6 +90998,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("activeFrom")]
+        public System.DateTimeOffset? ActiveFrom { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("activeUntil")]
+        public System.DateTimeOffset? ActiveUntil { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        public string? TimeZone { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("team")]
         [System.ComponentModel.DataAnnotations.Required]
         public PlanningTeamNavigationDto Team { get; set; } = default!;
@@ -91246,6 +91255,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
+
+        /// <summary>
+        /// When the sprint became Active: when the team started it, or else the start of its first planned day in
+        /// <br/>TimeZone. Null for a sprint whose team is not mapped.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeFrom")]
+        public System.DateTimeOffset? ActiveFrom { get; set; } = default!;
+
+        /// <summary>
+        /// When the sprint stops being Active, exclusive: a sprint that runs to the end of a day ends at the next
+        /// <br/>midnight, so its last day is the one before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeUntil")]
+        public System.DateTimeOffset? ActiveUntil { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA time zone the sprint's days are counted in: its team's.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        public string? TimeZone { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("team")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -93958,11 +93987,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("completed")]
         public System.DateTimeOffset? Completed { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("effectiveStart")]
-        public System.DateTimeOffset? EffectiveStart { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("activeFrom")]
+        public System.DateTimeOffset? ActiveFrom { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("effectiveEnd")]
-        public System.DateTimeOffset? EffectiveEnd { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("activeUntil")]
+        public System.DateTimeOffset? ActiveUntil { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
         public string? TimeZone { get; set; } = default!;

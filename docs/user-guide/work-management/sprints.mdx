@@ -30,6 +30,8 @@ Days are counted in the team's time zone, from its [operating model](../organiza
 
 For example, a sprint planned to start on Monday that the team starts on Tuesday morning shows as Active from Monday until the team starts it. Once started, it counts as Active only from Tuesday morning, which is what its history and metrics use.
 
+**Timelines, countdowns and health follow the days a sprint is Active**, not its planned dates. On the sprint page, the **My Team Sprints** cards on Home and the sprint cards on a PI iteration, the timeline bar, **Days Remaining** and the health tag run from the day the sprint became Active to its last Active day: day 1 is the day the team started it, or else its first planned day, and the last day is the day it was completed, or else its last planned day. The date range shown beside a sprint stays the planned one. A sprint whose team is not mapped to a Wayd team uses its planned dates.
+
 Sprints are [mapped to PI iterations](../planning/planning-intervals.mdx#sprint-mapping) to connect team delivery cadence to the broader planning schedule.
 
 ### Starting, Completing and Reopening a Sprint
@@ -39,18 +41,20 @@ A sprint's synced dates are what was **planned**. Teams often start or finish on
 | Action | What it records | When it is allowed |
 |---|---|---|
 | **Start** | The moment you choose — now by default, or earlier — as the sprint's actual start | After the team's previous sprint started (and not before it was completed, if it was), up to the end of the sprint's last planned day, and before the next sprint's start. The team's first sprint can be started up to 3 days before its planned start. |
-| **Complete** | The moment you choose — now by default, or earlier — as the sprint's actual end | After the sprint started — pressing Start is not required, its default start is enough — before a later sprint has started, and once any earlier sprint the team left open has been completed |
+| **Complete** | The moment you choose — now by default, or earlier — as the sprint's actual end | After the sprint started — pressing Start is not required, its commitment point having passed is enough — before a later sprint has started, and once any earlier sprint the team left open has been completed |
 | **Reopen** | Clears the actual end | While the team has not started a later sprint |
 
 The dialog offers only the moments the rules allow, so a recorded start or end never overlaps the team's other sprints. A moment can't be in the future. Activity records both the moment you chose and when you recorded it.
 
 **A team has one open sprint at a time.** If the previous sprint is still open when you start the next one, Wayd asks you to confirm completing it. On confirm, the previous sprint is completed at the same moment the new one starts.
 
-**Default dates.** A sprint the team does not start or complete still has actual dates for metrics:
-- **Default start** — the end of the team's [commitment grace period](../organizations/index.mdx#operating-model) after the planned start (with the default of 1 day, the end of the first planned day)
+**Default dates.** A sprint the team does not start or complete still has actual dates:
+- **Default start** — the beginning of the first planned day, or the moment the previous sprint ended if that was later
 - **Default end** — the end of the last planned day
 
-Both are counted in the team's time zone, from the [operating model](../organizations/index.mdx#operating-model) in effect on the sprint's planned start. The sprint page labels each date **Actual** or **Default**, and shows the team's time zone when it differs from yours.
+Both are counted in the team's time zone, from the [operating model](../organizations/index.mdx#operating-model) in effect on the sprint's planned start. They are what the sprint's state, timeline and countdown use. The sprint page labels each date **Actual** or **Default**, and shows the team's time zone when it differs from yours.
+
+**Commitment point.** Metrics take the team's commitment when the team starts the sprint, or, if it doesn't, at the end of the team's [commitment grace period](../organizations/index.mdx#operating-model) after the planned start — with the default of 1 day, the end of the first planned day. That leaves the team its first day to plan: work added on that day counts as committed, not as added scope.
 
 **Overlapping sprints in Azure DevOps.** Azure DevOps lets one team's iterations overlap, and Wayd keeps the source dates as they are. Where they overlap, a sprint's default end is cut to the next sprint's start, so the team's actual sprints never overlap. The sprint page and the team's Sprints section show a warning for overlapping sprints so they can be corrected at the source.
 

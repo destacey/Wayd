@@ -86,6 +86,7 @@ try
     builder.Services.AddScoped<IJobManager, JobManager>();
     builder.Services.AddSingleton(ImportResponseTiming.FromConfiguration(builder.Configuration));
     builder.Services.AddScoped<ImportSubmissionResponder>();
+    builder.Services.AddWaydMcp();
 
     // Wolverine is the command/query/event mediator (replacing MediatR), configured in Infrastructure
     // alongside the other host plumbing. IDispatcher — the only dispatch seam call sites use — is
@@ -112,6 +113,7 @@ try
 
     app.UseInfrastructure(builder.Configuration);
     app.MapDefaultEndpoints();
+    app.MapWaydMcp();
 
     // Expose the JasperFx/Wolverine CLI verbs (`resources setup`, `codegen write`, `check-env`, …) when
     // the process is launched WITH a verb in args — this is what the Aspire AppHost's .WithJasperFxStartup

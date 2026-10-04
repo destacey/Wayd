@@ -113,6 +113,7 @@ const sidebars: SidebarsConfig = {
             'contributing/architecture',
             'contributing/domain-events',
             'contributing/coding-standards',
+            'contributing/git-workflow',
             'contributing/testing',
             'contributing/adding-a-feature',
             'contributing/database',

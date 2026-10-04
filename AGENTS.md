@@ -508,9 +508,16 @@ Visions (one Active at a time), Strategies, Strategic Themes (cross-domain tags 
   config file is how the wrong database gets dropped. If Aspire cannot run, stop and ask; do not improvise a
   replacement.
 - **Main branch**: `main` (not master)
-- **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `commit-msg` rejects AI
-  attribution trailers (`Co-Authored-By` an AI tool, "Generated with …" footers) — leave them out of every
-  commit message and PR description. `pre-push` refuses an MCP change that has no changeset.
+- **Branches and commits** follow [git-workflow.mdx](docs/contributing/git-workflow.mdx):
+  - Branch `<type>/<issue>-<short-summary>` (`feat/964-mcp-tool-annotations`).
+  - Subject `type(scope): summary (#issue)`, 72 characters at most, imperative, no full stop. Types:
+    `feat` `fix` `docs` `refactor` `test` `perf` `chore` `ci` `build`. Scopes come from a fixed list in that
+    doc; leave the scope out when a change spans areas.
+  - Body optional: why, never narrative. No AI attribution trailers or "Generated with …" lines, in commits
+    or PR descriptions.
+- **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `commit-msg` rejects a subject
+  that breaks the convention and any AI attribution; `pre-push` rejects a misnamed branch and an MCP change
+  that has no changeset.
 - **Docker Compose**: Environment variable changes require full teardown and rebuild (`docker compose down` then `up`)
 - **OpenTelemetry**: Configured in `Wayd.Infrastructure/src/Wayd.Infrastructure/OpenTelemetry/ConfigureServices.cs`. Frontend server-side only via `instrumentation.ts`.
 

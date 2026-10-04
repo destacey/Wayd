@@ -15,4 +15,4 @@ if grep -qiE 'Generated with .*(Claude Code|Copilot|Cursor)|Co-authored with .*C
     exit 1
 fi
 
-exit 0
+exec bash "$(git rev-parse --show-toplevel)/.github/scripts/commit-message-check.sh" "$1"
